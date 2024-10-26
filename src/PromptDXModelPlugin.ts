@@ -1,0 +1,27 @@
+import { PromptDX } from "./runtime";
+import { JSONObject, Output } from "./types";
+
+export abstract class PromptDXModelPlugin<T = JSONObject, R = T> {
+  protected apiKey: string | undefined = "";
+
+  provider: string;
+
+  constructor(provider: string) {
+    this.provider = provider;
+  }
+
+  setApiKey(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  abstract deserialize(PromptDX: PromptDX): R;
+
+  abstract runInference(completionParams: R): Promise<Output[]>;
+
+  abstract serialize(completionParams: R, name: string): string;
+
+  run(promptDX: PromptDX) {
+    const completionParams = this.deserialize(promptDX);
+    return this.runInference(completionParams);
+  }
+}

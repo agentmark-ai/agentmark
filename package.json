@@ -1,0 +1,25 @@
+{
+  "name": "@puzzlet/templatedx",
+  "version": "0.0.2",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.24.7",
+    "@changesets/cli": "^2.27.9",
+    "@types/js-yaml": "^4",
+    "@types/node": "^22.8.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  },
+  "dependencies": {
+    "@puzzlet/templatedx": "^0.0.3",
+    "front-matter": "^4.0.2",
+    "js-yaml": "^4.1.0",
+    "openai": "^4.65.0"
+  }
+}
