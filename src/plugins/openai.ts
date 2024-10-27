@@ -6,7 +6,7 @@ import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
 } from "openai/resources";
-import { PromptDXModelPlugin } from "../PromptDXModelPlugin";
+import { PromptDXModelPlugin } from "../promptDXModelPlugin";
 import { PromptDX } from "../runtime";
 import OpenAI from "openai";
 import { getEnv, omit, toFrontMatter } from "../utils";

@@ -20,8 +20,9 @@ export abstract class PromptDXModelPlugin<T = JSONObject, R = T> {
 
   abstract serialize(completionParams: R, name: string): string;
 
-  run(promptDX: PromptDX) {
+  async run(promptDX: PromptDX) {
     const completionParams = this.deserialize(promptDX);
-    return this.runInference(completionParams);
+    const result = await this.runInference(completionParams);
+    return result;
   }
 }

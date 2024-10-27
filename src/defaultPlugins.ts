@@ -1,6 +1,5 @@
-import { PromptDXModelPluginRegistry } from "./PromptDXModelPluginRegistry";
+import { PromptDXModelPluginRegistry } from "./promptDXModelPluginRegistry";
 import { OpenAIChatPlugin } from "./plugins/openai";
-
 
 
 PromptDXModelPluginRegistry.register(new OpenAIChatPlugin(), [

@@ -6,4 +6,4 @@ export {
   getModel,
 } from "./runtime";
 
-export { PromptDXModelPluginRegistry } from "./PromptDXModelPluginRegistry";
+export { PromptDXModelPluginRegistry } from "./promptDXModelPluginRegistry";

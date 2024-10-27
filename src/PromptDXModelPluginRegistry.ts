@@ -1,4 +1,4 @@
-import { PromptDXModelPlugin } from "./PromptDXModelPlugin";
+import { PromptDXModelPlugin } from "./promptDXModelPlugin";
 
 export class PromptDXModelPluginRegistry {
   public static plugins: Map<string, PromptDXModelPlugin> = new Map<

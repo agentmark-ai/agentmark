@@ -1,4 +1,4 @@
-import { PromptDXModelPluginRegistry } from "./PromptDXModelPluginRegistry";
+import { PromptDXModelPluginRegistry } from "./promptDXModelPluginRegistry";
 import type { Ast } from "@puzzlet/templatedx";
 import { JSONObject } from "./types";
 import {
