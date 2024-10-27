@@ -6,7 +6,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "vitest run",
-    "build": "tsc"
+    "test:watch": "vitest",
+    "build": "tsc",
+    "release": "changeset publish"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.25.4",
