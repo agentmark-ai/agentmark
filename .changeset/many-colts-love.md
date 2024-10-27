@@ -1,5 +1,5 @@
 ---
-"@puzzlet/templatedx": patch
+"@puzzlet/promptdx": patch
 ---
 
 PromptDX - Init
