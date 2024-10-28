@@ -6,7 +6,7 @@ import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
 } from "openai/resources";
-import { PromptDXModelPlugin } from "../promptDXModelPlugin";
+import { ModelPlugin } from "../model-plugin";
 import { PromptDX } from "../runtime";
 import OpenAI from "openai";
 import { getEnv, omit, toFrontMatter } from "../utils";
@@ -16,7 +16,7 @@ import {
   OutputDataWithValue,
 } from "../types";
 
-export class OpenAIChatPlugin extends PromptDXModelPlugin<ChatCompletionCreateParams> {
+export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
   constructor() {
     super("openai");
   }
