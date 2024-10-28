@@ -1,8 +1,8 @@
-import { PromptDXModelPluginRegistry } from "./promptDXModelPluginRegistry";
+import { ModelPluginRegistry } from "./model-plugin-registry";
 import { OpenAIChatPlugin } from "./plugins/openai";
 
 
-PromptDXModelPluginRegistry.register(new OpenAIChatPlugin(), [
+ModelPluginRegistry.register(new OpenAIChatPlugin(), [
   "gpt-4",
   "gpt-4-turbo",
   "gpt-4-1106-preview",

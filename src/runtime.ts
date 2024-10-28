@@ -1,4 +1,4 @@
-import { PromptDXModelPluginRegistry } from "./promptDXModelPluginRegistry";
+import { ModelPluginRegistry } from "./model-plugin-registry";
 import type { Ast } from "@puzzlet/templatedx";
 import { JSONObject } from "./types";
 import {
@@ -46,7 +46,7 @@ export async function runInference(
   props: JSONObject = {},
 ) {
   const promptDX = await loadMdx(ast, props);
-  const plugin = PromptDXModelPluginRegistry.getPlugin(
+  const plugin = ModelPluginRegistry.getPlugin(
     promptDX.metadata.model.name
   );
   return plugin?.run(promptDX);
@@ -57,20 +57,20 @@ export function serialize(
   model: string,
   promptName: string
 ) {
-  const plugin = PromptDXModelPluginRegistry.getPlugin(model);
+  const plugin = ModelPluginRegistry.getPlugin(model);
   return plugin?.serialize(completionParams, promptName);
 }
 
 export async function deserialize(ast: Ast) {
   const promptDX = await loadMdx(ast);
-  const plugin = PromptDXModelPluginRegistry.getPlugin(
+  const plugin = ModelPluginRegistry.getPlugin(
     promptDX.metadata.model.name
   );
   return plugin?.deserialize(promptDX);
 }
 
 export const registerDefaultPlugins = async () => {
-  return await import("./defaultPlugins");
+  return await import("./builtin-plugins");
 };
 
 export const getModel = (ast: Ast) => {

@@ -1,13 +1,13 @@
-import { PromptDXModelPlugin } from "./promptDXModelPlugin";
+import { ModelPlugin } from "./model-plugin";
 
-export class PromptDXModelPluginRegistry {
-  public static plugins: Map<string, PromptDXModelPlugin> = new Map<
+export class ModelPluginRegistry {
+  public static plugins: Map<string, ModelPlugin> = new Map<
     string,
-    PromptDXModelPlugin
+    ModelPlugin
   >();
 
   public static register(
-    modelPlugin: PromptDXModelPlugin<any, any>,
+    modelPlugin: ModelPlugin<any, any>,
     ids: string[]
   ) {
     for (const id of ids) {

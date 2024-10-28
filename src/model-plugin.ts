@@ -1,7 +1,7 @@
 import { PromptDX } from "./runtime";
 import { JSONObject, Output } from "./types";
 
-export abstract class PromptDXModelPlugin<T = JSONObject, R = T> {
+export abstract class ModelPlugin<T = JSONObject, R = T> {
   protected apiKey: string | undefined = "";
 
   provider: string;

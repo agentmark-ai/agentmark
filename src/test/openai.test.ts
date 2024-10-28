@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { getMdxAst, getMdxPrompt } from "./helpers";
-import "../defaultPlugins";
+import "../builtin-plugins";
 import { runInference, deserialize, serialize } from "../runtime";
 import { vi } from "vitest";
 import { openAIResponseWithNoStream, openAIResponseWithStream } from "./utils";
