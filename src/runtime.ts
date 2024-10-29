@@ -61,8 +61,8 @@ export function serialize(
   return plugin?.serialize(completionParams, promptName);
 }
 
-export async function deserialize(ast: Ast) {
-  const promptDX = await loadMdx(ast);
+export async function deserialize(ast: Ast, props = {}) {
+  const promptDX = await loadMdx(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
     promptDX.metadata.model.name
   );

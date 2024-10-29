@@ -4,6 +4,7 @@ import "../builtin-plugins";
 import { runInference, deserialize, serialize } from "../runtime";
 import { vi } from "vitest";
 import { openAIResponseWithNoStream, openAIResponseWithStream } from "./utils";
+import { getFrontMatter } from "@puzzlet/templatedx";
 
 vi.stubEnv("OPENAI_API_KEY", "key");
 
@@ -28,7 +29,7 @@ test("should deserialize", async () => {
   const deserialized = await deserialize(ast);
 
   expect(deserialized).toEqual({
-    model: "gpt-3.5-turbo-1106",
+    model: "gpt-4o-mini",
     top_p: 1,
     temperature: 0.7,
     messages: [
@@ -52,7 +53,7 @@ test("should serialize", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/basic.prompt.mdx");
   const serialized = serialize(
     {
-      model: "gpt-3.5-turbo-1106",
+      model: "gpt-4o-mini",
       top_p: 1,
       temperature: 0.7,
       messages: [
@@ -70,7 +71,7 @@ test("should serialize", async () => {
         },
       ],
     },
-    "gpt-3.5-turbo-1106",
+    "gpt-4o-mini",
     "basic-prompt"
   );
 
@@ -78,7 +79,7 @@ test("should serialize", async () => {
 });
 
 const openaiCompletionParamsWithTools = {
-  model: "gpt-3.5-turbo",
+  model: "gpt-4o-mini",
   messages: [
     {
       role: "system",
@@ -120,7 +121,7 @@ test("should serialize tools", async () => {
 
   const serialized = serialize(
     openaiCompletionParamsWithTools,
-    "gpt-3.5-turbo",
+    "gpt-4o-mini",
     "calculate"
   );
 
@@ -149,7 +150,7 @@ test("run inference with no stream", async () => {
         id: "123",
         object: "chat.completion",
         created: 1669999999,
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
         raw_response: {
           content: "4",
@@ -184,7 +185,7 @@ test("run inference with stream", async () => {
 
 
 const promptWithHistory = {
-  model: "gpt-3.5-turbo-1106",
+  model: "gpt-4o-mini",
   top_p: 1,
   temperature: 0.7,
   messages: [
@@ -213,7 +214,8 @@ const promptWithHistory = {
 
 test("should deserialize prompt with history", async () => {
   const ast = await getMdxAst(__dirname + "/mdx/with-history.prompt.mdx");
-  const deserializedPrompt = await deserialize(ast);
+  const frontmatter = getFrontMatter(ast) as any;
+  const deserializedPrompt = await deserialize(ast, frontmatter.test_settings.props);
 
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });

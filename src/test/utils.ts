@@ -2,7 +2,7 @@ export const openAIResponseWithNoStream = {
   id: "123",
   object: "chat.completion",
   created: 1669999999,
-  model: "gpt-3.5-turbo",
+  model: "gpt-4o-mini",
   choices: [
     {
       message: {
@@ -25,7 +25,7 @@ const mockSteamResponses = [
     id: "123",
     object: "chat.completion.chunk",
     created: 1677652288,
-    model: "gpt-3.5-turbo",
+    model: "gpt-4o-mini",
     choices: [
       {
         index: 0,

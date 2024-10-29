@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       try {
         const frontMatter = getFrontMatter(ast) as any;
-        const testProps = frontMatter.test_settings.props;
+        const testProps = frontMatter.test_settings?.props || {};
         const result = await runInference(ast, testProps);
         if (!result) {
           throw new Error("Could not run inference.");

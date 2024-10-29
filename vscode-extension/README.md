@@ -1,71 +1,90 @@
-# prompt-dx-extension README
+# PromptDX
 
-This is the README for your extension "prompt-dx-extension". After writing up a brief description, we recommend including the following sections.
+**A declarative, extensible, and composable approach for creating LLM prompts using Markdown and JSX.**
+
+![PromptDX](./static/promptdx.png)
+
+## Overview
+
+PromptDX is a Visual Studio Code extension that brings a new, powerful way to create language model (LLM) prompts. Designed with a focus on readability, portability, and syntax highlighting, PromptDX allows you to write prompts in a language-agnostic, declarative format using `.prompt.mdx` files.
+
+By leveraging Markdown and JSX, PromptDX provides a clean, composable, and extensible solution to enhance your prompt development workflow.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Language Agnostic**: Write prompts for any language model without platform or syntax constraints.
+- **Composable**: Easily modularize and reuse prompt components across different files and projects.
+- **Readable**: Promotes a declarative structure that enhances readability and maintainability.
+- **Syntax Highlighting**: Enjoy rich syntax highlighting to improve development experience in `.prompt.mdx` files.
+- **Portable**: Share and transfer prompts seamlessly across different environments.
 
-For example if there is an image subfolder under your extension project workspace:
+## Running the Extension
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
+```mdx Basic Prompt
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
 ---
 
-## Following extension guidelines
+<User>What's 2 + 2?</User>
+```
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+1. Open Visual Studio Code.
+2. Navigate to your `.prompt.mdx` prompt
+3. Copy this, or create your own.
+4. Press F5 or click the "Run" button in VS Code to launch the extension.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+## Modules
 
-## Working with Markdown
+You can import `.md` or `.mdx` file within your files.
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+```mdx Imports
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+---
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+import OutputInstructions from './output-format.mdx';
 
-## For more information
+<User>
+  What's 2 + 2?
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+  <OutputInstructions />
+</User>
+```
 
-**Enjoy!**
+## Props
+
+Props can be accessed using `{props.varName}`. You can test props in your file config through the `test_settings`.
+
+```mdx Props
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+test_settings:
+  props:
+    num: 3
+---
+
+<User>
+  What's 2 + {props.num}?
+</User>
+```
+
+## Documentation
+
+Comprehensive documentation, including guides and API references, is available in the [PromptDX GitHub repository](https://github.com/puzzlet-ai/promptdx/). Refer to the documentation for detailed instructions on using PromptDX features and integrating it with your workflow.
+
+## Community
+
+Chat with our growing, tight-knit community. Join our [Discord](https://discord.gg/P2NeMDtXar)
+
+## Feedback
+
+We value your feedback to continuously improve PromptDX. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/puzzlet-ai/promptdx/issues).
