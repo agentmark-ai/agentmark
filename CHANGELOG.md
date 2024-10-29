@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 0.1.1
+
+### Patch Changes
+
+- ff7cd4c: TemplateDX bump, make test props for extensions only
+
 ## 0.1.0
 
 ### Minor Changes
