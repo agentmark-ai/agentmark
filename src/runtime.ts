@@ -19,19 +19,18 @@ export interface PromptDX {
       name: string;
       settings: JSONObject;
     };
-    props: JSONObject;
   };
 }
 
-async function loadMdx(ast: Ast, props?: JSONObject) {
+async function loadMdx(ast: Ast, props = {}) {
   const frontMatter: any = getFrontMatter(ast);
-  const newProps = { ...(frontMatter.metadata.props || {}), ...(props || {}) };
-  const extractedFields = await extractFields(ast, ["User", "System", "Assistant"], newProps);
+  const extractedFields = await extractFields(ast, ["User", "System", "Assistant"], props);
   const messages = extractedFields.map((field) => ({ role: field.name.toLocaleLowerCase(), content: field.content }))
 
-  if (!frontMatter.metadata || !frontMatter.name || !extractedFields.length) {
-    throw new Error(`Invalid prompt.`);
-  }
+  if (!frontMatter.metadata) throw new Error(`Prompt must contain metadata`);
+  if (!frontMatter.name) throw new Error(`Prompt must have a name`);
+  if (!extractFields.length) throw new Error(`Prompt messages must not be empty.`);
+  if (!frontMatter.metadata.model) throw new Error(`Prompt metadata must contain model info`);
 
   const promptDX: PromptDX = {
     name: frontMatter.name,

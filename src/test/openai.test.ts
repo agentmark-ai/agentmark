@@ -212,7 +212,7 @@ const promptWithHistory = {
   ],
 };
 
-test("should deserialize prompt with history", async () => {
+test("should deserialize prompt with history prop", async () => {
   const ast = await getMdxAst(__dirname + "/mdx/with-history.prompt.mdx");
   const frontmatter = getFrontMatter(ast) as any;
   const deserializedPrompt = await deserialize(ast, frontmatter.test_settings.props);
