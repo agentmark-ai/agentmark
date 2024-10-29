@@ -1186,14 +1186,15 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@puzzlet/templatedx@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.1.0.tgz#d7b39640fe33a21d4d688d02ec3168f4c9b43144"
-  integrity sha512-VpvYBjKZ+BAKsRZ3TOeIXqKM01WlnNfrU1zNT7VjE+t2z/zrUI/UGfN1PIunG1Hhy9Rts8dxCLgrDDJ5G4dNHw==
+"@puzzlet/templatedx@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.2.0.tgz#d9900ac544d6c5a5a340d34ca52fbba05a9b586d"
+  integrity sha512-koRWQ3ounn7XzbCIlX03cetkApgJCoWw0fk/BjcrP/o01Bj2BMEOmKpnNgEV+W2X/YT80ybHvxE9xJJSR3lWLg==
   dependencies:
     js-yaml "^4.1.0"
     jsep "^1.3.9"
     mdast "^3.0.0"
+    mdast-util-to-markdown "^2.1.0"
     remark-frontmatter "^5.0.0"
     remark-mdx "^3.0.1"
     remark-parse "^11.0.0"
@@ -2187,7 +2188,7 @@ mdast-util-phrasing@^4.0.0:
     "@types/mdast" "^4.0.0"
     unist-util-is "^6.0.0"
 
-mdast-util-to-markdown@^2.0.0:
+mdast-util-to-markdown@^2.0.0, mdast-util-to-markdown@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/mdast-util-to-markdown/-/mdast-util-to-markdown-2.1.0.tgz#9813f1d6e0cdaac7c244ec8c6dabfdb2102ea2b4"
   integrity sha512-SR2VnIEdVNCJbP6y7kVTJgPLifdr8WEU440fQec7qHoHOUz/oJ2jmNRqdDQ3rbiStOXb2mCDGTuwsK5OPUgYlQ==

@@ -4,6 +4,7 @@ import "../builtin-plugins";
 import { runInference, deserialize, serialize } from "../runtime";
 import { vi } from "vitest";
 import { openAIResponseWithNoStream, openAIResponseWithStream } from "./utils";
+import { getFrontMatter } from "@puzzlet/templatedx";
 
 vi.stubEnv("OPENAI_API_KEY", "key");
 
@@ -211,9 +212,11 @@ const promptWithHistory = {
   ],
 };
 
-test("should deserialize prompt with history", async () => {
+test("should deserialize prompt with history prop", async () => {
   const ast = await getMdxAst(__dirname + "/mdx/with-history.prompt.mdx");
-  const deserializedPrompt = await deserialize(ast);
+  const frontMatter = getFrontMatter(ast) as any;
+  const props = frontMatter.test_settings.props;
+  const deserializedPrompt = await deserialize(ast, props);
 
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });
