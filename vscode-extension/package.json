@@ -1,0 +1,72 @@
+{
+  "name": "@repo/prompt-dx-vscode",
+  "displayName": "promptDX",
+  "publisher": "puzzlet",
+  "description": "",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:mdx"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "keybindings": [
+      {
+        "command": "prompt-dx-extension.runInference",
+        "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+        "key": "f5"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "prompt-dx-extension.runInference",
+          "alt": "",
+          "group": "navigation"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "prompt-dx-extension.runInference",
+        "title": "Run Mdx",
+        "icon": "$(play)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "yarn run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.8",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.93.0",
+    "@typescript-eslint/eslint-plugin": "^8.7.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.11.1",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.2",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@puzzlet/promptdx": "^0.1.1",
+    "@puzzlet/templatedx": "^0.2.0"
+  }
+}
