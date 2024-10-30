@@ -35,6 +35,9 @@ name: basic-prompt
 metadata:
   model:
     name: gpt-4o-mini
+test_settings:
+  props:
+    num: 3
 ---
 import Instructions from './instructions.mdx';
 
@@ -42,7 +45,10 @@ import Instructions from './instructions.mdx';
   You are a math expert
   </Instructions>
 </System>
-<User>What's 2 + 2?</User>
+
+<User>
+  What's 2 + {props.num}?
+</User>
 ```
 
 ## Features
