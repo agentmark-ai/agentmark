@@ -43,7 +43,7 @@ import Instructions from './instructions.mdx';
 
 <System>
   You are a math expert
-  </Instructions>
+  <Instructions outputType="latex" />
 </System>
 
 <User>
