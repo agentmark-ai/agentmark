@@ -60,6 +60,7 @@ PromptDX supports:
 3. Custom models
 4. Custom filters
 6. Custom JSX tags
+7. Loops and Conditional
 
 Read our [docs](https://www.promptdx.puzzlet.ai) to learn more.
 
