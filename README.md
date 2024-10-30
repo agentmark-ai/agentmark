@@ -1,3 +1,5 @@
+<h1 align="center">PromptDX</h1>
+
 <p align="center">
   <a href="https://github.com/puzzlet-ai">
     <img src="https://www.puzzlet.ai/images/logo.svg" alt="PromptDX Logo" width="200"/>
@@ -21,7 +23,7 @@
 
 PromptDX is a declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.
 
-The purpose of PromptDX is to provide a better developer experience for LLM-based apps.
+PromptDX is designed to enhance the developer experience for applications built with large language models (LLMs). It allows you to open a PromptDX file and clearly see the exact input being sent to the LLM, while still providing the flexibility to abstract away necessary details.
 
 PromptDX is built on top of the templating language, [TemplateDX](https://github.com/puzzlet-ai/templatedx), and inspired by MDX.
 
