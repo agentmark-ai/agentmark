@@ -55,14 +55,11 @@ import Instructions from './instructions.mdx';
 
 PromptDX supports:
 
-1. Modules, via ES default import statements
-2. Built-in filter
-3. Custom filter plugins
-4. Built-in tag
-5. Custom tag plugins
-6. Loops, Conditionals
-7. Built-in models
-8. Custom model plugins
+1. Markdown
+2. Components
+3. Custom models
+4. Custom filters
+6. Custom JSX tags
 
 Read our [docs](https://www.promptdx.puzzlet.ai) to learn more.
 
