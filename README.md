@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://templatedx.puzzlet.ai">Docs</a> |
+  <a href="https://promptdx.puzzlet.ai">Docs</a> |
   <a href="https://github.com/puzzlet-ai/templatedx">TemplateDX</a> |
   <a href="https://puzzlet.ai">Puzzlet</a>
 </p>
@@ -57,6 +57,8 @@ PromptDX supports:
 6. Loops, Conditionals
 7. Built-in models
 8. Custom model plugins
+
+Read our [docs](https://www.promptdx.puzzlet.ai) to learn more.
 
 ## Running PromptDX
 
