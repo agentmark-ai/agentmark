@@ -94,7 +94,7 @@ const getMdxFile: ContentLoader = async (path: string) => {
 
 const run = async (path: string) => {
   const mdx = await getMdxFile(path);
-  const bundled = await bundleMDX(mdx, `${__dirname}/mdx`, getMdxFile);
+  const bundled = await bundleMDX(mdx, `${basePathToMdxFile}`, getMdxFile);
   const props = { name: "Emily" };
   const result = await runInference(bundled, myProps);
 }
