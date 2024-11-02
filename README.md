@@ -87,6 +87,9 @@ Integrate PromptDX with your webpack workflow using our loader.
 Run PromptDX directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
+import { bundle } from "@puzzlet/templatedx";
+import { runInference } from "@puzzlet/promptdx";
+
 const getMdxFile: ContentLoader = async (path: string) => {
   const input = fs.readFileSync(path, 'utf-8');
   return input;
@@ -94,7 +97,7 @@ const getMdxFile: ContentLoader = async (path: string) => {
 
 const run = async (path: string) => {
   const mdx = await getMdxFile(path);
-  const bundled = await bundleMDX(mdx, `${basePathToMdxFile}`, getMdxFile);
+  const bundled = await bundle(mdx, `${basePathToMdxFile}`, getMdxFile);
   const props = { name: "Emily" };
   const result = await runInference(bundled, myProps);
 }

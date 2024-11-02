@@ -4,7 +4,7 @@ import {
   ModelPluginRegistry,
   getModel,
 } from "@puzzlet/promptdx";
-import { bundleMDX, ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
+import { bundle, ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
 import * as fs from 'fs';
 import * as vscode from "vscode";
 import * as path from 'path';
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       const contentLoader: ContentLoader = async (path) => fs.readFileSync(path, 'utf-8');
-      const ast = await bundleMDX(document.getText(), basename,contentLoader);
+      const ast = await bundle(document.getText(), basename,contentLoader);
 
       const model = getModel(ast);
 

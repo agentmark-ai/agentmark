@@ -20,7 +20,7 @@
     "vitest": "^2.1.1"
   },
   "dependencies": {
-    "@puzzlet/templatedx": "^0.4.0",
+    "@puzzlet/templatedx": "^0.4.2",
     "front-matter": "^4.0.2",
     "js-yaml": "^4.1.0",
     "openai": "^4.65.0"
