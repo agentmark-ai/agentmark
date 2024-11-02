@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 0.1.2
+
+### Patch Changes
+
+- c91a434: Shifting plugin
+
 ## 0.1.1
 
 ### Patch Changes
