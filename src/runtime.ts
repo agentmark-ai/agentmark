@@ -1,10 +1,8 @@
-import { ModelPluginRegistry } from "./model-plugin-registry";
 import type { Ast } from "@puzzlet/templatedx";
+import { ElementPluginRegistry, transformTree, getFrontMatter } from "@puzzlet/templatedx";
+import { ModelPluginRegistry } from "./model-plugin-registry";
 import { JSONObject } from "./types";
-import {
-  extractFields,
-  getFrontMatter,
-} from "@puzzlet/templatedx";
+import { ExtractTextPlugin } from "./templatedx-plugins/extract-text";
 
 export interface ChatMessage {
   role: string,
@@ -22,14 +20,27 @@ export interface PromptDX {
   };
 }
 
+type ExtractedField = {
+  name: string;
+  content: string;
+}
+
+type SharedContext = {
+  extractedText?: Array<ExtractedField>;
+}
+
+ElementPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
+
 async function loadMdx(ast: Ast, props = {}) {
   const frontMatter: any = getFrontMatter(ast);
-  const extractedFields = await extractFields(ast, ["User", "System", "Assistant"], props);
+  const shared: SharedContext = {};
+  await transformTree(ast, props, shared);
+  const extractedFields = shared.extractedText || [];
   const messages = extractedFields.map((field) => ({ role: field.name.toLocaleLowerCase(), content: field.content }))
 
   if (!frontMatter.metadata) throw new Error(`Prompt must contain metadata`);
   if (!frontMatter.name) throw new Error(`Prompt must have a name`);
-  if (!extractFields.length) throw new Error(`Prompt messages must not be empty.`);
+  if (!extractedFields.length) throw new Error(`Prompt messages must not be empty.`);
   if (!frontMatter.metadata.model) throw new Error(`Prompt metadata must contain model info`);
 
   const promptDX: PromptDX = {
