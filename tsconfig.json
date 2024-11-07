@@ -15,9 +15,9 @@
     "allowJs": true,
     "esModuleInterop": true
   },
-  "mdx": {
-    "checkMdx": true
-  },
+  // "mdx": {
+  //   "checkMdx": true
+  // },
   "include": ["src"],
   "exclude": ["node_modules"]
 }

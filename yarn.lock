@@ -1170,6 +1170,13 @@
     globby "^11.0.0"
     read-yaml-file "^1.1.0"
 
+"@mdx-js/react@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@mdx-js/react/-/react-3.1.0.tgz#c4522e335b3897b9a845db1dbdd2f966ae8fb0ed"
+  integrity sha512-QjHtSaoameoalGnKDT3FoIl4+9RwyTmo9ZJGBdLOks/YOiWHoRDI3PUwEzOE7kEmGcV3AFcp9K6dYu9rEuKLAQ==
+  dependencies:
+    "@types/mdx" "^2.0.0"
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
@@ -1191,10 +1198,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@puzzlet/templatedx@^0.5.1":
-  version "0.5.1"
-  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.1.tgz#fdac3855af001a9c7e229cb3bad18aa0e79f122d"
-  integrity sha512-FtzZ8oXwtxRb7NgpZcYq87XQxHH+Rd6MPJppiCW7RxWsP6FE6jn5Vu4n4hfRKVVeDrU+g2pWhKPXSliH201/UQ==
+"@puzzlet/templatedx@^0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.2.tgz#19b308c2c0c4d83f41a9fb58f85ba4612c1e00bf"
+  integrity sha512-rcuJW/U8RLbcN1vmhG8pW85gGGIi/CbepW5K21h0vhajiMWfXmtyJ9HMpl9X1zxNMYgH4z+ZBf0In9nIm90syw==
   dependencies:
     "@jsep-plugin/object" "^1.2.1"
     "@types/estree" "^1.0.6"
@@ -1337,6 +1344,11 @@
   integrity sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==
   dependencies:
     "@types/unist" "*"
+
+"@types/mdx@^2.0.0":
+  version "2.0.13"
+  resolved "https://registry.yarnpkg.com/@types/mdx/-/mdx-2.0.13.tgz#68f6877043d377092890ff5b298152b0a21671bd"
+  integrity sha512-+OWZQfAYyio6YkJb3HLxDrvnx6SWWDbC0zVPfBRzUk0/nqoDyf6dNxQi3eArPe8rJ473nobTMQ/8Zk+LxJ+Yuw==
 
 "@types/ms@*":
   version "0.7.34"
