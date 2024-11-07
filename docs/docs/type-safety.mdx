@@ -1,0 +1,56 @@
+---
+title: Type Safety
+---
+
+# Type Safety
+
+TemplateDX supports full type-safety, with just a few short steps.
+
+![Type Safety](/img/type-safety.gif)
+
+## Ading Type Safety
+
+### Adjust your tsconfig
+
+**Note**: It is recommended to use a separate `tsconfig.json` file for your TemplateDX files.
+
+```json
+{
+  "compilerOptions": {
+    ...,
+    "jsx": "preserve",
+    "allowJs": true
+  },
+  "mdx": {
+    "checkMdx": true
+  }
+}
+```
+
+### Add JSDOC types to your templatedx files
+```jsx
+{/**
+  * @typedef Props
+  * @property {string} name - Who to greet.
+  */
+}
+
+# Hello {props.name}
+```
+
+### Add types for your filters/tags
+
+Create a `types/global.d.ts` file and define your own custom filters/tags.
+
+```tsx
+import type { BaseMDXProvidedComponents, FilterFunction } from '@puzzlet/templatedx';
+
+declare global {
+  const myCustomFilter: FilterFunction<string, string>;
+
+  interface MDXProvidedComponents extends BaseMDXProvidedComponents {
+    MyCustomTag: React.FC<MyCustomTagProps>;
+  }
+}
+export {};
+```

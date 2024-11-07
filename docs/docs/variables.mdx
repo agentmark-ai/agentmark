@@ -1,0 +1,87 @@
+---
+id: variables
+title: Variables
+---
+
+# Variables
+
+- [Accessing Variables](#accessing-variables)
+  - [Dot Notation](#dot-notation)
+  - [Bracket Syntax](#bracket-syntax)
+- [Error Handling](#error-handling)
+- [Examples](#examples)
+
+## Accessing Variables
+
+#### Dot Notation
+
+Use dot notation to access object properties within the template context, similar to JavaScript.
+
+```jsx
+{ props.username }
+```
+
+---
+
+#### Bracket Syntax
+
+Bracket syntax allows access to object properties using string keys, which is useful for dynamic or complex property names.
+
+```jsx
+{ props['user-name'] }
+```
+
+## Error Handling
+
+Accessing an undefined variable will return an empty string.
+
+For example:
+
+```jsx
+{ props.undefinedVar }
+```
+
+Returns nothing (i.e. empty string)
+
+## Examples
+
+#### Accessing a Defined Variable
+
+```jsx
+{ props.username }
+```
+
+`Alice`
+
+---
+
+#### Accessing Nested Properties
+
+```jsx
+{ props.user.firstName } { props.user.lastName }
+```
+
+`Alice Johnson`
+
+---
+
+
+#### Using Bracket Syntax for Dynamic Properties
+
+```jsx
+{ props['user-email'] }
+```
+
+alice.johnson@example.com
+
+---
+
+#### Error Scenario: Undefined Variable
+
+```jsx
+{ props.user.address.street }
+```
+
+Output empty string
+
+---

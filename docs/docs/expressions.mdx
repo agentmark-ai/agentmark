@@ -1,0 +1,143 @@
+---
+id: expressions
+title: Expressions
+---
+
+# Expressions
+
+- [Literal Expressions](#literal-expressions)
+- [Operators](#operators)
+  - [Arithmetic Operators](#arithmetic-operators)
+  - [Comparisons](#comparisons)
+  - [Logical Operators](#logical-operators)
+- [Example Usage](#example-usage)
+
+## Literal Expressions
+
+- **Strings**: `"How are you?"`, `'How are you?'`
+- **Numbers**: `40`, `30.123`
+- **Arrays**: `[1, 2, "array"]`
+- **Objects**: `{ one: 1, two: 2 }`
+- **Booleans**: `true`, `false`
+
+## Operators
+
+### Arithmetic Operators
+
+- **Addition (`+`)**
+
+```jsx
+{ 2 + 3 } // Outputs: 5
+```
+
+- **Subtraction (`-`)**
+
+```jsx
+{ 10 - 4 } // Outputs: 6
+```
+
+- **Division (`/`)**
+
+```jsx
+{ 10 / 2 } // Outputs: 5
+```
+
+- **Division Remainder (`%`)**
+
+```jsx
+{ 10 % 3 } // Outputs: 1
+```
+
+- **Multiplication (`*`)**
+
+```jsx
+{ 5 * 4 } // Outputs: 20
+```
+
+### Comparisons
+
+- **Equal to (`==`)**
+
+```jsx
+{ 5 == "5" } // Outputs: true
+```
+
+- **Not equal to (`!=`)**
+
+```jsx
+{ 5 != "6" } // Outputs: true
+```
+
+- **Greater than (`>`)**
+
+```jsx
+<If condition={ numUsers > 10 }>
+  <!-- Content for more than 10 users -->
+</If>
+```
+
+- **Greater than or equal to (`>=`)**
+
+```jsx
+<If condition={ score >= 75 }>
+  <!-- Content for scores 75 and above -->
+</If>
+```
+
+- **Less than (`<`)**
+
+```jsx
+<If condition={ age < 18 }>
+  <!-- Content for users under 18 -->
+</If>
+```
+
+- **Less than or equal to (`<=`)**
+
+```jsx
+<If condition={ temperature <= 0 }>
+  <!-- Content for temperatures at or below freezing -->
+</If>
+```
+
+### Logical Operators
+
+- **and (`&&`)**
+
+```jsx
+<If condition={ isActive && hasAccess }>
+  <!-- Content for active users with access -->
+</If>
+```
+
+- **or (`||`)**
+
+```jsx
+<If condition={ isAdmin || isModerator }>
+  <!-- Content for admins or moderators -->
+</If>
+```
+
+- **not (`!`)**
+
+```jsx
+<If condition={ !isBanned }>
+  <!-- Content for users who are not banned -->
+</If>
+```
+
+## Example Usage
+
+```jsx
+<If condition={ (age >= 18 && isMember) || hasGuestPass }>
+  Welcome to the event!
+</If>
+<ElseIf condition={ age >= 18 && !isMember }>
+  Please consider becoming a member to enjoy full benefits.
+</ElseIf>
+<Else>
+  Sorry, you must be at least 18 years old to attend.
+</Else>
+```
+
+This expression checks if the user is at least 18 years old and a member, or has a guest pass, to display a welcome message. If the user is 18 or older but not a member, it prompts them to join. Otherwise, it restricts access based on age.

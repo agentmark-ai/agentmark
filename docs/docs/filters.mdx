@@ -1,0 +1,382 @@
+---
+id: filters
+title: Filters
+---
+
+# Filters
+
+TemplateDX provides a set of built-in filters that you can use to manipulate and transform data within your templates. Filters are functions that take an input value and return a transformed output.
+
+## Creating Custom Filters
+
+To create a custom filter in TemplateDX, define a filter function, register it, and apply it in your templates. For example, to create a `reverse` filter:
+
+```tsx
+reverse("Hello, TemplateDX!")
+```
+
+```tsx
+import { FilterRegistry } from "@puzzlet/templatedx";
+
+export const reverse = (input: string): string => {
+  if (typeof input !== "string") return input;
+  return input.split('').reverse().join('');
+};
+
+FilterRegistry.register("reverse", reverse);
+```
+
+## Built-in Filters
+
+### abs
+
+The `abs` filter returns the absolute value of a number.
+
+**Syntax**
+
+```tsx
+abs(number_value)
+```
+
+**Parameters**
+
+- `number_value` (number): The input number.
+
+**Example**
+
+```tsx
+abs(-42)
+```
+
+**Output:**
+
+```
+42
+```
+
+**Source Code**
+
+```tsx
+export const abs = (input: number): number => {
+  return Math.abs(input);
+};
+```
+
+### capitalize
+
+The `capitalize` filter capitalizes the first character of a string.
+
+**Parameters**
+
+```tsx
+capitalize(string_value)
+```
+
+**Parameters**
+
+- `string_value` (string): The input string to be capitalized.
+
+**Parameters**
+
+```tsx
+capitalize("hello world")
+```
+
+**Output:**
+
+```
+Hello world
+```
+
+**Parameters**
+
+```tsx
+export const capitalize = (input: string): string => {
+  if (typeof input !== "string") return input;
+  return input.charAt(0).toUpperCase() + input.slice(1);
+};
+```
+
+### dump
+
+The `dump` filter serializes a JavaScript object into a JSON string.
+
+**Syntax**
+
+```tsx
+dump(object_value)
+```
+
+**Parameters**
+
+- `object_value` (any): The input object to be serialized.
+
+**Example**
+
+```tsx
+dump({ name: "TemplateDX", version: "1.0" })
+```
+
+**Output:**
+
+```
+{"name":"TemplateDX","version":"1.0"}
+```
+
+**Source Code**
+
+```tsx
+export const dump = (input: any): string => {
+  return JSON.stringify(input);
+};
+```
+
+### join
+
+The `join` filter joins elements of an array into a single string, separated by a specified separator.
+
+**Syntax**
+
+```tsx
+join(array_value, separator)
+```
+
+**Parameters**
+
+- `array_value` (any[]): The input array.
+- `separator` (string, optional): The string to separate the array elements. Defaults to `", "`.
+
+**Example**
+
+```tsx
+join(["apple", "banana", "cherry"], ", ")
+```
+
+**Output:**
+
+```
+apple, banana, cherry
+```
+
+**Source** Code
+
+```tsx
+export const join = (input: any[], separator: string = ", "): string => {
+  if (!Array.isArray(input)) return input;
+  return input.join(separator);
+};
+```
+
+### lower
+
+The `lower` filter converts a string to lowercase letters.
+
+**Syntax**
+
+```tsx
+lower(string_value)
+```
+
+**Parameters**
+
+- `string_value` (string): The input string to be converted to lowercase.
+
+**Example**
+
+```tsx
+lower("HELLO WORLD")
+```
+
+**Output:**
+
+```
+hello world
+```
+
+**Source** Code
+
+```tsx
+export const lower = (input: string): string => {
+  if (typeof input !== "string") return input;
+  return input.toLowerCase();
+};
+```
+
+### replace
+
+The `replace` filter replaces all occurrences of a specified substring with a new substring.
+
+**Syntax**
+
+```tsx
+replace(string_value, search, replace)
+```
+
+**Parameters**
+
+- `string_value` (string): The input string.
+- `search` (string): The substring to search for.
+- `replace` (string): The substring to replace with.
+
+**Example**
+
+```tsx
+replace("Hello World", "World", "TemplateDX")
+```
+
+**Output:**
+
+```
+Hello TemplateDX
+```
+
+**Source** Code
+
+```tsx
+export const replace = (input: string, search: string, replace: string): string => {
+  if (typeof input !== "string") return input;
+  return input.split(search).join(replace);
+};
+```
+
+### round
+
+The `round` filter rounds a number to a specified number of decimal places.
+
+**Syntax**
+
+```tsx
+round(number_value, decimals)
+```
+
+**Parameters**
+
+- `number_value` (number): The input number to be rounded.
+- `decimals` (number, optional): The number of decimal places to round to. Defaults to `0`.
+
+**Example**
+
+```tsx
+round(3.14159, 2)
+```
+
+**Output:**
+
+```
+3.14
+```
+
+**Source** Code
+
+```tsx
+export const round = (input: number, decimals: number = 0): number => {
+  return Number(Math.round(Number(input + "e" + decimals)) + "e-" + decimals);
+};
+```
+
+### truncate
+
+The `truncate` filter truncates a string to a specified length and appends an ellipsis (`...`) if necessary.
+
+**Syntax**
+
+```tsx
+truncate(string_value, length)
+```
+
+**Parameters**
+
+- `string_value` (string): The input string to be truncated.
+- `length` (number): The maximum length of the output string.
+
+**Example**
+
+```tsx
+truncate("The quick brown fox jumps over the lazy dog", 20)
+```
+
+**Output:**
+
+```
+The quick brown fo...
+```
+
+**Source** Code
+
+```tsx
+export const truncate = (input: string, length: number): string => {
+  if (typeof input !== "string") return input;
+  if (input.length <= length) return input;
+  return input.substring(0, length) + "...";
+};
+```
+
+### upper
+
+The `upper` filter converts a string to uppercase letters.
+
+**Syntax**
+
+```tsx
+upper(string_value)
+```
+
+**Parameters**
+
+- `string_value` (string): The input string to be converted to uppercase.
+
+**Example**
+
+```tsx
+upper("hello world")
+```
+
+**Output:**
+
+```
+HELLO WORLD
+```
+
+**Source** Code
+
+```tsx
+export const upper = (input: string): string => {
+  if (typeof input !== "string") return input;
+  return input.toUpperCase();
+};
+```
+
+### urlencode
+
+The `urlencode` filter encodes a string to be safe for use in URLs.
+
+**Syntax**
+
+```tsx
+urlencode(string_value)
+```
+
+**Parameters**
+
+- `string_value` (string): The input string to be URL-encoded.
+
+**Example**
+
+```tsx
+urlencode("Hello World!")
+```
+
+**Output:**
+
+```
+Hello%20World%21
+```
+
+**Source** Code
+
+```tsx
+export const urlencode = (input: string): string => {
+  if (typeof input !== "string") return input;
+  return encodeURIComponent(input);
+};
+```
