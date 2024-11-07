@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 0.1.3
+
+### Patch Changes
+
+- 86c25e0: Bumping TemplateDX. Using proper names
+
 ## 0.1.2
 
 ### Patch Changes
