@@ -1,5 +1,5 @@
 import type { Ast } from "@puzzlet/templatedx";
-import { ElementPluginRegistry, transformTree, getFrontMatter } from "@puzzlet/templatedx";
+import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
 import { JSONObject } from "./types";
 import { ExtractTextPlugin } from "./templatedx-plugins/extract-text";
@@ -29,12 +29,12 @@ type SharedContext = {
   extractedText?: Array<ExtractedField>;
 }
 
-ElementPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
+TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
 async function loadMdx(ast: Ast, props = {}) {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
-  await transformTree(ast, props, shared);
+  await transform(ast, props, shared);
   const extractedFields = shared.extractedText || [];
   const messages = extractedFields.map((field) => ({ role: field.name.toLocaleLowerCase(), content: field.content }))
 

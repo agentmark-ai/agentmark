@@ -1,16 +1,16 @@
-import { ElementPlugin, PluginContext } from "@puzzlet/templatedx";
+import { TagPlugin, PluginContext } from "@puzzlet/templatedx";
 import { Node } from 'mdast';
 
-export class ExtractTextPlugin extends ElementPlugin {
+export class ExtractTextPlugin extends TagPlugin {
 
   async transform(
     _props: Record<string, any>,
     children: Node[],
     pluginContext: PluginContext
   ): Promise<Node[] | Node> {
-    const { scope, elementName, createNodeTransformer, nodeHelpers } = pluginContext;
+    const { scope, tagName, createNodeTransformer, nodeHelpers } = pluginContext;
 
-    if (!elementName) {
+    if (!tagName) {
       throw new Error('elementName must be provided in pluginContext');
     }
 
@@ -25,6 +25,7 @@ export class ExtractTextPlugin extends ElementPlugin {
     const flattenedChildren = processedChildren.flat();
     const extractedText = nodeHelpers.toMarkdown({
       type: 'root',
+      // @ts-ignore
       children: flattenedChildren
     });
     let collectedData = scope.getShared('extractedText');
@@ -33,7 +34,7 @@ export class ExtractTextPlugin extends ElementPlugin {
       scope.setShared('extractedText', collectedData);
     }
     collectedData.push({
-      name: elementName,
+      name: tagName,
       content: extractedText.trim(),
     });
     return [];
