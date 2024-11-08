@@ -4,45 +4,44 @@ title: Getting Started
 
 # Getting Started
 
-Follow the instructions below to install TemplateDX in your app.
+Follow the instructions below to install PromptDX in your app.
 
-## Install TemplateDX
+## Install PromptDX
 
 Install with npm:
 
 ```bash npm
-npm install @puzzlet/templatedx
+npm install @puzzlet/promptdx
 ```
 
 or yarn:
 
 ```bash npm
-yarn add @puzzlet/templatedx
+yarn add @puzzlet/promptdx
 ```
 
-## Use TemplateDX
+## Use PromptDX
 
 ### Loader (Recommended):
 
-Use our [webpack loader](https://github.com/puzzlet-ai/promptdx-loader). Then import pre-parsed Template files directly.
+Use our [webpack loader](https://github.com/puzzlet-ai/promptdx-loader). Then import your prompt directly.
 
 ```tsx
-import { transform } from '@puzzlet/templatedx';
-import MyTemplate from './my-template.mdx';
+import { runInference } from '@puzzlet/promptdx';
+import MyPrompt from './my-prompt.mdx';
 ...
 const props = { name: 'Jim' };
-const result = stringify(await transform(MyTemplate, props));
+const result = await runInference(MyPrompt, props);
 ```
 
 ### Node
 
 ```tsx
-import { parse, transform, stringify } from '@puzzlet/templatedx';
-import type { ContentLoader } from '@puzzlet/templatedx';
+import { parse, transform, stringify } from '@puzzlet/promptdx';
 import fs from 'fs';
 
 // Define how to load imports.
-const getFile: ContentLoader = (path: string) => {
+const getFile = (path: string) => {
   const input = fs.readFileSync(path, 'utf-8');
   return input;
 }
@@ -51,7 +50,6 @@ const run = async (path: string) => {
   const mdx = await getFile(path);
   const parsed = await parse(mdx, `${basePathToMdxFile}`, getFile);
   const props = { name: 'Jim' };
-  const result = stringify(await transform(parsed, myProps));
+  const result = await runInference(parsed, props);
 }
-run();
 ```

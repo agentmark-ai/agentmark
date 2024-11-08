@@ -2,13 +2,10 @@ module.exports = {
   docs: [
     'getting-started',
     'overview',
-    'faq',
-    'variables',
-    'expressions',
-    'syntax-highlighting',
+    'syntax',
     'type-safety',
-    'components',
-    'filters',
-    'tags',
+    'supported-providers',
+    'api',
+    'recipes',
   ],
 };
