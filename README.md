@@ -72,7 +72,7 @@ You can run PromptDX using one of the following methods:
 
 ### 1. VSCode Extension
 
-Install our VSCode extension to streamline your development process.
+Run .prompt.mdx files directly within your VSCode editor.
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx)
 
