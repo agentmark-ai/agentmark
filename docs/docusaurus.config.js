@@ -75,10 +75,6 @@ module.exports = {
               label: 'Getting Started',
               to: '/docs/getting-started',
             },
-            {
-              label: 'FAQ',
-              to: '/docs/faq',
-            },
           ],
         },
         {
