@@ -1198,10 +1198,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@puzzlet/templatedx@^0.5.2":
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.2.tgz#19b308c2c0c4d83f41a9fb58f85ba4612c1e00bf"
-  integrity sha512-rcuJW/U8RLbcN1vmhG8pW85gGGIi/CbepW5K21h0vhajiMWfXmtyJ9HMpl9X1zxNMYgH4z+ZBf0In9nIm90syw==
+"@puzzlet/templatedx@^0.5.3":
+  version "0.5.3"
+  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.3.tgz#1066947556acdf0f382dd61fe6010bcfaad6d871"
+  integrity sha512-6s33fJbvOcU6L/qzOReGXNdnrRujyvYAsBaz6Lo36viWY4TVb8kPE3LJTAkAJy2JmN4P/RU9y+7Cr3L+huDuOg==
   dependencies:
     "@jsep-plugin/object" "^1.2.1"
     "@types/estree" "^1.0.6"
