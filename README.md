@@ -64,7 +64,7 @@ PromptDX supports:
 6. Custom JSX tags
 7. Loops and Conditional
 
-Read our [docs](https://promptdx.puzzlet.ai) to learn more.
+Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
 
 ## Running PromptDX
 

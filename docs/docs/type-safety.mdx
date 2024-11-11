@@ -4,7 +4,7 @@ title: Type Safety
 
 # Type Safety
 
-TemplateDX supports full type-safety, with just a few short steps.
+PromptDX supports full type-safety, with just a few short steps.
 
 ![Type Safety](/img/type-safety.gif)
 
@@ -12,13 +12,12 @@ TemplateDX supports full type-safety, with just a few short steps.
 
 ### Adjust your tsconfig
 
-**Note**: It is recommended to use a separate `tsconfig.json` file for your TemplateDX files.
+**Note**: It is recommended to use a separate `tsconfig.json` file for your PromptDX files.
 
 ```json
 {
   "compilerOptions": {
     ...,
-    "jsx": "preserve",
     "allowJs": true
   },
   "mdx": {
@@ -27,7 +26,7 @@ TemplateDX supports full type-safety, with just a few short steps.
 }
 ```
 
-### Add JSDOC types to your templatedx files
+### Add JSDOC types to define props for your promptdx files
 ```jsx
 {/**
   * @typedef Props
@@ -43,7 +42,7 @@ TemplateDX supports full type-safety, with just a few short steps.
 Create a `types/global.d.ts` file and define your own custom filters/tags.
 
 ```tsx
-import type { BaseMDXProvidedComponents, FilterFunction } from '@puzzlet/templatedx';
+import type { BaseMDXProvidedComponents, FilterFunction } from '@puzzlet/promptdx';
 
 declare global {
   const myCustomFilter: FilterFunction<string, string>;

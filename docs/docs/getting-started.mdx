@@ -22,7 +22,13 @@ yarn add @puzzlet/promptdx
 
 ## Use PromptDX
 
-### Loader (Recommended):
+### VSCode
+
+Install our VSCode extension to streamline your development process.
+
+[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx)
+
+### SDK - Loader (Recommended):
 
 Use our [webpack loader](https://github.com/puzzlet-ai/promptdx-loader). Then import your prompt directly.
 
@@ -34,7 +40,7 @@ const props = { name: 'Jim' };
 const result = await runInference(MyPrompt, props);
 ```
 
-### Node
+### SDK - Node
 
 ```tsx
 import { parse, transform, stringify } from '@puzzlet/promptdx';

@@ -5,6 +5,9 @@ export {
   registerDefaultPlugins,
   getModel,
 } from "./runtime";
+export { parse } from "@puzzlet/templatedx";
+export type { Components as BaseMDXProvidedComponents } from './types';
+
 
 export { toFrontMatter } from './utils';
 

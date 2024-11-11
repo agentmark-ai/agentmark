@@ -1,4 +1,4 @@
-# Contributing to TemplateDX
+# Contributing to PromptDX
 
 First off, thank you for considering contributing to our project!
 
