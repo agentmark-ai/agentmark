@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 0.1.4
+
+### Patch Changes
+
+- a1f07b5: Removing old models
+
 ## 0.1.3
 
 ### Patch Changes
