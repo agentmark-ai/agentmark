@@ -1,0 +1,144 @@
+---
+title: API
+---
+
+# API
+
+PromptDX supports 3 basic methods for interacting with prompts: `runInference`, `deserialize`, and `serialize`.
+
+## runInference
+
+Run inference will take a prompt config, call the model provider's API, and return the result in PromptDX format.
+
+### Usage
+
+```tsx
+import { runInference } from '@puzzlet/promptdx';
+...
+const result = await runInference(prompt, props)
+```
+
+### Example:
+
+my-prompt.mdx:
+```jsx
+---
+name: my-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+---
+
+<User>
+Say: {props.greeting}
+</User>
+```
+
+Run:
+```tsx
+const props = { greeting: 'Hello' };
+runInference(myPrompt, props);
+```
+
+Result:
+```tsx
+Hello
+```
+
+## deserialize
+
+Deserialize takes a prompt in PromptDX format, and turns it into the configuration needed to call a model provider.
+
+### Usage
+
+```tsx
+import { deserialize } from '@puzzlet/promptdx';
+...
+deserialize(prompt, props)
+```
+
+### Example
+
+my-prompt.mdx:
+```jsx
+---
+name: my-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+---
+
+<User>
+Say: {props.greeting}
+</User>
+```
+
+Run:
+```tsx
+const props = { greeting: 'Hello' };
+deserialize(myPrompt, props);
+```
+
+Result:
+```tsx
+{
+  "model": "gpt-4o-mini",
+  "messages": [
+    {
+      "content": "Say: Hello",
+      "role": "user",
+    }
+  ]
+}
+```
+
+## serialize
+
+Serialize allows you to take an existing configuration for a Prompt, and serialize it into a PromptDX file.
+
+### Usage
+
+```tsx
+import { serialize } from '@puzzlet/promptdx';
+...
+serialize(config, modelName, promptName)
+```
+
+### Example
+
+Input Config:
+```json
+{
+  "model": "gpt-4o-mini",
+  "top_p": 1,
+  "temperature": 0.7,
+  "messages": [
+    {
+      "content": "Say: {props.greeting}",
+      "role": "user",
+    }
+  ]
+}
+```
+
+Run:
+```tsx
+serialize(config, "gpt-4o-mini", "basic-prompt")
+```
+
+Result (serialized string):
+```jsx
+---
+name: my-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+    settings:
+      top_p: 1
+      temperature: 0.7
+---
+
+<User>
+Say: {props.greeting}
+</User>
+```

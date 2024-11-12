@@ -10,4 +10,4 @@ export const getMdxAst = async (path: string) => {
   const mdx = await getMdxPrompt(path);
   const ast = await parse(mdx, `${__dirname}/mdx`, getMdxPrompt);
   return ast;
-}
+} 

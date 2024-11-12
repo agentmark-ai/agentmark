@@ -1,0 +1,75 @@
+---
+title: Getting Started
+---
+
+# Getting Started
+
+Follow the instructions below to install PromptDX in your app.
+
+## Install PromptDX
+
+Install with npm:
+
+```bash npm
+npm install @puzzlet/promptdx
+```
+
+or yarn:
+
+```bash npm
+yarn add @puzzlet/promptdx
+```
+
+## Create your first Prompt
+
+`index.prompt.mdx`
+```jsx
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+---
+
+<User>Hello World</User>
+```
+
+## Run your Prompt
+
+### VSCode
+
+Run .prompt.mdx files directly within your VSCode editor.
+
+[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx)
+
+### SDK - Loader (Recommended):
+
+Use our [webpack loader](https://github.com/puzzlet-ai/promptdx-loader). Then import your prompt directly.
+
+```tsx
+import { runInference } from '@puzzlet/promptdx';
+import MyPrompt from './index.prompt.mdx';
+...
+const props = { name: 'Jim' };
+const result = await runInference(MyPrompt, props);
+```
+
+### SDK - Node
+
+```tsx
+import { parse, transform, stringify } from '@puzzlet/promptdx';
+import fs from 'fs';
+
+// Define how to load imports.
+const getFile = (path: string) => {
+  const input = fs.readFileSync(path, 'utf-8');
+  return input;
+}
+
+const run = async () => {
+  const mdx = await getFile('index.prompt.mdx');
+  const parsed = await parse(mdx, `${basePathToMdxFile}`, getFile);
+  const props = { name: 'Jim' };
+  const result = await runInference(parsed, props);
+}
+```

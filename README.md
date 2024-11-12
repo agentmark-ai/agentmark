@@ -64,7 +64,7 @@ PromptDX supports:
 6. Custom JSX tags
 7. Loops and Conditional
 
-Read our [docs](https://promptdx.puzzlet.ai) to learn more.
+Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
 
 ## Running PromptDX
 
@@ -72,7 +72,7 @@ You can run PromptDX using one of the following methods:
 
 ### 1. VSCode Extension
 
-Install our VSCode extension to streamline your development process.
+Run .prompt.mdx files directly within your VSCode editor.
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx)
 
@@ -87,8 +87,7 @@ Integrate PromptDX with your webpack workflow using our loader.
 Run PromptDX directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
-import { parse } from "@puzzlet/templatedx";
-import { runInference } from "@puzzlet/promptdx";
+import { runInference, parse } from "@puzzlet/promptdx";
 
 const getMdxFile: ContentLoader = async (path: string) => {
   const input = fs.readFileSync(path, 'utf-8');

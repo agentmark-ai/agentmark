@@ -17,6 +17,7 @@ By leveraging Markdown and JSX, PromptDX provides a clean, composable, and exten
 - **Readable**: Promotes a declarative structure that enhances readability and maintainability.
 - **Syntax Highlighting**: Enjoy rich syntax highlighting to improve development experience in `.prompt.mdx` files.
 - **Portable**: Share and transfer prompts seamlessly across different environments.
+- **Type Safety**: Get TS-style Type Safety out of the box
 
 ## Running the Extension
 

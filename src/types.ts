@@ -1,4 +1,6 @@
-import { ChatCompletionMessageParam } from "openai/resources";
+import type { ChatCompletionMessageParam } from "openai/resources";
+import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
+import type { FC } from 'react';
 
 export type JSONPrimitive = string | number | boolean | null | undefined;
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
@@ -57,3 +59,15 @@ export type ExecuteResult = {
     [k: string]: any;
   };
 };
+
+
+interface ExtractTextProps {
+  children: any;
+}
+
+export interface Components extends BaseMDXProvidedComponents {
+  User: FC<ExtractTextProps>;
+  Assistant: FC<ExtractTextProps>;
+  System: FC<ExtractTextProps>;
+}
+

@@ -5,10 +5,7 @@ export {
   registerDefaultPlugins,
   getModel,
 } from "./runtime";
-
+export { parse } from "@puzzlet/templatedx";
 export { toFrontMatter } from './utils';
-
-export type { Output } from "./types";
-export type { PromptDX } from "./runtime";
-
 export { ModelPluginRegistry } from "./model-plugin-registry";
+import './global.d';

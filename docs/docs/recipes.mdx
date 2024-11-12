@@ -1,0 +1,204 @@
+---
+title: Recipes
+---
+
+# Recipes
+
+
+## Basic
+
+`index.prompt.mdx`
+```jsx
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+    settings:
+      top_p: 1
+      temperature: 0.7
+---
+
+<System>You are an expert math tutor</System>
+<User>What's 2 + 2?</User>
+```
+
+Running via SDK:
+```tsx
+import Prompt from './index.prompt.mdx';
+import { runInference } from '@puzzlet/promptdx';
+
+const props = {};
+const result = await runInference(Prompt, props);
+```
+
+## Chatbot
+
+`index.prompt.mdx`
+```jsx
+---
+name: chat
+metadata:
+  model:
+    name: gpt-4o-mini
+    settings:
+      top_p: 1
+      temperature: 0.7
+test_settings:
+  props:
+    messageHistory:
+      - role: user
+        message: What's 2 + 2?
+      - role: assistant
+        message: 5
+---
+
+import ChatHistory from './chat-history.mdx';
+
+<System>You are an expert math tutor</System>
+<ChatHistory history={props.history}>
+<User>That's wrong. What's 2 + 2?</User>
+```
+
+`chat-history.mdx`
+```jsx
+<ForEach arr={props.history}>
+  {(item) => (
+    <>
+      <If condition={item.role == 'user'}>
+        <User>{item.message}</User>
+      </If>
+      <ElseIf condition={item.role == 'assistant'}>
+        <Assistant>{item.message}</Assistant>
+      </ElseIf>
+    </>
+  )}
+</ForEach>
+```
+
+Running via SDK:
+```tsx
+import Prompt from './index.prompt.mdx';
+import { runInference } from '@puzzlet/promptdx';
+
+const props = {
+  history: [
+    {
+      role: "user",
+      message: "What's 2 + 2?"
+    },
+    {
+      role: "assistant",
+      message: "5"
+    },
+  ]
+};
+const result = await runInference(Prompt, props);
+```
+
+## Function Calling
+
+`index.prompt.mdx`
+```jsx
+---
+name: calculate
+metadata:
+  model:
+    name: gpt-4o-mini
+    settings:
+      tools:
+      -
+          type: function
+          function:
+            name: calculate
+            description: Performs basic math calculations.
+            parameters:
+              type: object
+              properties:
+                expression:
+                  type: string
+                  description: A mathematical expression to calculate.
+              required:
+              - expression
+              additionalProperties: false
+      temperature: 0.7
+      top_p: 1
+---
+
+<System>You are a helpful assistant capable of solving basic math problems and using tools as needed.</System>
+<User>What is 7 + 5?</User>
+```
+
+```tsx
+import Prompt from './index.prompt.mdx';
+import { runInference } from '@puzzlet/promptdx';
+
+const props = {};
+const result = await runInference(Prompt, props);
+```
+
+## Direct Provider Call
+
+`index.prompt.mdx`
+```jsx
+---
+name: direct-call
+metadata:
+  model:
+    name: gpt-4o-mini
+    settings:
+      top_p: 1
+      temperature: 0.7
+---
+
+<System>You are an expert math tutor</System>
+<User>What's 2 + 2?</User>
+```
+
+Running via SDK:
+```tsx
+import Prompt from './index.prompt.mdx';
+import { deserialize } from '@puzzlet/promptdx';
+import { OpenAI } from 'openai';
+
+const client = new OpenAI();
+
+const props = {};
+const openAIConfig = await deserialize(Prompt, props);
+const result = await client.chat.completions.create(openAIConfig);
+```
+
+## Custom Model
+
+1. Register your model provider parser w/ "my-custom-model", by following steps outlined in "Supported Provders".
+
+2. Invoke config
+`index.prompt.mdx`
+```jsx
+---
+name: custom
+metadata:
+  model:
+    name: my-custom-model
+    settings:
+      top_p: 1
+      temperature: 0.7
+      custom_settings: 1
+---
+
+<System>You are an expert math tutor</System>
+<User>What's 2 + 2?</User>
+```
+
+Running via SDK:
+```tsx
+import Prompt from './index.prompt.mdx';
+import { runInference } from '@puzzlet/promptdx';
+
+const props = {};
+const result = await runInference(Prompt, props);
+```
+
+## Chaining
+
+Docs Coming soon.

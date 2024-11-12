@@ -1,0 +1,43 @@
+---
+id: syntax
+title: Syntax
+---
+
+# Syntax
+
+A PromptDX file has two primary components to it.
+1. **Frontmatter**
+2. **Body**
+
+![Syntax](/img/example-labeled.png)
+
+## Frontmatter
+
+Frontmatter is defined in yaml, and its where your configuration and metadata about your prompts are stored. 
+In there, you will find:
+
+1. Model Name (**required**)
+2. Name of prompt (**required**)
+3. Any relevant model settings
+3. Any test related data (i.e. test props, etc.)
+4. Any other metadata you want to define like version, author, etc.
+
+## Body
+
+The body of your prompt corresponds to the messages being sent to the LLM.
+
+Prompts support the use of 3 different message related tags:
+1. **System**
+2. **User**
+3. **Assistant**
+
+These tags will be sent to the model provider in the order they are used. Any text placed outside of these tags
+will not be sent to the LLM, but may be used for providing extra context, notes, etc.
+
+**Within your body, you'll be able to:**
+1. Write Markdown.
+2. Access props ([Read More](https://puzzlet-ai.github.io/templatedx/docs/variables))
+3. Import Components ([Read More](https://puzzlet-ai.github.io/templatedx/docs/components))
+4. Use expressions ([Read More](https://puzzlet-ai.github.io/templatedx/docs/expressions))
+5. Use filter expressions ([Read More](https://puzzlet-ai.github.io/templatedx/docs/filters))
+6. Use tags ([Read More](https://puzzlet-ai.github.io/templatedx/docs/tags))
