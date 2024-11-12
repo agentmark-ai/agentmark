@@ -87,8 +87,7 @@ Integrate PromptDX with your webpack workflow using our loader.
 Run PromptDX directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
-import { parse } from "@puzzlet/templatedx";
-import { runInference } from "@puzzlet/promptdx";
+import { runInference, parse } from "@puzzlet/promptdx";
 
 const getMdxFile: ContentLoader = async (path: string) => {
   const input = fs.readFileSync(path, 'utf-8');

@@ -1,4 +1,4 @@
-import type { Components } from '../types';
+import type { Components } from './types';
 declare global {
   interface MDXProvidedComponents extends Components {}
 }
