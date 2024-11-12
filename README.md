@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://promptdx.puzzlet.ai">Docs</a> |
+  <a href="https://puzzlet-ai.github.io/promptdx/">Docs</a> |
   <a href="https://github.com/puzzlet-ai/templatedx">TemplateDX</a> |
   <a href="https://puzzlet.ai">Puzzlet</a>
 </p>
