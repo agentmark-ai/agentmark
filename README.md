@@ -31,7 +31,8 @@ PromptDX is built on top of the templating language, [TemplateDX](https://github
 
 Below is a basic example to help you get started with PromptDX:
 
-```mdx example.prompt.mdx
+`example.prompt.mdx`
+```mdx
 ---
 name: basic-prompt
 metadata:
@@ -41,16 +42,10 @@ test_settings:
   props:
     num: 3
 ---
-import Instructions from './instructions.mdx';
 
-<System>
-  You are a math expert
-  <Instructions outputType="latex" />
-</System>
+<System>You are a math expert</System>
 
-<User>
-  What's 2 + {props.num}?
-</User>
+<User>What's 2 + {props.num}?</User>
 ```
 
 ## Features
@@ -62,7 +57,8 @@ PromptDX supports:
 3. Custom models
 4. Custom filters
 6. Custom JSX tags
-7. Loops and Conditional
+7. Loops and Conditionals
+8. Type Safety
 
 Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
 
@@ -82,6 +78,12 @@ Integrate PromptDX with your webpack workflow using our loader.
 
 [PromptDX Webpack Loader](https://github.com/puzzlet-ai/promptdx-loader)
 
+```tsx
+import MyPrompt from './example.prompt.mdx';
+const props = { name: "Emily" };
+const result = await runInference(MyPrompt, props);
+```
+
 ### 3. Node.js
 
 Run PromptDX directly in your Node.js environment. Below is a sample implementation:
@@ -94,11 +96,11 @@ const getMdxFile: ContentLoader = async (path: string) => {
   return input;
 }
 
-const run = async (path: string) => {
-  const mdx = await getMdxFile(path);
+const run = async () => {
+  const mdx = await getMdxFile("./example.prompt.mdx");
   const bundled = await parse(mdx, `${basePathToMdxFile}`, getMdxFile);
   const props = { name: "Emily" };
-  const result = await runInference(bundled, myProps);
+  const result = await runInference(bundled, props);
 }
 ```
 
