@@ -1335,21 +1335,16 @@
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
 
-"@puzzlet/templatedx@^0.5.6":
-  version "0.5.6"
-  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.6.tgz#1dc6581148134e8e10f56d35aabc9b83e373f1ef"
-  integrity sha512-AKh1HTSiCVuM+3/iqZ3r1MxMrVc05aZo30unlxxWeS420hYmdbmrOzuCdgOzTn53TlcNanF9DInFSjxDrwHiSQ==
+"@puzzlet/templatedx@^0.5.7":
+  version "0.5.7"
+  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.7.tgz#e38523a4d6978033381bf2daf71cc83c70355aff"
+  integrity sha512-sLgmkoCamdQSttlvxV/qkCZz8aeN2y6Q46cRX+Z35F2j2pEx9W3m2iVScrgd/kpgULcglIBaYQUVV6Uz7YjPUw==
   dependencies:
     "@jsep-plugin/object" "^1.2.1"
-    "@types/estree" "^1.0.6"
-    "@types/react" "^18.3.12"
-    astring "^1.9.0"
-    esast-util-from-estree "^2.0.0"
     js-yaml "^4.1.0"
     jsep "^1.3.9"
     mdast "^3.0.0"
     mdast-util-to-markdown "^2.1.0"
-    react "^18.3.1"
     remark-frontmatter "^5.0.0"
     remark-mdx "^3.0.1"
     remark-parse "^11.0.0"
@@ -1548,7 +1543,7 @@
   dependencies:
     "@types/estree" "*"
 
-"@types/estree@*", "@types/estree@1.0.6", "@types/estree@^1.0.0", "@types/estree@^1.0.6":
+"@types/estree@*", "@types/estree@1.0.6", "@types/estree@^1.0.0":
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.6.tgz#628effeeae2064a1b4e79f78e81d87b7e5fc7b50"
   integrity sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==
@@ -1608,19 +1603,6 @@
   integrity sha512-vizm2EqwV/7Zay+A6J3tGl9Lhr7CjZe2HmWS988sefiEmsyP9CeXEleho6i4hJk/8UtZAo0bWN4QPZZr83RxvQ==
   dependencies:
     undici-types "~5.26.4"
-
-"@types/prop-types@*":
-  version "15.7.13"
-  resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.13.tgz#2af91918ee12d9d32914feb13f5326658461b451"
-  integrity sha512-hCZTSvwbzWGvhqxp/RqVqwU999pBf2vp7hzIjiYOsl8wqOmUxkQ6ddw1cV3l8811+kdUFus/q4d1Y3E3SyEifA==
-
-"@types/react@^18.3.12":
-  version "18.3.12"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.3.12.tgz#99419f182ccd69151813b7ee24b792fe08774f60"
-  integrity sha512-D2wOSq/d6Agt28q7rSI3jhU7G6aiuzljDGZ2hTZHIkrTLUI+AF3WMeKkEZ9nN2fkBAlcktT6vcZjDFiIhMYEQw==
-  dependencies:
-    "@types/prop-types" "*"
-    csstype "^3.0.2"
 
 "@types/unist@*", "@types/unist@^3.0.0":
   version "3.0.3"
@@ -1813,11 +1795,6 @@ assign-symbols@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/assign-symbols/-/assign-symbols-1.0.0.tgz#59667f41fadd4f20ccbc2bb96b8d4f7f78ec0367"
   integrity sha512-Q+JC7Whu8HhmTdBph/Tq59IoRtoy6KAm5zzPv00WdujX82lbAL8K7WVjne7vdCsAmbF4AYaDOPyO3k0kl8qIrw==
-
-astring@^1.9.0:
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/astring/-/astring-1.9.0.tgz#cc73e6062a7eb03e7d19c22d8b0b3451fd9bfeef"
-  integrity sha512-LElXdjswlqjWrPpJFg1Fx4wpkOCxj1TDHlSV4PlaRxHGWko024xICaa97ZkMfs6DRKlCguiAI+rbXv5GWwXIkg==
 
 async-each@^1.0.0:
   version "1.0.6"
@@ -2185,11 +2162,6 @@ cross-spawn@^7.0.0:
     shebang-command "^2.0.0"
     which "^2.0.1"
 
-csstype@^3.0.2:
-  version "3.1.3"
-  resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.3.tgz#d80ff294d114fb0e6ac500fbf85b60137d7eff81"
-  integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
-
 debug@^2.2.0, debug@^2.3.3:
   version "2.6.9"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
@@ -2304,16 +2276,6 @@ enquirer@^2.3.0:
   dependencies:
     ansi-colors "^4.1.1"
     strip-ansi "^6.0.1"
-
-esast-util-from-estree@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/esast-util-from-estree/-/esast-util-from-estree-2.0.0.tgz#8d1cfb51ad534d2f159dc250e604f3478a79f1ad"
-  integrity sha512-4CyanoAudUSBAn5K13H4JhsMH6L9ZP7XbLVe/dKybkxMO7eDyLsT8UHl9TRNrU2Gr9nz+FovfSIjuXWJ81uVwQ==
-  dependencies:
-    "@types/estree-jsx" "^1.0.0"
-    devlop "^1.0.0"
-    estree-util-visit "^2.0.0"
-    unist-util-position-from-estree "^2.0.0"
 
 esbuild@^0.21.3:
   version "0.21.5"
