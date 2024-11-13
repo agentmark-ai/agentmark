@@ -89,19 +89,25 @@ const result = await runInference(MyPrompt, props);
 Run PromptDX directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
-import { runInference, parse } from "@puzzlet/promptdx";
+import { runInference, parse, registerDefaultPlugins } from "@puzzlet/promptdx";
+import fs from 'fs';
 
-const getMdxFile: ContentLoader = async (path: string) => {
+const getMdxFile = (path) => {
   const input = fs.readFileSync(path, 'utf-8');
   return input;
 }
 
 const run = async () => {
-  const mdx = await getMdxFile("./example.prompt.mdx");
-  const bundled = await parse(mdx, `${basePathToMdxFile}`, getMdxFile);
+  const mdx = await getMdxFile(file);
+  // Set the base path for imports
+  const basePathForImports = './';
+  const bundled = await parse(mdx, basePathForImports, getMdxFile);
   const props = { name: "Emily" };
   const result = await runInference(bundled, props);
+  console.log(result);
 }
+// Registers the default model plugins (i.e. OpenAI, etc.) provided by PromptDX
+registerDefaultPlugins().then(run);
 ```
 
 ## Contributing
