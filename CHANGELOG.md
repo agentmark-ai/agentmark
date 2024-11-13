@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 0.1.5
+
+### Patch Changes
+
+- 3f78650: bundling, removing old deps
+
 ## 0.1.4
 
 ### Patch Changes
