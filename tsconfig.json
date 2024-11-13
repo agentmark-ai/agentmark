@@ -13,10 +13,9 @@
     "skipLibCheck": true,
     "jsx": "preserve",
     "allowJs": true,
-    "esModuleInterop": true
-  },
-  "mdx": {
-    "checkMdx": true
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/__tests__/*"]
