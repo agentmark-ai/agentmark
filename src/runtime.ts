@@ -59,6 +59,9 @@ export async function runInference(
   const plugin = ModelPluginRegistry.getPlugin(
     promptDX.metadata.model.name
   );
+  if (!plugin) {
+    throw new Error(`No registered plugin for ${promptDX.metadata.model.name}`);
+  }
   return plugin?.run(promptDX);
 }
 
