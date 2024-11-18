@@ -5,10 +5,19 @@ import {
   getModel,
 } from "@puzzlet/promptdx";
 import { parse, ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
+import { createBoundedQueue } from "./boundedQueue";
 import * as fs from 'fs';
 import * as vscode from "vscode";
 import * as path from 'path';
 registerDefaultPlugins();
+
+const chatMap: { [key: string]: any } = {};
+
+type ChatSettings = {
+  chatField: string;
+  useChat: boolean;
+  maxSize: number;
+}
 
 export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
@@ -62,6 +71,13 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         const frontMatter = getFrontMatter(ast) as any;
         const testProps = frontMatter.test_settings?.props || {};
+        const name = frontMatter.name as string;
+        const chatSettings: ChatSettings = frontMatter.test_settings?.chat || {};
+        let chatHistory = chatMap[name];
+        const chatFieldKey = chatSettings.chatField;
+        if (chatSettings && chatSettings.useChat && chatHistory) {
+          testProps[chatFieldKey] = chatHistory.getItems();
+        }
         const result = await runInference(ast, testProps);
         if (!result) {
           throw new Error("Could not run inference.");
@@ -74,6 +90,10 @@ export function activate(context: vscode.ExtensionContext) {
           const ch = vscode.window.createOutputChannel("promptDX");
           if (typeof output.data === "string") {
             ch.appendLine(output.data);
+            if (chatSettings && chatSettings.useChat) {
+              chatHistory = chatHistory || createBoundedQueue(chatSettings.maxSize || 10);
+              chatHistory.add({ role: 'assistant', message: output.data });
+            }
           } else {
             ch.appendLine(JSON.stringify(output.data, null, 2));
           }
