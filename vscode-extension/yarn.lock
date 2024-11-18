@@ -287,10 +287,10 @@
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
 
-"@puzzlet/promptdx@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@puzzlet/promptdx/-/promptdx-0.1.5.tgz#6b97b3ec3cb885b52c71d03e58e436a05fd66b15"
-  integrity sha512-OcETEZc2hAdQqREXjr4yVHmoRAccJOgUYZskYXUcrqHKVo7NPX3z8BLNB0E6L1HtCDve+sAxD3NWuO3oiOAl7g==
+"@puzzlet/promptdx@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@puzzlet/promptdx/-/promptdx-0.2.0.tgz#632985faf72e341fbd156c9029f0eb1b991cef83"
+  integrity sha512-+9Ps2MbEKGJx80ZaxFVYhnYuuIdptXw+2jS/CqZXIEjeCZX6YFzgq3CjYzVwWu7PQKe+mzcpqee+oOD+CRZ0oA==
   dependencies:
     "@puzzlet/templatedx" "^0.5.7"
     front-matter "^4.0.2"
