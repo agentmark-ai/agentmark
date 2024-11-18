@@ -1,12 +1,3 @@
-{/**
-  * @typedef MessageItem
-  * @property {"user" | "assistant"} role
-  * @property {string} message
-  */}
-{/**
-  * @typedef Props
-  * @property {MessageItem} item
-  */}
 <If condition={props.item.role == 'user'}>
   <User>{props.item.message}</User>
 </If>

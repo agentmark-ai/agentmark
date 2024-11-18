@@ -31,7 +31,7 @@ type SharedContext = {
 
 TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
-async function loadMdx(ast: Ast, props = {}) {
+export async function getRawConfig(ast: Ast, props = {}) {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
   await transform(ast, props, shared);
@@ -55,7 +55,7 @@ export async function runInference(
   ast: Ast,
   props: JSONObject = {},
 ) {
-  const promptDX = await loadMdx(ast, props);
+  const promptDX = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
     promptDX.metadata.model.name
   );
@@ -75,7 +75,7 @@ export function serialize(
 }
 
 export async function deserialize(ast: Ast, props = {}) {
-  const promptDX = await loadMdx(ast, props);
+  const promptDX = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
     promptDX.metadata.model.name
   );
