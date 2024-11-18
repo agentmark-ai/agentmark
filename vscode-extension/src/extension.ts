@@ -3,15 +3,17 @@ import {
   registerDefaultPlugins,
   ModelPluginRegistry,
   getModel,
+  parse,
+  getRawConfig
 } from "@puzzlet/promptdx";
-import { parse, ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
+import { ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
 import { createBoundedQueue } from "./boundedQueue";
 import * as fs from 'fs';
 import * as vscode from "vscode";
 import * as path from 'path';
 registerDefaultPlugins();
 
-const chatMap: { [key: string]: any } = {};
+const promptHistoryMap: { [key: string]: any } = {};
 
 type ChatSettings = {
   chatField: string;
@@ -73,10 +75,13 @@ export function activate(context: vscode.ExtensionContext) {
         const testProps = frontMatter.test_settings?.props || {};
         const name = frontMatter.name as string;
         const chatSettings: ChatSettings = frontMatter.test_settings?.chat || {};
-        let chatHistory = chatMap[name];
         const chatFieldKey = chatSettings.chatField;
-        if (chatSettings && chatSettings.useChat && chatHistory) {
-          testProps[chatFieldKey] = chatHistory.getItems();
+        if (chatSettings && chatSettings.useChat) {
+          if (promptHistoryMap[name]) {
+            testProps[chatFieldKey] = promptHistoryMap[name].getItems();
+          } else {
+            testProps[chatFieldKey] = [];
+          }
         }
         const result = await runInference(ast, testProps);
         if (!result) {
@@ -91,8 +96,11 @@ export function activate(context: vscode.ExtensionContext) {
           if (typeof output.data === "string") {
             ch.appendLine(output.data);
             if (chatSettings && chatSettings.useChat) {
-              chatHistory = chatHistory || createBoundedQueue(chatSettings.maxSize || 10);
-              chatHistory.add({ role: 'assistant', message: output.data });
+              const rawConfig = await getRawConfig(ast, testProps);
+              const queue = createBoundedQueue(chatSettings.maxSize || 10);
+              rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
+              queue.add({ role: 'assistant', message: output.data });
+              promptHistoryMap[name] = queue;
             }
           } else {
             ch.appendLine(JSON.stringify(output.data, null, 2));
