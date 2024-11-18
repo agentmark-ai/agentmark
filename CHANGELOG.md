@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 0.2.0
+
+### Minor Changes
+
+- 62a8460: Export getRawConfig for consumers
+
 ## 0.1.5
 
 ### Patch Changes
