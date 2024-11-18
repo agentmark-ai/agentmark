@@ -3,6 +3,7 @@ export {
   deserialize,
   serialize,
   registerDefaultPlugins,
+  getConfig,
   getModel,
 } from "./runtime";
 export { parse } from "@puzzlet/templatedx";

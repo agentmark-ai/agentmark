@@ -20,15 +20,6 @@ test_settings:
       - role: assistant
         message: 5
 ---
-{/**
-  * @typedef MessageItem
-  * @property {"user" | "assistant"} role
-  * @property {string} message
-  */}
-{/**
-  * @typedef Props
-  * @property {Array<MessageItem>} messageHistory
-  */}
 import MessageHistory from './history.mdx';
 
 <MessageHistory messageHistory={props.messageHistory} />
