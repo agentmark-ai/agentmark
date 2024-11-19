@@ -1,7 +1,6 @@
 import { ModelPluginRegistry } from "./model-plugin-registry";
 import { OpenAIChatPlugin } from "./plugins/openai";
 
-
 ModelPluginRegistry.register(new OpenAIChatPlugin(), [
   "gpt-4o",
   "gpt-4o-mini",

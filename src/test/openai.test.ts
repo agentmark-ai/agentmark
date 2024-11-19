@@ -4,7 +4,7 @@ import "../builtin-plugins";
 import { runInference, deserialize, serialize } from "../runtime";
 import { vi } from "vitest";
 import { openAIResponseWithNoStream, openAIResponseWithStream } from "./utils";
-import { getFrontMatter, stringify } from "@puzzlet/templatedx";
+import { getFrontMatter } from "@puzzlet/templatedx";
 
 vi.stubEnv("OPENAI_API_KEY", "key");
 
@@ -24,7 +24,7 @@ vi.mock("openai", () => ({
 }));
 
 test("should deserialize", async () => {
-  const ast = await getMdxAst(__dirname + "/mdx/basic.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/mdx/openai/basic.prompt.mdx");
 
   const deserialized = await deserialize(ast);
 
@@ -50,7 +50,7 @@ test("should deserialize", async () => {
 });
 
 test("should serialize", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/mdx/basic.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/mdx/openai/basic.prompt.mdx");
   const serialized = serialize(
     {
       model: "gpt-4o-mini",
@@ -117,7 +117,7 @@ const openaiCompletionParamsWithTools = {
 };
 
 test("should serialize tools", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/mdx/with-tools.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/mdx/openai/with-tools.prompt.mdx");
 
   const serialized = serialize(
     openaiCompletionParamsWithTools,
@@ -129,14 +129,14 @@ test("should serialize tools", async () => {
 });
 
 test("should deserialize tools", async () => {
-  const ast = await getMdxAst(__dirname + "/mdx/with-tools.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/mdx/openai/with-tools.prompt.mdx");
   const deserializedPrompt = await deserialize(ast);
 
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithTools);
 });
 
 test("run inference with no stream", async () => {
-  const ast = await getMdxAst(__dirname + "/mdx/basic.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/mdx/openai/basic.prompt.mdx");
 
   const result = await runInference(ast);
 
@@ -163,7 +163,7 @@ test("run inference with no stream", async () => {
 });
 
 test("run inference with stream", async () => {
-  const ast = await getMdxAst(__dirname + "/mdx/basic-with-stream.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/mdx/openai/basic-with-stream.prompt.mdx");
 
   const result = await runInference(ast);
 
@@ -213,7 +213,7 @@ const promptWithHistory = {
 };
 
 test("should deserialize prompt with history prop", async () => {
-  const ast = await getMdxAst(__dirname + "/mdx/with-history.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/mdx/openai/with-history.prompt.mdx");
   const frontmatter = getFrontMatter(ast) as any;
   const deserializedPrompt = await deserialize(ast, frontmatter.test_settings.props);
 

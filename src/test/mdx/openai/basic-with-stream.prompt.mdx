@@ -1,0 +1,22 @@
+---
+name: MyStoryConfig
+model: gpt-4
+prompt: "Tell me a story about a brave knight."
+tools:
+  knowledgeBase:
+    description: "Access historical records for storytelling."
+    parameters:
+      topic: "string"
+schema:
+  type: "object"
+  properties:
+    title:
+      type: "string"
+    story:
+      type: "string"
+  required:
+    - "title"
+    - "story"
+---
+
+<User>What's 2 + 2?</User>

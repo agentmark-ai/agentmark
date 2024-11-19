@@ -1,221 +1,151 @@
 import {
-  ChatCompletionChunk,
   ChatCompletionCreateParams,
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionCreateParamsStreaming,
-  ChatCompletionMessage,
-  ChatCompletionMessageParam,
 } from "openai/resources";
 import { ModelPlugin } from "../model-plugin";
 import { PromptDX } from "../runtime";
-import OpenAI from "openai";
-import { getEnv, omit, toFrontMatter } from "../utils";
-import {
-  ExecuteResult,
-  Output,
-  OutputDataWithValue,
-} from "../types";
+import { getEnv, toFrontMatter } from "../utils";
+import { Output } from "../types";
+import { generateText, generateObject } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { z } from "zod";
 
 export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
   constructor() {
     super("openai");
   }
 
-  deserialize(promptDX: PromptDX): ChatCompletionCreateParams {
-    return refineChatCompletionParams({
-      messages: promptDX.messages,
-      model: promptDX.metadata.model.name,
-      ...promptDX.metadata.model.settings,
-    });
-  }
-
-  serialize(completionParams: ChatCompletionCreateParams, name: string): string {
+  /**
+   * Serializes OpenAI ChatCompletionParams and a name into a serialized MDX file.
+   * The frontmatter contains the YAML representation of the JSON standard,
+   * and the messages are included in the body wrapped with JSX tags.
+   */
+  serialize(
+    completionParams: ChatCompletionCreateParams,
+    name: string
+  ): string {
     const { model, messages, ...settings } = completionParams;
-    const mdxArr = [];
 
-    const frontMatter = toFrontMatter({
+    // Construct the frontMatterData with the model under metadata.model
+    const frontMatterData = {
       name: name,
       metadata: {
         model: {
           name: model,
-          settings,
+          settings: settings || {},
         },
       },
-    });
-    mdxArr.push(frontMatter);
+      tools: completionParams.tools || {},
+      schema: completionParams.schema || {},
+    };
 
-    messages.forEach((message) => {
-      const role = message.role;
-      const JSXTag = role[0]!.toUpperCase() + role.slice(1);
-      if (JSXTag) {
-        mdxArr.push(`<${JSXTag}>${message.content}</${JSXTag}>`);
-      }
-    });
+    const frontMatter = toFrontMatter(frontMatterData);
 
-    return mdxArr.join('\n');
+    // Serialize messages into the body with JSX tags
+    const messageBody = messages
+      .map((message) => {
+        const role = message.role;
+        const JSXTag = role.charAt(0).toUpperCase() + role.slice(1);
+        return `<${JSXTag}>${message.content}</${JSXTag}>`;
+      })
+      .join("\n");
+
+    return `${frontMatter}\n${messageBody}`;
   }
 
+  /**
+   * Deserializes a PromptDX object into ChatCompletionCreateParams.
+   */
+  deserialize(promptDX: PromptDX): ChatCompletionCreateParams {
+    // Extract properties from PromptDX
+    const {
+      name,
+      metadata,
+      tools,
+      schema,
+      messages,
+      ...otherSettings
+    } = promptDX;
+
+    // Extract model name and settings from metadata
+    const modelName = metadata?.model?.name;
+    const modelSettings = metadata?.model?.settings || {};
+
+    if (!modelName) {
+      throw new Error("Model name is missing in metadata.model.name");
+    }
+
+    // Reconstruct ChatCompletionCreateParams
+    const completionParams: ChatCompletionCreateParams = {
+      model: modelName,
+      messages: messages,
+      tools: tools,
+      schema: schema,
+      ...modelSettings, // Include model-specific settings
+      ...otherSettings, // Include any other settings
+    };
+
+    return completionParams;
+  }
+
+  /**
+   * Runs inference using the appropriate Vercel AI SDK method based on the presence of 'schema'.
+   */
   async runInference(completionParams: ChatCompletionCreateParams): Promise<Output[]> {
     const apiKey = this.apiKey || getEnv("OPENAI_API_KEY");
-
     if (!apiKey) {
       throw new Error("No API key provided");
     }
 
-    const client = new OpenAI({ apiKey });
-    const { stream = false } = completionParams;
+    const openai = createOpenAI({
+      apiKey,
+      fetch: async (url, options) => {
+        console.log('URL', url);
+        console.log('Headers', JSON.stringify(options!.headers, null, 2));
+        console.log(
+          `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`
+        );
+        return await fetch(url, options);
+      },
+    });
 
-    if (!stream) {
-      completionParams.stream = false;
-      const response = await client.chat.completions.create(
-        completionParams as ChatCompletionCreateParamsNonStreaming
-      );
+    const { model, messages, tools, schema, ...modelSettings } = completionParams;
 
-      const outputs = response.choices
-        .map((choice) => {
-          const outputData = buildOutputData(choice.message);
-          if (outputData == undefined) return null;
+    // Apply model-specific settings
+    const openaiModel = openai(model, modelSettings);
 
-          return {
-            output_type: "execute_result",
-            data: outputData,
-            execution_count: choice.index,
-            metadata: {
-              finish_reason: choice.finish_reason,
-              ...omit(response, "choices"),
-              raw_response: choice.message,
-              ...omit(choice.message, "content", "function_call"),
-            },
-          } as ExecuteResult;
-        })
-        .filter(Boolean) as Output[];
-
-      return outputs;
+    // Determine whether to use generateText or generateObject
+    if (schema && Object.keys(schema).length > 0) {
+      // Use generateObject
+      const zodSchema = z.object(schema.properties);
+      const { object } = await generateObject({
+        model: openaiModel,
+        messages: messages,
+        tools: tools,
+        schema: zodSchema,
+      });
+      return [
+        {
+          output_type: "execute_result",
+          data: object,
+          execution_count: 0,
+          metadata: {},
+        },
+      ];
     } else {
-      completionParams.stream = true;
-      const responseStream = await client.chat.completions.create(
-        completionParams as ChatCompletionCreateParamsStreaming
-      );
-
-      const outputs = new Map<number, ExecuteResult>();
-      let messages: Map<number, ChatCompletionMessage> = new Map();
-
-      for await (const chunk of responseStream) {
-        messages = multiChoiceMessageReducer(messages, chunk);
-
-        chunk.choices.forEach((choice) => {
-          const message = messages.get(choice.index);
-          if (!message) return;
-
-          const outputData = buildOutputData(message);
-          if (!outputData) return;
-
-          const output: ExecuteResult = {
-            output_type: "execute_result",
-            data: outputData,
-            execution_count: choice.index,
-            metadata: {
-              finish_reason: choice.finish_reason,
-              raw_response: message,
-            },
-          };
-          outputs.set(choice.index, output);
-        });
-      }
-
-      return Array.from(outputs.values());
+      // Use generateText
+      const { text } = await generateText({
+        model: openaiModel,
+        messages: messages,
+        tools: tools,
+      });
+      return [
+        {
+          output_type: "execute_result",
+          data: text,
+          execution_count: 0,
+          metadata: {},
+        },
+      ];
     }
   }
-}
-
-function refineChatCompletionParams(params: any): ChatCompletionCreateParams {
-  const allowedKeys: (keyof ChatCompletionCreateParams)[] = [
-    "model",
-    "messages",
-    "functions",
-    "tools",
-    "function_call",
-    "temperature",
-    "top_p",
-    "n",
-    "stream",
-    "stop",
-    "max_tokens",
-    "presence_penalty",
-    "frequency_penalty",
-    "logit_bias",
-    "user",
-  ];
-
-  const completionParams: Partial<ChatCompletionCreateParams> = {};
-
-  for (const key of allowedKeys) {
-    if (params[key] != null) {
-      (completionParams as any)[key] = params[key];
-    }
-  }
-
-  return completionParams as ChatCompletionCreateParams;
-}
-
-function reduceMessages(acc: any, delta: any): any {
-  const result = { ...acc };
-  for (const [key, value] of Object.entries(delta)) {
-    if (result[key] == null) {
-      result[key] = value;
-    } else if (typeof result[key] === "string" && typeof value === "string") {
-      result[key] += value;
-    } else if (typeof result[key] === "object" && !Array.isArray(result[key])) {
-      result[key] = reduceMessages(result[key], value);
-    }
-  }
-  return result;
-}
-
-export function multiChoiceMessageReducer(
-  messages: Map<number, ChatCompletionMessage>,
-  chunk: ChatCompletionChunk
-): Map<number, ChatCompletionMessage> {
-  if (messages.size !== 0 && messages.size !== chunk.choices.length) {
-    throw new Error(
-      "Invalid number of previous choices -- it should match the incoming number of choices"
-    );
-  }
-
-  chunk.choices.forEach((choice) => {
-    const previousMessage = messages.get(choice.index) || {};
-    const updatedMessage = reduceMessages(previousMessage, choice.delta) as ChatCompletionMessage;
-    messages.set(choice.index, updatedMessage);
-  });
-
-  return messages;
-}
-
-function buildOutputData(
-  message: ChatCompletionMessageParam | null
-): OutputDataWithValue | string | undefined {
-  if (!message) return undefined;
-
-  if (message.content !== null) {
-    if (typeof message.content === "string") {
-      return message.content;
-    } else if (Array.isArray(message.content)) {
-      return message.content
-        .map((msg) => {
-          if (msg.type === "text") return msg.text;
-          if (msg.type === "image_url") return msg.image_url;
-          return undefined;
-        })
-        .join("\n");
-    }
-  } else if (message.role === "assistant") {
-    const tool = message.tool_calls?.[0];
-    if (tool?.type === "function") {
-      return {
-        kind: "tool_calls",
-        value: [{ type: "function", function: tool.function }],
-      } as OutputDataWithValue;
-    }
-  }
-  return undefined;
 }
