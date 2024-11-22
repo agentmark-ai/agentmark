@@ -3,44 +3,63 @@ import {
 } from "openai/resources";
 import { ModelPlugin } from "../model-plugin";
 import { PromptDX } from "../runtime";
-import { getEnv, toFrontMatter } from "../utils";
+import { getEnv, toFrontMatter, transformKeysToCamelCase, transformParameters } from "../utils";
 import { Output } from "../types";
-import { generateText, generateObject } from "ai";
+import { generateText, generateObject, jsonSchema, streamObject, streamText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { z } from "zod";
 
 export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
-  constructor() {
+  private customFetch;
+  constructor(customFetch = fetch) {
     super("openai");
+    this.customFetch = customFetch;
   }
 
-  /**
-   * Serializes OpenAI ChatCompletionParams and a name into a serialized MDX file.
-   * The frontmatter contains the YAML representation of the JSON standard,
-   * and the messages are included in the body wrapped with JSX tags.
-   */
   serialize(
     completionParams: ChatCompletionCreateParams,
     name: string
   ): string {
-    const { model, messages, ...settings } = completionParams;
-
-    // Construct the frontMatterData with the model under metadata.model
-    const frontMatterData = {
+    const { model, messages, tools, tool_choice, ...settings } = completionParams;
+    const frontMatterData: any = {
       name: name,
       metadata: {
         model: {
           name: model,
-          settings: settings || {},
+          settings,
         },
       },
-      tools: completionParams.tools || {},
-      schema: completionParams.schema || {},
     };
-
+    if (Object.keys(settings).length > 0 || tools) {
+      if (tools) {
+        const transformedTools = tools.reduce((acc: any, { function: func }) => {
+          acc[func.name] = {
+            description: func.description,
+            parameters: func.parameters,
+          };
+          return acc;
+        }, {});
+        frontMatterData.metadata.model.settings.tools = transformedTools;
+      }
+    }
+    function convertToolChoice(toolChoice: any) {
+      if (typeof toolChoice === 'string') {
+        if (['auto', 'required', 'none'].includes(toolChoice)) {
+          return toolChoice;
+        }
+        throw new Error(`Invalid tool_choice value: ${toolChoice}`);
+      }
+      if (typeof toolChoice === 'object' && toolChoice.type === 'function' && toolChoice.function?.name) {
+        return {
+          type: 'tool',
+          tool_name: toolChoice.function.name
+        };
+      }
+      throw new Error('Invalid tool_choice format.');
+    }
+    if (tool_choice) {
+      frontMatterData.metadata.model.settings.tool_choice = convertToolChoice(tool_choice);
+    }
     const frontMatter = toFrontMatter(frontMatterData);
-
-    // Serialize messages into the body with JSX tags
     const messageBody = messages
       .map((message) => {
         const role = message.role;
@@ -48,104 +67,120 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
         return `<${JSXTag}>${message.content}</${JSXTag}>`;
       })
       .join("\n");
-
     return `${frontMatter}\n${messageBody}`;
   }
 
-  /**
-   * Deserializes a PromptDX object into ChatCompletionCreateParams.
-   */
-  deserialize(promptDX: PromptDX): ChatCompletionCreateParams {
-    // Extract properties from PromptDX
-    const {
-      name,
-      metadata,
-      tools,
-      schema,
-      messages,
-      ...otherSettings
-    } = promptDX;
-
-    // Extract model name and settings from metadata
-    const modelName = metadata?.model?.name;
-    const modelSettings = metadata?.model?.settings || {};
-
-    if (!modelName) {
-      throw new Error("Model name is missing in metadata.model.name");
-    }
-
-    // Reconstruct ChatCompletionCreateParams
-    const completionParams: ChatCompletionCreateParams = {
-      model: modelName,
-      messages: messages,
-      tools: tools,
-      schema: schema,
-      ...modelSettings, // Include model-specific settings
-      ...otherSettings, // Include any other settings
-    };
-
-    return completionParams;
+  async deserialize(promptDX: PromptDX): Promise<ChatCompletionCreateParams> {
+    const { metadata, messages } = promptDX;
+    const { model: modelConfig } = metadata;
+    const completionParamsPromise = new Promise<ChatCompletionCreateParams>(
+      async (resolve) => {
+        const openai = createOpenAI({
+          compatibility: 'strict',
+          fetch: async (_, options) => {
+            const requestBody = JSON.parse(options!.body! as string);
+            resolve(requestBody as ChatCompletionCreateParams);
+            return new Response();
+          },
+        });
+        const providerModel = openai(modelConfig.name);
+        const { config, options } = this.getExecutionParams(providerModel, messages, modelConfig.settings);
+        // Swallow any errors here. We only care about the deserialized inputs.
+        try {
+          await this.execute(config, options);
+        } catch (e) {}
+      }
+    );
+    const result = await completionParamsPromise;
+    return result;
   }
 
-  /**
-   * Runs inference using the appropriate Vercel AI SDK method based on the presence of 'schema'.
-   */
-  async runInference(completionParams: ChatCompletionCreateParams): Promise<Output[]> {
+  async runInference(promptDX: PromptDX): Promise<Output> {
     const apiKey = this.apiKey || getEnv("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
-
     const openai = createOpenAI({
+      compatibility: 'strict',
       apiKey,
-      fetch: async (url, options) => {
-        console.log('URL', url);
-        console.log('Headers', JSON.stringify(options!.headers, null, 2));
-        console.log(
-          `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`
-        );
-        return await fetch(url, options);
-      },
+      fetch: this.customFetch
     });
+    const { metadata, messages } = promptDX;
+    const { model: modelConfig } = metadata;
+    const providerModel = openai(modelConfig.name);
+    const { config, options } = this.getExecutionParams(providerModel, messages, modelConfig.settings);
+    const result = await this.execute(config, options);
+    return result;
+  }
 
-    const { model, messages, tools, schema, ...modelSettings } = completionParams;
+  private getExecutionParams(providerModel: any, messages: any, { stream, ...settings }: any): any {
+    const config = { model: providerModel, messages, ...transformKeysToCamelCase(settings) };
+    if (config.tools) {
+      config.tools = transformParameters(config.tools);
+    }
+    if (config.schema) {
+      config.schema = jsonSchema(config.schema);
+    }
+    const options = { stream: !!stream, hasSchema: !!config.schema }
+    return { config, options };
+  }
 
-    // Apply model-specific settings
-    const openaiModel = openai(model, modelSettings);
-
-    // Determine whether to use generateText or generateObject
-    if (schema && Object.keys(schema).length > 0) {
-      // Use generateObject
-      const zodSchema = z.object(schema.properties);
-      const { object } = await generateObject({
-        model: openaiModel,
-        messages: messages,
-        tools: tools,
-        schema: zodSchema,
+  private async execute(config: any, options: any): Promise<Output> {
+    const { hasSchema, stream } = options;
+    if (hasSchema && stream) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const { textStream } = streamObject({
+            ...config,
+            onFinish({ object, usage }) {
+              resolve({
+                result: { data: object as Object, type: 'text' },
+                tools: [],
+                usage,
+                finishReason: 'unknown'
+              });
+            },
+          });
+          for await (const _ of textStream);
+        } catch (error) {
+          reject(error);
+        }
       });
-      return [
-        {
-          output_type: "execute_result",
-          data: object,
-          execution_count: 0,
-          metadata: {},
-        },
-      ];
+    } else if (hasSchema) {
+      const result = await generateObject(config);
+      return {
+        result: { data: result.object as Object, type: 'object' },
+        tools: [],
+        usage: result.usage,
+        finishReason: result.finishReason
+      }
+    } else if (stream) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const { textStream } = streamText({
+            ...config,
+            onFinish({ text, usage, toolCalls, finishReason }) {
+              resolve({
+                result: { data: text as string, type: 'text' },
+                tools: toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
+                usage,
+                finishReason
+              });
+            },
+          });
+          for await (const _ of textStream);
+        } catch (error) {
+          reject(error);
+        }
+      });
     } else {
-      // Use generateText
-      const { text } = await generateText({
-        model: openaiModel,
-        messages: messages,
-        tools: tools,
-      });
-      return [
-        {
-          output_type: "execute_result",
-          data: text,
-          execution_count: 0,
-          metadata: {},
-        },
-      ];
+      const result = await generateText(config);
+      return {
+        result: { data: result.text as string, type: 'text' },
+        tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
+        usage: result.usage,
+        finishReason: result.finishReason
+      }
     }
   }
 }

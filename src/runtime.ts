@@ -62,7 +62,7 @@ export async function runInference(
   if (!plugin) {
     throw new Error(`No registered plugin for ${promptDX.metadata.model.name}`);
   }
-  return plugin?.run(promptDX);
+  return plugin?.runInference(promptDX);
 }
 
 export function serialize(

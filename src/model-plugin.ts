@@ -14,15 +14,9 @@ export abstract class ModelPlugin<T = JSONObject, R = T> {
     this.apiKey = apiKey;
   }
 
-  abstract deserialize(PromptDX: PromptDX): R;
+  abstract deserialize(PromptDX: PromptDX): Promise<R>;
 
-  abstract runInference(completionParams: R): Promise<Output[]>;
+  abstract runInference(promptDX: PromptDX): Promise<Output>;
 
   abstract serialize(completionParams: R, name: string): string;
-
-  async run(promptDX: PromptDX) {
-    const completionParams = this.deserialize(promptDX);
-    const result = await this.runInference(completionParams);
-    return result;
-  }
 }

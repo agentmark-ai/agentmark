@@ -22,42 +22,22 @@ export type Attachment = {
   };
 };
 
-export type Output = ExecuteResult | Error;
-type OutputDataWithStringValue = {
-  kind: "file_uri" | "base64";
-  value: string;
-};
-
-export type FunctionData = {
-  arguments: string;
-  name: string;
-};
-
-export type ToolCallData = {
-  id?: string;
-
-  type: "function";
-  function: FunctionData;
-  [k: string]: any;
-};
-
-export type OutputDataWithToolCallsValue = {
-  kind: "tool_calls";
-  value: ToolCallData[];
-};
-
-export type OutputDataWithValue =
-  | OutputDataWithStringValue
-  | OutputDataWithToolCallsValue;
-
-export type ExecuteResult = {
-  output_type: "execute_result";
-  execution_count?: number;
-  data: OutputDataWithValue | string | JSONValue;
-  mime_type?: string;
-  metadata?: {
-    [k: string]: any;
+export type Output = {
+  result: {
+    data: string | Record<string, any>;
+    type: "text" | "object";
   };
+  tools: Array<{
+    name: string;
+    input: Record<string, any>;
+    output?: Record<string, any>;
+  }>;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
 };
 
 

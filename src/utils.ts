@@ -1,4 +1,5 @@
 import { JSONObject } from "./types";
+import { jsonSchema } from "ai";
 
 export function omit<T extends JSONObject>(
   obj: T,
@@ -58,4 +59,43 @@ export function getEnv(key: string) {
   } 
   
   throw new Error(`Env not found: ${key}`);
+}
+
+export function snakeToCamel(snakeStr: string) {
+  return snakeStr
+      .toLowerCase()
+      .split('_')
+      .map((word, index) =>
+          index === 0
+              ? word
+              : word.charAt(0).toUpperCase() + word.slice(1)
+      )
+      .join('');
+}
+
+export function transformKeysToCamelCase(obj: Object) {
+  const transform = (input: Object): any => {
+      if (Array.isArray(input)) {
+          return input.map((item) => (typeof item === 'object' ? transform(item) : item));
+      } else if (typeof input === 'object' && input !== null) {
+          return Object.entries(input).reduce((acc: any, [key, value]) => {
+              const newKey = snakeToCamel(key);
+              acc[newKey] = typeof value === 'object' && value !== null ? transform(value) : value;
+              return acc;
+          }, {});
+      }
+      return input;
+  };
+
+  return transform(obj);
+}
+
+export function transformParameters(tools: Object) {
+  return Object.entries(tools).reduce((acc: any, [toolName, toolData]) => {
+    acc[toolName] = {
+      ...toolData,
+      parameters: jsonSchema(toolData.parameters),
+    };
+    return acc;
+  }, {});
 }

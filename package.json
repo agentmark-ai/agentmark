@@ -29,7 +29,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^1.0.1",
     "@puzzlet/templatedx": "^0.5.7",
-    "ai": "^4.0.1",
+    "ai": "^4.0.3",
     "front-matter": "^4.0.2",
     "js-yaml": "^4.1.0",
     "openai": "^4.65.0",
