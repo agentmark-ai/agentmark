@@ -1,26 +1,26 @@
-import type { ChatCompletionMessageParam } from "openai/resources";
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
 
-export type JSONPrimitive = string | number | boolean | null | undefined;
-export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+type JSONPrimitive = string | number | boolean | null | undefined;
+type JSONValue = JSONPrimitive | JSONObject | JSONArray;
+type JSONArray = JSONValue[];
 export type JSONObject = { [member: string]: JSONValue | any };
-export type JSONArray = JSONValue[];
 
-export type ChatHistoryMessage = ChatCompletionMessageParam;
-
-export type AttachmentDataWithStringValue = {
-  kind: "file_uri" | "base64";
-  value: string;
+export interface ChatMessage {
+  role: string,
+  content: string,
 };
 
-export type Attachment = {
-  data: JSONValue | AttachmentDataWithStringValue;
-  mime_type?: string;
-  metadata?: {
-    [k: string]: any;
+export interface PromptDX {
+  name: string;
+  messages: Array<ChatMessage>;
+  metadata: {
+    model: {
+      name: string;
+      settings: JSONObject;
+    };
   };
-};
+}
 
 export type Output = {
   result: {

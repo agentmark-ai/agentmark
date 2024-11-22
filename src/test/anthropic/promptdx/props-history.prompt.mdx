@@ -2,10 +2,11 @@
 name: basic-prompt
 metadata:
   model:
-    name: claude-3-5-sonnet
+    name: claude-3-haiku-latest
     settings:
       top_p: 1
       temperature: 0.7
+      max_tokens: 4096
 test_settings:
   props:
     messageHistory:
@@ -20,7 +21,7 @@ test_settings:
       - role: assistant
         message: 5
 ---
-import MessageHistory from './history.mdx';
+import MessageHistory from './components/history.mdx';
 
 <MessageHistory messageHistory={props.messageHistory} />
 <User>Why are you bad at math?</User>

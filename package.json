@@ -13,6 +13,7 @@
     "release": "changeset publish"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@babel/preset-env": "^7.25.4",
     "@babel/preset-typescript": "^7.24.7",
     "@changesets/cli": "^2.27.9",
@@ -27,6 +28,7 @@
     "vitest": "^2.1.1"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.2",
     "@ai-sdk/openai": "^1.0.1",
     "@puzzlet/templatedx": "^0.5.7",
     "ai": "^4.0.3",

@@ -2,10 +2,9 @@ import {
   ChatCompletionCreateParams,
 } from "openai/resources";
 import { ModelPlugin } from "../model-plugin";
-import { PromptDX } from "../runtime";
-import { getEnv, toFrontMatter, transformKeysToCamelCase, transformParameters } from "../utils";
+import { PromptDX } from "../types";
+import { getEnv, toFrontMatter, getInferenceConfig, runInference } from "../utils";
 import { Output } from "../types";
-import { generateText, generateObject, jsonSchema, streamObject, streamText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 
 export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
@@ -19,7 +18,7 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
     completionParams: ChatCompletionCreateParams,
     name: string
   ): string {
-    const { model, messages, tools, tool_choice, ...settings } = completionParams;
+    const { model, messages, tools, stream_options, tool_choice, ...settings } = completionParams;
     const frontMatterData: any = {
       name: name,
       metadata: {
@@ -29,36 +28,26 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
         },
       },
     };
-    if (Object.keys(settings).length > 0 || tools) {
-      if (tools) {
-        const transformedTools = tools.reduce((acc: any, { function: func }) => {
-          acc[func.name] = {
-            description: func.description,
-            parameters: func.parameters,
-          };
-          return acc;
-        }, {});
-        frontMatterData.metadata.model.settings.tools = transformedTools;
-      }
-    }
-    function convertToolChoice(toolChoice: any) {
-      if (typeof toolChoice === 'string') {
-        if (['auto', 'required', 'none'].includes(toolChoice)) {
-          return toolChoice;
-        }
-        throw new Error(`Invalid tool_choice value: ${toolChoice}`);
-      }
-      if (typeof toolChoice === 'object' && toolChoice.type === 'function' && toolChoice.function?.name) {
-        return {
-          type: 'tool',
-          tool_name: toolChoice.function.name
+  
+    if (tools) {
+      const transformedTools = tools.reduce((acc: any, { function: func }) => {
+        acc[func.name] = {
+          description: func.description,
+          parameters: func.parameters,
         };
+        return acc;
+      }, {});
+  
+      if (tool_choice === 'auto') {
+        frontMatterData.metadata.model.settings.tools = transformedTools;
+      } else {
+        const schemaTool = tools.find((tool) => tool.function.parameters);
+        if (schemaTool) {
+          frontMatterData.metadata.model.settings.schema = schemaTool.function.parameters;
+        }
       }
-      throw new Error('Invalid tool_choice format.');
     }
-    if (tool_choice) {
-      frontMatterData.metadata.model.settings.tool_choice = convertToolChoice(tool_choice);
-    }
+  
     const frontMatter = toFrontMatter(frontMatterData);
     const messageBody = messages
       .map((message) => {
@@ -67,8 +56,10 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
         return `<${JSXTag}>${message.content}</${JSXTag}>`;
       })
       .join("\n");
+  
     return `${frontMatter}\n${messageBody}`;
   }
+  
 
   async deserialize(promptDX: PromptDX): Promise<ChatCompletionCreateParams> {
     const { metadata, messages } = promptDX;
@@ -84,10 +75,10 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
           },
         });
         const providerModel = openai(modelConfig.name);
-        const { config, options } = this.getExecutionParams(providerModel, messages, modelConfig.settings);
+        const { config, options } = getInferenceConfig(providerModel, messages, modelConfig.settings);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await this.execute(config, options);
+          await runInference(config, options);
         } catch (e) {}
       }
     );
@@ -108,79 +99,8 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
     const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const { config, options } = this.getExecutionParams(providerModel, messages, modelConfig.settings);
-    const result = await this.execute(config, options);
+    const { config, options } = getInferenceConfig(providerModel, messages, modelConfig.settings);
+    const result = await runInference(config, options);
     return result;
-  }
-
-  private getExecutionParams(providerModel: any, messages: any, { stream, ...settings }: any): any {
-    const config = { model: providerModel, messages, ...transformKeysToCamelCase(settings) };
-    if (config.tools) {
-      config.tools = transformParameters(config.tools);
-    }
-    if (config.schema) {
-      config.schema = jsonSchema(config.schema);
-    }
-    const options = { stream: !!stream, hasSchema: !!config.schema }
-    return { config, options };
-  }
-
-  private async execute(config: any, options: any): Promise<Output> {
-    const { hasSchema, stream } = options;
-    if (hasSchema && stream) {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const { textStream } = streamObject({
-            ...config,
-            onFinish({ object, usage }) {
-              resolve({
-                result: { data: object as Object, type: 'text' },
-                tools: [],
-                usage,
-                finishReason: 'unknown'
-              });
-            },
-          });
-          for await (const _ of textStream);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    } else if (hasSchema) {
-      const result = await generateObject(config);
-      return {
-        result: { data: result.object as Object, type: 'object' },
-        tools: [],
-        usage: result.usage,
-        finishReason: result.finishReason
-      }
-    } else if (stream) {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const { textStream } = streamText({
-            ...config,
-            onFinish({ text, usage, toolCalls, finishReason }) {
-              resolve({
-                result: { data: text as string, type: 'text' },
-                tools: toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
-                usage,
-                finishReason
-              });
-            },
-          });
-          for await (const _ of textStream);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    } else {
-      const result = await generateText(config);
-      return {
-        result: { data: result.text as string, type: 'text' },
-        tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
-        usage: result.usage,
-        finishReason: result.finishReason
-      }
-    }
   }
 }

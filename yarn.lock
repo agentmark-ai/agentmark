@@ -2,6 +2,14 @@
 # yarn lockfile v1
 
 
+"@ai-sdk/anthropic@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/anthropic/-/anthropic-1.0.2.tgz#50b5cb28052461891e2588f9b26219f352ae134e"
+  integrity sha512-f3Z356AgUe6vcaUJuVY1+UWdUdhx/JzIADaQgybHSBRQ+OXOYs7AveKist01I6fBXGl3DPPbJJr/i0P888Izfg==
+  dependencies:
+    "@ai-sdk/provider" "1.0.1"
+    "@ai-sdk/provider-utils" "2.0.2"
+
 "@ai-sdk/openai@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@ai-sdk/openai/-/openai-1.0.1.tgz#300eac828dd7825d62ce6f931616d25e774fd074"
@@ -62,6 +70,19 @@
     "@ai-sdk/provider" "1.0.1"
     "@ai-sdk/provider-utils" "2.0.2"
     zod-to-json-schema "^3.23.5"
+
+"@anthropic-ai/sdk@^0.32.1":
+  version "0.32.1"
+  resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.32.1.tgz#d22c8ebae2adccc59d78fb416e89de337ff09014"
+  integrity sha512-U9JwTrDvdQ9iWuABVsMLj8nJVwAyQz6QXvgLsVhryhCEPkLsbcP/MXxm+jYcAwLoV8ESbaTTjnD4kuAFa+Hyjg==
+  dependencies:
+    "@types/node" "^18.11.18"
+    "@types/node-fetch" "^2.6.4"
+    abort-controller "^3.0.0"
+    agentkeepalive "^4.2.1"
+    form-data-encoder "1.7.2"
+    formdata-node "^4.3.2"
+    node-fetch "^2.6.7"
 
 "@babel/code-frame@^7.25.9":
   version "7.26.0"

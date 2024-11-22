@@ -1,5 +1,7 @@
 import { JSONObject } from "./types";
 import { jsonSchema } from "ai";
+import { Output } from "./types";
+import { streamObject, streamText, generateObject, generateText } from "ai";
 
 export function omit<T extends JSONObject>(
   obj: T,
@@ -98,4 +100,75 @@ export function transformParameters(tools: Object) {
     };
     return acc;
   }, {});
+}
+
+export function getInferenceConfig(providerModel: any, messages: any, { stream, ...settings }: any): any {
+  const config = { model: providerModel, messages, ...transformKeysToCamelCase(settings) };
+  if (config.tools) {
+    config.tools = transformParameters(config.tools);
+  }
+  if (config.schema) {
+    config.schema = jsonSchema(config.schema);
+  }
+  const options = { stream: !!stream, hasSchema: !!config.schema }
+  return { config, options };
+}
+
+export async function runInference(config: any, options: any): Promise<Output> {
+  const { hasSchema, stream } = options;
+  if (hasSchema && stream) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { textStream } = streamObject({
+          ...config,
+          onFinish({ object, usage }) {
+            resolve({
+              result: { data: object as Object, type: 'text' },
+              tools: [],
+              usage,
+              finishReason: 'unknown'
+            });
+          },
+        });
+        for await (const _ of textStream);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  } else if (hasSchema) {
+    const result = await generateObject(config);
+    return {
+      result: { data: result.object as Object, type: 'object' },
+      tools: [],
+      usage: result.usage,
+      finishReason: result.finishReason
+    }
+  } else if (stream) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { textStream } = streamText({
+          ...config,
+          onFinish({ text, usage, toolCalls, finishReason }) {
+            resolve({
+              result: { data: text as string, type: 'text' },
+              tools: toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
+              usage,
+              finishReason
+            });
+          },
+        });
+        for await (const _ of textStream);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  } else {
+    const result = await generateText(config);
+    return {
+      result: { data: result.text as string, type: 'text' },
+      tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
+      usage: result.usage,
+      finishReason: result.finishReason
+    }
+  }
 }
