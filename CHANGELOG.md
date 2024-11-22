@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.0.0
+
+### Major Changes
+
+- 8735eca: Standardized tools, schema, inputs, outputs. Anthropic support.
+
 ## 0.2.0
 
 ### Minor Changes
