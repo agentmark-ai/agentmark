@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
 import { getMdxAst, getMdxPrompt } from "../helpers";
-import "../../builtin-plugins";
+import "../../plugins";
 import { vi } from "vitest";
 import { getFrontMatter } from "@puzzlet/templatedx";
-import { OpenAIChatPlugin } from "../../plugins/openai";
+import OpenAIChatPlugin from "../../plugins/openai-chat";
 import { getRawConfig } from "../../runtime";
 import { openaiCompletionParamsWithSchema, openaiCompletionParamsWithTools, promptWithHistory } from "./configs";
 

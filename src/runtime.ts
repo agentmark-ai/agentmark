@@ -1,24 +1,8 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject } from "./types";
+import { PromptDX, JSONObject } from "./types";
 import { ExtractTextPlugin } from "./templatedx-plugins/extract-text";
-
-export interface ChatMessage {
-  role: string,
-  content: string,
-};
-
-export interface PromptDX {
-  name: string;
-  messages: Array<ChatMessage>;
-  metadata: {
-    model: {
-      name: string;
-      settings: JSONObject;
-    };
-  };
-}
 
 type ExtractedField = {
   name: string;
@@ -82,8 +66,8 @@ export async function deserialize(ast: Ast, props = {}) {
   return plugin?.deserialize(promptDX);
 }
 
-export const registerDefaultPlugins = async () => {
-  return await import("./builtin-plugins");
+export const registerAllPlugins = async () => {
+  return await import("./plugins");
 };
 
 export const getModel = (ast: Ast) => {

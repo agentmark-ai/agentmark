@@ -2,7 +2,6 @@ export {
   runInference,
   deserialize,
   serialize,
-  registerDefaultPlugins,
   getRawConfig,
   getModel,
 } from "./runtime";
