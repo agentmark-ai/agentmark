@@ -7,7 +7,7 @@ import { getEnv, toFrontMatter, getInferenceConfig, runInference } from "../util
 import { Output } from "../types";
 import { createOpenAI } from "@ai-sdk/openai";
 
-export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
+export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
   private customFetch;
   constructor(customFetch = fetch) {
     super("openai");
@@ -24,7 +24,7 @@ export class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
       metadata: {
         model: {
           name: model,
-          settings,
+          settings: settings || {},
         },
       },
     };

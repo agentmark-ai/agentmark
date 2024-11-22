@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
 import { getMdxAst, getMdxPrompt } from "../helpers";
-import "../../builtin-plugins";
+import "../../plugins";
 import { vi } from "vitest";
 import { getFrontMatter } from "@puzzlet/templatedx";
-import { AnthropicChatPlugin } from "../../plugins/anthropic";
+import AnthropicChatPlugin from "../../plugins/anthropic-chat";
 import { getRawConfig } from "../../runtime";
 import { anthropicCompletionParamsWithSchema, anthropicCompletionParamsWithTools, promptWithHistory } from "./configs";
 

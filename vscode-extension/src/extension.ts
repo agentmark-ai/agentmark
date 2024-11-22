@@ -1,6 +1,5 @@
 import {
   runInference,
-  registerDefaultPlugins,
   ModelPluginRegistry,
   getModel,
   parse,
@@ -11,7 +10,6 @@ import { createBoundedQueue } from "./boundedQueue";
 import * as fs from 'fs';
 import * as vscode from "vscode";
 import * as path from 'path';
-registerDefaultPlugins();
 
 const promptHistoryMap: { [key: string]: any } = {};
 

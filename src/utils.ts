@@ -102,7 +102,7 @@ export function transformParameters(tools: Object) {
   }, {});
 }
 
-export function getInferenceConfig(providerModel: any, messages: any, { stream, ...settings }: any): any {
+export function getInferenceConfig(providerModel: any, messages: any, { stream, ...settings }: any = {}): any {
   const config = { model: providerModel, messages, ...transformKeysToCamelCase(settings) };
   if (config.tools) {
     config.tools = transformParameters(config.tools);

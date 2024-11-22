@@ -10,7 +10,7 @@ type ExtendedMessageParam = Omit<Anthropic.MessageParam, "role"> & {
   role: "user" | "assistant" | "system";
 }
 
-export class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams> {
+export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams> {
   private customFetch;
   constructor(customFetch = fetch) {
     super("anthropic");
@@ -23,7 +23,7 @@ export class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams> {
     const metadata: any = {
       model: {
         name: model,
-        settings,
+        settings: settings || {},
       },
     };
   

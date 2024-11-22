@@ -15,6 +15,14 @@ export class ModelPluginRegistry {
     }
   }
 
+  public static registerAll(
+    pluginEntries: { provider: ModelPlugin<any, any>; models: string[] }[]
+  ) {
+    for (const entry of pluginEntries) {
+      this.register(entry.provider, entry.models);
+    }
+  }
+
   public static getPlugin(id: string) {
     return this.plugins.get(id);
   }
