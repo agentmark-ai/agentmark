@@ -66,10 +66,6 @@ export async function deserialize(ast: Ast, props = {}) {
   return plugin?.deserialize(promptDX);
 }
 
-export const registerAllPlugins = async () => {
-  return await import("./plugins");
-};
-
 export const getModel = (ast: Ast) => {
   const frontMatter = getFrontMatter(ast) as any;
   return frontMatter.metadata.model.name;

@@ -1422,10 +1422,10 @@
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
 
-"@puzzlet/templatedx@^0.5.7":
-  version "0.5.7"
-  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.5.7.tgz#e38523a4d6978033381bf2daf71cc83c70355aff"
-  integrity sha512-sLgmkoCamdQSttlvxV/qkCZz8aeN2y6Q46cRX+Z35F2j2pEx9W3m2iVScrgd/kpgULcglIBaYQUVV6Uz7YjPUw==
+"@puzzlet/templatedx@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@puzzlet/templatedx/-/templatedx-0.6.0.tgz#6219c7f75bd456e85d19c19a5a3dc0238472baa6"
+  integrity sha512-yKoUub7MwnIw2OG0bzgCPQpaSDut/IwnmcY//WQTZdOeOg4QYZRCVhoxHQl60w2YLOcuYDWJ34EzinpaBCnGYg==
   dependencies:
     "@jsep-plugin/object" "^1.2.1"
     js-yaml "^4.1.0"

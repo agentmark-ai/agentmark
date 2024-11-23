@@ -131,7 +131,7 @@ test("should deserialize schema with no stream", async () => {
 
 test("run inference with no stream", async () => {
   const ast = await getMdxAst(__dirname + "/promptdx/basic.prompt.mdx");
-  const mockFetch = vi.fn((input: string | URL | Request, init?: RequestInit) =>
+  const mockFetch = vi.fn(() =>
     Promise.resolve(
       new Response(
         JSON.stringify({
@@ -175,7 +175,7 @@ test("run inference with no stream", async () => {
 
 test("run inference with stream", async () => {
   const ast = await getMdxAst(__dirname + "/promptdx/basic-stream.prompt.mdx");
-  const mockStreamedFetch = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+  const mockStreamedFetch = vi.fn(() => {
     const stream = new ReadableStream({
       start(controller) {
         const chunks = [
