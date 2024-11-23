@@ -79,9 +79,20 @@ Integrate PromptDX with your webpack workflow using our loader.
 [PromptDX Webpack Loader](https://github.com/puzzlet-ai/promptdx-loader)
 
 ```tsx
+import { runInference, ModelPluginRegistry } from "@puzzlet/promptdx";
+import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
 import MyPrompt from './example.prompt.mdx';
-const props = { name: "Emily" };
-const result = await runInference(MyPrompt, props);
+
+// Note: Registering all latest models for demo/development purposes. 
+// In production, you'll likely want to selectively load these, and pin models.
+ModelPluginRegistry.registerAll(AllModelPlugins);
+
+const run = async () => {
+  const props = { name: "Emily" };
+  const result = await runInference(MyPrompt, props);
+  console.log(result)
+}
+run();
 ```
 
 ### 3. Node.js
@@ -89,25 +100,20 @@ const result = await runInference(MyPrompt, props);
 Run PromptDX directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
-import { runInference, parse, registerDefaultPlugins } from "@puzzlet/promptdx";
-import fs from 'fs';
+import { runInference, ModelPluginRegistry, load } from "@puzzlet/promptdx";
+import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
 
-const getMdxFile = (path) => {
-  const input = fs.readFileSync(path, 'utf-8');
-  return input;
-}
+// Note: Registering all latest models for demo/development purposes. 
+// In production, you'll likely want to selectively load these, and pin models.
+ModelPluginRegistry.registerAll(AllModelPlugins);
 
 const run = async () => {
-  const mdx = await getMdxFile(file);
-  // Set the base path for imports
-  const basePathForImports = './';
-  const bundled = await parse(mdx, basePathForImports, getMdxFile);
   const props = { name: "Emily" };
-  const result = await runInference(bundled, props);
+  const Prompt = await load('./example.prompt.mdx');
+  const result = await runInference(Prompt, props);
   console.log(result);
 }
-// Registers the default model plugins (i.e. OpenAI, etc.) provided by PromptDX
-registerDefaultPlugins().then(run);
+run();
 ```
 
 ## Contributing
