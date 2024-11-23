@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.1.0
+
+### Minor Changes
+
+- fcf45ed: File loader
+
 ## 1.0.0
 
 ### Major Changes
