@@ -5,7 +5,7 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
       {
         content: [
           {
-            text: "What is 7 + 5?",
+            text: "What is the current weather in Cleveland?",
             type: "text"
           }
         ],
@@ -15,7 +15,7 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
     model: "claude-3-haiku-latest",
     system: [
       {
-        text: "You are a helpful assistant capable of solving basic math problems and using tools as needed.",
+        text: "You are a helpful assistant able to access the weather.",
         type: "text"
       }
     ],
@@ -27,7 +27,13 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
       {
         description: "Fetches the current weather for a specified location.",
         input_schema: {
-          type: "string"
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "location"
+            }
+          }
         },
         name: "weather"
       }

@@ -8,7 +8,7 @@ export function createBoundedQueue<T>(maxLength: number) {
   return {
       add(item: T) {
           if (queue.length >= maxLength) {
-              queue.shift(); // Remove the oldest item
+              queue.shift();
           }
           queue.push(item);
       },

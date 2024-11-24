@@ -5,11 +5,11 @@ export const openaiCompletionParamsWithTools = (stream: boolean) => {
       {
         role: "system",
         content:
-          "You are a helpful assistant capable of solving basic math problems and using tools as needed.",
+          "You are a helpful assistant able to access the weather.",
       },
       {
         role: "user",
-        content: "What is 7 + 5?",
+        content: "What is the current weather in Cleveland?",
       },
     ],
     temperature: 0.7,
@@ -21,7 +21,13 @@ export const openaiCompletionParamsWithTools = (stream: boolean) => {
           name: "weather",
           description: "Fetches the current weather for a specified location.",
           parameters: {
-            type: "string"
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "location"
+              }
+            }
           },
         },
         type: "function",
