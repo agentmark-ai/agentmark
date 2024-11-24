@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.0
+
+### Minor Changes
+
+- 069b796: Latest models
+
 ## 1.1.0
 
 ### Minor Changes
