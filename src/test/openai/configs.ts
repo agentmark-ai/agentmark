@@ -50,11 +50,11 @@ export const openaiCompletionParamsWithSchema = (stream: boolean) => {
       {
         role: "system",
         content:
-          "You are a helpful assistant capable of solving basic math problems and using tools as needed.",
+          "You are a helpful assistant capable of finding all the names of the people in a given body of text.",
       },
       {
         role: "user",
-        content: "What is 7 + 5?",
+        content: `Jessica and Michael decided to host a barbecue at their house, inviting their closest friends, Emily, David, and Sarah. As the evening went on, Jessica shared stories from her recent trip, while Michael grilled burgers, and Emily entertained everyone with her hilarious anecdotes.`,
       },
     ],
     temperature: 0.7,
@@ -74,12 +74,15 @@ export const openaiCompletionParamsWithSchema = (stream: boolean) => {
           parameters: {
             type: "object",
             properties: {
-              name: {
-                type: "string",
-                description: "name of person"
+              names: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "names of people",
               }
             },
-            required: ["name"]
+            required: ["names"]
           }
         }
       }

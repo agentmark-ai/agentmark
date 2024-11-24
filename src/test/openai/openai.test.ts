@@ -67,7 +67,7 @@ test("should serialize tools with no stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/promptdx/tools.prompt.mdx");
   const serialized = plugin.serialize(
     openaiCompletionParamsWithTools(false),
-    "calculate"
+    "tools"
   );
   expect(serialized).toEqual(mdx);
 });
@@ -83,7 +83,7 @@ test("should serialize tools with stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/promptdx/tools-stream.prompt.mdx");
   const serialized = plugin.serialize(
     openaiCompletionParamsWithTools(true),
-    "calculate"
+    "tools"
   );
   expect(serialized).toEqual(mdx);
 });
@@ -99,7 +99,7 @@ test("should serialize schema with stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/promptdx/schema-stream.prompt.mdx");
   const serialized = plugin.serialize(
     openaiCompletionParamsWithSchema(true),
-    "calculate"
+    "schema"
   );
   expect(serialized).toEqual(mdx);
 });
@@ -116,7 +116,7 @@ test("should serialize schema with no stream", async () => {
 
   const serialized = plugin.serialize(
     openaiCompletionParamsWithSchema(false),
-    "calculate"
+    "schema"
   );
 
   expect(serialized).toEqual(mdx);
