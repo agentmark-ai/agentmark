@@ -1,6 +1,6 @@
-import { JSONObject } from "./types";
-import { jsonSchema } from "ai";
-import { Output } from "./types";
+import { ChatMessage, JSONObject } from "./types";
+import { jsonSchema, LanguageModel } from "ai";
+import { PromptDXOutput, PromptDXModelSettings, AISDKObjectSettings, AISDKTextSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
 
 export function omit<T extends JSONObject>(
@@ -53,43 +53,14 @@ export function toFrontMatter(content: JSONObject): string {
 }
 
 export function getEnv(key: string) {
-  if(process.env[key]) {
+  if (process.env[key]) {
     return process.env[key];
-  } 
-  
+  }
+
   throw new Error(`Env not found: ${key}`);
 }
 
-export function snakeToCamel(snakeStr: string) {
-  return snakeStr
-      .toLowerCase()
-      .split('_')
-      .map((word, index) =>
-          index === 0
-              ? word
-              : word.charAt(0).toUpperCase() + word.slice(1)
-      )
-      .join('');
-}
-
-export function transformKeysToCamelCase(obj: Object) {
-  const transform = (input: Object): any => {
-      if (Array.isArray(input)) {
-          return input.map((item) => (typeof item === 'object' ? transform(item) : item));
-      } else if (typeof input === 'object' && input !== null) {
-          return Object.entries(input).reduce((acc: any, [key, value]) => {
-              const newKey = snakeToCamel(key);
-              acc[newKey] = typeof value === 'object' && value !== null ? transform(value) : value;
-              return acc;
-          }, {});
-      }
-      return input;
-  };
-
-  return transform(obj);
-}
-
-export function transformParameters(tools: Object) {
+export function jsonSchemaTools(tools: Object) {
   return Object.entries(tools).reduce((acc: any, [toolName, toolData]) => {
     acc[toolName] = {
       ...toolData,
@@ -99,25 +70,47 @@ export function transformParameters(tools: Object) {
   }, {});
 }
 
-export function getInferenceConfig(providerModel: any, messages: any, { stream, ...settings }: any = {}): any {
-  const config = { model: providerModel, messages, ...transformKeysToCamelCase(settings) };
-  if (config.tools) {
-    config.tools = transformParameters(config.tools);
-  }
-  if (config.schema) {
-    config.schema = jsonSchema(config.schema);
-  }
-  const options = { stream: !!stream, hasSchema: !!config.schema }
-  return { config, options };
+export function transformBaseConfig(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
+  return {
+    messages: messages,
+    model: model,
+    maxTokens: config.max_tokens,
+    temperature: config.temperature,
+    topK: config.top_k,
+    topP: config.top_p,
+    presencePenalty: config.frequency_penalty,
+    stopSequences: config.stop_sequences,
+    seed: config.seed,
+    maxRetries: config.max_retries,
+    abortSignal: config.abort_signal,
+    headers: config.headers,
+  };
 }
 
-export async function runInference(config: any, options: any): Promise<Output> {
-  const { hasSchema, stream } = options;
-  if (hasSchema && stream) {
+export function transformObjectConfig(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKObjectSettings<Object> {
+  return {
+    ...transformBaseConfig(config, model, messages),
+    model,
+    schema: jsonSchema(config.schema),
+  }
+}
+
+export function transformTextConfig(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKTextSettings {
+  return {
+    ...transformBaseConfig(config, model, messages),
+    tools: config.tools ? jsonSchemaTools(config.tools) : [],
+  }
+}
+
+export async function runInference(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
+  const { schema, stream } = config;
+  if (schema && stream) {
+    const schemaConfig = transformObjectConfig(config, model, messages);
     return new Promise(async (resolve, reject) => {
       try {
         const { textStream } = streamObject({
-          ...config,
+          ...schemaConfig,
+          output: 'object',
           onFinish({ object, usage }) {
             resolve({
               result: { data: object as Object, type: 'object' },
@@ -132,8 +125,9 @@ export async function runInference(config: any, options: any): Promise<Output> {
         reject(error);
       }
     });
-  } else if (hasSchema) {
-    const result = await generateObject(config);
+  } else if (schema) {
+    const schemaConfig = transformObjectConfig(config, model, messages);
+    const result = await generateObject({ ...schemaConfig, output: 'object' });
     return {
       result: { data: result.object as Object, type: 'object' },
       tools: [],
@@ -141,10 +135,11 @@ export async function runInference(config: any, options: any): Promise<Output> {
       finishReason: result.finishReason
     }
   } else if (stream) {
+    const textConfig = transformTextConfig(config, model, messages);
     return new Promise(async (resolve, reject) => {
       try {
         const { textStream } = streamText({
-          ...config,
+          ...textConfig,
           onFinish({ text, usage, toolCalls, finishReason }) {
             resolve({
               result: { data: text as string, type: 'text' },
@@ -160,7 +155,8 @@ export async function runInference(config: any, options: any): Promise<Output> {
       }
     });
   } else {
-    const result = await generateText(config);
+    const textConfig = transformTextConfig(config, model, messages);
+    const result = await generateText(textConfig);
     return {
       result: { data: result.text as string, type: 'text' },
       tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),

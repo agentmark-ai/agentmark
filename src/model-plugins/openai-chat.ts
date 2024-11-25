@@ -3,8 +3,8 @@ import {
 } from "openai/resources";
 import { ModelPlugin } from "../model-plugin";
 import { PromptDX } from "../types";
-import { getEnv, toFrontMatter, getInferenceConfig, runInference } from "../utils";
-import { Output } from "../types";
+import { getEnv, toFrontMatter, runInference } from "../utils";
+import { PromptDXOutput } from "../types";
 import { createOpenAI } from "@ai-sdk/openai";
 
 export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
@@ -75,10 +75,9 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
           },
         });
         const providerModel = openai(modelConfig.name);
-        const { config, options } = getInferenceConfig(providerModel, messages, modelConfig.settings);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await runInference(config, options);
+          await runInference(modelConfig.settings, providerModel, messages);
         } catch (e) {}
       }
     );
@@ -86,7 +85,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
     return result;
   }
 
-  async runInference(promptDX: PromptDX): Promise<Output> {
+  async runInference(promptDX: PromptDX): Promise<PromptDXOutput> {
     const apiKey = this.apiKey || getEnv("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
@@ -99,8 +98,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
     const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const { config, options } = getInferenceConfig(providerModel, messages, modelConfig.settings);
-    const result = await runInference(config, options);
+    const result = await runInference(modelConfig.settings, providerModel, messages);
     return result;
   }
 }
