@@ -1,6 +1,6 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
-import { LanguageModel } from 'ai';
+import { LanguageModel, Schema } from 'ai';
 
 type JSONPrimitive = string | number | boolean | null | undefined;
 type JSONValue = JSONPrimitive | JSONObject | JSONArray;
@@ -26,7 +26,7 @@ export interface PromptDXModelSettings<T = unknown> {
   max_retries?: number;
   abort_signal?: AbortSignal;
   headers?: Record<string, string>;
-  schema?: T;
+  schema?: JSONObject;
   tools?: Record<
     string,
     {
@@ -64,8 +64,8 @@ export interface AISDKTextSettings extends AISDKBaseSettings {
 }
 
 export interface AISDKObjectSettings<T = unknown> extends AISDKBaseSettings {
-  output?: 'no-schema';
-  schema: T;
+  output?: string;
+  schema: Schema;
 };
 
 
