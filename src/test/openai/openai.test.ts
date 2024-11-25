@@ -1,6 +1,5 @@
 import { expect, test } from "vitest";
 import { getMdxAst, getMdxPrompt } from "../helpers";
-import "../../plugins";
 import { vi } from "vitest";
 import { getFrontMatter } from "@puzzlet/templatedx";
 import OpenAIChatPlugin from "../../model-plugins/openai-chat";
