@@ -1,5 +1,5 @@
-import AnthropicChatPlugin from "../plugins/anthropic-chat";
-import OpenAIChatPlugin from "../plugins/openai-chat";
+import AnthropicChatPlugin from "./anthropic-chat";
+import OpenAIChatPlugin from "./openai-chat";
 
 const plugins = [
   {

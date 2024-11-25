@@ -8,19 +8,27 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./models/all-latest": {
-      "import": "./dist/plugins/index.js",
-      "require": "./dist/plugins/index.cjs"
+      "import": "./dist/model-plugins/all-latest.js",
+      "types": "./dist/model-plugins/all-latest.d.ts",
+      "require": "./dist/model-plugins/all-latest.cjs",
+      "default": "./dist/model-plugins/all-latest.js"
     },
     "./models/openai-chat": {
-      "import": "./dist/plugins/openai-chat.js",
-      "require": "./dist/plugins/openai-chat.cjs"
+      "import": "./dist/model-plugins/openai-chat.js",
+      "types": "./dist/model-plugins/openai-chat.d.ts",
+      "require": "./dist/model-plugins/anthropic-chat.cjs",
+      "default": "./dist/model-plugins/openai-chat.js"
     },
     "./models/anthropic-chat": {
-      "import": "./dist/plugins/anthropic-chat.js",
-      "require": "./dist/plugins/anthropic-chat.cjs"
+      "import": "./dist/model-plugins/anthropic-chat.js",
+      "types": "./dist/model-plugins/anthropic-chat.d.ts",
+      "require": "./dist/model-plugins/anthropic-chat.cjs",
+      "default": "./dist/model-plugins/anthropic-chat.js"
     }
   },
   "scripts": {
