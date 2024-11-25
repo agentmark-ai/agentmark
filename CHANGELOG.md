@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.3
+
+### Patch Changes
+
+- e4e846d: Fixing latest anthropic models
+
 ## 1.2.2
 
 ### Patch Changes
