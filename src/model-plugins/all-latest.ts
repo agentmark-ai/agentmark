@@ -16,9 +16,9 @@ const plugins = [
   }, {
     provider: new AnthropicChatPlugin(),
     models: [
-      "claude-3-5-haiku",
-      "claude-3-5-sonnet",
-      "claude-3-opus"
+      "claude-3-5-haiku-latest",
+      "claude-3-5-sonnet-latest",
+      "claude-3-opus-latest"
     ]
   }
 ];

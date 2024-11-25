@@ -21,29 +21,26 @@ export function omit<T extends JSONObject>(
 export function toFrontMatter(content: JSONObject): string {
   function jsonToFrontMatter(json: JSONObject, indent = 0) {
     let frontMatter = "";
-    const indentation = "  ".repeat(indent); // For nested indentation
+    const indentation = "  ".repeat(indent);
 
     for (const key in json) {
       if (json.hasOwnProperty(key)) {
         const value = json[key];
 
         if (typeof value === "object" && !Array.isArray(value)) {
-          // Nested object
           frontMatter += `${indentation}${key}:\n`;
-          frontMatter += jsonToFrontMatter(value, indent + 1); // Recursive call
+          frontMatter += jsonToFrontMatter(value, indent + 1);
         } else if (Array.isArray(value)) {
-          // Array handling
           frontMatter += `${indentation}${key}:\n`;
           value.forEach((item) => {
             if (typeof item === "object") {
               frontMatter += `${indentation}-\n`;
-              frontMatter += jsonToFrontMatter(item, indent + 2); // Nested objects in array
+              frontMatter += jsonToFrontMatter(item, indent + 2);
             } else {
               frontMatter += `${indentation}- ${item}\n`;
             }
           });
         } else {
-          // Primitive value (string, number, boolean, etc.)
           frontMatter += `${indentation}${key}: ${value}\n`;
         }
       }
