@@ -5,7 +5,7 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
       {
         content: [
           {
-            text: "What is 7 + 5?",
+            text: "What is the current weather in Cleveland?",
             type: "text"
           }
         ],
@@ -15,7 +15,7 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
     model: "claude-3-haiku-latest",
     system: [
       {
-        text: "You are a helpful assistant capable of solving basic math problems and using tools as needed.",
+        text: "You are a helpful assistant able to access the weather.",
         type: "text"
       }
     ],
@@ -27,7 +27,13 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
       {
         description: "Fetches the current weather for a specified location.",
         input_schema: {
-          type: "string"
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "location"
+            }
+          }
         },
         name: "weather"
       }
@@ -48,7 +54,7 @@ export const anthropicCompletionParamsWithSchema = (stream: boolean) => {
       {
         content: [
           {
-            text: "What is 7 + 5?",
+            text: "Jessica and Michael decided to host a barbecue at their house, inviting their closest friends, Emily, David, and Sarah. As the evening went on, Jessica shared stories from her recent trip, while Michael grilled burgers, and Emily entertained everyone with her hilarious anecdotes.",
             type: "text"
           }
         ],
@@ -58,7 +64,7 @@ export const anthropicCompletionParamsWithSchema = (stream: boolean) => {
     model: "claude-3-haiku-latest",
     system: [
       {
-        text: "You are a helpful assistant capable of solving basic math problems and using tools as needed.",
+        text: "You are a helpful assistant capable of finding all the names of the people in a given body of text.",
         type: "text"
       }
     ],
@@ -71,14 +77,17 @@ export const anthropicCompletionParamsWithSchema = (stream: boolean) => {
       {
         description: "Respond with a JSON object.",
         input_schema: {
+          type: "object",
           properties: {
-            name: {
-              description: "name of person",
-              type: "string"
+            names: {
+              type: "array",
+              items: {
+                type: "string"
+              },
+              description: "names of people",
             }
           },
-          required: ["name"],
-          type: "object"
+          required: ["names"]
         },
         name: "json"
       }

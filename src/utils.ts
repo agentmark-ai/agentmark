@@ -123,7 +123,7 @@ export async function runInference(config: any, options: any): Promise<Output> {
           ...config,
           onFinish({ object, usage }) {
             resolve({
-              result: { data: object as Object, type: 'text' },
+              result: { data: object as Object, type: 'object' },
               tools: [],
               usage,
               finishReason: 'unknown'

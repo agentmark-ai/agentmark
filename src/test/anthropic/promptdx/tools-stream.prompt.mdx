@@ -12,8 +12,12 @@ metadata:
         weather:
           description: Fetches the current weather for a specified location.
           parameters:
-            type: string
+            type: object
+            properties:
+              name:
+                type: string
+                description: location
 ---
 
-<System>You are a helpful assistant capable of solving basic math problems and using tools as needed.</System>
-<User>What is 7 + 5?</User>
+<System>You are a helpful assistant able to access the weather.</System>
+<User>What is the current weather in Cleveland?</User>

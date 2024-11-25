@@ -3,15 +3,19 @@ import {
   ModelPluginRegistry,
   getModel,
   parse,
-  getRawConfig
+  getRawConfig,
 } from "@puzzlet/promptdx";
 import { ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
 import { createBoundedQueue } from "./boundedQueue";
+// @ts-ignore
+import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
 import * as fs from 'fs';
 import * as vscode from "vscode";
 import * as path from 'path';
 
 const promptHistoryMap: { [key: string]: any } = {};
+
+ModelPluginRegistry.registerAll(AllModelPlugins);
 
 type ChatSettings = {
   chatField: string;
@@ -81,30 +85,33 @@ export function activate(context: vscode.ExtensionContext) {
             testProps[chatFieldKey] = [];
           }
         }
+        console.log('*** ast', ast);
         const result = await runInference(ast, testProps);
+        console.log('*** result', result);
         if (!result) {
           throw new Error("Could not run inference.");
         }
         context.secrets.store(`prompt-dx.${plugin.provider}`, apiKey);
 
-        const [output] = result;
+        const output = result;
 
-        if ("output_type" in output) {
-          const ch = vscode.window.createOutputChannel("promptDX");
-          if (typeof output.data === "string") {
-            ch.appendLine(output.data);
-            if (chatSettings && chatSettings.useChat) {
-              const rawConfig = await getRawConfig(ast, testProps);
-              const queue = createBoundedQueue(chatSettings.maxSize || 10);
-              rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
-              queue.add({ role: 'assistant', message: output.data });
-              promptHistoryMap[name] = queue;
-            }
-          } else {
-            ch.appendLine(JSON.stringify(output.data, null, 2));
+        const ch = vscode.window.createOutputChannel("promptDX");
+        console.log('*** OUTPUT', output.result);
+        if (output.result.type === "text" && !!output.result.data) {
+          ch.appendLine(`TEXT: ${output.result.data as string}`);
+          if (chatSettings && chatSettings.useChat) {
+            const rawConfig = await getRawConfig(ast, testProps);
+            const queue = createBoundedQueue(chatSettings.maxSize || 10);
+            rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
+            queue.add({ role: 'assistant', message: output.result.data });
+            promptHistoryMap[name] = queue;
           }
-          ch.show();
+        } else if (output.result.type === 'object') {
+          ch.appendLine(`OBJECT: ${JSON.stringify(output.result.data, null, 2)}`);
+        } else if (output.tools.length) {
+          ch.appendLine(`TOOLS: ${JSON.stringify(output.tools, null, 2)}`);
         }
+        ch.show();
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);
       }

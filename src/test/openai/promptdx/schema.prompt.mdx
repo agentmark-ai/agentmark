@@ -1,5 +1,5 @@
 ---
-name: calculate
+name: schema
 metadata:
   model:
     name: gpt-4o-mini
@@ -9,12 +9,14 @@ metadata:
       schema:
         type: object
         properties:
-          name:
-            type: string
-            description: name of person
+          names:
+            type: array
+            items:
+              type: string
+            description: names of people
         required:
-        - name
+        - names
 ---
 
-<System>You are a helpful assistant capable of solving basic math problems and using tools as needed.</System>
-<User>What is 7 + 5?</User>
+<System>You are a helpful assistant capable of finding all the names of the people in a given body of text.</System>
+<User>Jessica and Michael decided to host a barbecue at their house, inviting their closest friends, Emily, David, and Sarah. As the evening went on, Jessica shared stories from her recent trip, while Michael grilled burgers, and Emily entertained everyone with her hilarious anecdotes.</User>
