@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.2
+
+### Patch Changes
+
+- 1798b47: Plugin exports
+
 ## 1.2.1
 
 ### Patch Changes
