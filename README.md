@@ -62,6 +62,36 @@ PromptDX supports:
 
 Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
 
+## Models
+
+By default, PromptDX doesn't support any model providers. Instead, support must be added through our plugins.
+Here's a list of currently supported plugins you can start using.
+
+### Built-In Model Plugins
+
+| Provider   | Model                        | Supported      |
+|------------|------------------------------|----------------|
+| OpenAI     | gpt-4o                       | ✅ Supported   |
+| OpenAI     | gpt-4o-mini                  | ✅ Supported   |
+| OpenAI     | gpt-4-turbo                  | ✅ Supported   |
+| OpenAI     | gpt-4                        | ✅ Supported   |
+| OpenAI     | o1-mini                      | ✅ Supported   |
+| OpenAI     | o1-preview                   | ✅ Supported   |
+| OpenAI     | gpt-3.5-turbo                | ✅ Supported   |
+| Anthropic  | claude-3-5-haiku-latest      | ✅ Supported   |
+| Anthropic  | claude-3-5-sonnet-latest     | ✅ Supported   |
+| Anthropic  | claude-3-opus-latest         | ✅ Supported   |
+| Custom     | any                          | ✅ Supported   |
+| Google     | ALL                          | ⚠️ Coming Soon |
+| Meta       | ALL                          | ⚠️ Coming Soon |
+| Groq       | ALL                          | ⚠️ Coming Soon |
+
+Want to add support for another model? Open an [issue](https://github.com/puzzlet-ai/promptdx/issues).
+
+### Custom Model Plugins
+
+Refer to our [docs](https://puzzlet-ai.github.io/promptdx) to learn how to add custom model support.
+
 ## Running PromptDX
 
 You can run PromptDX using one of the following methods:
