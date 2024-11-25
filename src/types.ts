@@ -71,7 +71,7 @@ export interface AISDKObjectSettings<T = unknown> extends AISDKBaseSettings {
 
 export interface PromptDX {
   name: string;
-  messages: Array<ChatMessage>;
+  messages: ChatMessage[];
   metadata: {
     model: {
       name: string;
