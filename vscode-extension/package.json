@@ -3,7 +3,7 @@
   "displayName": "PromptDX",
   "publisher": "puzzlet",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": "https://github.com/puzzlet-ai/promptdx",
   "license": "MIT",
   "icon": "static/logo.png",
