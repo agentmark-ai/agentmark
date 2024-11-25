@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.1
+
+### Patch Changes
+
+- b3d9125: Bugfix: object type for streaming
+
 ## 1.2.0
 
 ### Minor Changes
