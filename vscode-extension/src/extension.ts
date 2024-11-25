@@ -2,16 +2,13 @@ import {
   runInference,
   ModelPluginRegistry,
   getModel,
-  parse,
+  load,
   getRawConfig,
 } from "@puzzlet/promptdx";
-import { ContentLoader, getFrontMatter } from "@puzzlet/templatedx";
+import { getFrontMatter } from "@puzzlet/templatedx";
 import { createBoundedQueue } from "./boundedQueue";
-// @ts-ignore
 import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
-import * as fs from 'fs';
 import * as vscode from "vscode";
-import * as path from 'path';
 
 const promptHistoryMap: { [key: string]: any } = {};
 
@@ -34,12 +31,10 @@ export function activate(context: vscode.ExtensionContext) {
 
       const document = editor.document;
       const file = document.fileName;
-      const basename = path.dirname(file);
       if (!document.fileName.endsWith(".mdx")) {
         return;
       }
-      const contentLoader: ContentLoader = async (path) => fs.readFileSync(path, 'utf-8');
-      const ast = await parse(document.getText(), basename, contentLoader);
+      const ast = await load(file);
 
       const model = getModel(ast);
 
@@ -85,9 +80,7 @@ export function activate(context: vscode.ExtensionContext) {
             testProps[chatFieldKey] = [];
           }
         }
-        console.log('*** ast', ast);
         const result = await runInference(ast, testProps);
-        console.log('*** result', result);
         if (!result) {
           throw new Error("Could not run inference.");
         }
@@ -96,7 +89,6 @@ export function activate(context: vscode.ExtensionContext) {
         const output = result;
 
         const ch = vscode.window.createOutputChannel("promptDX");
-        console.log('*** OUTPUT', output.result);
         if (output.result.type === "text" && !!output.result.data) {
           ch.appendLine(`TEXT: ${output.result.data as string}`);
           if (chatSettings && chatSettings.useChat) {
