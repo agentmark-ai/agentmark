@@ -159,8 +159,7 @@ test("run inference with no stream", async () => {
     {
       finishReason: "stop",
       result: {
-        data: "Mocked response.",
-        type: "text"
+        text: "Mocked response.",
       },
       tools: [],
       usage: {
@@ -228,8 +227,7 @@ test("run inference with stream", async () => {
     {
       finishReason: "stop",
       result: {
-        data: "Mocked response.",
-        type: "text"
+        text: "Mocked response.",
       },
       tools: [],
       usage: {

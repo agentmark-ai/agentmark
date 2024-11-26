@@ -3,9 +3,9 @@ module.exports = {
     'getting-started',
     'overview',
     'syntax',
-    'type-safety',
-    'supported-providers',
     'api',
-    'recipes',
+    'model-plugins',
+    'examples',
+    'type-safety',
   ],
 };

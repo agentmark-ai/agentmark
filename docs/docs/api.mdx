@@ -8,19 +8,40 @@ PromptDX supports 3 basic methods for interacting with prompts: `runInference`, 
 
 ## runInference
 
-Run inference will take a prompt config, call the model provider's API, and return the result in PromptDX format.
-
-### Usage
+### usage
 
 ```tsx
-import { runInference } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/promptdx';
 ...
+const prompt = await load('./example.prompt.mdx');
 const result = await runInference(prompt, props)
 ```
 
-### Example:
+Run inference will take a prompt config, call the model provider's API, and return the result in PromptDX format.
 
-my-prompt.mdx:
+### input
+
+A valid PromptDX file. See [syntax](/syntax.mdx) for more.
+
+### output
+
+**PromptDXOutput Properties**
+
+| Property       | Type                                                                 | Description                                                                                                                                                                                                                 | Optional/Required |
+|----------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
+| `result`       | `object`                                                             | Contains the primary output of the prompt, which can be either text or an object.                                                                                                                                           | Required          |
+| ├─ `text`      | `string`                                                             | The generated text result.                                                                                                                                                                                                  | Optional          |
+| └─ `object`    | `Record<string, any>`                                                | The generated object result.                                                                                                                                                                                                | Optional          |
+| `tools`        | `Array<{ name: string; input: Record<string, any>; output?: Record<string, any>; }>` | An array detailing the tools invoked during the prompt execution. Each tool includes:  - `name`: The tool's name.  - `input`: The input parameters provided to the tool.  - `output` (optional): The tool's output. | Optional          |
+| `usage`        | `object`                                                             | Provides token usage statistics for the prompt execution.                                                                                                                                                                   | Required          |
+| ├─ `promptTokens`     | `number`                                                             | The number of tokens used in the prompt.                                                                                                                                                                                     | Required          |
+| ├─ `completionTokens` | `number`                                                             | The number of tokens generated in the completion.                                                                                                                                                                           | Required          |
+| └─ `totalTokens`      | `number`                                                             | The total number of tokens consumed (sum of prompt and completion tokens).                                                                                                                                                   | Required          |
+| `finishReason` | `"stop" \| "length" \| "content-filter" \| "tool-calls" \| "error" \| "other" \| "unknown"` | Indicates the reason why the prompt generation was terminated. Possible values include:  - `"stop"`: The generation was successfully completed.  - `"length"`: The generation stopped due to reaching the maximum token length.  - `"content-filter"`: The content was filtered due to policy restrictions.  - `"tool-calls"`: The generation involved tool calls.  - `"error"`: An error occurred during generation.  - `"other"`: Terminated for reasons not specified above.  - `"unknown"`: The termination reason is unknown. | Required          |
+
+### example:
+
+example.prompt.mdx:
 ```jsx
 ---
 name: my-prompt
@@ -36,8 +57,11 @@ Say: {props.greeting}
 
 Run:
 ```tsx
+import { runInference, load } from '@puzzlet/promptdx';
+...
 const props = { greeting: 'Hello' };
-runInference(myPrompt, props);
+const prompt = await load('./example.prompt.mdx');
+await runInference(myPrompt, props);
 ```
 
 Result:
@@ -49,15 +73,23 @@ Hello
 
 Deserialize takes a prompt in PromptDX format, and turns it into the configuration needed to call a model provider.
 
-### Usage
+### usage
 
 ```tsx
 import { deserialize } from '@puzzlet/promptdx';
 ...
-deserialize(prompt, props)
+await deserialize(prompt, props)
 ```
 
-### Example
+### input
+
+A valid PromptDX file. See [syntax](/syntax.mdx) for more.
+
+### output
+
+A valid consumer (OpenAI, Anthropic, etc.) format for running inference w/ the given config.
+
+### example
 
 my-prompt.mdx:
 ```jsx
@@ -76,7 +108,7 @@ Say: {props.greeting}
 Run:
 ```tsx
 const props = { greeting: 'Hello' };
-deserialize(myPrompt, props);
+await deserialize(myPrompt, props);
 ```
 
 Result:
@@ -96,7 +128,7 @@ Result:
 
 Serialize allows you to take an existing configuration for a Prompt, and serialize it into a PromptDX file.
 
-### Usage
+### usage
 
 ```tsx
 import { serialize } from '@puzzlet/promptdx';
@@ -104,7 +136,16 @@ import { serialize } from '@puzzlet/promptdx';
 serialize(config, modelName, promptName)
 ```
 
-### Example
+
+### input
+
+A valid consumer (OpenAI, Anthropic, etc.) format for running inference w/ the given config.
+
+### output
+
+A valid PromptDX file. See [syntax](/syntax.mdx) for more.
+
+### example
 
 Input Config:
 ```json

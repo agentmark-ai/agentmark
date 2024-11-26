@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ModelPlugin } from "../model-plugin";
 import { PromptDX } from "../types";
-import { getEnv, toFrontMatter, getInferenceConfig, runInference } from "../utils";
-import { Output } from "../types";
+import { getEnv, toFrontMatter, runInference } from "../utils";
+import { PromptDXOutput } from "../types";
 import { createAnthropic } from "@ai-sdk/anthropic";
 
 type MessageCreateParams = Anthropic.MessageCreateParams;
@@ -90,10 +90,9 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
           },
         });
         const providerModel = anthropic(modelConfig.name);
-        const { config, options } = getInferenceConfig(providerModel, messages, modelConfig.settings);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await runInference(config, options);
+          await runInference(modelConfig.settings, providerModel, messages);
         } catch (e) { }
       }
     );
@@ -101,7 +100,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     return result;
   }
 
-  async runInference(promptDX: PromptDX): Promise<Output> {
+  async runInference(promptDX: PromptDX): Promise<PromptDXOutput> {
     const apiKey = this.apiKey || getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
@@ -113,8 +112,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
-    const { config, options } = getInferenceConfig(providerModel, messages, modelConfig.settings);
-    const result = await runInference(config, options);
+    const result = await runInference(modelConfig.settings, providerModel, messages);
     return result;
   }
 }

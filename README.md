@@ -52,15 +52,45 @@ test_settings:
 
 PromptDX supports:
 
-1. Markdown
-2. Components
-3. Custom models
-4. Custom filters
-6. Custom JSX tags
-7. Loops and Conditionals
-8. Type Safety
+1. Markdown: 📝
+1. JSX components, props, & plugins: 🧩
+1. Unified API across models: 🔗
+1. Custom Models: 🛠️
+1. Streaming: 🌊
+1. Loops, Conditionals, and Filter Functions: ♻️
+1. Type Safety: 🛡️
 
 Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
+
+## Models
+
+By default, PromptDX doesn't support any model providers. Instead, support must be added through our plugins.
+Here's a list of currently supported plugins you can start using.
+
+### Built-In Model Plugins
+
+| Provider   | Model                        | Supported      |
+|------------|------------------------------|----------------|
+| OpenAI     | gpt-4o                       | ✅ Supported   |
+| OpenAI     | gpt-4o-mini                  | ✅ Supported   |
+| OpenAI     | gpt-4-turbo                  | ✅ Supported   |
+| OpenAI     | gpt-4                        | ✅ Supported   |
+| OpenAI     | o1-mini                      | ✅ Supported   |
+| OpenAI     | o1-preview                   | ✅ Supported   |
+| OpenAI     | gpt-3.5-turbo                | ✅ Supported   |
+| Anthropic  | claude-3-5-haiku-latest      | ✅ Supported   |
+| Anthropic  | claude-3-5-sonnet-latest     | ✅ Supported   |
+| Anthropic  | claude-3-opus-latest         | ✅ Supported   |
+| Custom     | any                          | ✅ Supported   |
+| Google     | ALL                          | ⚠️ Coming Soon |
+| Meta       | ALL                          | ⚠️ Coming Soon |
+| Groq       | ALL                          | ⚠️ Coming Soon |
+
+Want to add support for another model? Open an [issue](https://github.com/puzzlet-ai/promptdx/issues).
+
+### Custom Model Plugins
+
+Refer to our [docs](https://puzzlet-ai.github.io/promptdx) to learn how to add custom model support.
 
 ## Running PromptDX
 
