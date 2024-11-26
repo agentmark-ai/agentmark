@@ -16,7 +16,6 @@ const PromptDXBaseSettingsSchema = z.object({
   stop_sequences: z.array(z.string()).optional(),
   seed: z.number().optional(),
   max_retries: z.number().optional(),
-  abort_signal: z.instanceof(AbortSignal).optional(),
   headers: z.record(z.string()).optional(),
 });
 
@@ -32,7 +31,7 @@ const PromptDXTextSettingsSchema = PromptDXBaseSettingsSchema.extend({
 
 const PromptDXSchemaSettingsSchema = PromptDXBaseSettingsSchema.extend({
   output: z.literal('object'),
-  schema: z.unknown().optional(),
+  schema: z.unknown(),
 });
 
 export const PromptDXSettingsSchema = z.union([

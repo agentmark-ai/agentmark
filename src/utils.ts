@@ -82,7 +82,6 @@ export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, 
     stopSequences: config.stop_sequences,
     seed: config.seed,
     maxRetries: config.max_retries,
-    abortSignal: config.abort_signal,
     headers: config.headers,
   };
 }
