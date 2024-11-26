@@ -98,7 +98,7 @@ const Prompt = await load('./index.prompt.mdx');
 const result = await runInference(Prompt, props);
 ```
 
-## Tools
+## Tools (w/ Streaming)
 
 Optionally return a data format which adheres to tools schema.
 
@@ -113,7 +113,6 @@ metadata:
       temperature: 0.7
       top_p: 1
       stream: true
-      output: text
       tools:
         weather:
           description: Fetches the current weather for a specified location.
@@ -153,8 +152,6 @@ metadata:
     settings:
       temperature: 0.7
       top_p: 1
-      stream: true
-      output: object
       schema:
         type: object
         properties:

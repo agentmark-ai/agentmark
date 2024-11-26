@@ -26,7 +26,6 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
         settings: settings || {},
       },
     };
-    metadata.model.settings.output = 'text';
   
     if (system && Array.isArray(system) && system.length) {
       const systemMessages: ExtendedMessageParam[] = system.map((msg) => ({
@@ -51,7 +50,6 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
         }, {});
       } else {
         const schemaTool = tools.find((tool) => tool.input_schema);
-        metadata.model.settings.output = 'object';
         if (schemaTool) {
           metadata.model.settings.schema = schemaTool.input_schema;
         }

@@ -1,17 +1,29 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
 import { LanguageModel } from 'ai';
-import { PromptDXSchema, ChatMessageSchema, PromptDXSettingsSchema } from './schemas';
+import {
+  ChatMessageSchema,
+  PromptDXTextSettingsSchema,
+  PromptDXSchemaSettingsSchema,
+  PromptDXSchema,
+} from './schemas';
 import { z } from "zod";
 
 type JSONPrimitive = string | number | boolean | null | undefined;
 type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 type JSONArray = JSONValue[];
+
+interface ExtractTextProps {
+  children: any;
+}
+
+export type PromptDXTextSettings = z.infer<typeof PromptDXTextSettingsSchema>;
+export type PromptDXSchemaSettings = z.infer<typeof PromptDXSchemaSettingsSchema>;
+export type PromptDXSettings = PromptDXTextSettings | PromptDXSchemaSettings;
+
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 export type JSONObject = { [member: string]: JSONValue | any };
-
-export type PromptDXSettings = z.infer<typeof PromptDXSettingsSchema>;
 
 export interface AISDKBaseSettings {
   model: LanguageModel;
@@ -48,11 +60,6 @@ export type PromptDXOutput = {
   };
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
 };
-
-
-interface ExtractTextProps {
-  children: any;
-}
 
 export interface Components extends BaseMDXProvidedComponents {
   User: FC<ExtractTextProps>;

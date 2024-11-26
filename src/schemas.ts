@@ -19,25 +19,34 @@ const PromptDXBaseSettingsSchema = z.object({
   headers: z.record(z.string()).optional(),
 });
 
-const PromptDXTextSettingsSchema = PromptDXBaseSettingsSchema.extend({
-  output: z.literal('text'),
-  tools: z.record(
-    z.object({
-      description: z.string(),
-      parameters: z.unknown(),
-    })
-  ).optional(),
+export const PromptDXTextSettingsSchema = PromptDXBaseSettingsSchema.extend({
+  tools: z
+    .record(
+      z.object({
+        description: z.string(),
+        parameters: z.unknown(),
+      })
+    )
+    .optional(),
 });
 
-const PromptDXSchemaSettingsSchema = PromptDXBaseSettingsSchema.extend({
-  output: z.literal('object'),
+export const PromptDXSchemaSettingsSchema = PromptDXBaseSettingsSchema.extend({
   schema: z.unknown(),
 });
 
-export const PromptDXSettingsSchema = z.union([
-  PromptDXTextSettingsSchema,
-  PromptDXSchemaSettingsSchema,
-]);
+export const PromptDXSettingsSchema = PromptDXBaseSettingsSchema.extend({
+  schema: z.unknown().optional(),
+  tools: z
+    .record(
+      z.object({
+        description: z.string(),
+        parameters: z.unknown(),
+      })
+    )
+    .optional(),
+}).refine((data) => ('schema' in data ? !('tools' in data) : true), {
+  message: "'schema' cannot coexist with 'tools'.",
+});
 
 const MetadataSchema = z.object({
   model: z.object({

@@ -28,7 +28,6 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
         },
       },
     };
-    frontMatterData.metadata.model.settings.output = 'text';
   
     if (tools) {
       const transformedTools = tools.reduce((acc: any, { function: func }) => {
@@ -44,7 +43,6 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
       } else {
         const schemaTool = tools.find((tool) => tool.function.parameters);
         if (schemaTool) {
-          frontMatterData.metadata.model.settings.output = 'object';
           frontMatterData.metadata.model.settings.schema = schemaTool.function.parameters;
         }
       }

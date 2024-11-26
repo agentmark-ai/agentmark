@@ -2,6 +2,7 @@ import { ChatMessage, JSONObject } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
 import { PromptDXOutput, PromptDXSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
+import { PromptDXSettingsSchema } from "./schemas";
 
 export function omit<T extends JSONObject>(
   obj: T,
@@ -89,13 +90,13 @@ export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, 
 export async function runInference(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
   const { stream } = config;
   const baseConfig = getBaseSettings(config, model, messages);
-  const hasSchema = config.output === 'object';
-  if (hasSchema && stream) {
+  const settings = PromptDXSettingsSchema.parse(config);
+  if ('schema' in settings && stream) {
     return new Promise(async (resolve, reject) => {
       try {
         const { textStream } = streamObject({
           ...baseConfig,
-          schema: jsonSchema(config.schema),
+          schema: jsonSchema(settings.schema),
           onFinish({ object, usage }) {
             resolve({
               result: { object: object as Object },
@@ -109,8 +110,8 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
         reject(error);
       }
     });
-  } else if (hasSchema) {
-    const result = await generateObject({ ...baseConfig, schema: jsonSchema(config.schema) });
+  } else if ('schema' in settings) {
+    const result = await generateObject({ ...baseConfig, schema: jsonSchema(settings.schema) });
     return {
       result: { object: result.object as Object },
       tools: [],
@@ -122,7 +123,7 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
       try {
         const { textStream } = streamText({
           ...baseConfig,
-          tools: config.tools ? jsonSchemaTools(config.tools) : undefined,
+          tools: settings.tools ? jsonSchemaTools(settings.tools) : undefined,
           onFinish({ text, usage, toolCalls, finishReason }) {
             resolve({
               result: { text },
@@ -138,7 +139,7 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
       }
     });
   } else {
-    const result = await generateText({ ...baseConfig, tools: config.tools ? jsonSchemaTools(config.tools) : undefined });
+    const result = await generateText({ ...baseConfig, tools: settings.tools ? jsonSchemaTools(settings.tools) : undefined });
     return {
       result: { text: result.text },
       tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
