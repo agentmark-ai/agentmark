@@ -52,13 +52,13 @@ test_settings:
 
 PromptDX supports:
 
-1. Markdown
-2. Components
-3. Custom models
-4. Custom filters
-6. Custom JSX tags
-7. Loops and Conditionals
-8. Type Safety
+1. Markdown: 📝
+1. JSX components, props, & plugins: 🧩
+1. Unified API across models: 🔗
+1. Custom Models: 🛠️
+1. Streaming: 🌊
+1. Loops, Conditionals, and Filter Functions: ♻️
+1. Type Safety: 🛡️
 
 Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
 
