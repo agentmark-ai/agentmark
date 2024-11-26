@@ -1,6 +1,6 @@
 import { ChatMessage, JSONObject } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
-import { PromptDXOutput, PromptDXModelSettings, AISDKObjectSettings, AISDKTextSettings, AISDKBaseSettings } from "./types";
+import { PromptDXOutput, PromptDXModelSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
 
 export function omit<T extends JSONObject>(
@@ -70,7 +70,7 @@ export function jsonSchemaTools(tools: Object) {
   }, {});
 }
 
-export function transformBaseConfig(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
+export function getBaseSettings(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
   return {
     messages: messages,
     model: model,
@@ -87,30 +87,17 @@ export function transformBaseConfig(config: PromptDXModelSettings, model: Langua
   };
 }
 
-export function transformObjectConfig(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKObjectSettings<Object> {
-  return {
-    ...transformBaseConfig(config, model, messages),
-    model,
-    schema: jsonSchema(config.schema),
-  }
-}
-
-export function transformTextConfig(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKTextSettings {
-  return {
-    ...transformBaseConfig(config, model, messages),
-    tools: config.tools ? jsonSchemaTools(config.tools) : [],
-  }
-}
-
 export async function runInference(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
-  const { schema, stream } = config;
-  if (schema && stream) {
-    const schemaConfig = transformObjectConfig(config, model, messages);
+  const { stream } = config;
+  const baseConfig = getBaseSettings(config, model, messages);
+  const hasSchema = config.output === 'object';
+  if (hasSchema && stream) {
     return new Promise(async (resolve, reject) => {
       try {
         const { textStream } = streamObject({
-          ...schemaConfig,
+          ...baseConfig,
           output: 'object',
+          schema: jsonSchema(config.schema),
           onFinish({ object, usage }) {
             resolve({
               result: { data: object as Object, type: 'object' },
@@ -125,9 +112,8 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
         reject(error);
       }
     });
-  } else if (schema) {
-    const schemaConfig = transformObjectConfig(config, model, messages);
-    const result = await generateObject({ ...schemaConfig, output: 'object' });
+  } else if (hasSchema) {
+    const result = await generateObject({ ...baseConfig, output: 'object', schema: jsonSchema(config.schema) });
     return {
       result: { data: result.object as Object, type: 'object' },
       tools: [],
@@ -135,11 +121,11 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
       finishReason: result.finishReason
     }
   } else if (stream) {
-    const textConfig = transformTextConfig(config, model, messages);
     return new Promise(async (resolve, reject) => {
       try {
         const { textStream } = streamText({
-          ...textConfig,
+          ...baseConfig,
+          tools: config.tools ? jsonSchemaTools(config.tools) : undefined,
           onFinish({ text, usage, toolCalls, finishReason }) {
             resolve({
               result: { data: text as string, type: 'text' },
@@ -155,8 +141,7 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
       }
     });
   } else {
-    const textConfig = transformTextConfig(config, model, messages);
-    const result = await generateText(textConfig);
+    const result = await generateText({ ...baseConfig, tools: config.tools ? jsonSchemaTools(config.tools) : undefined });
     return {
       result: { data: result.text as string, type: 'text' },
       tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),

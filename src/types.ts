@@ -12,7 +12,8 @@ export interface ChatMessage {
   content: string,
 };
 
-export interface PromptDXModelSettings<T = unknown> {
+export interface PromptDXModelSettings {
+  output: 'object' | 'text';
   model: string;
   stream: boolean;
   max_tokens?: number;
@@ -51,23 +52,6 @@ export interface AISDKBaseSettings {
   abortSignal?: AbortSignal;
   headers?: Record<string, string>;
 }
-
-export interface AISDKTextSettings extends AISDKBaseSettings {
-  tools?: Record<
-    string,
-    {
-      description: string;
-      parameters: JSONObject;
-      execute?: (args: any) => Promise<unknown>;
-    }
-  >;
-}
-
-export interface AISDKObjectSettings<T = unknown> extends AISDKBaseSettings {
-  output?: string;
-  schema: Schema;
-};
-
 
 export interface PromptDX {
   name: string;
