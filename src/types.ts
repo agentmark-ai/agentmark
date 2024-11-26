@@ -1,41 +1,17 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
-import { LanguageModel, Schema } from 'ai';
+import { LanguageModel } from 'ai';
+import { PromptDXSchema, ChatMessageSchema, PromptDXSettingsSchema } from './schemas';
+import { z } from "zod";
 
 type JSONPrimitive = string | number | boolean | null | undefined;
 type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 type JSONArray = JSONValue[];
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+
 export type JSONObject = { [member: string]: JSONValue | any };
 
-export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant',
-  content: string,
-};
-
-export interface PromptDXModelSettings {
-  output: 'object' | 'text';
-  model: string;
-  stream: boolean;
-  max_tokens?: number;
-  temperature?: number;
-  top_p?: number;
-  top_k?: number;
-  presence_penalty?: number;
-  frequency_penalty?: number;
-  stop_sequences?: string[];
-  seed?: number;
-  max_retries?: number;
-  abort_signal?: AbortSignal;
-  headers?: Record<string, string>;
-  schema?: JSONObject;
-  tools?: Record<
-    string,
-    {
-      description: string;
-      parameters: JSONObject;
-    }
-  >;
-}
+export type PromptDXSettings = z.infer<typeof PromptDXSettingsSchema>;
 
 export interface AISDKBaseSettings {
   model: LanguageModel;
@@ -53,23 +29,14 @@ export interface AISDKBaseSettings {
   headers?: Record<string, string>;
 }
 
-export interface PromptDX {
-  name: string;
-  messages: ChatMessage[];
-  metadata: {
-    model: {
-      name: string;
-      settings: PromptDXModelSettings;
-    };
-  };
-}
+export type PromptDX = z.infer<typeof PromptDXSchema>;
 
 export type PromptDXOutput = {
   result: {
-    data: string | Record<string, any>;
-    type: "text" | "object";
+    text?: string;
+    object?: Record<string, any>;
   };
-  tools: Array<{
+  tools?: Array<{
     name: string;
     input: Record<string, any>;
     output?: Record<string, any>;

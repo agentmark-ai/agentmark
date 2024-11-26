@@ -1,8 +1,9 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { PromptDX, JSONObject, ChatMessage } from "./types";
+import { JSONObject, PromptDX, ChatMessage } from "./types";
 import { ExtractTextPlugin } from "./templatedx-plugins/extract-text";
+import { PromptDXSchema } from "./schemas";
 
 type ExtractedField = {
   name: string;
@@ -13,6 +14,7 @@ type SharedContext = {
   extractedText?: Array<ExtractedField>;
 }
 
+
 TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
 function getMessages(extractedFields: Array<any>): ChatMessage[] {
@@ -21,9 +23,6 @@ function getMessages(extractedFields: Array<any>): ChatMessage[] {
     const fieldName = field.name.toLocaleLowerCase();
     if (index !== 0 && fieldName === 'system') {
       throw new Error(`System message may only be the first message only: ${field.content}`);
-    }
-    if (!['system', 'user', 'assistant'].includes(fieldName)) {
-      throw new Error(`Invalid field type: ${fieldName}`);
     }
     messages.push({ role: fieldName, content: field.content });
   });
@@ -37,16 +36,13 @@ export async function getRawConfig(ast: Ast, props = {}) {
   const extractedFields = shared.extractedText || [];
   const messages = getMessages(extractedFields);
 
-  if (!frontMatter.metadata) throw new Error(`Prompt must contain metadata`);
-  if (!frontMatter.name) throw new Error(`Prompt must have a name`);
-  if (!extractedFields.length) throw new Error(`Prompt messages must not be empty.`);
-  if (!frontMatter.metadata.model) throw new Error(`Prompt metadata must contain model info`);
+  frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
 
-  const promptDX: PromptDX = {
+  const promptDX: PromptDX = PromptDXSchema.parse({
     name: frontMatter.name,
     messages: messages,
     metadata: frontMatter.metadata,
-  };
+  });
   return promptDX;
 }
 

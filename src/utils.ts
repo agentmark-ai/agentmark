@@ -1,6 +1,6 @@
 import { ChatMessage, JSONObject } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
-import { PromptDXOutput, PromptDXModelSettings, AISDKBaseSettings } from "./types";
+import { PromptDXOutput, PromptDXSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
 
 export function omit<T extends JSONObject>(
@@ -70,7 +70,7 @@ export function jsonSchemaTools(tools: Object) {
   }, {});
 }
 
-export function getBaseSettings(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
+export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
   return {
     messages: messages,
     model: model,
@@ -87,7 +87,7 @@ export function getBaseSettings(config: PromptDXModelSettings, model: LanguageMo
   };
 }
 
-export async function runInference(config: PromptDXModelSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
+export async function runInference(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
   const { stream } = config;
   const baseConfig = getBaseSettings(config, model, messages);
   const hasSchema = config.output === 'object';
@@ -96,12 +96,10 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
       try {
         const { textStream } = streamObject({
           ...baseConfig,
-          output: 'object',
           schema: jsonSchema(config.schema),
           onFinish({ object, usage }) {
             resolve({
-              result: { data: object as Object, type: 'object' },
-              tools: [],
+              result: { object: object as Object },
               usage,
               finishReason: 'unknown'
             });
@@ -113,9 +111,9 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
       }
     });
   } else if (hasSchema) {
-    const result = await generateObject({ ...baseConfig, output: 'object', schema: jsonSchema(config.schema) });
+    const result = await generateObject({ ...baseConfig, schema: jsonSchema(config.schema) });
     return {
-      result: { data: result.object as Object, type: 'object' },
+      result: { object: result.object as Object },
       tools: [],
       usage: result.usage,
       finishReason: result.finishReason
@@ -128,7 +126,7 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
           tools: config.tools ? jsonSchemaTools(config.tools) : undefined,
           onFinish({ text, usage, toolCalls, finishReason }) {
             resolve({
-              result: { data: text as string, type: 'text' },
+              result: { text },
               tools: toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
               usage,
               finishReason
@@ -143,7 +141,7 @@ export async function runInference(config: PromptDXModelSettings, model: Languag
   } else {
     const result = await generateText({ ...baseConfig, tools: config.tools ? jsonSchemaTools(config.tools) : undefined });
     return {
-      result: { data: result.text as string, type: 'text' },
+      result: { text: result.text },
       tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
       usage: result.usage,
       finishReason: result.finishReason
