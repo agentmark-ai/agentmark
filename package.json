@@ -55,7 +55,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.2",
     "@ai-sdk/openai": "^1.0.1",
-    "@puzzlet/templatedx": "^0.6.0",
+    "@puzzlet/templatedx": "^0.6.1",
     "ai": "^4.0.3",
     "front-matter": "^4.0.2",
     "js-yaml": "^4.1.0",
