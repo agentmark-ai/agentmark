@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.4
+
+### Patch Changes
+
+- de3c06f: Fixes system msg and zod support
+
 ## 1.2.3
 
 ### Patch Changes
