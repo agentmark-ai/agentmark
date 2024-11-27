@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.5
+
+### Patch Changes
+
+- c6e71c4: Bump templatedx
+
 ## 1.2.4
 
 ### Patch Changes
