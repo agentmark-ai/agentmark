@@ -42,22 +42,7 @@ export class ExtractTextPlugin extends TagPlugin {
     } else {
       promises.push(promise);
     }
-    let collectedData = scope.getShared("extractedText");
-    if (!collectedData) {
-      collectedData = [];
-      scope.setShared("extractedText", collectedData);
-    }
-
-    await Promise.all(
-      scope
-        .getShared("promises")
-        .map(async (promise: Promise<any>, index: number) => {
-          collectedData[index] = await promise;
-        })
-    );
-
-    scope.setShared("promises", null);
-
+  
     return [];
   }
 }
