@@ -36,9 +36,9 @@ export class ExtractTextPlugin extends TagPlugin {
       }
     });
 
-    const promises = scope.getShared("promises");
+    const promises = scope.getShared("_puuzlet-extractTextPromises");
     if (!promises) {
-      scope.setShared("promises", [promise]);
+      scope.setShared("_puuzlet-extractTextPromises", [promise]);
     } else {
       promises.push(promise);
     }

@@ -11,7 +11,7 @@ type ExtractedField = {
 }
 
 type SharedContext = {
-  promises?: Promise<ExtractedField>[];
+  "_puuzlet-extractTextPromises"?: Promise<ExtractedField>[];
 }
 
 
@@ -33,7 +33,7 @@ export async function getRawConfig(ast: Ast, props = {}) {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
   await transform(ast, props, shared);
-  const extractedFieldPromises = shared.promises || [];
+  const extractedFieldPromises = shared["_puuzlet-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
   frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
