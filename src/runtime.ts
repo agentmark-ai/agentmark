@@ -11,7 +11,7 @@ type ExtractedField = {
 }
 
 type SharedContext = {
-  extractedText?: Array<ExtractedField>;
+  "__puzzlet-extractTextPromises"?: Promise<ExtractedField>[];
 }
 
 
@@ -33,8 +33,8 @@ export async function getRawConfig(ast: Ast, props = {}) {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
   await transform(ast, props, shared);
-  const extractedFields = shared.extractedText || [];
-  const messages = getMessages(extractedFields);
+  const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
+  const messages = getMessages(await Promise.all(extractedFieldPromises));
 
   frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
 
