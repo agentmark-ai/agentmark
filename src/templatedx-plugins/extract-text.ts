@@ -38,7 +38,7 @@ export class ExtractTextPlugin extends TagPlugin {
 
     const promises = scope.getShared("_puuzlet-extractTextPromises");
     if (!promises) {
-      scope.setShared("_puuzlet-extractTextPromises", [promise]);
+      scope.setShared("__puzzlet-extractTextPromises", [promise]);
     } else {
       promises.push(promise);
     }
