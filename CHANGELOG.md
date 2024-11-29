@@ -1,5 +1,11 @@
 # @puzzlet/promptdx
 
+## 1.2.6
+
+### Patch Changes
+
+- 7091774: race condition when extracting field
+
 ## 1.2.5
 
 ### Patch Changes
