@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://puzzlet-ai.github.io/promptdx/">Docs</a> |
+  <a href="https://puzzlet-ai.github.io/agentmark/">Docs</a> |
   <a href="https://github.com/puzzlet-ai/templatedx">TemplateDX</a> |
   <a href="https://puzzlet.ai">Puzzlet</a>
 </p>
@@ -60,7 +60,7 @@ PromptDX supports:
 1. Loops, Conditionals, and Filter Functions: ♻️
 1. Type Safety: 🛡️
 
-Read our [docs](https://puzzlet-ai.github.io/promptdx) to learn more.
+Read our [docs](https://puzzlet-ai.github.io/agentmark) to learn more.
 
 ## Models
 
@@ -86,11 +86,11 @@ Here's a list of currently supported plugins you can start using.
 | Meta       | ALL                          | ⚠️ Coming Soon |
 | Groq       | ALL                          | ⚠️ Coming Soon |
 
-Want to add support for another model? Open an [issue](https://github.com/puzzlet-ai/promptdx/issues).
+Want to add support for another model? Open an [issue](https://github.com/puzzlet-ai/agentmark/issues).
 
 ### Custom Model Plugins
 
-Refer to our [docs](https://puzzlet-ai.github.io/promptdx) to learn how to add custom model support.
+Refer to our [docs](https://puzzlet-ai.github.io/agentmark) to learn how to add custom model support.
 
 ## Running PromptDX
 
@@ -148,16 +148,16 @@ run();
 
 ## Contributing
 
-We welcome contributions! Please check out our [contribution guidelines](https://github.com/puzzlet-ai/promptdx/blob/main/CONTRIBUTING.md) for more information.
+We welcome contributions! Please check out our [contribution guidelines](https://github.com/puzzlet-ai/agentmark/blob/main/CONTRIBUTING.md) for more information.
 
 ## Community
 
 Join our community to collaborate, ask questions, and stay updated:
 
 - [Discord](https://discord.gg/P2NeMDtXar)
-- [Issues](https://github.com/puzzlet-ai/promptdx/issues)
-- [Discussions](https://github.com/puzzlet-ai/promptdx/discussions)
+- [Issues](https://github.com/puzzlet-ai/agentmark/issues)
+- [Discussions](https://github.com/puzzlet-ai/agentmark/discussions)
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/puzzlet-ai/promptdx/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/puzzlet-ai/agentmark/blob/main/LICENSE).
