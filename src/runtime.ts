@@ -1,7 +1,7 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject, AgentMark, ChatMessage } from "./types";
+import { JSONObject, PromptDX, ChatMessage } from "./types";
 import { ExtractTextPlugin } from "./templatedx-plugins/extract-text";
 import { AgentMarkSchema } from "./schemas";
 
@@ -38,26 +38,26 @@ export async function getRawConfig(ast: Ast, props = {}) {
 
   frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
 
-  const agentMark: AgentMark = AgentMarkSchema.parse({
+  const promptDX: PromptDX = AgentMarkSchema.parse({
     name: frontMatter.name,
     messages: messages,
     metadata: frontMatter.metadata,
   });
-  return agentMark;
+  return promptDX;
 }
 
 export async function runInference(
   ast: Ast,
   props: JSONObject = {},
 ) {
-  const agentMark = await getRawConfig(ast, props);
+  const promptDX = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
-    agentMark.metadata.model.name
+    promptDX.metadata.model.name
   );
   if (!plugin) {
-    throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
+    throw new Error(`No registered plugin for ${promptDX.metadata.model.name}`);
   }
-  return plugin?.runInference(agentMark);
+  return plugin?.runInference(promptDX);
 }
 
 export function serialize(
@@ -70,11 +70,11 @@ export function serialize(
 }
 
 export async function deserialize(ast: Ast, props = {}) {
-  const agentMark = await getRawConfig(ast, props);
+  const promptDX = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
-    agentMark.metadata.model.name
+    promptDX.metadata.model.name
   );
-  return plugin?.deserialize(agentMark);
+  return plugin?.deserialize(promptDX);
 }
 
 export const getModel = (ast: Ast) => {

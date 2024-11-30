@@ -41,7 +41,7 @@ export interface AISDKBaseSettings {
   headers?: Record<string, string>;
 }
 
-export type AgentMark = z.infer<typeof AgentMarkSchema>;
+export type PromptDX = z.infer<typeof AgentMarkSchema>;
 
 export type AgentMarkOutput = {
   result: {

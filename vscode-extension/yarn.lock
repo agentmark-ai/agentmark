@@ -344,9 +344,9 @@
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
 
-"@puzzlet/agentmark@^1.2.2":
+"@puzzlet/promptdx@^1.2.2":
   version "1.2.2"
-  resolved "https://registry.yarnpkg.com/@puzzlet/agentmark/-/agentmark-1.2.2.tgz#5af5ac736da73158107af5ec60ba423d40e32116"
+  resolved "https://registry.yarnpkg.com/@puzzlet/promptdx/-/promptdx-1.2.2.tgz#5af5ac736da73158107af5ec60ba423d40e32116"
   integrity sha512-K/QTb/xXS03ptx/bKIlDRWcpyVvLElp2K5Repr2HtAIkCF+cAKrtA0zIQtiLoSdKxKqd1YgNGAuVHrq4WcQN5w==
   dependencies:
     "@ai-sdk/anthropic" "^1.0.2"

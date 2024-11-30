@@ -14,7 +14,7 @@
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
-      "@puzzlet/agentmark/models/*": ["node_modules/@puzzlet/agentmark/dist/model-plugins/*.d.ts"]
+      "@puzzlet/promptdx/models/*": ["node_modules/@puzzlet/promptdx/dist/model-plugins/*.d.ts"]
     }
   },
   "include": ["src"],

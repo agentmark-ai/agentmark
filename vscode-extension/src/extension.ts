@@ -4,10 +4,10 @@ import {
   getModel,
   load,
   getRawConfig,
-} from "@puzzlet/agentmark";
+} from "@puzzlet/promptdx";
 import { getFrontMatter } from "@puzzlet/templatedx";
 import { createBoundedQueue } from "./boundedQueue";
-import AllModelPlugins from '@puzzlet/agentmark/models/all-latest';
+import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
 import * as vscode from "vscode";
 
 const promptHistoryMap: { [key: string]: any } = {};
@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const output = result;
 
-        const ch = vscode.window.createOutputChannel("agentMark");
+        const ch = vscode.window.createOutputChannel("promptDX");
         if (output.result.type === "text" && !!output.result.data) {
           ch.appendLine(`TEXT: ${output.result.data as string}`);
           if (chatSettings && chatSettings.useChat) {
@@ -100,7 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
         } else if (output.result.type === 'object') {
           ch.appendLine(`OBJECT: ${JSON.stringify(output.result.data, null, 2)}`);
-        } else if (output.tools.length) {
+        } else if (output.tools?.length) {
           ch.appendLine(`TOOLS: ${JSON.stringify(output.tools, null, 2)}`);
         }
         ch.show();

@@ -1,9 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ModelPlugin } from "../model-plugin";
-import { AgentMark } from "../types";
-import { getEnv, toFrontMatter, runInference } from "../utils";
+import { PromptDX } from "../types";
 import { AgentMarkOutput } from "../types";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import type { PluginAPI } from "../plugin-api";
 
 type MessageCreateParams = Anthropic.MessageCreateParams;
 type ExtendedMessageParam = Omit<Anthropic.MessageParam, "role"> & {
@@ -11,10 +11,9 @@ type ExtendedMessageParam = Omit<Anthropic.MessageParam, "role"> & {
 }
 
 export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams> {
-  private customFetch;
-  constructor(customFetch = fetch) {
-    super("anthropic");
-    this.customFetch = customFetch;
+  constructor(api: PluginAPI) {
+    super("anthropic", api);
+    this.api = api;
   }
 
   serialize(completionParams: MessageCreateParams, name: string): string {
@@ -60,7 +59,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
       name,
       metadata,
     };
-    const frontMatter = toFrontMatter(frontMatterData);
+    const frontMatter = this.api.toFrontMatter(frontMatterData);
   
     const capitalizeRole = (role: string): string => role.charAt(0).toUpperCase() + role.slice(1);
   
@@ -76,8 +75,8 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
   }
   
   
-  async deserialize(agentMark: AgentMark): Promise<MessageCreateParams> {
-    const { metadata, messages } = agentMark;
+  async deserialize(promptDX: PromptDX): Promise<MessageCreateParams> {
+    const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
 
     const completionParamsPromise = new Promise<MessageCreateParams>(
@@ -92,7 +91,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
         const providerModel = anthropic(modelConfig.name);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await runInference(modelConfig.settings, providerModel, messages);
+          await this.api.runInference(modelConfig.settings, providerModel, messages);
         } catch (e) { }
       }
     );
@@ -100,19 +99,19 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     return result;
   }
 
-  async runInference(agentMark: AgentMark): Promise<AgentMarkOutput> {
-    const apiKey = this.apiKey || getEnv("ANTHROPIC_API_KEY");
+  async runInference(promptDX: PromptDX): Promise<AgentMarkOutput> {
+    const apiKey = this.apiKey || this.api.getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
     const anthropic = createAnthropic({
       apiKey,
-      fetch: this.customFetch
+      fetch: this.api.fetch
     });
-    const { metadata, messages } = agentMark;
+    const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
-    const result = await runInference(modelConfig.settings, providerModel, messages);
+    const result = await this.api.runInference(modelConfig.settings, providerModel, messages);
     return result;
   }
 }

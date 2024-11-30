@@ -1,5 +1,5 @@
 {
-  "name": "@puzzlet/agentmark",
+  "name": "@puzzlet/promptdx",
   "version": "1.2.6",
   "license": "MIT",
   "main": "dist/index.js",

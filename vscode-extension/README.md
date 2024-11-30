@@ -1,14 +1,14 @@
-# AgentMark
+# PromptDX
 
 **A declarative, extensible, and composable approach for creating LLM prompts using Markdown and JSX.**
 
-![AgentMark](https://lpgvdjzmcrynxnhuzesb.supabase.co/storage/v1/object/sign/avatar/agentmark.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJhdmF0YXIvcHJvbXB0ZHgucG5nIiwiaWF0IjoxNzMwMzIyMzQzLCJleHAiOjIwNDU2ODIzNDN9.KC1xQ1AKSxOOMjpdXwGwFN_mr8dljY4c-x_xoePPvWY&t=2024-10-30T21%3A05%3A43.354Z)
+![PromptDX](https://lpgvdjzmcrynxnhuzesb.supabase.co/storage/v1/object/sign/avatar/promptdx.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJhdmF0YXIvcHJvbXB0ZHgucG5nIiwiaWF0IjoxNzMwMzIyMzQzLCJleHAiOjIwNDU2ODIzNDN9.KC1xQ1AKSxOOMjpdXwGwFN_mr8dljY4c-x_xoePPvWY&t=2024-10-30T21%3A05%3A43.354Z)
 
 ## Overview
 
-AgentMark is a Visual Studio Code extension that brings a new, powerful way to create language model (LLM) prompts. Designed with a focus on readability, portability, and syntax highlighting, AgentMark allows you to write prompts in a language-agnostic, declarative format using `.prompt.mdx` files.
+PromptDX is a Visual Studio Code extension that brings a new, powerful way to create language model (LLM) prompts. Designed with a focus on readability, portability, and syntax highlighting, PromptDX allows you to write prompts in a language-agnostic, declarative format using `.prompt.mdx` files.
 
-By leveraging Markdown and JSX, AgentMark provides a clean, composable, and extensible solution to enhance your prompt development workflow.
+By leveraging Markdown and JSX, PromptDX provides a clean, composable, and extensible solution to enhance your prompt development workflow.
 
 ## Features
 
@@ -80,7 +80,7 @@ test_settings:
 
 ## Documentation
 
-Comprehensive documentation, including guides and API references, is available in the [AgentMark GitHub repository](https://github.com/puzzlet-ai/agentmark/). Refer to the documentation for detailed instructions on using AgentMark features and integrating it with your workflow.
+Comprehensive documentation, including guides and API references, is available in the [PromptDX GitHub repository](https://github.com/puzzlet-ai/promptdx/). Refer to the documentation for detailed instructions on using PromptDX features and integrating it with your workflow.
 
 ## Community
 
@@ -88,4 +88,4 @@ Chat with our growing, tight-knit community. Join our [Discord](https://discord.
 
 ## Feedback
 
-We value your feedback to continuously improve AgentMark. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/puzzlet-ai/agentmark/issues).
+We value your feedback to continuously improve PromptDX. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/puzzlet-ai/promptdx/issues).

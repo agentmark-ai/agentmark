@@ -1,9 +1,10 @@
 import AnthropicChatPlugin from "./anthropic-chat";
 import OpenAIChatPlugin from "./openai-chat";
+import PluginAPI  from "../plugin-api";
 
 const plugins = [
   {
-    provider: new OpenAIChatPlugin(),
+    provider: new OpenAIChatPlugin(PluginAPI),
     models: [
       "gpt-4o",
       "gpt-4o-mini",
@@ -14,7 +15,7 @@ const plugins = [
       "gpt-3.5-turbo",
     ]
   }, {
-    provider: new AnthropicChatPlugin(),
+    provider: new AnthropicChatPlugin(PluginAPI),
     models: [
       "claude-3-5-haiku-latest",
       "claude-3-5-sonnet-latest",

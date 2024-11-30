@@ -30,9 +30,9 @@ test("Get raw config", async () => {
       },
     ],
   };
-  const agentMark = await getRawConfig(ast as any, { userInput: "test" });
+  const promptDX = await getRawConfig(ast as any, { userInput: "test" });
 
-  expect(agentMark).toEqual({
+  expect(promptDX).toEqual({
     name: "grade",
     messages: [
       {

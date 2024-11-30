@@ -5,14 +5,15 @@ import { getFrontMatter } from "@puzzlet/templatedx";
 import AnthropicChatPlugin from "../../model-plugins/anthropic-chat";
 import { getRawConfig } from "../../runtime";
 import { anthropicCompletionParamsWithSchema, anthropicCompletionParamsWithTools, promptWithHistory } from "./configs";
+import PluginAPI from "../../plugin-api";
 
 vi.stubEnv("ANTHROPIC_API_KEY", "key");
 
-const plugin = new AnthropicChatPlugin();
+const plugin = new AnthropicChatPlugin(PluginAPI);
 
 
 test("should serialize basic", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/agentmark/basic.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/promptdx/basic.prompt.mdx");
   const serialized = plugin.serialize(
     {
       max_tokens: 4096,
@@ -55,9 +56,9 @@ test("should serialize basic", async () => {
 });
 
 test("should deserialize basic", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/basic.prompt.mdx");
-  const agentMark = await getRawConfig(ast);
-  const deserialized = await plugin.deserialize(agentMark);
+  const ast = await getMdxAst(__dirname + "/promptdx/basic.prompt.mdx");
+  const promptDX = await getRawConfig(ast);
+  const deserialized = await plugin.deserialize(promptDX);
   expect(deserialized).toEqual({
     max_tokens: 4096,
     messages: [
@@ -96,7 +97,7 @@ test("should deserialize basic", async () => {
 });
 
 test("should serialize tools with no stream", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/agentmark/tools.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/promptdx/tools.prompt.mdx");
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithTools(false),
     "calculate"
@@ -105,14 +106,14 @@ test("should serialize tools with no stream", async () => {
 });
 
 test("should deserialize tools with no stream", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/tools.prompt.mdx");
-  const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const ast = await getMdxAst(__dirname + "/promptdx/tools.prompt.mdx");
+  const promptDX = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(promptDX);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(false));
 });
 
 test("should serialize tools with stream", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/agentmark/tools-stream.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/promptdx/tools-stream.prompt.mdx");
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithTools(true),
     "calculate"
@@ -121,14 +122,14 @@ test("should serialize tools with stream", async () => {
 });
 
 test("should deserialize tools with stream", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/tools-stream.prompt.mdx");
-  const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const ast = await getMdxAst(__dirname + "/promptdx/tools-stream.prompt.mdx");
+  const promptDX = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(promptDX);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(true));
 });
 
 test("should serialize schema with stream", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/agentmark/schema-stream.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/promptdx/schema-stream.prompt.mdx");
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithSchema(true),
     "calculate"
@@ -137,14 +138,14 @@ test("should serialize schema with stream", async () => {
 });
 
 test("should deserialize schema with stream", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/schema-stream.prompt.mdx");
-  const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const ast = await getMdxAst(__dirname + "/promptdx/schema-stream.prompt.mdx");
+  const promptDX = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(promptDX);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(true));
 });
 
 test("should serialize schema with no stream", async () => {
-  const mdx = await getMdxPrompt(__dirname + "/agentmark/schema.prompt.mdx");
+  const mdx = await getMdxPrompt(__dirname + "/promptdx/schema.prompt.mdx");
 
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithSchema(false),
@@ -155,14 +156,14 @@ test("should serialize schema with no stream", async () => {
 });
 
 test("should deserialize schema with no stream", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/schema.prompt.mdx");
-  const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const ast = await getMdxAst(__dirname + "/promptdx/schema.prompt.mdx");
+  const promptDX = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(promptDX);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(false));
 });
 
 test("run inference with no stream", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/basic.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/promptdx/basic.prompt.mdx");
   const mockFetch = vi.fn(() =>
     Promise.resolve(
       new Response(
@@ -195,9 +196,9 @@ test("run inference with no stream", async () => {
   );  
   
   
-  const pluginWithInference = new AnthropicChatPlugin(mockFetch);
-  const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark);
+  const pluginWithInference = new AnthropicChatPlugin({ ...PluginAPI, fetch: mockFetch });
+  const promptDX = await getRawConfig(ast);
+  const result = await pluginWithInference.runInference(promptDX);
 
   expect(result).toEqual({
     finishReason: "stop",
@@ -214,15 +215,15 @@ test("run inference with no stream", async () => {
 });
 
 test("should deserialize prompt with history prop", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/props-history.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/promptdx/props-history.prompt.mdx");
   const frontmatter = getFrontMatter(ast) as any;
-  const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const promptDX = await getRawConfig(ast, frontmatter.test_settings.props);
+  const deserializedPrompt = await plugin.deserialize(promptDX);
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });
 
 test("run inference with stream", async () => {
-  const ast = await getMdxAst(__dirname + "/agentmark/basic-stream.prompt.mdx");
+  const ast = await getMdxAst(__dirname + "/promptdx/basic-stream.prompt.mdx");
   const mockStreamedFetch = vi.fn(() => {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -309,9 +310,9 @@ test("run inference with stream", async () => {
   
   
 
-  const pluginWithInference = new AnthropicChatPlugin(mockStreamedFetch);
-  const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark);
+  const pluginWithInference = new AnthropicChatPlugin({ ...PluginAPI, fetch: mockStreamedFetch });
+  const promptDX = await getRawConfig(ast);
+  const result = await pluginWithInference.runInference(promptDX);
   expect(result).toEqual({
     finishReason: "stop",
     result: {
