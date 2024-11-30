@@ -1,9 +1,9 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject, PromptDX, ChatMessage } from "./types";
+import { JSONObject, AgentMark, ChatMessage } from "./types";
 import { ExtractTextPlugin } from "./templatedx-plugins/extract-text";
-import { PromptDXSchema } from "./schemas";
+import { AgentMarkSchema } from "./schemas";
 
 type ExtractedField = {
   name: string;
@@ -38,7 +38,7 @@ export async function getRawConfig(ast: Ast, props = {}) {
 
   frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
 
-  const promptDX: PromptDX = PromptDXSchema.parse({
+  const promptDX: AgentMark = AgentMarkSchema.parse({
     name: frontMatter.name,
     messages: messages,
     metadata: frontMatter.metadata,

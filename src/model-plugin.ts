@@ -1,4 +1,4 @@
-import { JSONObject, PromptDXOutput, PromptDX } from "./types";
+import { JSONObject, AgentMarkOutput, AgentMark } from "./types";
 
 export abstract class ModelPlugin<T = JSONObject, R = T> {
   protected apiKey: string | undefined = "";
@@ -13,9 +13,9 @@ export abstract class ModelPlugin<T = JSONObject, R = T> {
     this.apiKey = apiKey;
   }
 
-  abstract deserialize(PromptDX: PromptDX): Promise<R>;
+  abstract deserialize(AgentMark: AgentMark): Promise<R>;
 
-  abstract runInference(promptDX: PromptDX): Promise<PromptDXOutput>;
+  abstract runInference(promptDX: AgentMark): Promise<AgentMarkOutput>;
 
   abstract serialize(completionParams: R, name: string): string;
 }

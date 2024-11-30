@@ -2,9 +2,9 @@ import {
   ChatCompletionCreateParams,
 } from "openai/resources";
 import { ModelPlugin } from "../model-plugin";
-import { PromptDX } from "../types";
+import { AgentMark } from "../types";
 import { getEnv, toFrontMatter, runInference } from "../utils";
-import { PromptDXOutput } from "../types";
+import { AgentMarkOutput } from "../types";
 import { createOpenAI } from "@ai-sdk/openai";
 
 export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
@@ -61,7 +61,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
   }
   
 
-  async deserialize(promptDX: PromptDX): Promise<ChatCompletionCreateParams> {
+  async deserialize(promptDX: AgentMark): Promise<ChatCompletionCreateParams> {
     const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
     const completionParamsPromise = new Promise<ChatCompletionCreateParams>(
@@ -85,7 +85,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
     return result;
   }
 
-  async runInference(promptDX: PromptDX): Promise<PromptDXOutput> {
+  async runInference(promptDX: AgentMark): Promise<AgentMarkOutput> {
     const apiKey = this.apiKey || getEnv("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");

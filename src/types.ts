@@ -3,9 +3,9 @@ import type { FC } from 'react';
 import { LanguageModel } from 'ai';
 import {
   ChatMessageSchema,
-  PromptDXTextSettingsSchema,
-  PromptDXSchemaSettingsSchema,
-  PromptDXSchema,
+  AgentMarkTextSettingsSchema,
+  AgentMarkSchemaSettingsSchema,
+  AgentMarkSchema,
 } from './schemas';
 import { z } from "zod";
 
@@ -17,9 +17,9 @@ interface ExtractTextProps {
   children: any;
 }
 
-export type PromptDXTextSettings = z.infer<typeof PromptDXTextSettingsSchema>;
-export type PromptDXSchemaSettings = z.infer<typeof PromptDXSchemaSettingsSchema>;
-export type PromptDXSettings = PromptDXTextSettings | PromptDXSchemaSettings;
+export type AgentMarkTextSettings = z.infer<typeof AgentMarkTextSettingsSchema>;
+export type AgentMarkSchemaSettings = z.infer<typeof AgentMarkSchemaSettingsSchema>;
+export type AgentMarkSettings = AgentMarkTextSettings | AgentMarkSchemaSettings;
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
@@ -41,9 +41,9 @@ export interface AISDKBaseSettings {
   headers?: Record<string, string>;
 }
 
-export type PromptDX = z.infer<typeof PromptDXSchema>;
+export type AgentMark = z.infer<typeof AgentMarkSchema>;
 
-export type PromptDXOutput = {
+export type AgentMarkOutput = {
   result: {
     text?: string;
     object?: Record<string, any>;

@@ -31,7 +31,7 @@ function HomepageHeader() {
 export default function Home(): JSX.Element {
   return (
     <Layout
-      title="PromptDX"
+      title="AgentMark"
       description="A declarative, extensible & composable type-safe template engine based on Markdown and JSX."
     >
       <HomepageHeader />

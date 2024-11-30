@@ -4,20 +4,20 @@ title: Getting Started
 
 # Getting Started
 
-Follow the instructions below to install PromptDX in your app.
+Follow the instructions below to install AgentMark in your app.
 
-## Install PromptDX
+## Install AgentMark
 
 Install with npm:
 
 ```bash npm
-npm install @puzzlet/promptdx
+npm install @puzzlet/agentmark
 ```
 
 or yarn:
 
 ```bash npm
-yarn add @puzzlet/promptdx
+yarn add @puzzlet/agentmark
 ```
 
 ## Create your first Prompt
@@ -40,17 +40,17 @@ metadata:
 
 Run .prompt.mdx files directly within your VSCode editor.
 
-[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx)
+[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
 
 ### Webpack Loader
 
-Integrate PromptDX with your webpack workflow using our loader.
+Integrate AgentMark with your webpack workflow using our loader.
 
-[PromptDX Webpack Loader](https://github.com/puzzlet-ai/promptdx-loader)
+[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark-loader)
 
 ```tsx
-import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
-import { runInference, ModelPluginRegistry } from "@puzzlet/promptdx";
+import AllModelPlugins from '@puzzlet/agentmark/models/all-latest';
+import { runInference, ModelPluginRegistry } from "@puzzlet/agentmark";
 import MyPrompt from './example.prompt.mdx';
 
 // Note: Registering all latest models for demo/development purposes. 
@@ -67,11 +67,11 @@ run();
 
 ### Node.js
 
-Run PromptDX directly in your Node.js environment. Below is a sample implementation:
+Run AgentMark directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
-import { runInference, load, ModelPluginRegistry } from "@puzzlet/promptdx";
-import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
+import { runInference, load, ModelPluginRegistry } from "@puzzlet/agentmark";
+import AllModelPlugins from '@puzzlet/agentmark/models/all-latest';
 
 // Note: Registering all latest models for demo/development purposes. 
 // In production, you'll likely want to selectively load these, and pin models.

@@ -1,10 +1,10 @@
 {
-  "name": "promptdx",
-  "displayName": "PromptDX",
+  "name": "agentmark",
+  "displayName": "AgentMark",
   "publisher": "puzzlet",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
   "version": "1.0.3",
-  "repository": "https://github.com/puzzlet-ai/promptdx",
+  "repository": "https://github.com/puzzlet-ai/agentmark",
   "license": "MIT",
   "icon": "static/logo.png",
   "engines": {
@@ -71,7 +71,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@puzzlet/promptdx": "^1.2.2",
+    "@puzzlet/agentmark": "^1.2.2",
     "@puzzlet/templatedx": "^0.5.7"
   }
 }

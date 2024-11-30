@@ -1,8 +1,8 @@
 import { ChatMessage, JSONObject } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
-import { PromptDXOutput, PromptDXSettings, AISDKBaseSettings } from "./types";
+import { AgentMarkOutput, AgentMarkSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
-import { PromptDXSettingsSchema } from "./schemas";
+import { AgentMarkSettingsSchema } from "./schemas";
 
 export function omit<T extends JSONObject>(
   obj: T,
@@ -71,7 +71,7 @@ export function jsonSchemaTools(tools: Object) {
   }, {});
 }
 
-export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
+export function getBaseSettings(config: AgentMarkSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
   return {
     messages: messages,
     model: model,
@@ -87,10 +87,10 @@ export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, 
   };
 }
 
-export async function runInference(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
+export async function runInference(config: AgentMarkSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<AgentMarkOutput> {
   const { stream } = config;
   const baseConfig = getBaseSettings(config, model, messages);
-  const settings = PromptDXSettingsSchema.parse(config);
+  const settings = AgentMarkSettingsSchema.parse(config);
   if ('schema' in settings && stream) {
     return new Promise(async (resolve, reject) => {
       try {

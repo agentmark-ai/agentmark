@@ -1,21 +1,21 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 
 module.exports = {
-  title: 'PromptDX',
+  title: 'AgentMark',
   tagline: 'The declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.',
   url: 'https://puzzlet-ai.github.io/',
-  baseUrl: '/promptdx/',
+  baseUrl: '/agentmark/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'puzzlet-ai',
-  projectName: 'promptdx',
+  projectName: 'agentmark',
   scripts: [
     {
       src: 'https://plausible.io/js/script.outbound-links.js',
       async: true,
       defer: true,
-      'data-domain': 'puzzlet-ai.github.io/promptdx',
+      'data-domain': 'puzzlet-ai.github.io/agentmark',
       'data-spa': 'auto',
     },
   ],
@@ -26,7 +26,7 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/puzzlet-ai/promptdx-docs/edit/main/',
+          editUrl: 'https://github.com/puzzlet-ai/agentmark-docs/edit/main/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -41,9 +41,9 @@ module.exports = {
       disableSwitch: true,
     },
     navbar: {
-      title: 'PromptDX',
+      title: 'AgentMark',
       logo: {
-        alt: 'PromptDX Logo',
+        alt: 'AgentMark Logo',
         src: 'https://www.puzzlet.ai/images/logo.svg',
       },
       items: [
@@ -59,7 +59,7 @@ module.exports = {
           position: 'right'
         },
         {
-          to: 'https://github.com/puzzlet-ai/promptdx',
+          to: 'https://github.com/puzzlet-ai/agentmark',
           label: 'GitHub',
           position: 'right',
         },
@@ -82,7 +82,7 @@ module.exports = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/puzzlet-ai/promptdx',
+              href: 'https://github.com/puzzlet-ai/agentmark',
             },
             {
               label: 'Discord',

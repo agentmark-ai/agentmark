@@ -5,7 +5,7 @@ export const ChatMessageSchema = z.object({
   content: z.string(),
 });
 
-const PromptDXBaseSettingsSchema = z.object({
+const AgentMarkBaseSettingsSchema = z.object({
   stream: z.boolean().optional(),
   max_tokens: z.number().optional(),
   temperature: z.number().optional(),
@@ -19,7 +19,7 @@ const PromptDXBaseSettingsSchema = z.object({
   headers: z.record(z.string()).optional(),
 });
 
-export const PromptDXTextSettingsSchema = PromptDXBaseSettingsSchema.extend({
+export const AgentMarkTextSettingsSchema = AgentMarkBaseSettingsSchema.extend({
   tools: z
     .record(
       z.object({
@@ -30,11 +30,11 @@ export const PromptDXTextSettingsSchema = PromptDXBaseSettingsSchema.extend({
     .optional(),
 });
 
-export const PromptDXSchemaSettingsSchema = PromptDXBaseSettingsSchema.extend({
+export const AgentMarkSchemaSettingsSchema = AgentMarkBaseSettingsSchema.extend({
   schema: z.unknown(),
 });
 
-export const PromptDXSettingsSchema = PromptDXBaseSettingsSchema.extend({
+export const AgentMarkSettingsSchema = AgentMarkBaseSettingsSchema.extend({
   schema: z.unknown().optional(),
   tools: z
     .record(
@@ -51,11 +51,11 @@ export const PromptDXSettingsSchema = PromptDXBaseSettingsSchema.extend({
 const MetadataSchema = z.object({
   model: z.object({
     name: z.string(),
-    settings: PromptDXSettingsSchema,
+    settings: AgentMarkSettingsSchema,
   }),
 });
 
-export const PromptDXSchema = z.object({
+export const AgentMarkSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
   metadata: MetadataSchema,
