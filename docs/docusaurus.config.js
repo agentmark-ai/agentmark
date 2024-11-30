@@ -1,7 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 
 module.exports = {
-  title: 'AgentMark',
+  title: 'PromptDX',
   tagline: 'The declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.',
   url: 'https://puzzlet-ai.github.io/',
   baseUrl: '/agentmark/',
@@ -15,7 +15,7 @@ module.exports = {
       src: 'https://plausible.io/js/script.outbound-links.js',
       async: true,
       defer: true,
-      'data-domain': 'puzzlet-ai.github.io/agentmark',
+      'data-domain': 'puzzlet-ai.github.io/promptdx',
       'data-spa': 'auto',
     },
   ],
@@ -41,9 +41,9 @@ module.exports = {
       disableSwitch: true,
     },
     navbar: {
-      title: 'AgentMark',
+      title: 'PromptDX',
       logo: {
-        alt: 'AgentMark Logo',
+        alt: 'PromptDX Logo',
         src: 'https://www.puzzlet.ai/images/logo.svg',
       },
       items: [

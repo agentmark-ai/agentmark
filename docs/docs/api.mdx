@@ -4,28 +4,28 @@ title: API
 
 # API
 
-AgentMark supports 3 basic methods for interacting with prompts: `runInference`, `deserialize`, and `serialize`.
+PromptDX supports 3 basic methods for interacting with prompts: `runInference`, `deserialize`, and `serialize`.
 
 ## runInference
 
 ### usage
 
 ```tsx
-import { runInference, load } from '@puzzlet/agentmark';
+import { runInference, load } from '@puzzlet/promptdx';
 ...
 const prompt = await load('./example.prompt.mdx');
 const result = await runInference(prompt, props)
 ```
 
-Run inference will take a prompt config, call the model provider's API, and return the result in AgentMark format.
+Run inference will take a prompt config, call the model provider's API, and return the result in PromptDX format.
 
 ### input
 
-A valid AgentMark file. See [syntax](/syntax.mdx) for more.
+A valid PromptDX file. See [syntax](/syntax.mdx) for more.
 
 ### output
 
-**AgentMarkOutput Properties**
+**PromptDXOutput Properties**
 
 | Property       | Type                                                                 | Description                                                                                                                                                                                                                 | Optional/Required |
 |----------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
@@ -57,7 +57,7 @@ Say: {props.greeting}
 
 Run:
 ```tsx
-import { runInference, load } from '@puzzlet/agentmark';
+import { runInference, load } from '@puzzlet/promptdx';
 ...
 const props = { greeting: 'Hello' };
 const prompt = await load('./example.prompt.mdx');
@@ -71,19 +71,19 @@ Hello
 
 ## deserialize
 
-Deserialize takes a prompt in AgentMark format, and turns it into the configuration needed to call a model provider.
+Deserialize takes a prompt in PromptDX format, and turns it into the configuration needed to call a model provider.
 
 ### usage
 
 ```tsx
-import { deserialize } from '@puzzlet/agentmark';
+import { deserialize } from '@puzzlet/promptdx';
 ...
 await deserialize(prompt, props)
 ```
 
 ### input
 
-A valid AgentMark file. See [syntax](/syntax.mdx) for more.
+A valid PromptDX file. See [syntax](/syntax.mdx) for more.
 
 ### output
 
@@ -126,12 +126,12 @@ Result:
 
 ## serialize
 
-Serialize allows you to take an existing configuration for a Prompt, and serialize it into a AgentMark file.
+Serialize allows you to take an existing configuration for a Prompt, and serialize it into a PromptDX file.
 
 ### usage
 
 ```tsx
-import { serialize } from '@puzzlet/agentmark';
+import { serialize } from '@puzzlet/promptdx';
 ...
 serialize(config, modelName, promptName)
 ```
@@ -143,7 +143,7 @@ A valid consumer (OpenAI, Anthropic, etc.) format for running inference w/ the g
 
 ### output
 
-A valid AgentMark file. See [syntax](/syntax.mdx) for more.
+A valid PromptDX file. See [syntax](/syntax.mdx) for more.
 
 ### example
 
