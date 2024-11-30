@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const output = result;
 
-        const ch = vscode.window.createOutputChannel("promptDX");
+        const ch = vscode.window.createOutputChannel("agentMark");
         if (output.result.type === "text" && !!output.result.data) {
           ch.appendLine(`TEXT: ${output.result.data as string}`);
           if (chatSettings && chatSettings.useChat) {

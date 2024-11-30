@@ -15,7 +15,7 @@ export abstract class ModelPlugin<T = JSONObject, R = T> {
 
   abstract deserialize(AgentMark: AgentMark): Promise<R>;
 
-  abstract runInference(promptDX: AgentMark): Promise<AgentMarkOutput>;
+  abstract runInference(agentMark: AgentMark): Promise<AgentMarkOutput>;
 
   abstract serialize(completionParams: R, name: string): string;
 }

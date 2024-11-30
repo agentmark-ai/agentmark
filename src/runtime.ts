@@ -38,26 +38,26 @@ export async function getRawConfig(ast: Ast, props = {}) {
 
   frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
 
-  const promptDX: AgentMark = AgentMarkSchema.parse({
+  const agentMark: AgentMark = AgentMarkSchema.parse({
     name: frontMatter.name,
     messages: messages,
     metadata: frontMatter.metadata,
   });
-  return promptDX;
+  return agentMark;
 }
 
 export async function runInference(
   ast: Ast,
   props: JSONObject = {},
 ) {
-  const promptDX = await getRawConfig(ast, props);
+  const agentMark = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
-    promptDX.metadata.model.name
+    agentMark.metadata.model.name
   );
   if (!plugin) {
-    throw new Error(`No registered plugin for ${promptDX.metadata.model.name}`);
+    throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
-  return plugin?.runInference(promptDX);
+  return plugin?.runInference(agentMark);
 }
 
 export function serialize(
@@ -70,11 +70,11 @@ export function serialize(
 }
 
 export async function deserialize(ast: Ast, props = {}) {
-  const promptDX = await getRawConfig(ast, props);
+  const agentMark = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
-    promptDX.metadata.model.name
+    agentMark.metadata.model.name
   );
-  return plugin?.deserialize(promptDX);
+  return plugin?.deserialize(agentMark);
 }
 
 export const getModel = (ast: Ast) => {

@@ -76,8 +76,8 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
   }
   
   
-  async deserialize(promptDX: AgentMark): Promise<MessageCreateParams> {
-    const { metadata, messages } = promptDX;
+  async deserialize(agentMark: AgentMark): Promise<MessageCreateParams> {
+    const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
 
     const completionParamsPromise = new Promise<MessageCreateParams>(
@@ -100,7 +100,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     return result;
   }
 
-  async runInference(promptDX: AgentMark): Promise<AgentMarkOutput> {
+  async runInference(agentMark: AgentMark): Promise<AgentMarkOutput> {
     const apiKey = this.apiKey || getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
@@ -109,7 +109,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
       apiKey,
       fetch: this.customFetch
     });
-    const { metadata, messages } = promptDX;
+    const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
     const result = await runInference(modelConfig.settings, providerModel, messages);

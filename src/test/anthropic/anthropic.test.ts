@@ -56,8 +56,8 @@ test("should serialize basic", async () => {
 
 test("should deserialize basic", async () => {
   const ast = await getMdxAst(__dirname + "/agentmark/basic.prompt.mdx");
-  const promptDX = await getRawConfig(ast);
-  const deserialized = await plugin.deserialize(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const deserialized = await plugin.deserialize(agentMark);
   expect(deserialized).toEqual({
     max_tokens: 4096,
     messages: [
@@ -106,8 +106,8 @@ test("should serialize tools with no stream", async () => {
 
 test("should deserialize tools with no stream", async () => {
   const ast = await getMdxAst(__dirname + "/agentmark/tools.prompt.mdx");
-  const promptDX = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(agentMark);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(false));
 });
 
@@ -122,8 +122,8 @@ test("should serialize tools with stream", async () => {
 
 test("should deserialize tools with stream", async () => {
   const ast = await getMdxAst(__dirname + "/agentmark/tools-stream.prompt.mdx");
-  const promptDX = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(agentMark);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(true));
 });
 
@@ -138,8 +138,8 @@ test("should serialize schema with stream", async () => {
 
 test("should deserialize schema with stream", async () => {
   const ast = await getMdxAst(__dirname + "/agentmark/schema-stream.prompt.mdx");
-  const promptDX = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(agentMark);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(true));
 });
 
@@ -156,8 +156,8 @@ test("should serialize schema with no stream", async () => {
 
 test("should deserialize schema with no stream", async () => {
   const ast = await getMdxAst(__dirname + "/agentmark/schema.prompt.mdx");
-  const promptDX = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const deserializedPrompt = await plugin.deserialize(agentMark);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(false));
 });
 
@@ -196,8 +196,8 @@ test("run inference with no stream", async () => {
   
   
   const pluginWithInference = new AnthropicChatPlugin(mockFetch);
-  const promptDX = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const result = await pluginWithInference.runInference(agentMark);
 
   expect(result).toEqual({
     finishReason: "stop",
@@ -216,8 +216,8 @@ test("run inference with no stream", async () => {
 test("should deserialize prompt with history prop", async () => {
   const ast = await getMdxAst(__dirname + "/agentmark/props-history.prompt.mdx");
   const frontmatter = getFrontMatter(ast) as any;
-  const promptDX = await getRawConfig(ast, frontmatter.test_settings.props);
-  const deserializedPrompt = await plugin.deserialize(promptDX);
+  const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
+  const deserializedPrompt = await plugin.deserialize(agentMark);
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });
 
@@ -310,8 +310,8 @@ test("run inference with stream", async () => {
   
 
   const pluginWithInference = new AnthropicChatPlugin(mockStreamedFetch);
-  const promptDX = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(promptDX);
+  const agentMark = await getRawConfig(ast);
+  const result = await pluginWithInference.runInference(agentMark);
   expect(result).toEqual({
     finishReason: "stop",
     result: {
