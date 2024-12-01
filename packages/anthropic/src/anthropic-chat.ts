@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { ModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
+import { IModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
 import type { IPluginAPI } from '@puzzlet/agentmark';
 import { createAnthropic } from "@ai-sdk/anthropic";
 
@@ -8,13 +8,18 @@ type ExtendedMessageParam = Omit<Anthropic.MessageParam, "role"> & {
   role: "user" | "assistant" | "system";
 }
 
-export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams> {
-  constructor(api: IPluginAPI) {
-    super("anthropic", api);
-    this.api = api;
+export default class AnthropicChatPlugin implements IModelPlugin {
+  provider: string;
+  apiKey: string | undefined = "";
+  constructor() {
+    this.provider = "anthropic";
   }
 
-  serialize(completionParams: MessageCreateParams, name: string): string {
+  setApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+  }
+
+  serialize(completionParams: MessageCreateParams, name: string, api: IPluginAPI): string {
     const { model, messages, tools, tool_choice, stream, system, ...settings } = completionParams;
     const messagesWithSystem = [...messages] as ExtendedMessageParam[];
     const metadata: any = {
@@ -57,7 +62,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
       name,
       metadata,
     };
-    const frontMatter = this.api.toFrontMatter(frontMatterData);
+    const frontMatter = api.toFrontMatter(frontMatterData);
   
     const capitalizeRole = (role: string): string => role.charAt(0).toUpperCase() + role.slice(1);
   
@@ -73,7 +78,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
   }
   
   
-  async deserialize(agentMark: AgentMark): Promise<MessageCreateParams> {
+  async deserialize(agentMark: AgentMark, api: IPluginAPI): Promise<MessageCreateParams> {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
 
@@ -89,7 +94,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
         const providerModel = anthropic(modelConfig.name);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await this.api.runInference(modelConfig.settings, providerModel, messages);
+          await api.runInference(modelConfig.settings, providerModel, messages);
         } catch (e) { }
       }
     );
@@ -97,19 +102,19 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     return result;
   }
 
-  async runInference(agentMark: AgentMark): Promise<AgentMarkOutput> {
-    const apiKey = this.apiKey || this.api.getEnv("ANTHROPIC_API_KEY");
+  async runInference(agentMark: AgentMark, api: IPluginAPI): Promise<AgentMarkOutput> {
+    const apiKey = this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
     const anthropic = createAnthropic({
       apiKey,
-      fetch: this.api.fetch
+      fetch: api.fetch
     });
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
-    const result = await this.api.runInference(modelConfig.settings, providerModel, messages);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages);
     return result;
   }
 }

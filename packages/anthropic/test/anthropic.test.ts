@@ -7,7 +7,7 @@ import { anthropicCompletionParamsWithSchema, anthropicCompletionParamsWithTools
 
 vi.stubEnv("ANTHROPIC_API_KEY", "key");
 
-const plugin = new AnthropicChatPlugin(PluginAPI);
+const plugin = new AnthropicChatPlugin();
 
 export const getMdxPrompt = async (path: string) => {
   const input = fs.readFileSync(path, 'utf-8');
@@ -52,7 +52,8 @@ test("should serialize basic", async () => {
       temperature: 0.7,
       top_p: 1,
     },
-    "basic-prompt"
+    "basic-prompt",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -60,7 +61,7 @@ test("should serialize basic", async () => {
 test("should deserialize basic", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserialized = await plugin.deserialize(agentMark);
+  const deserialized = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserialized).toEqual({
     max_tokens: 4096,
     messages: [
@@ -102,7 +103,8 @@ test("should serialize tools with no stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/tools.prompt.mdx");
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithTools(false),
-    "calculate"
+    "calculate",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -110,7 +112,7 @@ test("should serialize tools with no stream", async () => {
 test("should deserialize tools with no stream", async () => {
   const ast = await load(__dirname + "/mdx/tools.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(false));
 });
 
@@ -118,7 +120,8 @@ test("should serialize tools with stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/tools-stream.prompt.mdx");
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithTools(true),
-    "calculate"
+    "calculate",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -126,7 +129,7 @@ test("should serialize tools with stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(true));
 });
 
@@ -134,7 +137,8 @@ test("should serialize schema with stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/schema-stream.prompt.mdx");
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithSchema(true),
-    "calculate"
+    "calculate",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -142,7 +146,7 @@ test("should serialize schema with stream", async () => {
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(true));
 });
 
@@ -151,7 +155,8 @@ test("should serialize schema with no stream", async () => {
 
   const serialized = plugin.serialize(
     anthropicCompletionParamsWithSchema(false),
-    "calculate"
+    "calculate",
+    PluginAPI
   );
 
   expect(serialized).toEqual(mdx);
@@ -160,7 +165,7 @@ test("should serialize schema with no stream", async () => {
 test("should deserialize schema with no stream", async () => {
   const ast = await load(__dirname + "/mdx/schema.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(false));
 });
 
@@ -197,10 +202,10 @@ test("run inference with no stream", async () => {
     )
   );  
   
-  
-  const pluginWithInference = new AnthropicChatPlugin({ ...PluginAPI, fetch: mockFetch });
+  const api = { ...PluginAPI, fetch: mockFetch }
+  const pluginWithInference = new AnthropicChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark);
+  const result = await pluginWithInference.runInference(agentMark, api);
 
   expect(result).toEqual({
     finishReason: "stop",
@@ -220,7 +225,7 @@ test("should deserialize prompt with history prop", async () => {
   const ast = await load(__dirname + "/mdx/props-history.prompt.mdx");
   const frontmatter = getFrontMatter(ast) as any;
   const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });
 
@@ -311,10 +316,10 @@ test("run inference with stream", async () => {
   });
   
   
-
-  const pluginWithInference = new AnthropicChatPlugin({ ...PluginAPI, fetch: mockStreamedFetch });
+  const api = { ...PluginAPI, fetch: mockStreamedFetch };
+  const pluginWithInference = new AnthropicChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark);
+  const result = await pluginWithInference.runInference(agentMark, api);
   expect(result).toEqual({
     finishReason: "stop",
     result: {
