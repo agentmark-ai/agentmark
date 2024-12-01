@@ -1,18 +1,25 @@
 import {
   ChatCompletionCreateParams,
 } from "openai/resources";
-import { ModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
-import { IPluginAPI } from "@puzzlet/agentmark";
+import { IPluginAPI, IModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
 import { createOpenAI } from "@ai-sdk/openai";
 
-export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreateParams> {
-  constructor(api: IPluginAPI) {
-    super("openai", api);
+export default class OpenAIChatPlugin implements IModelPlugin {
+  provider: string;
+  apiKey: string | undefined = "";
+  constructor() {
+    this.provider = "openai";
   }
+
+  setApiKey(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
 
   serialize(
     completionParams: ChatCompletionCreateParams,
-    name: string
+    name: string,
+    api: IPluginAPI
   ): string {
     const { model, messages, tools, stream_options, tool_choice, ...settings } = completionParams;
     const frontMatterData: any = {
@@ -44,7 +51,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
       }
     }
   
-    const frontMatter = this.api.toFrontMatter(frontMatterData);
+    const frontMatter = api.toFrontMatter(frontMatterData);
     const messageBody = messages
       .map((message) => {
         const role = message.role;
@@ -57,7 +64,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
   }
   
 
-  async deserialize(agentMark: AgentMark): Promise<ChatCompletionCreateParams> {
+  async deserialize(agentMark: AgentMark, api: IPluginAPI): Promise<ChatCompletionCreateParams> {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const completionParamsPromise = new Promise<ChatCompletionCreateParams>(
@@ -73,7 +80,7 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
         const providerModel = openai(modelConfig.name);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await this.api.runInference(modelConfig.settings, providerModel, messages);
+          await api.runInference(modelConfig.settings, providerModel, messages);
         } catch (e) {}
       }
     );
@@ -81,20 +88,20 @@ export default class OpenAIChatPlugin extends ModelPlugin<ChatCompletionCreatePa
     return result;
   }
 
-  async runInference(agentMark: AgentMark): Promise<AgentMarkOutput> {
-    const apiKey = this.apiKey || this.api.getEnv("OPENAI_API_KEY");
+  async runInference(agentMark: AgentMark, api: IPluginAPI): Promise<AgentMarkOutput> {
+    const apiKey = this.apiKey || api.getEnv("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
     const openai = createOpenAI({
       compatibility: 'strict',
       apiKey,
-      fetch: this.api.fetch
+      fetch: api.fetch
     });
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const result = await this.api.runInference(modelConfig.settings, providerModel, messages);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages);
     return result;
   }
 }

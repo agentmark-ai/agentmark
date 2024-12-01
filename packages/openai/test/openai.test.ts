@@ -8,7 +8,7 @@ import { openaiCompletionParamsWithSchema, openaiCompletionParamsWithTools, prom
 
 vi.stubEnv("OPENAI_API_KEY", "key");
 
-const plugin = new OpenAIChatPlugin(PluginAPI);
+const plugin = new OpenAIChatPlugin();
 
 export const getMdxPrompt = async (path: string) => {
   const input = fs.readFileSync(path, 'utf-8');
@@ -18,7 +18,7 @@ export const getMdxPrompt = async (path: string) => {
 test("should deserialize", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserialized = await plugin.deserialize(agentMark);
+  const deserialized = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserialized).toEqual({
     model: "gpt-4o-mini",
     top_p: 1,
@@ -62,7 +62,8 @@ test("should serialize", async () => {
         },
       ],
     },
-    "basic-prompt"
+    "basic-prompt",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -71,7 +72,8 @@ test("should serialize tools with no stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/tools.prompt.mdx");
   const serialized = plugin.serialize(
     openaiCompletionParamsWithTools(false),
-    "tools"
+    "tools",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -79,7 +81,7 @@ test("should serialize tools with no stream", async () => {
 test("should deserialize tools with no stream", async () => {
   const ast = await load(__dirname + "/mdx/tools.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithTools(false));
 });
 
@@ -87,7 +89,8 @@ test("should serialize tools with stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/tools-stream.prompt.mdx");
   const serialized = plugin.serialize(
     openaiCompletionParamsWithTools(true),
-    "tools"
+    "tools",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -95,7 +98,7 @@ test("should serialize tools with stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithTools(true));
 });
 
@@ -103,7 +106,8 @@ test("should serialize schema with stream", async () => {
   const mdx = await getMdxPrompt(__dirname + "/mdx/schema-stream.prompt.mdx");
   const serialized = plugin.serialize(
     openaiCompletionParamsWithSchema(true),
-    "schema"
+    "schema",
+    PluginAPI
   );
   expect(serialized).toEqual(mdx);
 });
@@ -111,7 +115,7 @@ test("should serialize schema with stream", async () => {
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithSchema(true));
 });
 
@@ -120,7 +124,8 @@ test("should serialize schema with no stream", async () => {
 
   const serialized = plugin.serialize(
     openaiCompletionParamsWithSchema(false),
-    "schema"
+    "schema",
+    PluginAPI
   );
 
   expect(serialized).toEqual(mdx);
@@ -129,7 +134,7 @@ test("should serialize schema with no stream", async () => {
 test("should deserialize schema with no stream", async () => {
   const ast = await load(__dirname + "/mdx/schema.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithSchema(false));
 });
 
@@ -156,9 +161,10 @@ test("run inference with no stream", async () => {
       )
     )
   );
-  const pluginWithInference = new OpenAIChatPlugin({ ...PluginAPI, fetch: mockFetch });
+  const api = { ...PluginAPI, fetch: mockFetch };
+  const pluginWithInference = new OpenAIChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark);
+  const result = await pluginWithInference.runInference(agentMark, api);
 
   expect(result).toEqual(
     {
@@ -224,10 +230,10 @@ test("run inference with stream", async () => {
       })
     );
   });
-
-  const pluginWithInference = new OpenAIChatPlugin({ ...PluginAPI, fetch: mockStreamedFetch });
+  const api = { ...PluginAPI, fetch: mockStreamedFetch };
+  const pluginWithInference = new OpenAIChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark);
+  const result = await pluginWithInference.runInference(agentMark, api);
   expect(result).toEqual(
     {
       finishReason: "stop",
@@ -248,6 +254,6 @@ test("should deserialize prompt with history prop", async () => {
   const ast = await load(__dirname + "/mdx/props-history.prompt.mdx");
   const frontmatter = getFrontMatter(ast) as any;
   const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
-  const deserializedPrompt = await plugin.deserialize(agentMark);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });
