@@ -4,7 +4,7 @@ title: API
 
 # API
 
-PromptDX supports 3 basic methods for interacting with prompts: `runInference`, `deserialize`, and `serialize`.
+AgentMark supports 3 basic methods for interacting with prompts: `runInference`, `deserialize`, and `serialize`.
 
 ## runInference
 
@@ -17,11 +17,11 @@ const prompt = await load('./example.prompt.mdx');
 const result = await runInference(prompt, props)
 ```
 
-Run inference will take a prompt config, call the model provider's API, and return the result in PromptDX format.
+Run inference will take a prompt config, call the model provider's API, and return the result in AgentMark format.
 
 ### input
 
-A valid PromptDX file. See [syntax](/syntax.mdx) for more.
+A valid AgentMark file. See [syntax](/syntax.mdx) for more.
 
 ### output
 
@@ -71,7 +71,7 @@ Hello
 
 ## deserialize
 
-Deserialize takes a prompt in PromptDX format, and turns it into the configuration needed to call a model provider.
+Deserialize takes a prompt in AgentMark format, and turns it into the configuration needed to call a model provider.
 
 ### usage
 
@@ -83,7 +83,7 @@ await deserialize(prompt, props)
 
 ### input
 
-A valid PromptDX file. See [syntax](/syntax.mdx) for more.
+A valid AgentMark file. See [syntax](/syntax.mdx) for more.
 
 ### output
 
@@ -126,7 +126,7 @@ Result:
 
 ## serialize
 
-Serialize allows you to take an existing configuration for a Prompt, and serialize it into a PromptDX file.
+Serialize allows you to take an existing configuration for a Prompt, and serialize it into a AgentMark file.
 
 ### usage
 
@@ -143,7 +143,7 @@ A valid consumer (OpenAI, Anthropic, etc.) format for running inference w/ the g
 
 ### output
 
-A valid PromptDX file. See [syntax](/syntax.mdx) for more.
+A valid AgentMark file. See [syntax](/syntax.mdx) for more.
 
 ### example
 

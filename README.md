@@ -1,8 +1,8 @@
-<h1 align="center">PromptDX</h1>
+<h1 align="center">AgentMark</h1>
 
 <p align="center">
   <a href="https://github.com/puzzlet-ai">
-    <img src="https://www.puzzlet.ai/images/logo.svg" alt="PromptDX Logo" width="200"/>
+    <img src="https://www.puzzlet.ai/images/logo.svg" alt="AgentMark Logo" width="200"/>
   </a>
 </p>
 
@@ -21,15 +21,15 @@
 
 ## Overview
 
-PromptDX is a declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.
+AgentMark is a declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.
 
-PromptDX is designed to enhance the developer experience for applications built with large language models (LLMs). It allows you to open a PromptDX file and clearly see the exact input being sent to the LLM, while still providing the flexibility to abstract away necessary details.
+AgentMark is designed to enhance the developer experience for applications built with large language models (LLMs). It allows you to open a AgentMark file and clearly see the exact input being sent to the LLM, while still providing the flexibility to abstract away necessary details.
 
-PromptDX is built on top of the templating language, [TemplateDX](https://github.com/puzzlet-ai/templatedx), and inspired by MDX.
+AgentMark is built on top of the templating language, [TemplateDX](https://github.com/puzzlet-ai/templatedx), and inspired by MDX.
 
 ## Getting Started
 
-Below is a basic example to help you get started with PromptDX:
+Below is a basic example to help you get started with AgentMark:
 
 `example.prompt.mdx`
 ```mdx
@@ -50,7 +50,7 @@ test_settings:
 
 ## Features
 
-PromptDX supports:
+AgentMark supports:
 
 1. Markdown: 📝
 1. JSX components, props, & plugins: 🧩
@@ -64,7 +64,7 @@ Read our [docs](https://puzzlet-ai.github.io/agentmark) to learn more.
 
 ## Models
 
-By default, PromptDX doesn't support any model providers. Instead, support must be added through our plugins.
+By default, AgentMark doesn't support any model providers. Instead, support must be added through our plugins.
 Here's a list of currently supported plugins you can start using.
 
 ### Built-In Model Plugins
@@ -92,9 +92,9 @@ Want to add support for another model? Open an [issue](https://github.com/puzzle
 
 Refer to our [docs](https://puzzlet-ai.github.io/agentmark) to learn how to add custom model support.
 
-## Running PromptDX
+## Running AgentMark
 
-You can run PromptDX using one of the following methods:
+You can run AgentMark using one of the following methods:
 
 ### 1. VSCode Extension
 
@@ -104,9 +104,9 @@ Run .prompt.mdx files directly within your VSCode editor.
 
 ### 2. Webpack Loader
 
-Integrate PromptDX with your webpack workflow using our loader.
+Integrate AgentMark with your webpack workflow using our loader.
 
-[PromptDX Webpack Loader](https://github.com/puzzlet-ai/promptdx-loader)
+[AgentMark Webpack Loader](https://github.com/puzzlet-ai/promptdx-loader)
 
 ```tsx
 import { runInference, ModelPluginRegistry } from "@puzzlet/promptdx";
@@ -127,7 +127,7 @@ run();
 
 ### 3. Node.js
 
-Run PromptDX directly in your Node.js environment. Below is a sample implementation:
+Run AgentMark directly in your Node.js environment. Below is a sample implementation:
 
 ```tsx node
 import { runInference, ModelPluginRegistry, load } from "@puzzlet/promptdx";

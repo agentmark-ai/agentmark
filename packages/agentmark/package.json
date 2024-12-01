@@ -1,26 +1,27 @@
 {
-  "name": "@puzzlet/anthropic",
+  "name": "@puzzlet/agentmark",
   "version": "1.0.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
-  "license": "MIT",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsup"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
-    "@types/node": "^22.10.1",
-    "@types/react": "^18.3.12",
-    "openai": "^4.73.1",
+    "@types/js-yaml": "^4",
+    "@types/node": "^22.8.1",
     "tsup": "^8.3.5",
     "typescript": "^5.6.2",
     "vitest": "^2.1.1"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.2",
-    "@puzzlet/agentmark": "workspace:^"
+    "@puzzlet/templatedx": "^0.6.2",
+    "ai": "^4.0.3",
+    "front-matter": "^4.0.2",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.23.8"
   }
 }

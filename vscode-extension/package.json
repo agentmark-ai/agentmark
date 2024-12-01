@@ -1,6 +1,6 @@
 {
   "name": "promptdx",
-  "displayName": "PromptDX",
+  "displayName": "AgentMark",
   "publisher": "puzzlet",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
   "version": "1.0.3",

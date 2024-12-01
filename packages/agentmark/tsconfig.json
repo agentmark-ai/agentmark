@@ -17,6 +17,6 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "test"],
+  "exclude": ["node_modules", "dist", "**/__tests__/*"]
 }

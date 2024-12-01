@@ -88,18 +88,18 @@ export function activate(context: vscode.ExtensionContext) {
 
         const output = result;
 
-        const ch = vscode.window.createOutputChannel("promptDX");
-        if (output.result.type === "text" && !!output.result.data) {
-          ch.appendLine(`TEXT: ${output.result.data as string}`);
+        const ch = vscode.window.createOutputChannel("agentMark");
+        if (output.result.text) {
+          ch.appendLine(`TEXT: ${output.result.text}`);
           if (chatSettings && chatSettings.useChat) {
             const rawConfig = await getRawConfig(ast, testProps);
             const queue = createBoundedQueue(chatSettings.maxSize || 10);
             rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
-            queue.add({ role: 'assistant', message: output.result.data });
+            queue.add({ role: 'assistant', message: output.result.text });
             promptHistoryMap[name] = queue;
           }
-        } else if (output.result.type === 'object') {
-          ch.appendLine(`OBJECT: ${JSON.stringify(output.result.data, null, 2)}`);
+        } else if (output.result.object) {
+          ch.appendLine(`OBJECT: ${JSON.stringify(output.result.object, null, 2)}`);
         } else if (output.tools?.length) {
           ch.appendLine(`TOOLS: ${JSON.stringify(output.tools, null, 2)}`);
         }
