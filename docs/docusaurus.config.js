@@ -2,7 +2,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 module.exports = {
   title: 'AgentMark',
-  tagline: 'The declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.',
+  tagline: 'Serialized AI Agents in readable Markdown and JSX.',
   url: 'https://puzzlet-ai.github.io/',
   baseUrl: '/agentmark/',
   onBrokenLinks: 'throw',
@@ -15,7 +15,7 @@ module.exports = {
       src: 'https://plausible.io/js/script.outbound-links.js',
       async: true,
       defer: true,
-      'data-domain': 'puzzlet-ai.github.io/promptdx',
+      'data-domain': 'puzzlet-ai.github.io/agentmark',
       'data-spa': 'auto',
     },
   ],
@@ -37,14 +37,14 @@ module.exports = {
 
   themeConfig: {
     colorMode: {
-      defaultMode: 'light',
+      defaultMode: 'dark',
       disableSwitch: true,
     },
     navbar: {
       title: 'AgentMark',
       logo: {
         alt: 'AgentMark Logo',
-        src: 'https://www.puzzlet.ai/images/logo.svg',
+        src: '/img/agent-mark-dark.svg',
       },
       items: [
         {
@@ -63,10 +63,14 @@ module.exports = {
           label: 'GitHub',
           position: 'right',
         },
+        {
+          to: 'https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx',
+          position: 'right',
+          label: 'VSCode',
+        },
       ],
     },
     footer: {
-      style: 'dark',
       links: [
         {
           title: 'Docs',
@@ -91,6 +95,12 @@ module.exports = {
           ],
         },
       ],
+      logo: {
+        alt: 'Puzzlet Logo',
+        src: 'https://www.puzzlet.ai/images/logo.svg',
+        href: 'https://www.puzzlet.ai',
+        target: '_blank',
+      },
       copyright: `© ${new Date().getFullYear()} Puzzlet.ai`,
     },
     prism: {

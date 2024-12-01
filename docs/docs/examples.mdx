@@ -5,7 +5,7 @@ title: Examples
 # Examples
 
 Using AgentMark is easy to get started with. Feel free to copy the below examples, try your own inputs, switch the models, etc.
-It's recommended to download our [vscode extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx) for rapid development.
+It's recommended to download our [vscode extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark) for rapid development.
 
 ## Basic
 
@@ -27,7 +27,7 @@ metadata:
 
 Running via SDK:
 ```tsx
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 
 const props = {};
 const Prompt = await load('./index.prompt.mdx');
@@ -80,7 +80,7 @@ import ChatHistory from './chat-history.mdx';
 
 Running via SDK:
 ```tsx
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 
 const props = {
   history: [
@@ -131,7 +131,7 @@ metadata:
 Running via SDK:
 ```tsx
 import Prompt from './index.prompt.mdx';
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 
 const props = {};
 const Prompt = await load('./index.prompt.mdx');
@@ -171,7 +171,7 @@ metadata:
 Running via SDK:
 ```tsx
 import Prompt from './index.prompt.mdx';
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 
 const props = {};
 const Prompt = await load('./index.prompt.mdx');
@@ -200,7 +200,7 @@ metadata:
 
 Running via SDK:
 ```tsx
-import { deserialize, load } from '@puzzlet/promptdx';
+import { deserialize, load } from '@puzzlet/agentmark';
 import { OpenAI } from 'openai';
 
 const client = new OpenAI();
@@ -235,7 +235,7 @@ metadata:
 
 Running via SDK:
 ```tsx
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 
 const props = {};
 const Prompt = await load('./index.prompt.mdx');

@@ -28,7 +28,7 @@ AgentMark supports type-safety with just a few short steps.
 }
 ```
 
-### Add JSDOC types to define props for your promptdx files
+### Add JSDOC types to define props for your agentmark files
 ```jsx
 {/**
   * @typedef Props
@@ -44,7 +44,7 @@ AgentMark supports type-safety with just a few short steps.
 Create a `types/global.d.ts` file and define your own custom filters/tags.
 
 ```tsx
-import type { BaseMDXProvidedComponents, FilterFunction } from '@puzzlet/promptdx';
+import type { BaseMDXProvidedComponents, FilterFunction } from '@puzzlet/agentmark';
 
 declare global {
   const myCustomFilter: FilterFunction<string, string>;

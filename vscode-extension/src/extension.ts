@@ -4,10 +4,10 @@ import {
   getModel,
   load,
   getRawConfig,
-} from "@puzzlet/promptdx";
+} from "@puzzlet/agentmark";
 import { getFrontMatter } from "@puzzlet/templatedx";
 import { createBoundedQueue } from "./boundedQueue";
-import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
+import AllModelPlugins from '@puzzlet/all-models';
 import * as vscode from "vscode";
 
 const promptHistoryMap: { [key: string]: any } = {};

@@ -2,7 +2,7 @@
 
 **A declarative, extensible, and composable approach for creating LLM prompts using Markdown and JSX.**
 
-![AgentMark](https://lpgvdjzmcrynxnhuzesb.supabase.co/storage/v1/object/sign/avatar/promptdx.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJhdmF0YXIvcHJvbXB0ZHgucG5nIiwiaWF0IjoxNzMwMzIyMzQzLCJleHAiOjIwNDU2ODIzNDN9.KC1xQ1AKSxOOMjpdXwGwFN_mr8dljY4c-x_xoePPvWY&t=2024-10-30T21%3A05%3A43.354Z)
+![AgentMark](https://lpgvdjzmcrynxnhuzesb.supabase.co/storage/v1/object/sign/avatar/agentmark.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJhdmF0YXIvcHJvbXB0ZHgucG5nIiwiaWF0IjoxNzMwMzIyMzQzLCJleHAiOjIwNDU2ODIzNDN9.KC1xQ1AKSxOOMjpdXwGwFN_mr8dljY4c-x_xoePPvWY&t=2024-10-30T21%3A05%3A43.354Z)
 
 ## Overview
 
@@ -80,7 +80,7 @@ test_settings:
 
 ## Documentation
 
-Comprehensive documentation, including guides and API references, is available in the [AgentMark GitHub repository](https://github.com/puzzlet-ai/promptdx/). Refer to the documentation for detailed instructions on using AgentMark features and integrating it with your workflow.
+Comprehensive documentation, including guides and API references, is available in the [AgentMark GitHub repository](https://github.com/puzzlet-ai/agentmark/). Refer to the documentation for detailed instructions on using AgentMark features and integrating it with your workflow.
 
 ## Community
 
@@ -88,4 +88,4 @@ Chat with our growing, tight-knit community. Join our [Discord](https://discord.
 
 ## Feedback
 
-We value your feedback to continuously improve AgentMark. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/puzzlet-ai/promptdx/issues).
+We value your feedback to continuously improve AgentMark. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/puzzlet-ai/agentmark/issues).

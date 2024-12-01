@@ -11,7 +11,7 @@ AgentMark supports 3 basic methods for interacting with prompts: `runInference`,
 ### usage
 
 ```tsx
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 ...
 const prompt = await load('./example.prompt.mdx');
 const result = await runInference(prompt, props)
@@ -25,7 +25,7 @@ A valid AgentMark file. See [syntax](/syntax.mdx) for more.
 
 ### output
 
-**PromptDXOutput Properties**
+**AgentMarkOutput Properties**
 
 | Property       | Type                                                                 | Description                                                                                                                                                                                                                 | Optional/Required |
 |----------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
@@ -57,7 +57,7 @@ Say: {props.greeting}
 
 Run:
 ```tsx
-import { runInference, load } from '@puzzlet/promptdx';
+import { runInference, load } from '@puzzlet/agentmark';
 ...
 const props = { greeting: 'Hello' };
 const prompt = await load('./example.prompt.mdx');
@@ -76,7 +76,7 @@ Deserialize takes a prompt in AgentMark format, and turns it into the configurat
 ### usage
 
 ```tsx
-import { deserialize } from '@puzzlet/promptdx';
+import { deserialize } from '@puzzlet/agentmark';
 ...
 await deserialize(prompt, props)
 ```
@@ -131,7 +131,7 @@ Serialize allows you to take an existing configuration for a Prompt, and seriali
 ### usage
 
 ```tsx
-import { serialize } from '@puzzlet/promptdx';
+import { serialize } from '@puzzlet/agentmark';
 ...
 serialize(config, modelName, promptName)
 ```
