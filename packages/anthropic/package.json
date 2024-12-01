@@ -1,0 +1,23 @@
+{
+  "name": "@puzzlet/anthropic",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.12",
+    "openai": "^4.73.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.2"
+  }
+}
