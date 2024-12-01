@@ -1,10 +1,9 @@
 import AnthropicChatPlugin from "@puzzlet/anthropic";
 import OpenAIChatPlugin from "@puzzlet/openai";
-import { PluginAPI } from "@puzzlet/agentmark";
 
 const plugins = [
   {
-    provider: new OpenAIChatPlugin(PluginAPI),
+    provider: new OpenAIChatPlugin(),
     models: [
       "gpt-4o",
       "gpt-4o-mini",
@@ -15,7 +14,7 @@ const plugins = [
       "gpt-3.5-turbo",
     ]
   }, {
-    provider: new AnthropicChatPlugin(PluginAPI),
+    provider: new AnthropicChatPlugin(),
     models: [
       "claude-3-5-haiku-latest",
       "claude-3-5-sonnet-latest",

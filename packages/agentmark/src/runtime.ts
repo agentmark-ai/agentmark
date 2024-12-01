@@ -4,6 +4,7 @@ import { ModelPluginRegistry } from "./model-plugin-registry";
 import { JSONObject, AgentMark, ChatMessage } from "../types";
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
+import { PluginAPI } from "./plugin-api";
 
 type ExtractedField = {
   name: string;
@@ -57,7 +58,7 @@ export async function runInference(
   if (!plugin) {
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
-  return plugin?.runInference(agentMark);
+  return plugin?.runInference(agentMark, PluginAPI);
 }
 
 export function serialize(
@@ -66,7 +67,7 @@ export function serialize(
   promptName: string
 ) {
   const plugin = ModelPluginRegistry.getPlugin(model);
-  return plugin?.serialize(completionParams, promptName);
+  return plugin?.serialize(completionParams, promptName, PluginAPI);
 }
 
 export async function deserialize(ast: Ast, props = {}) {
@@ -74,7 +75,7 @@ export async function deserialize(ast: Ast, props = {}) {
   const plugin = ModelPluginRegistry.getPlugin(
     agentMark.metadata.model.name
   );
-  return plugin?.deserialize(agentMark);
+  return plugin?.deserialize(agentMark, PluginAPI);
 }
 
 export const getModel = (ast: Ast) => {

@@ -1,13 +1,13 @@
-import { ModelPlugin } from "./model-plugin";
+import { IModelPlugin } from "./model-plugin";
 
 export class ModelPluginRegistry {
-  public static plugins: Map<string, ModelPlugin> = new Map<
+  public static plugins: Map<string, IModelPlugin> = new Map<
     string,
-    ModelPlugin
+    IModelPlugin
   >();
 
   public static register(
-    modelPlugin: ModelPlugin<any, any>,
+    modelPlugin: IModelPlugin<any, any>,
     ids: string[]
   ) {
     for (const id of ids) {
@@ -16,7 +16,7 @@ export class ModelPluginRegistry {
   }
 
   public static registerAll(
-    pluginEntries: { provider: ModelPlugin<any, any>; models: string[] }[]
+    pluginEntries: { provider: IModelPlugin<any, any>; models: string[] }[]
   ) {
     for (const entry of pluginEntries) {
       this.register(entry.provider, entry.models);

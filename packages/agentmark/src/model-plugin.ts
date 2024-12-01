@@ -1,24 +1,14 @@
 import { JSONObject, AgentMarkOutput, AgentMark } from "./types";
 import type { IPluginAPI } from './plugin-api';
 
-export abstract class ModelPlugin<T = JSONObject, R = T> {
-  protected apiKey: string | undefined = "";
-  protected api: IPluginAPI;
-
+export interface IModelPlugin<T = JSONObject, R = T> {
   provider: string;
 
-  constructor(provider: string, api: IPluginAPI) {
-    this.provider = provider;
-    this.api = api;
-  }
+  setApiKey(apiKey: string): void;
 
-  setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
-  }
+  deserialize(agentMark: AgentMark, api: IPluginAPI): Promise<R>;
 
-  abstract deserialize(AgentMark: AgentMark): Promise<R>;
+  runInference(agentMark: AgentMark, api: IPluginAPI): Promise<AgentMarkOutput>;
 
-  abstract runInference(agentMark: AgentMark): Promise<AgentMarkOutput>;
-
-  abstract serialize(completionParams: R, name: string): string;
+  serialize(completionParams: R, name: string, api: IPluginAPI): string;
 }

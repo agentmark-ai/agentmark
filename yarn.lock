@@ -832,7 +832,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@workspace:^, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -855,13 +855,14 @@ __metadata:
   dependencies:
     "@ai-sdk/anthropic": "npm:^1.0.2"
     "@anthropic-ai/sdk": "npm:^0.32.1"
-    "@puzzlet/agentmark": "workspace:^"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
     openai: "npm:^4.73.1"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.1"
+  peerDependencies:
+    "@puzzlet/agentmark": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -870,13 +871,14 @@ __metadata:
   resolution: "@puzzlet/openai@workspace:packages/openai"
   dependencies:
     "@ai-sdk/openai": "npm:^1.0.5"
-    "@puzzlet/agentmark": "workspace:^"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
     openai: "npm:^4.73.1"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.1"
+  peerDependencies:
+    "@puzzlet/agentmark": "workspace:^"
   languageName: unknown
   linkType: soft
 
