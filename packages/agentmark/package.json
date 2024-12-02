@@ -1,6 +1,6 @@
 {
   "name": "@puzzlet/agentmark",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,5 +28,8 @@
     "front-matter": "^4.0.2",
     "js-yaml": "^4.1.0",
     "zod": "^3.23.8"
-  }
+  },
+  "files": [
+    "dist/"
+  ]
 }
