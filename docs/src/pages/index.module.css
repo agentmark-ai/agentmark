@@ -85,7 +85,7 @@
   font-weight: bold;
   font-size: 1rem;
   cursor: pointer;
-  transform: translateY(2px);
+  transform: translateY(0px);
   transition: transform 0.2s ease;
 }
 
