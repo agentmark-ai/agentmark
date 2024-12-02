@@ -25,7 +25,7 @@ jobs:
           node-version: 21
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn
         working-directory: packages/vscode-extension
 
       - name: Publish to Visual Studio Marketplace
