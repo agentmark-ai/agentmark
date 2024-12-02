@@ -26,5 +26,8 @@
   },
   "peerDependencies": {
     "zod": "^3.23.8"
-  }
+  },
+  "files": [
+    "dist/"
+  ]
 }
