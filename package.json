@@ -8,6 +8,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "private": true,
   "scripts": {
     "test": "turbo test",
