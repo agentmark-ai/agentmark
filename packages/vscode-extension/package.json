@@ -3,10 +3,10 @@
   "displayName": "AgentMark",
   "publisher": "puzzlet",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "repository": "https://github.com/puzzlet-ai/agentmark",
   "license": "MIT",
-  "icon": "static/logo.png",
+  "icon": "static/briefcase-logo.png",
   "engines": {
     "vscode": "^1.93.0"
   },
@@ -71,7 +71,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@puzzlet/agentmark": "^1.2.2",
+    "@puzzlet/agentmark": "portal:../agentmark",
     "@puzzlet/templatedx": "^0.5.7"
   }
 }

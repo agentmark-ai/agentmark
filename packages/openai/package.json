@@ -11,7 +11,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@puzzlet/agentmark": "workspace:^",
+    "@puzzlet/agentmark": "portal:../agentmark",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "openai": "^4.73.1",
@@ -24,6 +24,7 @@
     "zod": "^3.23.8"
   },
   "peerDependencies": {
+    "@puzzlet/agentmark": "workspace:^",
     "zod": "^3.23.8"
   }
 }
