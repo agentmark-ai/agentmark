@@ -1,6 +1,6 @@
 {
   "name": "@puzzlet/agentmark",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,7 +8,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && cp ../../README.md ./"
+    "build": "tsup && cp ../../README.md ../../logo.svg ./"
   },
   "devDependencies": {
     "@types/js-yaml": "^4",
