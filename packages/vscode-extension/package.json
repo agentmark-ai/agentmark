@@ -71,7 +71,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@puzzlet/agentmark": "portal:../agentmark",
+    "@puzzlet/agentmark": "^1.0.0",
     "@puzzlet/templatedx": "^0.5.7"
   }
 }

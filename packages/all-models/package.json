@@ -17,7 +17,7 @@
     "vitest": "^2.1.1"
   },
   "dependencies": {
-    "@puzzlet/anthropic": "portal:../anthropic",
-    "@puzzlet/openai": "portal:../openai"
+    "@puzzlet/anthropic": "^1.0.0",
+    "@puzzlet/openai": "^1.0.0"
   }
 }
