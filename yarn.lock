@@ -3183,9 +3183,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.41":
-  version: 1.5.67
-  resolution: "electron-to-chromium@npm:1.5.67"
-  checksum: 10c0/bcd21c3961267fd733973586045a38d41f697e6821e7624cdd39d48fd744d9bd93ec7db59abbafeb464861218b959a920892cfaa719bff4441d1d49f8dcdff94
+  version: 1.5.68
+  resolution: "electron-to-chromium@npm:1.5.68"
+  checksum: 10c0/02cfa3043280e4f8e003724fadee30fa8cdb5f6df1be51627b1ad34f66a8d4fb51b3d3863647620075c02b21c8ff99bc2afe55142a2b4742b1f9d523c11b25a3
   languageName: node
   linkType: hard
 
@@ -6104,8 +6104,8 @@ __metadata:
   linkType: hard
 
 "openai@npm:^4.73.1":
-  version: 4.73.1
-  resolution: "openai@npm:4.73.1"
+  version: 4.74.0
+  resolution: "openai@npm:4.74.0"
   dependencies:
     "@types/node": "npm:^18.11.18"
     "@types/node-fetch": "npm:^2.6.4"
@@ -6121,7 +6121,7 @@ __metadata:
       optional: true
   bin:
     openai: bin/cli
-  checksum: 10c0/556b5ba76846fb6d0bacff1b708ec009034cf92f107d84f1d7962625a0d74bf63e7cdfa48b10faf279d6a2c1d3aaf7c68a23b88aa61539a6ba6a9ef8dda7fd35
+  checksum: 10c0/4e8671e0832f2efa8dcf870132ceabda3cd8236288484c892b7c4c9b482c3e8c0d0422bd785f4098748ee8e78968bfdddfbe8bc3e9a0a2a334618d50c25f22e4
   languageName: node
   linkType: hard
 
