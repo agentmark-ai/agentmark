@@ -13,13 +13,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: yarn
+          node-version: 21
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
+
       - name: Build website
         run: yarn build
 
