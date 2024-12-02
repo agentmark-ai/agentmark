@@ -17,7 +17,7 @@
     "build": "turbo build",
     "release": "changeset publish"
   },
-  "packageManager": "yarn@4.3.1",
+  "packageManager": "yarn@4.5.3",
   "devDependencies": {
     "@changesets/cli": "^2.27.9",
     "turbo": "latest"
