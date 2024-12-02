@@ -5,7 +5,7 @@ title: Model Plugins
 
 # Model Plugins
 
-PromptDX doesn't provide any models by default. Instead, each model must be added as a plugin. We provide the ability to add our own
+AgentMark doesn't provide any models by default. Instead, each model must be added as a plugin. We provide the ability to add our own
 built-in plugins, or custom plugins.
 
 ## Adding Model Plugins
@@ -18,7 +18,7 @@ Adding all latest models isn't recommended for production because you'll likely 
 so outputs don't change unexpectedly with new versions.
 
 ```tsx
-import AllModelPlugins from '@puzzlet/promptdx/models/all-latest';
+import AllModelPlugins from '@puzzlet/all-models';
 ModelPluginRegistry.registerAll(AllModelPlugins);
 ```
 
@@ -28,15 +28,15 @@ Selectively adding models allows you to choose which providers you support, and 
 
 Example: Adding OpenAI models
 ```tsx
-import OpenAIChatPlugin from "@puzzlet/promptdx/models/openai-chat";
-import { ModelPluginRegistry } from "@puzzlet/promptdx";
+import OpenAIChatPlugin from "@puzzlet/openai";
+import { ModelPluginRegistry } from "@puzzlet/agentmark";
 
 ModelPluginRegistry.register(new OpenAIChatPlugin(), ['gpt-4o']);
 ```
 
 ## Using your model plugins
 
-Once your plugin is registered, you can use it within your promptdx files. Here, we are using gpt-4o.
+Once your plugin is registered, you can use it within your agentmark files. Here, we are using gpt-4o.
 
 `example.prompt.mdx`
 ```md
@@ -50,9 +50,9 @@ metadata:
 <User>Hello World</User>
 ```
 
-## Provided by PromptDX
+## Provided by AgentMark
 
-This is the list of model plugins provided/supported by PromptDX.
+This is the list of model plugins provided/supported by AgentMark.
 
 | Provider   | Model                        | Supported      |
 |------------|------------------------------|----------------|
@@ -69,10 +69,10 @@ This is the list of model plugins provided/supported by PromptDX.
 | Custom     | any                          | ✅ Supported   |
 | Google     | ALL                          | ⚠️ Coming Soon |
 | Meta       | ALL                          | ⚠️ Coming Soon |
-| Groq       | ALL                          | ⚠️ Coming Soon |
+| Grok       | ALL                          | ⚠️ Coming Soon |
 
 
-You can find a fully up-to-date list of built-in model plugins/providers here: [Built-in](https://github.com/puzzlet-ai/promptdx/blob/main/src/model-plugins/all-latest.ts).
+You can find a fully up-to-date list of built-in model plugins/providers here: [Built-in](https://github.com/puzzlet-ai/agentmark/blob/main/src/model-plugins/all-latest.ts).
 
 ## Creating Custom Model Plugins
 
@@ -80,4 +80,4 @@ We support adding your own custom plugins. Documentation coming soon.
 
 ## Contributing Model Plugins
 
-You can request your own plugin by opening a [feature request](https://github.com/puzzlet-ai/promptdx/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%5BFEATURE%5D): 
+You can request your own plugin by opening a [feature request](https://github.com/puzzlet-ai/agentmark/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%5BFEATURE%5D): 

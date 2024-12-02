@@ -1,21 +1,21 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 
 module.exports = {
-  title: 'PromptDX',
-  tagline: 'The declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.',
+  title: 'AgentMark',
+  tagline: 'Portable AI Agents in readable Markdown and JSX.',
   url: 'https://puzzlet-ai.github.io/',
-  baseUrl: '/promptdx/',
+  baseUrl: '/agentmark/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'puzzlet-ai',
-  projectName: 'promptdx',
+  projectName: 'agentmark',
   scripts: [
     {
       src: 'https://plausible.io/js/script.outbound-links.js',
       async: true,
       defer: true,
-      'data-domain': 'puzzlet-ai.github.io/promptdx',
+      'data-domain': 'puzzlet-ai.github.io/agentmark',
       'data-spa': 'auto',
     },
   ],
@@ -26,7 +26,7 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/puzzlet-ai/promptdx-docs/edit/main/',
+          editUrl: 'https://github.com/puzzlet-ai/agentmark-docs/edit/main/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -37,14 +37,14 @@ module.exports = {
 
   themeConfig: {
     colorMode: {
-      defaultMode: 'light',
+      defaultMode: 'dark',
       disableSwitch: true,
     },
     navbar: {
-      title: 'PromptDX',
+      title: 'AgentMark',
       logo: {
-        alt: 'PromptDX Logo',
-        src: 'https://www.puzzlet.ai/images/logo.svg',
+        alt: 'AgentMark Logo',
+        src: '/img/agent-mark-dark.svg',
       },
       items: [
         {
@@ -59,14 +59,18 @@ module.exports = {
           position: 'right'
         },
         {
-          to: 'https://github.com/puzzlet-ai/promptdx',
+          to: 'https://github.com/puzzlet-ai/agentmark',
           label: 'GitHub',
           position: 'right',
+        },
+        {
+          to: 'https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark',
+          position: 'right',
+          label: 'VSCode',
         },
       ],
     },
     footer: {
-      style: 'dark',
       links: [
         {
           title: 'Docs',
@@ -82,7 +86,7 @@ module.exports = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/puzzlet-ai/promptdx',
+              href: 'https://github.com/puzzlet-ai/agentmark',
             },
             {
               label: 'Discord',
@@ -91,6 +95,12 @@ module.exports = {
           ],
         },
       ],
+      logo: {
+        alt: 'Puzzlet Logo',
+        src: 'https://www.puzzlet.ai/images/logo.svg',
+        href: 'https://www.puzzlet.ai',
+        target: '_blank',
+      },
       copyright: `© ${new Date().getFullYear()} Puzzlet.ai`,
     },
     prism: {

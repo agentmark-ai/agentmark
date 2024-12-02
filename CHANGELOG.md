@@ -1,4 +1,4 @@
-# @puzzlet/promptdx
+# @puzzlet/agentmark
 
 ## 1.2.6
 

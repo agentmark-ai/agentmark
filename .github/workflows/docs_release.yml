@@ -1,0 +1,38 @@
+name: Deploy Docusaurus to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+ 
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+          cache: 'yarn'
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+        working-directory: ./docs
+
+      - name: Build Docusaurus site
+        run: yarn build
+        working-directory: ./docs
+
+      - name: Deploy to GitHub Pages
+        run: yarn deploy
+        working-directory: ./docs
+        env:
+          GIT_USER: ${{ secrets.GITHUB_ACTOR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
