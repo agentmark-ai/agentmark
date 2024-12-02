@@ -1152,6 +1152,8 @@ __metadata:
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.1"
+  peerDependencies:
+    zod: ^3.23.8
   languageName: unknown
   linkType: soft
 
@@ -1167,9 +1169,7 @@ __metadata:
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.1"
-    zod: "npm:^3.23.8"
   peerDependencies:
-    "@puzzlet/agentmark": "workspace:^"
     zod: ^3.23.8
   languageName: unknown
   linkType: soft
