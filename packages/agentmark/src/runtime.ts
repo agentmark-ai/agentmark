@@ -1,7 +1,7 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject, AgentMark, ChatMessage } from "../types";
+import { JSONObject, AgentMark, ChatMessage } from "./types";
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";

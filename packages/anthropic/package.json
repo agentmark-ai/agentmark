@@ -1,6 +1,6 @@
 {
   "name": "@puzzlet/anthropic",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -21,8 +21,7 @@
     "vitest": "^2.1.1"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.2",
-    "zod": "^3.23.8"
+    "@ai-sdk/anthropic": "^1.0.2"
   },
   "peerDependencies": {
     "zod": "^3.23.8"

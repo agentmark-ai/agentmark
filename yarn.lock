@@ -1105,43 +1105,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@portal:../agentmark::locator=%40puzzlet%2Fanthropic%40workspace%3Apackages%2Fanthropic":
-  version: 0.0.0-use.local
-  resolution: "@puzzlet/agentmark@portal:../agentmark::locator=%40puzzlet%2Fanthropic%40workspace%3Apackages%2Fanthropic"
-  dependencies:
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    ai: "npm:^4.0.3"
-    front-matter: "npm:^4.0.2"
-    js-yaml: "npm:^4.1.0"
-    zod: "npm:^3.23.8"
-  languageName: node
-  linkType: soft
-
-"@puzzlet/agentmark@portal:../agentmark::locator=%40puzzlet%2Fopenai%40workspace%3Apackages%2Fopenai":
-  version: 0.0.0-use.local
-  resolution: "@puzzlet/agentmark@portal:../agentmark::locator=%40puzzlet%2Fopenai%40workspace%3Apackages%2Fopenai"
-  dependencies:
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    ai: "npm:^4.0.3"
-    front-matter: "npm:^4.0.2"
-    js-yaml: "npm:^4.1.0"
-    zod: "npm:^3.23.8"
-  languageName: node
-  linkType: soft
-
-"@puzzlet/agentmark@portal:../agentmark::locator=agentmark%40workspace%3Apackages%2Fvscode-extension":
-  version: 0.0.0-use.local
-  resolution: "@puzzlet/agentmark@portal:../agentmark::locator=agentmark%40workspace%3Apackages%2Fvscode-extension"
-  dependencies:
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    ai: "npm:^4.0.3"
-    front-matter: "npm:^4.0.2"
-    js-yaml: "npm:^4.1.0"
-    zod: "npm:^3.23.8"
-  languageName: node
-  linkType: soft
-
-"@puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^1.0.0, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -1164,8 +1128,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@puzzlet/all-models@workspace:packages/all-models"
   dependencies:
-    "@puzzlet/anthropic": "portal:../anthropic"
-    "@puzzlet/openai": "portal:../openai"
+    "@puzzlet/anthropic": "npm:^1.0.0"
+    "@puzzlet/openai": "npm:^1.0.0"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
     openai: "npm:^4.73.1"
@@ -1175,54 +1139,28 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/anthropic@portal:../anthropic::locator=%40puzzlet%2Fall-models%40workspace%3Apackages%2Fall-models":
-  version: 0.0.0-use.local
-  resolution: "@puzzlet/anthropic@portal:../anthropic::locator=%40puzzlet%2Fall-models%40workspace%3Apackages%2Fall-models"
-  dependencies:
-    "@ai-sdk/anthropic": "npm:^1.0.2"
-    zod: "npm:^3.23.8"
-  peerDependencies:
-    zod: ^3.23.8
-  languageName: node
-  linkType: soft
-
-"@puzzlet/anthropic@workspace:packages/anthropic":
+"@puzzlet/anthropic@npm:^1.0.0, @puzzlet/anthropic@workspace:packages/anthropic":
   version: 0.0.0-use.local
   resolution: "@puzzlet/anthropic@workspace:packages/anthropic"
   dependencies:
     "@ai-sdk/anthropic": "npm:^1.0.2"
     "@anthropic-ai/sdk": "npm:^0.32.1"
-    "@puzzlet/agentmark": "portal:../agentmark"
+    "@puzzlet/agentmark": "npm:^1.0.0"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
     openai: "npm:^4.73.1"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
     vitest: "npm:^2.1.1"
-    zod: "npm:^3.23.8"
-  peerDependencies:
-    zod: ^3.23.8
   languageName: unknown
   linkType: soft
 
-"@puzzlet/openai@portal:../openai::locator=%40puzzlet%2Fall-models%40workspace%3Apackages%2Fall-models":
-  version: 0.0.0-use.local
-  resolution: "@puzzlet/openai@portal:../openai::locator=%40puzzlet%2Fall-models%40workspace%3Apackages%2Fall-models"
-  dependencies:
-    "@ai-sdk/openai": "npm:^1.0.5"
-    zod: "npm:^3.23.8"
-  peerDependencies:
-    "@puzzlet/agentmark": "workspace:^"
-    zod: ^3.23.8
-  languageName: node
-  linkType: soft
-
-"@puzzlet/openai@workspace:packages/openai":
+"@puzzlet/openai@npm:^1.0.0, @puzzlet/openai@workspace:packages/openai":
   version: 0.0.0-use.local
   resolution: "@puzzlet/openai@workspace:packages/openai"
   dependencies:
     "@ai-sdk/openai": "npm:^1.0.5"
-    "@puzzlet/agentmark": "portal:../agentmark"
+    "@puzzlet/agentmark": "npm:^1.0.0"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
     openai: "npm:^4.73.1"
@@ -2239,7 +2177,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "agentmark@workspace:packages/vscode-extension"
   dependencies:
-    "@puzzlet/agentmark": "portal:../agentmark"
+    "@puzzlet/agentmark": "npm:^1.0.0"
     "@puzzlet/templatedx": "npm:^0.5.7"
     "@types/mocha": "npm:^10.0.8"
     "@types/node": "npm:20.x"

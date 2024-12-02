@@ -1,6 +1,6 @@
 {
   "name": "@puzzlet/openai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -20,11 +20,9 @@
     "vitest": "^2.1.1"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.5",
-    "zod": "^3.23.8"
+    "@ai-sdk/openai": "^1.0.5"
   },
   "peerDependencies": {
-    "@puzzlet/agentmark": "workspace:^",
     "zod": "^3.23.8"
   }
 }

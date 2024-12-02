@@ -96,7 +96,7 @@ export async function runInference(config: AgentMarkSettings, model: LanguageMod
       try {
         const { textStream } = streamObject({
           ...baseConfig,
-          schema: jsonSchema(settings.schema),
+          schema: jsonSchema(settings.schema as any),
           onFinish({ object, usage }) {
             resolve({
               result: { object: object as Object },
@@ -111,7 +111,7 @@ export async function runInference(config: AgentMarkSettings, model: LanguageMod
       }
     });
   } else if ('schema' in settings) {
-    const result = await generateObject({ ...baseConfig, schema: jsonSchema(settings.schema) });
+    const result = await generateObject({ ...baseConfig, schema: jsonSchema(settings.schema as any) });
     return {
       result: { object: result.object as Object },
       tools: [],
