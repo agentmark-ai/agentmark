@@ -12,10 +12,7 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "baseUrl": ".",
-    "paths": {
-      "@puzzlet/agentmark/models/*": ["node_modules/@puzzlet/agentmark/dist/model-plugins/*.d.ts"]
-    }
+    "baseUrl": "."
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/__tests__/*"]
