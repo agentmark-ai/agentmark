@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/model-plugins/**/*.ts'],
+  entry: ['src/index.ts'],
   splitting: false,
   sourcemap: true,
   clean: true,
