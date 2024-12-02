@@ -24,6 +24,7 @@ jobs:
 
       - name: Install
         run: yarn install --frozen-lockfile
+        working-directory: ./docs
 
       - name: Build Docusaurus site
         run: yarn build
