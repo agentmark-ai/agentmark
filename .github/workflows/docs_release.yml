@@ -36,5 +36,4 @@ jobs:
         run: yarn deploy
         working-directory: ./docs
         env:
-          GIT_USER: ${{ secrets.GITHUB_ACTOR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
