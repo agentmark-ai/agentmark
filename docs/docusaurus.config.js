@@ -64,7 +64,7 @@ module.exports = {
           position: 'right',
         },
         {
-          to: 'https://marketplace.visualstudio.com/items?itemName=puzzlet.promptdx',
+          to: 'https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark',
           position: 'right',
           label: 'VSCode',
         },
