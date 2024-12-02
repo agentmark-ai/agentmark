@@ -1,39 +1,48 @@
-name: Deploy Docusaurus to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'docs/**'
 
 jobs:
   build:
+    name: Build Docusaurus
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-      
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
         with:
-          node-version: 21
+          node-version: 18
+          cache: yarn
 
-      - name: Install
+      - name: Install dependencies
         run: yarn install
-        working-directory: ./docs
 
-      - name: Build Docusaurus site
+      - name: Build website
         run: yarn build
-        working-directory: ./docs
 
+      - name: Upload Build Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
-        run: yarn deploy
-        working-directory: ./docs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: deployment
+        uses: actions/deploy-pages@v4
