@@ -12,7 +12,8 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
-    "@puzzlet/agentmark": "^1.0.0",
+    "@puzzlet/agentmark": "^1.0.1",
+    "@puzzlet/templatedx": "^0.6.2",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "openai": "^4.73.1",
