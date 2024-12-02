@@ -24,6 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: yarn install
+        working-directory: docs
 
       - name: Build website
         run: yarn build
@@ -32,6 +33,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: build
+        working-directory: docs
 
   deploy:
     name: Deploy to GitHub Pages
@@ -50,3 +52,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        working-directory: docs
