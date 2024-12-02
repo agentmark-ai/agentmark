@@ -8,7 +8,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup"
+    "build": "tsup && cp ../../README.md ./"
   },
   "devDependencies": {
     "@types/js-yaml": "^4",
