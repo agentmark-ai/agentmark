@@ -1,6 +1,6 @@
 {
   "name": "@puzzlet/all-models",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -17,8 +17,8 @@
     "vitest": "^2.1.1"
   },
   "dependencies": {
-    "@puzzlet/anthropic": "^1.0.0",
-    "@puzzlet/openai": "^1.0.0"
+    "@puzzlet/anthropic": "^1.0.2",
+    "@puzzlet/openai": "^1.0.2"
   },
   "files": [
     "dist/"
