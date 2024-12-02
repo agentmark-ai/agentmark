@@ -10,7 +10,6 @@ import { FaGithub, FaStar } from 'react-icons/fa';
 import exampleImage from '@site/static/img/example.png';
 import logoImage from '@site/static/img/agent-mark-dark.png';
 
-//
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
