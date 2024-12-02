@@ -11,7 +11,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@puzzlet/agentmark": "^1.0.0",
+    "@puzzlet/agentmark": "^1.0.1",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "openai": "^4.73.1",
