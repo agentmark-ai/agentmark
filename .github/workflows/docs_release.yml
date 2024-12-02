@@ -28,12 +28,12 @@ jobs:
 
       - name: Build website
         run: yarn build
+        working-directory: docs
 
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build
-        working-directory: docs
+          path: docs/build
 
   deploy:
     name: Deploy to GitHub Pages
@@ -52,4 +52,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        working-directory: docs
