@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ModelPlugin } from "../model-plugin";
-import { PromptDX } from "../types";
+import { InferenceOptions, PromptDX } from "../types";
 import { getEnv, toFrontMatter, runInference } from "../utils";
 import { PromptDXOutput } from "../types";
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -100,7 +100,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     return result;
   }
 
-  async runInference(promptDX: PromptDX): Promise<PromptDXOutput> {
+  async runInference(promptDX: PromptDX, options: InferenceOptions): Promise<PromptDXOutput> {
     const apiKey = this.apiKey || getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
@@ -112,7 +112,7 @@ export default class AnthropicChatPlugin extends ModelPlugin<MessageCreateParams
     const { metadata, messages } = promptDX;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
-    const result = await runInference(modelConfig.settings, providerModel, messages);
+    const result = await runInference(modelConfig.settings, providerModel, messages, options);
     return result;
   }
 }

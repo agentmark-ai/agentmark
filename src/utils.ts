@@ -1,4 +1,4 @@
-import { ChatMessage, JSONObject } from "./types";
+import { ChatMessage, InferenceOptions, JSONObject } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
 import { PromptDXOutput, PromptDXSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
@@ -71,7 +71,11 @@ export function jsonSchemaTools(tools: Object) {
   }, {});
 }
 
-export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): AISDKBaseSettings {
+export function getBaseSettings(
+  config: PromptDXSettings,
+  model: LanguageModel,
+  messages: Array<ChatMessage>
+): AISDKBaseSettings {
   return {
     messages: messages,
     model: model,
@@ -87,11 +91,17 @@ export function getBaseSettings(config: PromptDXSettings, model: LanguageModel, 
   };
 }
 
-export async function runInference(config: PromptDXSettings, model: LanguageModel, messages: Array<ChatMessage>): Promise<PromptDXOutput> {
+export async function runInference(
+  config: PromptDXSettings,
+  model: LanguageModel,
+  messages: Array<ChatMessage>,
+  options?: InferenceOptions
+): Promise<PromptDXOutput> {
   const { stream } = config;
   const baseConfig = getBaseSettings(config, model, messages);
+  baseConfig.experimental_telemetry = options?.telemetry;
   const settings = PromptDXSettingsSchema.parse(config);
-  if ('schema' in settings && stream) {
+  if ("schema" in settings && stream) {
     return new Promise(async (resolve, reject) => {
       try {
         const { textStream } = streamObject({
@@ -101,7 +111,7 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
             resolve({
               result: { object: object as Object },
               usage,
-              finishReason: 'unknown'
+              finishReason: "unknown",
             });
           },
         });
@@ -110,14 +120,17 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
         reject(error);
       }
     });
-  } else if ('schema' in settings) {
-    const result = await generateObject({ ...baseConfig, schema: jsonSchema(settings.schema) });
+  } else if ("schema" in settings) {
+    const result = await generateObject({
+      ...baseConfig,
+      schema: jsonSchema(settings.schema),
+    });
     return {
       result: { object: result.object as Object },
       tools: [],
       usage: result.usage,
-      finishReason: result.finishReason
-    }
+      finishReason: result.finishReason,
+    };
   } else if (stream) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -127,9 +140,12 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
           onFinish({ text, usage, toolCalls, finishReason }) {
             resolve({
               result: { text },
-              tools: toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
+              tools: toolCalls.map((tool) => ({
+                name: tool.toolName,
+                input: tool.args,
+              })),
               usage,
-              finishReason
+              finishReason,
             });
           },
         });
@@ -139,12 +155,18 @@ export async function runInference(config: PromptDXSettings, model: LanguageMode
       }
     });
   } else {
-    const result = await generateText({ ...baseConfig, tools: settings.tools ? jsonSchemaTools(settings.tools) : undefined });
+    const result = await generateText({
+      ...baseConfig,
+      tools: settings.tools ? jsonSchemaTools(settings.tools) : undefined,
+    });
     return {
       result: { text: result.text },
-      tools: result.toolCalls.map((tool) => ({ name: tool.toolName, input: tool.args })),
+      tools: result.toolCalls.map((tool) => ({
+        name: tool.toolName,
+        input: tool.args,
+      })),
       usage: result.usage,
-      finishReason: result.finishReason
-    }
+      finishReason: result.finishReason,
+    };
   }
 }

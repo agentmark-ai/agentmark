@@ -17,6 +17,16 @@ interface ExtractTextProps {
   children: any;
 }
 
+type TelemetrySettings = {
+  isEnabled?: boolean;
+  functionId?: string;
+  metadata?: Record<string, any>;
+};
+
+export type InferenceOptions = {
+  telemetry?: TelemetrySettings;
+};
+
 export type PromptDXTextSettings = z.infer<typeof PromptDXTextSettingsSchema>;
 export type PromptDXSchemaSettings = z.infer<typeof PromptDXSchemaSettingsSchema>;
 export type PromptDXSettings = PromptDXTextSettings | PromptDXSchemaSettings;
@@ -39,6 +49,7 @@ export interface AISDKBaseSettings {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   headers?: Record<string, string>;
+  experimental_telemetry?: TelemetrySettings;
 }
 
 export type PromptDX = z.infer<typeof PromptDXSchema>;
