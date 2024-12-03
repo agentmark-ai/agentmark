@@ -11,7 +11,8 @@
   "scripts": {
     "test": "turbo test",
     "build": "turbo build",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "version": "changeset version && yarn"
   },
   "packageManager": "yarn@4.5.3",
   "devDependencies": {
