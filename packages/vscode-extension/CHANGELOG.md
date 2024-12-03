@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.8
+
+### Patch Changes
+
+- 645b0e7: README, test.
+
 ## 1.0.7
 
 ### Patch Changes
