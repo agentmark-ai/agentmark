@@ -1,11 +1,16 @@
 {
   "name": "@puzzlet/agentmark",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "type": "module",
   "scripts": {

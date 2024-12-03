@@ -11,12 +11,13 @@
 </p>
 
 <p align="center">
-  <strong>A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.</strong>
+  <strong>Portable AI Agents in readable Markdown and JSX.</strong>
 </p>
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://puzzlet-ai.github.io/agentmark/">Docs</a> |
+  <a href="https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark">VSCode</a> |
   <a href="https://github.com/puzzlet-ai/templatedx">TemplateDX</a> |
   <a href="https://puzzlet.ai">Puzzlet</a>
 </p>
@@ -25,9 +26,7 @@
 
 ## Overview
 
-AgentMark is a declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.
-
-AgentMark is designed to enhance the developer experience for applications built with large language models (LLMs). It allows you to open a AgentMark file and clearly see the exact input being sent to the LLM, while still providing the flexibility to abstract away necessary details.
+AgentMark is a declarative, extensible, and composable approach for developing LLM applications using Markdown and JSX. AgentMark files enhance readability by displaying the exact inputs sent to the LLM, while providing lightweight abstractions for developers.
 
 AgentMark is built on top of the templating language, [TemplateDX](https://github.com/puzzlet-ai/templatedx), and inspired by MDX.
 
@@ -63,7 +62,8 @@ AgentMark supports:
 1. Streaming: 🌊
 1. Loops, Conditionals, and Filter Functions: ♻️
 1. Type Safety: 🛡️
-1. Agents: 
+1. Agents: 🕵️
+1. Observability: 👀
 
 Read our [docs](https://puzzlet-ai.github.io/agentmark) to learn more.
 
