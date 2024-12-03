@@ -74,20 +74,20 @@ Here's a list of currently supported plugins you can start using.
 
 ### Built-In Model Plugins
 
-| Provider   | Model                   | Supported      | @puzzlet/all-models |
+| Provider   | Model                   | Supported      | Included: `@puzzlet/all-models` |
 |------------|-------------------------|----------------|---------------------|
 | OpenAI     | gpt-4o                  | ✅ Supported   | Yes  ✅             |
 | OpenAI     | gpt-4o-mini             | ✅ Supported   | Yes  ✅             |
 | OpenAI     | gpt-4-turbo             | ✅ Supported   | Yes  ✅             |
-| OpenAI     | gpt-4                  | ✅ Supported   | Yes  ✅              |
+| OpenAI     | gpt-4                  | ✅ Supported    | Yes  ✅              |
 | OpenAI     | o1-mini                 | ✅ Supported   | Yes  ✅             |
 | OpenAI     | o1-preview              | ✅ Supported   | Yes  ✅             |
 | OpenAI     | gpt-3.5-turbo           | ✅ Supported   | Yes  ✅             |
 | Anthropic  | claude-3-5-haiku-latest | ✅ Supported   | Yes  ✅             |
 | Anthropic  | claude-3-5-sonnet-latest| ✅ Supported   | Yes  ✅             |
 | Anthropic  | claude-3-opus-latest    | ✅ Supported   | Yes  ✅             |
-| Meta       | ALL                     | ✅ Supported   | Plugin 🧩           |
-| Custom     | any                     | ✅ Supported   | Plugin 🧩           |
+| Meta       | ALL                     | ✅ Supported   | No  🧩           |
+| Custom     | any                     | ✅ Supported   | No 🧩           |
 | Google     | ALL                     | ⚠️ Coming Soon | N/A                 |
 | Grok       | ALL                     | ⚠️ Coming Soon | N/A                 |
 
