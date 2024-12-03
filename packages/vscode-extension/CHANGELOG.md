@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.7
+
+### Patch Changes
+
+- a11cf56: VSCode test publish cicd
+
 ## 1.0.5
 
 ### Patch Changes
