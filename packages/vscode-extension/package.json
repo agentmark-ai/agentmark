@@ -1,5 +1,5 @@
 {
-  "name": "agentmark",
+  "name": "vscode-ext",
   "displayName": "AgentMark",
   "publisher": "puzzlet",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
@@ -49,7 +49,7 @@
     "watch": "webpack --watch",
     "vscode:login": "vsce login puzzlet",
     "package": "webpack --mode production --devtool hidden-source-map",
-    "vscode:publish": "vsce publish",
+    "vscode:publish": "vsce publish --no-yarn",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
