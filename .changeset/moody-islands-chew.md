@@ -5,4 +5,4 @@
 "@puzzlet/all-models": minor
 ---
 
-API key support
+API key support, telemetry
