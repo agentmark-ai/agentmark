@@ -102,8 +102,8 @@ export default class AnthropicChatPlugin implements IModelPlugin {
     return result;
   }
 
-  async runInference(agentMark: AgentMark, api: IPluginAPI, options: InferenceOptions): Promise<AgentMarkOutput> {
-    const apiKey = options.apiKey || this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
+  async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {
+    const apiKey = options?.apiKey || this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
