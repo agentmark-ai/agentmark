@@ -2,7 +2,11 @@
 
 <p align="center">
   <a href="https://github.com/puzzlet-ai">
-    <img src="/logo.svg" alt="AgentMark Logo" width="200"/>
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="https://i.imgur.com/xwq74He.png">
+      <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/JN9seOy.png">
+      <img src="https://i.imgur.com/xwq74He.png" alt="AgentMark Logo" width="200">
+    </picture>
   </a>
 </p>
 
