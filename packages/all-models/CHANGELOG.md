@@ -1,5 +1,14 @@
 # @puzzlet/all-models
 
+## 1.1.1
+
+### Patch Changes
+
+- 92ca64f: Fix: export cjs files
+- Updated dependencies [92ca64f]
+  - @puzzlet/anthropic@1.1.1
+  - @puzzlet/openai@1.1.1
+
 ## 1.1.0
 
 ### Minor Changes

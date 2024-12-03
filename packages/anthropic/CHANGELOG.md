@@ -1,5 +1,11 @@
 # @puzzlet/anthropic
 
+## 1.1.1
+
+### Patch Changes
+
+- 92ca64f: Fix: export cjs files
+
 ## 1.1.0
 
 ### Minor Changes
