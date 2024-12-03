@@ -74,22 +74,22 @@ Here's a list of currently supported plugins you can start using.
 
 ### Built-In Model Plugins
 
-| Provider   | Model                        | Supported      |
-|------------|------------------------------|----------------|
-| OpenAI     | gpt-4o                       | ✅ Supported   |
-| OpenAI     | gpt-4o-mini                  | ✅ Supported   |
-| OpenAI     | gpt-4-turbo                  | ✅ Supported   |
-| OpenAI     | gpt-4                        | ✅ Supported   |
-| OpenAI     | o1-mini                      | ✅ Supported   |
-| OpenAI     | o1-preview                   | ✅ Supported   |
-| OpenAI     | gpt-3.5-turbo                | ✅ Supported   |
-| Anthropic  | claude-3-5-haiku-latest      | ✅ Supported   |
-| Anthropic  | claude-3-5-sonnet-latest     | ✅ Supported   |
-| Anthropic  | claude-3-opus-latest         | ✅ Supported   |
-| Custom     | any                          | ✅ Supported   |
-| Google     | ALL                          | ⚠️ Coming Soon |
-| Meta       | ALL                          | ⚠️ Coming Soon |
-| Grok       | ALL                          | ⚠️ Coming Soon |
+| Provider   | Model                   | Supported      | Included: `@puzzlet/all-models` |
+|------------|-------------------------|----------------|---------------------|
+| OpenAI     | gpt-4o                  | ✅ Supported   | Yes  ✅             |
+| OpenAI     | gpt-4o-mini             | ✅ Supported   | Yes  ✅             |
+| OpenAI     | gpt-4-turbo             | ✅ Supported   | Yes  ✅             |
+| OpenAI     | gpt-4                  | ✅ Supported    | Yes  ✅              |
+| OpenAI     | o1-mini                 | ✅ Supported   | Yes  ✅             |
+| OpenAI     | o1-preview              | ✅ Supported   | Yes  ✅             |
+| OpenAI     | gpt-3.5-turbo           | ✅ Supported   | Yes  ✅             |
+| Anthropic  | claude-3-5-haiku-latest | ✅ Supported   | Yes  ✅             |
+| Anthropic  | claude-3-5-sonnet-latest| ✅ Supported   | Yes  ✅             |
+| Anthropic  | claude-3-opus-latest    | ✅ Supported   | Yes  ✅             |
+| Meta       | ALL                     | ✅ Supported   | No  🧩           |
+| Custom     | any                     | ✅ Supported   | No 🧩           |
+| Google     | ALL                     | ⚠️ Coming Soon | N/A                 |
+| Grok       | ALL                     | ⚠️ Coming Soon | N/A                 |
 
 Want to add support for another model? Open an [issue](https://github.com/puzzlet-ai/agentmark/issues).
 

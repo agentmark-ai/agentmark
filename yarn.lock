@@ -29,7 +29,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:2.0.2":
+"@ai-sdk/provider-utils@npm:2.0.2, @ai-sdk/provider-utils@npm:^2.0.0":
   version: 2.0.2
   resolution: "@ai-sdk/provider-utils@npm:2.0.2"
   dependencies:
@@ -46,7 +46,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider@npm:1.0.1":
+"@ai-sdk/provider@npm:1.0.1, @ai-sdk/provider@npm:^1.0.0":
   version: 1.0.1
   resolution: "@ai-sdk/provider@npm:1.0.1"
   dependencies:
@@ -1105,7 +1105,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@npm:^1.0.5, @puzzlet/agentmark@npm:^1.1.1, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^1.0.5, @puzzlet/agentmark@npm:^1.1.0, @puzzlet/agentmark@npm:^1.1.1, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -1149,6 +1149,25 @@ __metadata:
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
+    openai: "npm:^4.73.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.2"
+    vitest: "npm:^2.1.1"
+  peerDependencies:
+    zod: ^3.23.8
+  languageName: unknown
+  linkType: soft
+
+"@puzzlet/ollama@workspace:packages/ollama":
+  version: 0.0.0-use.local
+  resolution: "@puzzlet/ollama@workspace:packages/ollama"
+  dependencies:
+    "@ai-sdk/openai": "npm:^1.0.5"
+    "@puzzlet/agentmark": "npm:^1.1.0"
+    "@puzzlet/templatedx": "npm:^0.6.2"
+    "@types/node": "npm:^22.10.1"
+    "@types/react": "npm:^18.3.12"
+    ollama-ai-provider: "npm:^1.0.0"
     openai: "npm:^4.73.1"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
@@ -6052,6 +6071,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ollama-ai-provider@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "ollama-ai-provider@npm:1.0.0"
+  dependencies:
+    "@ai-sdk/provider": "npm:^1.0.0"
+    "@ai-sdk/provider-utils": "npm:^2.0.0"
+    partial-json: "npm:0.1.7"
+  peerDependencies:
+    zod: ^3.0.0
+  peerDependenciesMeta:
+    zod:
+      optional: true
+  checksum: 10c0/7286515da833ea6f427beb9ea736178fb355f4442e4796087466c64289fc3a58b8b4509399b5831be4eb09d5b84b163cc127a2e03fcfd833da0b9fa00abac9bb
+  languageName: node
+  linkType: hard
+
 "once@npm:^1.3.0, once@npm:^1.3.1, once@npm:^1.4.0":
   version: 1.4.0
   resolution: "once@npm:1.4.0"
@@ -6296,6 +6331,13 @@ __metadata:
   dependencies:
     entities: "npm:^4.5.0"
   checksum: 10c0/829d37a0c709215a887e410a7118d754f8e1afd7edb529db95bc7bbf8045fb0266a7b67801331d8e8d9d073ea75793624ec27ce9ff3b96862c3b9008f4d68e80
+  languageName: node
+  linkType: hard
+
+"partial-json@npm:0.1.7":
+  version: 0.1.7
+  resolution: "partial-json@npm:0.1.7"
+  checksum: 10c0/cd5f994c3a5ca903918c028a6947ebc1d46459234c1c57c7ab98e234d8dca49cb46b05a71889ee422b39d1f66b95c59a5ce3a6ae06966aca95a8960ad20c12d2
   languageName: node
   linkType: hard
 

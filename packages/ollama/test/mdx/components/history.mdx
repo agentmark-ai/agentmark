@@ -1,0 +1,12 @@
+<ForEach arr={props.messageHistory}>
+  {(item) => (
+    <>
+      <If condition={item.role == 'user'}>
+        <User>{item.message}</User>
+      </If>
+      <ElseIf condition={item.role == 'assistant'}>
+        <Assistant>{item.message}</Assistant>
+      </ElseIf>
+    </>
+  )}
+</ForEach>
