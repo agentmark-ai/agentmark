@@ -2,7 +2,7 @@
 
 **A declarative, extensible, and composable approach for creating LLM prompts using Markdown and JSX.**
 
-![AgentMark](https://lpgvdjzmcrynxnhuzesb.supabase.co/storage/v1/object/sign/avatar/agentmark.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJhdmF0YXIvcHJvbXB0ZHgucG5nIiwiaWF0IjoxNzMwMzIyMzQzLCJleHAiOjIwNDU2ODIzNDN9.KC1xQ1AKSxOOMjpdXwGwFN_mr8dljY4c-x_xoePPvWY&t=2024-10-30T21%3A05%3A43.354Z)
+![AgentMark](https://i.imgur.com/xwq74He.png)
 
 ## Overview
 
