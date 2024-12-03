@@ -1,5 +1,17 @@
 # @puzzlet/all-models
 
+## 1.1.0
+
+### Minor Changes
+
+- ed786ff: API key support, telemetry
+
+### Patch Changes
+
+- Updated dependencies [ed786ff]
+  - @puzzlet/anthropic@1.1.0
+  - @puzzlet/openai@1.1.0
+
 ## 1.0.2
 
 ### Patch Changes
