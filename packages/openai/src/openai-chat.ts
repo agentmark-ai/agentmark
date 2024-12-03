@@ -1,7 +1,7 @@
 import {
   ChatCompletionCreateParams,
 } from "openai/resources";
-import { IPluginAPI, IModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
+import type { IPluginAPI, IModelPlugin, InferenceOptions, AgentMarkOutput, AgentMark } from "@puzzlet/agentmark";
 import { createOpenAI } from "@ai-sdk/openai";
 
 export default class OpenAIChatPlugin implements IModelPlugin {
@@ -88,8 +88,8 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     return result;
   }
 
-  async runInference(agentMark: AgentMark, api: IPluginAPI): Promise<AgentMarkOutput> {
-    const apiKey = this.apiKey || api.getEnv("OPENAI_API_KEY");
+  async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {
+    const apiKey = options?.apiKey || this.apiKey || api.getEnv("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
@@ -101,7 +101,7 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const result = await api.runInference(modelConfig.settings, providerModel, messages);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
     return result;
   }
 }

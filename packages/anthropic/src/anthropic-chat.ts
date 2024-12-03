@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { IModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
-import type { IPluginAPI } from '@puzzlet/agentmark';
+import type { IPluginAPI, InferenceOptions } from '@puzzlet/agentmark';
 import { createAnthropic } from "@ai-sdk/anthropic";
 
 type MessageCreateParams = Anthropic.MessageCreateParams;
@@ -102,8 +102,8 @@ export default class AnthropicChatPlugin implements IModelPlugin {
     return result;
   }
 
-  async runInference(agentMark: AgentMark, api: IPluginAPI): Promise<AgentMarkOutput> {
-    const apiKey = this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
+  async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {
+    const apiKey = options?.apiKey || this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
@@ -114,7 +114,7 @@ export default class AnthropicChatPlugin implements IModelPlugin {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
-    const result = await api.runInference(modelConfig.settings, providerModel, messages);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
     return result;
   }
 }

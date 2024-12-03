@@ -17,6 +17,17 @@ interface ExtractTextProps {
   children: any;
 }
 
+type TelemetrySettings = {
+  isEnabled?: boolean;
+  functionId?: string;
+  metadata?: Record<string, any>;
+};
+
+export type InferenceOptions = {
+  telemetry?: TelemetrySettings;
+  apiKey?: string;
+};
+
 export type AgentMarkTextSettings = z.infer<typeof AgentMarkTextSettingsSchema>;
 export type AgentMarkSchemaSettings = z.infer<typeof AgentMarkSchemaSettingsSchema>;
 export type AgentMarkSettings = AgentMarkTextSettings | AgentMarkSchemaSettings;
@@ -39,6 +50,7 @@ export interface AISDKBaseSettings {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   headers?: Record<string, string>;
+  experimental_telemetry?: TelemetrySettings;
 }
 
 export type AgentMark = z.infer<typeof AgentMarkSchema>;

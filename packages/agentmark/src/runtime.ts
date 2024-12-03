@@ -1,7 +1,7 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject, AgentMark, ChatMessage } from "./types";
+import { JSONObject, AgentMark, ChatMessage, InferenceOptions } from "./types";
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";
@@ -50,6 +50,7 @@ export async function getRawConfig(ast: Ast, props = {}) {
 export async function runInference(
   ast: Ast,
   props: JSONObject = {},
+  options?: InferenceOptions
 ) {
   const agentMark = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
@@ -58,7 +59,7 @@ export async function runInference(
   if (!plugin) {
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
-  return plugin?.runInference(agentMark, PluginAPI);
+  return plugin?.runInference(agentMark, PluginAPI, options);
 }
 
 export function serialize(

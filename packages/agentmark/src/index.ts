@@ -14,4 +14,4 @@ import './global.d';
 
 export type { IModelPlugin } from './model-plugin';
 export { ModelPluginRegistry } from "./model-plugin-registry";
-export type { AgentMark, AgentMarkOutput } from './types';
+export type { AgentMark, AgentMarkOutput, InferenceOptions } from './types';
