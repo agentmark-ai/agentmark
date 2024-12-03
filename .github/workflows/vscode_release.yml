@@ -1,0 +1,35 @@
+name: Publish VS Code Extension
+
+on:
+  push:
+    paths:
+      - 'packages/vscode-extension/**'
+    tags:
+      - 'vscode-ext@*.*.*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+ 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: yarn
+        working-directory: packages/vscode-extension
+
+      - name: Publish to Visual Studio Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: yarn vscode:publish -p $VSCE_PAT
+        working-directory: packages/vscode-extension

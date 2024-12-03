@@ -11,21 +11,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Check out code
+        uses: actions/checkout@v4
         with:
-          node-version: '18'
-          cache: 'yarn'
+          fetch-depth: 2
+
+      - name: Enable Corepack
+        run: corepack enable
+ 
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
 
       - name: Install
-        run: yarn install --frozen-lockfile
-
-      - name: Test
-        run: yarn test
+        run: yarn install
 
       - name: Build
         run: yarn build
+
+      - name: Test
+        run: yarn test
