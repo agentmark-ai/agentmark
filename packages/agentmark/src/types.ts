@@ -25,6 +25,7 @@ type TelemetrySettings = {
 
 export type InferenceOptions = {
   telemetry?: TelemetrySettings;
+  apiKey?: string;
 };
 
 export type AgentMarkTextSettings = z.infer<typeof AgentMarkTextSettingsSchema>;
