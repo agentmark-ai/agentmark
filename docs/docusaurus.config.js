@@ -2,7 +2,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 module.exports = {
   title: 'AgentMark',
-  tagline: 'Portable AI Agents in readable Markdown and JSX.',
+  tagline: 'Markdown for the AI era.',
   url: 'https://puzzlet-ai.github.io/',
   baseUrl: '/agentmark/',
   onBrokenLinks: 'throw',
