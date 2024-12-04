@@ -220,6 +220,7 @@ test("run inference with no stream", async () => {
     result: {
       text: "Mocked response.",
     },
+    toolResponses: [],
     tools: [],
     usage: {
       completionTokens: 15,
@@ -232,8 +233,7 @@ test("run inference with no stream", async () => {
 test("should execute tools", async () => {
   ToolPluginRegistry
     .register(async ({ location }: { location: string }) => {
-      console.log('*** TEST', location);
-      return `Looking pretty cloudy in ${location}`
+      return `Cold af in ${location}`;
   }, "weather");
 
   const ast = await load(__dirname + "/mdx/tools.prompt.mdx");
@@ -250,6 +250,11 @@ test("should execute tools", async () => {
               input: {
                 location: "New York"
               }
+            },
+            {
+              type: "text",
+              role: "assistant",
+              text: "The weather in New York is cold af."
             }
           ],
           stop_reason: "stop_sequence",
@@ -280,7 +285,7 @@ test("should execute tools", async () => {
   expect(result).toEqual({
     finishReason: "stop",
     result: {
-      text: ""
+      text: "The weather in New York is cold af."
     },
     tools: [
       {
@@ -289,6 +294,16 @@ test("should execute tools", async () => {
         },
         name: "weather"
       }
+    ],
+    toolResponses: [
+      {
+        args: {
+          location: "New York",
+        },
+        result: "Cold af in New York",
+        toolCallId: "unique-tool-call-id",
+        toolName: "weather",
+      },
     ],
     usage: {
       completionTokens: 15,
@@ -395,6 +410,7 @@ test("run inference with stream", async () => {
       text: "Mocked response.",
     },
     tools: [],
+    toolResponses: [],
     usage: {
       completionTokens: 15,
       totalTokens: 25,
