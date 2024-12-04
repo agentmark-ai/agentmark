@@ -29,7 +29,7 @@ export const anthropicCompletionParamsWithTools = (stream: boolean) => {
         input_schema: {
           type: "object",
           properties: {
-            name: {
+            location: {
               type: "string",
               description: "location"
             }
