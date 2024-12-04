@@ -1578,7 +1578,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/all-models@workspace:^, @puzzlet/all-models@workspace:packages/all-models":
+"@puzzlet/all-models@npm:^1.1.3, @puzzlet/all-models@workspace:^, @puzzlet/all-models@workspace:packages/all-models":
   version: 0.0.0-use.local
   resolution: "@puzzlet/all-models@workspace:packages/all-models"
   dependencies:
@@ -11872,8 +11872,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "vscode-ext@workspace:packages/vscode-extension"
   dependencies:
-    "@puzzlet/agentmark": "workspace:^"
-    "@puzzlet/all-models": "workspace:^"
+    "@puzzlet/agentmark": "npm:^1.1.3"
+    "@puzzlet/all-models": "npm:^1.1.3"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/mocha": "npm:^10.0.8"
     "@types/node": "npm:20.x"
