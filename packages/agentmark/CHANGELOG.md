@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 1.1.4
+
+### Patch Changes
+
+- b913ad1: bump all packages
+
 ## 1.1.3
 
 ### Patch Changes
