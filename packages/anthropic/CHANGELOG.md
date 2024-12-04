@@ -1,5 +1,11 @@
 # @puzzlet/anthropic
 
+## 1.1.2
+
+### Patch Changes
+
+- 97c0d4d: release bump
+
 ## 1.1.1
 
 ### Patch Changes
