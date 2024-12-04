@@ -72,7 +72,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@puzzlet/agentmark": "^1.0.5",
-    "@puzzlet/templatedx": "^0.5.7"
+    "@puzzlet/agentmark": "workspace:^",
+    "@puzzlet/all-models": "workspace:^",
+    "@puzzlet/templatedx": "^0.6.2"
   }
 }

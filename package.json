@@ -2,7 +2,8 @@
   "name": "agentmark-monorepo",
   "license": "MIT",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "engines": {
     "node": ">=18"
@@ -12,7 +13,7 @@
     "test": "turbo test",
     "build": "turbo build",
     "release": "changeset publish",
-    "version": "changeset version && yarn"
+    "version": "changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false && yarn"
   },
   "packageManager": "yarn@4.5.3",
   "devDependencies": {

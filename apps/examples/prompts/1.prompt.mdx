@@ -1,0 +1,12 @@
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+---
+import Instructions from './components/instructions.mdx';
+
+<System>
+  <Instructions tone="funny" />
+</System>
+<User>Hello there.</User>

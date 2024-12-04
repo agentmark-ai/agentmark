@@ -1,0 +1,24 @@
+{
+  "name": "@puzzlet/agentmark-loader",
+  "version": "1.0.2",
+  "description": "A custom webpack loader for AgentMark",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup",
+    "build:dev": "webpack --mode=development",
+    "watch": "webpack --watch"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.9",
+    "@puzzlet/templatedx": "^0.6.2",
+    "@webpack-cli/generators": "^3.0.7",
+    "babel-loader": "^9.2.1",
+    "fs": "^0.0.1-security",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.1.0"
+  }
+}

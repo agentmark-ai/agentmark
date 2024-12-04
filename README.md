@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Portable AI Agents in readable Markdown and JSX.</strong>
+  <strong>Markdown for the AI era.</strong>
 </p>
 
 <p align="center">
@@ -111,7 +111,7 @@ Run .prompt.mdx files directly within your VSCode editor.
 
 Integrate AgentMark with your webpack workflow using our loader.
 
-[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark-loader)
+[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark/tree/main/packages/agentmark-loader)
 
 ```tsx
 import { runInference, ModelPluginRegistry } from "@puzzlet/agentmark";
