@@ -1,5 +1,11 @@
 # @puzzlet/openai
 
+## 1.1.3
+
+### Patch Changes
+
+- 7134fde: Release agentmark loader and patch others
+
 ## 1.1.2
 
 ### Patch Changes
