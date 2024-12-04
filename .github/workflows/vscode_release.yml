@@ -2,10 +2,8 @@ name: Publish VS Code Extension
 
 on:
   push:
-    paths:
-      - 'packages/vscode-extension/**'
     tags:
-      - 'vscode-ext@*.*.*'
+      - 'vscode-ext@*'
 
 jobs:
   publish:
