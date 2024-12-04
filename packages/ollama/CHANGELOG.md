@@ -1,5 +1,11 @@
 # @puzzlet/openai
 
+## 1.1.2
+
+### Patch Changes
+
+- b913ad1: bump all packages
+
 ## 1.1.1
 
 ### Patch Changes

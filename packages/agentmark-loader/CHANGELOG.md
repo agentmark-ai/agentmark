@@ -1,5 +1,11 @@
 # @puzzlet/promptdx-loader
 
+## 1.1.1
+
+### Patch Changes
+
+- b913ad1: bump all packages
+
 ## 1.1.0
 
 ### Minor Changes
