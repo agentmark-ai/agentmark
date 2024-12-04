@@ -1,20 +1,21 @@
 {
-    "name": "meetup-demo",
-    "version": "1.0.0",
-    "main": "index.js",
-    "license": "MIT",
-    "scripts": {
-        "start": "webpack --config webpack.config.js --mode development && node dist/bundle.js"
-    },
-    "dependencies": {
-        "@puzzlet/agentmark": "workspace:^",
-        "@puzzlet/all-models": "workspace:^",
-        "dotenv": "^16.4.5"
-    },
-    "devDependencies": {
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2",
-        "webpack": "^5.96.1",
-        "webpack-cli": "^5.1.4"
-    }
+  "name": "examples",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "yarn build && webpack --config webpack.config.js --mode development && node dist/bundle.js",
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@puzzlet/agentmark": "workspace:^",
+    "@puzzlet/all-models": "workspace:^",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "webpack": "^5.96.1",
+    "webpack-cli": "^5.1.4"
+  }
 }
