@@ -1,7 +1,8 @@
-import { ChatMessage, InferenceOptions, JSONObject } from "./types";
+import { AgentMarkTextSettings, ChatMessage, InferenceOptions, JSONObject } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
 import { AgentMarkOutput, AgentMarkSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
+import { ToolPluginRegistry } from "./tool-plugin-registry";
 import { AgentMarkSettingsSchema } from "./schemas";
 
 export function omit<T extends JSONObject>(
@@ -61,11 +62,14 @@ export function getEnv(key: string) {
   throw new Error(`Env not found: ${key}`);
 }
 
-export function jsonSchemaTools(tools: Object) {
+export function createToolsConfig(tools: AgentMarkTextSettings['tools']) {
+  if (!tools) return undefined;
   return Object.entries(tools).reduce((acc: any, [toolName, toolData]) => {
+    const toolFn = ToolPluginRegistry.getTool(toolName);
     acc[toolName] = {
-      ...toolData,
-      parameters: jsonSchema(toolData.parameters),
+      description: toolData.description,
+      parameters: jsonSchema(toolData.parameters as any),
+      execute: toolFn,
     };
     return acc;
   }, {});
@@ -132,7 +136,7 @@ export async function runInference(
       try {
         const { textStream } = streamText({
           ...baseConfig,
-          tools: settings.tools ? jsonSchemaTools(settings.tools) : undefined,
+          tools: createToolsConfig(settings.tools),
           onFinish({ text, usage, toolCalls, finishReason }) {
             resolve({
               result: { text },
@@ -153,7 +157,7 @@ export async function runInference(
   } else {
     const result = await generateText({
       ...baseConfig,
-      tools: settings.tools ? jsonSchemaTools(settings.tools) : undefined,
+      tools: createToolsConfig(settings.tools),
     });
     return {
       result: { text: result.text },
