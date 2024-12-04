@@ -4,6 +4,12 @@
 
 ### Minor Changes
 
+- 08592fd: Ollama support
+
+## 1.1.0
+
+### Minor Changes
+
 - ed786ff: API key support, telemetry
 
 ## 1.0.2

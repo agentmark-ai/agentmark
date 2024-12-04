@@ -1,5 +1,14 @@
 # @puzzlet/all-models
 
+## 1.1.2
+
+### Patch Changes
+
+- 97c0d4d: release bump
+- Updated dependencies [97c0d4d]
+  - @puzzlet/anthropic@1.1.2
+  - @puzzlet/openai@1.1.2
+
 ## 1.1.1
 
 ### Patch Changes
