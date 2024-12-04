@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Portable AI Agents in readable Markdown and JSX.</strong>
+  <strong>Markdown for the AI era.</strong>
 </p>
 
 <p align="center">
