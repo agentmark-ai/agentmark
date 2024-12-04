@@ -10,7 +10,7 @@ module.exports = {
     rules: [
       {
         test: /\.prompt.mdx$/,
-        use: '@puzzlet/promptdx-loader',
+        use: '@puzzlet/agentmark-loader',
       },
     ],
   },
