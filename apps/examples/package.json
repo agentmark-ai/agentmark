@@ -4,7 +4,6 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "yarn build && webpack --config webpack.config.js --mode development && node dist/bundle.js",
     "build": "tsup"
   },
   "dependencies": {
