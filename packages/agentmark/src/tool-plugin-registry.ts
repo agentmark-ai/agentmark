@@ -1,4 +1,4 @@
-export type Tool = (...args: any[]) => any;
+export type Tool = (...args: any[]) => Promise<any>;
 
 export class ToolPluginRegistry {
   public static tools: Map<string, Tool> = new Map<string, Tool>();

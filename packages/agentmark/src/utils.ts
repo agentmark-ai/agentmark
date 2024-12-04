@@ -82,6 +82,7 @@ export function getBaseSettings(config: AgentMarkSettings, model: LanguageModel,
     maxTokens: config.max_tokens,
     temperature: config.temperature,
     topK: config.top_k,
+    maxSteps: config.max_steps,
     topP: config.top_p,
     presencePenalty: config.frequency_penalty,
     stopSequences: config.stop_sequences,
@@ -137,13 +138,14 @@ export async function runInference(
         const { textStream } = streamText({
           ...baseConfig,
           tools: createToolsConfig(settings.tools),
-          onFinish({ text, usage, toolCalls, finishReason }) {
+          onFinish({ text, usage, toolCalls, toolResults, finishReason }) {
             resolve({
               result: { text },
               tools: toolCalls.map((tool) => ({
                 name: tool.toolName,
                 input: tool.args,
               })),
+              toolResponses: toolResults,
               usage,
               finishReason,
             });
@@ -155,16 +157,19 @@ export async function runInference(
       }
     });
   } else {
+    const tools = createToolsConfig(settings.tools);
     const result = await generateText({
       ...baseConfig,
-      tools: createToolsConfig(settings.tools),
+      tools,
     });
+    console.log('*** RESULT', JSON.stringify(result, null, 2));
     return {
       result: { text: result.text },
       tools: result.toolCalls.map((tool) => ({
         name: tool.toolName,
         input: tool.args,
       })),
+      toolResponses: result.toolResults,
       usage: result.usage,
       finishReason: result.finishReason,
     };

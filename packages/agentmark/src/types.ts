@@ -1,6 +1,6 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
-import { LanguageModel } from 'ai';
+import { LanguageModel, GenerateTextResult } from 'ai';
 import {
   ChatMessageSchema,
   AgentMarkTextSettingsSchema,
@@ -40,6 +40,7 @@ export interface AISDKBaseSettings {
   model: LanguageModel;
   messages?: Array<ChatMessage>;
   maxTokens?: number;
+  maxSteps?: number;
   temperature?: number;
   topP?: number;
   topK?: number;
@@ -65,6 +66,7 @@ export type AgentMarkOutput = {
     input: Record<string, any>;
     output?: Record<string, any>;
   }>;
+  toolResponses?: GenerateTextResult<any, never>['toolResults'],
   usage: {
     promptTokens: number;
     completionTokens: number;
