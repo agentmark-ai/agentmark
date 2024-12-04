@@ -2,7 +2,8 @@
   "name": "agentmark-monorepo",
   "license": "MIT",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "engines": {
     "node": ">=18"

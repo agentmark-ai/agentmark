@@ -111,7 +111,7 @@ Run .prompt.mdx files directly within your VSCode editor.
 
 Integrate AgentMark with your webpack workflow using our loader.
 
-[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark-loader)
+[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark/tree/main/packages/agentmark-loader)
 
 ```tsx
 import { runInference, ModelPluginRegistry } from "@puzzlet/agentmark";

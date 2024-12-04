@@ -1,0 +1,27 @@
+---
+name: calculate
+metadata:
+  model:
+    name: gpt-4o-mini
+    settings:
+      tools:
+      -
+          type: function
+          function:
+            name: calculate
+            description: Performs basic math calculations.
+            parameters:
+              type: object
+              properties:
+                expression:
+                  type: string
+                  description: A mathematical expression to calculate.
+              required:
+              - expression
+              additionalProperties: false
+      temperature: 0.7
+      top_p: 1
+---
+
+<System>You are a helpful assistant capable of solving basic math problems and using tools as needed.</System>
+<User>What is 7 + 5?</User>
