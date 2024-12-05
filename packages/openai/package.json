@@ -1,6 +1,6 @@
 {
   "name": "@puzzlet/openai",
-  "version": "1.1.2",
+  "version": "1.1.4",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "module": "./dist/index.js",
@@ -24,7 +24,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@puzzlet/agentmark": "^1.1.2",
+    "@puzzlet/agentmark": "^1.1.4",
     "@puzzlet/templatedx": "^0.6.2",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
