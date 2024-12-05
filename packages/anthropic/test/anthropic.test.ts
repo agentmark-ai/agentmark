@@ -248,13 +248,13 @@ test("should execute tools", async () => {
               name: "weather",
               type: "tool_use",
               input: {
-                location: "New York"
+                location: "New Hampshire"
               }
             },
             {
               type: "text",
               role: "assistant",
-              text: "The weather in New York is cold af."
+              text: "The weather in New Hampshire is cold af."
             }
           ],
           stop_reason: "stop_sequence",
@@ -285,12 +285,12 @@ test("should execute tools", async () => {
   expect(result).toEqual({
     finishReason: "stop",
     result: {
-      text: "The weather in New York is cold af."
+      text: "The weather in New Hampshire is cold af."
     },
     tools: [
       {
         input: {
-          location: "New York"
+          location: "New Hampshire"
         },
         name: "weather"
       }
@@ -298,9 +298,9 @@ test("should execute tools", async () => {
     toolResponses: [
       {
         args: {
-          location: "New York",
+          location: "New Hampshire",
         },
-        result: "Cold af in New York",
+        result: "Cold af in New Hampshire",
         toolCallId: "unique-tool-call-id",
         toolName: "weather",
       },
