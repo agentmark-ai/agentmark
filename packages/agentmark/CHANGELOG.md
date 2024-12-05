@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 1.2.0
+
+### Minor Changes
+
+- f57c4d0: Supporting tool calls
+
 ## 1.1.4
 
 ### Patch Changes

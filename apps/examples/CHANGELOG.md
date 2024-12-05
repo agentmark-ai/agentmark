@@ -1,5 +1,12 @@
 # examples
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [f57c4d0]
+  - @puzzlet/agentmark@1.2.0
+
 ## 1.0.2
 
 ### Patch Changes
