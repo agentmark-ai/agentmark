@@ -162,7 +162,6 @@ export async function runInference(
       ...baseConfig,
       tools,
     });
-    console.log('*** RESULT', JSON.stringify(result, null, 2));
     return {
       result: { text: result.text },
       tools: result.toolCalls.map((tool) => ({
