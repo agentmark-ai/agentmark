@@ -1,5 +1,23 @@
 # Change Log
 
+## 1.0.11
+
+### Patch Changes
+
+- b913ad1: bump all packages
+- Updated dependencies [b913ad1]
+  - @puzzlet/agentmark@1.1.4
+  - @puzzlet/all-models@1.1.4
+
+## 1.0.9
+
+### Patch Changes
+
+- 7134fde: Release agentmark loader and patch others
+- Updated dependencies [7134fde]
+  - @puzzlet/all-models@1.1.3
+  - @puzzlet/agentmark@1.1.3
+
 ## 1.0.8
 
 ### Patch Changes

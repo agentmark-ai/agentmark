@@ -1,5 +1,23 @@
 # @puzzlet/all-models
 
+## 1.1.4
+
+### Patch Changes
+
+- b913ad1: bump all packages
+- Updated dependencies [b913ad1]
+  - @puzzlet/anthropic@1.1.4
+  - @puzzlet/openai@1.1.4
+
+## 1.1.3
+
+### Patch Changes
+
+- 7134fde: Release agentmark loader and patch others
+- Updated dependencies [7134fde]
+  - @puzzlet/anthropic@1.1.3
+  - @puzzlet/openai@1.1.3
+
 ## 1.1.2
 
 ### Patch Changes
