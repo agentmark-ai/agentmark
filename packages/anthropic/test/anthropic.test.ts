@@ -2,7 +2,7 @@ import { expect, test, vi } from "vitest";
 import fs from 'fs';
 import { getFrontMatter, load } from "@puzzlet/templatedx";
 import AnthropicChatPlugin from "../src";
-import { getRawConfig, PluginAPI } from "@puzzlet/agentmark";
+import { getRawConfig, PluginAPI, ToolPluginRegistry } from "@puzzlet/agentmark";
 import { anthropicCompletionParamsWithSchema, anthropicCompletionParamsWithTools, promptWithHistory } from "./configs";
 
 vi.stubEnv("ANTHROPIC_API_KEY", "key");
@@ -169,6 +169,14 @@ test("should deserialize schema with no stream", async () => {
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(false));
 });
 
+test("should deserialize prompt with history prop", async () => {
+  const ast = await load(__dirname + "/mdx/props-history.prompt.mdx");
+  const frontmatter = getFrontMatter(ast) as any;
+  const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  expect(deserializedPrompt).toEqual(promptWithHistory);
+});
+
 test("run inference with no stream", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const mockFetch = vi.fn(() =>
@@ -212,6 +220,7 @@ test("run inference with no stream", async () => {
     result: {
       text: "Mocked response.",
     },
+    toolResponses: [],
     tools: [],
     usage: {
       completionTokens: 15,
@@ -221,12 +230,87 @@ test("run inference with no stream", async () => {
   });
 });
 
-test("should deserialize prompt with history prop", async () => {
-  const ast = await load(__dirname + "/mdx/props-history.prompt.mdx");
-  const frontmatter = getFrontMatter(ast) as any;
-  const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
-  expect(deserializedPrompt).toEqual(promptWithHistory);
+test("should execute tools", async () => {
+  ToolPluginRegistry
+    .register(async ({ location }: { location: string }) => {
+      return `Cold af in ${location}`;
+  }, "weather");
+
+  const ast = await load(__dirname + "/mdx/tools.prompt.mdx");
+  const mockFetch = vi.fn(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          type: "message",
+          content: [
+            {
+              id: "unique-tool-call-id",
+              name: "weather",
+              type: "tool_use",
+              input: {
+                location: "New Hampshire"
+              }
+            },
+            {
+              type: "text",
+              role: "assistant",
+              text: "The weather in New Hampshire is cold af."
+            }
+          ],
+          stop_reason: "stop_sequence",
+          role: "assistant",
+          truncated: false,
+          tokens_consumed: 15,
+          model: "claude-3-5-sonnet-latest",
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+            total_tokens: 25
+          }
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+          statusText: "OK"
+        }
+      )
+    )
+  );  
+  
+  const api = { ...PluginAPI, fetch: mockFetch }
+  const pluginWithInference = new AnthropicChatPlugin();
+  const agentMark = await getRawConfig(ast);
+  const result = await pluginWithInference.runInference(agentMark, api);
+
+  expect(result).toEqual({
+    finishReason: "stop",
+    result: {
+      text: "The weather in New Hampshire is cold af."
+    },
+    tools: [
+      {
+        input: {
+          location: "New Hampshire"
+        },
+        name: "weather"
+      }
+    ],
+    toolResponses: [
+      {
+        args: {
+          location: "New Hampshire",
+        },
+        result: "Cold af in New Hampshire",
+        toolCallId: "unique-tool-call-id",
+        toolName: "weather",
+      },
+    ],
+    usage: {
+      completionTokens: 15,
+      promptTokens: 10,
+      totalTokens: 25
+    }
+  });
 });
 
 test("run inference with stream", async () => {
@@ -326,6 +410,7 @@ test("run inference with stream", async () => {
       text: "Mocked response.",
     },
     tools: [],
+    toolResponses: [],
     usage: {
       completionTokens: 15,
       totalTokens: 25,

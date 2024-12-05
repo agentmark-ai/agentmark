@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Portable AI Agents in readable Markdown and JSX.</strong>
+  <strong>Markdown for the AI era.</strong>
 </p>
 
 <p align="center">
@@ -74,20 +74,20 @@ Here's a list of currently supported plugins you can start using.
 
 ### Built-In Model Plugins
 
-| Provider   | Model                   | Supported      | Included: `@puzzlet/all-models` |
+| Provider   | Model                   | Supported      | `@puzzlet/all-models` |
 |------------|-------------------------|----------------|---------------------|
-| OpenAI     | gpt-4o                  | ✅ Supported   | Yes  ✅             |
-| OpenAI     | gpt-4o-mini             | ✅ Supported   | Yes  ✅             |
-| OpenAI     | gpt-4-turbo             | ✅ Supported   | Yes  ✅             |
-| OpenAI     | gpt-4                  | ✅ Supported    | Yes  ✅              |
-| OpenAI     | o1-mini                 | ✅ Supported   | Yes  ✅             |
-| OpenAI     | o1-preview              | ✅ Supported   | Yes  ✅             |
-| OpenAI     | gpt-3.5-turbo           | ✅ Supported   | Yes  ✅             |
-| Anthropic  | claude-3-5-haiku-latest | ✅ Supported   | Yes  ✅             |
-| Anthropic  | claude-3-5-sonnet-latest| ✅ Supported   | Yes  ✅             |
-| Anthropic  | claude-3-opus-latest    | ✅ Supported   | Yes  ✅             |
-| Meta       | ALL                     | ✅ Supported   | No  🧩           |
-| Custom     | any                     | ✅ Supported   | No 🧩           |
+| OpenAI     | gpt-4o                  | ✅ Supported   | ✅             |
+| OpenAI     | gpt-4o-mini             | ✅ Supported   | ✅             |
+| OpenAI     | gpt-4-turbo             | ✅ Supported   | ✅             |
+| OpenAI     | gpt-4                   | ✅ Supported    | ✅              |
+| OpenAI     | o1-mini                 | ✅ Supported   | ✅             |
+| OpenAI     | o1-preview              | ✅ Supported   | ✅             |
+| OpenAI     | gpt-3.5-turbo           | ✅ Supported   | ✅             |
+| Anthropic  | claude-3-5-haiku-latest | ✅ Supported   | ✅             |
+| Anthropic  | claude-3-5-sonnet-latest| ✅ Supported   | ✅             |
+| Anthropic  | claude-3-opus-latest    | ✅ Supported   | ✅             |
+| Meta       | ALL                     | ✅ Supported   | 🧩 Only          |
+| Custom     | any                     | ✅ Supported   | 🧩 Only         |
 | Google     | ALL                     | ⚠️ Coming Soon | N/A                 |
 | Grok       | ALL                     | ⚠️ Coming Soon | N/A                 |
 
@@ -111,7 +111,7 @@ Run .prompt.mdx files directly within your VSCode editor.
 
 Integrate AgentMark with your webpack workflow using our loader.
 
-[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark-loader)
+[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark/tree/main/packages/agentmark-loader)
 
 ```tsx
 import { runInference, ModelPluginRegistry } from "@puzzlet/agentmark";
