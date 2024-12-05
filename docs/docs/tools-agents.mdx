@@ -1,6 +1,6 @@
 ---
-id: syntax
-title: Syntax
+id: tools-agents
+title: Tools and Agents
 ---
 
 # Syntax
@@ -61,13 +61,13 @@ Model settings are standardized across models to allow for seamlessly switching 
 
 | Property | Type                                                                 | Description                                                                                                                                                                                                                 | Optional/Required |
 |----------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
-| `tools`  | `Record<string, { description: string; parameters: JSONSchema; }>`   | A record of tools available to the model, where each tool includes: - `description`: A brief description of the tool's functionality. - `parameters`: Parameters required by the tool, defined as a JSON object. | Optional          |
+| `tools`  | `Record<string, { description: string; parameters: JSONObject; }>`   | A record of tools available to the model, where each tool includes: - `description`: A brief description of the tool's functionality. - `parameters`: Parameters required by the tool, defined as a JSON object. | Optional          |
 
 #### Object Output Settings
 
 | Property | Type       | Description                                           | Optional/Required |
 |----------|------------|-------------------------------------------------------|-------------------|
-| `schema` | `JSONSchema` | A schema defining the expected structure of the output object. | Required          | 
+| `schema` | `JSONObject` | A schema defining the expected structure of the output object. | Required          | 
 
 ## Body
 

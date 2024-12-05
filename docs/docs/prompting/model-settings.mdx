@@ -1,0 +1,19 @@
+---
+title: Model Settings
+---
+
+# Model Settings
+
+| Property            | Type                     | Description                                                                                                                                                                                                                 | Optional/Required |
+|---------------------|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
+| `stream`            | `boolean`                | Indicates whether to stream the response.                                                                                                                                                                                   | Optional          |
+| `max_tokens`        | `number`                 | Maximum number of tokens to generate.                                                                                                                                                                                       | Optional          |
+| `temperature`       | `number`                 | Controls the randomness of the output; higher values result in more random outputs.                                                                                                                                         | Optional          |
+| `top_p`             | `number`                 | Controls the cumulative probability for nucleus sampling.                                                                                                                                                                   | Optional          |
+| `top_k`             | `number`                 | Limits the next token selection to the top `k` tokens.                                                                                                                                                                      | Optional          |
+| `presence_penalty`  | `number`                 | Penalizes new tokens based on their presence in the text so far, encouraging the model to discuss new topics.                                                                                                               | Optional          |
+| `frequency_penalty` | `number`                 | Penalizes new tokens based on their frequency in the text so far, reducing the likelihood of repeating the same line verbatim.                                                                                              | Optional          |
+| `stop_sequences`    | `string[]`               | Array of strings where the generation will stop if any of the strings are encountered.                                                                                                                                      | Optional          |
+| `seed`              | `number`                 | Seed value for random number generation, ensuring reproducibility.                                                                                                                                                          | Optional          |
+| `max_retries`       | `number`                 | Maximum number of retries for the request in case of failures.                                                                                                                                                              | Optional          |
+| `headers`           | `Record<string, string>` | Additional headers to include in the request.                                                                                                                                                                               | Optional          |

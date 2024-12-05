@@ -1,4 +1,19 @@
 import {themes as prismThemes} from 'prism-react-renderer';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-yaml';
+import 'prismjs/components/prism-javascript';
+
+if (!Prism.languages.mdx) {
+  Prism.languages.mdx = {};
+}
+
+Object.assign(Prism.languages.mdx, {
+  frontmatter: {
+    pattern: /^---[\s\S]*?^---$/m,
+    inside: Prism.languages.yaml,
+    alias: 'language-yaml',
+  },
+});
 
 module.exports = {
   title: 'AgentMark',
@@ -106,7 +121,7 @@ module.exports = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
-      additionalLanguages: ['jsx', 'bash'],
+      additionalLanguages: ['jsx', 'bash', 'mdx'],
     },
   },
 };

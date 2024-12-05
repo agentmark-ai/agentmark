@@ -1,9 +1,9 @@
 ---
-id: model-plugins
-title: Model Plugins
+id: model-providers
+title: Model Providers
 ---
 
-# Model Plugins
+# Model Providers
 
 AgentMark doesn't provide any models by default. Instead, each model must be added as a plugin. We provide the ability to add our own
 built-in plugins, or custom plugins.
@@ -54,22 +54,22 @@ metadata:
 
 This is the list of model plugins provided/supported by AgentMark.
 
-| Provider   | Model                        | Supported      |
-|------------|------------------------------|----------------|
-| OpenAI     | gpt-4o                       | ✅ Supported   |
-| OpenAI     | gpt-4o-mini                  | ✅ Supported   |
-| OpenAI     | gpt-4-turbo                  | ✅ Supported   |
-| OpenAI     | gpt-4                        | ✅ Supported   |
-| OpenAI     | o1-mini                      | ✅ Supported   |
-| OpenAI     | o1-preview                   | ✅ Supported   |
-| OpenAI     | gpt-3.5-turbo                | ✅ Supported   |
-| Anthropic  | claude-3-5-haiku-latest      | ✅ Supported   |
-| Anthropic  | claude-3-5-sonnet-latest     | ✅ Supported   |
-| Anthropic  | claude-3-opus-latest         | ✅ Supported   |
-| Custom     | any                          | ✅ Supported   |
-| Google     | ALL                          | ⚠️ Coming Soon |
-| Meta       | ALL                          | ⚠️ Coming Soon |
-| Grok       | ALL                          | ⚠️ Coming Soon |
+| Provider   | Model                        | Supported      | Plugin             |
+|------------|------------------------------|----------------|-------------------|
+| OpenAI     | gpt-4o                       | ✅ Supported   | `@puzzlet/openai`   |
+| OpenAI     | gpt-4o-mini                  | ✅ Supported   | `@puzzlet/openai`   |
+| OpenAI     | gpt-4-turbo                  | ✅ Supported   | `@puzzlet/openai`   |
+| OpenAI     | gpt-4                        | ✅ Supported   | `@puzzlet/openai`   |
+| OpenAI     | o1-mini                      | ✅ Supported   | `@puzzlet/openai`   |
+| OpenAI     | o1-preview                   | ✅ Supported   | `@puzzlet/openai`   |
+| OpenAI     | gpt-3.5-turbo                | ✅ Supported   | `@puzzlet/openai`   |
+| Anthropic  | claude-3-5-haiku-latest      | ✅ Supported   | `@puzzlet/anthropic`|
+| Anthropic  | claude-3-5-sonnet-latest     | ✅ Supported   | `@puzzlet/anthropic`|
+| Anthropic  | claude-3-opus-latest         | ✅ Supported   | `@puzzlet/anthropic`|
+| Meta       | ALL                          | ✅ Supported  | `@puzzlet/ollama`    |
+| Custom     | any                          | ✅ Supported   | N/A                 |
+| Google     | ALL                          | ⚠️ Coming Soon | N/A                  |
+| Grok       | ALL                          | ⚠️ Coming Soon | N/A               |
 
 
 You can find a fully up-to-date list of built-in model plugins/providers here: [Built-in](https://github.com/puzzlet-ai/agentmark/blob/main/src/model-plugins/all-latest.ts).

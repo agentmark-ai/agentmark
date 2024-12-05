@@ -1,0 +1,30 @@
+---
+title: Overview
+---
+
+# Prompting Overview
+
+AgentMark provides a powerful and flexible way to create prompts using Markdown and JSX. This section will cover the core concepts and features of prompting with AgentMark.
+
+## Key Components
+
+### 1. Message Tags
+AgentMark supports three primary message tags for communicating with LLMs:
+- `<System>` - For system-level instructions
+- `<User>` - For user messages
+- `<Assistant>` - For assistant responses
+
+### 2. Frontmatter Configuration
+Every prompt file includes a frontmatter section that defines:
+- Prompt name and metadata
+- Model configuration
+- Test settings and props
+
+### 3. Dynamic Content
+Prompts can include:
+- Variables using `{props.varName}`
+- Imported components
+- Conditional logic and loops
+- Filter functions
+
+## Basic Example
