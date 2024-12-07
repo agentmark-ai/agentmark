@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Markdown for the AI era.</strong>
+  <strong>The Prompt Engineer's Markdown</strong>
 </p>
 
 <p align="center">
@@ -96,6 +96,16 @@ Want to add support for another model? Open an [issue](https://github.com/puzzle
 ### Custom Model Plugins
 
 Refer to our [docs](https://puzzlet-ai.github.io/agentmark) to learn how to add custom model support.
+
+## Language Support
+
+We plan on providing support for AgentMark across a variety of languages.
+
+| **Language**   | **Support Type** | **Available** |
+|-----------------|------------------|---------------|
+| TypeScript      | SDK              | ✅            |
+| Python           | SDK             | ⚠️ Coming Soon|
+| Other           | REST             | ⚠️ Coming Soon|
 
 ## Running AgentMark
 

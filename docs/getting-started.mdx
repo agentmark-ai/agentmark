@@ -1,0 +1,84 @@
+---
+title: Getting Started
+description: Follow the instructions below to install AgentMark in your app.
+---
+
+## Install AgentMark
+
+Install with npm:
+
+```bash npm
+npm install @puzzlet/agentmark
+```
+
+or yarn:
+
+```bash npm
+yarn add @puzzlet/agentmark
+```
+
+## Create your first Prompt
+
+`index.prompt.mdx`
+```jsx
+---
+name: basic-prompt
+metadata:
+  model:
+    name: gpt-4o-mini
+---
+
+<User>Hello World</User>
+```
+
+## Run your Prompt
+
+### VSCode
+
+Run .prompt.mdx files directly within your VSCode editor.
+
+[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
+
+### Webpack Loader
+
+Integrate AgentMark with your webpack workflow using our loader.
+
+[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark-loader)
+
+```tsx
+import AllModelPlugins from '@puzzlet/all-models';
+import { runInference, ModelPluginRegistry } from "@puzzlet/agentmark";
+import MyPrompt from './example.prompt.mdx';
+
+// Note: Registering all latest models for demo/development purposes. 
+// In production, you'll likely want to selectively load these, and pin models.
+ModelPluginRegistry.registerAll(AllModelPlugins);
+
+const run = async () => {
+  const props = { name: "Emily" };
+  const result = await runInference(MyPrompt, props);
+  console.log(result);
+}
+run();
+```
+
+### Node.js
+
+Run AgentMark directly in your Node.js environment. Below is a sample implementation:
+
+```tsx node
+import { runInference, load, ModelPluginRegistry } from "@puzzlet/agentmark";
+import AllModelPlugins from '@puzzlet/all-models';
+
+// Note: Registering all latest models for demo/development purposes. 
+// In production, you'll likely want to selectively load these, and pin models.
+ModelPluginRegistry.registerAll(AllModelPlugins);
+
+const run = async () => {
+  const Prompt = await load('./example.prompt.mdx');
+  const props = { name: "Emily" };
+  const result = await runInference(bundled, props);
+  console.log(result);
+}
+run();
+```

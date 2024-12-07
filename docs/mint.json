@@ -1,0 +1,106 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "AgentMark",
+  "logo": {
+    "dark": "/images/agent-mark-dark.svg",
+    "light": "/images/agent-mark.svg"
+  },
+  "favicon": "/images/agent-mark.svg",
+  "colors": {
+    "primary": "#FFB800",
+    "light": "#FFF5CC",
+    "dark": "#FFB800",
+    "background": {
+      "dark": "#000000",
+      "light": "#FFF"
+    },
+    "anchors": {
+      "from": "#FFF5CC",
+      "to": "#FFB800"
+    }
+  },
+  "topbarCtaButton": {
+    "name": "Star on GitHub",
+    "type": "link",
+    "url": "https://github.com/puzzlet-ai/agentmark"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Community",
+      "icon": "discord",
+      "url": "https://discord.gg/P2NeMDtXar"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/puzzlet-ai/agentmark"
+    },
+    {
+      "name": "Puzzlet",
+      "icon": "puzzle",
+      "url": "https://www.puzzlet.ai"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["overview", "getting-started"]
+    },
+    {
+      "group": "Prompts",
+      "pages": [
+        "prompting/overview",
+        "prompting/model-settings",
+        "prompting/object-schema",
+        "prompting/tools",
+        "prompting/agents",
+        "prompting/logic",
+        "prompting/reusable-components",
+        "prompting/context-plugins"
+      ]
+    },
+    {
+      "group": "API",
+      "pages": [
+        "api/run-inference",
+        "api/serialize-deserialize",
+        "api/model-plugins",
+        "api/tool-plugins",
+        "api/context-plugins",
+        "api/utils",
+        "observability",
+        "type-safety"
+      ]
+    },
+    {
+      "group": "Type Safety",
+      "pages": [
+        "AgentMark files",
+        "SDK"
+      ]
+    }
+  ],
+  "footer": {
+    "socials": {
+      "discord": "https://discord.gg/P2NeMDtXar",
+      "github": "https://github.com/puzzlet-ai/agentmark",
+      "linkedin": "https://www.linkedin.com/company/puzzlet/"
+    },
+    "links": [
+      {
+        "links": [
+          {
+            "label": "A Puzzlet Product",
+            "url": "https://www.puzzlet.ai"
+          }
+        ]
+      }
+    ]
+  }
+}

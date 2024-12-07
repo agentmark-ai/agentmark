@@ -1,0 +1,48 @@
+---
+title: AgentMark
+---
+
+
+<img
+  src="/images/agent-mark-dark.svg"
+  alt="AgentMark Logo Light"
+  className="dark:block hidden h-20"
+/>
+<img
+  src="/images/agent-mark.svg"
+  alt="AgentMark Logo Dark"
+  className="dark:hidden block h-20"
+/>
+
+## The Prompt Engineer's Markdown
+
+<img
+  src="/images/example.png"
+  alt="AgentMark Example"
+  className="w-full rounded-xl border border-gray-800 shadow-2xl mb-12"
+/>
+
+
+AgentMark is a declarative, extensible, and composable approach for developing LLM applications using Markdown and JSX. AgentMark files enhance readability by displaying the readable inputs sent to the LLM, while providing lightweight abstractions for developers.
+
+It is built on top of [TemplateDX](https://github.com/puzzlet-ai/templatedx), which extends Markdown's familiar syntax to support complex, structured content needs.
+
+## Motivation
+
+The goal of AgentMark is to simplify the development of agents. We do this by:
+
+- Supporting readable/portable Markdown + JSX.
+- Decoupling your prompts from code
+- Decoupling your model config through a unified interface
+- Keeping everything local with our OSS runtime
+
+## Why extend Markdown?
+
+Markdown works well for basic content but lacks the flexibility needed for templating, composable components, 
+and organized content. AgentMark is built on TemplateDX, which introduces custom components and templating capabilities, enabling document composability, 
+conditional rendering, and variable interpolation while maintaining Markdown's readability and simplicity. 
+This approach offers a powerful tool for creating dynamic, content-rich documents.
+
+## Supported Languages
+
+Currently we support TypeScript. We have plans to support additional languages in the near future.

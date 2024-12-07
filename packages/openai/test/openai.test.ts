@@ -18,6 +18,7 @@ export const getMdxPrompt = async (path: string) => {
 test("should deserialize", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const agentMark = await getRawConfig(ast);
+  console.log(JSON.stringify(agentMark, null, 2));
   const deserialized = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserialized).toEqual({
     model: "gpt-4o-mini",

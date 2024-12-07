@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Markdown for the AI era.</strong>
+  <strong>The Prompt Engineer's Markdown</strong>
 </p>
 
 <p align="center">
