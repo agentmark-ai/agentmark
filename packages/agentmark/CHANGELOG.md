@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 1.2.1
+
+### Patch Changes
+
+- 1b1eca8: Add prompt name
+
 ## 1.2.0
 
 ### Minor Changes
