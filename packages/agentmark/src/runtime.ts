@@ -59,7 +59,19 @@ export async function runInference(
   if (!plugin) {
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
-  return plugin?.runInference(agentMark, PluginAPI, options);
+
+  const inferenceOptions = {
+    ...options,
+    telemetry: {
+      ...options?.telemetry,
+      metadata: {
+        ...options?.telemetry?.metadata,
+        promptName: agentMark.name,
+      },
+    },
+  };
+
+  return plugin?.runInference(agentMark, PluginAPI, inferenceOptions);
 }
 
 export function serialize(
