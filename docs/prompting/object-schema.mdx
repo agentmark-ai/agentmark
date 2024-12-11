@@ -1,20 +1,24 @@
 ---
 title: Object Schema
+description: Define structured output using JSON Schema
 ---
+
+# Object Schema
 
 AgentMark supports structured output through JSON Schema. This allows you to define the exact shape of the data you want the model to return.
 
 ## Basic Usage
 
-Here's a simple example that extracts names from text:
+Define the schema in your model settings:
 
 ```jsx
 ---
-name: schema
+name: calculate
 metadata:
   model:
-    name: gpt-4
+    name: claude-3-5-haiku-latest
     settings:
+      max_tokens: 4096
       temperature: 0.7
       top_p: 1
       schema:
@@ -26,49 +30,38 @@ metadata:
               type: string
             description: names of people
         required:
-          - names
+        - names
 ---
 
 <System>You are a helpful assistant capable of finding all the names of the people in a given body of text.</System>
-<User>Jessica and Michael decided to host a barbecue at their house, inviting their closest friends, Emily, David, and Sarah.</User>
+<User>Jessica and Michael decided to host a barbecue at their house, inviting their closest friends, Emily, David, and Sarah. As the evening went on, Jessica shared stories from her recent trip, while Michael grilled burgers, and Emily entertained everyone with her hilarious anecdotes.</User>
 ```
 
-The model will return a structured JSON object matching your schema:
+Returns:
 
 ```json
 {
-  "names": ["Jessica", "Michael", "Emily", "David", "Sarah"]
+  "names": [
+    "Jessica",
+    "Michael",
+    "Emily",
+    "David",
+    "Sarah"
+  ]
 }
 ```
 
-## Schema Configuration
+## Complex Schemas
 
-The schema property in your model settings should follow JSON Schema specification. Key components include:
-
-- `type`: Defines the data type (object, array, string, number, etc.)
-- `properties`: Defines the structure and types of object properties
-- `required`: Array of required property names
-- `description`: Helps guide the model about the property's purpose
-
-## Important Notes
-
-1. When using schema output, you cannot use tools in the same prompt
-2. The schema must be a valid JSON Schema object
-3. All model providers may not support all JSON Schema features
-4. Streaming is supported with schema output
-
-## Example with Complex Schema
-
-Here's a more complex example that extracts structured data:
+You can define nested objects and arrays:
 
 ```jsx
 ---
-name: complex-schema
+name: event-parser
 metadata:
   model:
-    name: gpt-4
+    name: gpt-4o
     settings:
-      temperature: 0.7
       schema:
         type: object
         properties:
@@ -77,43 +70,69 @@ metadata:
             properties:
               name: 
                 type: string
-                description: name of the event
-              hosts:
+                description: The name of the event
+              date:
+                type: string
+                description: The date of the event
+              attendees:
                 type: array
                 items:
-                  type: string
-                description: names of the hosts
-              guests:
-                type: array
-                items:
-                  type: string
-                description: names of the guests
-              activities:
-                type: array
-                items:
-                  type: string
-                description: activities that occurred
-        required:
-          - event
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the attendee
+                    role:
+                      type: string
+                      description: The role of the attendee
+                  required:
+                    - name
+                    - role
+            required: 
+              - name
+              - date
+              - attendees
 ---
 
-<System>You are a helpful assistant capable of extracting event information from text.</System>
-<User>Jessica and Michael decided to host a barbecue at their house, inviting their closest friends, Emily, David, and Sarah. As the evening went on, Jessica shared stories from her recent trip, while Michael grilled burgers, and Emily entertained everyone with her hilarious anecdotes.</User>
+<System>Parse event details from the text.</System>
+<User>The company picnic is on July 15th. John (host) and Mary (coordinator) are organizing it.</User>
 ```
 
-This will return structured data like:
+Returns:
 
 ```json
 {
   "event": {
-    "name": "Barbecue",
-    "hosts": ["Jessica", "Michael"],
-    "guests": ["Emily", "David", "Sarah"],
-    "activities": [
-      "Jessica sharing travel stories",
-      "Michael grilling burgers",
-      "Emily telling anecdotes"
+    "name": "Company Picnic",
+    "date": "July 15th",
+    "attendees": [
+      {
+        "name": "John",
+        "role": "host"
+      },
+      {
+        "name": "Mary",
+        "role": "coordinator"
+      }
     ]
   }
 }
 ```
+
+## Schema Types
+
+Supported JSON Schema types:
+- `string`: Text values
+- `number`: Numeric values
+- `boolean`: True/false values
+- `array`: Lists of items
+- `object`: Nested structures
+- `null`: Null values
+
+## Best Practices
+
+1. Keep schemas as simple as possible
+2. Use clear property names and descriptions
+3. Specify required fields explicitly
+4. Test with various input scenarios
+5. Include type validations where needed

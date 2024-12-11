@@ -57,12 +57,13 @@
       "pages": [
         "prompting/overview",
         "prompting/model-settings",
-        "prompting/object-schema",
-        "prompting/tools",
-        "prompting/agents",
-        "prompting/logic",
+        "prompting/props",
         "prompting/reusable-components",
-        "prompting/context-plugins"
+        "prompting/conditionals",
+        "prompting/loops",
+        "prompting/filter-functions",
+        "prompting/object-schema",
+        "prompting/tools-and-agents"
       ]
     },
     {

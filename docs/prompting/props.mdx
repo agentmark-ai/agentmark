@@ -1,0 +1,62 @@
+---
+title: Props
+description: Access and use variables in your prompts using props.
+---
+
+## Basic Usage
+
+Access variables using curly braces and the `props` object. Set test values for your variables in the test_settings:
+
+```jsx
+---
+name: math-tutor
+metadata:
+  model:
+    name: gpt-4
+test_settings:
+  props:
+    difficulty: "beginner"
+    showSteps: true
+---
+
+<System>
+You are a math tutor.
+<If condition={props.showSteps}>
+  Always show detailed steps in your explanations.
+</If>
+Explain at a {props.difficulty} level.
+</System>
+```
+
+## Complex Objects
+
+You can use nested objects and arrays:
+
+```jsx
+---
+name: user-profile
+metadata:
+  model:
+    name: gpt-4
+test_settings:
+  props:
+    user: {
+      name: "Alice",
+      preferences: {
+        language: "Spanish",
+        topics: ["math", "science"]
+      }
+    }
+---
+
+<System>
+Respond to {props.user.name} in {props.user.preferences.language} about {props.user.preferences.topics[0]}.
+</System>
+```
+
+## Best Practices
+
+1. Use descriptive variable names
+2. Set test props in test_settings
+3. Keep object structures simple and flat when possible
+4. Test with different variable values

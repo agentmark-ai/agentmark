@@ -1,0 +1,106 @@
+---
+title: Conditionals
+description: Conditionals allow you to create dynamic prompts that adapt based on props or other conditions.
+---
+
+## Basic Conditionals
+
+Use the `<If>`, `<ElseIf>`, and `<Else>` tags for conditional rendering:
+
+```jsx
+---
+name: greeting
+metadata:
+  model:
+    name: gpt-4
+test_settings:
+  props:
+    userType: "admin"
+---
+
+<System>
+  <If condition={props.userType == "admin"}>
+    You should provide detailed technical information when asked.
+  </If>
+  <ElseIf condition={props.userType == "developer"}>
+    You should provide code examples when asked.
+  </ElseIf>
+  <Else>
+    You should provide simple explanations.
+  </Else>
+</System>
+
+<User>Tell me about databases.</User>
+```
+
+## Logical Operators
+
+You can use standard JavaScript logical operators (`&&`, `||`, `!`) in your conditions:
+
+```jsx
+---
+name: language-response
+metadata:
+  model:
+    name: gpt-4
+test_settings:
+  props:
+    isAdmin: true
+    hasTechnicalBackground: true
+---
+
+<System>
+  <If condition={props.isAdmin && props.hasTechnicalBackground}>
+    Include implementation details and system architecture in your responses.
+  </If>
+  <ElseIf condition={props.isAdmin || props.hasTechnicalBackground}>
+    Include technical details but avoid implementation specifics.
+  </ElseIf>
+  <Else>
+    Keep explanations simple and non-technical.
+  </Else>
+</System>
+```
+
+## Nested Conditionals
+
+Conditionals can be nested for more complex logic:
+
+```jsx
+---
+name: nested-conditions
+metadata:
+  model:
+    name: gpt-4
+test_settings:
+  props:
+    userLevel: "expert"
+    language: "Spanish"
+---
+
+<System>
+  <If condition={props.userLevel == "expert"}>
+    <If condition={props.language == "Spanish"}>
+      Respond with technical Spanish and include English translations.
+    </If>
+    <Else>
+      Respond with technical English.
+    </Else>
+  </If>
+  <Else>
+    <If condition={props.language == "Spanish"}>
+      Respond with simple Spanish and include English translations.
+    </If>
+    <Else>
+      Respond with simple English.
+    </Else>
+  </If>
+</System>
+```
+
+## Best Practices
+
+1. Keep conditions simple and readable
+2. Use meaningful variable names in conditions
+3. Consider breaking complex conditional logic into separate components
+4. Test different condition branches using test_settings

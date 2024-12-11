@@ -1,14 +1,40 @@
 ---
-name: basic-prompt
+name: event-parser
 metadata:
   model:
-    name: claude-3-5-haiku-latest
+    name: gpt-4o
     settings:
-      max_tokens: 4096
-      temperature: 0.7
-      top_p: 1
+      schema:
+        type: object
+        properties:
+          event:
+            type: object
+            properties:
+              name: 
+                type: string
+                description: The name of the event
+              date:
+                type: string
+                description: The date of the event
+              attendees:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: The name of the attendee
+                    role:
+                      type: string
+                      description: The role of the attendee
+                  required:
+                    - name
+                    - role
+            required: 
+              - name
+              - date
+              - attendees
 ---
 
-<User>What's 2 + 2?</User>
-<Assistant>5</Assistant>
-<User>Why are you bad at math?</User>
+<System>Parse event details from the text.</System>
+<User>The company picnic is on July 15th. John (host) and Mary (coordinator) are organizing it.</User>

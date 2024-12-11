@@ -1,0 +1,98 @@
+---
+title: Tools and Agents
+description: Tools and agents allow you to extend your prompts with external capabilities.
+---
+
+## Using Tools
+
+Tools in AgentMark allow you to extend your prompts with custom functionality, such as web searching, calculation, or API calls.
+
+```jsx
+---
+name: calculator
+metadata:
+  model:
+    name: gpt-4
+    tools:
+      calculate:
+        description: Performs basic arithmetic calculations
+        parameters:
+          type: object
+          properties:
+            expression:
+              type: string
+              description: The mathematical expression to evaluate
+          required: ["expression"]
+---
+
+<System>
+You are a math tutor that can perform calculations. Use the calculate tool when you need to compute something.
+</System>
+
+<User>What's 235 * 18 plus 42?</User>
+```
+
+## Tool Configuration
+
+Tools are configured using JSON Schema in your frontmatter metadata. Each tool requires:
+
+1. `key`: The name of the tool, as a property key in the `tools` object
+2. `description`: What the tool does (helps the LLM understand when to use it)
+3. `parameters`: JSON Schema defining the tool's input parameters
+
+## Agents
+
+When setting `max_llm_calls`, your LLM can make multiple calls to solve complex agentic tasks.
+Tools are defined in your prompt's frontmatter configuration and can be accessed within your messages:
+
+To enable agents:
+
+1. Add `max_llm_calls` to your model settings
+2. Define your tools schema
+3. The SDK will automatically handle multiple LLM call communication
+
+Example:
+
+```jsx
+---
+name: research-calculator
+metadata:
+  model:
+    name: gpt-4
+    settings:
+      max_llm_calls: 5  # Allow up to 5 LLM calls
+      tools:
+        search:
+          description: Search the web for information
+          parameters:
+            type: object
+            properties:
+              query:
+                type: string
+                description: The search query
+            required: ["query"]
+        calculate:
+          description: Performs basic arithmetic calculations
+          parameters:
+            type: object
+            properties:
+              expression:
+                type: string
+                description: The mathematical expression to evaluate
+            required: ["expression"]
+---
+
+<System>
+You are a research assistant that can search for information and perform calculations.
+</System>
+
+<User>What was Tesla's stock price at market close yesterday, and how much would I have made if I bought 100 shares a week ago?</User>
+```
+
+## Best Practices
+
+1. Set reasonable `max_llm_calls` limits to prevent infinite loops
+2. Provide clear tool descriptions to help the LLM use them effectively
+3. Handle tool errors gracefully in your implementations
+4. Make tools atomic and focused on single tasks
+5. Test agent behavior with different tool combinations

@@ -117,7 +117,28 @@ Run .prompt.mdx files directly within your VSCode editor.
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
 
-### 2. Webpack Loader
+### 2. Node.js
+
+Run AgentMark directly in your Node.js environment. Below is a sample implementation:
+
+```tsx node
+import { runInference, ModelPluginRegistry, load } from "@puzzlet/agentmark";
+import AllModelPlugins from '@puzzlet/all-models';
+
+// Note: Registering all latest models for demo/development purposes. 
+// In production, you'll likely want to selectively load these, and pin models.
+ModelPluginRegistry.registerAll(AllModelPlugins);
+
+const run = async () => {
+  const props = { name: "Emily" };
+  const Prompt = await load('./example.prompt.mdx');
+  const result = await runInference(Prompt, props);
+  console.log(result);
+}
+run();
+```
+
+### 3. Webpack Loader
 
 Integrate AgentMark with your webpack workflow using our loader.
 
@@ -136,27 +157,6 @@ const run = async () => {
   const props = { name: "Emily" };
   const result = await runInference(MyPrompt, props);
   console.log(result)
-}
-run();
-```
-
-### 3. Node.js
-
-Run AgentMark directly in your Node.js environment. Below is a sample implementation:
-
-```tsx node
-import { runInference, ModelPluginRegistry, load } from "@puzzlet/agentmark";
-import AllModelPlugins from '@puzzlet/all-models';
-
-// Note: Registering all latest models for demo/development purposes. 
-// In production, you'll likely want to selectively load these, and pin models.
-ModelPluginRegistry.registerAll(AllModelPlugins);
-
-const run = async () => {
-  const props = { name: "Emily" };
-  const Prompt = await load('./example.prompt.mdx');
-  const result = await runInference(Prompt, props);
-  console.log(result);
 }
 run();
 ```
