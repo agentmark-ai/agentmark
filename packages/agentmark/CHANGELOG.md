@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 1.2.2
+
+### Patch Changes
+
+- f719bb1: Expose getTestProps
+
 ## 1.2.1
 
 ### Patch Changes
