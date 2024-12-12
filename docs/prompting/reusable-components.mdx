@@ -3,11 +3,9 @@ title: Reusable Components
 description: AgentMark supports importing and reusing components across your prompts.
 ---
 
-## Basic Import
-
 Use the `import` statement to include components from other files:
 
-```jsx
+```jsx example.prompt.mdx
 ---
 name: math-tutor
 metadata:
@@ -29,7 +27,7 @@ import MathInstructions from './math-instructions.mdx';
 
 Components can accept props to make them more dynamic:
 
-```jsx
+```jsx example.prompt.mdx
 ---
 name: language-tutor
 metadata:
@@ -58,7 +56,7 @@ import LanguageInstructions from './language-instructions.mdx';
 Components are just regular .mdx files that can accept props:
 
 `math-instructions.mdx`:
-```jsx
+```jsx example.prompt.mdx
 <If condition={props.level == "advanced"}>
   Provide detailed mathematical proofs and explanations.
 </If>
@@ -71,5 +69,4 @@ Components are just regular .mdx files that can accept props:
 
 1. Keep components focused and single-purpose
 2. Use meaningful component and prop names
-3. Test components with different prop combinations
-4. Consider breaking complex prompts into multiple components
+3. Consider breaking complex prompts into multiple components

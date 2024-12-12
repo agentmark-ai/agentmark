@@ -3,8 +3,6 @@ title: Loops
 description: AgentMark supports iterating over arrays using the `<ForEach>` tag.
 ---
 
-## Basic Loop
-
 Use the `<ForEach>` tag with the `arr` prop to iterate over arrays:
 
 ```jsx
@@ -15,10 +13,11 @@ metadata:
     name: gpt-4
 test_settings:
   props:
-    messageHistory: [
-      { role: "user", message: "Hello" },
-      { role: "assistant", message: "Hi there" }
-    ]
+    messageHistory:
+      - role: user
+        message: Hello
+      - role: assistant
+        message: Hi there
 ---
 
 <ForEach arr={props.messageHistory}>

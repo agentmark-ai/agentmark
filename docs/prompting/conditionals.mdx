@@ -3,11 +3,9 @@ title: Conditionals
 description: Conditionals allow you to create dynamic prompts that adapt based on props or other conditions.
 ---
 
-## Basic Conditionals
-
 Use the `<If>`, `<ElseIf>`, and `<Else>` tags for conditional rendering:
 
-```jsx
+```jsx example.prompt.mdx
 ---
 name: greeting
 metadata:
@@ -37,7 +35,7 @@ test_settings:
 
 You can use standard JavaScript logical operators (`&&`, `||`, `!`) in your conditions:
 
-```jsx
+```jsx example.prompt.mdx
 ---
 name: language-response
 metadata:
@@ -66,7 +64,7 @@ test_settings:
 
 Conditionals can be nested for more complex logic:
 
-```jsx
+```jsx example.prompt.mdx
 ---
 name: nested-conditions
 metadata:

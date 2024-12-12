@@ -3,33 +3,28 @@ title: Tools and Agents
 description: Tools and agents allow you to extend your prompts with external capabilities.
 ---
 
-## Using Tools
+Tools in AgentMark allow you to extend your prompts with custom functionality, such as web searching, calculation, API calls, and more.
 
-Tools in AgentMark allow you to extend your prompts with custom functionality, such as web searching, calculation, or API calls.
+## Creating Tools
 
-```jsx
----
-name: calculator
-metadata:
-  model:
-    name: gpt-4
-    tools:
-      calculate:
-        description: Performs basic arithmetic calculations
-        parameters:
-          type: object
-          properties:
-            expression:
-              type: string
-              description: The mathematical expression to evaluate
-          required: ["expression"]
----
+Tools are simple async functions that receive parameters and return a result:
 
-<System>
-You are a math tutor that can perform calculations. Use the calculate tool when you need to compute something.
-</System>
+```typescript
+const calculateTool = async (input: { expression: string }) => {
+  // Note: This is a simple example and eval should not be used in production
+  const result = eval(input.expression);
+  return { result };
+};
+```
 
-<User>What's 235 * 18 plus 42?</User>
+## Registering Tools
+
+Tools can be registered using the `ToolPluginRegistry`:
+
+```typescript
+import { ToolPluginRegistry } from "@puzzlet/agentmark";
+
+ToolPluginRegistry.register(calculateTool, "calculate");
 ```
 
 ## Tool Configuration
@@ -40,37 +35,16 @@ Tools are configured using JSON Schema in your frontmatter metadata. Each tool r
 2. `description`: What the tool does (helps the LLM understand when to use it)
 3. `parameters`: JSON Schema defining the tool's input parameters
 
-## Agents
-
-When setting `max_llm_calls`, your LLM can make multiple calls to solve complex agentic tasks.
-Tools are defined in your prompt's frontmatter configuration and can be accessed within your messages:
-
-To enable agents:
-
-1. Add `max_llm_calls` to your model settings
-2. Define your tools schema
-3. The SDK will automatically handle multiple LLM call communication
-
 Example:
 
-```jsx
+```jsx example.prompt.mdx
 ---
-name: research-calculator
+name: calculator
 metadata:
   model:
     name: gpt-4
     settings:
-      max_llm_calls: 5  # Allow up to 5 LLM calls
       tools:
-        search:
-          description: Search the web for information
-          parameters:
-            type: object
-            properties:
-              query:
-                type: string
-                description: The search query
-            required: ["query"]
         calculate:
           description: Performs basic arithmetic calculations
           parameters:
@@ -83,16 +57,77 @@ metadata:
 ---
 
 <System>
-You are a research assistant that can search for information and perform calculations.
+You are a math tutor that can perform calculations. Use the calculate tool when you need to compute something.
 </System>
 
-<User>What was Tesla's stock price at market close yesterday, and how much would I have made if I bought 100 shares a week ago?</User>
+<User>What's 235 * 18 plus 42?</User>
+```
+
+## Agents
+
+When setting `max_llm_calls`, your LLM can make multiple calls to solve complex agentic tasks.
+Tools are defined in your prompt's frontmatter configuration and can be accessed within your messages:
+
+To enable agents:
+
+1. Add `max_llm_calls` to your model settings
+2. Define your tools schema
+3. The SDK will automatically handle multiple LLM call communication
+
+```jsx example.prompt.mdx
+---
+name: travel-agent
+metadata:
+  model:
+    name: gpt-4
+    settings:
+      max_llm_calls: 3
+      tools:
+        search_flights:
+          description: Search for available flights between cities
+          parameters:
+            type: object
+            properties:
+              from:
+                type: string
+                description: Departure city
+              to:
+                type: string
+                description: Arrival city
+              date:
+                type: string
+                description: Travel date (YYYY-MM-DD)
+            required: ["from", "to", "date"]
+        check_weather:
+          description: Get weather forecast for a city
+          parameters:
+            type: object
+            properties:
+              city:
+                type: string
+                description: City name
+              date:
+                type: string
+                description: Date to check (YYYY-MM-DD)
+            required: ["city", "date"]
+---
+
+<System>
+You are a helpful travel assistant that can search flights and check weather conditions. 
+When helping users plan trips:
+1. Search for available flights
+2. Check the weather at the destination
+3. Make recommendations based on both flight options and weather
+</System>
+
+<User>
+I want to fly from San Francisco to New York next week (2024-04-20). Can you help me plan my trip?
+</User>
 ```
 
 ## Best Practices
 
-1. Set reasonable `max_llm_calls` limits to prevent infinite loops
-2. Provide clear tool descriptions to help the LLM use them effectively
-3. Handle tool errors gracefully in your implementations
-4. Make tools atomic and focused on single tasks
-5. Test agent behavior with different tool combinations
+1. Keep tools focused on a single responsibility
+2. Provide clear descriptions to help the LLM use tools appropriately
+3. Handle errors gracefully and return informative error messages
+4. Use descriptive parameter names and include helpful descriptions

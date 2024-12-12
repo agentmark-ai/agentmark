@@ -3,8 +3,6 @@ title: Filter Functions
 description: Transform values in your prompts using filter functions
 ---
 
-# Filter Functions
-
 AgentMark provides a set of built-in filters that you can use to manipulate and transform data within your prompts. Filters are functions that take an input value and return a transformed output.
 
 ## Basic Usage
@@ -24,9 +22,13 @@ test_settings:
 ---
 
 <System>
-Hello {capitalize(props.userName)}!
+Your name is {capitalize(props.userName)}!
 Your items are: {join(props.items, ", ")}
 </System>
+<User>
+What is your name, and what items do you have?
+</User>
+
 ```
 
 ## Built-in Filters

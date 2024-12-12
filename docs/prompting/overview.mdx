@@ -3,6 +3,22 @@ title: Overview
 description: AgentMark provides a powerful and flexible way to create prompts using Markdown and JSX. This section will cover the core concepts and features of prompting with AgentMark.
 ---
 
+```jsx example.prompt.mdx
+---
+name: example-prompt
+metadata:
+  model:
+    name: gpt-4
+    settings:
+      # Basic settings
+      temperature: 0.7
+---
+
+<System>You are a math tutor that can perform calculations.</System>
+<User>What's 235 * 18?</User>
+<Assistant>The result is 4230</Assistant>
+```
+
 ## Key Components
 
 ### 1. Message Tags
@@ -15,7 +31,7 @@ AgentMark supports three primary message tags for communicating with LLMs:
 Every prompt file includes a frontmatter section that defines:
 - Prompt name and metadata
 - Model configuration
-- Test settings and props
+- Optional test props/settings
 
 ### 3. Dynamic Content
 Prompts can include:

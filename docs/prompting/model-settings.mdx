@@ -1,8 +1,55 @@
 ---
 title: Model Settings
-description: Configure model behavior and output format using standard settings.
+description: Configure model parameters using standard settings.
 ---
 
+Model settings allow you to configure how the model behaves and what capabilities it has access to. These settings are defined in the `metadata.model.settings` section of your prompt's frontmatter.
+
+You can control basic parameters like temperature and max tokens, enable streaming, configure tools for agent capabilities, and define schemas for structured output. All settings are optional, allowing you to use only what you need for your specific use case.
+
+## Example Configuration
+
+```jsx example.prompt.mdx
+---
+name: example-prompt
+metadata:
+  model:
+    name: gpt-4
+    settings:
+      # Basic settings
+      temperature: 0.7
+      max_tokens: 1000
+      top_p: 1
+      stream: true
+      
+      # Agent capabilities
+      max_llm_calls: 3
+      tools:
+        calculate:
+          description: Performs basic arithmetic calculations
+          parameters:
+            type: object
+            properties:
+              expression:
+                type: string
+                description: The mathematical expression to evaluate
+            required: ["expression"]
+      
+      # Output structure
+      schema:
+        type: object
+        properties:
+          result:
+            type: number
+            description: The calculated result
+        required: ["result"]
+---
+
+<System>You are a math tutor that can perform calculations.</System>
+<User>What's 235 * 18?</User>
+```
+
+## Available Settings
 
 | Property | Type | Description | Optional/Required |
 | --- | --- | --- | --- |
@@ -17,3 +64,6 @@ description: Configure model behavior and output format using standard settings.
 | `seed` | `number` | Seed value for random number generation, ensuring reproducibility. | Optional |
 | `max_retries` | `number` | Maximum number of retries for the request in case of failures. | Optional |
 | `headers` | `Record<string, string>` | Additional headers to include in the request. | Optional |
+| `max_llm_calls` | `number` | Maximum number of LLM calls allowed for agent mode. | Optional |
+| `tools` | `Record<string, { description: string; parameters: JSONSchema; }>` | A record of tools available to the model, where each tool includes a description and JSON Schema parameters. | Optional |
+| `schema` | `JSONSchema` | A schema defining the expected structure of the model's output. | Optional |

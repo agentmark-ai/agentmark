@@ -1,0 +1,89 @@
+---
+title: Observability
+description: Monitor and debug your prompts using OpenTelemetry
+---
+
+AgentMark uses [OpenTelemetry](https://opentelemetry.io/) for collecting telemetry data. OpenTelemetry is an open-source observability framework that provides vendor-agnostic APIs, libraries, and instrumentation for collecting distributed traces and metrics.
+
+## Enabling Telemetry
+
+Enable telemetry when calling `runInference`:
+
+```typescript
+const result = await runInference(Prompt, props, {
+  telemetry: {
+    isEnabled: true,
+    functionId: "calculate-price",
+    metadata: {
+      userId: "123",
+      environment: "production"
+    }
+  }
+});
+```
+
+## Telemetry with Puzzlet
+
+The easiest way to get started with observability is to use [Puzzlet](https://puzzlet.ai). Puzzlet automatically collects and visualizes telemetry data from your prompts:
+
+```typescript
+import { Puzzlet } from "@puzzlet/sdk";
+
+const puzzletClient = new Puzzlet({
+  apiKey: process.env.PUZZLET_API_KEY!,
+  appId: process.env.PUZZLET_APP_ID!
+});
+
+const result = await runInference(Prompt, props, { telemetry: { isEnabled: true } });
+```
+
+## Collected Spans
+
+AgentMark records the following span types:
+
+| Span Type | Description | Attributes |
+|-----------|-------------|------------|
+| `ai.inference` | Full length of the inference call | `operation.name`, `ai.operationId`, `ai.prompt`, `ai.response.text`, `ai.response.toolCalls`, `ai.response.finishReason` |
+| `ai.toolCall` | Individual tool executions | `operation.name`, `ai.operationId`, `ai.toolCall.name`, `ai.toolCall.args`, `ai.toolCall.result` |
+| `ai.stream` | Streaming response data | `ai.response.msToFirstChunk`, `ai.response.msToFinish`, `ai.response.avgCompletionTokensPerSecond` |
+
+## Basic LLM Span Information
+
+Each LLM span contains:
+
+| Attribute | Description |
+|-----------|-------------|
+| `ai.model.id` | Model identifier |
+| `ai.model.provider` | Model provider name |
+| `ai.usage.promptTokens` | Number of prompt tokens |
+| `ai.usage.completionTokens` | Number of completion tokens |
+| `ai.settings.maxRetries` | Maximum retry attempts |
+| `ai.telemetry.functionId` | Function identifier |
+| `ai.telemetry.metadata.*` | Custom metadata |
+
+## Custom OpenTelemetry Setup
+
+For custom OpenTelemetry configuration:
+
+```typescript
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
+
+const sdk = new NodeSDK({
+  traceExporter: new ConsoleSpanExporter(),
+  serviceName: 'my-agentmark-app',
+});
+
+sdk.start();
+```
+
+## Best Practices
+
+1. Enable telemetry in production environments
+2. Use meaningful function IDs
+3. Include relevant metadata for debugging
+4. Monitor token usage and costs
+
+## Learn More
+
+- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)

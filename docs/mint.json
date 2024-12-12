@@ -50,7 +50,7 @@
   "navigation": [
     {
       "group": "Getting Started",
-      "pages": ["overview", "getting-started"]
+      "pages": ["overview", "getting-started", "model-providers"]
     },
     {
       "group": "Prompts",
@@ -70,20 +70,15 @@
       "group": "API",
       "pages": [
         "api/run-inference",
-        "api/serialize-deserialize",
-        "api/model-plugins",
         "api/tool-plugins",
-        "api/context-plugins",
         "api/utils",
-        "observability",
-        "type-safety"
+        "api/observability"
       ]
     },
     {
       "group": "Type Safety",
       "pages": [
-        "AgentMark files",
-        "SDK"
+        "type-safety"
       ]
     }
   ],

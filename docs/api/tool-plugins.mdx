@@ -1,0 +1,59 @@
+---
+title: Tool Plugins
+description: Create and register custom tools for use in prompts
+---
+
+Tool plugins allow you to extend AgentMark with custom functionality that can be called from your prompts. Tools are registered with the SDK and can their schema is defined in the frontmatter metadata.
+
+See the [tools and agents](/prompting/tools-and-agents) page for more information on how to use tools in prompts.
+
+## Registering Tools
+
+Tools can be registered using the `ToolPluginRegistry`:
+
+```typescript
+import { ToolPluginRegistry } from "@puzzlet/agentmark";
+
+ToolPluginRegistry.register(calculateTool, "calculate");
+```
+
+## Creating Tools
+
+Tools are simple async functions that receive parameters and return a result:
+
+```typescript
+const calculateTool = async (input: { expression: string }) => {
+  // Note: This is a simple example and eval should not be used in production
+  const result = eval(input.expression);
+  return { result };
+};
+
+const searchTool = async (input: { query: string }) => {
+  try {
+    const results = await performSearch(input.query);
+    return { results };
+  } catch (error) {
+    return {
+      error: "Search failed",
+      details: error.message
+    };
+  }
+};
+```
+
+## Tool Parameters
+
+Tools are configured using JSON Schema in your frontmatter metadata. Each tool requires:
+
+1. A unique name as the key in the `tools` object
+2. A `description` that helps the LLM understand when to use it
+3. A `parameters` schema defining the expected input format
+
+The parameters schema follows standard JSON Schema format and is used to validate inputs before the tool is called.
+
+## Best Practices
+
+1. Keep tools focused on a single responsibility
+2. Provide clear descriptions to help the LLM use tools appropriately
+3. Handle errors gracefully and return informative error messages
+4. Use descriptive parameter names and include helpful descriptions

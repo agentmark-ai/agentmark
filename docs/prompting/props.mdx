@@ -3,11 +3,11 @@ title: Props
 description: Access and use variables in your prompts using props.
 ---
 
-## Basic Usage
-
 Access variables using curly braces and the `props` object. Set test values for your variables in the test_settings:
 
-```jsx
+Note: Test settings are only run automatically in the VSCode extension, or Puzzlet.
+
+```jsx example.prompt.mdx
 ---
 name: math-tutor
 metadata:
@@ -32,7 +32,7 @@ Explain at a {props.difficulty} level.
 
 You can use nested objects and arrays:
 
-```jsx
+```jsx example.prompt.mdx
 ---
 name: user-profile
 metadata:
@@ -40,13 +40,13 @@ metadata:
     name: gpt-4
 test_settings:
   props:
-    user: {
-      name: "Alice",
-      preferences: {
-        language: "Spanish",
-        topics: ["math", "science"]
-      }
-    }
+    user:
+      name: Alice
+      preferences:
+        language: Spanish
+        topics:
+          - math
+          - science
 ---
 
 <System>
