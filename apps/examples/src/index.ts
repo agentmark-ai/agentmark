@@ -1,13 +1,19 @@
-import { runInference, ModelPluginRegistry, load } from "@puzzlet/agentmark";
-import AllModelPlugins from "@puzzlet/all-models";
-import "dotenv/config";
+import { runInference, ModelPluginRegistry, ToolPluginRegistry, load } from "@puzzlet/agentmark";
+import tools from "./tools";
+import OpenAIChatPlugin from "@puzzlet/openai";
+import AnthropicChatPlugin from "@puzzlet/anthropic";
+import * as dotenv from 'dotenv';
 
-ModelPluginRegistry.registerAll(AllModelPlugins);
+dotenv.config();
+
+ModelPluginRegistry.register(new OpenAIChatPlugin(), ["gpt4o"]);
+ModelPluginRegistry.register(new AnthropicChatPlugin(), ["claude-3-5-haiku-latest"])
+
+tools.map(({ tool, name }) => ToolPluginRegistry.register(tool, name))
 
 const run = async () => {
-  const props = { name: "Emily" };
-  const Prompt = await load("./prompts/4.prompt.mdx");
-  const result = await runInference(Prompt, props);
+  const Prompt = await load("./prompts/2.prompt.mdx");
+  const result = await runInference(Prompt, {});
   console.log(result);
 };
 

@@ -11,12 +11,12 @@
 </p>
 
 <p align="center">
-  <strong>Markdown for the AI era.</strong>
+  <strong>The Prompt Engineer's Markdown</strong>
 </p>
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://puzzlet-ai.github.io/agentmark/">Docs</a> |
+  <a href="https://docs.puzzlet.ai/agentmark/">Docs</a> |
   <a href="https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark">VSCode</a> |
   <a href="https://github.com/puzzlet-ai/templatedx">TemplateDX</a> |
   <a href="https://puzzlet.ai">Puzzlet</a>

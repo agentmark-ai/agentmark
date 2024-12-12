@@ -5,7 +5,8 @@ export {
   getRawConfig,
   getModel,
 } from "./runtime";
-export { load, parse, getFrontMatter } from "@puzzlet/templatedx";
+export { load, parse, getFrontMatter, FilterRegistry } from "@puzzlet/templatedx";
+export type { FilterFunction } from "@puzzlet/templatedx";
 export { toFrontMatter } from "./utils";
 export { PluginAPI } from "./plugin-api";
 import type { IPluginAPI } from "./plugin-api";
