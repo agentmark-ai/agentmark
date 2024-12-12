@@ -13,7 +13,6 @@
 <p align="center">
   <strong>The Prompt Engineer's Markdown</strong>
 </p>
-https://docs.puzzlet.ai/agentmark/
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
