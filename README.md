@@ -113,7 +113,7 @@ You can run AgentMark using one of the following methods:
 
 ### 1. VSCode Extension
 
-Run .prompt.mdx files directly within your VSCode editor.
+Run .prompt.mdx files directly within your VSCode editor. Note: This allows you to run `test_settings` in your prompts.
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
 
