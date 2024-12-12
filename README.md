@@ -101,11 +101,12 @@ Refer to our [docs](https://puzzlet-ai.github.io/agentmark) to learn how to add 
 
 We plan on providing support for AgentMark across a variety of languages.
 
-| **Language**   | **Support Type** | **Available** |
-|-----------------|------------------|---------------|
-| TypeScript      | SDK              | ✅            |
-| Python           | SDK             | ⚠️ Coming Soon|
-| Other           | REST             | ⚠️ Coming Soon|
+| Language | Support Status |
+|----------|---------------|
+| TypeScript | ✅ Supported |
+| Python | ⚠️ Coming Soon |
+| Java | ⚠️ Coming Soon |
+| Others | Need something else? [Open a PR](https://github.com/puzzlet-ai/agentmark/issues) |
 
 ## Running AgentMark
 
