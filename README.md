@@ -65,7 +65,7 @@ AgentMark supports:
 1. Agents: 🕵️
 1. Observability: 👀
 
-Read our [docs](https://puzzlet-ai.github.io/agentmark) to learn more.
+Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
 
 ## Models
 
@@ -95,7 +95,7 @@ Want to add support for another model? Open an [issue](https://github.com/puzzle
 
 ### Custom Model Plugins
 
-Refer to our [docs](https://puzzlet-ai.github.io/agentmark) to learn how to add custom model support.
+Refer to our [docs](https://docs.puzzlet.ai/agentmark/) to learn how to add custom model support.
 
 ## Language Support
 
@@ -106,7 +106,7 @@ We plan on providing support for AgentMark across a variety of languages.
 | TypeScript | ✅ Supported |
 | Python | ⚠️ Coming Soon |
 | Java | ⚠️ Coming Soon |
-| Others | Need something else? [Open a PR](https://github.com/puzzlet-ai/agentmark/issues) |
+| Others | Need something else? [Open an issue](https://github.com/puzzlet-ai/agentmark/issues) |
 
 ## Running AgentMark
 
