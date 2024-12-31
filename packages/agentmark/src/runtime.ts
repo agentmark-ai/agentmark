@@ -67,6 +67,7 @@ export async function runInference(
       metadata: {
         ...options?.telemetry?.metadata,
         promptName: agentMark.name,
+        props: JSON.stringify(props),
       },
     },
   };
