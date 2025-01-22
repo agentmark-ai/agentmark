@@ -56,17 +56,17 @@ export interface AISDKBaseSettings {
 
 export type AgentMark = z.infer<typeof AgentMarkSchema>;
 
-export interface AgentMarkTemplate<Input, Output> {
+export interface TypsafeTemplate<Input, Output> {
   content: Ast;
   run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
-  getRawConfig: () => Promise<AgentMark>;
-  deserialize: (response: Input) => Promise<Output>;
+  compile: (props?: Input) => Promise<AgentMark>;
+  deserialize: (response: Input) => Promise<any>;
 }
 
 export interface AgentMarkLoader<Types extends Record<string, { input: any; output: any }>> {
   load<Path extends keyof Types>(
     templatePath: Path
-  ): Promise<AgentMarkTemplate<Types[Path]["input"], Types[Path]["output"]>>;
+  ): Promise<TypsafeTemplate<Types[Path]["input"], Types[Path]["output"]>>;
 }
 
 export type AgentMarkOutput<T = any> = {

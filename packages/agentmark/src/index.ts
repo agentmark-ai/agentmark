@@ -19,3 +19,5 @@ export type { AgentMark, AgentMarkOutput, InferenceOptions } from './types';
 export { ToolPluginRegistry } from "./tool-plugin-registry";
 export type { Tool } from "./tool-plugin-registry";
 export { FileLoader } from "./file-loader";
+
+export type { TypsafeTemplate, AgentMarkLoader } from "./types";
