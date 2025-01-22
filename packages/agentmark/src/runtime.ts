@@ -1,7 +1,7 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject, AgentMark, ChatMessage, InferenceOptions } from "./types";
+import { AgentMarkOutput, AgentMark, ChatMessage, InferenceOptions } from "./types";
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";
@@ -30,10 +30,10 @@ function getMessages(extractedFields: Array<any>): ChatMessage[] {
   return messages;
 }
 
-export async function getRawConfig(ast: Ast, props = {}) {
+export async function getRawConfig<I extends Record<string, any>>(ast: Ast, props?: I) {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
-  await transform(ast, props, shared);
+  await transform(ast, props || {}, shared);
   const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
@@ -47,11 +47,11 @@ export async function getRawConfig(ast: Ast, props = {}) {
   return agentMark;
 }
 
-export async function runInference(
+export async function runInference<Input extends Record<string, any>, Output>(
   ast: Ast,
-  props: JSONObject = {},
+  props: Input,
   options?: InferenceOptions
-) {
+): Promise<AgentMarkOutput<Output>> {
   const agentMark = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
     agentMark.metadata.model.name
@@ -71,7 +71,8 @@ export async function runInference(
     },
   };
 
-  return plugin?.runInference(agentMark, PluginAPI, inferenceOptions);
+  const result = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
+  return result;
 }
 
 export function serialize(
@@ -88,7 +89,10 @@ export async function deserialize(ast: Ast, props = {}) {
   const plugin = ModelPluginRegistry.getPlugin(
     agentMark.metadata.model.name
   );
-  return plugin?.deserialize(agentMark, PluginAPI);
+  if (!plugin) {
+    throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
+  }
+  return plugin.deserialize(agentMark, PluginAPI);
 }
 
 export const getModel = (ast: Ast) => {

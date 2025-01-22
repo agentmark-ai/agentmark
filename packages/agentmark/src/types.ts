@@ -1,11 +1,12 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
 import { LanguageModel, GenerateTextResult } from 'ai';
+import type { Ast } from "@puzzlet/templatedx";
 import {
   ChatMessageSchema,
   AgentMarkTextSettingsSchema,
   AgentMarkSchemaSettingsSchema,
-  AgentMarkSchema,
+  AgentMarkSchema
 } from './schemas';
 import { z } from "zod";
 
@@ -22,7 +23,6 @@ type TelemetrySettings = {
   functionId?: string;
   metadata?: Record<string, any>;
 };
-
 export type InferenceOptions = {
   telemetry?: TelemetrySettings;
   apiKey?: string;
@@ -56,17 +56,31 @@ export interface AISDKBaseSettings {
 
 export type AgentMark = z.infer<typeof AgentMarkSchema>;
 
-export type AgentMarkOutput = {
-  result: {
-    text?: string;
-    object?: Record<string, any>;
+export interface AgentMarkTemplate<Input, Output> {
+  content: Ast;
+  run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
+  getRawConfig: () => Promise<AgentMark>;
+  deserialize: (response: Input) => Promise<Output>;
+}
+
+export interface AgentMarkLoader<Types extends Record<string, { input: any; output: any }>> {
+  load<Path extends keyof Types>(
+    templatePath: Path
+  ): Promise<AgentMarkTemplate<Types[Path]["input"], Types[Path]["output"]>>;
+}
+
+export type AgentMarkOutput<T = any> = {
+  result: T extends string ? {
+    text: string;
+  } : {
+    object: T;
   };
   tools?: Array<{
     name: string;
     input: Record<string, any>;
     output?: Record<string, any>;
   }>;
-  toolResponses?: GenerateTextResult<any, never>['toolResults'],
+  toolResponses?: GenerateTextResult<any, never>['toolResults'];
   usage: {
     promptTokens: number;
     completionTokens: number;
