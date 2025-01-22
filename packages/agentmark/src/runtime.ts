@@ -5,6 +5,9 @@ import { AgentMarkOutput, AgentMark, ChatMessage, InferenceOptions } from "./typ
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";
+import Ajv from 'ajv';
+
+const ajv = new Ajv();
 
 type ExtractedField = {
   name: string;
@@ -60,6 +63,25 @@ export async function runInference<Input extends Record<string, any>, Output>(
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
 
+  // Get frontmatter to access schemas
+  const frontMatter = getFrontMatter(ast) as {
+    input_schema?: Record<string, any>;
+    metadata?: {
+      model?: {
+        settings?: {
+          schema?: Record<string, any>;
+        };
+      };
+    };
+  };
+
+  if (frontMatter.input_schema) {
+    const validate = ajv.compile(frontMatter.input_schema);
+    if (!validate(props)) {
+      throw new Error(`Invalid input: ${ajv.errorsText(validate.errors)}`);
+    }
+  }
+
   const inferenceOptions = {
     ...options,
     telemetry: {
@@ -72,6 +94,17 @@ export async function runInference<Input extends Record<string, any>, Output>(
   };
 
   const result = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
+
+  // Validate output schema if it exists
+  if (frontMatter.metadata?.model?.settings?.schema) {
+    const validate = ajv.compile(frontMatter.metadata.model.settings.schema);
+    if ('object' in result.result) {
+      if (!validate(result.result.object)) {
+        throw new Error(`Invalid output: ${ajv.errorsText(validate.errors)}`);
+      }
+    }
+  }
+
   return result;
 }
 
