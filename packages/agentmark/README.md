@@ -97,6 +97,7 @@ Want to add support for another model? Open an [issue](https://github.com/puzzle
 ### Custom Model Plugins
 
 Refer to our [docs](https://docs.puzzlet.ai/agentmark/) to learn how to add custom model support.
+<<<<<<< HEAD
 
 ## Language Support
 
@@ -108,6 +109,8 @@ We plan on providing support for AgentMark across a variety of languages.
 | Python | ⚠️ Coming Soon |
 | Java | ⚠️ Coming Soon |
 | Others | Need something else? [Open an issue](https://github.com/puzzlet-ai/agentmark/issues) |
+=======
+>>>>>>> main
 
 ## Running AgentMark
 
