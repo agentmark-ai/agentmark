@@ -3178,7 +3178,6 @@ __metadata:
   dependencies:
     "@changesets/cli": "npm:^2.27.9"
     turbo: "npm:latest"
-    zod-to-json-schema: "npm:^3.24.1"
   languageName: unknown
   linkType: soft
 
@@ -12964,15 +12963,6 @@ __metadata:
   peerDependencies:
     zod: ^3.23.3
   checksum: 10c0/bf50455f446c96b9a161476347ebab6e3bcae7fdf1376ce0b74248e79db733590164476dac2fc481a921868f705fefdcafd223a98203a700b3f01ba1cda6aa90
-  languageName: node
-  linkType: hard
-
-"zod-to-json-schema@npm:^3.24.1":
-  version: 3.24.1
-  resolution: "zod-to-json-schema@npm:3.24.1"
-  peerDependencies:
-    zod: ^3.24.1
-  checksum: 10c0/dd4e72085003e41a3f532bd00061f27041418a4eb176aa6ce33042db08d141bd37707017ee9117d97738ae3f22fc3e1404ea44e6354634ac5da79d7d3173b4ee
   languageName: node
   linkType: hard
 
