@@ -93,19 +93,17 @@ export async function runInference<Input extends Record<string, any>, Output>(
     },
   };
 
-  const result = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
+  const response = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
 
   // Validate output schema if it exists
   if (frontMatter.metadata?.model?.settings?.schema) {
     const validate = ajv.compile(frontMatter.metadata.model.settings.schema);
-    if ('object' in result.result) {
-      if (!validate(result.result.object)) {
-        throw new Error(`Invalid output: ${ajv.errorsText(validate.errors)}`);
-      }
+    if (!validate(response.result)) {
+      throw new Error(`Invalid output: ${ajv.errorsText(validate.errors)}`);
     }
   }
 
-  return result;
+  return response;
 }
 
 export function serialize(

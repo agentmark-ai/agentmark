@@ -18,9 +18,7 @@ describe('FileLoader', () => {
       setApiKey: () => {},
       serialize: () => '',
       runInference: async () => ({
-        result: {
-          object: { answer: 'test answer' }
-        },
+        result: { answer: 'test answer' },
         usage: {
           promptTokens: 0,
           completionTokens: 0,
@@ -40,7 +38,7 @@ describe('FileLoader', () => {
     const prompt = await loader.load('test/math.prompt.mdx');
 
     const result = await prompt.run({ userMessage: 'test question' });
-    expect(result.result.object.answer).toBe('test answer');
+    expect(result.result.answer).toBe('test answer');
   });
 
   it('handles missing files', async () => {

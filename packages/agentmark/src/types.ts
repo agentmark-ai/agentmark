@@ -69,12 +69,8 @@ export interface AgentMarkLoader<Types extends Record<string, { input: any; outp
   ): Promise<TypsafeTemplate<Types[Path]["input"], Types[Path]["output"]>>;
 }
 
-export type AgentMarkOutput<T = any> = {
-  result: T extends string ? {
-    text: string;
-  } : {
-    object: T;
-  };
+export interface AgentMarkOutput<T = any> {
+  result: T;
   tools?: Array<{
     name: string;
     input: Record<string, any>;
@@ -87,7 +83,7 @@ export type AgentMarkOutput<T = any> = {
     totalTokens: number;
   };
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
-};
+}
 
 export interface Components extends BaseMDXProvidedComponents {
   User: FC<ExtractTextProps>;
