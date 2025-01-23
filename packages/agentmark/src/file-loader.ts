@@ -5,7 +5,12 @@ import type { Template } from './runtime';
 
 type TemplateRunner = <Input extends Record<string, any>, Output>(ast: Ast) => Omit<Template<Input, Output>, 'content'>;
 
-export class FileLoader<T extends { [P in keyof T]: { input: Record<string, any>; output: any } }> implements AgentMarkLoader<T> {
+type DefaultIO = {
+  input: Record<string, any>;
+  output: any;
+}
+
+export class FileLoader<T extends { [P in keyof T]: { input: any; output: any } } = { [key: string]: DefaultIO }> implements AgentMarkLoader<T> {
   private basePath: string;
 
   constructor(
@@ -15,19 +20,18 @@ export class FileLoader<T extends { [P in keyof T]: { input: Record<string, any>
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
-  async load<Path extends keyof T>(
+  async load<Path extends keyof T | (T extends { [key: string]: DefaultIO } ? string : never)>(
     templatePath: Path
-  ): Promise<TypsafeTemplate<T[Path]["input"], T[Path]["output"]>> {
+  ): Promise<Path extends keyof T 
+    ? TypsafeTemplate<T[Path]["input"], T[Path]["output"]>
+    : TypsafeTemplate<any, any>> {
     const fullPath = path.join(this.basePath, templatePath as string);
     const ast = await load(fullPath);
-
-    const runner = this.createRunner<T[Path]["input"], T[Path]["output"]>(ast);
+    const runner = this.createRunner(ast);
 
     return {
       content: ast,
-      run: runner.run,
-      deserialize: runner.deserialize,
-      compile: runner.compile,
-    };
+      ...runner
+    } as any;
   }
 }
