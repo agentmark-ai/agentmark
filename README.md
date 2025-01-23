@@ -62,7 +62,8 @@ AgentMark supports:
 1. Streaming: 🌊
 1. Loops, Conditionals, and Filter Functions: ♻️
 1. Type Safety: 🛡️
-1. Agents: 🕵️
+1. JSON Output: 📦
+1. Tools & Agents: 🕵️
 1. Observability: 👀
 
 Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.

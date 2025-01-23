@@ -1,10 +1,13 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { JSONObject, AgentMark, ChatMessage, InferenceOptions } from "./types";
+import { AgentMarkOutput, AgentMark, ChatMessage, InferenceOptions } from "./types";
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";
+import Ajv from 'ajv';
+
+const ajv = new Ajv();
 
 type ExtractedField = {
   name: string;
@@ -30,10 +33,10 @@ function getMessages(extractedFields: Array<any>): ChatMessage[] {
   return messages;
 }
 
-export async function getRawConfig(ast: Ast, props = {}) {
+export async function getRawConfig<I extends Record<string, any>>(ast: Ast, props?: I) {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
-  await transform(ast, props, shared);
+  await transform(ast, props || {}, shared);
   const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
@@ -47,17 +50,35 @@ export async function getRawConfig(ast: Ast, props = {}) {
   return agentMark;
 }
 
-export async function runInference(
+export async function runInference<Input extends Record<string, any>, Output>(
   ast: Ast,
-  props: JSONObject = {},
+  props: Input,
   options?: InferenceOptions
-) {
+): Promise<AgentMarkOutput<Output>> {
   const agentMark = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
     agentMark.metadata.model.name
   );
   if (!plugin) {
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
+  }
+
+  const frontMatter = getFrontMatter(ast) as {
+    input_schema?: Record<string, any>;
+    metadata?: {
+      model?: {
+        settings?: {
+          schema?: Record<string, any>;
+        };
+      };
+    };
+  };
+
+  if (frontMatter.input_schema) {
+    const validate = ajv.compile(frontMatter.input_schema);
+    if (!validate(props)) {
+      throw new Error(`Invalid input: ${ajv.errorsText(validate.errors)}`);
+    }
   }
 
   const inferenceOptions = {
@@ -71,7 +92,16 @@ export async function runInference(
     },
   };
 
-  return plugin?.runInference(agentMark, PluginAPI, inferenceOptions);
+  const response = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
+
+  if (frontMatter.metadata?.model?.settings?.schema) {
+    const validate = ajv.compile(frontMatter.metadata.model.settings.schema);
+    if (!validate(response.result)) {
+      throw new Error(`Invalid output: ${ajv.errorsText(validate.errors)}`);
+    }
+  }
+
+  return response;
 }
 
 export function serialize(
@@ -88,7 +118,10 @@ export async function deserialize(ast: Ast, props = {}) {
   const plugin = ModelPluginRegistry.getPlugin(
     agentMark.metadata.model.name
   );
-  return plugin?.deserialize(agentMark, PluginAPI);
+  if (!plugin) {
+    throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
+  }
+  return plugin.deserialize(agentMark, PluginAPI);
 }
 
 export const getModel = (ast: Ast) => {

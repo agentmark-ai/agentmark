@@ -1755,6 +1755,7 @@ __metadata:
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.3"
+    ajv: "npm:^8.17.1"
     front-matter: "npm:^4.0.2"
     js-yaml: "npm:^4.1.0"
     react: "npm:^18.3.1"
@@ -3259,7 +3260,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^8.0.0, ajv@npm:^8.9.0":
+"ajv@npm:^8.0.0, ajv@npm:^8.17.1, ajv@npm:^8.9.0":
   version: 8.17.1
   resolution: "ajv@npm:8.17.1"
   dependencies:
