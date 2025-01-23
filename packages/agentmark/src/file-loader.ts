@@ -1,13 +1,17 @@
-import path from 'path';
-import { AgentMarkLoader, TypsafeTemplate, InferenceOptions } from './types';
-import { getRawConfig as getRawConfigRuntime, runInference, deserialize as deserializeRuntime } from './runtime';
-import { load } from '@puzzlet/templatedx';
+import path from "path";
+import { Ast, load } from "@puzzlet/templatedx";
+import { AgentMarkLoader, TypsafeTemplate } from './types';
+import type { Template } from './runtime';
 
-export class FileLoader<T extends { [P in keyof T]: { input: any; output: any } }>
-  implements AgentMarkLoader<T> {
+type TemplateRunner = <Input extends Record<string, any>, Output>(ast: Ast) => Omit<Template<Input, Output>, 'content'>;
+
+export class FileLoader<T extends { [P in keyof T]: { input: Record<string, any>; output: any } }> implements AgentMarkLoader<T> {
   private basePath: string;
 
-  constructor(private rootDir: string) {
+  constructor(
+    private rootDir: string,
+    private createRunner: TemplateRunner
+  ) {
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
@@ -17,15 +21,13 @@ export class FileLoader<T extends { [P in keyof T]: { input: any; output: any } 
     const fullPath = path.join(this.basePath, templatePath as string);
     const ast = await load(fullPath);
 
+    const runner = this.createRunner<T[Path]["input"], T[Path]["output"]>(ast);
+
     return {
       content: ast,
-      run: async (props: T[Path]["input"], options?: InferenceOptions): Promise<T[Path]["output"]> => {
-        return runInference<T[Path]["input"], T[Path]["output"]>(ast, props, options);
-      },
-      deserialize: async (response: any): Promise<T[Path]["output"]> => {
-        return deserializeRuntime(ast, response) as T[Path]["output"];
-      },
-      compile: async (props?: T[Path]["input"]) => getRawConfigRuntime(ast, props),
+      run: runner.run,
+      deserialize: runner.deserialize,
+      compile: runner.compile,
     };
   }
 }

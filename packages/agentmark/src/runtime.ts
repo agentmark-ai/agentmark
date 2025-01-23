@@ -128,3 +128,18 @@ export const getModel = (ast: Ast) => {
   const frontMatter = getFrontMatter(ast) as any;
   return frontMatter.metadata.model.name;
 };
+
+export interface Template<Input extends Record<string, any>, Output> {
+  content: Ast;
+  run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
+  compile: (props?: Input) => Promise<AgentMark>;
+  deserialize: (props: Input) => Promise<any>;
+}
+
+export function createTemplateRunner<Input extends Record<string, any>, Output>(ast: Ast) {
+  return {
+    run: (props: Input, options?: InferenceOptions) => runInference<Input, Output>(ast, props, options),
+    compile: (props?: Input) => getRawConfig(ast, props),
+    deserialize: (props: Input) => deserialize(ast, props)
+  };
+}
