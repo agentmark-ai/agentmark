@@ -217,9 +217,8 @@ test("run inference with no stream", async () => {
 
   expect(result).toEqual({
     finishReason: "stop",
-    result: {
-      text: "Mocked response.",
-    },
+    version: "v2.0",
+    result: "Mocked response.",
     toolResponses: [],
     tools: [],
     usage: {
@@ -284,9 +283,8 @@ test("should execute tools", async () => {
 
   expect(result).toEqual({
     finishReason: "stop",
-    result: {
-      text: "The weather in New Hampshire is cold af."
-    },
+    version: "v2.0",
+    result: "The weather in New Hampshire is cold af.",
     tools: [
       {
         input: {
@@ -406,11 +404,10 @@ test("run inference with stream", async () => {
   const result = await pluginWithInference.runInference(agentMark, api);
   expect(result).toEqual({
     finishReason: "stop",
-    result: {
-      text: "Mocked response.",
-    },
+    result: "Mocked response.",
     tools: [],
     toolResponses: [],
+    version: "v2.0",
     usage: {
       completionTokens: 15,
       totalTokens: 25,

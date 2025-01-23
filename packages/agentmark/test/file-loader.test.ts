@@ -1,6 +1,7 @@
 import { FileLoader } from '../src/file-loader';
 import { ModelPluginRegistry } from '../src/model-plugin-registry';
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { createTemplateRunner } from '../src/runtime';
 
 interface TestTypes {
   "test/math.prompt.mdx": {
@@ -10,7 +11,7 @@ interface TestTypes {
 }
 
 describe('FileLoader', () => {
-  const loader = new FileLoader<TestTypes>('test/fixtures');
+  const loader = new FileLoader<TestTypes>('test/fixtures', createTemplateRunner);
 
   beforeAll(() => {
     ModelPluginRegistry.register({
@@ -19,6 +20,7 @@ describe('FileLoader', () => {
       serialize: () => '',
       runInference: async () => ({
         result: { answer: 'test answer' },
+        version: 'v2.0',
         usage: {
           promptTokens: 0,
           completionTokens: 0,
@@ -59,9 +61,8 @@ describe('FileLoader', () => {
       setApiKey: () => {},
       serialize: () => '',
       runInference: async () => ({
-        result: {
-          object: { wrongResponse: 'test answer' }
-        },
+        result: { wrongResponse: 'test answer' },
+        version: 'v2.0',
         usage: {
           promptTokens: 0,
           completionTokens: 0,
