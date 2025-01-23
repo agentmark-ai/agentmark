@@ -60,5 +60,4 @@ export const AgentMarkSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
   metadata: MetadataSchema,
-  inputSchema: z.unknown().optional(),
 });

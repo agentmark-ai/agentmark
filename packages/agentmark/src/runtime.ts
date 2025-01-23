@@ -63,7 +63,6 @@ export async function runInference<Input extends Record<string, any>, Output>(
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
 
-  // Get frontmatter to access schemas
   const frontMatter = getFrontMatter(ast) as {
     input_schema?: Record<string, any>;
     metadata?: {
@@ -95,7 +94,6 @@ export async function runInference<Input extends Record<string, any>, Output>(
 
   const response = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
 
-  // Validate output schema if it exists
   if (frontMatter.metadata?.model?.settings?.schema) {
     const validate = ajv.compile(frontMatter.metadata.model.settings.schema);
     if (!validate(response.result)) {
