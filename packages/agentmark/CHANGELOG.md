@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 2.0.0
+
+### Major Changes
+
+- adab584: Type safety. Single returned result.
+
 ## 1.2.2
 
 ### Patch Changes

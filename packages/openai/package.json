@@ -24,7 +24,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@puzzlet/agentmark": "^1.1.4",
+    "@puzzlet/agentmark": "^2.0.0",
     "@puzzlet/templatedx": "^0.6.2",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
