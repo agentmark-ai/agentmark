@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 2.1.1
+
+### Patch Changes
+
+- b1660e9: Fix to add default/fallback types for file loader
+
 ## 2.1.0
 
 ### Minor Changes
