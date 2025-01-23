@@ -1,5 +1,14 @@
 # examples
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [adab584]
+  - @puzzlet/agentmark@2.0.0
+  - @puzzlet/anthropic@1.1.4
+  - @puzzlet/openai@1.1.4
+
 ## 1.0.5
 
 ### Patch Changes
