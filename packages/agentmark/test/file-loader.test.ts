@@ -20,6 +20,7 @@ describe('FileLoader', () => {
       serialize: () => '',
       runInference: async () => ({
         result: { answer: 'test answer' },
+        version: 'v2.0',
         usage: {
           promptTokens: 0,
           completionTokens: 0,
@@ -63,6 +64,7 @@ describe('FileLoader', () => {
         result: {
           object: { wrongResponse: 'test answer' }
         },
+        version: 'v2.0',
         usage: {
           promptTokens: 0,
           completionTokens: 0,
