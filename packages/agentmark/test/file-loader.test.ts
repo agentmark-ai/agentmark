@@ -61,9 +61,7 @@ describe('FileLoader', () => {
       setApiKey: () => {},
       serialize: () => '',
       runInference: async () => ({
-        result: {
-          object: { wrongResponse: 'test answer' }
-        },
+        result: { wrongResponse: 'test answer' },
         version: 'v2.0',
         usage: {
           promptTokens: 0,
