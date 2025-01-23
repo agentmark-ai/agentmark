@@ -5,6 +5,8 @@ import { streamObject, streamText, generateObject, generateText } from "ai";
 import { ToolPluginRegistry } from "./tool-plugin-registry";
 import { AgentMarkSettingsSchema } from "./schemas";
 
+const OUTPUT_VERSION = "v2.0";
+
 export function omit<T extends JSONObject>(
   obj: T,
   ...keysToOmit: (keyof T)[]
@@ -110,7 +112,8 @@ export async function runInference(
           schema: jsonSchema(settings.schema as any),
           onFinish({ object, usage }) {
             resolve({
-              result: { object: object as Object },
+              result: object,
+              version: OUTPUT_VERSION,
               usage,
               finishReason: "unknown",
             });
@@ -127,8 +130,9 @@ export async function runInference(
       schema: jsonSchema(settings.schema as any),
     });
     return {
-      result: { object: result.object as Object },
+      result: result.object,
       tools: [],
+      version: OUTPUT_VERSION,
       usage: result.usage,
       finishReason: result.finishReason,
     };
@@ -140,7 +144,8 @@ export async function runInference(
           tools: createToolsConfig(settings.tools),
           onFinish({ text, usage, toolCalls, toolResults, finishReason }) {
             resolve({
-              result: { text },
+              result: text,
+              version: OUTPUT_VERSION,
               tools: toolCalls.map((tool) => ({
                 name: tool.toolName,
                 input: tool.args,
@@ -163,7 +168,8 @@ export async function runInference(
       tools,
     });
     return {
-      result: { text: result.text },
+      result: result.text,
+      version: OUTPUT_VERSION,
       tools: result.toolCalls.map((tool) => ({
         name: tool.toolName,
         input: tool.args,

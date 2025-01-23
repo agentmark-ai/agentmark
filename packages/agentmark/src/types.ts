@@ -71,6 +71,7 @@ export interface AgentMarkLoader<Types extends Record<string, { input: any; outp
 
 export interface AgentMarkOutput<T = any> {
   result: T;
+  version: string;
   tools?: Array<{
     name: string;
     input: Record<string, any>;
