@@ -108,9 +108,7 @@ test("run inference with no stream", async () => {
   expect(result).toEqual(
     {
       finishReason: "stop",
-      result: {
-        text: "Mocked response.",
-      },
+      result: "Mocked response.",
       tools: [],
       toolResponses: [],
       usage: {
@@ -186,9 +184,7 @@ test.skip("run inference with stream", async () => {
   expect(result).toEqual(
     {
       finishReason: "stop",
-      result: {
-        text: "Mocked response.",
-      },
+      result: "Mocked response.",
       tools: [],
       toolResponses: [],
       usage: {

@@ -217,9 +217,7 @@ test("run inference with no stream", async () => {
 
   expect(result).toEqual({
     finishReason: "stop",
-    result: {
-      text: "Mocked response.",
-    },
+    result: "Mocked response.",
     toolResponses: [],
     tools: [],
     usage: {
@@ -406,9 +404,7 @@ test("run inference with stream", async () => {
   const result = await pluginWithInference.runInference(agentMark, api);
   expect(result).toEqual({
     finishReason: "stop",
-    result: {
-      text: "Mocked response.",
-    },
+    result: "Mocked response.",
     tools: [],
     toolResponses: [],
     usage: {
