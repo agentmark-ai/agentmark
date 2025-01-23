@@ -217,6 +217,7 @@ test("run inference with no stream", async () => {
 
   expect(result).toEqual({
     finishReason: "stop",
+    version: "v2.0",
     result: "Mocked response.",
     toolResponses: [],
     tools: [],
@@ -282,9 +283,7 @@ test("should execute tools", async () => {
 
   expect(result).toEqual({
     finishReason: "stop",
-    result: {
-      text: "The weather in New Hampshire is cold af."
-    },
+    version: "v2.0",
     tools: [
       {
         input: {

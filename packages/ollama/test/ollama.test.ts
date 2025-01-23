@@ -111,6 +111,7 @@ test("run inference with no stream", async () => {
       result: "Mocked response.",
       tools: [],
       toolResponses: [],
+      version: "v2.0",
       usage: {
         completionTokens: 10,
         promptTokens: 5,
@@ -187,6 +188,7 @@ test.skip("run inference with stream", async () => {
       result: "Mocked response.",
       tools: [],
       toolResponses: [],
+      version: "v2.0",
       usage: {
         completionTokens: 10,
         promptTokens: 5,
