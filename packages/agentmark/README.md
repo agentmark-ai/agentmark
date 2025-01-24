@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>The Prompt Engineer's Markdown</strong>
+  <strong>Markdown for the AI Era</strong>
 </p>
 
 <p align="center">
@@ -24,9 +24,24 @@
 
 ## Overview
 
-AgentMark is a declarative, extensible, and composable approach for developing LLM applications using Markdown and JSX. AgentMark files enhance readability by displaying the exact inputs sent to the LLM, while providing lightweight abstractions for developers.
+Develop type-safe prompts and agents using readable Markdown and JSX.
 
-AgentMark is built on top of the templating language, [TemplateDX](https://github.com/puzzlet-ai/templatedx), and inspired by MDX.
+### Features
+
+AgentMark supports:
+
+1. Markdown: 📝
+1. Type Safety: 🛡️
+1. Unified model config: 🔗
+1. JSX components, props, & plugins: 🧩
+1. Custom Models: 🛠️
+1. Streaming: 🌊
+1. Loops, Conditionals, and Filter Functions: ♻️
+1. JSON Output: 📦
+1. Tools & Agents: 🕵️
+1. Observability: 👀
+
+Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
 
 ## Getting Started
 
@@ -48,23 +63,6 @@ test_settings:
 
 <User>What's 2 + {props.num}?</User>
 ```
-
-## Features
-
-AgentMark supports:
-
-1. Markdown: 📝
-1. JSX components, props, & plugins: 🧩
-1. Unified model config: 🔗
-1. Custom Models: 🛠️
-1. Streaming: 🌊
-1. Loops, Conditionals, and Filter Functions: ♻️
-1. Type Safety: 🛡️
-1. JSON Output: 📦
-1. Tools & Agents: 🕵️
-1. Observability: 👀
-
-Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
 
 ## Models
 
@@ -277,6 +275,8 @@ const result = await prompt.run({
 });
 const sum = result.result.sum; // type-safe number
 ```
+
+AgentMark is also type-safe within markdown files. Read more [here](https://docs.puzzlet.ai/agentmark/type_safety/type-safety).
 
 ## Contributing
 
