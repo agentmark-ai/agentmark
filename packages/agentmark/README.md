@@ -156,7 +156,7 @@ run();
 
 ### 3. Puzzlet Integration
 
-Puzzlet is a platform for managing, versioning, and monitoring your LLM prompts in production, with built-in observability, evaluations, and A/B testing capabilities.
+Puzzlet is a platform for managing, versioning, and monitoring your LLM prompts in production, with built-in observability, evaluations, and prompt management.
 
 ```tsx
 import { Puzzlet } from '@puzzlet/sdk';
