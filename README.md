@@ -156,7 +156,7 @@ run();
 
 ### 3. Puzzlet Integration
 
-Puzzlet is a platform for managing, versioning, and monitoring your LLM prompts in production, with built-in observability, evaluations, and A/B testing capabilities.
+Puzzlet is a platform for managing, versioning, and monitoring your LLM prompts in production, with built-in observability, evaluations, and prompt management.
 
 ```tsx
 import { Puzzlet } from '@puzzlet/sdk';
@@ -179,21 +179,21 @@ const run = async () => {
     num1: 5,
     num2: 3
   });
-  console.log(result);
+  console.log("Run result:", result);
 
   // Compile the prompt
   const compiled = await prompt.compile({
     num1: 5,
     num2: 3
   });
-  console.log(compiled);
+  console.log("Compiled configuration:", compiled);
 
   // Deserialize the prompt
   const deserialized = await prompt.deserialize({
     num1: 5,
     num2: 3
   });
-  console.log(deserialized);
+  console.log("Model parameters:", deserialized);
 }
 run();
 ```

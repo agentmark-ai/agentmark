@@ -179,21 +179,21 @@ const run = async () => {
     num1: 5,
     num2: 3
   });
-  console.log(result);
+  console.log("Run result:", result);
 
   // Compile the prompt
   const compiled = await prompt.compile({
     num1: 5,
     num2: 3
   });
-  console.log(compiled);
+  console.log("Compiled configuration:", compiled);
 
   // Deserialize the prompt
   const deserialized = await prompt.deserialize({
     num1: 5,
     num2: 3
   });
-  console.log(deserialized);
+  console.log("Model parameters:", deserialized);
 }
 run();
 ```
