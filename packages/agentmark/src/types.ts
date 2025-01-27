@@ -69,6 +69,25 @@ export interface AgentMarkLoader<Types extends Record<string, { input: any; outp
   ): Promise<TypsafeTemplate<Types[Path]["input"], Types[Path]["output"]>>;
 }
 
+export interface AgentMarkOutputV1 {
+  result: {
+    text?: string;
+    object?: any;
+  };
+  tools?: Array<{
+    name: string;
+    input: Record<string, any>;
+    output?: Record<string, any>;
+  }>;
+  toolResponses?: GenerateTextResult<any, never>['toolResults'];
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
+}
+
 export interface AgentMarkOutput<T = any> {
   result: T;
   version: string;
