@@ -70,6 +70,7 @@ export interface AgentMarkLoader<Types extends Record<string, { input: any; outp
 }
 
 export interface AgentMarkOutputV1 {
+  version?: string;
   result: {
     text?: string;
     object?: any;
@@ -88,9 +89,9 @@ export interface AgentMarkOutputV1 {
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
 }
 
-export interface AgentMarkOutput<T = any> {
+export interface AgentMarkOutputV2<T = any> {
   result: T;
-  version: string;
+  version: "v2.0";
   tools?: Array<{
     name: string;
     input: Record<string, any>;
@@ -104,6 +105,8 @@ export interface AgentMarkOutput<T = any> {
   };
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
 }
+
+export type AgentMarkOutput<T = any> = AgentMarkOutputV2<T>;
 
 export interface Components extends BaseMDXProvidedComponents {
   User: FC<ExtractTextProps>;

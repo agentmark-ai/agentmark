@@ -26,7 +26,15 @@ export { ToolPluginRegistry } from "./tool-plugin-registry";
 export type { Tool } from "./tool-plugin-registry";
 
 
-export type { TypsafeTemplate, AgentMarkLoader, AgentMark, AgentMarkOutput, AgentMarkOutputV1, InferenceOptions } from "./types";
+export type { 
+  TypsafeTemplate,
+  AgentMarkLoader, 
+  AgentMark, 
+  AgentMarkOutput, 
+  AgentMarkOutputV1, 
+  AgentMarkOutputV2, 
+  InferenceOptions 
+} from "./types";
 
 
 import "./global.d";
