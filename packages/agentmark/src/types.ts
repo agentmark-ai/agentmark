@@ -108,6 +108,8 @@ export interface AgentMarkOutputV2<T = any> {
 
 export type AgentMarkOutput<T = any> = AgentMarkOutputV2<T>;
 
+export type VersionedAgentMarkOutput<T = any> = AgentMarkOutputV1 | AgentMarkOutputV2<T>;
+
 export interface Components extends BaseMDXProvidedComponents {
   User: FC<ExtractTextProps>;
   Assistant: FC<ExtractTextProps>;

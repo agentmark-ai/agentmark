@@ -33,6 +33,7 @@ export type {
   AgentMarkOutput, 
   AgentMarkOutputV1, 
   AgentMarkOutputV2, 
+  VersionedAgentMarkOutput,
   InferenceOptions 
 } from "./types";
 
