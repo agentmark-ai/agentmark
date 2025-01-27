@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 2.1.2
+
+### Patch Changes
+
+- a93359d: Chore: add output type
+
 ## 2.1.1
 
 ### Patch Changes
