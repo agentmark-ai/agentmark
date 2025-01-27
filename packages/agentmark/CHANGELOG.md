@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 2.1.3
+
+### Patch Changes
+
+- 27a4e17: Adding proper types for output
+
 ## 2.1.2
 
 ### Patch Changes
