@@ -70,7 +70,7 @@ export interface AgentMarkLoader<Types extends Record<string, { input: any; outp
 }
 
 export interface AgentMarkOutputV1 {
-  version?: string;
+  version?: undefined;
   result: {
     text?: string;
     object?: any;
