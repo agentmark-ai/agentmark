@@ -4,6 +4,7 @@ import type {
   InferenceOptions,
   AgentMarkOutput,
   AgentMark,
+  AgentMarkStreamOutput,
 } from "@puzzlet/agentmark";
 import { createOllama } from 'ollama-ai-provider';
 
@@ -61,5 +62,18 @@ export default class OllamaChatPlugin implements IModelPlugin {
       options
     );
     return result;
+  }
+
+  async streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput<any>> {
+    const ollama = createOllama({ fetch: api.fetch });
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = ollama(modelConfig.name);
+    return api.streamInference(
+      modelConfig.settings,
+      providerModel,
+      messages,
+      options
+    );
   }
 }

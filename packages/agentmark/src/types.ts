@@ -1,6 +1,6 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
-import { LanguageModel, GenerateTextResult } from 'ai';
+import { LanguageModel, GenerateTextResult, LanguageModelUsage, FinishReason } from 'ai';
 import type { Ast } from "@puzzlet/templatedx";
 import {
   ChatMessageSchema,
@@ -61,6 +61,7 @@ export interface TypsafeTemplate<Input, Output> {
   run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
   compile: (props?: Input) => Promise<AgentMark>;
   deserialize: (response: Input) => Promise<any>;
+  stream: (props: Input, options?: InferenceOptions) => Promise<AgentMarkStreamOutput<Output>>;
 }
 
 export interface AgentMarkLoader<Types extends Record<string, { input: any; output: any }>> {
@@ -104,6 +105,19 @@ export interface AgentMarkOutputV2<T = any> {
     totalTokens: number;
   };
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
+}
+
+export interface AgentMarkStreamOutput<T = any> {
+  usage: Promise<LanguageModelUsage>;
+  resultStream: AsyncIterable<Partial<T>>;
+  version: "v2.0";
+  tools?: Promise<Array<{
+    name: string;
+    input: Record<string, any>;
+    output?: Record<string, any>;
+  }>>;
+  toolResponses?: Promise<GenerateTextResult<any, never>['toolResults']>;
+  finishReason: Promise<FinishReason>;
 }
 
 export type AgentMarkOutput<T = any> = AgentMarkOutputV2<T>;

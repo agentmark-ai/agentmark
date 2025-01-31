@@ -1,7 +1,7 @@
 import type { Ast } from "@puzzlet/templatedx";
 import { TagPluginRegistry, transform, getFrontMatter } from "@puzzlet/templatedx";
 import { ModelPluginRegistry } from "./model-plugin-registry";
-import { AgentMarkOutput, AgentMark, ChatMessage, InferenceOptions } from "./types";
+import { AgentMarkOutput, AgentMark, ChatMessage, InferenceOptions, AgentMarkStreamOutput } from "./types";
 import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";
@@ -92,7 +92,7 @@ export async function runInference<Input extends Record<string, any>, Output>(
     },
   };
 
-  const response = await plugin.runInference(agentMark, PluginAPI, inferenceOptions);
+  const response = await plugin.runInference(agentMark, PluginAPI, inferenceOptions) as AgentMarkOutput<Output>;
 
   if (frontMatter.metadata?.model?.settings?.schema) {
     const validate = ajv.compile(frontMatter.metadata.model.settings.schema);
@@ -100,6 +100,55 @@ export async function runInference<Input extends Record<string, any>, Output>(
       throw new Error(`Invalid output: ${ajv.errorsText(validate.errors)}`);
     }
   }
+
+  return response;
+}
+
+export async function streamInference<Input extends Record<string, any>, Output>(
+  ast: Ast,
+  props: Input,
+  options?: InferenceOptions
+): Promise<AgentMarkStreamOutput<Output>> {
+  const agentMark = await getRawConfig(ast, props);
+  const plugin = ModelPluginRegistry.getPlugin(
+    agentMark.metadata.model.name
+  );
+  if (!plugin) {
+    throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
+  }
+
+  const frontMatter = getFrontMatter(ast) as {
+    input_schema?: Record<string, any>;
+    metadata?: {
+      model?: {
+        settings?: {
+          schema?: Record<string, any>;
+        };
+      };
+    };
+  };
+
+  if (frontMatter.input_schema) {
+    const validate = ajv.compile(frontMatter.input_schema);
+    if (!validate(props)) {
+      throw new Error(`Invalid input: ${ajv.errorsText(validate.errors)}`);
+    }
+  }
+
+  const inferenceOptions = {
+    ...options,
+    telemetry: {
+      ...options?.telemetry,
+      metadata: {
+        ...options?.telemetry?.metadata,
+        promptName: agentMark.name,
+      },
+    },
+  };
+
+  const response = await plugin.streamInference(agentMark, PluginAPI, inferenceOptions);
+
+  // TODO: validate the output chunks
 
   return response;
 }
@@ -139,6 +188,7 @@ export interface Template<Input extends Record<string, any>, Output> {
 export function createTemplateRunner<Input extends Record<string, any>, Output>(ast: Ast) {
   return {
     run: (props: Input, options?: InferenceOptions) => runInference<Input, Output>(ast, props, options),
+    stream: (props: Input, options?: InferenceOptions) => streamInference<Input, Output>(ast, props, options),
     compile: (props?: Input) => getRawConfig(ast, props),
     deserialize: (props: Input) => deserialize(ast, props)
   };
