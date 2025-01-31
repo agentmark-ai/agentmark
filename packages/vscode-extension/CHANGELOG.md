@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [adab584]
+  - @puzzlet/agentmark@2.0.0
+
 ## 1.0.11
 
 ### Patch Changes

@@ -1,11 +1,12 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
 import { LanguageModel, GenerateTextResult } from 'ai';
+import type { Ast } from "@puzzlet/templatedx";
 import {
   ChatMessageSchema,
   AgentMarkTextSettingsSchema,
   AgentMarkSchemaSettingsSchema,
-  AgentMarkSchema,
+  AgentMarkSchema
 } from './schemas';
 import { z } from "zod";
 
@@ -22,7 +23,6 @@ type TelemetrySettings = {
   functionId?: string;
   metadata?: Record<string, any>;
 };
-
 export type InferenceOptions = {
   telemetry?: TelemetrySettings;
   apiKey?: string;
@@ -56,24 +56,59 @@ export interface AISDKBaseSettings {
 
 export type AgentMark = z.infer<typeof AgentMarkSchema>;
 
-export type AgentMarkOutput = {
+export interface TypsafeTemplate<Input, Output> {
+  content: Ast;
+  run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
+  compile: (props?: Input) => Promise<AgentMark>;
+  deserialize: (response: Input) => Promise<any>;
+}
+
+export interface AgentMarkLoader<Types extends Record<string, { input: any; output: any }>> {
+  load<Path extends keyof Types>(
+    templatePath: Path
+  ): Promise<TypsafeTemplate<Types[Path]["input"], Types[Path]["output"]>>;
+}
+
+export interface AgentMarkOutputV1 {
+  version?: undefined;
   result: {
     text?: string;
-    object?: Record<string, any>;
+    object?: any;
   };
   tools?: Array<{
     name: string;
     input: Record<string, any>;
     output?: Record<string, any>;
   }>;
-  toolResponses?: GenerateTextResult<any, never>['toolResults'],
+  toolResponses?: GenerateTextResult<any, never>['toolResults'];
   usage: {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
   };
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
-};
+}
+
+export interface AgentMarkOutputV2<T = any> {
+  result: T;
+  version: "v2.0";
+  tools?: Array<{
+    name: string;
+    input: Record<string, any>;
+    output?: Record<string, any>;
+  }>;
+  toolResponses?: GenerateTextResult<any, never>['toolResults'];
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
+}
+
+export type AgentMarkOutput<T = any> = AgentMarkOutputV2<T>;
+
+export type VersionedAgentMarkOutput<T = any> = AgentMarkOutputV1 | AgentMarkOutputV2<T>;
 
 export interface Components extends BaseMDXProvidedComponents {
   User: FC<ExtractTextProps>;

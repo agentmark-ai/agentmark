@@ -169,11 +169,10 @@ test("run inference with no stream", async () => {
   expect(result).toEqual(
     {
       finishReason: "stop",
-      result: {
-        text: "Mocked response.",
-      },
+      result: "Mocked response.",
       tools: [],
       toolResponses: [],
+      version: "v2.0",
       usage: {
         completionTokens: 10,
         promptTokens: 5,
@@ -238,16 +237,15 @@ test("run inference with stream", async () => {
   expect(result).toEqual(
     {
       finishReason: "stop",
-      result: {
-        text: "Mocked response.",
-      },
+      result: "Mocked response.",
       tools: [],
       toolResponses: [],
       usage: {
         completionTokens: 10,
         promptTokens: 5,
         totalTokens: 15,
-      }
+      },
+      version: "v2.0",
     },
   );
 });

@@ -11,14 +11,12 @@
 </p>
 
 <p align="center">
-  <strong>The Prompt Engineer's Markdown</strong>
+  <strong>Markdown for the AI Era</strong>
 </p>
 
 <p align="center">
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://docs.puzzlet.ai/agentmark/">Docs</a> |
-  <a href="https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark">VSCode</a> |
-  <a href="https://github.com/puzzlet-ai/templatedx">TemplateDX</a> |
   <a href="https://puzzlet.ai">Puzzlet</a>
 </p>
 
@@ -26,9 +24,24 @@
 
 ## Overview
 
-AgentMark is a declarative, extensible, and composable approach for developing LLM applications using Markdown and JSX. AgentMark files enhance readability by displaying the exact inputs sent to the LLM, while providing lightweight abstractions for developers.
+Develop type-safe prompts and agents using readable Markdown and JSX.
 
-AgentMark is built on top of the templating language, [TemplateDX](https://github.com/puzzlet-ai/templatedx), and inspired by MDX.
+### Features
+
+AgentMark supports:
+
+1. Markdown: 📝
+1. Type Safety: 🛡️
+1. Unified model config: 🔗
+1. JSX components, props, & plugins: 🧩
+1. Custom Models: 🛠️
+1. Streaming: 🌊
+1. Loops, Conditionals, and Filter Functions: ♻️
+1. JSON Output: 📦
+1. Tools & Agents: 🕵️
+1. Observability: 👀
+
+Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
 
 ## Getting Started
 
@@ -50,22 +63,6 @@ test_settings:
 
 <User>What's 2 + {props.num}?</User>
 ```
-
-## Features
-
-AgentMark supports:
-
-1. Markdown: 📝
-1. JSX components, props, & plugins: 🧩
-1. Unified model config: 🔗
-1. Custom Models: 🛠️
-1. Streaming: 🌊
-1. Loops, Conditionals, and Filter Functions: ♻️
-1. Type Safety: 🛡️
-1. Agents: 🕵️
-1. Observability: 👀
-
-Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
 
 ## Models
 
@@ -97,59 +94,189 @@ Want to add support for another model? Open an [issue](https://github.com/puzzle
 
 Refer to our [docs](https://docs.puzzlet.ai/agentmark/) to learn how to add custom model support.
 
+## Language Support
+
+We plan on providing support for AgentMark across a variety of languages.
+
+| Language | Support Status |
+|----------|---------------|
+| TypeScript | ✅ Supported |
+| Python | ⚠️ Coming Soon |
+| Java | ⚠️ Coming Soon |
+| Others | Need something else? [Open an issue](https://github.com/puzzlet-ai/agentmark/issues) |
+
 ## Running AgentMark
 
-You can run AgentMark using one of the following methods:
+You can run AgentMark using any of the following methods:
 
 ### 1. VSCode Extension
 
-Run .prompt.mdx files directly within your VSCode editor.
+Run .prompt.mdx files directly within your VSCode editor. Note: You can test props by using `test_settings` in your prompts.
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
 
-### 2. Webpack Loader
+### 2. FileLoader
 
-Integrate AgentMark with your webpack workflow using our loader.
-
-[AgentMark Webpack Loader](https://github.com/puzzlet-ai/agentmark/tree/main/packages/agentmark-loader)
-
-```tsx
-import { runInference, ModelPluginRegistry } from "@puzzlet/agentmark";
-import AllModelPlugins from '@puzzlet/all-models';
-import MyPrompt from './example.prompt.mdx';
-
-// Note: Registering all latest models for demo/development purposes. 
-// In production, you'll likely want to selectively load these, and pin models.
-ModelPluginRegistry.registerAll(AllModelPlugins);
-
-const run = async () => {
-  const props = { name: "Emily" };
-  const result = await runInference(MyPrompt, props);
-  console.log(result)
-}
-run();
-```
-
-### 3. Node.js
-
-Run AgentMark directly in your Node.js environment. Below is a sample implementation:
+Run AgentMark files from your file system. Below is a sample implementation:
 
 ```tsx node
-import { runInference, ModelPluginRegistry, load } from "@puzzlet/agentmark";
+import { ModelPluginRegistry, FileLoader, createTemplateRunner } from "@puzzlet/agentmark";
 import AllModelPlugins from '@puzzlet/all-models';
 
-// Note: Registering all latest models for demo/development purposes. 
-// In production, you'll likely want to selectively load these, and pin models.
+// Register models
 ModelPluginRegistry.registerAll(AllModelPlugins);
 
+// Create a file loader pointing to your prompts directory
+const fileLoader = new FileLoader("./prompts", createTemplateRunner);
+
 const run = async () => {
-  const props = { name: "Emily" };
-  const Prompt = await load('./example.prompt.mdx');
-  const result = await runInference(Prompt, props);
-  console.log(result);
+  // Load a prompt, relative to the file loader's root
+  const mathPrompt = await fileLoader.load("math/addition.prompt.mdx");
+  
+  const props = {
+    num1: 5,
+    num2: 3
+  }
+  // Run the prompt
+  const result = await mathPrompt.run(props);
+  console.log("Run result:", result.result);
+
+  // Compile to see the AgentMark configuration
+  const compiled = await mathPrompt.compile(props);
+  console.log("Compiled configuration:", compiled);
+
+  // Deserialize to see raw model parameters (i.e. whats sent to the LLM: OpenAI, Anthropic, etc.)
+  const deserialized = await mathPrompt.deserialize(props);
+  console.log("Model parameters:", deserialized);
 }
 run();
 ```
+
+### 3. Puzzlet Integration
+
+Puzzlet is a platform for managing, versioning, and monitoring your LLM prompts in production, with built-in observability, evaluations, and prompt management.
+
+```tsx
+import { Puzzlet } from '@puzzlet/sdk';
+import { ModelPluginRegistry, createTemplateRunner } from "@puzzlet/agentmark";
+import AllModelPlugins from '@puzzlet/all-models';
+
+ModelPluginRegistry.registerAll(AllModelPlugins);
+
+const puzzletClient = new Puzzlet({
+  apiKey: process.env.PUZZLET_API_KEY!,
+  appId: process.env.PUZZLET_APP_ID!,
+}, createTemplateRunner);
+
+const run = async () => {
+  // Load prompt from Puzzlet instead of local file
+  const prompt = await puzzletClient.fetchPrompt('math/addition.prompt.mdx');
+  
+  // Run the prompt
+  const result = await prompt.run({
+    num1: 5,
+    num2: 3
+  });
+  console.log("Run result:", result);
+
+  // Compile the prompt
+  const compiled = await prompt.compile({
+    num1: 5,
+    num2: 3
+  });
+  console.log("Compiled configuration:", compiled);
+
+  // Deserialize the prompt
+  const deserialized = await prompt.deserialize({
+    num1: 5,
+    num2: 3
+  });
+  console.log("Model parameters:", deserialized);
+}
+run();
+```
+
+## Type Safety
+
+AgentMark & Puzzlet supports automatic type generation from your prompt schemas. Define input (`input_schema`) and output (`schema`) types in your prompt files:
+
+```mdx
+---
+name: math-addition
+metadata:
+  model:
+    name: gpt-4o
+    settings:
+      schema:
+        type: "object"
+        properties:
+          sum:
+            type: "number"
+            description: "The sum of the two numbers"
+        required: ["sum"]
+input_schema:
+  type: "object"
+  properties:
+    num1:
+      type: "number"
+      description: "First number to add"
+    num2:
+      type: "number"
+      description: "Second number to add"
+  required: ["num1", "num2"]
+---
+
+<System>You are a helpful math assistant that performs addition.</System>
+```
+
+Then generate types using the CLI:
+
+```bash
+# From local files
+npx puzzlet generate-types --root-dir ./prompts > puzzlet.types.ts
+
+# From local Puzzlet server
+npx puzzlet generate-types --local 9002 > puzzlet.types.ts
+```
+
+Use the generated types with FileLoader:
+
+```tsx
+import PuzzletTypes from './puzzlet.types';
+import { FileLoader, createTemplateRunner } from "@puzzlet/agentmark";
+
+const fileLoader = new FileLoader<PuzzletTypes>("./prompts", createTemplateRunner);
+
+// TypeScript will enforce correct input/output types
+const prompt = await fileLoader.load("math/addition.prompt.mdx");
+const result = await prompt.run({
+  num1: 5,   // Must be number
+  num2: 3    // Must be number
+});
+const sum = result.result.sum;  // type-safe number
+```
+
+Or with Puzzlet:
+
+```tsx
+import PuzzletTypes from './puzzlet.types';
+import { Puzzlet } from '@puzzlet/sdk';
+
+const puzzlet = new Puzzlet<PuzzletTypes>({
+  apiKey: process.env.PUZZLET_API_KEY!,
+  appId: process.env.PUZZLET_APP_ID!,
+}, createTemplateRunner);
+
+// Same type safety as FileLoader
+const prompt = await puzzlet.fetchPrompt("math/addition.prompt.mdx");
+const result = await prompt.run({
+  num1: 5,
+  num2: 3
+});
+const sum = result.result.sum; // type-safe number
+```
+
+AgentMark is also type-safe within markdown files. Read more [here](https://docs.puzzlet.ai/agentmark/type_safety/type-safety).
 
 ## Contributing
 
