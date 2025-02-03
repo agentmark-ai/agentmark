@@ -44,6 +44,7 @@ export async function getRawConfig<I extends Record<string, any>>(ast: Ast, prop
 
   const agentMark: AgentMark = AgentMarkSchema.parse({
     name: frontMatter.name,
+    document_id: frontMatter.document_id,
     messages: messages,
     metadata: frontMatter.metadata,
   });
@@ -89,6 +90,7 @@ export async function runInference<Input extends Record<string, any>, Output>(
         ...options?.telemetry?.metadata,
         promptName: agentMark.name,
         props: JSON.stringify(props),
+        puzzlet_document_id: agentMark.document_id,
       },
     },
   };

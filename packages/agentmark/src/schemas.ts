@@ -58,6 +58,7 @@ const MetadataSchema = z.object({
 
 export const AgentMarkSchema = z.object({
   name: z.string(),
+  document_id: z.string().optional(),
   messages: z.array(ChatMessageSchema),
   metadata: MetadataSchema,
 });
