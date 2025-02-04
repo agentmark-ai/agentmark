@@ -130,3 +130,6 @@ export interface Components extends BaseMDXProvidedComponents {
   System: FC<ExtractTextProps>;
 }
 
+export interface DeserializeConfig {
+  withStream?: boolean;
+}

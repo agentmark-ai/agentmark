@@ -35,7 +35,8 @@ export type {
   AgentMarkOutputV2, 
   VersionedAgentMarkOutput,
   InferenceOptions,
-  AgentMarkStreamOutput
+  AgentMarkStreamOutput,
+  DeserializeConfig,
 } from "./types";
 
 

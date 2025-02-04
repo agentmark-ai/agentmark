@@ -51,14 +51,14 @@ test("should deserialize tools with no stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
   expect(deserializedPrompt).toEqual(ollamaCompletionParamsWithTools(true));
 });
 
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
   expect(deserializedPrompt).toEqual(ollamaCompletionParamsWithSchema(true));
 });
 

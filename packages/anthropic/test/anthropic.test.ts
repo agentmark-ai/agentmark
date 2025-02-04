@@ -129,7 +129,7 @@ test("should serialize tools with stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(true));
 });
 
@@ -146,7 +146,7 @@ test("should serialize schema with stream", async () => {
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(true));
 });
 

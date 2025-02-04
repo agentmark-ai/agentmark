@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { IModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
-import type { AgentMarkStreamOutput, IPluginAPI, InferenceOptions } from '@puzzlet/agentmark';
+import type { AgentMarkStreamOutput, IPluginAPI, InferenceOptions, DeserializeConfig } from '@puzzlet/agentmark';
 import { createAnthropic } from "@ai-sdk/anthropic";
 
 type MessageCreateParams = Anthropic.MessageCreateParams;
@@ -78,10 +78,9 @@ export default class AnthropicChatPlugin implements IModelPlugin {
   }
   
   
-  async deserialize(agentMark: AgentMark, api: IPluginAPI): Promise<MessageCreateParams> {
+  async deserialize(agentMark: AgentMark, api: IPluginAPI, config?: DeserializeConfig): Promise<MessageCreateParams> {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
-
     const completionParamsPromise = new Promise<MessageCreateParams>(
       async (resolve) => {
         const anthropic = createAnthropic({
@@ -92,14 +91,16 @@ export default class AnthropicChatPlugin implements IModelPlugin {
           },
         });
         const providerModel = anthropic(modelConfig.name);
-        // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await api.runInference(modelConfig.settings, providerModel, messages);
-        } catch (e) { }
+          if (config?.withStream) {
+            await api.streamInference(modelConfig.settings, providerModel, messages);
+          } else {
+            await api.runInference(modelConfig.settings, providerModel, messages);
+          }
+        } catch (e) {}
       }
     );
-    const result = await completionParamsPromise;
-    return result;
+    return completionParamsPromise;
   }
 
   async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {

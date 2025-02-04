@@ -6,6 +6,7 @@ import { ExtractTextPlugin } from "./extract-text";
 import { AgentMarkSchema } from "./schemas";
 import { PluginAPI } from "./plugin-api";
 import Ajv from 'ajv';
+import { DeserializeConfig } from "./types";
 
 const ajv = new Ajv();
 
@@ -163,7 +164,7 @@ export function serialize(
   return plugin?.serialize(completionParams, promptName, PluginAPI);
 }
 
-export async function deserialize(ast: Ast, props = {}) {
+export async function deserialize(ast: Ast, props = {}, config?: DeserializeConfig) {
   const agentMark = await getRawConfig(ast, props);
   const plugin = ModelPluginRegistry.getPlugin(
     agentMark.metadata.model.name
@@ -171,7 +172,7 @@ export async function deserialize(ast: Ast, props = {}) {
   if (!plugin) {
     throw new Error(`No registered plugin for ${agentMark.metadata.model.name}`);
   }
-  return plugin.deserialize(agentMark, PluginAPI);
+  return plugin.deserialize(agentMark, PluginAPI, config);
 }
 
 export const getModel = (ast: Ast) => {
@@ -183,7 +184,7 @@ export interface Template<Input extends Record<string, any>, Output> {
   content: Ast;
   run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
   compile: (props?: Input) => Promise<AgentMark>;
-  deserialize: (props: Input) => Promise<any>;
+  deserialize: (props: Input, config?: DeserializeConfig) => Promise<any>;
 }
 
 export function createTemplateRunner<Input extends Record<string, any>, Output>(ast: Ast) {
@@ -191,6 +192,6 @@ export function createTemplateRunner<Input extends Record<string, any>, Output>(
     run: (props: Input, options?: InferenceOptions) => runInference<Input, Output>(ast, props, options),
     stream: (props: Input, options?: InferenceOptions) => streamInference<Input, Output>(ast, props, options),
     compile: (props?: Input) => getRawConfig(ast, props),
-    deserialize: (props: Input) => deserialize(ast, props)
+    deserialize: (props: Input, config?: DeserializeConfig) => deserialize(ast, props, config)
   };
 }
