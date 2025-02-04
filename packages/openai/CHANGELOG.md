@@ -1,5 +1,11 @@
 # @puzzlet/openai
 
+## 1.1.5
+
+### Patch Changes
+
+- c2cb16c: Support streaming
+
 ## 1.1.4
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @puzzlet/all-models
 
+## 1.1.5
+
+### Patch Changes
+
+- c2cb16c: Support streaming
+- Updated dependencies [c2cb16c]
+  - @puzzlet/anthropic@1.1.5
+  - @puzzlet/openai@1.1.5
+
 ## 1.1.4
 
 ### Patch Changes
