@@ -1,5 +1,16 @@
 # examples
 
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [c2cb16c]
+- Updated dependencies [db571b6]
+  - @puzzlet/agentmark@2.2.0
+  - @puzzlet/anthropic@1.1.5
+  - @puzzlet/openai@1.1.5
+  - @puzzlet/all-models@1.1.5
+
 ## 1.0.6
 
 ### Patch Changes

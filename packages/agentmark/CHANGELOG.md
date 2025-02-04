@@ -1,5 +1,15 @@
 # @puzzlet/agentmark
 
+## 2.2.0
+
+### Minor Changes
+
+- c2cb16c: Support streaming
+
+### Patch Changes
+
+- db571b6: Add props to spans
+
 ## 2.1.3
 
 ### Patch Changes
