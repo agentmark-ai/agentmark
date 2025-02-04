@@ -110,7 +110,6 @@ export async function runInference(
   messages: Array<ChatMessage>,
   options?: InferenceOptions
 ): Promise<AgentMarkOutput> {
-  const { stream } = config;
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);

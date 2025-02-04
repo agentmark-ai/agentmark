@@ -28,6 +28,18 @@ describe('FileLoader', () => {
         },
         finishReason: 'stop'
       }),
+      streamInference: async () => ({
+        finishReason: Promise.resolve('stop'),
+        resultStream: (async function* () {
+          yield { answer: 'test answer' };
+        })(),
+        usage: Promise.resolve({
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0
+        }),
+        version: 'v2.0'
+      }),
       deserialize: async () => ({ answer: 'test answer' })
     }, ['test-model']);
   });
@@ -69,6 +81,18 @@ describe('FileLoader', () => {
           totalTokens: 0
         },
         finishReason: 'stop'
+      }),
+      streamInference: async () => ({
+        finishReason: Promise.resolve('stop'),
+        resultStream: (async function* () {
+          yield { answer: 'test answer' };
+        })(),
+        usage: Promise.resolve({
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0
+        }),
+        version: 'v2.0'
       }),
       deserialize: async () => ({ answer: 'test answer' })
     }, ['test-model']);

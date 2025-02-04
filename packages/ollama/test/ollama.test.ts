@@ -181,19 +181,30 @@ test.skip("run inference with stream", async () => {
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new OllamaChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark, api);
+  const resultWithStream = await pluginWithInference.streamInference(agentMark, api);
+  let message = "";
+  for await (const chunk of resultWithStream.resultStream) {
+    message += chunk;
+  }
+
+  const result = {
+    result: message,
+    tools: await resultWithStream.tools,
+    toolResponses: await resultWithStream.toolResponses,
+    usage: await resultWithStream.usage,
+    version: resultWithStream.version,
+  };
   expect(result).toEqual(
     {
-      finishReason: "stop",
       result: "Mocked response.",
       tools: [],
       toolResponses: [],
-      version: "v2.0",
       usage: {
         completionTokens: 10,
         promptTokens: 5,
         totalTokens: 15,
-      }
+      },
+      version: "v2.0",
     },
   );
 });

@@ -3,17 +3,21 @@ import { vi } from "vitest";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
 import { PluginAPI, getRawConfig } from "@puzzlet/agentmark";
 import OpenAIChatPlugin from "../src";
-import fs from 'fs';
-import { openaiCompletionParamsWithSchema, openaiCompletionParamsWithTools, promptWithHistory } from "./configs";
+import fs from "fs";
+import {
+  openaiCompletionParamsWithSchema,
+  openaiCompletionParamsWithTools,
+  promptWithHistory,
+} from "./configs";
 
 vi.stubEnv("OPENAI_API_KEY", "key");
 
 const plugin = new OpenAIChatPlugin();
 
 export const getMdxPrompt = async (path: string) => {
-  const input = fs.readFileSync(path, 'utf-8');
+  const input = fs.readFileSync(path, "utf-8");
   return input;
-}
+};
 
 test("should deserialize", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
@@ -138,7 +142,7 @@ test("should deserialize schema with no stream", async () => {
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithSchema(false));
 });
 
-test("run inference with no stream", async () => {
+test("run inference", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const mockFetch = vi.fn(() =>
     Promise.resolve(
@@ -147,16 +151,16 @@ test("run inference with no stream", async () => {
           choices: [
             {
               index: 0,
-              message: { content: 'Mocked response.' },
-              finish_reason: 'stop',
+              message: { content: "Mocked response." },
+              finish_reason: "stop",
             },
           ],
           usage: { prompt_tokens: 5, completion_tokens: 10, total_tokens: 15 },
         }),
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { "Content-Type": "application/json" },
           status: 200,
-          statusText: 'OK',
+          statusText: "OK",
         }
       )
     )
@@ -166,23 +170,21 @@ test("run inference with no stream", async () => {
   const agentMark = await getRawConfig(ast);
   const result = await pluginWithInference.runInference(agentMark, api);
 
-  expect(result).toEqual(
-    {
-      finishReason: "stop",
-      result: "Mocked response.",
-      tools: [],
-      toolResponses: [],
-      version: "v2.0",
-      usage: {
-        completionTokens: 10,
-        promptTokens: 5,
-        totalTokens: 15,
-      }
+  expect(result).toEqual({
+    finishReason: "stop",
+    result: "Mocked response.",
+    tools: [],
+    toolResponses: [],
+    version: "v2.0",
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
     },
-  );
+  });
 });
 
-test("run inference with stream", async () => {
+test("stream inference", async () => {
   const ast = await load(__dirname + "/mdx/basic-stream.prompt.mdx");
   const mockStreamedFetch = vi.fn(() => {
     const stream = new ReadableStream({
@@ -191,7 +193,7 @@ test("run inference with stream", async () => {
           JSON.stringify({
             choices: [
               {
-                delta: { content: 'Mocked ' },
+                delta: { content: "Mocked " },
                 index: 0,
                 finish_reason: null,
               },
@@ -200,9 +202,9 @@ test("run inference with stream", async () => {
           JSON.stringify({
             choices: [
               {
-                delta: { content: 'response.' },
+                delta: { content: "response." },
                 index: 0,
-                finish_reason: 'stop',
+                finish_reason: "stop",
               },
             ],
             usage: {
@@ -212,7 +214,7 @@ test("run inference with stream", async () => {
             },
           }),
         ];
-  
+
         chunks.forEach((chunk, index) => {
           controller.enqueue(new TextEncoder().encode(`data: ${chunk}\n\n`));
           if (index === chunks.length - 1) {
@@ -221,33 +223,47 @@ test("run inference with stream", async () => {
         });
       },
     });
-  
+
     return Promise.resolve(
       new Response(stream, {
-        headers: { 'Content-Type': 'text/event-stream' },
+        headers: { "Content-Type": "text/event-stream" },
         status: 200,
-        statusText: 'OK',
+        statusText: "OK",
       })
     );
   });
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new OpenAIChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark, api);
-  expect(result).toEqual(
-    {
-      finishReason: "stop",
-      result: "Mocked response.",
-      tools: [],
-      toolResponses: [],
-      usage: {
-        completionTokens: 10,
-        promptTokens: 5,
-        totalTokens: 15,
-      },
-      version: "v2.0",
-    },
+  const resultWithStream = await pluginWithInference.streamInference(
+    agentMark,
+    api
   );
+
+  let message = "";
+  for await (const chunk of resultWithStream.resultStream) {
+    message += chunk;
+  }
+
+  const result = {
+    result: message,
+    tools: await resultWithStream.tools,
+    toolResponses: await resultWithStream.toolResponses,
+    usage: await resultWithStream.usage,
+    version: resultWithStream.version,
+  };
+
+  expect(result).toEqual({
+    result: "Mocked response.",
+    tools: [],
+    toolResponses: [],
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
+    },
+    version: "v2.0",
+  });
 });
 
 test("should deserialize prompt with history prop", async () => {
