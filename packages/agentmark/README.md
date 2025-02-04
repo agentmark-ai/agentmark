@@ -101,8 +101,6 @@ We plan on providing support for AgentMark across a variety of languages.
 | Language | Support Status |
 |----------|---------------|
 | TypeScript | ✅ Supported |
-| Python | ⚠️ Coming Soon |
-| Java | ⚠️ Coming Soon |
 | Others | Need something else? [Open an issue](https://github.com/puzzlet-ai/agentmark/issues) |
 
 ## Running AgentMark

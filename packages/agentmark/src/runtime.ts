@@ -88,6 +88,7 @@ export async function runInference<Input extends Record<string, any>, Output>(
       metadata: {
         ...options?.telemetry?.metadata,
         promptName: agentMark.name,
+        props: JSON.stringify(props),
       },
     },
   };
