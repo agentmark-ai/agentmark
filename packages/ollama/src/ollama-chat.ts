@@ -4,6 +4,8 @@ import type {
   InferenceOptions,
   AgentMarkOutput,
   AgentMark,
+  AgentMarkStreamOutput,
+  DeserializeConfig,
 } from "@puzzlet/agentmark";
 import { createOllama } from 'ollama-ai-provider';
 
@@ -23,7 +25,7 @@ export default class OllamaChatPlugin implements IModelPlugin {
     throw new Error('Ollama serialize not implemented for yet. Open a Issue if you need this.');
   }
 
-  async deserialize(agentMark: AgentMark, api: IPluginAPI): Promise<any> {
+  async deserialize(agentMark: AgentMark, api: IPluginAPI, config?: DeserializeConfig): Promise<any> {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const completionParamsPromise = new Promise<any>(
@@ -37,12 +39,15 @@ export default class OllamaChatPlugin implements IModelPlugin {
         });
         const providerModel = ollama(modelConfig.name);
         try {
-          await api.runInference(modelConfig.settings, providerModel, messages);
+          if (config?.withStream) {
+            await api.streamInference(modelConfig.settings, providerModel, messages);
+          } else {
+            await api.runInference(modelConfig.settings, providerModel, messages);
+          }
         } catch (e) {}
       }
     );
-    const result = await completionParamsPromise;
-    return result;
+    return completionParamsPromise;
   }
 
   async runInference(
@@ -61,5 +66,18 @@ export default class OllamaChatPlugin implements IModelPlugin {
       options
     );
     return result;
+  }
+
+  async streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput<any>> {
+    const ollama = createOllama({ fetch: api.fetch });
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = ollama(modelConfig.name);
+    return api.streamInference(
+      modelConfig.settings,
+      providerModel,
+      messages,
+      options
+    );
   }
 }

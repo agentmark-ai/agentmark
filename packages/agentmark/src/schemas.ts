@@ -6,7 +6,6 @@ export const ChatMessageSchema = z.object({
 });
 
 const AgentMarkBaseSettingsSchema = z.object({
-  stream: z.boolean().optional(),
   max_tokens: z.number().optional(),
   temperature: z.number().optional(),
   max_llm_calls: z.number().optional(),

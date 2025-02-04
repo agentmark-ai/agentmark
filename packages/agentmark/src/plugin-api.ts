@@ -1,10 +1,11 @@
-import { toFrontMatter, runInference, getEnv } from "./utils"
+import { toFrontMatter, runInference, getEnv, streamInference } from "./utils"
 
 const PluginAPI = {
   toFrontMatter,
   runInference,
   getEnv,
   fetch,
+  streamInference
 };
 
 export { PluginAPI };

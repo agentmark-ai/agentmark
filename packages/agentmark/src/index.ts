@@ -5,6 +5,7 @@ export {
   getRawConfig,
   getModel,
   createTemplateRunner,
+  streamInference,
 } from "./runtime";
 export { toFrontMatter } from "./utils";
 export { FileLoader } from "./file-loader";
@@ -25,7 +26,6 @@ export { ModelPluginRegistry } from "./model-plugin-registry";
 export { ToolPluginRegistry } from "./tool-plugin-registry";
 export type { Tool } from "./tool-plugin-registry";
 
-
 export type { 
   TypsafeTemplate,
   AgentMarkLoader, 
@@ -34,7 +34,9 @@ export type {
   AgentMarkOutputV1, 
   AgentMarkOutputV2, 
   VersionedAgentMarkOutput,
-  InferenceOptions 
+  InferenceOptions,
+  AgentMarkStreamOutput,
+  DeserializeConfig,
 } from "./types";
 
 

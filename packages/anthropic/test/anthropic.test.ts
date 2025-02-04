@@ -129,7 +129,7 @@ test("should serialize tools with stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithTools(true));
 });
 
@@ -146,7 +146,7 @@ test("should serialize schema with stream", async () => {
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
   expect(deserializedPrompt).toEqual(anthropicCompletionParamsWithSchema(true));
 });
 
@@ -311,7 +311,7 @@ test("should execute tools", async () => {
   });
 });
 
-test("run inference with stream", async () => {
+test("stream inference", async () => {
   const ast = await load(__dirname + "/mdx/basic-stream.prompt.mdx");
   const mockStreamedFetch = vi.fn(() => {
     const encoder = new TextEncoder();
@@ -401,17 +401,29 @@ test("run inference with stream", async () => {
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new AnthropicChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark, api);
+  const resultWithStream = await pluginWithInference.streamInference(agentMark, api);
+  let message = "";
+  for await (const chunk of resultWithStream.resultStream) {
+    message += chunk;
+  }
+
+  const result = {
+    result: message,
+    tools: await resultWithStream.tools,
+    toolResponses: await resultWithStream.toolResponses,
+    usage: await resultWithStream.usage,
+    version: resultWithStream.version,
+  };
+
   expect(result).toEqual({
-    finishReason: "stop",
     result: "Mocked response.",
     tools: [],
     toolResponses: [],
-    version: "v2.0",
     usage: {
       completionTokens: 15,
-      totalTokens: 25,
       promptTokens: 10,
+      totalTokens: 25,
     },
+    version: "v2.0",
   });
 });

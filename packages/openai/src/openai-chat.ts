@@ -1,7 +1,7 @@
 import {
   ChatCompletionCreateParams,
 } from "openai/resources";
-import type { IPluginAPI, IModelPlugin, InferenceOptions, AgentMarkOutput, AgentMark } from "@puzzlet/agentmark";
+import type { IPluginAPI, IModelPlugin, InferenceOptions, AgentMarkOutput, AgentMark, AgentMarkStreamOutput, DeserializeConfig } from "@puzzlet/agentmark";
 import { createOpenAI } from "@ai-sdk/openai";
 
 export default class OpenAIChatPlugin implements IModelPlugin {
@@ -64,7 +64,7 @@ export default class OpenAIChatPlugin implements IModelPlugin {
   }
   
 
-  async deserialize(agentMark: AgentMark, api: IPluginAPI): Promise<ChatCompletionCreateParams> {
+  async deserialize(agentMark: AgentMark, api: IPluginAPI, config?: DeserializeConfig): Promise<ChatCompletionCreateParams> {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const completionParamsPromise = new Promise<ChatCompletionCreateParams>(
@@ -80,12 +80,15 @@ export default class OpenAIChatPlugin implements IModelPlugin {
         const providerModel = openai(modelConfig.name);
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
-          await api.runInference(modelConfig.settings, providerModel, messages);
+          if (config?.withStream) {
+            await api.streamInference(modelConfig.settings, providerModel, messages);
+          } else {
+            await api.runInference(modelConfig.settings, providerModel, messages);
+          }
         } catch (e) {}
       }
     );
-    const result = await completionParamsPromise;
-    return result;
+    return completionParamsPromise;
   }
 
   async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {
@@ -102,6 +105,23 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
     const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    return result;
+  }
+
+  async streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput<any>> {
+    const apiKey = options?.apiKey || this.apiKey || api.getEnv("OPENAI_API_KEY");
+    if (!apiKey) {
+      throw new Error("No API key provided");
+    }
+    const openai = createOpenAI({
+      compatibility: 'strict',
+      apiKey,
+      fetch: api.fetch
+    });
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = openai(modelConfig.name);
+    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
     return result;
   }
 }
