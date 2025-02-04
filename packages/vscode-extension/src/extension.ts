@@ -1,9 +1,9 @@
 import {
-  runInference,
   ModelPluginRegistry,
   getModel,
   load,
   getRawConfig,
+  streamInference,
 } from "@puzzlet/agentmark";
 import { getFrontMatter } from "@puzzlet/templatedx";
 import { createBoundedQueue } from "./boundedQueue";
@@ -80,7 +80,7 @@ export function activate(context: vscode.ExtensionContext) {
             testProps[chatFieldKey] = [];
           }
         }
-        const result = await runInference(ast, testProps);
+        const result = await streamInference<any, any>(ast, testProps);
         if (!result) {
           throw new Error("Could not run inference.");
         }
@@ -89,21 +89,35 @@ export function activate(context: vscode.ExtensionContext) {
         const output = result;
 
         const ch = vscode.window.createOutputChannel("agentMark");
-        if (output.result.text) {
-          ch.appendLine(`TEXT: ${output.result.text}`);
-          if (chatSettings && chatSettings.useChat) {
-            const rawConfig = await getRawConfig(ast, testProps);
-            const queue = createBoundedQueue(chatSettings.maxSize || 10);
-            rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
-            queue.add({ role: 'assistant', message: output.result.text });
-            promptHistoryMap[name] = queue;
+        if (output.resultStream) {
+          let isFirstChunk = true;
+          for await (const chunk of output.resultStream) {
+            if (typeof chunk === 'string') {
+              if (isFirstChunk) {
+                ch.append('TEXT: ');
+                ch.show();
+                isFirstChunk = false;
+              }
+              ch.append(chunk);
+              if (chatSettings && chatSettings.useChat) {
+                const rawConfig = await getRawConfig(ast, testProps);
+                const queue = createBoundedQueue(chatSettings.maxSize || 10);
+                rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
+                queue.add({ role: 'assistant', message: chunk });
+                promptHistoryMap[name] = queue;
+              }
+            } else {
+              ch.appendLine(`OBJECT: ${JSON.stringify(chunk, null, 2)}`);
+            }
           }
-        } else if (output.result.object) {
-          ch.appendLine(`OBJECT: ${JSON.stringify(output.result.object, null, 2)}`);
-        } else if (output.tools?.length) {
-          ch.appendLine(`TOOLS: ${JSON.stringify(output.tools, null, 2)}`);
         }
-        ch.show();
+        
+        if (output.tools) {
+          const tools = await output.tools;
+          if (tools.length) {
+            ch.appendLine(`TOOLS: ${JSON.stringify(tools, null, 2)}`);
+          }
+        }
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);
       }
