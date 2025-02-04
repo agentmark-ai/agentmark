@@ -231,10 +231,10 @@ Then generate types using the CLI:
 
 ```bash
 # From local files
-npx puzzlet generate-types --root-dir ./prompts > puzzlet.types.ts
+npx @puzzlet/cli generate-types --root-dir ./prompts > puzzlet.types.ts
 
 # From local Puzzlet server
-npx puzzlet generate-types --local 9002 > puzzlet.types.ts
+npx @puzzlet/cli generate-types --local 9002 > puzzlet.types.ts
 ```
 
 Use the generated types with FileLoader:
