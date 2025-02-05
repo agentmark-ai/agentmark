@@ -492,7 +492,11 @@ __metadata:
   languageName: node
   linkType: hard
 
+<<<<<<< HEAD
 "@puzzlet/agentmark@npm:^2.2.0":
+=======
+"@puzzlet/agentmark@npm:^2.0.0":
+>>>>>>> main
   version: 2.2.0
   resolution: "@puzzlet/agentmark@npm:2.2.0"
   dependencies:
@@ -5787,9 +5791,9 @@ __metadata:
   linkType: hard
 
 "undici@npm:^6.19.5":
-  version: 6.21.0
-  resolution: "undici@npm:6.21.0"
-  checksum: 10c0/afa9bde6dcf8e0f5cf1ff2fa977ba73dd5510299ddfca0e1f37ff326554172ae31cb3d4a40b5a729601be1f21b96a2684f974d74dab53f9b6930fd47d1949246
+  version: 6.21.1
+  resolution: "undici@npm:6.21.1"
+  checksum: 10c0/d604080e4f8db89b35a63b483b5f96a5f8b19ec9f716e934639345449405809d2997e1dd7212d67048f210e54534143384d712bd9075e4394f0788895ef9ca8e
   languageName: node
   linkType: hard
 
@@ -5960,6 +5964,32 @@ __metadata:
   languageName: node
   linkType: hard
 
+<<<<<<< HEAD
+=======
+"vscode-ext@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "vscode-ext@workspace:."
+  dependencies:
+    "@puzzlet/agentmark": "npm:^2.0.0"
+    "@puzzlet/all-models": "npm:^1.1.4"
+    "@puzzlet/templatedx": "npm:^0.6.2"
+    "@types/mocha": "npm:^10.0.8"
+    "@types/node": "npm:20.x"
+    "@types/vscode": "npm:^1.93.0"
+    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
+    "@typescript-eslint/parser": "npm:^8.7.0"
+    "@vscode/test-cli": "npm:^0.0.10"
+    "@vscode/test-electron": "npm:^2.4.1"
+    "@vscode/vsce": "npm:^3.2.1"
+    eslint: "npm:^9.11.1"
+    ts-loader: "npm:^9.5.1"
+    typescript: "npm:^5.6.2"
+    webpack: "npm:^5.95.0"
+    webpack-cli: "npm:^5.1.4"
+  languageName: unknown
+  linkType: soft
+
+>>>>>>> main
 "watchpack@npm:^2.4.1":
   version: 2.4.2
   resolution: "watchpack@npm:2.4.2"
