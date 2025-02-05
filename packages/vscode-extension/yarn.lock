@@ -1225,6 +1225,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"agentmark@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "agentmark@workspace:."
+  dependencies:
+    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/all-models": "npm:^1.1.5"
+    "@puzzlet/templatedx": "npm:^0.6.2"
+    "@types/mocha": "npm:^10.0.8"
+    "@types/node": "npm:20.x"
+    "@types/vscode": "npm:^1.93.0"
+    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
+    "@typescript-eslint/parser": "npm:^8.7.0"
+    "@vscode/test-cli": "npm:^0.0.10"
+    "@vscode/test-electron": "npm:^2.4.1"
+    "@vscode/vsce": "npm:^3.2.1"
+    eslint: "npm:^9.11.1"
+    ts-loader: "npm:^9.5.1"
+    typescript: "npm:^5.6.2"
+    webpack: "npm:^5.95.0"
+    webpack-cli: "npm:^5.1.4"
+  languageName: unknown
+  linkType: soft
+
 "aggregate-error@npm:^3.0.0":
   version: 3.1.0
   resolution: "aggregate-error@npm:3.1.0"
@@ -5936,29 +5959,6 @@ __metadata:
   checksum: 10c0/e5d9eb4810623f23758cfc2205323e33552fb5972e5c2e6587babe08fe4d24859866277404fb9e2a20afb71013860d96ec806cb257536ae463c87d70022ab9ef
   languageName: node
   linkType: hard
-
-"vscode-ext@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "vscode-ext@workspace:."
-  dependencies:
-    "@puzzlet/agentmark": "npm:^2.2.0"
-    "@puzzlet/all-models": "npm:^1.1.5"
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    "@types/mocha": "npm:^10.0.8"
-    "@types/node": "npm:20.x"
-    "@types/vscode": "npm:^1.93.0"
-    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
-    "@typescript-eslint/parser": "npm:^8.7.0"
-    "@vscode/test-cli": "npm:^0.0.10"
-    "@vscode/test-electron": "npm:^2.4.1"
-    "@vscode/vsce": "npm:^3.2.1"
-    eslint: "npm:^9.11.1"
-    ts-loader: "npm:^9.5.1"
-    typescript: "npm:^5.6.2"
-    webpack: "npm:^5.95.0"
-    webpack-cli: "npm:^5.1.4"
-  languageName: unknown
-  linkType: soft
 
 "watchpack@npm:^2.4.1":
   version: 2.4.2

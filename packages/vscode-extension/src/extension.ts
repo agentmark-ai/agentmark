@@ -2,15 +2,11 @@ import {
   ModelPluginRegistry,
   getModel,
   load,
-  getRawConfig,
   streamInference,
 } from "@puzzlet/agentmark";
 import { getFrontMatter } from "@puzzlet/templatedx";
-import { createBoundedQueue } from "./boundedQueue";
 import AllModelPlugins from '@puzzlet/all-models';
 import * as vscode from "vscode";
-
-const promptHistoryMap: { [key: string]: any } = {};
 
 ModelPluginRegistry.registerAll(AllModelPlugins);
 
@@ -70,16 +66,6 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         const frontMatter = getFrontMatter(ast) as any;
         const testProps = frontMatter.test_settings?.props || {};
-        const name = frontMatter.name as string;
-        const chatSettings: ChatSettings = frontMatter.test_settings?.chat || {};
-        const chatFieldKey = chatSettings.chatField;
-        if (chatSettings && chatSettings.useChat) {
-          if (promptHistoryMap[name]) {
-            testProps[chatFieldKey] = promptHistoryMap[name].getItems();
-          } else {
-            testProps[chatFieldKey] = [];
-          }
-        }
         const result = await streamInference<any, any>(ast, testProps);
         if (!result) {
           throw new Error("Could not run inference.");
@@ -89,6 +75,12 @@ export function activate(context: vscode.ExtensionContext) {
         const output = result;
 
         const ch = vscode.window.createOutputChannel("agentMark");
+        if (output.tools) {
+          const tools = await output.tools;
+          if (tools.length) {
+            ch.appendLine(`TOOLS: ${JSON.stringify(tools, null, 2)}`);
+          }
+        }
         if (output.resultStream) {
           let isFirstChunk = true;
           for await (const chunk of output.resultStream) {
@@ -99,25 +91,12 @@ export function activate(context: vscode.ExtensionContext) {
                 isFirstChunk = false;
               }
               ch.append(chunk);
-              if (chatSettings && chatSettings.useChat) {
-                const rawConfig = await getRawConfig(ast, testProps);
-                const queue = createBoundedQueue(chatSettings.maxSize || 10);
-                rawConfig.messages.forEach((item) => queue.add({ role: item.role, message: item.content }));
-                queue.add({ role: 'assistant', message: chunk });
-                promptHistoryMap[name] = queue;
-              }
             } else {
               ch.appendLine(`OBJECT: ${JSON.stringify(chunk, null, 2)}`);
             }
           }
         }
         
-        if (output.tools) {
-          const tools = await output.tools;
-          if (tools.length) {
-            ch.appendLine(`TOOLS: ${JSON.stringify(tools, null, 2)}`);
-          }
-        }
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);
       }
