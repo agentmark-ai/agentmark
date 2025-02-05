@@ -1760,7 +1760,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/agentmark@npm:^2.0.0, @puzzlet/agentmark@npm:^2.2.0, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^2.2.0, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -1780,7 +1780,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/all-models@npm:^1.1.4, @puzzlet/all-models@npm:^1.1.5, @puzzlet/all-models@workspace:packages/all-models":
+"@puzzlet/all-models@npm:^1.1.5, @puzzlet/all-models@workspace:packages/all-models":
   version: 0.0.0-use.local
   resolution: "@puzzlet/all-models@workspace:packages/all-models"
   dependencies:
@@ -3325,6 +3325,29 @@ __metadata:
   dependencies:
     "@changesets/cli": "npm:^2.27.9"
     turbo: "npm:latest"
+  languageName: unknown
+  linkType: soft
+
+"agentmark@workspace:packages/vscode-extension":
+  version: 0.0.0-use.local
+  resolution: "agentmark@workspace:packages/vscode-extension"
+  dependencies:
+    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/all-models": "npm:^1.1.5"
+    "@puzzlet/templatedx": "npm:^0.6.2"
+    "@types/mocha": "npm:^10.0.8"
+    "@types/node": "npm:20.x"
+    "@types/vscode": "npm:^1.93.0"
+    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
+    "@typescript-eslint/parser": "npm:^8.7.0"
+    "@vscode/test-cli": "npm:^0.0.10"
+    "@vscode/test-electron": "npm:^2.4.1"
+    "@vscode/vsce": "npm:^3.2.1"
+    eslint: "npm:^9.11.1"
+    ts-loader: "npm:^9.5.1"
+    typescript: "npm:^5.6.2"
+    webpack: "npm:^5.95.0"
+    webpack-cli: "npm:^5.1.4"
   languageName: unknown
   linkType: soft
 
@@ -12547,29 +12570,6 @@ __metadata:
   checksum: 10c0/9218bb91a1fb6710fb7e47b0b663397bdf2c906a7d7ec43cf603b39151f8ff8d276163f7b77c55eb4d109ef1dc1b3eddb77696d2dd46a850b7d9b695ae2fca5d
   languageName: node
   linkType: hard
-
-"vscode-ext@workspace:packages/vscode-extension":
-  version: 0.0.0-use.local
-  resolution: "vscode-ext@workspace:packages/vscode-extension"
-  dependencies:
-    "@puzzlet/agentmark": "npm:^2.0.0"
-    "@puzzlet/all-models": "npm:^1.1.4"
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    "@types/mocha": "npm:^10.0.8"
-    "@types/node": "npm:20.x"
-    "@types/vscode": "npm:^1.93.0"
-    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
-    "@typescript-eslint/parser": "npm:^8.7.0"
-    "@vscode/test-cli": "npm:^0.0.10"
-    "@vscode/test-electron": "npm:^2.4.1"
-    "@vscode/vsce": "npm:^3.2.1"
-    eslint: "npm:^9.11.1"
-    ts-loader: "npm:^9.5.1"
-    typescript: "npm:^5.6.2"
-    webpack: "npm:^5.95.0"
-    webpack-cli: "npm:^5.1.4"
-  languageName: unknown
-  linkType: soft
 
 "walk-up-path@npm:^1.0.0":
   version: 1.0.0

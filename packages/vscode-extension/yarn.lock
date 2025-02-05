@@ -492,7 +492,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@npm:^2.0.0":
+"@puzzlet/agentmark@npm:^2.2.0":
   version: 2.2.0
   resolution: "@puzzlet/agentmark@npm:2.2.0"
   dependencies:
@@ -506,35 +506,35 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/all-models@npm:^1.1.4":
-  version: 1.1.4
-  resolution: "@puzzlet/all-models@npm:1.1.4"
+"@puzzlet/all-models@npm:^1.1.5":
+  version: 1.1.5
+  resolution: "@puzzlet/all-models@npm:1.1.5"
   dependencies:
-    "@puzzlet/anthropic": "npm:^1.1.4"
-    "@puzzlet/openai": "npm:^1.1.4"
-  checksum: 10c0/de5b91bbd8bb64231dcb1683802c16da55938cb8ccacfa235257a4f55f6b66a38ca5b0bf783b530bbc617eaedd919c7069a7fb800a330f3386b97040938e4a71
+    "@puzzlet/anthropic": "npm:^1.1.5"
+    "@puzzlet/openai": "npm:^1.1.5"
+  checksum: 10c0/4727a2868e3f86a8ebdb7b5e5794abb62daa0a1f294591007eebd1ee22965533f0cd61560230d234bb8cd61fef00336e78a7fdf78434e4d48ec54c8ce5ab16a5
   languageName: node
   linkType: hard
 
-"@puzzlet/anthropic@npm:^1.1.4":
-  version: 1.1.4
-  resolution: "@puzzlet/anthropic@npm:1.1.4"
+"@puzzlet/anthropic@npm:^1.1.5":
+  version: 1.1.5
+  resolution: "@puzzlet/anthropic@npm:1.1.5"
   dependencies:
     "@ai-sdk/anthropic": "npm:^1.0.2"
   peerDependencies:
     zod: ^3.23.8
-  checksum: 10c0/1c376f3d8083c0c1fe18fd403a6ba9217268d798b4e666a7ff43353685f6f15fd314e9f489545b315245c59f38cac980d7edd3667100ded1936dd41daf3102a1
+  checksum: 10c0/c548688b15c5336e3faf98ee16677ed3073af0c118aac3b78b37700d42f9dc044ccb539057c5e99565991f80e13fe1f74be6db5ae2f9be1f0f7bfad9ad45f9ef
   languageName: node
   linkType: hard
 
-"@puzzlet/openai@npm:^1.1.4":
-  version: 1.1.4
-  resolution: "@puzzlet/openai@npm:1.1.4"
+"@puzzlet/openai@npm:^1.1.5":
+  version: 1.1.5
+  resolution: "@puzzlet/openai@npm:1.1.5"
   dependencies:
     "@ai-sdk/openai": "npm:^1.0.5"
   peerDependencies:
     zod: ^3.23.8
-  checksum: 10c0/176e3a7bcf57ed42a26b7ca52d1da9a02b63ccea1170a178819c686c62564151628f03c1f4542749c79c818c878211203c47abf608e3cee69fde3faf2772bc72
+  checksum: 10c0/658e5af498a81ed476c64908a98bfdb1c6341b0e39b26594488c47a674bebf57f507760981931376a25b8923deb370c8348dd961bd8eab55eeb1c388fad54cf9
   languageName: node
   linkType: hard
 
@@ -1224,6 +1224,29 @@ __metadata:
   checksum: 10c0/e59ce7bed9c63bf071a30cc471f2933862044c97fd9958967bfe22521d7a0f601ce4ed5a8c011799d0c726ca70312142ae193bbebb60f576b52be19d4a363b50
   languageName: node
   linkType: hard
+
+"agentmark@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "agentmark@workspace:."
+  dependencies:
+    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/all-models": "npm:^1.1.5"
+    "@puzzlet/templatedx": "npm:^0.6.2"
+    "@types/mocha": "npm:^10.0.8"
+    "@types/node": "npm:20.x"
+    "@types/vscode": "npm:^1.93.0"
+    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
+    "@typescript-eslint/parser": "npm:^8.7.0"
+    "@vscode/test-cli": "npm:^0.0.10"
+    "@vscode/test-electron": "npm:^2.4.1"
+    "@vscode/vsce": "npm:^3.2.1"
+    eslint: "npm:^9.11.1"
+    ts-loader: "npm:^9.5.1"
+    typescript: "npm:^5.6.2"
+    webpack: "npm:^5.95.0"
+    webpack-cli: "npm:^5.1.4"
+  languageName: unknown
+  linkType: soft
 
 "aggregate-error@npm:^3.0.0":
   version: 3.1.0
@@ -5936,29 +5959,6 @@ __metadata:
   checksum: 10c0/e5d9eb4810623f23758cfc2205323e33552fb5972e5c2e6587babe08fe4d24859866277404fb9e2a20afb71013860d96ec806cb257536ae463c87d70022ab9ef
   languageName: node
   linkType: hard
-
-"vscode-ext@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "vscode-ext@workspace:."
-  dependencies:
-    "@puzzlet/agentmark": "npm:^2.0.0"
-    "@puzzlet/all-models": "npm:^1.1.4"
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    "@types/mocha": "npm:^10.0.8"
-    "@types/node": "npm:20.x"
-    "@types/vscode": "npm:^1.93.0"
-    "@typescript-eslint/eslint-plugin": "npm:^8.7.0"
-    "@typescript-eslint/parser": "npm:^8.7.0"
-    "@vscode/test-cli": "npm:^0.0.10"
-    "@vscode/test-electron": "npm:^2.4.1"
-    "@vscode/vsce": "npm:^3.2.1"
-    eslint: "npm:^9.11.1"
-    ts-loader: "npm:^9.5.1"
-    typescript: "npm:^5.6.2"
-    webpack: "npm:^5.95.0"
-    webpack-cli: "npm:^5.1.4"
-  languageName: unknown
-  linkType: soft
 
 "watchpack@npm:^2.4.1":
   version: 2.4.2
