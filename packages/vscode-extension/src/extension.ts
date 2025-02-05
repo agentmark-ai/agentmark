@@ -10,12 +10,6 @@ import * as vscode from "vscode";
 
 ModelPluginRegistry.registerAll(AllModelPlugins);
 
-type ChatSettings = {
-  chatField: string;
-  useChat: boolean;
-  maxSize: number;
-}
-
 export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
     "prompt-dx-extension.runInference",
@@ -66,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         const frontMatter = getFrontMatter(ast) as any;
         const testProps = frontMatter.test_settings?.props || {};
-        const result = await streamInference<any, any>(ast, testProps);
+        const result = await streamInference(ast, testProps);
         if (!result) {
           throw new Error("Could not run inference.");
         }
@@ -74,26 +68,33 @@ export function activate(context: vscode.ExtensionContext) {
 
         const output = result;
 
-        const ch = vscode.window.createOutputChannel("agentMark");
-        if (output.tools) {
-          const tools = await output.tools;
-          if (tools.length) {
-            ch.appendLine(`TOOLS: ${JSON.stringify(tools, null, 2)}`);
-          }
-        }
+        const ch = vscode.window.createOutputChannel("AgentMark");
         if (output.resultStream) {
           let isFirstChunk = true;
           for await (const chunk of output.resultStream) {
             if (typeof chunk === 'string') {
               if (isFirstChunk) {
-                ch.append('TEXT: ');
+                ch.append('RESULT: ');
                 ch.show();
                 isFirstChunk = false;
               }
               ch.append(chunk);
             } else {
-              ch.appendLine(`OBJECT: ${JSON.stringify(chunk, null, 2)}`);
+              if (isFirstChunk) {
+                ch.append('OBJECT:');
+                ch.show();
+                isFirstChunk = false;
+              }
+              ch.clear();
+              ch.appendLine(`${JSON.stringify(chunk, null, 2)}`);
+              // ch.appendLine(`OBJECT: ${JSON.stringify(chunk, null, 2)}`);
             }
+          }
+        }
+        if (output.tools) {
+          const tools = await output.tools;
+          if (tools.length) {
+            ch.appendLine(`TOOLS: ${JSON.stringify(tools, null, 2)}`);
           }
         }
         
