@@ -5,27 +5,27 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@ai-sdk/anthropic@npm:^1.0.2":
-  version: 1.0.2
-  resolution: "@ai-sdk/anthropic@npm:1.0.2"
+"@ai-sdk/anthropic@npm:^1.1.6":
+  version: 1.1.6
+  resolution: "@ai-sdk/anthropic@npm:1.1.6"
   dependencies:
-    "@ai-sdk/provider": "npm:1.0.1"
-    "@ai-sdk/provider-utils": "npm:2.0.2"
+    "@ai-sdk/provider": "npm:1.0.7"
+    "@ai-sdk/provider-utils": "npm:2.1.6"
   peerDependencies:
     zod: ^3.0.0
-  checksum: 10c0/025c72efad3dc8f8eaff6e1337cf2867d139b0a23e2399f15a8e74e8b57d79d6040816d39ca7765f238b48bb817e6b831c3daeb97c9609805989504e829f8f10
+  checksum: 10c0/20e84a29afbad7ef36f5ce9bd00a5e21e17a8b071f76b7b6776989d99101ddacc9d91a883a725e014b7b7128b13105a5582593a12d45b3638f0ef4c1575cbd06
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai@npm:^1.0.5":
-  version: 1.0.5
-  resolution: "@ai-sdk/openai@npm:1.0.5"
+"@ai-sdk/openai@npm:^1.1.9":
+  version: 1.1.9
+  resolution: "@ai-sdk/openai@npm:1.1.9"
   dependencies:
-    "@ai-sdk/provider": "npm:1.0.1"
-    "@ai-sdk/provider-utils": "npm:2.0.2"
+    "@ai-sdk/provider": "npm:1.0.7"
+    "@ai-sdk/provider-utils": "npm:2.1.6"
   peerDependencies:
     zod: ^3.0.0
-  checksum: 10c0/564c9a5bb7d329f84f2a82374b15cfbf74e448823b9422350e66d40e55219ae3185cf3de24eb204d4aa77e10f8682d79b46178ce65ea88b76aa7673a346a9290
+  checksum: 10c0/69a4e1088264c93abd87dd12ee9290f22004fd91c9871709c0517ed57fb8cc192f5676b21522dd93b51e6d940fb29c45bdab162df956df5f46516cdbfd1c5023
   languageName: node
   linkType: hard
 
@@ -46,12 +46,38 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/provider-utils@npm:2.1.6":
+  version: 2.1.6
+  resolution: "@ai-sdk/provider-utils@npm:2.1.6"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.0.7"
+    eventsource-parser: "npm:^3.0.0"
+    nanoid: "npm:^3.3.8"
+    secure-json-parse: "npm:^2.7.0"
+  peerDependencies:
+    zod: ^3.0.0
+  peerDependenciesMeta:
+    zod:
+      optional: true
+  checksum: 10c0/dacf9640c0ab2da69157d08c7db47f9ac82aa140780ad18d03b802a88ec9e81ce6f0626cb6f7139086013c5850f829f74e81783a6fe1e6a7e08d090f08479179
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/provider@npm:1.0.1, @ai-sdk/provider@npm:^1.0.0":
   version: 1.0.1
   resolution: "@ai-sdk/provider@npm:1.0.1"
   dependencies:
     json-schema: "npm:^0.4.0"
   checksum: 10c0/660ae83bbb8cf25577595806b7601b8f25e3a2b0ce592f83928ca3cae96eb6967cff29a2e13e67f4d7001a23070ca7756d35f8d05283046d3e887bd7438057a3
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider@npm:1.0.7":
+  version: 1.0.7
+  resolution: "@ai-sdk/provider@npm:1.0.7"
+  dependencies:
+    json-schema: "npm:^0.4.0"
+  checksum: 10c0/92d0a3cd4d577ca8028d7b8fb3c2b4b837be10fced5d66dbe67fe415b678d2ff039d32721b71b88389568729e707b35df81172908e2584f2e24ff20fcdcdeb65
   languageName: node
   linkType: hard
 
@@ -1799,7 +1825,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@puzzlet/anthropic@workspace:packages/anthropic"
   dependencies:
-    "@ai-sdk/anthropic": "npm:^1.0.2"
+    "@ai-sdk/anthropic": "npm:^1.1.6"
     "@anthropic-ai/sdk": "npm:^0.32.1"
     "@puzzlet/agentmark": "npm:^2.2.0"
     "@puzzlet/templatedx": "npm:^0.6.2"
@@ -1818,12 +1844,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@puzzlet/ollama@workspace:packages/ollama"
   dependencies:
-    "@ai-sdk/openai": "npm:^1.0.5"
     "@puzzlet/agentmark": "npm:^2.2.0"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
-    ollama-ai-provider: "npm:^1.0.0"
+    ollama-ai-provider: "npm:^1.2.0"
     openai: "npm:^4.73.1"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.2"
@@ -1837,7 +1862,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@puzzlet/openai@workspace:packages/openai"
   dependencies:
-    "@ai-sdk/openai": "npm:^1.0.5"
+    "@ai-sdk/openai": "npm:^1.1.9"
     "@puzzlet/agentmark": "npm:^2.2.0"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
@@ -9298,9 +9323,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ollama-ai-provider@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "ollama-ai-provider@npm:1.0.0"
+"ollama-ai-provider@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "ollama-ai-provider@npm:1.2.0"
   dependencies:
     "@ai-sdk/provider": "npm:^1.0.0"
     "@ai-sdk/provider-utils": "npm:^2.0.0"
@@ -9310,7 +9335,7 @@ __metadata:
   peerDependenciesMeta:
     zod:
       optional: true
-  checksum: 10c0/7286515da833ea6f427beb9ea736178fb355f4442e4796087466c64289fc3a58b8b4509399b5831be4eb09d5b84b163cc127a2e03fcfd833da0b9fa00abac9bb
+  checksum: 10c0/d8db4e3e764de179cc04d2ee460118c468a9417ab20a2d13980862ff4df08ab7d41449dad4c49b1c6cd04f3b16517e0b3304365f64b73e90c008b01b4ec40e4b
   languageName: node
   linkType: hard
 

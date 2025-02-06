@@ -33,8 +33,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.5",
-    "ollama-ai-provider": "^1.0.0"
+    "ollama-ai-provider": "^1.2.0"
   },
   "peerDependencies": {
     "zod": "^3.23.8"

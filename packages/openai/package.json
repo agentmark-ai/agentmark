@@ -34,7 +34,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.5"
+    "@ai-sdk/openai": "^1.1.9"
   },
   "peerDependencies": {
     "zod": "^3.23.8"
