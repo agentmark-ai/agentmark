@@ -35,7 +35,7 @@
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.2"
+    "@ai-sdk/anthropic": "^1.1.6"
   },
   "peerDependencies": {
     "zod": "^3.23.8"

@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@puzzlet/templatedx": "^0.6.2",
-    "ai": "^4.0.3",
+    "ai": "^4.1.25",
     "ajv": "^8.17.1",
     "front-matter": "^4.0.2",
     "js-yaml": "^4.1.0",
