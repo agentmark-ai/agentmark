@@ -301,6 +301,7 @@ test("should execute tools", async () => {
         result: "Cold af in New Hampshire",
         toolCallId: "unique-tool-call-id",
         toolName: "weather",
+        type: "tool-result",
       },
     ],
     usage: {
