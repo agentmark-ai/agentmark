@@ -77,7 +77,14 @@ export function createToolsConfig(tools: AgentMarkTextSettings["tools"]) {
     acc[toolName] = {
       description: toolData.description,
       parameters: jsonSchema(toolData.parameters as any),
-      execute: toolFn,
+      execute: (args: any) => {
+        if (!toolFn) {
+          throw new Error(`Tool not found: ${toolName}`);
+        }
+        const result =  toolFn(args);
+        console.log("result-tool", result);
+        return result;
+      },
     };
     return acc;
   }, {});
@@ -131,14 +138,31 @@ export async function runInference(
       ...baseConfig,
       tools,
     });
+    const steps = result.steps;
+    let toolCalls: any[] = [];
+    let toolResults: any[] = [];
+    if(result.toolCalls) {
+      toolCalls = result.toolCalls.map((tool) => ({
+        name: tool.toolName,
+        input: tool.args,
+      }));
+    }
+    if(result.toolResults) {
+      toolResults = result.toolResults
+    }
+
+    if(steps.length > 0) {
+      toolCalls = steps.flatMap((step) => step.toolCalls.map((tool) => ({
+        name: tool.toolName,
+        input: tool.args,
+      })));
+      toolResults = steps.flatMap((step) => step.toolResults);
+    }
     return {
       result: result.text,
       version: OUTPUT_VERSION,
-      tools: result.toolCalls.map((tool) => ({
-        name: tool.toolName,
-        input: tool.args,
-      })),
-      toolResponses: result.toolResults,
+      tools: toolCalls,
+      toolResponses: toolResults,
       usage: result.usage,
       finishReason: result.finishReason,
     };
