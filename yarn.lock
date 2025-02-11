@@ -1786,7 +1786,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/agentmark@npm:^2.2.0, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -1827,7 +1827,7 @@ __metadata:
   dependencies:
     "@ai-sdk/anthropic": "npm:^1.1.6"
     "@anthropic-ai/sdk": "npm:^0.32.1"
-    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
@@ -1844,7 +1844,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@puzzlet/ollama@workspace:packages/ollama"
   dependencies:
-    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
@@ -1863,7 +1863,7 @@ __metadata:
   resolution: "@puzzlet/openai@workspace:packages/openai"
   dependencies:
     "@ai-sdk/openai": "npm:^1.1.9"
-    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
@@ -3357,7 +3357,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "agentmark@workspace:packages/vscode-extension"
   dependencies:
-    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/all-models": "npm:^1.1.5"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/mocha": "npm:^10.0.8"
@@ -5687,7 +5687,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "examples@workspace:apps/examples"
   dependencies:
-    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/all-models": "npm:^1.1.5"
     "@puzzlet/anthropic": "workspace:^"
     "@puzzlet/openai": "workspace:^"
