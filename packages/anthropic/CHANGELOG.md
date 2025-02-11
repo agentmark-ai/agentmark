@@ -1,5 +1,11 @@
 # @puzzlet/anthropic
 
+## 1.2.0
+
+### Minor Changes
+
+- 43e73cd: Bumping provider packages (openai, ollama, anthropic)
+
 ## 1.1.5
 
 ### Patch Changes

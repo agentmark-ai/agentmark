@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 2.2.1
+
+### Patch Changes
+
+- 31ad0ab: fix: max_llm_calls dont work with tool calls
+
 ## 2.2.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "examples",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "main": "index.js",
   "license": "MIT",
   "private": true,
@@ -9,7 +9,7 @@
     "start": "tsx src/index.ts"
   },
   "dependencies": {
-    "@puzzlet/agentmark": "^2.2.0",
+    "@puzzlet/agentmark": "^2.2.1",
     "@puzzlet/all-models": "^1.1.5",
     "@puzzlet/anthropic": "workspace:^",
     "@puzzlet/openai": "workspace:^",

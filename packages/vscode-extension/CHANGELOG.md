@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.4.0
+
+### Minor Changes
+
+- 43e73cd: bump ai sdk
+
+### Patch Changes
+
+- Updated dependencies [31ad0ab]
+  - @puzzlet/agentmark@2.2.1
+
 ## 1.0.12
 
 ### Patch Changes
