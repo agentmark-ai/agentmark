@@ -77,14 +77,7 @@ export function createToolsConfig(tools: AgentMarkTextSettings["tools"]) {
     acc[toolName] = {
       description: toolData.description,
       parameters: jsonSchema(toolData.parameters as any),
-      execute: (args: any) => {
-        if (!toolFn) {
-          throw new Error(`Tool not found: ${toolName}`);
-        }
-        const result =  toolFn(args);
-        console.log("result-tool", result);
-        return result;
-      },
+      execute: toolFn,
     };
     return acc;
   }, {});
@@ -138,31 +131,15 @@ export async function runInference(
       ...baseConfig,
       tools,
     });
-    const steps = result.steps;
-    let toolCalls: any[] = [];
-    let toolResults: any[] = [];
-    if(result.toolCalls) {
-      toolCalls = result.toolCalls.map((tool) => ({
-        name: tool.toolName,
-        input: tool.args,
-      }));
-    }
-    if(result.toolResults) {
-      toolResults = result.toolResults
-    }
-
-    if(steps.length > 0) {
-      toolCalls = steps.flatMap((step) => step.toolCalls.map((tool) => ({
-        name: tool.toolName,
-        input: tool.args,
-      })));
-      toolResults = steps.flatMap((step) => step.toolResults);
-    }
     return {
       result: result.text,
       version: OUTPUT_VERSION,
-      tools: toolCalls,
-      toolResponses: toolResults,
+      tools: result.toolCalls.map((tool) => ({
+        name: tool.toolName,
+        input: tool.args,
+      })),
+      steps: result.steps,
+      toolResponses: result.toolResults,
       usage: result.usage,
       finishReason: result.finishReason,
     };
@@ -198,7 +175,7 @@ export async function streamInference(
   } else {
     return new Promise(async (resolve, reject) => {
       try {
-        const { textStream, usage, toolCalls, toolResults, finishReason } = streamText({
+        const { textStream, usage, toolCalls, toolResults, finishReason, steps } = streamText({
           ...baseConfig,
           tools: createToolsConfig(settings.tools),
         });
@@ -212,6 +189,7 @@ export async function streamInference(
           }))),
           toolResponses: toolResults,
           finishReason: finishReason as any,
+          steps,
         });
       } catch (error) {
         reject(error);

@@ -99,6 +99,7 @@ export interface AgentMarkOutputV2<T = any> {
     output?: Record<string, any>;
   }>;
   toolResponses?: GenerateTextResult<any, never>['toolResults'];
+  steps?: GenerateTextResult<any, never>['steps'],
   usage: {
     promptTokens: number;
     completionTokens: number;
@@ -117,6 +118,7 @@ export interface AgentMarkStreamOutput<T = any> {
     output?: Record<string, any>;
   }>>;
   toolResponses?: Promise<GenerateTextResult<any, never>['toolResults']>;
+  steps?: Promise<GenerateTextResult<any, never>['steps']>;
   finishReason: Promise<FinishReason>;
 }
 
