@@ -3,15 +3,19 @@ import { vi } from "vitest";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
 import { PluginAPI, getRawConfig } from "@puzzlet/agentmark";
 import OllamaChatPlugin from "../src";
-import fs from 'fs';
-import { ollamaCompletionParamsWithSchema, ollamaCompletionParamsWithTools, promptWithHistory } from "./configs";
+import fs from "fs";
+import {
+  ollamaCompletionParamsWithSchema,
+  ollamaCompletionParamsWithTools,
+  promptWithHistory,
+} from "./configs";
 
 const plugin = new OllamaChatPlugin();
 
 export const getMdxPrompt = async (path: string) => {
-  const input = fs.readFileSync(path, 'utf-8');
+  const input = fs.readFileSync(path, "utf-8");
   return input;
-}
+};
 
 test("should deserialize", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
@@ -21,23 +25,23 @@ test("should deserialize", async () => {
     messages: [
       {
         content: "What's 2 + 2?",
-        role: "user"
+        role: "user",
       },
       {
         content: "5",
-        role: "assistant"
+        role: "assistant",
       },
       {
         content: "Why are you bad at math?",
-        role: "user"
-      }
+        role: "user",
+      },
     ],
     model: "llama3.2",
     options: {
       temperature: 0.7,
-      top_p: 1
+      top_p: 1,
     },
-    stream: false
+    stream: false,
   });
 });
 
@@ -51,14 +55,18 @@ test("should deserialize tools with no stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, {
+    withStream: true,
+  });
   expect(deserializedPrompt).toEqual(ollamaCompletionParamsWithTools(true));
 });
 
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, {
+    withStream: true,
+  });
   expect(deserializedPrompt).toEqual(ollamaCompletionParamsWithSchema(true));
 });
 
@@ -103,22 +111,75 @@ test("run inference with no stream", async () => {
   const api = { ...PluginAPI, fetch: mockFetch };
   const pluginWithInference = new OllamaChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark, api);
+  const { steps, ...result } = await pluginWithInference.runInference(
+    agentMark,
+    api
+  );
 
-  expect(result).toEqual(
+  expect(
+    steps?.map(
+      ({ response: { messages, timestamp, id, ...response }, ...step }) => ({
+        ...step,
+        response: {
+          ...response,
+          messages: messages.map(({ id, ...message }) => message),
+        },
+      })
+    )
+  ).toEqual([
     {
+      experimental_providerMetadata: undefined,
       finishReason: "stop",
-      result: "Mocked response.",
-      tools: [],
-      toolResponses: [],
-      version: "v2.0",
+      isContinued: false,
+      logprobs: undefined,
+      providerMetadata: undefined,
+      reasoning: undefined,
+      request: {
+        body: '{"model":"llama3.2","options":{"temperature":0.7,"top_p":1},"messages":[{"content":"What\'s 2 + 2?","role":"user"},{"content":"5","role":"assistant"},{"content":"Why are you bad at math?","role":"user"}],"stream":false}',
+      },
+      response: {
+        headers: {
+          "content-type": "application/json",
+        },
+        messages: [
+          {
+            content: [
+              {
+                text: "Mocked response.",
+                type: "text",
+              },
+            ],
+            role: "assistant",
+          },
+        ],
+        modelId: "llama3.2",
+      },
+      sources: [],
+      stepType: "initial",
+      text: "Mocked response.",
+      toolCalls: [],
+      toolResults: [],
       usage: {
         completionTokens: 10,
         promptTokens: 5,
         totalTokens: 15,
-      }
+      },
+      warnings: [],
     },
-  );
+  ]);
+
+  expect(result).toEqual({
+    finishReason: "stop",
+    result: "Mocked response.",
+    tools: [],
+    toolResponses: [],
+    version: "v2.0",
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
+    },
+  });
 });
 
 test.skip("run inference with stream", async () => {
@@ -159,7 +220,7 @@ test.skip("run inference with stream", async () => {
             eval_duration: 350000000,
           }),
         ];
-  
+
         chunks.forEach((chunk, index) => {
           controller.enqueue(new TextEncoder().encode(`${chunk}\n\n`));
           if (index === chunks.length - 1) {
@@ -168,20 +229,23 @@ test.skip("run inference with stream", async () => {
         });
       },
     });
-  
+
     return Promise.resolve(
       new Response(stream, {
-        headers: { 'Content-Type': 'text/event-stream' },
+        headers: { "Content-Type": "text/event-stream" },
         status: 200,
-        statusText: 'OK',
+        statusText: "OK",
       })
     );
   });
-  
+
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new OllamaChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const resultWithStream = await pluginWithInference.streamInference(agentMark, api);
+  const resultWithStream = await pluginWithInference.streamInference(
+    agentMark,
+    api
+  );
   let message = "";
   for await (const chunk of resultWithStream.resultStream) {
     message += chunk;
@@ -194,19 +258,17 @@ test.skip("run inference with stream", async () => {
     usage: await resultWithStream.usage,
     version: resultWithStream.version,
   };
-  expect(result).toEqual(
-    {
-      result: "Mocked response.",
-      tools: [],
-      toolResponses: [],
-      usage: {
-        completionTokens: 10,
-        promptTokens: 5,
-        totalTokens: 15,
-      },
-      version: "v2.0",
+  expect(result).toEqual({
+    result: "Mocked response.",
+    tools: [],
+    toolResponses: [],
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
     },
-  );
+    version: "v2.0",
+  });
 });
 
 test("should deserialize prompt with history prop", async () => {

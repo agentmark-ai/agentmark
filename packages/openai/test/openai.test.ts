@@ -102,7 +102,9 @@ test("should serialize tools with stream", async () => {
 test("should deserialize tools with stream", async () => {
   const ast = await load(__dirname + "/mdx/tools-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, {
+    withStream: true,
+  });
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithTools(true));
 });
 
@@ -119,7 +121,9 @@ test("should serialize schema with stream", async () => {
 test("should deserialize schema with stream", async () => {
   const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
   const agentMark = await getRawConfig(ast);
-  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, { withStream: true });
+  const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI, {
+    withStream: true,
+  });
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithSchema(true));
 });
 
@@ -168,7 +172,66 @@ test("run inference", async () => {
   const api = { ...PluginAPI, fetch: mockFetch };
   const pluginWithInference = new OpenAIChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const result = await pluginWithInference.runInference(agentMark, api);
+  const { steps, ...result } = await pluginWithInference.runInference(
+    agentMark,
+    api
+  );
+
+  expect(
+    steps?.map(
+      ({ response: { messages, id, timestamp, ...response }, ...step }) => ({
+        ...step,
+        response: {
+          ...response,
+          messages: messages.map(({ id, ...message }) => message),
+        },
+      })
+    )
+  ).toEqual([
+    {
+      experimental_providerMetadata: {
+        openai: {},
+      },
+      finishReason: "stop",
+      isContinued: false,
+      logprobs: undefined,
+      providerMetadata: {
+        openai: {},
+      },
+      reasoning: undefined,
+      request: {
+        body: '{"model":"gpt-4o-mini","temperature":0.7,"top_p":1,"messages":[{"role":"user","content":"What\'s 2 + 2?"},{"role":"assistant","content":"5"},{"role":"user","content":"Why are you bad at math?"}]}',
+      },
+      response: {
+        headers: {
+          "content-type": "application/json",
+        },
+        messages: [
+          {
+            content: [
+              {
+                text: "Mocked response.",
+                type: "text",
+              },
+            ],
+            role: "assistant",
+          },
+        ],
+        modelId: "gpt-4o-mini",
+      },
+      sources: [],
+      stepType: "initial",
+      text: "Mocked response.",
+      toolCalls: [],
+      toolResults: [],
+      usage: {
+        completionTokens: 10,
+        promptTokens: 5,
+        totalTokens: 15,
+      },
+      warnings: [],
+    },
+  ]);
 
   expect(result).toEqual({
     finishReason: "stop",

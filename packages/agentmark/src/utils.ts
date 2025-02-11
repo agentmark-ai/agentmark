@@ -138,6 +138,7 @@ export async function runInference(
         name: tool.toolName,
         input: tool.args,
       })),
+      steps: result.steps,
       toolResponses: result.toolResults,
       usage: result.usage,
       finishReason: result.finishReason,
@@ -174,7 +175,7 @@ export async function streamInference(
   } else {
     return new Promise(async (resolve, reject) => {
       try {
-        const { textStream, usage, toolCalls, toolResults, finishReason } = streamText({
+        const { textStream, usage, toolCalls, toolResults, finishReason, steps } = streamText({
           ...baseConfig,
           tools: createToolsConfig(settings.tools),
         });
@@ -188,6 +189,7 @@ export async function streamInference(
           }))),
           toolResponses: toolResults,
           finishReason: finishReason as any,
+          steps,
         });
       } catch (error) {
         reject(error);
