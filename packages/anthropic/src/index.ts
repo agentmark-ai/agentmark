@@ -1,3 +1,4 @@
 import AnthropicChatPlugin from "./anthropic-chat";
 
-export default AnthropicChatPlugin
+export { AnthropicChatPlugin };
+export default AnthropicChatPlugin;
