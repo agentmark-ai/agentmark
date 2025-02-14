@@ -18,6 +18,5 @@ export default defineConfig({
   esbuildOptions(options) {
     options.mainFields = ['module', 'main']
     options.platform = 'node'
-    options.format = options.format === 'cjs' ? 'cjs' : 'esm'
   },
 });
