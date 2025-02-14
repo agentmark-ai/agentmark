@@ -119,10 +119,10 @@ export async function runInference(
       schema: jsonSchema(settings.schema as any),
     });
     return {
+      ...result,
       result: result.object,
       version: OUTPUT_VERSION,
       type: "object",
-      ...result,
     };
   } else {
     const tools = createToolsConfig(settings.tools);
@@ -131,10 +131,10 @@ export async function runInference(
       tools,
     });
     return {
+      ...result,
       result: result.text,
       version: OUTPUT_VERSION,
       type: "text",
-      ...result,
     };
   }
 }
@@ -156,10 +156,10 @@ export async function streamInference(
           schema: jsonSchema(settings.schema as any),
         });
         resolve({
+          ...result,
           resultStream: result.partialObjectStream as AsyncIterable<Partial<any>>,
           version: OUTPUT_VERSION,
           type: "object",
-          ...result,
         });
       } catch (error) {
         reject(error);
@@ -173,10 +173,10 @@ export async function streamInference(
           tools: createToolsConfig(settings.tools),
         });
         resolve({
+          ...result,
           resultStream: result.textStream,
           version: OUTPUT_VERSION,
           type: "text",
-          ...result,
         });
       } catch (error) {
         reject(error);
