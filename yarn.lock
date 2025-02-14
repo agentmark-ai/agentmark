@@ -1786,7 +1786,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:^, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -1810,6 +1810,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@puzzlet/all-models@workspace:packages/all-models"
   dependencies:
+    "@puzzlet/agentmark": "workspace:^"
     "@puzzlet/anthropic": "npm:^1.1.5"
     "@puzzlet/openai": "npm:^1.1.5"
     "@types/node": "npm:^22.10.1"
