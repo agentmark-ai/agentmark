@@ -1,5 +1,11 @@
 # @puzzlet/agentmark
 
+## 2.2.2
+
+### Patch Changes
+
+- 14f98d4: fix: import issues
+
 ## 2.2.1
 
 ### Patch Changes
