@@ -11,7 +11,7 @@ import { streamObject, streamText, generateObject, generateText } from "ai";
 import { ToolPluginRegistry } from "./tool-plugin-registry";
 import { AgentMarkSettingsSchema } from "./schemas";
 
-const OUTPUT_VERSION = "v2.0";
+const OUTPUT_VERSION = "v3.0";
 
 export function omit<T extends JSONObject>(
   obj: T,
@@ -120,10 +120,9 @@ export async function runInference(
     });
     return {
       result: result.object,
-      tools: [],
       version: OUTPUT_VERSION,
-      usage: result.usage,
-      finishReason: result.finishReason,
+      type: "object",
+      ...result,
     };
   } else {
     const tools = createToolsConfig(settings.tools);
@@ -134,14 +133,8 @@ export async function runInference(
     return {
       result: result.text,
       version: OUTPUT_VERSION,
-      tools: result.toolCalls.map((tool) => ({
-        name: tool.toolName,
-        input: tool.args,
-      })),
-      steps: result.steps,
-      toolResponses: result.toolResults,
-      usage: result.usage,
-      finishReason: result.finishReason,
+      type: "text",
+      ...result,
     };
   }
 }
@@ -158,15 +151,15 @@ export async function streamInference(
   if ("schema" in settings) {
     return new Promise(async (resolve, reject) => {
       try {
-        const { partialObjectStream, usage } = streamObject({
+        const result = streamObject({
           ...baseConfig,
           schema: jsonSchema(settings.schema as any),
         });
         resolve({
-          resultStream: partialObjectStream as AsyncIterable<Partial<any>>,
+          resultStream: result.partialObjectStream as AsyncIterable<Partial<any>>,
           version: OUTPUT_VERSION,
-          usage: usage,
-          finishReason: Promise.resolve("unknown"),
+          type: "object",
+          ...result,
         });
       } catch (error) {
         reject(error);
@@ -175,21 +168,15 @@ export async function streamInference(
   } else {
     return new Promise(async (resolve, reject) => {
       try {
-        const { textStream, usage, toolCalls, toolResults, finishReason, steps } = streamText({
+        const result = streamText({
           ...baseConfig,
           tools: createToolsConfig(settings.tools),
         });
         resolve({
-          resultStream: textStream as AsyncIterable<Partial<any>>,
+          resultStream: result.textStream,
           version: OUTPUT_VERSION,
-          usage: usage,
-          tools: toolCalls.then((calls) => calls.map((call) => ({
-            name: call.toolName,
-            input: call.args,
-          }))),
-          toolResponses: toolResults,
-          finishReason: finishReason as any,
-          steps,
+          type: "text",
+          ...result,
         });
       } catch (error) {
         reject(error);
