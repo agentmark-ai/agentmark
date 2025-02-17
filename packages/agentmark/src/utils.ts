@@ -10,7 +10,7 @@ import {
 } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
 import { AgentMarkSettings, AISDKBaseSettings } from "./types";
-import { streamObject, streamText, generateObject, generateText } from "ai";
+import { streamObject as streamObjectAI, streamText as streamTextAI, generateObject as generateObjectAI, generateText as generateTextAI } from "ai";
 import { ToolPluginRegistry } from "./tool-plugin-registry";
 import { AgentMarkSettingsSchema } from "./schemas";
 
@@ -107,81 +107,91 @@ export function getBaseSettings(
   };
 }
 
-export async function runInference(
+export async function generateText(
   config: AgentMarkSettings,
   model: LanguageModel,
   messages: Array<ChatMessage>,
   options?: InferenceOptions
-): Promise<GenerateObjectOutput | GenerateTextOutput> {
+): Promise<GenerateTextOutput> {
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);
-  if ("schema" in settings) {
-    const result = await generateObject({
-      ...baseConfig,
-      schema: jsonSchema(settings.schema as any),
-    });
-    return {
-      ...result,
-      // result: result.object,
-      version: OUTPUT_VERSION,
-    };
-  } else {
-    const tools = createToolsConfig(settings.tools);
-    const result = await generateText({
-      ...baseConfig,
-      tools,
-    });
-    return {
-      ...result,
-      // result: result.text,
-      version: OUTPUT_VERSION,
-    };
-  }
+  const tools = createToolsConfig(settings.tools);
+  const result = await generateTextAI({
+    ...baseConfig,
+    tools,
+  });
+  return {
+    ...result,
+    version: OUTPUT_VERSION,
+  };
 }
 
-export async function streamInference(
+export async function generateObject(
   config: AgentMarkSettings,
   model: LanguageModel,
   messages: Array<ChatMessage>,
   options?: InferenceOptions
-): Promise<StreamObjectOutput | StreamTextOutput> {
+): Promise<GenerateObjectOutput> {
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);
-  if ("schema" in settings) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const result = streamObject({
-          ...baseConfig,
-          schema: jsonSchema(settings.schema as any),
-        });
-        resolve({
-          ...result,
-          // resultStream: result.partialObjectStream as AsyncIterable<
-          //   Partial<any>
-          // >,
-          version: OUTPUT_VERSION,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  } else {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const result = streamText({
-          ...baseConfig,
-          tools: createToolsConfig(settings.tools),
-        });
-        resolve({
-          ...result,
-          // resultStream: result.textStream,
-          version: OUTPUT_VERSION,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
+  const result = await generateObjectAI({
+    ...baseConfig,
+    schema: jsonSchema(settings.schema as any),
+  });
+  return {
+    ...result,
+    version: OUTPUT_VERSION,
+  };
+}
+
+export async function streamText(
+  config: AgentMarkSettings,
+  model: LanguageModel,
+  messages: Array<ChatMessage>,
+  options?: InferenceOptions
+): Promise<StreamTextOutput> {
+  const baseConfig = getBaseSettings(config, model, messages);
+  baseConfig.experimental_telemetry = options?.telemetry;
+  const settings = AgentMarkSettingsSchema.parse(config);
+  return new Promise(async (resolve, reject) => {
+    try {
+      const result = streamTextAI({
+        ...baseConfig,
+        tools: createToolsConfig(settings.tools),
+      });
+      resolve({
+        ...result,
+        version: OUTPUT_VERSION,
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+export async function streamObject(
+  config: AgentMarkSettings,
+  model: LanguageModel,
+  messages: Array<ChatMessage>,
+  options?: InferenceOptions
+): Promise<StreamObjectOutput> {
+  const baseConfig = getBaseSettings(config, model, messages);
+  baseConfig.experimental_telemetry = options?.telemetry;
+  const settings = AgentMarkSettingsSchema.parse(config);
+  return new Promise(async (resolve, reject) => {
+    try {
+      const result = streamObjectAI({
+        ...baseConfig,
+        schema: jsonSchema(settings.schema as any),
+      });
+      resolve({
+        ...result,
+        version: OUTPUT_VERSION,
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
 }

@@ -18,30 +18,18 @@ describe('FileLoader', () => {
       provider: 'test',
       setApiKey: () => {},
       serialize: () => '',
-      runInference: async () => ({
-        result: { answer: 'test answer' },
-        version: 'v2.0',
+      generateObject: async () => ({
+        object: { answer: 'test answer' },
+        version: 'v3.0',
         usage: {
           promptTokens: 0,
           completionTokens: 0,
           totalTokens: 0
         },
-        finishReason: 'stop'
-      }),
-      streamInference: async () => ({
-        finishReason: Promise.resolve('stop'),
-        resultStream: (async function* () {
-          yield { answer: 'test answer' };
-        })(),
-        usage: Promise.resolve({
-          promptTokens: 0,
-          completionTokens: 0,
-          totalTokens: 0
-        }),
-        version: 'v2.0'
-      }),
+        finishReason: 'stop',
+      } as any),
       deserialize: async () => ({ answer: 'test answer' })
-    }, ['test-model']);
+    } as any, ['test-model']);
   });
 
   beforeEach(() => {
@@ -51,8 +39,8 @@ describe('FileLoader', () => {
   it('loads and runs a prompt', async () => {
     const prompt = await loader.load('test/math.prompt.mdx');
 
-    const result = await prompt.run({ userMessage: 'test question' });
-    expect(result.result.answer).toBe('test answer');
+    const result = await prompt.generateObject({ userMessage: 'test question' });
+    expect(result.object.answer).toBe('test answer');
   });
 
   it('handles missing files', async () => {
@@ -63,7 +51,7 @@ describe('FileLoader', () => {
   it('preserves type safety on input', async () => {
     const prompt = await loader.load('test/math.prompt.mdx');
     // @ts-expect-error - wrong input type
-    await expect(prompt.run({ wrongProp: 'test' }))
+    await expect(prompt.generateObject({ wrongProp: 'test' }))
       .rejects.toThrow();
   });
 
@@ -72,7 +60,7 @@ describe('FileLoader', () => {
       provider: 'test',
       setApiKey: () => {},
       serialize: () => '',
-      runInference: async () => ({
+      generateObject: async () => ({
         result: { wrongResponse: 'test answer' },
         version: 'v2.0',
         usage: {
@@ -81,23 +69,11 @@ describe('FileLoader', () => {
           totalTokens: 0
         },
         finishReason: 'stop'
-      }),
-      streamInference: async () => ({
-        finishReason: Promise.resolve('stop'),
-        resultStream: (async function* () {
-          yield { answer: 'test answer' };
-        })(),
-        usage: Promise.resolve({
-          promptTokens: 0,
-          completionTokens: 0,
-          totalTokens: 0
-        }),
-        version: 'v2.0'
-      }),
+      } as any),
       deserialize: async () => ({ answer: 'test answer' })
-    }, ['test-model']);
+    } as any, ['test-model']);
     const prompt = await loader.load('test/math.prompt.mdx');
-    await expect(prompt.run({ userMessage: 'test question' }))
+    await expect(prompt.generateObject({ userMessage: 'test question' }))
       .rejects.toThrow();
   });
 }); 

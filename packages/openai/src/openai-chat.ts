@@ -81,9 +81,17 @@ export default class OpenAIChatPlugin implements IModelPlugin {
         // Swallow any errors here. We only care about the deserialized inputs.
         try {
           if (config?.withStream) {
-            await api.streamInference(modelConfig.settings, providerModel, messages);
+            if("schema" in modelConfig.settings) {
+                await api.streamObject(modelConfig.settings, providerModel, messages);
+              } else {
+                await api.streamText(modelConfig.settings, providerModel, messages);
+            }
           } else {
-            await api.runInference(modelConfig.settings, providerModel, messages);
+            if("schema" in modelConfig.settings) {
+              await api.generateObject(modelConfig.settings, providerModel, messages);
+            } else {
+              await api.generateText(modelConfig.settings, providerModel, messages);
+            }
           }
         } catch (e) {}
       }
@@ -108,7 +116,7 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    const result = await api.generateObject(modelConfig.settings, providerModel, messages, options);
     return result as GenerateObjectOutput<OBJECT>;
   }
 
@@ -117,7 +125,7 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    const result = await api.generateText(modelConfig.settings, providerModel, messages, options);
     return result as GenerateTextOutput;
   }
 
@@ -126,7 +134,7 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    const result = await api.streamObject(modelConfig.settings, providerModel, messages, options);
     return result as StreamObjectOutput<OBJECT>;
   }
 
@@ -135,7 +143,7 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
-    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    const result = await api.streamText(modelConfig.settings, providerModel, messages, options);
     return result as StreamTextOutput;
   }
 }
