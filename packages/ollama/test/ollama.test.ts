@@ -77,7 +77,7 @@ test("should deserialize schema with no stream", async () => {
   expect(deserializedPrompt).toEqual(ollamaCompletionParamsWithSchema(false));
 });
 
-test("run inference with no stream", async () => {
+test("should generate text", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const mockFetch = vi.fn(() =>
     Promise.resolve(
@@ -111,69 +111,15 @@ test("run inference with no stream", async () => {
   const api = { ...PluginAPI, fetch: mockFetch };
   const pluginWithInference = new OllamaChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const { steps, ...result } = await pluginWithInference.runInference(
+  const { text, finishReason, usage, version } = await pluginWithInference.generateText(
     agentMark,
     api
   );
 
-  expect(
-    steps?.map(
-      ({ response: { messages, timestamp, id, ...response }, ...step }) => ({
-        ...step,
-        response: {
-          ...response,
-          messages: messages.map(({ id, ...message }) => message),
-        },
-      })
-    )
-  ).toEqual([
-    {
-      experimental_providerMetadata: undefined,
-      finishReason: "stop",
-      isContinued: false,
-      logprobs: undefined,
-      providerMetadata: undefined,
-      reasoning: undefined,
-      request: {
-        body: '{"model":"llama3.2","options":{"temperature":0.7,"top_p":1},"messages":[{"content":"What\'s 2 + 2?","role":"user"},{"content":"5","role":"assistant"},{"content":"Why are you bad at math?","role":"user"}],"stream":false}',
-      },
-      response: {
-        headers: {
-          "content-type": "application/json",
-        },
-        messages: [
-          {
-            content: [
-              {
-                text: "Mocked response.",
-                type: "text",
-              },
-            ],
-            role: "assistant",
-          },
-        ],
-        modelId: "llama3.2",
-      },
-      sources: [],
-      stepType: "initial",
-      text: "Mocked response.",
-      toolCalls: [],
-      toolResults: [],
-      usage: {
-        completionTokens: 10,
-        promptTokens: 5,
-        totalTokens: 15,
-      },
-      warnings: [],
-    },
-  ]);
-
-  expect(result).toEqual({
+  expect({text, finishReason, usage, version}).toEqual({
     finishReason: "stop",
     result: "Mocked response.",
-    tools: [],
-    toolResponses: [],
-    version: "v2.0",
+    version: "v3.0",
     usage: {
       completionTokens: 10,
       promptTokens: 5,
@@ -242,19 +188,19 @@ test.skip("run inference with stream", async () => {
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new OllamaChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const resultWithStream = await pluginWithInference.streamInference(
+  const resultWithStream = await pluginWithInference.streamText(
     agentMark,
     api
   );
   let message = "";
-  for await (const chunk of resultWithStream.resultStream) {
+  for await (const chunk of resultWithStream.textStream) {
     message += chunk;
   }
 
   const result = {
     result: message,
-    tools: await resultWithStream.tools,
-    toolResponses: await resultWithStream.toolResponses,
+    tools: await resultWithStream.toolCalls,
+    toolResponses: await resultWithStream.toolResults,
     usage: await resultWithStream.usage,
     version: resultWithStream.version,
   };
