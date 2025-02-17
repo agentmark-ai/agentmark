@@ -10,7 +10,12 @@ import {
 } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
 import { AgentMarkSettings, AISDKBaseSettings } from "./types";
-import { streamObject as streamObjectAI, streamText as streamTextAI, generateObject as generateObjectAI, generateText as generateTextAI } from "ai";
+import {
+  streamObject as streamObjectAI,
+  streamText as streamTextAI,
+  generateObject as generateObjectAI,
+  generateText as generateTextAI,
+} from "ai";
 import { ToolPluginRegistry } from "./tool-plugin-registry";
 import { AgentMarkSettingsSchema } from "./schemas";
 
@@ -121,10 +126,8 @@ export async function generateText(
     ...baseConfig,
     tools,
   });
-  return {
-    ...result,
-    version: OUTPUT_VERSION,
-  };
+  (result as any).version = OUTPUT_VERSION;
+  return result as GenerateTextOutput;
 }
 
 export async function generateObject(
@@ -140,10 +143,8 @@ export async function generateObject(
     ...baseConfig,
     schema: jsonSchema(settings.schema as any),
   });
-  return {
-    ...result,
-    version: OUTPUT_VERSION,
-  };
+  (result as any).version = OUTPUT_VERSION;
+  return result as GenerateObjectOutput;
 }
 
 export async function streamText(
@@ -155,20 +156,13 @@ export async function streamText(
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);
-  return new Promise(async (resolve, reject) => {
-    try {
-      const result = streamTextAI({
-        ...baseConfig,
-        tools: createToolsConfig(settings.tools),
-      });
-      resolve({
-        ...result,
-        version: OUTPUT_VERSION,
-      });
-    } catch (error) {
-      reject(error);
-    }
+  const result = streamTextAI({
+    ...baseConfig,
+    tools: createToolsConfig(settings.tools),
   });
+
+  (result as any).version = OUTPUT_VERSION;
+  return result as StreamTextOutput;
 }
 
 export async function streamObject(
@@ -180,18 +174,11 @@ export async function streamObject(
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);
-  return new Promise(async (resolve, reject) => {
-    try {
-      const result = streamObjectAI({
-        ...baseConfig,
-        schema: jsonSchema(settings.schema as any),
-      });
-      resolve({
-        ...result,
-        version: OUTPUT_VERSION,
-      });
-    } catch (error) {
-      reject(error);
-    }
+  const result = streamObjectAI({
+    ...baseConfig,
+    schema: jsonSchema(settings.schema as any),
   });
+  (result as any).version = OUTPUT_VERSION;
+  return result as StreamObjectOutput;
 }
+

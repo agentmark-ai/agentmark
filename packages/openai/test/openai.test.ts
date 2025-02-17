@@ -1,7 +1,11 @@
 import { expect, test } from "vitest";
 import { vi } from "vitest";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
-import { PluginAPI, getRawConfig } from "@puzzlet/agentmark";
+import {
+  PluginAPI,
+  ToolPluginRegistry,
+  getRawConfig,
+} from "@puzzlet/agentmark";
 import OpenAIChatPlugin from "../src";
 import fs from "fs";
 import {
@@ -146,7 +150,7 @@ test("should deserialize schema with no stream", async () => {
   expect(deserializedPrompt).toEqual(openaiCompletionParamsWithSchema(false));
 });
 
-test("run inference", async () => {
+test("should generate text", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const mockFetch = vi.fn(() =>
     Promise.resolve(
@@ -172,82 +176,23 @@ test("run inference", async () => {
   const api = { ...PluginAPI, fetch: mockFetch };
   const pluginWithInference = new OpenAIChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const { steps, ...result } = await pluginWithInference.runInference(
+  const { text, usage, version } = await pluginWithInference.generateText(
     agentMark,
     api
   );
 
-  expect(
-    steps?.map(
-      ({ response: { messages, id, timestamp, ...response }, ...step }) => ({
-        ...step,
-        response: {
-          ...response,
-          messages: messages.map(({ id, ...message }) => message),
-        },
-      })
-    )
-  ).toEqual([
-    {
-      experimental_providerMetadata: {
-        openai: {},
-      },
-      finishReason: "stop",
-      isContinued: false,
-      logprobs: undefined,
-      providerMetadata: {
-        openai: {},
-      },
-      reasoning: undefined,
-      request: {
-        body: '{"model":"gpt-4o-mini","temperature":0.7,"top_p":1,"messages":[{"role":"user","content":"What\'s 2 + 2?"},{"role":"assistant","content":"5"},{"role":"user","content":"Why are you bad at math?"}]}',
-      },
-      response: {
-        headers: {
-          "content-type": "application/json",
-        },
-        messages: [
-          {
-            content: [
-              {
-                text: "Mocked response.",
-                type: "text",
-              },
-            ],
-            role: "assistant",
-          },
-        ],
-        modelId: "gpt-4o-mini",
-      },
-      sources: [],
-      stepType: "initial",
-      text: "Mocked response.",
-      toolCalls: [],
-      toolResults: [],
-      usage: {
-        completionTokens: 10,
-        promptTokens: 5,
-        totalTokens: 15,
-      },
-      warnings: [],
-    },
-  ]);
-
-  expect(result).toEqual({
-    finishReason: "stop",
-    result: "Mocked response.",
-    tools: [],
-    toolResponses: [],
-    version: "v2.0",
+  expect({ text, usage, version }).toEqual({
+    text: "Mocked response.",
     usage: {
       completionTokens: 10,
       promptTokens: 5,
       totalTokens: 15,
     },
+    version: "v3.0",
   });
 });
 
-test("stream inference", async () => {
+test("should stream text", async () => {
   const ast = await load(__dirname + "/mdx/basic-stream.prompt.mdx");
   const mockStreamedFetch = vi.fn(() => {
     const stream = new ReadableStream({
@@ -298,34 +243,234 @@ test("stream inference", async () => {
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new OpenAIChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const resultWithStream = await pluginWithInference.streamInference(
-    agentMark,
-    api
-  );
+  const resultWithStream = await pluginWithInference.streamText(agentMark, api);
 
   let message = "";
-  for await (const chunk of resultWithStream.resultStream) {
+  for await (const chunk of resultWithStream.textStream) {
     message += chunk;
   }
 
   const result = {
-    result: message,
-    tools: await resultWithStream.tools,
-    toolResponses: await resultWithStream.toolResponses,
+    text: message,
     usage: await resultWithStream.usage,
     version: resultWithStream.version,
   };
 
   expect(result).toEqual({
-    result: "Mocked response.",
-    tools: [],
-    toolResponses: [],
+    text: "Mocked response.",
     usage: {
       completionTokens: 10,
       promptTokens: 5,
       totalTokens: 15,
     },
-    version: "v2.0",
+    version: "v3.0",
+  });
+});
+
+test("should generate object", async () => {
+  const ast = await load(__dirname + "/mdx/schema.prompt.mdx");
+  const agentMark = await getRawConfig(ast);
+  const mockFetch = vi.fn(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              index: 0,
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: "call_xyz",
+                    type: "function",
+                    function: {
+                      name: "parse_response",
+                      arguments: JSON.stringify({
+                        names: [
+                          "Jessica",
+                          "Michael",
+                          "Emily",
+                          "David",
+                          "Sarah",
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+          usage: { prompt_tokens: 5, completion_tokens: 10, total_tokens: 15 },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+          statusText: "OK",
+        }
+      )
+    )
+  );
+  const api = { ...PluginAPI, fetch: mockFetch };
+  const pluginWithInference = new OpenAIChatPlugin();
+  const result = await pluginWithInference.generateObject(agentMark, api);
+  expect({
+    result: result.object,
+    usage: result.usage,
+    version: result.version,
+  }).toEqual({
+    result: {
+      names: ["Jessica", "Michael", "Emily", "David", "Sarah"],
+    },
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
+    },
+    version: "v3.0",
+  });
+});
+
+test("should stream object", async () => {
+  const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
+  const agentMark = await getRawConfig(ast);
+  const mockStreamedFetch = vi.fn(() => {
+    const stream = new ReadableStream({
+      start(controller) {
+        const chunks = [
+          JSON.stringify({
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    {
+                      index: 0,
+                      id: "call_xyz",
+                      type: "function",
+                      function: {
+                        name: "parse_response",
+                      },
+                    },
+                  ],
+                },
+                index: 0,
+                finish_reason: null,
+              },
+            ],
+          }),
+          JSON.stringify({
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    {
+                      index: 0,
+                      function: {
+                        arguments: '{"names":[',
+                      },
+                    },
+                  ],
+                },
+                index: 0,
+                finish_reason: null,
+              },
+            ],
+          }),
+          JSON.stringify({
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    {
+                      index: 0,
+                      function: {
+                        arguments: '"Jessica","Michael",',
+                      },
+                    },
+                  ],
+                },
+                index: 0,
+                finish_reason: null,
+              },
+            ],
+          }),
+          JSON.stringify({
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    {
+                      index: 0,
+                      function: {
+                        arguments: '"Emily","David","Sarah"]}',
+                      },
+                    },
+                  ],
+                },
+                index: 0,
+                finish_reason: "tool_calls",
+              },
+            ],
+            usage: {
+              prompt_tokens: 5,
+              completion_tokens: 10,
+              total_tokens: 15,
+            },
+          }),
+          "[DONE]",
+        ];
+
+        chunks.forEach((chunk) => {
+          controller.enqueue(new TextEncoder().encode(`data: ${chunk}\n\n`));
+        });
+        controller.close();
+      },
+    });
+
+    return Promise.resolve(
+      new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+        status: 200,
+        statusText: "OK",
+      })
+    );
+  });
+
+  const api = { ...PluginAPI, fetch: mockStreamedFetch };
+  const pluginWithInference = new OpenAIChatPlugin();
+  const resultWithStream = await pluginWithInference.streamObject(
+    agentMark,
+    api
+  );
+
+  let object: any = {};
+  let chunkCount = 0;
+
+  for await (const chunk of resultWithStream.partialObjectStream) {
+    chunkCount++;
+    object = chunk;
+  }
+
+  const result = {
+    object,
+    usage: await resultWithStream.usage,
+    version: resultWithStream.version,
+  };
+
+  expect(result).toEqual({
+    object: {
+      names: ["Jessica", "Michael", "Emily", "David", "Sarah"],
+    },
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
+    },
+    version: "v3.0",
   });
 });
 
@@ -335,4 +480,94 @@ test("should deserialize prompt with history prop", async () => {
   const agentMark = await getRawConfig(ast, frontmatter.test_settings.props);
   const deserializedPrompt = await plugin.deserialize(agentMark, PluginAPI);
   expect(deserializedPrompt).toEqual(promptWithHistory);
+});
+
+test("should generate text with tools", async () => {
+  ToolPluginRegistry.register(async ({ location }: { location: string }) => {
+    return `Cold af in ${location}`;
+  }, "weather");
+  const ast = await load(__dirname + "/mdx/tools.prompt.mdx");
+  const mockFetch = vi.fn(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              index: 0,
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: "call_xyz",
+                    type: "function",
+                    function: {
+                      name: "weather",
+                      arguments: JSON.stringify({
+                        location: "London",
+                        unit: "celsius",
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+          usage: { prompt_tokens: 5, completion_tokens: 10, total_tokens: 15 },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+          statusText: "OK",
+        }
+      )
+    )
+  );
+  const api = { ...PluginAPI, fetch: mockFetch };
+  const pluginWithInference = new OpenAIChatPlugin();
+  const agentMark = await getRawConfig(ast);
+  const { text, usage, version, finishReason, toolCalls, toolResults } =
+    await pluginWithInference.generateText(agentMark, api);
+  
+
+  expect({
+    text,
+    usage,
+    version,
+    finishReason,
+    toolCalls,
+    toolResults,
+  }).toEqual({
+    text: "",
+    toolCalls: [
+      {
+        toolCallId: "call_xyz",
+        type: "tool-call",
+        args: {
+          location: "London",
+          unit: "celsius",
+        },
+        toolName: "weather",
+      },
+    ],
+    toolResults: [
+      {
+        toolCallId: "call_xyz",
+        type: "tool-result",
+        result: "Cold af in London",
+        toolName: "weather",
+        args: {
+          location: "London",
+          unit: "celsius",
+        },
+      },
+    ],
+    usage: {
+      completionTokens: 10,
+      promptTokens: 5,
+      totalTokens: 15,
+    },
+    finishReason: "tool-calls",
+    version: "v3.0",
+  });
 });
