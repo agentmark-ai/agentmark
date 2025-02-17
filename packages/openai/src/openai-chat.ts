@@ -1,7 +1,7 @@
 import {
   ChatCompletionCreateParams,
 } from "openai/resources";
-import type { IPluginAPI, IModelPlugin, InferenceOptions, AgentMarkOutput, AgentMark, AgentMarkStreamOutput, DeserializeConfig } from "@puzzlet/agentmark";
+import type { IPluginAPI, IModelPlugin, InferenceOptions, AgentMark, DeserializeConfig, GenerateObjectOutput, GenerateTextOutput, StreamObjectOutput, StreamTextOutput } from "@puzzlet/agentmark";
 import { createOpenAI } from "@ai-sdk/openai";
 
 export default class OpenAIChatPlugin implements IModelPlugin {
@@ -91,37 +91,51 @@ export default class OpenAIChatPlugin implements IModelPlugin {
     return completionParamsPromise;
   }
 
-  async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {
+  private createOpenAIClient(api: IPluginAPI, options?: InferenceOptions) {
     const apiKey = options?.apiKey || this.apiKey || api.getEnv("OPENAI_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
-    const openai = createOpenAI({
+    return createOpenAI({
       compatibility: 'strict',
       apiKey,
       fetch: api.fetch
     });
+  }
+
+  async generateObject<OBJECT>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateObjectOutput<OBJECT>> {
+    const openai = this.createOpenAIClient(api, options);
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
     const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
-    return result;
+    return result as GenerateObjectOutput<OBJECT>;
   }
 
-  async streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput<any>> {
-    const apiKey = options?.apiKey || this.apiKey || api.getEnv("OPENAI_API_KEY");
-    if (!apiKey) {
-      throw new Error("No API key provided");
-    }
-    const openai = createOpenAI({
-      compatibility: 'strict',
-      apiKey,
-      fetch: api.fetch
-    });
+  async generateText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateTextOutput> {
+    const openai = this.createOpenAIClient(api, options);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = openai(modelConfig.name);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    return result as GenerateTextOutput;
+  }
+
+  async streamObject<OBJECT>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamObjectOutput<OBJECT>> {
+    const openai = this.createOpenAIClient(api, options);
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = openai(modelConfig.name);
     const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
-    return result;
+    return result as StreamObjectOutput<OBJECT>;
+  }
+
+  async streamText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamTextOutput> {
+    const openai = this.createOpenAIClient(api, options);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = openai(modelConfig.name);
+    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    return result as StreamTextOutput;
   }
 }

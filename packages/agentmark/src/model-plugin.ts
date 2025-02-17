@@ -1,4 +1,4 @@
-import { JSONObject, AgentMarkOutput, AgentMark, InferenceOptions, AgentMarkStreamOutput, DeserializeConfig } from "./types";
+import { JSONObject, AgentMark, InferenceOptions, DeserializeConfig, GenerateObjectOutput, GenerateTextOutput, StreamObjectOutput, StreamTextOutput } from "./types";
 import type { IPluginAPI } from './plugin-api';
 
 export interface IModelPlugin<T = JSONObject, R = T> {
@@ -8,9 +8,13 @@ export interface IModelPlugin<T = JSONObject, R = T> {
 
   deserialize(agentMark: AgentMark, api: IPluginAPI, config?: DeserializeConfig): Promise<R>;
 
-  runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput>;
+  generateObject<OBJECT extends any>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateObjectOutput<OBJECT>>;
 
-  streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput>;
+  generateText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateTextOutput>;
+
+  streamObject<OBJECT extends any>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamObjectOutput<OBJECT>>;
+
+  streamText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamTextOutput>;
 
   serialize(completionParams: R, name: string, api: IPluginAPI): string;
 }

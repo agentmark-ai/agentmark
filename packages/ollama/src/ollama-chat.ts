@@ -2,10 +2,12 @@ import type {
   IPluginAPI,
   IModelPlugin,
   InferenceOptions,
-  AgentMarkOutput,
   AgentMark,
-  AgentMarkStreamOutput,
   DeserializeConfig,
+  GenerateObjectOutput,
+  GenerateTextOutput,
+  StreamObjectOutput,
+  StreamTextOutput,
 } from "@puzzlet/agentmark";
 import { createOllama } from 'ollama-ai-provider';
 
@@ -19,6 +21,48 @@ export default class OllamaChatPlugin implements IModelPlugin {
 
   setApiKey() {
     console.log('*** No-op for now...');
+  }
+
+  private createOllamaClient(api: IPluginAPI) {
+    return createOllama({ 
+      fetch: api.fetch 
+    });
+  }
+
+  async generateObject<OBJECT>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateObjectOutput<OBJECT>> {
+    const ollama = this.createOllamaClient(api);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = ollama(modelConfig.name);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    return result as GenerateObjectOutput<OBJECT>;
+  }
+
+  async generateText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateTextOutput> {
+    const ollama = this.createOllamaClient(api);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = ollama(modelConfig.name);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    return result as GenerateTextOutput;
+  }
+
+  async streamObject<OBJECT>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamObjectOutput<OBJECT>> {
+    const ollama = this.createOllamaClient(api);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = ollama(modelConfig.name);
+    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    return result as StreamObjectOutput<OBJECT>;
+  }
+
+  async streamText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamTextOutput> {
+    const ollama = this.createOllamaClient(api);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = ollama(modelConfig.name);
+    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    return result as StreamTextOutput;
   }
 
   serialize(): string {
@@ -48,36 +92,5 @@ export default class OllamaChatPlugin implements IModelPlugin {
       }
     );
     return completionParamsPromise;
-  }
-
-  async runInference(
-    agentMark: AgentMark,
-    api: IPluginAPI,
-    options?: InferenceOptions
-  ): Promise<AgentMarkOutput> {
-    const ollama = createOllama({ fetch: api.fetch });
-    const { metadata, messages } = agentMark;
-    const { model: modelConfig } = metadata;
-    const providerModel = ollama(modelConfig.name);
-    const result = await api.runInference(
-      modelConfig.settings,
-      providerModel,
-      messages,
-      options
-    );
-    return result;
-  }
-
-  async streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput<any>> {
-    const ollama = createOllama({ fetch: api.fetch });
-    const { metadata, messages } = agentMark;
-    const { model: modelConfig } = metadata;
-    const providerModel = ollama(modelConfig.name);
-    return api.streamInference(
-      modelConfig.settings,
-      providerModel,
-      messages,
-      options
-    );
   }
 }

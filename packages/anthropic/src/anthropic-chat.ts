@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { IModelPlugin, AgentMark, AgentMarkOutput } from "@puzzlet/agentmark";
-import type { AgentMarkStreamOutput, IPluginAPI, InferenceOptions, DeserializeConfig } from '@puzzlet/agentmark';
+import { IModelPlugin, AgentMark } from "@puzzlet/agentmark";
+import type { IPluginAPI, InferenceOptions, DeserializeConfig, GenerateTextOutput, GenerateObjectOutput, StreamObjectOutput, StreamTextOutput } from '@puzzlet/agentmark';
 import { createAnthropic } from "@ai-sdk/anthropic";
 
 type MessageCreateParams = Anthropic.MessageCreateParams;
@@ -103,34 +103,50 @@ export default class AnthropicChatPlugin implements IModelPlugin {
     return completionParamsPromise;
   }
 
-  async runInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkOutput> {
+  private createAnthropicClient(api: IPluginAPI, options?: InferenceOptions) {
     const apiKey = options?.apiKey || this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
     if (!apiKey) {
       throw new Error("No API key provided");
     }
-    const anthropic = createAnthropic({
+    return createAnthropic({
       apiKey,
       fetch: api.fetch
     });
+  }
+
+  async generateObject<OBJECT>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateObjectOutput<OBJECT>> {
+    const anthropic = this.createAnthropicClient(api, options);
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
     const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
-    return result;
+    return result as GenerateObjectOutput<OBJECT>;
   }
 
-  async streamInference(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<AgentMarkStreamOutput<any>> {
-    const apiKey = options?.apiKey || this.apiKey || api.getEnv("ANTHROPIC_API_KEY");
-    if (!apiKey) {
-      throw new Error("No API key provided");
-    }
-    const anthropic = createAnthropic({
-      apiKey,
-      fetch: api.fetch
-    });
+  async generateText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<GenerateTextOutput> {
+    const anthropic = this.createAnthropicClient(api, options);
     const { metadata, messages } = agentMark;
     const { model: modelConfig } = metadata;
     const providerModel = anthropic(modelConfig.name);
-    return api.streamInference(modelConfig.settings, providerModel, messages, options);
+    const result = await api.runInference(modelConfig.settings, providerModel, messages, options);
+    return result as GenerateTextOutput;
+  }
+
+  async streamObject<OBJECT>(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamObjectOutput<OBJECT>> {
+    const anthropic = this.createAnthropicClient(api, options);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = anthropic(modelConfig.name);
+    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    return result as StreamObjectOutput<OBJECT>;
+  }
+
+  async streamText(agentMark: AgentMark, api: IPluginAPI, options?: InferenceOptions): Promise<StreamTextOutput> {
+    const anthropic = this.createAnthropicClient(api, options);
+    const { metadata, messages } = agentMark;
+    const { model: modelConfig } = metadata;
+    const providerModel = anthropic(modelConfig.name);
+    const result = await api.streamInference(modelConfig.settings, providerModel, messages, options);
+    return result as StreamTextOutput;
   }
 }

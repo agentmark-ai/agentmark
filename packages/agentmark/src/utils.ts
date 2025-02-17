@@ -1,12 +1,15 @@
 import {
-  AgentMarkStreamOutput,
   AgentMarkTextSettings,
   ChatMessage,
+  GenerateObjectOutput,
+  GenerateTextOutput,
   InferenceOptions,
   JSONObject,
+  StreamObjectOutput,
+  StreamTextOutput,
 } from "./types";
 import { jsonSchema, LanguageModel } from "ai";
-import { AgentMarkOutput, AgentMarkSettings, AISDKBaseSettings } from "./types";
+import { AgentMarkSettings, AISDKBaseSettings } from "./types";
 import { streamObject, streamText, generateObject, generateText } from "ai";
 import { ToolPluginRegistry } from "./tool-plugin-registry";
 import { AgentMarkSettingsSchema } from "./schemas";
@@ -109,7 +112,7 @@ export async function runInference(
   model: LanguageModel,
   messages: Array<ChatMessage>,
   options?: InferenceOptions
-): Promise<AgentMarkOutput> {
+): Promise<GenerateObjectOutput | GenerateTextOutput> {
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);
@@ -120,9 +123,8 @@ export async function runInference(
     });
     return {
       ...result,
-      result: result.object,
+      // result: result.object,
       version: OUTPUT_VERSION,
-      type: "object",
     };
   } else {
     const tools = createToolsConfig(settings.tools);
@@ -132,9 +134,8 @@ export async function runInference(
     });
     return {
       ...result,
-      result: result.text,
+      // result: result.text,
       version: OUTPUT_VERSION,
-      type: "text",
     };
   }
 }
@@ -144,7 +145,7 @@ export async function streamInference(
   model: LanguageModel,
   messages: Array<ChatMessage>,
   options?: InferenceOptions
-): Promise<AgentMarkStreamOutput> {
+): Promise<StreamObjectOutput | StreamTextOutput> {
   const baseConfig = getBaseSettings(config, model, messages);
   baseConfig.experimental_telemetry = options?.telemetry;
   const settings = AgentMarkSettingsSchema.parse(config);
@@ -157,9 +158,10 @@ export async function streamInference(
         });
         resolve({
           ...result,
-          resultStream: result.partialObjectStream as AsyncIterable<Partial<any>>,
+          // resultStream: result.partialObjectStream as AsyncIterable<
+          //   Partial<any>
+          // >,
           version: OUTPUT_VERSION,
-          type: "object",
         });
       } catch (error) {
         reject(error);
@@ -174,9 +176,8 @@ export async function streamInference(
         });
         resolve({
           ...result,
-          resultStream: result.textStream,
+          // resultStream: result.textStream,
           version: OUTPUT_VERSION,
-          type: "text",
         });
       } catch (error) {
         reject(error);

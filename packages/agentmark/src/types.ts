@@ -1,6 +1,6 @@
 import type { BaseMDXProvidedComponents } from '@puzzlet/templatedx';
 import type { FC } from 'react';
-import { LanguageModel, GenerateTextResult, LanguageModelUsage, FinishReason, GenerateObjectResult, StreamObjectResult, DeepPartial, StreamTextResult } from 'ai';
+import { LanguageModel, GenerateTextResult, GenerateObjectResult, StreamObjectResult, DeepPartial, StreamTextResult } from 'ai';
 import type { Ast } from "@puzzlet/templatedx";
 import {
   ChatMessageSchema,
@@ -58,10 +58,12 @@ export type AgentMark = z.infer<typeof AgentMarkSchema>;
 
 export interface TypsafeTemplate<Input, Output> {
   content: Ast;
-  run: (props: Input, options?: InferenceOptions) => Promise<AgentMarkOutput<Output>>;
+  generateObject: (props: Input, options?: InferenceOptions) => Promise<GenerateObjectOutput<Output>>;
+  generateText: (props: Input, options?: InferenceOptions) => Promise<GenerateTextOutput>;
+  streamObject: (props: Input, options?: InferenceOptions) => Promise<StreamObjectOutput<Output>>;
+  streamText: (props: Input, options?: InferenceOptions) => Promise<StreamTextOutput>;
   compile: (props?: Input) => Promise<AgentMark>;
   deserialize: (response: Input) => Promise<any>;
-  stream: (props: Input, options?: InferenceOptions) => Promise<AgentMarkStreamOutput<Output>>;
 }
 
 export interface AgentMarkLoader<Types extends Record<string, { input: any; output: any }>> {
@@ -108,56 +110,6 @@ export interface AgentMarkOutputV2<T = any> {
   finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown";
 }
 
-export interface AgentMarkGenerateTextResultV3<T = any> extends GenerateTextResult<any, never> {
-  result: T;
-  version: "v3.0";
-  type: "text";
-}
-
-export interface AgentMarkGenerateObjectResultV3<T = any> extends GenerateObjectResult<T> {
-  result: T;
-  version: "v3.0";
-  type: "object";
-}
-
-export type AgentMarkOutputV3<T = any> = AgentMarkGenerateTextResultV3<T> | AgentMarkGenerateObjectResultV3<T>;
-
-
-export interface AgentMarkStreamOutputV2<T = any> {
-  usage: Promise<LanguageModelUsage>;
-  resultStream: AsyncIterable<Partial<T>>;
-  version: "v2.0";
-  tools?: Promise<Array<{
-    name: string;
-    input: Record<string, any>;
-    output?: Record<string, any>;
-  }>>;
-  toolResponses?: Promise<GenerateTextResult<any, never>['toolResults']>;
-  steps?: Promise<GenerateTextResult<any, never>['steps']>;
-  finishReason: Promise<FinishReason>;
-}
-
-export interface AgentMarkStreamObjectOutputV3<T = any> extends StreamObjectResult<DeepPartial<T>, T, never> {
-  version: "v3.0";
-  resultStream: AsyncIterable<Partial<T>>;
-  type: "object";
-}
-
-export interface AgentMarkStreamTextOutputV3<T = any> extends StreamTextResult<any, never> {
-  version: "v3.0";
-  resultStream: AsyncIterable<T>;
-  type: "text";
-}
-
-export type AgentMarkStreamOutputV3<T = any> = AgentMarkStreamObjectOutputV3<T> | AgentMarkStreamTextOutputV3<T>;
-
-export type AgentMarkStreamOutput<T = any> = AgentMarkStreamOutputV3<T>;
-
-export type AgentMarkOutput<T = any> = AgentMarkOutputV3<T>;
-
-export type VersionedAgentMarkOutput<T = any> = AgentMarkOutputV1 | AgentMarkOutputV2<T> | AgentMarkOutputV3<T>;
-
-export type VersionedAgentMarkStreamOutput<T = any> = AgentMarkStreamOutputV2<T> | AgentMarkStreamOutputV3<T>;
 
 export interface Components extends BaseMDXProvidedComponents {
   User: FC<ExtractTextProps>;
@@ -168,3 +120,21 @@ export interface Components extends BaseMDXProvidedComponents {
 export interface DeserializeConfig {
   withStream?: boolean;
 }
+
+export interface GenerateObjectOutput<T = any> extends GenerateObjectResult<T> {
+  version: "v3.0";
+}
+
+export interface GenerateTextOutput extends GenerateTextResult<any, never> {
+  version: "v3.0";
+}
+
+export interface StreamObjectOutput<T = any> extends StreamObjectResult<DeepPartial<T>, T, never> {
+  version: "v3.0";
+}
+
+export interface StreamTextOutput extends StreamTextResult<any, never> {
+  version: "v3.0";
+}
+
+export type VersionedAgentMarkOutput = AgentMarkOutputV1 | AgentMarkOutputV2<any> | GenerateObjectOutput<any> | GenerateTextOutput | StreamObjectOutput<any> | StreamTextOutput;

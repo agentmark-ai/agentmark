@@ -1,11 +1,13 @@
 export {
-  runInference,
+  streamObject,
+  generateObject,
+  generateText,
+  streamText,
   deserialize,
   serialize,
   getRawConfig,
   getModel,
   createTemplateRunner,
-  streamInference,
 } from "./runtime";
 export { toFrontMatter } from "./utils";
 export { FileLoader } from "./file-loader";
@@ -29,14 +31,16 @@ export type { Tool } from "./tool-plugin-registry";
 export type { 
   TypsafeTemplate,
   AgentMarkLoader, 
-  AgentMark, 
-  AgentMarkOutput, 
+  AgentMark,
+  GenerateObjectOutput,
+  GenerateTextOutput,
+  StreamObjectOutput,
+  StreamTextOutput,
   AgentMarkOutputV1, 
   AgentMarkOutputV2, 
-  VersionedAgentMarkOutput,
   InferenceOptions,
-  AgentMarkStreamOutput,
   DeserializeConfig,
+  VersionedAgentMarkOutput
 } from "./types";
 
 

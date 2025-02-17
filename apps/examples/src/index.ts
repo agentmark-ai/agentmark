@@ -1,4 +1,4 @@
-import { runInference, ModelPluginRegistry, ToolPluginRegistry, load } from "@puzzlet/agentmark";
+import { ModelPluginRegistry, ToolPluginRegistry, load, generateText} from "@puzzlet/agentmark";
 import tools from "./tools";
 import OpenAIChatPlugin from "@puzzlet/openai";
 import AnthropicChatPlugin from "@puzzlet/anthropic";
@@ -13,7 +13,7 @@ tools.map(({ tool, name }) => ToolPluginRegistry.register(tool, name))
 
 const run = async () => {
   const Prompt = await load("./prompts/2.prompt.mdx");
-  const result = await runInference(Prompt, {});
+  const result = await generateText(Prompt, {});
   console.log(result);
 };
 
