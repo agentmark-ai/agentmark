@@ -448,10 +448,8 @@ test("should stream object", async () => {
   );
 
   let object: any = {};
-  let chunkCount = 0;
 
   for await (const chunk of resultWithStream.partialObjectStream) {
-    chunkCount++;
     object = chunk;
   }
 

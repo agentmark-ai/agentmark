@@ -191,7 +191,7 @@ test("should deserialize prompt with history prop", async () => {
   expect(deserializedPrompt).toEqual(promptWithHistory);
 });
 
-test("run inference with no stream", async () => {
+test("should generate text", async () => {
   const ast = await load(__dirname + "/mdx/basic.prompt.mdx");
   const mockFetch = vi.fn(() =>
     Promise.resolve(
@@ -227,79 +227,19 @@ test("run inference with no stream", async () => {
   const api = { ...PluginAPI, fetch: mockFetch };
   const pluginWithInference = new AnthropicChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const { steps, ...result } = await pluginWithInference.runInference(
-    agentMark,
-    api
-  );
+  const result = await pluginWithInference.generateText(agentMark, api);
 
-  expect(
-    steps?.map(
-      ({ response: { messages, timestamp, id, ...response }, ...step }) => ({
-        ...step,
-        response: {
-          ...response,
-          messages: messages.map(({ id, ...message }) => message),
-        },
-      })
-    )
-  ).toEqual([
-    {
-      experimental_providerMetadata: {
-        anthropic: {
-          cacheCreationInputTokens: null,
-          cacheReadInputTokens: null,
-        },
-      },
-      finishReason: "stop",
-      isContinued: false,
-      logprobs: undefined,
-      providerMetadata: {
-        anthropic: {
-          cacheCreationInputTokens: null,
-          cacheReadInputTokens: null,
-        },
-      },
-      reasoning: undefined,
-      request: {
-        body: '{"model":"claude-3-5-haiku-latest","max_tokens":4096,"temperature":0.7,"top_p":1,"messages":[{"role":"user","content":[{"type":"text","text":"What\'s 2 + 2?"}]},{"role":"assistant","content":[{"type":"text","text":"5"}]},{"role":"user","content":[{"type":"text","text":"Why are you bad at math?"}]}]}',
-      },
-      response: {
-        headers: {
-          "content-type": "application/json",
-        },
-        messages: [
-          {
-            content: [
-              {
-                text: "Mocked response.",
-                type: "text",
-              },
-            ],
-            role: "assistant",
-          },
-        ],
-        modelId: "claude-3-5-sonnet-latest",
-      },
-      sources: [],
-      stepType: "initial",
-      text: "Mocked response.",
-      toolCalls: [],
-      toolResults: [],
-      usage: {
-        completionTokens: 15,
-        promptTokens: 10,
-        totalTokens: 25,
-      },
-      warnings: [],
-    },
-  ]);
+  const testResult = {
+    finishReason: result.finishReason,
+    version: result.version,
+    text: result.text,
+    usage: result.usage,
+  };
 
-  expect(result).toEqual({
+  expect(testResult).toEqual({
     finishReason: "stop",
-    version: "v2.0",
-    result: "Mocked response.",
-    toolResponses: [],
-    tools: [],
+    version: "v3.0",
+    text: "Mocked response.",
     usage: {
       completionTokens: 15,
       promptTokens: 10,
@@ -357,124 +297,32 @@ test("should execute tools", async () => {
   const api = { ...PluginAPI, fetch: mockFetch };
   const pluginWithInference = new AnthropicChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const { steps, ...result } = await pluginWithInference.runInference(
-    agentMark,
-    api
-  );
+  const result = await pluginWithInference.generateText(agentMark, api);
 
-  expect(
-    steps?.map(
-      ({ response: { messages, timestamp, id, ...response }, ...step }) => ({
-        ...step,
-        response: {
-          ...response,
-          messages: messages.map(({ id, ...message }) => message),
-        },
-      })
-    )
-  ).toEqual([
-    {
-      experimental_providerMetadata: {
-        anthropic: {
-          cacheCreationInputTokens: null,
-          cacheReadInputTokens: null,
-        },
-      },
-      finishReason: "stop",
-      isContinued: false,
-      logprobs: undefined,
-      providerMetadata: {
-        anthropic: {
-          cacheCreationInputTokens: null,
-          cacheReadInputTokens: null,
-        },
-      },
-      reasoning: undefined,
-      request: {
-        body: '{"model":"claude-3-haiku-latest","max_tokens":4096,"temperature":0.7,"top_p":1,"system":[{"type":"text","text":"You are a helpful assistant able to access the weather."}],"messages":[{"role":"user","content":[{"type":"text","text":"What is the current weather in Cleveland?"}]}],"tools":[{"name":"weather","description":"Fetches the current weather for a specified location.","input_schema":{"type":"object","properties":{"location":{"type":"string","description":"location"}}}}],"tool_choice":{"type":"auto"}}',
-      },
-      response: {
-        headers: {
-          "content-type": "application/json",
-        },
-        messages: [
-          {
-            content: [
-              {
-                text: "The weather in New Hampshire is cold af.",
-                type: "text",
-              },
-              {
-                args: {
-                  location: "New Hampshire",
-                },
-                toolCallId: "unique-tool-call-id",
-                toolName: "weather",
-                type: "tool-call",
-              },
-            ],
-            role: "assistant",
-          },
-          {
-            content: [
-              {
-                result: "Cold af in New Hampshire",
-                toolCallId: "unique-tool-call-id",
-                toolName: "weather",
-                type: "tool-result",
-              },
-            ],
-            role: "tool",
-          },
-        ],
-        modelId: "claude-3-5-sonnet-latest",
-      },
-      sources: [],
-      stepType: "initial",
-      text: "The weather in New Hampshire is cold af.",
-      toolCalls: [
-        {
-          args: {
-            location: "New Hampshire",
-          },
-          toolCallId: "unique-tool-call-id",
-          toolName: "weather",
-          type: "tool-call",
-        },
-      ],
-      toolResults: [
-        {
-          args: {
-            location: "New Hampshire",
-          },
-          result: "Cold af in New Hampshire",
-          toolCallId: "unique-tool-call-id",
-          toolName: "weather",
-          type: "tool-result",
-        },
-      ],
-      usage: {
-        completionTokens: 15,
-        promptTokens: 10,
-        totalTokens: 25,
-      },
-      warnings: [],
-    },
-  ]);
+  const testResult = {
+    finishReason: result.finishReason,
+    version: result.version,
+    text: result.text,
+    usage: result.usage,
+    toolCalls: result.toolCalls,
+    toolResults: result.toolResults,
+  };
 
-  expect(result).toEqual({
+  expect(testResult).toEqual({
     finishReason: "stop",
-    version: "v2.0",
-    result: "The weather in New Hampshire is cold af.",
-    tools: [
+    version: "v3.0",
+    text: "The weather in New Hampshire is cold af.",
+    toolCalls: [
       {
-        input: {
+        toolName: "weather",
+        args: {
           location: "New Hampshire",
         },
-        name: "weather",
+        toolCallId: "unique-tool-call-id",
+        type: "tool-call",
       },
     ],
-    toolResponses: [
+    toolResults: [
       {
         args: {
           location: "New Hampshire",
@@ -493,7 +341,7 @@ test("should execute tools", async () => {
   });
 });
 
-test("stream inference", async () => {
+test("should stream text", async () => {
   const ast = await load(__dirname + "/mdx/basic-stream.prompt.mdx");
   const mockStreamedFetch = vi.fn(() => {
     const encoder = new TextEncoder();
@@ -584,32 +432,309 @@ test("stream inference", async () => {
   const api = { ...PluginAPI, fetch: mockStreamedFetch };
   const pluginWithInference = new AnthropicChatPlugin();
   const agentMark = await getRawConfig(ast);
-  const resultWithStream = await pluginWithInference.streamInference(
-    agentMark,
-    api
-  );
+  const resultWithStream = await pluginWithInference.streamText(agentMark, api);
   let message = "";
-  for await (const chunk of resultWithStream.resultStream) {
+  for await (const chunk of resultWithStream.textStream) {
     message += chunk;
   }
 
   const result = {
-    result: message,
-    tools: await resultWithStream.tools,
-    toolResponses: await resultWithStream.toolResponses,
-    usage: await resultWithStream.usage,
+    text: message,
     version: resultWithStream.version,
+    toolCalls: [],
+    toolResults: [],
+    usage: await resultWithStream.usage,
   };
 
   expect(result).toEqual({
-    result: "Mocked response.",
-    tools: [],
-    toolResponses: [],
+    text: "Mocked response.",
+    version: "v3.0",
+    toolCalls: [],
+    toolResults: [],
     usage: {
       completionTokens: 15,
       promptTokens: 10,
       totalTokens: 25,
     },
-    version: "v2.0",
+  });
+});
+
+test("should generate object", async () => {
+  const ast = await load(__dirname + "/mdx/schema.prompt.mdx");
+  const mockFetch = vi.fn(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          type: "message",
+          content: [
+            {
+              id: "tool_123",
+              type: "tool_use",
+              name: "test",
+              input: {
+                names: ["Jessica", "Michael", "Emily", "David", "Sarah"],
+              },
+            },
+            {
+              type: "text",
+              role: "assistant",
+              text: "The result is 4",
+            },
+          ],
+          model: "claude-3-5-sonnet-latest",
+          role: "assistant",
+          stop_reason: "stop_sequence",
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+            total_tokens: 25,
+          },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+          statusText: "OK",
+        }
+      )
+    )
+  );
+
+  const api = { ...PluginAPI, fetch: mockFetch };
+  const pluginWithInference = new AnthropicChatPlugin();
+  const agentMark = await getRawConfig(ast);
+  const result = await pluginWithInference.generateObject(agentMark, api);
+
+  const testResult = {
+    finishReason: result.finishReason,
+    version: result.version,
+    object: result.object,
+    usage: result.usage,
+  };
+  expect(testResult).toEqual({
+    finishReason: "stop",
+    version: "v3.0",
+    object: {
+      names: ["Jessica", "Michael", "Emily", "David", "Sarah"],
+    },
+    usage: {
+      completionTokens: 15,
+      promptTokens: 10,
+      totalTokens: 25,
+    },
+  });
+});
+
+test("should stream object", async () => {
+  const ast = await load(__dirname + "/mdx/schema-stream.prompt.mdx");
+  const agentMark = await getRawConfig(ast);
+  const mockStreamedFetch = vi.fn(() => {
+    const stream = new ReadableStream({
+      start(controller) {
+        const chunks = [
+          {
+            event: "message_start",
+            data: JSON.stringify({
+              type: "message_start",
+              message: {
+                id: "msg_019wSSUG2H138ofPPR7N3q7h",
+                type: "message",
+                role: "assistant",
+                model: "claude-3-5-sonnet-20240620",
+                content: [],
+                stop_reason: null,
+                stop_sequence: null,
+                usage: {
+                  input_tokens: 439,
+                  cache_creation_input_tokens: 0,
+                  cache_read_input_tokens: 0,
+                  output_tokens: 25
+                }
+              }
+            })
+          },
+          {
+            event: "content_block_start",
+            data: JSON.stringify({
+              type: "content_block_start",
+              index: 0,
+              content_block: {
+                type: "tool_use",
+                id: "toolu_013VGZMuyE3GvP3nQ9N4kTQz",
+                name: "json",
+                input: {}
+              }
+            })
+          },
+          {
+            event: "ping",
+            data: JSON.stringify({
+              type: "ping"
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: ""
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: '{"'
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: 'names": ["J'
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: 'essica","Mic'
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: 'hael'
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: '","Emily","D'
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: 'avid","Sar'
+              }
+            })
+          },
+          {
+            event: "content_block_delta",
+            data: JSON.stringify({
+              type: "content_block_delta",
+              index: 0,
+              delta: {
+                type: "input_json_delta",
+                partial_json: 'ah"]}'
+              }
+            })
+          },
+          {
+            event: "content_block_stop",
+            data: JSON.stringify({
+              type: "content_block_stop",
+              index: 0
+            })
+          },
+          {
+            event: "message_delta",
+            data: JSON.stringify({
+              type: "message_delta",
+              delta: {
+                stop_reason: "tool_use",
+                stop_sequence: null
+              },
+              usage: {
+                output_tokens: 47
+              }
+            })
+          },
+          {
+            event: "message_stop",
+            data: JSON.stringify({
+              type: "message_stop"
+            })
+          }
+        ];
+
+        chunks.forEach((chunk) => {
+          controller.enqueue(new TextEncoder().encode(`event: ${chunk.event}\ndata: ${chunk.data}\n\n`));
+        });
+        controller.close();
+      },
+    });
+
+    return Promise.resolve(
+      new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+        status: 200,
+        statusText: "OK",
+      })
+    );
+  });
+
+  const api = { ...PluginAPI, fetch: mockStreamedFetch };
+  const pluginWithInference = new AnthropicChatPlugin();
+  const resultWithStream = await pluginWithInference.streamObject(
+    agentMark,
+    api
+  );
+
+  let object: any = {};
+
+  for await (const chunk of resultWithStream.partialObjectStream) {
+    object = chunk;
+  }
+
+  const result = {
+    object,
+    usage: await resultWithStream.usage,
+    version: resultWithStream.version,
+  };
+
+  expect(result).toEqual({
+    object: {
+      names: ["Jessica", "Michael", "Emily", "David", "Sarah"],
+    },
+    usage: {
+      completionTokens: 47,
+      promptTokens: 439,
+      totalTokens: 486,
+    },
+    version: "v3.0",
   });
 });

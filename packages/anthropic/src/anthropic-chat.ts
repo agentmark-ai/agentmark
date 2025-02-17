@@ -118,7 +118,7 @@ export default class AnthropicChatPlugin implements IModelPlugin {
     }
     return createAnthropic({
       apiKey,
-      fetch: api.fetch
+      fetch: api.fetch,
     });
   }
 
