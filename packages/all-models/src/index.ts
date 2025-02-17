@@ -1,5 +1,5 @@
-import AnthropicChatPlugin from "@puzzlet/anthropic";
-import OpenAIChatPlugin from "@puzzlet/openai";
+import { AnthropicChatPlugin } from "@puzzlet/anthropic";
+import { OpenAIChatPlugin } from "@puzzlet/openai";
 
 const plugins = [
   {
@@ -12,15 +12,16 @@ const plugins = [
       "o1-mini",
       "o1-preview",
       "gpt-3.5-turbo",
-    ]
-  }, {
+    ],
+  },
+  {
     provider: new AnthropicChatPlugin(),
     models: [
       "claude-3-5-haiku-latest",
       "claude-3-5-sonnet-latest",
-      "claude-3-opus-latest"
-    ]
-  }
+      "claude-3-opus-latest",
+    ],
+  },
 ];
 
 export default plugins;

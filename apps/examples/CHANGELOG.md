@@ -1,5 +1,15 @@
 # examples
 
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [14f98d4]
+  - @puzzlet/all-models@1.1.6
+  - @puzzlet/agentmark@2.2.2
+  - @puzzlet/anthropic@1.2.1
+  - @puzzlet/openai@1.2.1
+
 ## 1.0.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @puzzlet/openai
 
+## 1.2.1
+
+### Patch Changes
+
+- 14f98d4: fix: import issues
+
 ## 1.2.0
 
 ### Minor Changes

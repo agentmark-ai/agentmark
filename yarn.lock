@@ -1786,7 +1786,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@npm:^2.2.2, @puzzlet/agentmark@workspace:^, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -1806,12 +1806,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/all-models@npm:^1.1.5, @puzzlet/all-models@workspace:packages/all-models":
+"@puzzlet/all-models@npm:^1.1.5, @puzzlet/all-models@npm:^1.1.6, @puzzlet/all-models@workspace:packages/all-models":
   version: 0.0.0-use.local
   resolution: "@puzzlet/all-models@workspace:packages/all-models"
   dependencies:
-    "@puzzlet/anthropic": "npm:^1.1.5"
-    "@puzzlet/openai": "npm:^1.1.5"
+    "@puzzlet/agentmark": "workspace:^"
+    "@puzzlet/anthropic": "npm:^1.2.1"
+    "@puzzlet/openai": "npm:^1.2.1"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
     openai: "npm:^4.73.1"
@@ -1821,13 +1822,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/anthropic@npm:^1.1.5, @puzzlet/anthropic@workspace:^, @puzzlet/anthropic@workspace:packages/anthropic":
+"@puzzlet/anthropic@npm:^1.2.1, @puzzlet/anthropic@workspace:^, @puzzlet/anthropic@workspace:packages/anthropic":
   version: 0.0.0-use.local
   resolution: "@puzzlet/anthropic@workspace:packages/anthropic"
   dependencies:
     "@ai-sdk/anthropic": "npm:^1.1.6"
     "@anthropic-ai/sdk": "npm:^0.32.1"
-    "@puzzlet/agentmark": "npm:^2.2.1"
+    "@puzzlet/agentmark": "npm:^2.2.2"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
@@ -1858,12 +1859,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/openai@npm:^1.1.5, @puzzlet/openai@workspace:^, @puzzlet/openai@workspace:packages/openai":
+"@puzzlet/openai@npm:^1.2.1, @puzzlet/openai@workspace:^, @puzzlet/openai@workspace:packages/openai":
   version: 0.0.0-use.local
   resolution: "@puzzlet/openai@workspace:packages/openai"
   dependencies:
     "@ai-sdk/openai": "npm:^1.1.9"
-    "@puzzlet/agentmark": "npm:^2.2.1"
+    "@puzzlet/agentmark": "npm:^2.2.2"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/node": "npm:^22.10.1"
     "@types/react": "npm:^18.3.12"
@@ -5687,8 +5688,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "examples@workspace:apps/examples"
   dependencies:
-    "@puzzlet/agentmark": "npm:^2.2.1"
-    "@puzzlet/all-models": "npm:^1.1.5"
+    "@puzzlet/agentmark": "npm:^2.2.2"
+    "@puzzlet/all-models": "npm:^1.1.6"
     "@puzzlet/anthropic": "workspace:^"
     "@puzzlet/openai": "workspace:^"
     dotenv: "npm:^16.4.5"

@@ -1,5 +1,14 @@
 # @puzzlet/all-models
 
+## 1.1.6
+
+### Patch Changes
+
+- 14f98d4: fix: import issues
+- Updated dependencies [14f98d4]
+  - @puzzlet/anthropic@1.2.1
+  - @puzzlet/openai@1.2.1
+
 ## 1.1.5
 
 ### Patch Changes
