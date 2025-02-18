@@ -29,7 +29,7 @@
     "openai": "^4.73.1",
     "tsup": "^8.3.5",
     "typescript": "^5.6.2",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.6"
   },
   "dependencies": {
     "@puzzlet/anthropic": "^1.2.1",
