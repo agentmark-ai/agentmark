@@ -23,8 +23,8 @@ export type {
   ChatMessage
 };
 
-export interface Loader {
-  load(path: string): Promise<any>;
+export interface Loader<T = any> {
+  load(path: string): Promise<T>;
 }
 
 export interface TemplateEngine {
