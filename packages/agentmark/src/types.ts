@@ -40,6 +40,16 @@ export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any
   adaptImage(input: ImageConfig, runtimeConfig?: Record<string, any>): ImageOutput;
 }
 
+export type RuntimeConfig = {
+  telemetry?: {
+    isEnabled: boolean;
+    functionId: string;
+    metadata: Record<string, any>;
+  }
+  apiKey?: string;
+  [key: string]: any;
+}
+
 export interface PromptType {
   input: any;
   output: any;

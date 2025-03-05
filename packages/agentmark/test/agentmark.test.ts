@@ -29,7 +29,7 @@ describe('AgentMark Integration', () => {
     });
 
     expect(result).toBeDefined();
-    expect(result.name).toBe('test-prompt');
+    expect(result.name).toBe('math');
     expect(result.messages).toHaveLength(3);
     expect(result.messages[0].role).toBe('system');
     expect(result.messages[0].content).toBe('You are a helpful math tutor.');
@@ -169,6 +169,47 @@ describe('AgentMark Integration', () => {
       expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.objectContaining(runtimeConfig));
 
       expect(result.messages[1].content).toBe('What is 2+2?');
+    });
+
+    it('should properly handle telemetry configuration', async () => {
+      const fixturesDir = path.resolve(__dirname, './fixtures');
+      const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+
+      const mockModelFn = vi.fn().mockImplementation((modelName, config) => ({
+        name: modelName,
+        ...config,
+        generate: vi.fn()
+      }));
+
+      const modelRegistry = new VercelModelRegistry();
+      modelRegistry.registerModel('test-model', mockModelFn);
+
+      const agentMark = new AgentMark<TestPromptTypes>({
+        loader: fileLoader,
+        adapter: new VercelAdapter(modelRegistry),
+        templateEngine: new TemplatedxTemplateEngine()
+      });
+
+      const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
+
+      // Include telemetry in runtime config
+      const runtimeConfig = {
+        telemetry: { isEnabled: true, functionId: '1', metadata: { test: 'test' } }
+      };
+
+      const result = await mathPrompt.compile({
+        userMessage: 'What is 2+2?',
+      }, runtimeConfig);
+
+      expect(result.experimental_telemetry).toEqual({
+        isEnabled: true,
+        functionId: '1',
+        metadata: {
+          test: 'test',
+          prompt: 'math',
+          props: JSON.stringify({ userMessage: 'What is 2+2?' })
+        }
+      });
     });
   });
 });

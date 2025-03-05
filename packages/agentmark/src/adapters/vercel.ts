@@ -112,6 +112,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectPara
       presencePenalty: input.metadata.model.settings?.presence_penalty,
       stopSequences: input.metadata.model.settings?.stop_sequences,
       seed: input.metadata.model.settings?.seed,
+      experimental_telemetry: runtimeConfig.telemetry,
       tools: input.metadata.model.settings?.tools ?
         Object.fromEntries(
           Object.entries(input.metadata.model.settings.tools).map(([name, tool]) => [
@@ -142,7 +143,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectPara
       schema: jsonSchema(input.metadata.model.settings.schema),
       schemaName: input.metadata.model.settings?.schema_name,
       schemaDescription: input.metadata.model.settings?.schema_description,
-      seed: input.metadata.model.settings?.seed
+      experimental_telemetry: runtimeConfig.telemetry,
     });
   }
 
