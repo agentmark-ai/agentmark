@@ -43,8 +43,8 @@ export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any
 export type RuntimeConfig = {
   telemetry?: {
     isEnabled: boolean;
-    functionId: string;
-    metadata: Record<string, any>;
+    functionId?: string;
+    metadata?: Record<string, any>;
   }
   apiKey?: string;
   [key: string]: any;

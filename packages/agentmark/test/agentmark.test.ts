@@ -171,7 +171,7 @@ describe('AgentMark Integration', () => {
       expect(result.messages[1].content).toBe('What is 2+2?');
     });
 
-    it('should properly handle telemetry configuration', async () => {
+    it('should properly handle runtime configuration', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
       const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
 
@@ -193,23 +193,34 @@ describe('AgentMark Integration', () => {
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
 
       // Include telemetry in runtime config
+      const metadata = {
+        test: 'test',
+      }
       const runtimeConfig = {
-        telemetry: { isEnabled: true, functionId: '1', metadata: { test: 'test' } }
+        telemetry: { isEnabled: true, functionId: '1', metadata, },
+        apiKey: 'test-api-key'
       };
+
+      const telemetryConfig = {
+        isEnabled: true,
+        functionId: '1',
+        metadata: {
+          ...metadata,
+          prompt: 'math',
+          props: JSON.stringify({ userMessage: 'What is 2+2?' })
+        }
+      }
 
       const result = await mathPrompt.compile({
         userMessage: 'What is 2+2?',
       }, runtimeConfig);
 
-      expect(result.experimental_telemetry).toEqual({
-        isEnabled: true,
-        functionId: '1',
-        metadata: {
-          test: 'test',
-          prompt: 'math',
-          props: JSON.stringify({ userMessage: 'What is 2+2?' })
-        }
-      });
+      expect(result.experimental_telemetry).toEqual(telemetryConfig);
+
+      expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.objectContaining({
+        apiKey: 'test-api-key',
+        telemetry: telemetryConfig
+      }));
     });
   });
 });
