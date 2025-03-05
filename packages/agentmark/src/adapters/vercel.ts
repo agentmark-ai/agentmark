@@ -9,12 +9,31 @@ import { generateText, generateObject, experimental_generateImage, LanguageModel
 type VercelTextParams = Partial<Parameters<typeof generateText>[0]>;
 type VercelObjectParams = Partial<Parameters<typeof generateObject>[0]>;
 type VercelImageParams = Partial<Parameters<typeof experimental_generateImage>[0]>;
+export type Tool = (args: any) => any;
 
 export type ModelFunctionCreator = (modelName: string, options?: Record<string, any>) => LanguageModel | ImageModel;
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
   registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
+}
+
+export class VercelToolRegistry {
+  private tools: Record<string, Tool> = {};
+
+  constructor() { }
+
+  registerTool(name: string, tool: Tool) {
+    this.tools[name] = tool;
+  }
+
+  hasTool(name: string) {
+    return this.tools[name] !== undefined;
+  }
+
+  getTool(name: string) {
+    return this.tools[name];
+  }
 }
 
 export class VercelModelRegistry {
@@ -72,14 +91,16 @@ function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
 }
 
 export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectParams, VercelImageParams> {
-  constructor(private modelRegistry: ModelRegistry) {
+  constructor(private modelRegistry: ModelRegistry, private toolRegistry: VercelToolRegistry = new VercelToolRegistry()) {
     this.modelRegistry = modelRegistry;
+    this.toolRegistry = toolRegistry;
   }
 
-  adaptText(input: TextConfig, runtimeConfig: Record<string, any> = {}): Partial<VercelTextParams> {
+  adaptText(input: TextConfig, runtimeConfig: Record<string, any> = {}) {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
 
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
+
     return removeUndefined({
       model: model,
       messages: input.messages,
@@ -96,15 +117,16 @@ export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectPara
           Object.entries(input.metadata.model.settings.tools).map(([name, tool]) => [
             name,
             {
-              description: tool.description,
-              parameters: tool.parameters ? jsonSchema(tool.parameters) : undefined
+              description: tool.description || '',
+              parameters: jsonSchema(tool.parameters),
+              execute: this.toolRegistry.hasTool(name) ? this.toolRegistry.getTool(name) : undefined
             }
           ])
         ) : undefined,
     });
   }
 
-  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}): Partial<VercelObjectParams> {
+  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}) {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
 
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
@@ -124,7 +146,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectPara
     });
   }
 
-  adaptImage(input: ImageConfig, runtimeConfig: Record<string, any> = {}): Partial<VercelImageParams> {
+  adaptImage(input: ImageConfig, runtimeConfig: Record<string, any> = {}) {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
 
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as ImageModel;

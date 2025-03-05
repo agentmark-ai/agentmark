@@ -29,7 +29,7 @@ export const TextSettingsConfig = z.object({
     .record(
       z.object({
         description: z.string(),
-        parameters: z.unknown(),
+        parameters: z.record(z.any()),
       })
     )
     .optional(),
