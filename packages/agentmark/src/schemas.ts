@@ -48,7 +48,7 @@ export const ObjectSettingsConfig = z.object({
   stop_sequences: z.array(z.string()).optional(),
   seed: z.number().optional(),
   max_retries: z.number().optional(),
-  schema: z.unknown().optional(),
+  schema: z.record(z.any()),
   schema_name: z.string().optional(),
   schema_description: z.string().optional(),
 });

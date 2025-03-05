@@ -86,8 +86,10 @@ export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectPara
       temperature: input.metadata.model.settings?.temperature,
       maxTokens: input.metadata.model.settings?.max_tokens,
       topP: input.metadata.model.settings?.top_p,
+      topK: input.metadata.model.settings?.top_k,
       frequencyPenalty: input.metadata.model.settings?.frequency_penalty,
       presencePenalty: input.metadata.model.settings?.presence_penalty,
+      stopSequences: input.metadata.model.settings?.stop_sequences,
       seed: input.metadata.model.settings?.seed,
       tools: input.metadata.model.settings?.tools ?
         Object.fromEntries(
@@ -112,10 +114,10 @@ export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectPara
       temperature: input.metadata.model.settings?.temperature,
       maxTokens: input.metadata.model.settings?.max_tokens,
       topP: input.metadata.model.settings?.top_p,
+      topK: input.metadata.model.settings?.top_k,
       frequencyPenalty: input.metadata.model.settings?.frequency_penalty,
       presencePenalty: input.metadata.model.settings?.presence_penalty,
-      // @ts-ignore
-      schema: input.metadata.model.settings?.schema && jsonSchema(input.metadata.model.settings.schema),
+      schema: jsonSchema(input.metadata.model.settings.schema),
       schemaName: input.metadata.model.settings?.schema_name,
       schemaDescription: input.metadata.model.settings?.schema_description,
       seed: input.metadata.model.settings?.seed
