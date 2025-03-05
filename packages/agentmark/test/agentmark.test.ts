@@ -72,14 +72,10 @@ describe('AgentMark Integration', () => {
     it('should adapt object prompts for Vercel AI SDK', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
       const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
-
-      // Mock model function creator
       const mockModelFn = vi.fn().mockImplementation((modelName) => ({
         name: modelName,
         generate: vi.fn()
       }));
-
-      // Setup registry with mock model creator
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
@@ -94,18 +90,14 @@ describe('AgentMark Integration', () => {
         userMessage: 'What is the sum of 5 and 3?'
       });
 
-      // Verify model was created with correct name
       expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.any(Object));
 
-      // Verify core properties were preserved
       expect(result).toBeDefined();
       expect(result.messages).toHaveLength(3);
       expect(result.messages[0].role).toBe('system');
       expect(result.messages[0].content).toBe('You are a helpful math tutor.');
       expect(result.messages[1].role).toBe('user');
       expect(result.messages[1].content).toBe('What is the sum of 5 and 3?');
-
-      // Verify Vercel-specific formatting
       expect(result.model).toBeDefined();
       expect(result.schema).toBeDefined();
     });
@@ -114,7 +106,6 @@ describe('AgentMark Integration', () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
       const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
 
-      // Mock model function creator
       const mockModelFn = vi.fn().mockImplementation((modelName) => ({
         name: modelName,
         generate: vi.fn()
@@ -153,12 +144,11 @@ describe('AgentMark Integration', () => {
       const mockModelFn = vi.fn().mockImplementation((modelName, config) => {
         return {
           name: modelName,
-          config: config,
+          apiKey: config.apiKey,
           generate: vi.fn()
         };
       });
 
-      // Setup registry with mock model creator
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
@@ -169,11 +159,14 @@ describe('AgentMark Integration', () => {
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
+      const runtimeConfig = {
+        apiKey: 'test-api-key',
+      };
       const result = await mathPrompt.compile({
         userMessage: 'What is 2+2?',
-      });
+      }, runtimeConfig);
 
-      // expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.objectContaining(runtimeConfig));
+      expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.objectContaining(runtimeConfig));
 
       expect(result.messages[1].content).toBe('What is 2+2?');
     });

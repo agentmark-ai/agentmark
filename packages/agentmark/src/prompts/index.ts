@@ -11,10 +11,10 @@ export class TextPrompt<InputType extends JSONObject = JSONObject> {
     this.adapter = adapter;
   }
 
-  async compile(props: InputType) {
+  async compile(props: InputType, runtimeConfig?: Record<string, any>) {
     const result = await this.templateEngine.compile(this.template, props);
     const parsed = TextConfigSchema.parse(result);
-    return this.adapter.adaptText(parsed);
+    return this.adapter.adaptText(parsed, runtimeConfig);
   }
 }
 
@@ -28,10 +28,10 @@ export class ObjectPrompt<InputType extends JSONObject = JSONObject> {
     this.adapter = adapter;
   }
 
-  async compile(props: InputType) {
+  async compile(props: InputType, runtimeConfig?: Record<string, any>) {
     const result = await this.templateEngine.compile(this.template, props);
     const parsed = ObjectConfigSchema.parse(result);
-    return this.adapter.adaptObject(parsed);
+    return this.adapter.adaptObject(parsed, runtimeConfig);
   }
 }
 
@@ -45,9 +45,9 @@ export class ImagePrompt<InputType extends JSONObject = JSONObject> {
     this.adapter = adapter;
   }
 
-  async compile(props: InputType) {
+  async compile(props: InputType, runtimeConfig?: Record<string, any>) {
     const result = await this.templateEngine.compile(this.template, props);
     const parsed = ImageConfigSchema.parse(result);
-    return this.adapter.adaptImage(parsed);
+    return this.adapter.adaptImage(parsed, runtimeConfig);
   }
 }
