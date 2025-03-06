@@ -10,9 +10,6 @@
   },
   "dependencies": {
     "@puzzlet/agentmark": "^2.2.2",
-    "@puzzlet/all-models": "^1.1.6",
-    "@puzzlet/anthropic": "workspace:^",
-    "@puzzlet/openai": "workspace:^",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
