@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import path from 'path';
 import { AgentMark } from '../src/agentmark';
-import { FileLoader } from '../src/loaders/file-loader';
+import { FileLoader } from '../src/loaders/file';
 import { DefaultAdapter } from '../src/adapters/default';
 import { TemplatedxTemplateEngine } from '../src/template_engines/templatedx';
 import { VercelAdapter, VercelModelRegistry } from '../src/adapters/vercel';
@@ -66,6 +66,45 @@ describe('AgentMark Integration', () => {
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
     const result = await mathPrompt.compile({ userMessage: 'What is 2+2?' });
     expect(result.messages[1].content).toBe('What is 2+2?');
+  });
+
+  it('should work with preloaded prompt objects', async () => {
+    const fixturesDir = path.resolve(__dirname, './fixtures');
+    const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+
+    const agentMark = new AgentMark<TestPromptTypes>({
+      loader: fileLoader,
+      adapter: new DefaultAdapter(),
+      templateEngine: new TemplatedxTemplateEngine()
+    });
+
+    // First load a prompt normally
+    const originalPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
+
+    // Extract the template to use as a preloaded object
+    const preloadedTemplate = originalPrompt.template;
+
+    // Create a new prompt using the preloaded template
+    const preloadedPrompt = await agentMark.loadObjectPrompt(preloadedTemplate as any);
+
+    // Test the preloaded prompt
+    const result = await preloadedPrompt.compile({
+      userMessage: 'What is the sum of 5 and 3?'
+    });
+
+    expect(result).toBeDefined();
+    expect(result.name).toBe('math');
+    expect(result.messages).toHaveLength(3);
+    expect(result.messages[0].role).toBe('system');
+    expect(result.messages[0].content).toBe('You are a helpful math tutor.');
+    expect(result.messages[1].role).toBe('user');
+    expect(result.messages[1].content).toBe('What is the sum of 5 and 3?');
+    expect(result.messages[2].role).toBe('assistant');
+    expect(result.messages[2].content).toBe('Here\'s your answer!');
+
+    expect(result.metadata.model.name).toBe('test-model');
+    expect(result.metadata.model.settings.schema).toBeDefined();
+    expect(result.metadata.model.settings.schema.properties.answer).toBeDefined();
   });
 
   describe('VercelAdapter Integration', () => {

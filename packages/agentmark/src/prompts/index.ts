@@ -26,7 +26,7 @@ const getConfigSettings = (
 export class TextPrompt<InputType extends JSONObject = JSONObject> {
   protected templateEngine: TemplateEngine;
   protected adapter: Adapter;
-  protected template: any;
+  public template: any;
   constructor(template: any, templateEngine: TemplateEngine, adapter: Adapter) {
     this.template = template;
     this.templateEngine = templateEngine;
@@ -43,7 +43,7 @@ export class TextPrompt<InputType extends JSONObject = JSONObject> {
 export class ObjectPrompt<InputType extends JSONObject = JSONObject> {
   protected templateEngine: TemplateEngine;
   protected adapter: Adapter;
-  protected template: any;
+  public template: any;
   constructor(template: any, templateEngine: TemplateEngine, adapter: Adapter) {
     this.template = template;
     this.templateEngine = templateEngine;
@@ -60,7 +60,7 @@ export class ObjectPrompt<InputType extends JSONObject = JSONObject> {
 export class ImagePrompt<InputType extends JSONObject = JSONObject> {
   protected templateEngine: TemplateEngine;
   protected adapter: Adapter;
-  protected template: any;
+  public template: any;
   constructor(template: any, templateEngine: TemplateEngine, adapter: Adapter) {
     this.template = template;
     this.templateEngine = templateEngine;
