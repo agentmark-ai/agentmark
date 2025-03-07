@@ -6,9 +6,9 @@ import { DefaultAdapter } from "./adapters/default";
 import type { PromptType, JSONObject } from "./types";
 
 type AgentMarkOptions = {
-  adapter: Adapter;
   loader: Loader;
-  templateEngine: TemplateEngine;
+  adapter?: Adapter;
+  templateEngine?: TemplateEngine;
 }
 
 type Loadable = string | JSONObject;
