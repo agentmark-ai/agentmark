@@ -2,13 +2,40 @@ import type {
   TextConfig,
   ObjectConfig,
   ImageConfig,
-  Adapter
+  Adapter,
+  JSONObject,
 } from "../types";
-import { generateText, generateObject, experimental_generateImage, LanguageModel, ImageModel, jsonSchema } from "ai";
+import { LanguageModel, ImageModel, jsonSchema } from "ai";
+import { generateText, generateObject, experimental_generateImage } from "ai";
 
-type VercelTextParams = Partial<Parameters<typeof generateText>[0]>;
-type VercelObjectParams = Partial<Parameters<typeof generateObject>[0]>;
-type VercelImageParams = Partial<Parameters<typeof experimental_generateImage>[0]>;
+type VercelTextParams = Parameters<typeof generateText>[0];
+type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
+type OptionalVercelTextParams = Partial<Pick<VercelTextParams,
+  'temperature' | 
+  'maxTokens' | 
+  'topP' | 
+  'topK' | 
+  'frequencyPenalty' | 
+  'presencePenalty' | 
+  'stopSequences' | 
+  'seed' | 
+  'tools' |
+  'experimental_telemetry'
+>>;
+
+type VercelObjectParams = Parameters<typeof generateObject>[0];
+type RequiredVercelObjectParams = Pick<VercelObjectParams, 'model' | 'messages'>;
+type OptionalVercelObjectParams = Partial<Omit<VercelObjectParams, 'output' | 'model' | 'messages'>>;
+
+type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
+type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
+type OptionalVercelImageParams = Partial<Pick<VercelImageParams,
+  'n' |
+  'size' |
+  'aspectRatio' |
+  'seed'
+>>;
+
 export type Tool = (args: any) => any;
 
 export type ModelFunctionCreator = (modelName: string, options?: Record<string, any>) => LanguageModel | ImageModel;
@@ -84,81 +111,93 @@ export class VercelModelRegistry {
   }
 }
 
-function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => v !== undefined)
-  ) as Partial<T>;
-}
-
-export class VercelAdapter implements Adapter<VercelTextParams, VercelObjectParams, VercelImageParams> {
-  constructor(private modelRegistry: ModelRegistry, private toolRegistry: VercelToolRegistry = new VercelToolRegistry()) {
+export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelObjectParams & OptionalVercelObjectParams, RequiredVercelImageParams & OptionalVercelImageParams> {
+  private toolRegistry: VercelToolRegistry;
+  
+  constructor(private modelRegistry: ModelRegistry) {
     this.modelRegistry = modelRegistry;
-    this.toolRegistry = toolRegistry;
+    this.toolRegistry = new VercelToolRegistry();
   }
 
-  adaptText(input: TextConfig, runtimeConfig: Record<string, any> = {}) {
+  adaptText(input: TextConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelTextParams & OptionalVercelTextParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
-
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
-
-    return removeUndefined({
-      model: model,
+    
+    const params: RequiredVercelTextParams & OptionalVercelTextParams = {
+      model,
       messages: input.messages,
-      temperature: input.metadata.model.settings?.temperature,
-      maxTokens: input.metadata.model.settings?.max_tokens,
-      topP: input.metadata.model.settings?.top_p,
-      topK: input.metadata.model.settings?.top_k,
-      frequencyPenalty: input.metadata.model.settings?.frequency_penalty,
-      presencePenalty: input.metadata.model.settings?.presence_penalty,
-      stopSequences: input.metadata.model.settings?.stop_sequences,
-      seed: input.metadata.model.settings?.seed,
-      experimental_telemetry: runtimeConfig.telemetry,
-      tools: input.metadata.model.settings?.tools ?
-        Object.fromEntries(
-          Object.entries(input.metadata.model.settings.tools).map(([name, tool]) => [
-            name,
-            {
-              description: tool.description || '',
-              parameters: jsonSchema(tool.parameters),
-              execute: this.toolRegistry.hasTool(name) ? this.toolRegistry.getTool(name) : undefined
-            }
-          ])
-        ) : undefined,
-    });
+    };
+
+    const settings = input.metadata.model.settings;
+    if (settings?.temperature !== undefined) params.temperature = settings.temperature;
+    if (settings?.max_tokens !== undefined) params.maxTokens = settings.max_tokens;
+    if (settings?.top_p !== undefined) params.topP = settings.top_p;
+    if (settings?.top_k !== undefined) params.topK = settings.top_k;
+    if (settings?.frequency_penalty !== undefined) params.frequencyPenalty = settings.frequency_penalty;
+    if (settings?.presence_penalty !== undefined) params.presencePenalty = settings.presence_penalty;
+    if (settings?.stop_sequences !== undefined) params.stopSequences = settings.stop_sequences;
+    if (settings?.seed !== undefined) params.seed = settings.seed;
+    
+    if (runtimeConfig.telemetry) params.experimental_telemetry = runtimeConfig.telemetry;
+    
+    if (settings?.tools) {
+      params.tools = Object.fromEntries(
+        Object.entries(settings.tools).map(([name, tool]) => [
+          name,
+          {
+            description: tool.description || '',
+            parameters: jsonSchema(tool.parameters),
+            execute: this.toolRegistry.hasTool(name) ? this.toolRegistry.getTool(name) : undefined
+          }
+        ])
+      );
+    }
+
+    return params;
   }
 
-  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}) {
+  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelObjectParams & OptionalVercelObjectParams & { schema?: 'no-schema' } {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
-
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
-    return removeUndefined({
-      model: model,
+    const settings = input.metadata.model.settings;
+    
+    const params: RequiredVercelObjectParams & OptionalVercelObjectParams = {
+      model,
       messages: input.messages,
-      temperature: input.metadata.model.settings?.temperature,
-      maxTokens: input.metadata.model.settings?.max_tokens,
-      topP: input.metadata.model.settings?.top_p,
-      topK: input.metadata.model.settings?.top_k,
-      frequencyPenalty: input.metadata.model.settings?.frequency_penalty,
-      presencePenalty: input.metadata.model.settings?.presence_penalty,
-      schema: jsonSchema(input.metadata.model.settings.schema),
-      schemaName: input.metadata.model.settings?.schema_name,
-      schemaDescription: input.metadata.model.settings?.schema_description,
-      experimental_telemetry: runtimeConfig.telemetry,
-    });
+    };
+
+    if (settings?.schema !== undefined) {
+      (params as any).schema = jsonSchema(settings.schema as any);
+    }
+    
+    if (settings?.temperature !== undefined) params.temperature = settings.temperature;
+    if (settings?.max_tokens !== undefined) params.maxTokens = settings.max_tokens;
+    if (settings?.top_p !== undefined) params.topP = settings.top_p;
+    if (settings?.top_k !== undefined) params.topK = settings.top_k;
+    if (settings?.frequency_penalty !== undefined) params.frequencyPenalty = settings.frequency_penalty;
+    if (settings?.presence_penalty !== undefined) params.presencePenalty = settings.presence_penalty;
+    if (settings?.seed !== undefined) params.seed = settings.seed;
+    if (runtimeConfig.telemetry) params.experimental_telemetry = runtimeConfig.telemetry;
+    
+    return params;
   }
 
-  adaptImage(input: ImageConfig, runtimeConfig: Record<string, any> = {}) {
+  adaptImage(input: ImageConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelImageParams & OptionalVercelImageParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
-
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as ImageModel;
     const prompt = input.messages.map(message => message.content).join('\n');
-    return removeUndefined({
-      model: model,
+    
+    const params: RequiredVercelImageParams & OptionalVercelImageParams = {
+      model,
       prompt,
-      n: input.metadata.model.settings?.num_images,
-      size: input.metadata.model.settings?.size as `${number}x${number}` | undefined,
-      aspectRatio: input.metadata.model.settings?.aspect_ratio as `${number}:${number}` | undefined,
-      seed: input.metadata.model.settings?.seed
-    });
+    };
+
+    const settings = input.metadata.model.settings;
+    if (settings?.num_images !== undefined) params.n = settings.num_images;
+    if (settings?.size !== undefined) params.size = settings.size as `${number}x${number}`;
+    if (settings?.aspect_ratio !== undefined) params.aspectRatio = settings.aspect_ratio as `${number}:${number}`;
+    if (settings?.seed !== undefined) params.seed = settings.seed;
+    
+    return params;
   }
 }

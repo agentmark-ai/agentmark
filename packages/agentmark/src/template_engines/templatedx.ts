@@ -62,7 +62,7 @@ export class ExtractTextPlugin extends TagPlugin {
 TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
 export class TemplatedxTemplateEngine implements TemplateEngine {
-  async compile(template: Ast, props?: JSONObject) {
+  async format(template: Ast, props?: JSONObject) {
     return getRawConfig(template, props);
   }
 }

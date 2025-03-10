@@ -28,7 +28,7 @@ export interface Loader<T = any> {
 }
 
 export interface TemplateEngine {
-  compile(
+  format(
     template: any,
     props?: JSONObject,
   ): any;

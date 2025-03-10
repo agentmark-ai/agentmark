@@ -24,7 +24,7 @@ describe('AgentMark Integration', () => {
       templateEngine: new TemplatedxTemplateEngine()
     });
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
-    const result = await mathPrompt.compile({
+    const result = await mathPrompt.format({
       userMessage: 'What is the sum of 5 and 3?'
     });
 
@@ -64,7 +64,7 @@ describe('AgentMark Integration', () => {
     });
 
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
-    const result = await mathPrompt.compile({ userMessage: 'What is 2+2?' });
+    const result = await mathPrompt.format({ userMessage: 'What is 2+2?' });
     expect(result.messages[1].content).toBe('What is 2+2?');
   });
 
@@ -88,7 +88,7 @@ describe('AgentMark Integration', () => {
     const preloadedPrompt = await agentMark.loadObjectPrompt(preloadedTemplate as any);
 
     // Test the preloaded prompt
-    const result = await preloadedPrompt.compile({
+    const result = await preloadedPrompt.format({
       userMessage: 'What is the sum of 5 and 3?'
     });
 
@@ -125,7 +125,7 @@ describe('AgentMark Integration', () => {
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
-      const result = await mathPrompt.compile({
+      const result = await mathPrompt.format({
         userMessage: 'What is the sum of 5 and 3?'
       });
 
@@ -161,7 +161,7 @@ describe('AgentMark Integration', () => {
       });
 
       const mathPrompt = await agentMark.loadTextPrompt('math.prompt.mdx');
-      const result = await mathPrompt.compile({
+      const result = await mathPrompt.format({
         userMessage: 'What is the sum of 5 and 3?'
       });
 
@@ -201,7 +201,7 @@ describe('AgentMark Integration', () => {
       const runtimeConfig = {
         apiKey: 'test-api-key',
       };
-      const result = await mathPrompt.compile({
+      const result = await mathPrompt.format({
         userMessage: 'What is 2+2?',
       }, runtimeConfig);
 
@@ -250,7 +250,7 @@ describe('AgentMark Integration', () => {
         }
       }
 
-      const result = await mathPrompt.compile({
+      const result = await mathPrompt.format({
         userMessage: 'What is 2+2?',
       }, runtimeConfig);
 

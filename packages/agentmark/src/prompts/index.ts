@@ -1,5 +1,5 @@
-import { Adapter, TemplateEngine, JSONObject } from "../types";
-import { TextConfig, ObjectConfig, ImageConfig, RuntimeConfig } from "../types";
+import { Adapter, TemplateEngine, JSONObject, RuntimeConfig } from "../types";
+import { TextConfig, ObjectConfig, ImageConfig } from "../types";
 
 const getConfigSettings = (
   input: TextConfig | ObjectConfig | ImageConfig,
@@ -14,7 +14,7 @@ const getConfigSettings = (
         ...telemetry,
         metadata: {
           ...telemetry.metadata,
-          prompt: input.name,
+          prompt: input.metadata.model.name,
           props: JSON.stringify(props),
         }
       }
@@ -23,53 +23,62 @@ const getConfigSettings = (
   return runtimeConfig;
 }
 
-export class TextPrompt<InputType extends JSONObject = JSONObject> {
+export class TextPrompt<
+  InputType extends JSONObject = JSONObject,
+  A extends Adapter = Adapter
+> {
   protected templateEngine: TemplateEngine;
-  protected adapter: Adapter;
+  protected adapter: A;
   public template: any;
-  constructor(template: any, templateEngine: TemplateEngine, adapter: Adapter) {
+  constructor(template: any, templateEngine: TemplateEngine, adapter: A) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
   }
 
-  async compile(props: InputType, runtimeConfig: RuntimeConfig = {}) {
-    const result = await this.templateEngine.compile(this.template, props);
+  async format(props: InputType, runtimeConfig: RuntimeConfig = {}): Promise<ReturnType<A['adaptText']>> {
+    const result = await this.templateEngine.format(this.template, props);
     const config = getConfigSettings(result, props, runtimeConfig);
-    return this.adapter.adaptText(result, config);
+    return this.adapter.adaptText(result, config) as ReturnType<A['adaptText']>;
   }
 }
 
-export class ObjectPrompt<InputType extends JSONObject = JSONObject> {
+export class ObjectPrompt<
+  InputType extends JSONObject = JSONObject,
+  A extends Adapter = Adapter
+> {
   protected templateEngine: TemplateEngine;
-  protected adapter: Adapter;
+  protected adapter: A;
   public template: any;
-  constructor(template: any, templateEngine: TemplateEngine, adapter: Adapter) {
+  constructor(template: any, templateEngine: TemplateEngine, adapter: A) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
   }
 
-  async compile(props: InputType, runtimeConfig: RuntimeConfig = {}) {
-    const result = await this.templateEngine.compile(this.template, props);
+  async format(props: InputType, runtimeConfig: RuntimeConfig = {}): Promise<ReturnType<A['adaptObject']>> {
+    const result = await this.templateEngine.format(this.template, props);
     const config = getConfigSettings(result, props, runtimeConfig);
-    return this.adapter.adaptObject(result, config);
+    return this.adapter.adaptObject(result, config) as ReturnType<A['adaptObject']>;
   }
 }
 
-export class ImagePrompt<InputType extends JSONObject = JSONObject> {
+export class ImagePrompt<
+  InputType extends JSONObject = JSONObject,
+  A extends Adapter = Adapter
+> {
   protected templateEngine: TemplateEngine;
-  protected adapter: Adapter;
+  protected adapter: A;
   public template: any;
-  constructor(template: any, templateEngine: TemplateEngine, adapter: Adapter) {
+  constructor(template: any, templateEngine: TemplateEngine, adapter: A) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
   }
 
-  async compile(props: InputType, runtimeConfig: RuntimeConfig = {}) {
-    const result = await this.templateEngine.compile(this.template, props);
+  async format(props: InputType, runtimeConfig: RuntimeConfig = {}): Promise<ReturnType<A['adaptImage']>> {
+    const result = await this.templateEngine.format(this.template, props);
     const config = getConfigSettings(result, props, runtimeConfig);
-    return this.adapter.adaptImage(result, config);
+    return this.adapter.adaptImage(result, config) as ReturnType<A['adaptImage']>;
   }
 }
