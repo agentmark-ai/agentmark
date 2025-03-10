@@ -25,7 +25,7 @@ type OptionalVercelTextParams = Partial<Pick<VercelTextParams,
 
 type VercelObjectParams = Parameters<typeof generateObject>[0];
 type RequiredVercelObjectParams = Pick<VercelObjectParams, 'model' | 'messages'>;
-type OptionalVercelObjectParams = Partial<Omit<VercelObjectParams, 'output' | 'model' | 'messages'>>;
+type OptionalVercelObjectParams = Partial<Omit<VercelObjectParams, 'model' | 'messages'>>;
 
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
 type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
@@ -156,19 +156,16 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     return params;
   }
 
-  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelObjectParams & OptionalVercelObjectParams & { schema?: 'no-schema' } {
+  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelObjectParams & OptionalVercelObjectParams & { output: 'no-schema' | 'object' } {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
     const settings = input.metadata.model.settings;
     
-    const params: RequiredVercelObjectParams & OptionalVercelObjectParams = {
+    const params: any = {
       model,
       messages: input.messages,
+      schema: jsonSchema(settings.schema),
     };
-
-    if (settings?.schema !== undefined) {
-      (params as any).schema = jsonSchema(settings.schema as any);
-    }
     
     if (settings?.temperature !== undefined) params.temperature = settings.temperature;
     if (settings?.max_tokens !== undefined) params.maxTokens = settings.max_tokens;
@@ -177,6 +174,8 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     if (settings?.frequency_penalty !== undefined) params.frequencyPenalty = settings.frequency_penalty;
     if (settings?.presence_penalty !== undefined) params.presencePenalty = settings.presence_penalty;
     if (settings?.seed !== undefined) params.seed = settings.seed;
+    if (settings?.schema_name !== undefined) params.schemaName = settings.schema_name;
+    if (settings?.schema_description !== undefined) params.schemaDescription = settings.schema_description;
     if (runtimeConfig.telemetry) params.experimental_telemetry = runtimeConfig.telemetry;
     
     return params;
