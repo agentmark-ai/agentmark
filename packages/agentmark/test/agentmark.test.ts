@@ -256,10 +256,7 @@ describe('AgentMark Integration', () => {
 
       expect(result.experimental_telemetry).toEqual(telemetryConfig);
 
-      expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.objectContaining({
-        apiKey: 'test-api-key',
-        telemetry: telemetryConfig
-      }));
+      expect(mockModelFn).toHaveBeenCalledWith('test-model', expect.objectContaining(runtimeConfig));
     });
   });
 });

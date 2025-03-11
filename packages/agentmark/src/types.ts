@@ -28,16 +28,22 @@ export interface Loader<T = any> {
 }
 
 export interface TemplateEngine {
-  format(
+  compile(
     template: any,
     props?: JSONObject,
   ): any;
 }
 
+export interface PromptMetadata {
+  props: JSONObject;
+  path: string | undefined;
+  template: any;
+}
+
 export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any> {
-  adaptText(input: TextConfig, runtimeConfig?: RuntimeConfig): TextOutput;
-  adaptObject(input: ObjectConfig, runtimeConfig?: RuntimeConfig): ObjectOutput;
-  adaptImage(input: ImageConfig, runtimeConfig?: RuntimeConfig): ImageOutput;
+  adaptText(input: TextConfig, runtimeConfig: RuntimeConfig, settings: PromptMetadata): TextOutput;
+  adaptObject(input: ObjectConfig, runtimeConfig: RuntimeConfig, settings: PromptMetadata): ObjectOutput;
+  adaptImage(input: ImageConfig, runtimeConfig: RuntimeConfig, settings: PromptMetadata): ImageOutput;
 }
 
 export type RuntimeConfig = {

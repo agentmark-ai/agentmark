@@ -36,7 +36,7 @@ export class AgentMark<T extends PromptTypeMap = PromptTypeMap, A extends Adapte
   async loadTextPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<TextPrompt<T[K]["input"], A>> {
     if (typeof pathOrPreloaded === 'string') {
       const template = await this.loader.load(pathOrPreloaded);
-      TextConfigSchema.parse(await this.templateEngine.format(template));
+      TextConfigSchema.parse(await this.templateEngine.compile(template));
       return new TextPrompt<T[K]["input"], A>(template, this.templateEngine, this.adapter);
     }
     return new TextPrompt<T[K]["input"], A>(pathOrPreloaded, this.templateEngine, this.adapter);
@@ -45,7 +45,7 @@ export class AgentMark<T extends PromptTypeMap = PromptTypeMap, A extends Adapte
   async loadObjectPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ObjectPrompt<T[K]["input"], A>> {
     if (typeof pathOrPreloaded === 'string') {
       const content = await this.loader.load(pathOrPreloaded);
-      ObjectConfigSchema.parse(await this.templateEngine.format(content));
+      ObjectConfigSchema.parse(await this.templateEngine.compile(content));
       return new ObjectPrompt<T[K]["input"], A>(content, this.templateEngine, this.adapter);
     }
     return new ObjectPrompt<T[K]["input"], A>(pathOrPreloaded, this.templateEngine, this.adapter);
@@ -54,7 +54,7 @@ export class AgentMark<T extends PromptTypeMap = PromptTypeMap, A extends Adapte
   async loadImagePrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ImagePrompt<T[K]["input"], A>> {
     if (typeof pathOrPreloaded === 'string') {
       const content = await this.loader.load(pathOrPreloaded);
-      ImageConfigSchema.parse(await this.templateEngine.format(content));
+      ImageConfigSchema.parse(await this.templateEngine.compile(content));
       return new ImagePrompt<T[K]["input"], A>(content, this.templateEngine, this.adapter);
     }
     return new ImagePrompt<T[K]["input"], A>(pathOrPreloaded, this.templateEngine, this.adapter);

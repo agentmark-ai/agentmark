@@ -4,6 +4,7 @@ import type {
   ImageConfig,
   Adapter,
   RuntimeConfig,
+  PromptMetadata,
 } from "../types";
 import { LanguageModel, ImageModel, jsonSchema } from "ai";
 import { generateText, generateObject, experimental_generateImage } from "ai";
@@ -38,11 +39,26 @@ type OptionalVercelImageParams = Partial<Pick<VercelImageParams,
 
 export type Tool = (args: any) => any;
 
-export type ModelFunctionCreator = (modelName: string, options?: Record<string, any>) => LanguageModel | ImageModel;
+export type ModelFunctionCreator = (modelName: string, options?: RuntimeConfig) => LanguageModel | ImageModel;
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
   registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
+}
+
+const getTelemetryConfig = (
+  telemetry: RuntimeConfig['telemetry'],
+  props: Record<string, any>,
+  promptName: string,
+) => {
+  return {
+    ...telemetry,
+    metadata: {
+      ...telemetry?.metadata,
+      prompt: promptName,
+      props: JSON.stringify(props),
+    }
+  }
 }
 
 export class VercelToolRegistry {
@@ -119,7 +135,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     this.toolRegistry = new VercelToolRegistry();
   }
 
-  adaptText(input: TextConfig, runtimeConfig: RuntimeConfig = {}): RequiredVercelTextParams & OptionalVercelTextParams {
+  adaptText(input: TextConfig, runtimeConfig: RuntimeConfig, metadata: PromptMetadata): RequiredVercelTextParams & OptionalVercelTextParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
     
@@ -137,8 +153,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     if (settings?.presence_penalty !== undefined) params.presencePenalty = settings.presence_penalty;
     if (settings?.stop_sequences !== undefined) params.stopSequences = settings.stop_sequences;
     if (settings?.seed !== undefined) params.seed = settings.seed;
-    
-    if (runtimeConfig.telemetry) params.experimental_telemetry = runtimeConfig.telemetry;
+    if (runtimeConfig.telemetry) params.experimental_telemetry = getTelemetryConfig(runtimeConfig.telemetry, metadata.props, input.name);
     
     if (settings?.tools) {
       params.tools = Object.fromEntries(
@@ -156,7 +171,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     return params;
   }
 
-  adaptObject(input: ObjectConfig, runtimeConfig: RuntimeConfig = {}): RequiredVercelObjectParams & OptionalVercelObjectParams & { output: 'no-schema' | 'object' } {
+  adaptObject(input: ObjectConfig, runtimeConfig: RuntimeConfig, metadata: PromptMetadata): RequiredVercelObjectParams & OptionalVercelObjectParams & { output: 'no-schema' | 'object' } {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
     const settings = input.metadata.model.settings;
@@ -176,12 +191,12 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     if (settings?.seed !== undefined) params.seed = settings.seed;
     if (settings?.schema_name !== undefined) params.schemaName = settings.schema_name;
     if (settings?.schema_description !== undefined) params.schemaDescription = settings.schema_description;
-    if (runtimeConfig.telemetry) params.experimental_telemetry = runtimeConfig.telemetry;
+    if (runtimeConfig.telemetry) params.experimental_telemetry = getTelemetryConfig(runtimeConfig.telemetry, metadata.props, input.name);
     
     return params;
   }
 
-  adaptImage(input: ImageConfig, runtimeConfig: RuntimeConfig = {}): RequiredVercelImageParams & OptionalVercelImageParams {
+  adaptImage(input: ImageConfig, runtimeConfig: RuntimeConfig, metadata: PromptMetadata): RequiredVercelImageParams & OptionalVercelImageParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as ImageModel;
     const prompt = input.messages.map(message => message.content).join('\n');

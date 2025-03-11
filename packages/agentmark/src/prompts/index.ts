@@ -1,27 +1,4 @@
-import { Adapter, TemplateEngine, JSONObject, RuntimeConfig } from "../types";
-import { TextConfig, ObjectConfig, ImageConfig } from "../types";
-
-const getConfigSettings = (
-  input: TextConfig | ObjectConfig | ImageConfig,
-  props: Record<string, any>,
-  runtimeConfig: RuntimeConfig
-): RuntimeConfig => {
-  const telemetry = runtimeConfig.telemetry;
-  if (telemetry) {
-    return {
-      ...runtimeConfig,
-      telemetry: {
-        ...telemetry,
-        metadata: {
-          ...telemetry.metadata,
-          prompt: input.name,
-          props: JSON.stringify(props),
-        }
-      }
-    }
-  }
-  return runtimeConfig;
-}
+import { Adapter, TemplateEngine, JSONObject, RuntimeConfig, PromptMetadata } from "../types";
 
 export class TextPrompt<
   InputType extends JSONObject = JSONObject,
@@ -29,17 +6,19 @@ export class TextPrompt<
 > {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
+  protected path: string | undefined;
   public template: any;
-  constructor(template: any, templateEngine: TemplateEngine, adapter: A) {
+  constructor(template: any, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
+    this.path = path;
   }
 
   async format(props: InputType, runtimeConfig: RuntimeConfig = {}): Promise<ReturnType<A['adaptText']>> {
-    const result = await this.templateEngine.format(this.template, props);
-    const config = getConfigSettings(result, props, runtimeConfig);
-    return this.adapter.adaptText(result, config) as ReturnType<A['adaptText']>;
+    const compiledTemplate = await this.templateEngine.compile(this.template, props);
+    const metadata: PromptMetadata = { props, path: this.path, template: this.template };
+    return this.adapter.adaptText(compiledTemplate, runtimeConfig, metadata) as ReturnType<A['adaptText']>;
   }
 }
 
@@ -49,17 +28,19 @@ export class ObjectPrompt<
 > {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
+  protected path: string | undefined;
   public template: any;
-  constructor(template: any, templateEngine: TemplateEngine, adapter: A) {
+  constructor(template: any, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
+    this.path = path;
   }
 
   async format(props: InputType, runtimeConfig: RuntimeConfig = {}): Promise<ReturnType<A['adaptObject']>> {
-    const result = await this.templateEngine.format(this.template, props);
-    const config = getConfigSettings(result, props, runtimeConfig);
-    return this.adapter.adaptObject(result, config) as ReturnType<A['adaptObject']>;
+    const compiledTemplate = await this.templateEngine.compile(this.template, props);
+    const settings: PromptMetadata = { props, path: this.path, template: this.template };
+    return this.adapter.adaptObject(compiledTemplate, runtimeConfig, settings) as ReturnType<A['adaptObject']>;
   }
 }
 
@@ -69,16 +50,18 @@ export class ImagePrompt<
 > {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
+  protected path: string | undefined;
   public template: any;
-  constructor(template: any, templateEngine: TemplateEngine, adapter: A) {
+  constructor(template: any, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
+    this.path = path;
   }
 
   async format(props: InputType, runtimeConfig: RuntimeConfig = {}): Promise<ReturnType<A['adaptImage']>> {
-    const result = await this.templateEngine.format(this.template, props);
-    const config = getConfigSettings(result, props, runtimeConfig);
-    return this.adapter.adaptImage(result, config) as ReturnType<A['adaptImage']>;
+    const compiledTemplate = await this.templateEngine.compile(this.template, props);
+    const metadata: PromptMetadata = { props, path: this.path, template: this.template };
+    return this.adapter.adaptImage(compiledTemplate, runtimeConfig, metadata) as ReturnType<A['adaptImage']>;
   }
 }
