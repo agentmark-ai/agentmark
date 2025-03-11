@@ -3,7 +3,7 @@ import type {
   ObjectConfig,
   ImageConfig,
   Adapter,
-  JSONObject,
+  RuntimeConfig,
 } from "../types";
 import { LanguageModel, ImageModel, jsonSchema } from "ai";
 import { generateText, generateObject, experimental_generateImage } from "ai";
@@ -119,7 +119,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     this.toolRegistry = new VercelToolRegistry();
   }
 
-  adaptText(input: TextConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelTextParams & OptionalVercelTextParams {
+  adaptText(input: TextConfig, runtimeConfig: RuntimeConfig = {}): RequiredVercelTextParams & OptionalVercelTextParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
     
@@ -156,7 +156,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     return params;
   }
 
-  adaptObject(input: ObjectConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelObjectParams & OptionalVercelObjectParams & { output: 'no-schema' | 'object' } {
+  adaptObject(input: ObjectConfig, runtimeConfig: RuntimeConfig = {}): RequiredVercelObjectParams & OptionalVercelObjectParams & { output: 'no-schema' | 'object' } {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as LanguageModel;
     const settings = input.metadata.model.settings;
@@ -181,7 +181,7 @@ export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelOb
     return params;
   }
 
-  adaptImage(input: ImageConfig, runtimeConfig: Record<string, any> = {}): RequiredVercelImageParams & OptionalVercelImageParams {
+  adaptImage(input: ImageConfig, runtimeConfig: RuntimeConfig = {}): RequiredVercelImageParams & OptionalVercelImageParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, runtimeConfig) as ImageModel;
     const prompt = input.messages.map(message => message.content).join('\n');

@@ -14,7 +14,7 @@ const getConfigSettings = (
         ...telemetry,
         metadata: {
           ...telemetry.metadata,
-          prompt: input.metadata.model.name,
+          prompt: input.name,
           props: JSON.stringify(props),
         }
       }

@@ -35,9 +35,9 @@ export interface TemplateEngine {
 }
 
 export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any> {
-  adaptText(input: TextConfig, runtimeConfig?: Record<string, any>): TextOutput;
-  adaptObject(input: ObjectConfig, runtimeConfig?: Record<string, any>): ObjectOutput;
-  adaptImage(input: ImageConfig, runtimeConfig?: Record<string, any>): ImageOutput;
+  adaptText(input: TextConfig, runtimeConfig?: RuntimeConfig): TextOutput;
+  adaptObject(input: ObjectConfig, runtimeConfig?: RuntimeConfig): ObjectOutput;
+  adaptImage(input: ImageConfig, runtimeConfig?: RuntimeConfig): ImageOutput;
 }
 
 export type RuntimeConfig = {
