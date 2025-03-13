@@ -10,19 +10,14 @@ type AgentMarkOptions = {
   templateEngine?: TemplateEngine;
 }
 
-export interface TypedPrompt<I = any, O = any> {
-  input: I;
-  output: O;
-}
-
-export interface PromptTypeMap {
-  [path: string]: TypedPrompt;
-}
-
-export class AgentMark<T extends PromptTypeMap = PromptTypeMap, A extends Adapter = Adapter> {
+export class AgentMark<
+  T extends { [K in keyof T]: { input: any; output: any } },
+  A extends Adapter = Adapter
+> {
   protected loader: Loader;
   protected adapter: A;
   protected templateEngine: TemplateEngine;
+  
   constructor({
     loader,
     adapter = new DefaultAdapter() as any as A,
