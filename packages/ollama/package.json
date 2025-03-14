@@ -30,7 +30,7 @@
     "openai": "^4.73.1",
     "tsup": "^8.3.5",
     "typescript": "^5.6.2",
-    "vitest": "^3.0.7"
+    "vitest": "^3.0.8"
   },
   "dependencies": {
     "ollama-ai-provider": "^1.2.0"
