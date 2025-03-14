@@ -1,7 +1,7 @@
 import { Adapter, TemplateEngine, JSONObject, PromptMetadata } from "../types";
 
 export class TextPrompt<
-  InputType extends JSONObject = JSONObject,
+  PromptType extends { input: JSONObject, output: any },
   A extends Adapter = Adapter
 > {
   protected templateEngine: TemplateEngine;
@@ -16,7 +16,7 @@ export class TextPrompt<
   }
 
   async format(
-    props: InputType, 
+    props: PromptType['input'], 
     options: A extends Adapter<any, any, any, infer O> ? O : {} = {} as any
   ): Promise<ReturnType<A['adaptText']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props);
@@ -26,7 +26,7 @@ export class TextPrompt<
 }
 
 export class ObjectPrompt<
-  InputType extends JSONObject = JSONObject,
+  PromptType extends { input: JSONObject, output: any },
   A extends Adapter = Adapter
 > {
   protected templateEngine: TemplateEngine;
@@ -41,7 +41,7 @@ export class ObjectPrompt<
   }
 
   async format(
-    props: InputType, 
+    props: PromptType['input'], 
     options: A extends Adapter<any, any, any, infer O> ? O : {} = {} as any
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props);
@@ -51,7 +51,7 @@ export class ObjectPrompt<
 }
 
 export class ImagePrompt<
-  InputType extends JSONObject = JSONObject,
+  PromptType extends { input: JSONObject, output: any },
   A extends Adapter = Adapter
 > {
   protected templateEngine: TemplateEngine;
@@ -66,7 +66,7 @@ export class ImagePrompt<
   }
 
   async format(
-    props: InputType,
+    props: PromptType['input'],
     options: A extends Adapter<any, any, any, infer O> ? O : {} = {} as any
   ): Promise<ReturnType<A['adaptImage']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props);
