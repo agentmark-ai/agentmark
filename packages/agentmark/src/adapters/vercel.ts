@@ -4,6 +4,7 @@ import type {
   ImageConfig,
   Adapter,
   PromptMetadata,
+  JSONObject,
 } from "../types";
 import { LanguageModel, ImageModel, jsonSchema } from "ai";
 import { generateText, generateObject, experimental_generateImage } from "ai";
@@ -19,34 +20,15 @@ export type AdaptOptions = {
 
 type VercelTextParams = Parameters<typeof generateText>[0];
 type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
-type OptionalVercelTextParams = Partial<Pick<VercelTextParams,
-  'temperature' | 
-  'maxTokens' | 
-  'topP' | 
-  'topK' | 
-  'frequencyPenalty' | 
-  'presencePenalty' | 
-  'stopSequences' | 
-  'seed' | 
-  'tools' |
-  'experimental_telemetry'
->>;
-type TextParams = RequiredVercelTextParams & OptionalVercelTextParams;
+type TextParams = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
 
 type VercelObjectParams = Parameters<typeof generateObject>[0];
 type RequiredVercelObjectParams = Pick<VercelObjectParams, 'model' | 'messages'>;
-type OptionalVercelObjectParams = Partial<Omit<VercelObjectParams, 'model' | 'messages'>>;
-type ObjectParams = RequiredVercelObjectParams & OptionalVercelObjectParams;
+type SchemaObjectParams = RequiredVercelObjectParams & Partial<Omit<VercelObjectParams, 'model' | 'messages' | 'output'>> & { schema: any; output?: 'object' };
 
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
 type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
-type OptionalVercelImageParams = Partial<Pick<VercelImageParams,
-  'n' |
-  'size' |
-  'aspectRatio' |
-  'seed'
->>;
-type ImageParams = RequiredVercelImageParams & OptionalVercelImageParams;
+type ImageParams = RequiredVercelImageParams & Partial<Omit<VercelImageParams, 'model' | 'prompt'>>;
 
 export type Tool = (args: any) => any;
 
@@ -138,7 +120,7 @@ export class VercelModelRegistry {
   }
 }
 
-export class VercelAdapter implements Adapter<TextParams, ObjectParams, ImageParams, AdaptOptions> {
+export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, ImageParams, AdaptOptions> {
   private toolRegistry: VercelToolRegistry;
   
   constructor(private modelRegistry: ModelRegistry) {
@@ -146,83 +128,74 @@ export class VercelAdapter implements Adapter<TextParams, ObjectParams, ImagePar
     this.toolRegistry = new VercelToolRegistry();
   }
 
-  adaptText(input: TextConfig, options: AdaptOptions, metadata: PromptMetadata): RequiredVercelTextParams & OptionalVercelTextParams {
+  adaptText(input: TextConfig, options: AdaptOptions, metadata: PromptMetadata): TextParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
-    
-    const params: RequiredVercelTextParams & OptionalVercelTextParams = {
+    const settings = input.metadata.model.settings;
+
+    return {
       model,
       messages: input.messages,
+      ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
+      ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
+      ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
+      ...(settings?.top_k !== undefined ? { topK: settings.top_k } : {}),
+      ...(settings?.frequency_penalty !== undefined ? { frequencyPenalty: settings.frequency_penalty } : {}),
+      ...(settings?.presence_penalty !== undefined ? { presencePenalty: settings.presence_penalty } : {}),
+      ...(settings?.stop_sequences !== undefined ? { stopSequences: settings.stop_sequences } : {}),
+      ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
+      ...(options.telemetry ? { experimental_telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name) } : {}),
+      ...(settings?.tools ? {
+        tools: Object.fromEntries(
+          Object.entries(settings.tools).map(([name, tool]) => [
+            name,
+            {
+              description: tool.description || '',
+              parameters: jsonSchema(tool.parameters),
+              execute: this.toolRegistry.hasTool(name) ? this.toolRegistry.getTool(name) : undefined
+            }
+          ])
+        )
+      } : {})
     };
-
-    const settings = input.metadata.model.settings;
-    if (settings?.temperature !== undefined) params.temperature = settings.temperature;
-    if (settings?.max_tokens !== undefined) params.maxTokens = settings.max_tokens;
-    if (settings?.top_p !== undefined) params.topP = settings.top_p;
-    if (settings?.top_k !== undefined) params.topK = settings.top_k;
-    if (settings?.frequency_penalty !== undefined) params.frequencyPenalty = settings.frequency_penalty;
-    if (settings?.presence_penalty !== undefined) params.presencePenalty = settings.presence_penalty;
-    if (settings?.stop_sequences !== undefined) params.stopSequences = settings.stop_sequences;
-    if (settings?.seed !== undefined) params.seed = settings.seed;
-    if (options.telemetry) params.experimental_telemetry = getTelemetryConfig(options.telemetry, metadata.props, input.name);
-    
-    if (settings?.tools) {
-      params.tools = Object.fromEntries(
-        Object.entries(settings.tools).map(([name, tool]) => [
-          name,
-          {
-            description: tool.description || '',
-            parameters: jsonSchema(tool.parameters),
-            execute: this.toolRegistry.hasTool(name) ? this.toolRegistry.getTool(name) : undefined
-          }
-        ])
-      );
-    }
-
-    return params;
   }
 
-  adaptObject(input: ObjectConfig, options: AdaptOptions, metadata: PromptMetadata): RequiredVercelObjectParams & OptionalVercelObjectParams & { output: 'no-schema' | 'object' } {
+  adaptObject(input: ObjectConfig, options: AdaptOptions, metadata: PromptMetadata): SchemaObjectParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
     
-    const params: any = {
+    return {
       model,
       messages: input.messages,
-      schema: jsonSchema(settings.schema),
+      schema: jsonSchema<JSONObject>(settings.schema),
+      output: 'object',
+      ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
+      ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
+      ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
+      ...(settings?.top_k !== undefined ? { topK: settings.top_k } : {}),
+      ...(settings?.frequency_penalty !== undefined ? { frequencyPenalty: settings.frequency_penalty } : {}),
+      ...(settings?.presence_penalty !== undefined ? { presencePenalty: settings.presence_penalty } : {}),
+      ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
+      ...(settings?.schema_name !== undefined ? { schemaName: settings.schema_name } : {}),
+      ...(settings?.schema_description !== undefined ? { schemaDescription: settings.schema_description } : {}),
+      ...(options.telemetry ? { experimental_telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name) } : {})
     };
-    
-    if (settings?.temperature !== undefined) params.temperature = settings.temperature;
-    if (settings?.max_tokens !== undefined) params.maxTokens = settings.max_tokens;
-    if (settings?.top_p !== undefined) params.topP = settings.top_p;
-    if (settings?.top_k !== undefined) params.topK = settings.top_k;
-    if (settings?.frequency_penalty !== undefined) params.frequencyPenalty = settings.frequency_penalty;
-    if (settings?.presence_penalty !== undefined) params.presencePenalty = settings.presence_penalty;
-    if (settings?.seed !== undefined) params.seed = settings.seed;
-    if (settings?.schema_name !== undefined) params.schemaName = settings.schema_name;
-    if (settings?.schema_description !== undefined) params.schemaDescription = settings.schema_description;
-    if (options.telemetry) params.experimental_telemetry = getTelemetryConfig(options.telemetry, metadata.props, input.name);
-    
-    return params;
   }
 
-  adaptImage(input: ImageConfig, options: AdaptOptions, metadata: PromptMetadata): RequiredVercelImageParams & OptionalVercelImageParams {
+  adaptImage(input: ImageConfig, options: AdaptOptions, metadata: PromptMetadata): ImageParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as ImageModel;
+    const settings = input.metadata.model.settings;
     const prompt = input.messages.map(message => message.content).join('\n');
     
-    const params: RequiredVercelImageParams & OptionalVercelImageParams = {
+    return {
       model,
       prompt,
+      ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
+      ...(settings?.size !== undefined ? { size: settings.size as `${number}x${number}` } : {}),
+      ...(settings?.aspect_ratio !== undefined ? { aspectRatio: settings.aspect_ratio as `${number}:${number}` } : {}),
+      ...(settings?.seed !== undefined ? { seed: settings.seed } : {})
     };
-
-    const settings = input.metadata.model.settings;
-    if (settings?.num_images !== undefined) params.n = settings.num_images;
-    if (settings?.size !== undefined) params.size = settings.size as `${number}x${number}`;
-    if (settings?.aspect_ratio !== undefined) params.aspectRatio = settings.aspect_ratio as `${number}:${number}`;
-    if (settings?.seed !== undefined) params.seed = settings.seed;
-    
-    return params;
   }
 }
