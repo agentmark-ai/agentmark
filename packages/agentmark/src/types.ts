@@ -41,12 +41,12 @@ export interface PromptMetadata {
 }
 
 export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any> {
-  adaptText(input: TextConfig, runtimeConfig: RuntimeConfig, settings: PromptMetadata): TextOutput;
-  adaptObject(input: ObjectConfig, runtimeConfig: RuntimeConfig, settings: PromptMetadata): ObjectOutput;
-  adaptImage(input: ImageConfig, runtimeConfig: RuntimeConfig, settings: PromptMetadata): ImageOutput;
+  adaptText(input: TextConfig, options: AdaptOptions, settings: PromptMetadata): TextOutput;
+  adaptObject(input: ObjectConfig, options: AdaptOptions, settings: PromptMetadata): ObjectOutput;
+  adaptImage(input: ImageConfig, options: AdaptOptions, settings: PromptMetadata): ImageOutput;
 }
 
-export type RuntimeConfig = {
+export type AdaptOptions = {
   telemetry?: {
     isEnabled: boolean;
     functionId?: string;

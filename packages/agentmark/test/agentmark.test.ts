@@ -78,16 +78,9 @@ describe('AgentMark Integration', () => {
       templateEngine: new TemplatedxTemplateEngine()
     });
 
-    // First load a prompt normally
     const originalPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
-
-    // Extract the template to use as a preloaded object
     const preloadedTemplate = originalPrompt.template;
-
-    // Create a new prompt using the preloaded template
     const preloadedPrompt = await agentMark.loadObjectPrompt(preloadedTemplate as any);
-
-    // Test the preloaded prompt
     const result = await preloadedPrompt.format({
       userMessage: 'What is the sum of 5 and 3?'
     });
@@ -150,7 +143,6 @@ describe('AgentMark Integration', () => {
         generate: vi.fn()
       }));
 
-      // Setup registry with mock model creator
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
@@ -231,7 +223,6 @@ describe('AgentMark Integration', () => {
 
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
 
-      // Include telemetry in runtime config
       const metadata = {
         test: 'test',
       }
