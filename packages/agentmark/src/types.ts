@@ -40,20 +40,19 @@ export interface PromptMetadata {
   template: any;
 }
 
-export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any> {
-  adaptText(input: TextConfig, options: AdaptOptions, settings: PromptMetadata): TextOutput;
-  adaptObject(input: ObjectConfig, options: AdaptOptions, settings: PromptMetadata): ObjectOutput;
-  adaptImage(input: ImageConfig, options: AdaptOptions, settings: PromptMetadata): ImageOutput;
+export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any, Options = {}> {
+  adaptText(input: TextConfig, options: Options, settings: PromptMetadata): TextOutput;
+  adaptObject(input: ObjectConfig, options: Options, settings: PromptMetadata): ObjectOutput;
+  adaptImage(input: ImageConfig, options: Options, settings: PromptMetadata): ImageOutput;
 }
 
-export type AdaptOptions = {
+export type BaseAdaptOptions = {
   telemetry?: {
     isEnabled: boolean;
     functionId?: string;
     metadata?: Record<string, any>;
   }
   apiKey?: string;
-  [key: string]: any;
 }
 
 export interface PromptType {

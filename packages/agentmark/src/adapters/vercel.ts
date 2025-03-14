@@ -3,11 +3,19 @@ import type {
   ObjectConfig,
   ImageConfig,
   Adapter,
-  AdaptOptions,
   PromptMetadata,
 } from "../types";
 import { LanguageModel, ImageModel, jsonSchema } from "ai";
 import { generateText, generateObject, experimental_generateImage } from "ai";
+export type AdaptOptions = {
+  telemetry?: {
+    isEnabled: boolean;
+    functionId?: string;
+    metadata?: Record<string, any>;
+  },
+  apiKey?: string;
+  [key: string]: any;
+}
 
 type VercelTextParams = Parameters<typeof generateText>[0];
 type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
@@ -23,10 +31,12 @@ type OptionalVercelTextParams = Partial<Pick<VercelTextParams,
   'tools' |
   'experimental_telemetry'
 >>;
+type TextParams = RequiredVercelTextParams & OptionalVercelTextParams;
 
 type VercelObjectParams = Parameters<typeof generateObject>[0];
 type RequiredVercelObjectParams = Pick<VercelObjectParams, 'model' | 'messages'>;
 type OptionalVercelObjectParams = Partial<Omit<VercelObjectParams, 'model' | 'messages'>>;
+type ObjectParams = RequiredVercelObjectParams & OptionalVercelObjectParams;
 
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
 type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
@@ -36,6 +46,7 @@ type OptionalVercelImageParams = Partial<Pick<VercelImageParams,
   'aspectRatio' |
   'seed'
 >>;
+type ImageParams = RequiredVercelImageParams & OptionalVercelImageParams;
 
 export type Tool = (args: any) => any;
 
@@ -127,7 +138,7 @@ export class VercelModelRegistry {
   }
 }
 
-export class VercelAdapter implements Adapter<VercelTextParams, RequiredVercelObjectParams & OptionalVercelObjectParams, RequiredVercelImageParams & OptionalVercelImageParams> {
+export class VercelAdapter implements Adapter<TextParams, ObjectParams, ImageParams, AdaptOptions> {
   private toolRegistry: VercelToolRegistry;
   
   constructor(private modelRegistry: ModelRegistry) {
