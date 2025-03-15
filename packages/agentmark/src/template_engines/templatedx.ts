@@ -63,10 +63,10 @@ TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistan
 
 export class TemplatedxTemplateEngine implements TemplateEngine {
   async compile(template: Ast, props?: JSONObject) {
+    console.log(JSON.stringify(template, null, 2), props);
     return getRawConfig(template, props);
   }
 }
-
 
 function getMessages(extractedFields: Array<any>): ChatMessage[] {
   const messages: ChatMessage[] = [];

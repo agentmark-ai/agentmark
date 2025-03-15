@@ -41,9 +41,9 @@ export interface PromptMetadata {
 }
 
 export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any, Options = {}> {
-  adaptText(input: TextConfig, options: Options, settings: PromptMetadata): TextOutput;
-  adaptObject(input: ObjectConfig, options: Options, settings: PromptMetadata): ObjectOutput;
-  adaptImage(input: ImageConfig, options: Options, settings: PromptMetadata): ImageOutput;
+  adaptText<T>(input: TextConfig, options: Options, settings: PromptMetadata): TextOutput;
+  adaptObject<T>(input: ObjectConfig, options: Options, settings: PromptMetadata): ObjectOutput;
+  adaptImage<T>(input: ImageConfig, options: Options, settings: PromptMetadata): ImageOutput;
 }
 
 export type BaseAdaptOptions = {

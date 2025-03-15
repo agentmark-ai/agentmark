@@ -34,7 +34,7 @@ export class AgentMark<
       content = await this.loader.load(pathOrPreloaded);
     }
     TextConfigSchema.parse(await this.templateEngine.compile(content));
-    return new TextPrompt<T[K], A>(content, this.templateEngine, this.adapter);
+    return new TextPrompt<T[K]["input"], A>(content, this.templateEngine, this.adapter);
   }
 
   async loadObjectPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ObjectPrompt<T[K]["input"], A>> {
@@ -43,7 +43,7 @@ export class AgentMark<
       content = await this.loader.load(pathOrPreloaded);
     }
     ObjectConfigSchema.parse(await this.templateEngine.compile(content));
-    return new ObjectPrompt<T[K], A>(content, this.templateEngine, this.adapter);
+    return new ObjectPrompt<T[K]["input"], A>(content, this.templateEngine, this.adapter);
   }
 
   async loadImagePrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ImagePrompt<T[K]["input"], A>> {
@@ -52,6 +52,6 @@ export class AgentMark<
       content = await this.loader.load(pathOrPreloaded);
     }
     ImageConfigSchema.parse(await this.templateEngine.compile(content));
-    return new ImagePrompt<T[K], A>(content, this.templateEngine, this.adapter);
+    return new ImagePrompt<T[K]["input"], A>(content, this.templateEngine, this.adapter);
   }
 }

@@ -122,7 +122,7 @@ export class VercelModelRegistry {
 
 export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, ImageParams, AdaptOptions> {
   private toolRegistry: VercelToolRegistry;
-  
+
   constructor(private modelRegistry: ModelRegistry) {
     this.modelRegistry = modelRegistry;
     this.toolRegistry = new VercelToolRegistry();
@@ -164,11 +164,11 @@ export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, Im
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
-    
+
     return {
       model,
       messages: input.messages,
-      schema: jsonSchema<JSONObject>(settings.schema),
+      schema: jsonSchema(settings.schema),
       output: 'object',
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
@@ -188,7 +188,7 @@ export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, Im
     const model = modelCreator(input.metadata.model.name, options) as ImageModel;
     const settings = input.metadata.model.settings;
     const prompt = input.messages.map(message => message.content).join('\n');
-    
+
     return {
       model,
       prompt,
