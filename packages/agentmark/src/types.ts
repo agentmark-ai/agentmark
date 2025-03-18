@@ -42,7 +42,7 @@ export interface PromptMetadata {
 
 export interface Adapter {
   adaptText(input: TextConfig, options: JSONObject, settings: PromptMetadata): any;
-  adaptObject(input: ObjectConfig, options: JSONObject, settings: PromptMetadata): any;
+  adaptObject<T = any>(input: ObjectConfig, options: JSONObject, settings: PromptMetadata): any;
   adaptImage(input: ImageConfig, options: JSONObject, settings: PromptMetadata): any;
 }
 

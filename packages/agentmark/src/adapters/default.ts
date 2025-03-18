@@ -1,4 +1,4 @@
-import { Adapter, TextConfig, ObjectConfig, ImageConfig } from "../types";
+import { Adapter, TextConfig, ObjectConfig, ImageConfig, JSONObject } from "../types";
 
 export class DefaultAdapter implements Adapter {
   adaptText(input: TextConfig) {

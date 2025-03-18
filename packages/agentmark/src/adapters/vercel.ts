@@ -193,7 +193,7 @@ export class VercelAdapter implements Adapter {
     };
   }
 
-  adaptImage(input: ImageConfig, options: AdaptOptions, metadata: PromptMetadata): ImageParams {
+  adaptImage(input: ImageConfig, options: AdaptOptions): ImageParams {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as ImageModel;
     const settings = input.metadata.model.settings;
