@@ -4,10 +4,17 @@ import type {
   ImageConfig,
   Adapter,
   PromptMetadata,
-  JSONObject,
+  ChatMessage,
 } from "../types";
-import { LanguageModel, ImageModel, jsonSchema } from "ai";
-import { generateText, generateObject, experimental_generateImage } from "ai";
+import type { 
+  LanguageModel,
+  ImageModel, 
+  generateText,
+  experimental_generateImage,
+  Schema
+} from "ai";
+import { jsonSchema } from "ai";
+
 export type AdaptOptions = {
   telemetry?: {
     isEnabled: boolean;
@@ -22,9 +29,11 @@ type VercelTextParams = Parameters<typeof generateText>[0];
 type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
 type TextParams = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
 
-type VercelObjectParams = Parameters<typeof generateObject>[0];
-type RequiredVercelObjectParams = Pick<VercelObjectParams, 'model' | 'messages'>;
-type SchemaObjectParams = RequiredVercelObjectParams & Partial<Omit<VercelObjectParams, 'model' | 'messages' | 'output'>> & { schema: any; output?: 'object' };
+type SchemaObjectParams<T> = {
+  model: LanguageModel;
+  messages: ChatMessage[];
+  schema: Schema<T>;
+};
 
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
 type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
@@ -120,10 +129,12 @@ export class VercelModelRegistry {
   }
 }
 
-export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, ImageParams, AdaptOptions> {
+export class VercelAdapter implements Adapter {
   private toolRegistry: VercelToolRegistry;
 
-  constructor(private modelRegistry: ModelRegistry) {
+  constructor(
+    private modelRegistry: ModelRegistry
+  ) {
     this.modelRegistry = modelRegistry;
     this.toolRegistry = new VercelToolRegistry();
   }
@@ -160,7 +171,7 @@ export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, Im
     };
   }
 
-  adaptObject(input: ObjectConfig, options: AdaptOptions, metadata: PromptMetadata): SchemaObjectParams {
+  adaptObject<T>(input: ObjectConfig, options: AdaptOptions, metadata: PromptMetadata): SchemaObjectParams<T> {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
@@ -168,8 +179,7 @@ export class VercelAdapter implements Adapter<TextParams, SchemaObjectParams, Im
     return {
       model,
       messages: input.messages,
-      schema: jsonSchema(settings.schema),
-      output: 'object',
+      schema: jsonSchema<T>(settings.schema),
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),

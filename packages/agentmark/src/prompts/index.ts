@@ -17,13 +17,14 @@ export class TextPrompt<
 
   async format(
     props: Input, 
-    options: A extends Adapter<any, any, any, infer O> ? O : {} = {} as any
+    options: JSONObject = {}
   ): Promise<ReturnType<A['adaptText']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props);
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
     return this.adapter.adaptText(compiledTemplate, options, metadata);
   }
 }
+
 
 export class ObjectPrompt<
   Input extends JSONObject,
@@ -42,7 +43,7 @@ export class ObjectPrompt<
 
   async format(
     props: Input, 
-    options: A extends Adapter<any, any, any, infer O> ? O : {} = {} as any
+    options: JSONObject = {}
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props);
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
@@ -67,7 +68,7 @@ export class ImagePrompt<
 
   async format(
     props: Input,
-    options: A extends Adapter<any, any, any, infer O> ? O : {} = {} as any
+    options: JSONObject = {}
   ): Promise<ReturnType<A['adaptImage']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props);
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };

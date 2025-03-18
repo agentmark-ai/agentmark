@@ -40,10 +40,10 @@ export interface PromptMetadata {
   template: any;
 }
 
-export interface Adapter<TextOutput = any, ObjectOutput = any, ImageOutput = any, Options = {}> {
-  adaptText<T>(input: TextConfig, options: Options, settings: PromptMetadata): TextOutput;
-  adaptObject<T>(input: ObjectConfig, options: Options, settings: PromptMetadata): ObjectOutput;
-  adaptImage<T>(input: ImageConfig, options: Options, settings: PromptMetadata): ImageOutput;
+export interface Adapter {
+  adaptText(input: TextConfig, options: JSONObject, settings: PromptMetadata): any;
+  adaptObject(input: ObjectConfig, options: JSONObject, settings: PromptMetadata): any;
+  adaptImage(input: ImageConfig, options: JSONObject, settings: PromptMetadata): any;
 }
 
 export type BaseAdaptOptions = {
