@@ -5,8 +5,11 @@ import type {
   Adapter,
   PromptMetadata,
   ChatMessage,
+  AdapterTextResult,
+  AdapterObjectResult,
+  AdapterImageResult,
 } from "../types";
-import type { 
+import type {
   LanguageModel,
   ImageModel, 
   generateText,
@@ -27,7 +30,10 @@ export type AdaptOptions = {
 
 type VercelTextParams = Parameters<typeof generateText>[0];
 type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
-type TextParams = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
+type TextResult = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
+
+// Define this to preserve the type parameter T
+type VercelTextResult<T> = TextResult & AdapterTextResult<T>;
 
 type SchemaObjectParams<T> = {
   model: LanguageModel;
@@ -35,9 +41,14 @@ type SchemaObjectParams<T> = {
   schema: Schema<T>;
 };
 
+// Define compatible types that include all required properties
+type VercelSchemaObjectParams<T> = SchemaObjectParams<T> & AdapterObjectResult<T>;
+
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
 type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
 type ImageParams = RequiredVercelImageParams & Partial<Omit<VercelImageParams, 'model' | 'prompt'>>;
+
+type VercelImageResult<T> = ImageParams & AdapterImageResult<T>;
 
 export type Tool = (args: any) => any;
 
@@ -129,7 +140,7 @@ export class VercelModelRegistry {
   }
 }
 
-export class VercelAdapter implements Adapter {
+export class VercelAdapter implements Adapter<VercelTextResult<unknown>, VercelSchemaObjectParams<unknown>, VercelImageResult<unknown>> {
   private toolRegistry: VercelToolRegistry;
 
   constructor(
@@ -139,14 +150,19 @@ export class VercelAdapter implements Adapter {
     this.toolRegistry = new VercelToolRegistry();
   }
 
-  adaptText(input: TextConfig, options: AdaptOptions, metadata: PromptMetadata): TextParams {
+  adaptText<T>(
+    input: TextConfig, 
+    options: AdaptOptions, 
+    metadata: PromptMetadata
+  ): VercelTextResult<T> {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
 
-    return {
+    const result = {
       model,
       messages: input.messages,
+      __textOutput: undefined as unknown as T,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
@@ -169,17 +185,25 @@ export class VercelAdapter implements Adapter {
         )
       } : {})
     };
+    
+    return result as VercelTextResult<T>;
   }
 
-  adaptObject<T>(input: ObjectConfig, options: AdaptOptions, metadata: PromptMetadata): SchemaObjectParams<T> {
+  adaptObject<T>(
+    input: ObjectConfig, 
+    options: AdaptOptions, 
+    metadata: PromptMetadata
+  ): VercelSchemaObjectParams<T> & { __objectOutput?: T } {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
+    const schemaObj = jsonSchema<T>(settings.schema);
 
-    return {
+    const result = {
       model,
       messages: input.messages,
-      schema: jsonSchema<T>(settings.schema),
+      schema: schemaObj,
+      __objectOutput: undefined as unknown as T,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
@@ -191,21 +215,30 @@ export class VercelAdapter implements Adapter {
       ...(settings?.schema_description !== undefined ? { schemaDescription: settings.schema_description } : {}),
       ...(options.telemetry ? { experimental_telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name) } : {})
     };
+    
+    return result;
   }
 
-  adaptImage(input: ImageConfig, options: AdaptOptions): ImageParams {
+  adaptImage<T>(
+    input: ImageConfig, 
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): VercelImageResult<T> {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as ImageModel;
     const settings = input.metadata.model.settings;
     const prompt = input.messages.map(message => message.content).join('\n');
 
-    return {
+    const result = {
       model,
       prompt,
+      __imageOutput: undefined as unknown as T,
       ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
       ...(settings?.size !== undefined ? { size: settings.size as `${number}x${number}` } : {}),
       ...(settings?.aspect_ratio !== undefined ? { aspectRatio: settings.aspect_ratio as `${number}:${number}` } : {}),
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {})
     };
+    
+    return result as VercelImageResult<T>;
   }
 }

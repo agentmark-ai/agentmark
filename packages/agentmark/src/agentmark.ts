@@ -2,11 +2,10 @@ import { Loader, TemplateEngine, Adapter } from "./types";
 import { TextPrompt, ObjectPrompt, ImagePrompt } from "./prompts";
 import { TextConfigSchema, ObjectConfigSchema, ImageConfigSchema } from "./schemas";
 import { TemplatedxTemplateEngine } from "./template_engines/templatedx";
-import { DefaultAdapter } from "./adapters/default";
 
-type AgentMarkOptions = {
+type AgentMarkOptions<A extends Adapter = Adapter> = {
   loader: Loader;
-  adapter?: Adapter;
+  adapter: A;
   templateEngine?: TemplateEngine;
 }
 
@@ -20,12 +19,12 @@ export class AgentMark<
   
   constructor({
     loader,
-    adapter = new DefaultAdapter() as any as A,
+    adapter,
     templateEngine = new TemplatedxTemplateEngine(),
-  }: AgentMarkOptions) {
+  }: AgentMarkOptions<A>) {
     this.loader = loader;
     this.templateEngine = templateEngine;
-    this.adapter = adapter as A;
+    this.adapter = adapter;
   }
 
   async loadTextPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<TextPrompt<T[K]["input"], T[K]["output"], A>> {

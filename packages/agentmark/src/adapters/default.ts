@@ -1,15 +1,31 @@
-import { Adapter, TextConfig, ObjectConfig, ImageConfig, JSONObject } from "../types";
+import { 
+  Adapter, 
+  TextConfig, 
+  ObjectConfig, 
+  ImageConfig, 
+  JSONObject, 
+  PromptMetadata,
+  AdapterTextResult,
+  AdapterObjectResult,
+  AdapterImageResult
+} from "../types";
 
 export class DefaultAdapter implements Adapter {
-  adaptText(input: TextConfig) {
-    return input;
+  adaptText<T = string, R = AdapterTextResult<T>>(
+    input: TextConfig, 
+  ): R {
+    return input as R;
   }
 
-  adaptObject(input: ObjectConfig) {
-    return input;
+  adaptObject<T = any, R = AdapterObjectResult<T>>(
+    input: ObjectConfig, 
+  ): R {
+    return input as R;
   }
 
-  adaptImage(input: ImageConfig) {
-    return input;
+  adaptImage<T = string, R = AdapterImageResult<T>>(
+    input: ImageConfig, 
+  ): R {
+    return input as R;
   }
 }
