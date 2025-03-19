@@ -28,29 +28,41 @@ export class AgentMark<
   }
 
   async loadTextPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<TextPrompt<T[K]["input"], T[K]["output"], A>> {
-    let content = pathOrPreloaded;
+    let content: unknown;
+    
     if (typeof pathOrPreloaded === 'string') {
       content = await this.loader.load(pathOrPreloaded);
+    } else {
+      content = pathOrPreloaded;
     }
+    
     TextConfigSchema.parse(await this.templateEngine.compile(content));
-    return new TextPrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter);
+    return new TextPrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
   }
 
   async loadObjectPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ObjectPrompt<T[K]["input"], T[K]["output"], A>> {
-    let content = pathOrPreloaded;
+    let content: unknown;
+    
     if (typeof pathOrPreloaded === 'string') {
       content = await this.loader.load(pathOrPreloaded);
+    } else {
+      content = pathOrPreloaded;
     }
+    
     ObjectConfigSchema.parse(await this.templateEngine.compile(content));
-    return new ObjectPrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter);
+    return new ObjectPrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
   }
 
   async loadImagePrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ImagePrompt<T[K]["input"], T[K]["output"], A>> {
-    let content = pathOrPreloaded;
+    let content: unknown;
+    
     if (typeof pathOrPreloaded === 'string') {
       content = await this.loader.load(pathOrPreloaded);
+    } else {
+      content = pathOrPreloaded;
     }
+    
     ImageConfigSchema.parse(await this.templateEngine.compile(content));
-    return new ImagePrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter);
+    return new ImagePrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
   }
 }
