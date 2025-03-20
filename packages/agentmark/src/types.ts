@@ -41,16 +41,12 @@ export interface PromptMetadata {
   template: unknown;
 }
 
-export interface AdapterTextResult<T = string> {}
-
-export interface AdapterObjectResult<T = unknown> {
-  __objectOutput?: T;
-  // NOTE: This is a temporary solution to allow for the schema to be passed in as a property
+export type AdapterTextResult<T = string> = {};
+export type AdapterObjectResult<T = unknown> = { 
   // TODO: Remove this once we have a better solution
   schema?: Schema<T>;
-}
-
-export interface AdapterImageResult<T = string> {}
+};
+export type AdapterImageResult<T = string> = {};
 
 // Core adapter methods
 export interface Adapter<
@@ -62,10 +58,10 @@ export interface Adapter<
     input: TextConfig, 
     options: JSONObject, 
     settings: PromptMetadata
-  ): TextOut;
+  ): TextOut & AdapterTextResult<T>;
   
   adaptObject<T>(
-    input: ObjectConfig, 
+    input: ObjectConfig & { schema?: Schema<T> }, 
     options: JSONObject, 
     settings: PromptMetadata
   ): ObjectOut & AdapterObjectResult<T>;
@@ -74,14 +70,18 @@ export interface Adapter<
     input: ImageConfig, 
     options: JSONObject, 
     settings: PromptMetadata
-  ): ImageOut;
+  ): ImageOut & AdapterImageResult<T>;
 }
 
-export type AdapterTextOutput<A extends Adapter, T> = A extends Adapter<infer TextOut, any, any> ? TextOut : never;
-export type AdapterObjectOutput<A extends Adapter, T> = A extends Adapter<any, infer ObjectOut, any> 
-  ? (ObjectOut & AdapterObjectResult<T>) 
-  : never;
-export type AdapterImageOutput<A extends Adapter, T> = A extends Adapter<any, any, infer ImageOut> ? ImageOut : never;
+// Simplified output type helpers
+export type AdapterTextOutput<A extends Adapter, T> = 
+  A extends Adapter<infer TextOut, any, any> ? (TextOut & AdapterTextResult<T>) : never;
+
+export type AdapterObjectOutput<A extends Adapter, T> = 
+  A extends Adapter<any, infer ObjectOut, any> ? (ObjectOut & AdapterObjectResult<T>) : never;
+
+export type AdapterImageOutput<A extends Adapter, T> = 
+  A extends Adapter<any, any, infer ImageOut> ? (ImageOut & AdapterImageResult<T>) : never;
 
 export type BaseAdaptOptions = {
   telemetry?: {
