@@ -63,8 +63,6 @@ export class AgentMark<
     }
     
     ObjectConfigSchema.parse(await this.templateEngine.compile(content));
-    
-    // Create and return a properly typed ObjectPrompt
     return new ObjectPrompt<Input, Output, A>(
       content,
       this.templateEngine,

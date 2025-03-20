@@ -1,4 +1,4 @@
-import { Adapter, JSONObject } from "../types";
+import { JSONObject } from "../types";
 
 /**
  * Common interface for all prompt types with a generic return type

@@ -1,17 +1,11 @@
 import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterImageOutput, ImageConfig } from "../types";
 import { Prompt } from "./index";
 
-/**
- * Image prompt specific interface
- */
 export interface ImagePromptInterface<Input extends JSONObject, Output extends string, A extends Adapter = Adapter> 
   extends Prompt<Input, Output, A> {
   format(props: Input, options?: JSONObject): Promise<AdapterImageOutput<A, Output>>;
 }
 
-/**
- * Prompt implementation for image-based prompts
- */
 export class ImagePrompt<
   Input extends JSONObject,
   Output extends string,
@@ -29,10 +23,6 @@ export class ImagePrompt<
     this.path = path;
   }
 
-  /**
-   * Format the prompt with input props and return typed adapter output
-   * This preserves the Output type parameter through the entire chain
-   */
   async format(
     props: Input,
     options: JSONObject = {}

@@ -73,7 +73,6 @@ export interface Adapter<
   ): ImageOut & AdapterImageResult<T>;
 }
 
-// Simplified output type helpers
 export type AdapterTextOutput<A extends Adapter, T> = 
   A extends Adapter<infer TextOut, any, any> ? (TextOut & AdapterTextResult<T>) : never;
 

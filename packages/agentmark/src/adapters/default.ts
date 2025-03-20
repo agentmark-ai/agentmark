@@ -9,7 +9,6 @@ import {
 } from "../types";
 import type { Schema } from 'ai';
 
-// Define specific return types for DefaultAdapter
 export type DefaultTextResult<T = string> = TextConfig & AdapterTextResult<T>;
 export type DefaultObjectResult<T = unknown> = ObjectConfig & AdapterObjectResult<T> & { schema?: Schema<T> };
 export type DefaultImageResult<T = string> = ImageConfig & AdapterImageResult<T>;

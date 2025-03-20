@@ -32,17 +32,14 @@ type VercelTextParams = Parameters<typeof generateText>[0];
 type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
 type TextResult = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
 
-// Define this to preserve the type parameter T
 export type VercelTextResult<U> = TextResult & AdapterTextResult<U>;
 
-// Schema object params type
 export type SchemaObjectParams<U> = {
   model: LanguageModel;
   messages: ChatMessage[];
   schema: Schema<U>;
 };
 
-// Define compatible types that include all required properties
 export type VercelSchemaObjectParams<U = unknown> = SchemaObjectParams<U> & AdapterObjectResult<U>;
 
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
