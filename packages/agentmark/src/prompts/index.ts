@@ -2,17 +2,7 @@ import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ChatMessage, Adapt
 import { jsonSchema } from 'ai';
 
 /**
- * A type that determines the correct adapter output type based on the output type
- */
-export type PromptOutputType<Output, A extends Adapter> = 
-  Output extends string ? AdapterTextOutput<A, Output> :
-  Output extends JSONObject ? AdapterObjectOutput<A, Output> :
-  Output extends unknown ? AdapterImageOutput<A, Output> :
-  never;
-
-/**
- * Common interface for all prompt types.
- * This provides a consistent API for working with different prompt types.
+ * Common interface for all prompt types with a generic return type
  */
 export interface Prompt<Input extends JSONObject, Output, A extends Adapter = Adapter> {
   /**
@@ -23,7 +13,31 @@ export interface Prompt<Input extends JSONObject, Output, A extends Adapter = Ad
   /**
    * Format the prompt with the given input properties and options
    */
-  format(props: Input, options?: JSONObject): Promise<PromptOutputType<Output, A>>;
+  format(props: Input, options?: JSONObject): Promise<unknown>;
+}
+
+/**
+ * Text prompt specific interface
+ */
+export interface TextPromptInterface<Input extends JSONObject, Output extends string, A extends Adapter = Adapter> 
+  extends Prompt<Input, Output, A> {
+  format(props: Input, options?: JSONObject): Promise<AdapterTextOutput<A, Output>>;
+}
+
+/**
+ * Object prompt specific interface
+ */
+export interface ObjectPromptInterface<Input extends JSONObject, Output extends JSONObject, A extends Adapter = Adapter> 
+  extends Prompt<Input, Output, A> {
+  format(props: Input, options?: JSONObject): Promise<AdapterObjectOutput<A, Output>>;
+}
+
+/**
+ * Image prompt specific interface
+ */
+export interface ImagePromptInterface<Input extends JSONObject, Output extends string, A extends Adapter = Adapter> 
+  extends Prompt<Input, Output, A> {
+  format(props: Input, options?: JSONObject): Promise<AdapterImageOutput<A, Output>>;
 }
 
 /**
@@ -33,7 +47,7 @@ export class TextPrompt<
   Input extends JSONObject,
   T extends string,
   A extends Adapter = Adapter
-> implements Prompt<Input, T, A> {
+> implements TextPromptInterface<Input, T, A> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
   protected path: string | undefined;
@@ -49,11 +63,11 @@ export class TextPrompt<
   async format(
     props: Input, 
     options: JSONObject = {}
-  ): Promise<PromptOutputType<T, A>> {
+  ): Promise<AdapterTextOutput<A, T>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as TextConfig;
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
     const result = this.adapter.adaptText<T>(compiledTemplate, options, metadata);
-    return result as PromptOutputType<T, A>;
+    return result as AdapterTextOutput<A, T>;
   }
 }
 
@@ -64,7 +78,7 @@ export class ObjectPrompt<
   Input extends JSONObject,
   T extends JSONObject,
   A extends Adapter = Adapter
-> implements Prompt<Input, T, A> {
+> implements ObjectPromptInterface<Input, T, A> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
   protected path: string | undefined;
@@ -80,10 +94,10 @@ export class ObjectPrompt<
   async format(
     props: Input,
     options: JSONObject = {}
-  ): Promise<PromptOutputType<T, A>> {
+  ): Promise<AdapterObjectOutput<A, T>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
     
-    // Add the schema directly to the compiledTemplate
+    // Add the schema directly to the compiledTemplate with the correct Output type
     const typedSchema = jsonSchema<T>(compiledTemplate.metadata.model.settings.schema);
     
     // Create an enhanced template with the typed schema
@@ -94,7 +108,7 @@ export class ObjectPrompt<
     
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
     const result = this.adapter.adaptObject<T>(enhancedTemplate, options, metadata);
-    return result as PromptOutputType<T, A>;
+    return result as AdapterObjectOutput<A, T>;
   }
 }
 
@@ -105,7 +119,7 @@ export class ImagePrompt<
   Input extends JSONObject,
   T extends string,
   A extends Adapter = Adapter
-> implements Prompt<Input, T, A> {
+> implements ImagePromptInterface<Input, T, A> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
   protected path: string | undefined;
@@ -121,10 +135,10 @@ export class ImagePrompt<
   async format(
     props: Input,
     options: JSONObject = {}
-  ): Promise<PromptOutputType<T, A>> {
+  ): Promise<AdapterImageOutput<A, T>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ImageConfig;
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
     const result = this.adapter.adaptImage<T>(compiledTemplate, options, metadata);
-    return result as PromptOutputType<T, A>;
+    return result as AdapterImageOutput<A, T>;
   }
 }

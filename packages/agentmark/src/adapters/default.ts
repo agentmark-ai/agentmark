@@ -11,29 +11,40 @@ import {
 } from "../types";
 import type { Schema } from 'ai';
 
-export class DefaultAdapter implements Adapter {
-  adaptText<T = string, R = AdapterTextResult<T>>(
+// Define specific return types for DefaultAdapter
+export type DefaultTextResult<T = string> = TextConfig & AdapterTextResult<T>;
+export type DefaultObjectResult<T = unknown> = ObjectConfig & AdapterObjectResult<T>;
+export type DefaultImageResult<T = string> = ImageConfig & AdapterImageResult<T>;
+
+export class DefaultAdapter implements Adapter<DefaultTextResult<any>, DefaultObjectResult<any>, DefaultImageResult<any>> {
+  adaptText<T = string>(
     input: TextConfig, 
     options?: JSONObject,
     settings?: PromptMetadata
-  ): R {
-    return input as R;
+  ): DefaultTextResult<T> {
+    return {
+      ...input
+    };
   }
 
-  adaptObject<T = any, R = AdapterObjectResult<T> & { schema: Schema<T>; object?: T }>(
-    input: ObjectConfig,
+  adaptObject<T = unknown>(
+    input: ObjectConfig & { jsonSchema?: Schema<T> },
     options?: JSONObject,
-    settings?: PromptMetadata,
-    schema?: Schema<T>
-  ): R {
-    return { ...input, schema } as R;
+    settings?: PromptMetadata
+  ): DefaultObjectResult<T> {
+    return { 
+      ...input, 
+      schema: input.jsonSchema 
+    };
   }
 
-  adaptImage<T = string, R = AdapterImageResult<T>>(
+  adaptImage<T = string>(
     input: ImageConfig,
     options?: JSONObject,
     settings?: PromptMetadata
-  ): R {
-    return input as R;
+  ): DefaultImageResult<T> {
+    return {
+      ...input
+    };
   }
 }

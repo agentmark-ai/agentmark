@@ -78,31 +78,6 @@ export interface Adapter<
   ): ImageOut;
 }
 
-// Main Adapter interface
-export interface Adapter<
-  TextOut extends AdapterTextResult<any> = AdapterTextResult<any>, 
-  ObjectOut extends AdapterObjectResult<any> = AdapterObjectResult<any>, 
-  ImageOut extends AdapterImageResult<any> = AdapterImageResult<any>
-> {
-  adaptText<T>(
-    input: TextConfig, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): TextOut;
-  
-  adaptObject<T>(
-    input: ObjectConfig & { jsonSchema?: Schema<T> }, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): ObjectOut;
-  
-  adaptImage<T>(
-    input: ImageConfig, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): ImageOut;
-}
-
 // Output type helpers for use in prompt implementations
 export type AdapterTextOutput<A extends Adapter, T> = A extends Adapter<infer TextOut, any, any> ? TextOut : never;
 export type AdapterObjectOutput<A extends Adapter, T> = A extends Adapter<any, infer ObjectOut, any> ? ObjectOut : never;
@@ -123,3 +98,10 @@ export interface PromptType {
   input: unknown;
   output: unknown;
 }
+
+// Fix ReturnType usage with adapters
+export type AdapterMethodReturnType<
+  A extends Adapter,
+  Method extends keyof A,
+  T = any
+> = A[Method] extends (...args: any[]) => infer R ? R : never;
