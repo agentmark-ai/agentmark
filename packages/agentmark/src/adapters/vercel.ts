@@ -33,22 +33,23 @@ type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
 type TextResult = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
 
 // Define this to preserve the type parameter T
-type VercelTextResult<U> = TextResult & AdapterTextResult<U>;
+export type VercelTextResult<U> = TextResult & AdapterTextResult<U>;
 
-type SchemaObjectParams<U> = {
+// Schema object params type
+export type SchemaObjectParams<U> = {
   model: LanguageModel;
   messages: ChatMessage[];
   schema: Schema<U>;
 };
 
 // Define compatible types that include all required properties
-type VercelSchemaObjectParams<U> = SchemaObjectParams<U> & AdapterObjectResult<U>;
+export type VercelSchemaObjectParams<U = unknown> = SchemaObjectParams<U> & AdapterObjectResult<U>;
 
 type VercelImageParams = Parameters<typeof experimental_generateImage>[0];
 type RequiredVercelImageParams = Pick<VercelImageParams, 'model' | 'prompt'>;
 type ImageParams = RequiredVercelImageParams & Partial<Omit<VercelImageParams, 'model' | 'prompt'>>;
 
-type VercelImageResult<U> = ImageParams & AdapterImageResult<U>;
+export type VercelImageResult<U> = ImageParams & AdapterImageResult<U>;
 
 export type Tool = (args: any) => any;
 
@@ -196,7 +197,7 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
     const settings = input.metadata.model.settings;
     
     // Use the provided jsonSchema or create one if not available
-    const schema = input.jsonSchema || jsonSchema<U>(settings.schema);
+    const schema = jsonSchema<U>(settings.schema);
     
     return {
       model,

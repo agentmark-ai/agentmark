@@ -48,6 +48,7 @@ export interface PromptMetadata {
 export interface AdapterTextResult<T = string> {}
 
 export interface AdapterObjectResult<T = unknown> {
+  __objectOutput?: T;
   schema?: Schema<T>;
 }
 
@@ -69,7 +70,7 @@ export interface Adapter<
     input: ObjectConfig & { jsonSchema?: Schema<T> }, 
     options: JSONObject, 
     settings: PromptMetadata
-  ): ObjectOut;
+  ): ObjectOut & AdapterObjectResult<T>;
   
   adaptImage<T>(
     input: ImageConfig, 
@@ -80,7 +81,9 @@ export interface Adapter<
 
 // Output type helpers for use in prompt implementations
 export type AdapterTextOutput<A extends Adapter, T> = A extends Adapter<infer TextOut, any, any> ? TextOut : never;
-export type AdapterObjectOutput<A extends Adapter, T> = A extends Adapter<any, infer ObjectOut, any> ? ObjectOut : never;
+export type AdapterObjectOutput<A extends Adapter, T> = A extends Adapter<any, infer ObjectOut, any> 
+  ? (ObjectOut & AdapterObjectResult<T>) 
+  : never;
 export type AdapterImageOutput<A extends Adapter, T> = A extends Adapter<any, any, infer ImageOut> ? ImageOut : never;
 
 // Base options for adapters
