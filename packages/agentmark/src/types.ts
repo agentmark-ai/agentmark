@@ -41,46 +41,12 @@ export interface PromptMetadata {
   template: unknown;
 }
 
-export type AdapterTextResult<T = string> = {};
-export type AdapterObjectResult<T = unknown> = { 
-  // TODO: Remove this once we have a better solution
+// Define the base result types without generics
+export interface AdapterTextResult<T = string> {}
+export interface AdapterObjectResult<T = unknown> {
   schema?: Schema<T>;
-};
-export type AdapterImageResult<T = string> = {};
-
-// Core adapter methods
-export interface Adapter<
-  TextOut extends AdapterTextResult<any> = AdapterTextResult<any>, 
-  ObjectOut extends AdapterObjectResult<any> = AdapterObjectResult<any>, 
-  ImageOut extends AdapterImageResult<any> = AdapterImageResult<any>
-> {
-  adaptText<T>(
-    input: TextConfig, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): TextOut & AdapterTextResult<T>;
-  
-  adaptObject<T>(
-    input: ObjectConfig & { schema?: Schema<T> }, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): ObjectOut & AdapterObjectResult<T>;
-  
-  adaptImage<T>(
-    input: ImageConfig, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): ImageOut & AdapterImageResult<T>;
 }
-
-export type AdapterTextOutput<A extends Adapter, T> = 
-  A extends Adapter<infer TextOut, any, any> ? (TextOut & AdapterTextResult<T>) : never;
-
-export type AdapterObjectOutput<A extends Adapter, T> = 
-  A extends Adapter<any, infer ObjectOut, any> ? (ObjectOut & AdapterObjectResult<T>) : never;
-
-export type AdapterImageOutput<A extends Adapter, T> = 
-  A extends Adapter<any, any, infer ImageOut> ? (ImageOut & AdapterImageResult<T>) : never;
+export interface AdapterImageResult<T = string> {}
 
 export type BaseAdaptOptions = {
   telemetry?: {
@@ -89,9 +55,59 @@ export type BaseAdaptOptions = {
     metadata?: Record<string, unknown>;
   }
   apiKey?: string;
+  baseURL?: string;
 }
+
+export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
 export interface PromptType {
   input: unknown;
   output: unknown;
 }
+
+export interface PromptMappingTemplate {
+  [key: string]: {
+    type: "text" | "object" | "image";
+    props: any;
+    output: any;
+  };
+}
+
+export type PromptKey<T extends PromptMappingTemplate> = keyof T;
+
+export type PromptEvaluationFn<
+  T extends PromptMappingTemplate,
+  A extends Adapter
+> = <K extends PromptKey<T>>(
+  key: K,
+  props: T[K]["props"],
+  adapter: A
+) => any;
+
+// Core adapter methods - simplified without circular references
+export interface Adapter {
+  adaptText<T>(
+    input: TextConfig, 
+    options: AdaptOptions, 
+    metadata: PromptMetadata
+  ): any;
+  
+  adaptObject<T>(
+    input: ObjectConfig & { typedSchema: Schema<T> }, 
+    options: AdaptOptions, 
+    metadata: PromptMetadata
+  ): any;
+  
+  adaptImage<T>(
+    input: ImageConfig, 
+    options: AdaptOptions, 
+    metadata: PromptMetadata
+  ): any;
+  
+  getAdapters?(): Adapter[];
+}
+
+// Now define the adapter output types
+export type AdapterTextOutput<A extends Adapter, T> = ReturnType<A['adaptText']> & AdapterTextResult<T>;
+export type AdapterObjectOutput<A extends Adapter, T> = ReturnType<A['adaptObject']> & AdapterObjectResult<T>;
+export type AdapterImageOutput<A extends Adapter, T> = ReturnType<A['adaptImage']> & AdapterImageResult<T>;

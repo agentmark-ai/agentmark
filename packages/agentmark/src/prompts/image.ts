@@ -1,22 +1,26 @@
 import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterImageOutput, ImageConfig } from "../types";
 import { Prompt } from "./index";
 
-export interface ImagePromptInterface<Props extends JSONObject, Result extends string, A extends Adapter = Adapter> 
-  extends Prompt<Props, Result, A> {
-  format(props: Props, options?: JSONObject): Promise<AdapterImageOutput<A, Result>>;
+export interface ImagePromptInterface<
+  T extends Record<string, { input: any; output: any }>,
+  K extends keyof T & string,
+  A extends Adapter = Adapter
+> extends Prompt<T[K]["input"], T[K]["output"], A> {
+  path: K;
+  format(props: T[K]["input"], options?: JSONObject): Promise<AdapterImageOutput<A, T[K]["output"]>>;
 }
 
 export class ImagePrompt<
-  Props extends JSONObject,
-  Result extends string,
+  T extends Record<string, { input: any; output: any }>,
+  K extends keyof T & string,
   A extends Adapter = Adapter
-> implements ImagePromptInterface<Props, Result, A> {
+> implements ImagePromptInterface<T, K, A> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
-  protected path: string | undefined;
+  public path: K;
   public template: unknown;
   
-  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
+  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
@@ -24,12 +28,11 @@ export class ImagePrompt<
   }
 
   async format(
-    props: Props,
+    props: T[K]["input"],
     options: JSONObject = {}
-  ): Promise<AdapterImageOutput<A, Result>> {
+  ): Promise<AdapterImageOutput<A, T[K]["output"]>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ImageConfig;
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    const result = this.adapter.adaptImage<Result>(compiledTemplate, options, metadata);
-    return result as AdapterImageOutput<A, Result>;
+    return this.adapter.adaptImage<T[K]["output"]>(compiledTemplate, options, metadata);
   }
 } 

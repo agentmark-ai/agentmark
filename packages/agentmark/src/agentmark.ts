@@ -1,4 +1,4 @@
-import { Loader, TemplateEngine, Adapter } from "./types";
+import { Loader, TemplateEngine, Adapter, JSONObject } from "./types";
 import { Prompt } from "./prompts";
 import { TextPrompt, TextPromptInterface } from "./prompts/text";
 import { ObjectPrompt, ObjectPromptInterface } from "./prompts/object";
@@ -30,7 +30,7 @@ export class AgentMark<
     this.adapter = adapter;
   }
 
-  async loadTextPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<TextPrompt<T[K]["input"], T[K]["output"], A>> {
+  async loadTextPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<TextPrompt<T, K, A>> {
     let content: unknown;
     
     if (typeof pathOrPreloaded === 'string') {
@@ -40,20 +40,10 @@ export class AgentMark<
     }
     
     TextConfigSchema.parse(await this.templateEngine.compile(content));
-    return new TextPrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
+    return new TextPrompt<T, K, A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
   }
 
-  async loadObjectPrompt<K extends keyof T & string>(
-    pathOrPreloaded: K
-  ): Promise<ObjectPrompt<T[K]["input"], T[K]["output"], A>>;
-  
-  async loadObjectPrompt<Input extends Record<string, any>, Output extends Record<string, any>>(
-    pathOrPreloaded: string
-  ): Promise<ObjectPrompt<Input, Output, A>>;
-  
-  async loadObjectPrompt<K extends keyof T & string, Input extends Record<string, any> = T[K]["input"], Output extends Record<string, any> = T[K]["output"]>(
-    pathOrPreloaded: K | string
-  ): Promise<ObjectPrompt<Input, Output, A>> {
+  async loadObjectPrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ObjectPrompt<T, K, A>> {
     let content: unknown;
     
     if (typeof pathOrPreloaded === 'string') {
@@ -63,15 +53,15 @@ export class AgentMark<
     }
     
     ObjectConfigSchema.parse(await this.templateEngine.compile(content));
-    return new ObjectPrompt<Input, Output, A>(
+    return new ObjectPrompt<T, K, A>(
       content,
       this.templateEngine,
       this.adapter,
-      typeof pathOrPreloaded === 'string' ? pathOrPreloaded : undefined
+      pathOrPreloaded
     );
   }
 
-  async loadImagePrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ImagePrompt<T[K]["input"], T[K]["output"], A>> {
+  async loadImagePrompt<K extends keyof T & string>(pathOrPreloaded: K): Promise<ImagePrompt<T, K, A>> {
     let content: unknown;
     
     if (typeof pathOrPreloaded === 'string') {
@@ -81,6 +71,6 @@ export class AgentMark<
     }
     
     ImageConfigSchema.parse(await this.templateEngine.compile(content));
-    return new ImagePrompt<T[K]["input"], T[K]["output"], A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
+    return new ImagePrompt<T, K, A>(content, this.templateEngine, this.adapter, pathOrPreloaded);
   }
 }

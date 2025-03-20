@@ -2,22 +2,26 @@ import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterObjectOutpu
 import { jsonSchema } from 'ai';
 import { Prompt } from "./index";
 
-export interface ObjectPromptInterface<Input extends JSONObject, Output extends JSONObject, A extends Adapter = Adapter> 
-  extends Prompt<Input, Output, A> {
-  format(props: Input, options?: JSONObject): Promise<AdapterObjectOutput<A, Output>>;
+export interface ObjectPromptInterface<
+  T extends Record<string, { input: any; output: any }>,
+  K extends keyof T & string,
+  A extends Adapter = Adapter
+> extends Prompt<T[K]["input"], T[K]["output"], A> {
+  path: K;
+  format(props: T[K]["input"], options?: JSONObject): Promise<AdapterObjectOutput<A, T[K]["output"]>>;
 }
 
 export class ObjectPrompt<
-  Input extends JSONObject,
-  Output extends JSONObject,
+  T extends Record<string, { input: any; output: any }>,
+  K extends keyof T & string,
   A extends Adapter = Adapter
-> implements ObjectPromptInterface<Input, Output, A> {
+> implements ObjectPromptInterface<T, K, A> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
-  protected path: string | undefined;
+  public path: K;
   public template: unknown;
   
-  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
+  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
@@ -25,17 +29,16 @@ export class ObjectPrompt<
   }
 
   async format(
-    props: Input,
+    props: T[K]["input"],
     options: JSONObject = {}
-  ): Promise<AdapterObjectOutput<A, Output>> {
+  ): Promise<AdapterObjectOutput<A, T[K]["output"]>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
-    const typedSchema = jsonSchema<Output>(compiledTemplate.metadata.model.settings.schema);
+    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.metadata.model.settings.schema);
     const enhancedTemplate = {
       ...compiledTemplate,
       typedSchema,
     };
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    const result = this.adapter.adaptObject<Output>(enhancedTemplate, options, metadata);
-    return result as AdapterObjectOutput<A, Output>;
+    return this.adapter.adaptObject<T[K]["output"]>(enhancedTemplate, options, metadata);
   }
 } 

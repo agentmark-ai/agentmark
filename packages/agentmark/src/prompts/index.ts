@@ -1,9 +1,10 @@
-import { JSONObject } from "../types";
+import { JSONObject, Adapter, AdapterObjectOutput, AdapterTextOutput, AdapterImageOutput } from "../types";
 
-export interface Prompt<Props extends JSONObject, Result, A> {
+export interface Prompt<Input, Output, A extends Adapter, ReturnType = unknown> {
   template: unknown;
+  path?: string;
   
-  format(props: Props, options?: JSONObject): Promise<unknown>;
+  format(props: Input, options?: JSONObject): Promise<ReturnType>;
 }
 
 export { TextPrompt, TextPromptInterface } from './text';

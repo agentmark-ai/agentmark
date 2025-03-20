@@ -1,22 +1,26 @@
 import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterTextOutput, TextConfig } from "../types";
 import { Prompt } from "./index";
 
-export interface TextPromptInterface<Props extends JSONObject, Result extends string, A extends Adapter = Adapter> 
-  extends Prompt<Props, Result, A> {
-  format(props: Props, options?: JSONObject): Promise<AdapterTextOutput<A, Result>>;
+export interface TextPromptInterface<
+  T extends Record<string, { input: any; output: any }>,
+  K extends keyof T & string,
+  A extends Adapter = Adapter
+> extends Prompt<T[K]["input"], T[K]["output"], A> {
+  path: K;
+  format(props: T[K]["input"], options?: JSONObject): Promise<AdapterTextOutput<A, T[K]["output"]>>;
 }
 
 export class TextPrompt<
-  Props extends JSONObject,
-  Result extends string,
+  T extends Record<string, { input: any; output: any }>,
+  K extends keyof T & string,
   A extends Adapter = Adapter
-> implements TextPromptInterface<Props, Result, A> {
+> implements TextPromptInterface<T, K, A> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
-  protected path: string | undefined;
+  public path: K;
   public template: unknown;
   
-  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
+  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
@@ -24,12 +28,11 @@ export class TextPrompt<
   }
 
   async format(
-    props: Props, 
+    props: T[K]["input"], 
     options: JSONObject = {}
-  ): Promise<AdapterTextOutput<A, Result>> {
+  ): Promise<AdapterTextOutput<A, T[K]["output"]>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as TextConfig;
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    const result = this.adapter.adaptText<Result>(compiledTemplate, options, metadata);
-    return result as AdapterTextOutput<A, Result>;
+    return this.adapter.adaptText<T[K]["output"]>(compiledTemplate, options, metadata);
   }
 } 
