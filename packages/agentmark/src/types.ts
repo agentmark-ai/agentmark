@@ -9,13 +9,11 @@ import {
 } from './schemas';
 import type { Schema } from 'ai';
 
-// Basic JSON types
 export type JSONPrimitive = string | number | boolean | null;
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 export type JSONObject = { [key: string]: JSONValue };
 export type JSONArray = JSONValue[];
 
-// Re-export schema types
 export type {
   TextSettings,
   ObjectSettings,
@@ -26,7 +24,6 @@ export type {
   ChatMessage
 };
 
-// Loader and TemplateEngine interfaces
 export interface Loader<T = unknown> {
   load(path: string): Promise<T>;
 }
@@ -44,11 +41,12 @@ export interface PromptMetadata {
   template: unknown;
 }
 
-// Base adapter result interfaces
 export interface AdapterTextResult<T = string> {}
 
 export interface AdapterObjectResult<T = unknown> {
   __objectOutput?: T;
+  // NOTE: This is a temporary solution to allow for the schema to be passed in as a property
+  // TODO: Remove this once we have a better solution
   schema?: Schema<T>;
 }
 
@@ -67,7 +65,7 @@ export interface Adapter<
   ): TextOut;
   
   adaptObject<T>(
-    input: ObjectConfig & { typedSchema: Schema<T> }, 
+    input: ObjectConfig, 
     options: JSONObject, 
     settings: PromptMetadata
   ): ObjectOut & AdapterObjectResult<T>;
@@ -79,14 +77,12 @@ export interface Adapter<
   ): ImageOut;
 }
 
-// Output type helpers for use in prompt implementations
 export type AdapterTextOutput<A extends Adapter, T> = A extends Adapter<infer TextOut, any, any> ? TextOut : never;
 export type AdapterObjectOutput<A extends Adapter, T> = A extends Adapter<any, infer ObjectOut, any> 
   ? (ObjectOut & AdapterObjectResult<T>) 
   : never;
 export type AdapterImageOutput<A extends Adapter, T> = A extends Adapter<any, any, infer ImageOut> ? ImageOut : never;
 
-// Base options for adapters
 export type BaseAdaptOptions = {
   telemetry?: {
     isEnabled: boolean;
@@ -96,15 +92,7 @@ export type BaseAdaptOptions = {
   apiKey?: string;
 }
 
-// Type interface for prompt definitions
 export interface PromptType {
   input: unknown;
   output: unknown;
 }
-
-// Fix ReturnType usage with adapters
-export type AdapterMethodReturnType<
-  A extends Adapter,
-  Method extends keyof A,
-  T = any
-> = A[Method] extends (...args: any[]) => infer R ? R : never;
