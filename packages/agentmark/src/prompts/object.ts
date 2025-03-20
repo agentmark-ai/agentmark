@@ -1,18 +1,12 @@
 import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterObjectOutput, ObjectConfig } from "../types";
 import { jsonSchema } from 'ai';
+import { Prompt } from "./index";
 
 /**
  * Object prompt specific interface
  */
-export interface ObjectPromptInterface<Input extends JSONObject, Output extends JSONObject, A extends Adapter = Adapter> {
-  /**
-   * The original prompt template
-   */
-  template: unknown;
-  
-  /**
-   * Format the prompt with the given input properties and options
-   */
+export interface ObjectPromptInterface<Input extends JSONObject, Output extends JSONObject, A extends Adapter = Adapter> 
+  extends Prompt<Input, Output, A> {
   format(props: Input, options?: JSONObject): Promise<AdapterObjectOutput<A, Output>>;
 }
 
@@ -38,7 +32,7 @@ export class ObjectPrompt<
 
   /**
    * Format the prompt with input props and return typed adapter output
-   * This preserves the Output type throughout the chain
+   * This preserves the Output type parameter through the entire chain
    */
   async format(
     props: Input,
@@ -52,7 +46,7 @@ export class ObjectPrompt<
     // Add the schema to the template
     const enhancedTemplate = {
       ...compiledTemplate,
-      jsonSchema: typedSchema
+      typedSchema,
     };
     
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
@@ -60,7 +54,7 @@ export class ObjectPrompt<
     // Pass the Output type parameter to adaptObject
     const result = this.adapter.adaptObject<Output>(enhancedTemplate, options, metadata);
     
-    // Return the properly typed result
+    // VercelAdapter always includes model, messages, and schema in its result
     return result as AdapterObjectOutput<A, Output>;
   }
 } 

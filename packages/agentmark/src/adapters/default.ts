@@ -3,14 +3,11 @@ import {
   TextConfig, 
   ObjectConfig, 
   ImageConfig, 
-  JSONObject, 
-  PromptMetadata,
   AdapterTextResult,
   AdapterObjectResult,
   AdapterImageResult
 } from "../types";
 import type { Schema } from 'ai';
-import { jsonSchema } from 'ai';
 
 // Define specific return types for DefaultAdapter
 export type DefaultTextResult<T = string> = TextConfig & AdapterTextResult<T>;
@@ -25,7 +22,7 @@ export class DefaultAdapter implements Adapter<DefaultTextResult<any>, DefaultOb
   }
 
   adaptObject<T = unknown>(
-    input: ObjectConfig & { jsonSchema?: Schema<T> },
+    input: ObjectConfig & { typedSchema: Schema<T> },
   ): DefaultObjectResult<T> {
     return input;
   }

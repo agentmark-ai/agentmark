@@ -188,7 +188,7 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
   }
 
   adaptObject<U>(
-    input: ObjectConfig & { jsonSchema?: Schema<U> }, 
+    input: ObjectConfig & { typedSchema: Schema<U> }, 
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelSchemaObjectParams<U> {
@@ -196,13 +196,10 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
     
-    // Use the provided jsonSchema or create one if not available
-    const schema = jsonSchema<U>(settings.schema);
-    
     return {
       model,
       messages: input.messages,
-      schema,
+      schema: input.typedSchema,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),

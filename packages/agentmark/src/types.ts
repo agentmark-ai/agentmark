@@ -67,7 +67,7 @@ export interface Adapter<
   ): TextOut;
   
   adaptObject<T>(
-    input: ObjectConfig & { jsonSchema?: Schema<T> }, 
+    input: ObjectConfig & { typedSchema: Schema<T> }, 
     options: JSONObject, 
     settings: PromptMetadata
   ): ObjectOut & AdapterObjectResult<T>;
