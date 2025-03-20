@@ -44,83 +44,69 @@ export interface PromptMetadata {
   template: unknown;
 }
 
-// Base adapter result types with their type markers
-export type AdapterTextResult<T = string> = { 
-  __textOutput?: T 
-};
+// Base adapter result interfaces
+export interface AdapterTextResult<T = string> {}
 
-export type AdapterObjectResult<T = unknown> = { 
-  __objectOutput?: T 
-};
+export interface AdapterObjectResult<T = unknown> {
+  schema?: Schema<T>;
+}
 
-export type AdapterImageResult<T = string> = { 
-  __imageOutput?: T 
-};
+export interface AdapterImageResult<T = string> {}
 
-// Core adapter methods that every adapter must implement
-export interface AdapterMethods<TextOut, ObjectOut, ImageOut> {
-  adaptText<U>(input: TextConfig, options: JSONObject, settings: PromptMetadata): TextOut & AdapterTextResult<U>;
-  adaptObject<U>(input: ObjectConfig, options: JSONObject, settings: PromptMetadata): ObjectOut & AdapterObjectResult<U>;
-  adaptImage<U>(input: ImageConfig, options: JSONObject, settings: PromptMetadata): ImageOut & AdapterImageResult<U>;
+// Core adapter methods
+export interface Adapter<
+  TextOut extends AdapterTextResult<any> = AdapterTextResult<any>, 
+  ObjectOut extends AdapterObjectResult<any> = AdapterObjectResult<any>, 
+  ImageOut extends AdapterImageResult<any> = AdapterImageResult<any>
+> {
+  adaptText<T>(
+    input: TextConfig, 
+    options: JSONObject, 
+    settings: PromptMetadata
+  ): TextOut;
+  
+  adaptObject<T>(
+    input: ObjectConfig & { jsonSchema?: Schema<T> }, 
+    options: JSONObject, 
+    settings: PromptMetadata
+  ): ObjectOut;
+  
+  adaptImage<T>(
+    input: ImageConfig, 
+    options: JSONObject, 
+    settings: PromptMetadata
+  ): ImageOut;
 }
 
 // Main Adapter interface
 export interface Adapter<
-  TextOut = AdapterTextResult, 
-  ObjectOut = AdapterObjectResult, 
-  ImageOut = AdapterImageResult
-> extends AdapterMethods<TextOut, ObjectOut, ImageOut> {}
+  TextOut extends AdapterTextResult<any> = AdapterTextResult<any>, 
+  ObjectOut extends AdapterObjectResult<any> = AdapterObjectResult<any>, 
+  ImageOut extends AdapterImageResult<any> = AdapterImageResult<any>
+> {
+  adaptText<T>(
+    input: TextConfig, 
+    options: JSONObject, 
+    settings: PromptMetadata
+  ): TextOut;
+  
+  adaptObject<T>(
+    input: ObjectConfig & { jsonSchema?: Schema<T> }, 
+    options: JSONObject, 
+    settings: PromptMetadata
+  ): ObjectOut;
+  
+  adaptImage<T>(
+    input: ImageConfig, 
+    options: JSONObject, 
+    settings: PromptMetadata
+  ): ImageOut;
+}
 
-// Utility types for adapter outputs
-// -------------------------------------------
-
-/**
- * Transforms Schema<any> to Schema<T> in an object
- * and handles adapter output type markers
- */
-export type TransformSchema<T, U> = 
-  T extends Schema<unknown> 
-    ? Schema<U> 
-    : T extends { __textOutput?: unknown }
-      ? Omit<T, '__textOutput'> & { __textOutput?: U }
-    : T extends { __objectOutput?: unknown }
-      ? Omit<T, '__objectOutput'> & { __objectOutput?: U }
-    : T extends { __imageOutput?: unknown }
-      ? Omit<T, '__imageOutput'> & { __imageOutput?: U }
-    : T extends object 
-      ? { [K in keyof T]: TransformSchema<T[K], U> } 
-      : T;
-
-/**
- * Transformer for adapter text output
- */
-export type GetAdapterTextResult<A, T> = 
-  A extends { adaptText<U>(input: TextConfig, options: JSONObject, settings: PromptMetadata): infer R }
-    ? R & { __textOutput?: T }
-    : never;
-
-/**
- * Transformer for adapter object output
- */
-export type GetAdapterObjectResult<A, T> = 
-  A extends { adaptObject<U>(input: ObjectConfig, options: JSONObject, settings: PromptMetadata): infer R } 
-    ? R extends { schema?: Schema<any> }
-      ? Omit<R, 'schema'> & { schema: Schema<T>; object: T }
-      : R & { schema: Schema<T>; object: T }
-    : never;
-
-/**
- * Transformer for adapter image output
- */
-export type GetAdapterImageResult<A, T> = 
-  A extends { adaptImage<U>(input: ImageConfig, options: JSONObject, settings: PromptMetadata): infer R }
-    ? R & { __imageOutput?: T }
-    : never;
-
-// Public convenience type aliases used by prompt implementations
-export type AdapterTextOutput<A, T> = GetAdapterTextResult<A, T>;
-export type AdapterObjectOutput<A, T> = GetAdapterObjectResult<A, T>;
-export type AdapterImageOutput<A, T> = GetAdapterImageResult<A, T>;
+// Output type helpers for use in prompt implementations
+export type AdapterTextOutput<A extends Adapter, T> = A extends Adapter<infer TextOut, any, any> ? TextOut : never;
+export type AdapterObjectOutput<A extends Adapter, T> = A extends Adapter<any, infer ObjectOut, any> ? ObjectOut : never;
+export type AdapterImageOutput<A extends Adapter, T> = A extends Adapter<any, any, infer ImageOut> ? ImageOut : never;
 
 // Base options for adapters
 export type BaseAdaptOptions = {

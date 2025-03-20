@@ -159,7 +159,7 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
 
-    const result = {
+    return {
       model,
       messages: input.messages,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
@@ -184,25 +184,24 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
         )
       } : {})
     };
-    
-    return result as VercelTextResult<U>;
   }
 
   adaptObject<U>(
-    input: ObjectConfig, 
+    input: ObjectConfig & { jsonSchema?: Schema<U> }, 
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelSchemaObjectParams<U> {
     const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
     const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
     const settings = input.metadata.model.settings;
-    const schemaObj = jsonSchema<U>(settings.schema);
-
-    const result = {
+    
+    // Use the provided jsonSchema or create one if not available
+    const schema = input.jsonSchema || jsonSchema<U>(settings.schema);
+    
+    return {
       model,
       messages: input.messages,
-      schema: schemaObj,
-      __objectOutput: undefined as U | undefined,
+      schema,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
@@ -214,8 +213,6 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
       ...(settings?.schema_description !== undefined ? { schemaDescription: settings.schema_description } : {}),
       ...(options.telemetry ? { experimental_telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name) } : {})
     };
-    
-    return result as VercelSchemaObjectParams<U>;
   }
 
   adaptImage<U>(
@@ -228,7 +225,7 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
     const settings = input.metadata.model.settings;
     const prompt = input.messages.map(message => message.content).join('\n');
 
-    const result = {
+    return {
       model,
       prompt,
       ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
@@ -236,7 +233,5 @@ export class VercelAdapter implements Adapter<VercelTextResult<any>, VercelSchem
       ...(settings?.aspect_ratio !== undefined ? { aspectRatio: settings.aspect_ratio as `${number}:${number}` } : {}),
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {})
     };
-    
-    return result as VercelImageResult<U>;
   }
 }
