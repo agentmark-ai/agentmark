@@ -27,9 +27,8 @@ async function run () {
     userMessage: "Whats 2 + 3?"
   };
 
-  const input = await prompt.format(props);
-  const { model, messages, schema } = input;
-  const result2 = await generateObject({ model, messages, schema });
+  const vercelInput = await prompt.format(props);
+  const result2 = await generateObject(vercelInput);
   return result2.object.answer;
 }
 
