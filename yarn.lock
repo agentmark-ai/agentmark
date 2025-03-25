@@ -798,6 +798,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@isaacs/ttlcache@npm:^1.4.1":
+  version: 1.4.1
+  resolution: "@isaacs/ttlcache@npm:1.4.1"
+  checksum: 10c0/6921de516917b02673a58e543c2b06fd04237cbf6d089ca22d6e98defa4b1e9a48258cb071d6b581284bb497bea687320788830541511297eecbe6e93a665bbf
+  languageName: node
+  linkType: hard
+
 "@istanbuljs/schema@npm:^0.1.2, @istanbuljs/schema@npm:^0.1.3":
   version: 0.1.3
   resolution: "@istanbuljs/schema@npm:0.1.3"
@@ -1924,6 +1931,7 @@ __metadata:
   resolution: "agentmark-monorepo@workspace:."
   dependencies:
     "@changesets/cli": "npm:^2.27.9"
+    "@isaacs/ttlcache": "npm:^1.4.1"
     turbo: "npm:latest"
   languageName: unknown
   linkType: soft

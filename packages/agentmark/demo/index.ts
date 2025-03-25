@@ -4,21 +4,17 @@ import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import PuzzletTypes from './puzzlet1.types';
 
-async function calculator(obj: { num1: number, num2: number }) {
-  return obj.num1 + obj.num2;
-}
-
-
 const loader = new FileLoader('./puzzlet/templates');
 const modelRegistry = new VercelModelRegistry();
 modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
   return openai(name);
 });
 
+const adapter = new VercelAdapter<PuzzletTypes>(modelRegistry);
 // Use the factory function with both type parameters
-const agentMark = new AgentMark<PuzzletTypes, VercelAdapter>({
-  loader,
-  adapter: new VercelAdapter(modelRegistry),
+const agentMark = new AgentMark<PuzzletTypes, VercelAdapter<PuzzletTypes>>({
+  loader: new FileLoader('./puzzlet/templates'),
+  adapter,
 });
 
 async function run () {

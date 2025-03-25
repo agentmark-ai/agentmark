@@ -24,8 +24,12 @@ export type {
   ChatMessage
 };
 
-export interface Loader<T = unknown> {
-  load(path: string): Promise<T>;
+
+// Type for external type definitions like PuzzletTypes
+export type AgentMarkFileTypes = { [key: string]: { input: any; output: any } };
+
+export interface Loader<T extends { [K in keyof T]: { input: any; output: any } }> {
+  load<K extends keyof T & string>(path: K, options?: any): unknown;
 }
 
 export interface TemplateEngine {
@@ -41,13 +45,6 @@ export interface PromptMetadata {
   template: unknown;
 }
 
-// Define the base result types without generics
-export interface AdapterTextResult<T = string> {}
-export interface AdapterObjectResult<T = unknown> {
-  schema?: Schema<T>;
-}
-export interface AdapterImageResult<T = string> {}
-
 export type BaseAdaptOptions = {
   telemetry?: {
     isEnabled: boolean;
@@ -60,54 +57,26 @@ export type BaseAdaptOptions = {
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
-export interface PromptType {
-  input: unknown;
-  output: unknown;
-}
+export type EnhancedObjectConfig<T = any> = ObjectConfig & {
+  typedSchema: T;
+};
 
-export interface PromptMappingTemplate {
-  [key: string]: {
-    type: "text" | "object" | "image";
-    props: any;
-    output: any;
-  };
-}
-
-export type PromptKey<T extends PromptMappingTemplate> = keyof T;
-
-export type PromptEvaluationFn<
-  T extends PromptMappingTemplate,
-  A extends Adapter
-> = <K extends PromptKey<T>>(
-  key: K,
-  props: T[K]["props"],
-  adapter: A
-) => any;
-
-// Core adapter methods - simplified without circular references
-export interface Adapter {
-  adaptText<T>(
-    input: TextConfig, 
-    options: AdaptOptions, 
+export interface Adapter<T extends { [K in keyof T]: { input: any; output: any } }> {
+  adaptObject<K extends keyof T & string>(
+    input: EnhancedObjectConfig<Schema<T[K]["output"]>>,
+    options: AdaptOptions,
     metadata: PromptMetadata
   ): any;
-  
-  adaptObject<T>(
-    input: ObjectConfig & { typedSchema: Schema<T> }, 
-    options: AdaptOptions, 
-    metadata: PromptMetadata
-  ): any;
-  
-  adaptImage<T>(
-    input: ImageConfig, 
-    options: AdaptOptions, 
-    metadata: PromptMetadata
-  ): any;
-  
-  getAdapters?(): Adapter[];
-}
 
-// Now define the adapter output types
-export type AdapterTextOutput<A extends Adapter, T> = ReturnType<A['adaptText']> & AdapterTextResult<T>;
-export type AdapterObjectOutput<A extends Adapter, T> = ReturnType<A['adaptObject']> & AdapterObjectResult<T>;
-export type AdapterImageOutput<A extends Adapter, T> = ReturnType<A['adaptImage']> & AdapterImageResult<T>;
+  adaptText(
+    input: TextConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): any;
+
+  adaptImage(
+    input: ImageConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): any;
+}
