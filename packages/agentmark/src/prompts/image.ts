@@ -1,38 +1,28 @@
-// import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterImageOutput, ImageConfig } from "../types";
-// import { Prompt } from "./index";
+import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ObjectConfig } from "../types";
 
-// export interface ImagePromptInterface<
-//   T extends Record<string, { input: any; output: any }>,
-//   K extends keyof T & string,
-//   A extends Adapter = Adapter
-// > extends Prompt<T[K]["input"], T[K]["output"], A> {
-//   path: K;
-//   format(props: T[K]["input"], options?: JSONObject): Promise<AdapterImageOutput<A, T[K]["output"]>>;
-// }
-
-// export class ImagePrompt<
-//   T extends Record<string, { input: any; output: any }>,
-//   K extends keyof T & string,
-//   A extends Adapter = Adapter
-// > implements ImagePromptInterface<T, K, A> {
-//   protected templateEngine: TemplateEngine;
-//   protected adapter: A;
-//   public path: K;
-//   public template: unknown;
+export class ImagePrompt<
+  T extends { [K in keyof T]: { input: any; output: any } },
+  A extends Adapter<T>,
+  K extends keyof T & string
+> {
+  protected templateEngine: TemplateEngine;
+  protected adapter: A;
+  public path: K;
+  public template: unknown;
   
-//   constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
-//     this.template = template;
-//     this.templateEngine = templateEngine;
-//     this.adapter = adapter;
-//     this.path = path;
-//   }
+  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
+    this.template = template;
+    this.templateEngine = templateEngine;
+    this.adapter = adapter;
+    this.path = path;
+  }
 
-//   async format(
-//     props: T[K]["input"],
-//     options: JSONObject = {}
-//   ): Promise<AdapterImageOutput<A, T[K]["output"]>> {
-//     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ImageConfig;
-//     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-//     return this.adapter.adaptImage<T[K]["output"]>(compiledTemplate, options, metadata);
-//   }
-// } 
+  async format(
+    props: T[K]["input"],
+    options: JSONObject = {}
+  ): Promise<ReturnType<A['adaptImage']>> {
+    const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
+    const metadata: PromptMetadata = { props, path: this.path, template: this.template };
+    return this.adapter.adaptImage(compiledTemplate, options, metadata);
+  }
+} 
