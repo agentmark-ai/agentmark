@@ -23,18 +23,12 @@ export class ObjectPrompt<
     options: JSONObject = {}
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
-    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.metadata.model.settings.schema);
+    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.model.schema);
     const enhancedTemplate = {
       ...compiledTemplate,
-      metadata: {
-        ...compiledTemplate.metadata,
-        model: {
-          ...compiledTemplate.metadata.model,
-          settings: {
-            ...compiledTemplate.metadata.model.settings,
-            typedSchema,
-          }
-        },
+      model: {
+        ...compiledTemplate.model,
+        typedSchema,
       },
     };
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };

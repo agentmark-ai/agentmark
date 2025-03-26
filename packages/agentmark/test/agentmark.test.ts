@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import path from 'path';
-import { AgentMark } from '../src/agentmark';
+import { createAgentMark } from '../src/agentmark';
 import { FileLoader } from '../src/loaders/file';
 import { DefaultAdapter } from '../src/adapters/default';
 import { TemplatedxTemplateEngine } from '../src/template_engines/templatedx';
@@ -18,7 +18,7 @@ describe('AgentMark Integration', () => {
     const fixturesDir = path.resolve(__dirname, './fixtures');
     const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
 
-    const agentMark = new AgentMark<TestPromptTypes>({
+    const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
       templateEngine: new TemplatedxTemplateEngine()
@@ -38,14 +38,14 @@ describe('AgentMark Integration', () => {
     expect(result.messages[2].role).toBe('assistant');
     expect(result.messages[2].content).toBe('Here\'s your answer!');
 
-    expect(result.metadata.model.name).toBe('test-model');
-    expect(result.metadata.model.settings.schema).toBeDefined();
-    expect(result.metadata.model.settings.schema.properties.answer).toBeDefined();
+    expect(result.model.name).toBe('test-model');
+    expect(result.model.schema).toBeDefined();
+    expect(result.model.schema.properties.answer).toBeDefined();
   });
 
   it('should enforce type safety on prompt paths', () => {
     const fileLoader = new FileLoader<TestPromptTypes>(path.resolve(__dirname, './fixtures'));
-    const agentMark = new AgentMark<TestPromptTypes>({
+    const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
       templateEngine: new TemplatedxTemplateEngine()
@@ -57,7 +57,7 @@ describe('AgentMark Integration', () => {
 
   it('should enforce type safety on input props', async () => {
     const fileLoader = new FileLoader<TestPromptTypes>(path.resolve(__dirname, './fixtures'));
-    const agentMark = new AgentMark<TestPromptTypes>({
+    const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
       templateEngine: new TemplatedxTemplateEngine()
@@ -72,7 +72,7 @@ describe('AgentMark Integration', () => {
     const fixturesDir = path.resolve(__dirname, './fixtures');
     const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
 
-    const agentMark = new AgentMark<TestPromptTypes>({
+    const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
       templateEngine: new TemplatedxTemplateEngine()
@@ -95,9 +95,9 @@ describe('AgentMark Integration', () => {
     expect(result.messages[2].role).toBe('assistant');
     expect(result.messages[2].content).toBe('Here\'s your answer!');
 
-    expect(result.metadata.model.name).toBe('test-model');
-    expect(result.metadata.model.settings.schema).toBeDefined();
-    expect(result.metadata.model.settings.schema.properties.answer).toBeDefined();
+    expect(result.model.name).toBe('test-model');
+    expect(result.model.schema).toBeDefined();
+    expect(result.model.schema.properties.answer).toBeDefined();
   });
 
   describe('VercelAdapter Integration', () => {
@@ -111,7 +111,7 @@ describe('AgentMark Integration', () => {
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
-      const agentMark = new AgentMark<TestPromptTypes>({
+      const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
         templateEngine: new TemplatedxTemplateEngine()
@@ -146,7 +146,7 @@ describe('AgentMark Integration', () => {
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
-      const agentMark = new AgentMark<TestPromptTypes>({
+      const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
         templateEngine: new TemplatedxTemplateEngine()
@@ -183,7 +183,7 @@ describe('AgentMark Integration', () => {
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
-      const agentMark = new AgentMark<TestPromptTypes>({
+      const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
         templateEngine: new TemplatedxTemplateEngine()
@@ -215,7 +215,7 @@ describe('AgentMark Integration', () => {
       const modelRegistry = new VercelModelRegistry();
       modelRegistry.registerModel('test-model', mockModelFn);
 
-      const agentMark = new AgentMark<TestPromptTypes>({
+      const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
         templateEngine: new TemplatedxTemplateEngine()

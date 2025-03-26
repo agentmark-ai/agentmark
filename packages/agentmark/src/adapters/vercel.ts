@@ -151,9 +151,9 @@ export class VercelAdapter<
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): TextResult {
-    const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
-    const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
-    const settings = input.metadata.model.settings;
+    const { name, ...settings } = input.model;
+    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const model = modelCreator(name, options) as LanguageModel;
 
     return {
       model,
@@ -187,9 +187,9 @@ export class VercelAdapter<
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelObjectParams<T[K]["output"]> {
-    const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
-    const model = modelCreator(input.metadata.model.name, options) as LanguageModel;
-    const settings = input.metadata.model.settings;
+    const { name, ...settings } = input.model;
+    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const model = modelCreator(name, options) as LanguageModel;
     
     return {
       model,
@@ -212,9 +212,9 @@ export class VercelAdapter<
     input: ImageConfig, 
     options: AdaptOptions,
   ): VercelImageParams {
-    const modelCreator = this.modelRegistry.getModelFunction(input.metadata.model.name);
-    const model = modelCreator(input.metadata.model.name, options) as ImageModel;
-    const settings = input.metadata.model.settings;
+    const { name, ...settings } = input.model;
+    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const model = modelCreator(name, options) as ImageModel;
     const prompt = input.messages.map(message => message.content).join('\n');
 
     return {

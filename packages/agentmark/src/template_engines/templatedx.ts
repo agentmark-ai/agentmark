@@ -87,10 +87,10 @@ export async function getRawConfig(ast: Ast, props?: JSONObject) {
   const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
-  frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
+  frontMatter.model = frontMatter.model || {};
   return {
     name: frontMatter.name,
     messages: messages,
-    metadata: frontMatter.metadata,
+    model: frontMatter.model,
   };
 }

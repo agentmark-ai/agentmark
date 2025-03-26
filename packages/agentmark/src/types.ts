@@ -49,14 +49,9 @@ export type BaseAdaptOptions = {
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
-export type EnhancedObjectConfig<T = any> = Omit<ObjectConfig, 'metadata'> & {
-  metadata: {
-    model: {
-      name: string;
-      settings: ObjectSettings & {
-        typedSchema: T;
-      };
-    };
+export type EnhancedObjectConfig<T = any> = ObjectConfig & {
+  model: {
+    typedSchema: T;
   };
 };
 
