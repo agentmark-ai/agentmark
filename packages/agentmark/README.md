@@ -50,9 +50,8 @@ Below is a basic example to help you get started with AgentMark:
 ```mdx
 ---
 name: basic-prompt
-metadata:
-  model:
-    name: gpt-4o-mini
+model:
+  name: gpt-4o-mini
 test_settings:
   props:
     num: 3
@@ -139,7 +138,8 @@ const agentMark = createAgentMark({
 
 const prompt = await agentMark.loadObjectPrompt('test/math2.prompt.mdx');
 const props = {
-  userMessage: "Whats 2 + 3?"
+  num1: 2,
+  num2: 3,
 };
 
 // Adapt to the Vercel SDK
@@ -174,17 +174,15 @@ AgentMark & Puzzlet supports automatic type generation from your prompt schemas.
 ```mdx
 ---
 name: math-addition
-metadata:
-  model:
-    name: gpt-4o
-    settings:
-      schema:
-        type: "object"
-        properties:
-          sum:
-            type: "number"
-            description: "The sum of the two numbers"
-        required: ["sum"]
+model:
+  name: gpt-4o
+  schema:
+    type: "object"
+    properties:
+      sum:
+        type: "number"
+        description: "The sum of the two numbers"
+    required: ["sum"]
 input_schema:
   type: "object"
   properties:
@@ -232,13 +230,14 @@ const agentMark = createAgentMark({
 });
 const prompt = await agentMark.loadObjectPrompt('test/math2.prompt.mdx');
 const props = {
-  userMessage: "Whats 2 + 3?"
+  num1: 2,
+  num2: 3,
 };
 
 const vercelInput = await prompt.format(props);
 const result2 = await generateObject(vercelInput);
 // Type safety will enforce that the answer is a number
-console.log(result2.object.answer);
+console.log(result2.object.sum);
 ```
 
 Or with Puzzlet:
