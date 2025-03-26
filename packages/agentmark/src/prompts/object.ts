@@ -1,4 +1,4 @@
-import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ObjectConfig, AgentMarkFileTypes } from "../types";
+import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ObjectConfig } from "../types";
 import { jsonSchema } from 'ai';
 
 export class ObjectPrompt<

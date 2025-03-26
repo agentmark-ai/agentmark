@@ -3,7 +3,7 @@ import { load } from "@puzzlet/templatedx";
 import { Loader } from "../types";
 import type { Ast } from "@puzzlet/templatedx";
 
-export class FileLoader<T = Record<string, { input: any; output: any }>> implements Loader<Ast> {
+export class FileLoader<T extends { [K in keyof T]: { input: any; output: any } }> implements Loader<T> {
   private basePath: string;
 
   constructor(
@@ -12,10 +12,10 @@ export class FileLoader<T = Record<string, { input: any; output: any }>> impleme
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
-  async load<K extends keyof T & string>(
-    templatePath: K
+  async load(
+    templatePath: string
   ): Promise<Ast> {
-    const fullPath = path.join(this.basePath, templatePath as string);
+    const fullPath = path.join(this.basePath, templatePath);
     const content = await load(fullPath);
     return content;
   }

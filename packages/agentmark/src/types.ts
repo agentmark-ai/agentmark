@@ -24,14 +24,6 @@ export type {
   ChatMessage
 };
 
-
-// Type for external type definitions like PuzzletTypes
-export type AgentMarkFileTypes = { [key: string]: { input: any; output: any } };
-
-export interface Loader<T extends { [K in keyof T]: { input: any; output: any } }> {
-  load<K extends keyof T & string>(path: K, options?: any): unknown;
-}
-
 export interface TemplateEngine {
   compile(
     template: unknown,
@@ -61,6 +53,10 @@ export type EnhancedObjectConfig<T = any> = ObjectConfig & {
   typedSchema: T;
 };
 
+export interface Loader<T extends { [K in keyof T]: { input: any; output: any } } = any> {
+  load(path: string, options?: any): Promise<unknown>;
+}
+
 export interface Adapter<T extends { [K in keyof T]: { input: any; output: any } }> {
   adaptObject<K extends keyof T & string>(
     input: EnhancedObjectConfig<Schema<T[K]["output"]>>,
@@ -80,3 +76,12 @@ export interface Adapter<T extends { [K in keyof T]: { input: any; output: any }
     metadata: PromptMetadata
   ): any;
 }
+
+export type UnifiedPuzzleType<L, A> =
+  L extends Loader<infer T1>
+    ? A extends Adapter<infer T2>
+      ? T1 extends T2
+        ? (T2 extends T1 ? T1 : never)
+        : never 
+      : never
+    : never;

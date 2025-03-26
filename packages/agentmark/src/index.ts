@@ -1,4 +1,4 @@
-export { AgentMark } from './agentmark';
+export { createAgentMark } from './agentmark';
 export { VercelToolRegistry, VercelModelRegistry, VercelAdapter } from './adapters/vercel';
 export { DefaultAdapter } from './adapters/default';
 export { FileLoader } from './loaders/file';

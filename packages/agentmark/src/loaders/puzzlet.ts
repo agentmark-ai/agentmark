@@ -22,7 +22,7 @@ export const PUZZLET_TRACE_ENDPOINT = `v1/export-traces`;
 export const PUZZLET_TEMPLATE_ENDPOINT = `v1/templates`;
 export const PUZZLET_SCORE_ENDPOINT = `v1/score`;
 
-export class PuzzletLoader<T = Record<string, { input: any; output: any }>> implements Loader<Ast, FetchTemplateOptions> {
+export class PuzzletLoader<T extends { [K in keyof T]: { input: any; output: any } }> implements Loader<T> {
 
   constructor(
     private appId: string,
@@ -31,8 +31,8 @@ export class PuzzletLoader<T = Record<string, { input: any; output: any }>> impl
   ) {
   }
 
-  async load<K extends keyof T & string>(
-    templatePath: K,
+  async load(
+    templatePath: string,
     options: FetchTemplateOptions = { cache: { ttl: 1000 * 60 } }
   ): Promise<Ast> {
     const ast =

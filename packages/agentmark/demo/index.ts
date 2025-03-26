@@ -1,19 +1,18 @@
 import 'dotenv/config';
-import { VercelAdapter, VercelModelRegistry, FileLoader, AgentMark } from "../src";
+import { VercelAdapter, VercelModelRegistry, FileLoader, createAgentMark } from "../src";
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import PuzzletTypes from './puzzlet1.types';
 
-const loader = new FileLoader('./puzzlet/templates');
 const modelRegistry = new VercelModelRegistry();
 modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
   return openai(name);
 });
 
+const loader = new FileLoader<PuzzletTypes>('./puzzlet/templates');
 const adapter = new VercelAdapter<PuzzletTypes>(modelRegistry);
-// Use the factory function with both type parameters
-const agentMark = new AgentMark<PuzzletTypes, VercelAdapter<PuzzletTypes>>({
-  loader: new FileLoader('./puzzlet/templates'),
+const agentMark = createAgentMark({
+  loader,
   adapter,
 });
 

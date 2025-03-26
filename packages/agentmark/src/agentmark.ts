@@ -1,14 +1,15 @@
-import { Loader, TemplateEngine, Adapter, AgentMarkFileTypes } from "./types";
+import { Loader, TemplateEngine, Adapter, UnifiedPuzzleType } from "./types";
 import { ObjectPrompt } from "./prompts/object";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplatedxTemplateEngine } from "./template_engines/templatedx";
 import { ImagePrompt } from "./prompts/image";
 
 import { TextPrompt } from "./prompts/text";
-export type AgentMarkOptions<
+
+export interface AgentMarkOptions<
   T extends { [K in keyof T]: { input: any; output: any } },
-  A extends Adapter<T>,
-> = {
+  A extends Adapter<T>
+> {
   loader: Loader<T>;
   adapter: A;
   templateEngine?: TemplateEngine;
@@ -16,24 +17,16 @@ export type AgentMarkOptions<
 
 export class AgentMark<
   T extends { [K in keyof T]: { input: any; output: any } },
-  A extends Adapter<T>,
+  A extends Adapter<T>
 > {
   protected loader: Loader<T>;
   protected adapter: A;
   protected templateEngine: TemplateEngine;
-  
-  constructor({
-    loader,
-    adapter,
-    templateEngine = new TemplatedxTemplateEngine(),
-  }: {
-    loader: Loader<T>;
-    adapter: A;
-    templateEngine?: TemplateEngine;
-  }) {
+
+  constructor({ loader, adapter, templateEngine }: AgentMarkOptions<T, A>) {
     this.loader = loader;
-    this.templateEngine = templateEngine;
     this.adapter = adapter;
+    this.templateEngine = templateEngine ?? new TemplatedxTemplateEngine();
   }
 
   async loadTextPrompt<K extends keyof T & string>(
@@ -98,4 +91,21 @@ export class AgentMark<
       pathOrPreloaded
     );
   }
+}
+
+export function createAgentMark<
+  T extends { [K in keyof T]: { input: any; output: any } },
+  L extends Loader<any>,
+  A extends Adapter<any>
+>(
+  opts: { loader: L; adapter: A; templateEngine?: any }
+) {
+  // Use explicit type parameter for UnifiedPuzzleType
+  const agentMark = new AgentMark({
+    loader: opts.loader,
+    adapter: opts.adapter,
+    templateEngine: opts.templateEngine,
+  });
+
+  return agentMark;
 }
