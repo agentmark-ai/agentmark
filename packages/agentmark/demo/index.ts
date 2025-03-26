@@ -9,8 +9,8 @@ modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: a
   return openai(name);
 });
 
-const loader = new FileLoader<PuzzletTypes>('./puzzlet/templates');
-const adapter = new VercelAdapter<PuzzletTypes>(modelRegistry);
+const loader = new FileLoader('./puzzlet/templates');
+const adapter = new VercelAdapter(modelRegistry);
 const agentMark = createAgentMark({
   loader,
   adapter,

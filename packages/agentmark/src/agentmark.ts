@@ -1,4 +1,4 @@
-import { Loader, TemplateEngine, Adapter, UnifiedPuzzleType } from "./types";
+import { Loader, TemplateEngine, Adapter } from "./types";
 import { ObjectPrompt } from "./prompts/object";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplatedxTemplateEngine } from "./template_engines/templatedx";
@@ -100,12 +100,9 @@ export function createAgentMark<
 >(
   opts: { loader: L; adapter: A; templateEngine?: any }
 ) {
-  // Use explicit type parameter for UnifiedPuzzleType
-  const agentMark = new AgentMark({
+  return new AgentMark({
     loader: opts.loader,
     adapter: opts.adapter,
     templateEngine: opts.templateEngine,
   });
-
-  return agentMark;
 }
