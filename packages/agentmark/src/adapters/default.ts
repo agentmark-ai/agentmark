@@ -15,7 +15,7 @@ export class DefaultAdapter<
     return input;
   }
 
-  adaptObject<K extends keyof T & string, O = T[K]['output']>(
+  adaptObject<K extends keyof T & string>(
     input: EnhancedObjectConfig<Schema<T[K]["output"]>>,
   ): EnhancedObjectConfig<Schema<T[K]["output"]>> {
     return input;
