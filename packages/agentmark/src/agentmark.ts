@@ -96,7 +96,7 @@ export class AgentMark<
 export function createAgentMark<
   T extends { [K in keyof T]: { input: any; output: any } },
   L extends Loader<any>,
-  A extends Adapter<any>
+  A extends Adapter<any>,
 >(
   opts: { loader: L; adapter: A; templateEngine?: any }
 ) {

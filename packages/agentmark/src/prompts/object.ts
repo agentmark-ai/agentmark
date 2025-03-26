@@ -26,7 +26,16 @@ export class ObjectPrompt<
     const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.metadata.model.settings.schema);
     const enhancedTemplate = {
       ...compiledTemplate,
-      typedSchema,
+      metadata: {
+        ...compiledTemplate.metadata,
+        model: {
+          ...compiledTemplate.metadata.model,
+          settings: {
+            ...compiledTemplate.metadata.model.settings,
+            typedSchema,
+          }
+        },
+      },
     };
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
     return this.adapter.adaptObject<K>(enhancedTemplate, options, metadata);

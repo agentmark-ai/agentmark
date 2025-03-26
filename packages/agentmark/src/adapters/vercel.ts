@@ -1,6 +1,5 @@
 import type {
   TextConfig,
-  ObjectConfig,
   ImageConfig,
   Adapter,
   PromptMetadata,
@@ -195,7 +194,7 @@ export class VercelAdapter<
     return {
       model,
       messages: input.messages,
-      schema: input.typedSchema,
+      schema: settings.typedSchema,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),

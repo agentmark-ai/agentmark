@@ -49,8 +49,15 @@ export type BaseAdaptOptions = {
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
-export type EnhancedObjectConfig<T = any> = ObjectConfig & {
-  typedSchema: T;
+export type EnhancedObjectConfig<T = any> = Omit<ObjectConfig, 'metadata'> & {
+  metadata: {
+    model: {
+      name: string;
+      settings: ObjectSettings & {
+        typedSchema: T;
+      };
+    };
+  };
 };
 
 export interface Loader<T extends { [K in keyof T]: { input: any; output: any } } = any> {
