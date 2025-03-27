@@ -1,7 +1,7 @@
 import { Loader, TemplateEngine, Adapter } from "./types";
 import { ObjectPrompt } from "./prompts/object";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
-import { TemplatedxTemplateEngine } from "./template_engines/templatedx";
+import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ImagePrompt } from "./prompts/image";
 
 import { TextPrompt } from "./prompts/text";
@@ -26,7 +26,7 @@ export class AgentMark<
   constructor({ loader, adapter, templateEngine }: AgentMarkOptions<T, A>) {
     this.loader = loader;
     this.adapter = adapter;
-    this.templateEngine = templateEngine ?? new TemplatedxTemplateEngine();
+    this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
   }
 
   async loadTextPrompt<K extends keyof T & string>(
