@@ -2,7 +2,7 @@ import {
   Adapter, 
   TextConfig,
   ImageConfig,
-  EnhancedObjectConfig, 
+  ObjectConfig, 
 } from "../types";
 import type { Schema } from 'ai';
 
@@ -16,8 +16,8 @@ export class DefaultAdapter<
   }
 
   adaptObject<K extends keyof T & string>(
-    input: EnhancedObjectConfig<Schema<T[K]["output"]>>,
-  ): EnhancedObjectConfig<Schema<T[K]["output"]>> {
+    input: ObjectConfig<Schema<T[K]["output"]>>,
+  ): ObjectConfig<Schema<T[K]["output"]>> {
     return input;
   }
 

@@ -5,7 +5,7 @@ import type {
   PromptMetadata,
   ChatMessage,
   AdaptOptions,
-  EnhancedObjectConfig
+  ObjectConfig
 } from "../types";
 import type {
   LanguageModel,
@@ -183,7 +183,7 @@ export class VercelAdapter<
   }
 
   adaptObject<K extends keyof T & string>(
-    input: EnhancedObjectConfig<Schema<T[K]["output"]>>,
+    input: ObjectConfig<Schema<T[K]["output"]>>,
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelObjectParams<T[K]["output"]> {

@@ -3,7 +3,7 @@ import {
   ObjectSettings,
   ImageSettings,
   TextConfig,
-  ObjectConfig,
+  ObjectConfig as UntypedObjectConfig,
   ImageConfig,
   ChatMessage
 } from './schemas';
@@ -19,7 +19,6 @@ export type {
   ObjectSettings,
   ImageSettings,
   TextConfig,
-  ObjectConfig,
   ImageConfig,
   ChatMessage
 };
@@ -49,7 +48,7 @@ export type BaseAdaptOptions = {
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
-export type EnhancedObjectConfig<T = any> = ObjectConfig & {
+export type ObjectConfig<T = any> = UntypedObjectConfig & {
   model: {
     typedSchema: T;
   };
@@ -61,7 +60,7 @@ export interface Loader<T extends { [K in keyof T]: { input: any; output: any } 
 
 export interface Adapter<T extends { [K in keyof T]: { input: any; output: any } }> {
   adaptObject<K extends keyof T & string>(
-    input: EnhancedObjectConfig<Schema<T[K]["output"]>>,
+    input: ObjectConfig<Schema<T[K]["output"]>>,
     options: AdaptOptions,
     metadata: PromptMetadata
   ): any;

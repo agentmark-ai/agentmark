@@ -5,7 +5,7 @@ import { openai } from '@ai-sdk/openai';
 import PuzzletTypes from './puzzlet1.types';
 
 const modelRegistry = new VercelModelRegistry();
-modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
+modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string) => {
   return openai(name);
 });
 
