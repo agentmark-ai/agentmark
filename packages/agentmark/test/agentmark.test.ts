@@ -3,7 +3,7 @@ import path from 'path';
 import { createAgentMark } from '../src/agentmark';
 import { FileLoader } from '../src/loaders/file';
 import { DefaultAdapter } from '../src/adapters/default';
-import { TemplatedxTemplateEngine } from '../src/template_engines/templatedx';
+import { TemplateDXTemplateEngine } from '../src/template_engines/templatedx';
 import { VercelAdapter, VercelModelRegistry } from '../src/adapters/vercel';
 
 type TestPromptTypes = {
@@ -21,7 +21,7 @@ describe('AgentMark Integration', () => {
     const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
-      templateEngine: new TemplatedxTemplateEngine()
+      templateEngine: new TemplateDXTemplateEngine()
     });
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
     const result = await mathPrompt.format({
@@ -48,7 +48,7 @@ describe('AgentMark Integration', () => {
     const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
-      templateEngine: new TemplatedxTemplateEngine()
+      templateEngine: new TemplateDXTemplateEngine()
     });
     expect(async () => {
       await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -60,7 +60,7 @@ describe('AgentMark Integration', () => {
     const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
-      templateEngine: new TemplatedxTemplateEngine()
+      templateEngine: new TemplateDXTemplateEngine()
     });
 
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -75,7 +75,7 @@ describe('AgentMark Integration', () => {
     const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter(),
-      templateEngine: new TemplatedxTemplateEngine()
+      templateEngine: new TemplateDXTemplateEngine()
     });
 
     const originalPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -114,7 +114,7 @@ describe('AgentMark Integration', () => {
       const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
-        templateEngine: new TemplatedxTemplateEngine()
+        templateEngine: new TemplateDXTemplateEngine()
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -149,7 +149,7 @@ describe('AgentMark Integration', () => {
       const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
-        templateEngine: new TemplatedxTemplateEngine()
+        templateEngine: new TemplateDXTemplateEngine()
       });
 
       const mathPrompt = await agentMark.loadTextPrompt('math.prompt.mdx');
@@ -186,7 +186,7 @@ describe('AgentMark Integration', () => {
       const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
-        templateEngine: new TemplatedxTemplateEngine()
+        templateEngine: new TemplateDXTemplateEngine()
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -218,7 +218,7 @@ describe('AgentMark Integration', () => {
       const agentMark = createAgentMark({
         loader: fileLoader,
         adapter: new VercelAdapter(modelRegistry),
-        templateEngine: new TemplatedxTemplateEngine()
+        templateEngine: new TemplateDXTemplateEngine()
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
