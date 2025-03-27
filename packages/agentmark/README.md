@@ -236,7 +236,7 @@ const props = {
 
 const vercelInput = await prompt.format(props);
 const result2 = await generateObject(vercelInput);
-// Type safety will enforce that the answer is a number
+// Type safety will enforce that the sum is a number
 console.log(result2.object.sum);
 ```
 
