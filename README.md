@@ -68,13 +68,14 @@ By default, AgentMark doesn't support any models or calling any LLM providers. I
 
 ### Supported Adapters
 
-| Adapter   | Supported | NPM Package | Supports Type-Safety |
-|-----------|-----------|------------|-----------|
-| Default   | ✅ | NA (built-in) | ✅ |
-| Custom    | ✅ | NA | ✅ |
-| Vercel (Recommended)  | ✅ | `@puzzlet/adapter-vercel` | ✅ |
-| Mastra    | ⚠️ Coming Soon | Coming Soon | ⚠️ |
-| OpenAI Compatible    | ⚠️ Coming Soon | Coming Soon | ❌ |
+| Adapter   | Supported | Supports Type-Safety |
+|-----------|-----------|-----------|
+| Default   | ✅ | ✅ |
+| Custom    | ✅ | ✅ |
+| Vercel (Recommended)  | ✅ | ✅ |
+| Mastra    | ⚠️ Coming Soon | ⚠️ |
+| LangChain  | ⚠️ Coming Soon | ❌ |
+| OpenAI Compatible    | ⚠️ Coming Soon | ❌ |
 
 Want to add support for another adapter? Open an [issue](https://github.com/puzzlet-ai/agentmark/issues).
 
@@ -236,7 +237,6 @@ const props = {
 
 const vercelInput = await prompt.format(props);
 const result2 = await generateObject(vercelInput);
-// Type safety will enforce that the sum is a number
 console.log(result2.object.sum);
 ```
 
