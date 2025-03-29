@@ -1,22 +1,16 @@
-import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterTextOutput, TextConfig } from "../types";
-import { Prompt } from "./index";
-
-export interface TextPromptInterface<Input extends JSONObject, Output extends string, A extends Adapter = Adapter> 
-  extends Prompt<Input, Output, A> {
-  format(props: Input, options?: JSONObject): Promise<AdapterTextOutput<A, Output>>;
-}
+import { Adapter, TemplateEngine, JSONObject, PromptMetadata, TextConfig } from "../types";
 
 export class TextPrompt<
-  Input extends JSONObject,
-  Output extends string,
-  A extends Adapter = Adapter
-> implements TextPromptInterface<Input, Output, A> {
+  T extends { [K in keyof T]: { input: any; output: any } },
+  A extends Adapter<T>,
+  K extends keyof T & string
+> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
-  protected path: string | undefined;
+  public path: K;
   public template: unknown;
   
-  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
+  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
@@ -24,12 +18,11 @@ export class TextPrompt<
   }
 
   async format(
-    props: Input, 
+    props: T[K]["input"],
     options: JSONObject = {}
-  ): Promise<AdapterTextOutput<A, Output>> {
+  ): Promise<ReturnType<A['adaptText']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as TextConfig;
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    const result = this.adapter.adaptText<Output>(compiledTemplate, options, metadata);
-    return result as AdapterTextOutput<A, Output>;
+    return this.adapter.adaptText(compiledTemplate, options, metadata);
   }
 } 

@@ -3,7 +3,7 @@ import {
   ObjectSettings,
   ImageSettings,
   TextConfig,
-  ObjectConfig,
+  ObjectConfig as UntypedObjectConfig,
   ImageConfig,
   ChatMessage
 } from './schemas';
@@ -19,14 +19,9 @@ export type {
   ObjectSettings,
   ImageSettings,
   TextConfig,
-  ObjectConfig,
   ImageConfig,
   ChatMessage
 };
-
-export interface Loader<T = unknown> {
-  load(path: string): Promise<T>;
-}
 
 export interface TemplateEngine {
   compile(
@@ -41,47 +36,6 @@ export interface PromptMetadata {
   template: unknown;
 }
 
-export type AdapterTextResult<T = string> = {};
-export type AdapterObjectResult<T = unknown> = { 
-  // TODO: Remove this once we have a better solution
-  schema?: Schema<T>;
-};
-export type AdapterImageResult<T = string> = {};
-
-// Core adapter methods
-export interface Adapter<
-  TextOut extends AdapterTextResult<any> = AdapterTextResult<any>, 
-  ObjectOut extends AdapterObjectResult<any> = AdapterObjectResult<any>, 
-  ImageOut extends AdapterImageResult<any> = AdapterImageResult<any>
-> {
-  adaptText<T>(
-    input: TextConfig, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): TextOut & AdapterTextResult<T>;
-  
-  adaptObject<T>(
-    input: ObjectConfig & { schema?: Schema<T> }, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): ObjectOut & AdapterObjectResult<T>;
-  
-  adaptImage<T>(
-    input: ImageConfig, 
-    options: JSONObject, 
-    settings: PromptMetadata
-  ): ImageOut & AdapterImageResult<T>;
-}
-
-export type AdapterTextOutput<A extends Adapter, T> = 
-  A extends Adapter<infer TextOut, any, any> ? (TextOut & AdapterTextResult<T>) : never;
-
-export type AdapterObjectOutput<A extends Adapter, T> = 
-  A extends Adapter<any, infer ObjectOut, any> ? (ObjectOut & AdapterObjectResult<T>) : never;
-
-export type AdapterImageOutput<A extends Adapter, T> = 
-  A extends Adapter<any, any, infer ImageOut> ? (ImageOut & AdapterImageResult<T>) : never;
-
 export type BaseAdaptOptions = {
   telemetry?: {
     isEnabled: boolean;
@@ -89,9 +43,46 @@ export type BaseAdaptOptions = {
     metadata?: Record<string, unknown>;
   }
   apiKey?: string;
+  baseURL?: string;
 }
 
-export interface PromptType {
-  input: unknown;
-  output: unknown;
+export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
+
+export type ObjectConfig<T = any> = UntypedObjectConfig & {
+  model: {
+    typedSchema: T;
+  };
+};
+
+export interface Loader<T extends { [K in keyof T]: { input: any; output: any } } = any> {
+  load(path: string, options?: any): Promise<unknown>;
 }
+
+export interface Adapter<T extends { [K in keyof T]: { input: any; output: any } }> {
+  adaptObject<K extends keyof T & string>(
+    input: ObjectConfig<Schema<T[K]["output"]>>,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): any;
+
+  adaptText(
+    input: TextConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): any;
+
+  adaptImage(
+    input: ImageConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): any;
+}
+
+export type UnifiedPuzzleType<L, A> =
+  L extends Loader<infer T1>
+    ? A extends Adapter<infer T2>
+      ? T1 extends T2
+        ? (T2 extends T1 ? T1 : never)
+        : never 
+      : never
+    : never;

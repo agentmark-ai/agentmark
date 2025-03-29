@@ -61,9 +61,8 @@ export class ExtractTextPlugin extends TagPlugin {
 
 TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
-export class TemplatedxTemplateEngine implements TemplateEngine {
+export class TemplateDXTemplateEngine implements TemplateEngine {
   async compile(template: Ast, props?: JSONObject) {
-    console.log(JSON.stringify(template, null, 2), props);
     return getRawConfig(template, props);
   }
 }
@@ -87,10 +86,10 @@ export async function getRawConfig(ast: Ast, props?: JSONObject) {
   const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
-  frontMatter.metadata.model.settings = frontMatter.metadata?.model?.settings || {};
+  frontMatter.model = frontMatter.model || {};
   return {
     name: frontMatter.name,
     messages: messages,
-    metadata: frontMatter.metadata,
+    model: frontMatter.model,
   };
 }

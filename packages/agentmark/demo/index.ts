@@ -1,24 +1,22 @@
 import 'dotenv/config';
-import { VercelAdapter, VercelModelRegistry, FileLoader, AgentMark } from "../src";
+import { VercelAdapter, VercelModelRegistry, PuzzletLoader, createAgentMark } from "../src";
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import PuzzletTypes from './puzzlet1.types';
 
-async function calculator(obj: { num1: number, num2: number }) {
-  return obj.num1 + obj.num2;
-}
-
-
-const loader = new FileLoader('./puzzlet/templates');
 const modelRegistry = new VercelModelRegistry();
-modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
+modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string) => {
   return openai(name);
 });
 
-// Use the factory function with both type parameters
-const agentMark = new AgentMark<PuzzletTypes, VercelAdapter>({
+const loader = new PuzzletLoader<PuzzletTypes>({
+  appId: process.env.PUZZLET_APP_ID!,
+  apiKey: process.env.PUZZLET_API_KEY!,
+});
+const adapter = new VercelAdapter<PuzzletTypes>(modelRegistry);
+const agentMark = createAgentMark({
   loader,
-  adapter: new VercelAdapter(modelRegistry),
+  adapter,
 });
 
 async function run () {
@@ -27,9 +25,8 @@ async function run () {
     userMessage: "Whats 2 + 3?"
   };
 
-  const input = await prompt.format(props);
-  const { model, messages, schema } = input;
-  const result2 = await generateObject({ model, messages, schema });
+  const vercelInput = await prompt.format(props);
+  const result2 = await generateObject(vercelInput);
   return result2.object.answer;
 }
 

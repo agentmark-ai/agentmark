@@ -1,23 +1,17 @@
-import { Adapter, TemplateEngine, JSONObject, PromptMetadata, AdapterObjectOutput, ObjectConfig } from "../types";
+import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ObjectConfig } from "../types";
 import { jsonSchema } from 'ai';
-import { Prompt } from "./index";
-
-export interface ObjectPromptInterface<Input extends JSONObject, Output extends JSONObject, A extends Adapter = Adapter> 
-  extends Prompt<Input, Output, A> {
-  format(props: Input, options?: JSONObject): Promise<AdapterObjectOutput<A, Output>>;
-}
 
 export class ObjectPrompt<
-  Input extends JSONObject,
-  Output extends JSONObject,
-  A extends Adapter = Adapter
-> implements ObjectPromptInterface<Input, Output, A> {
+  T extends { [K in keyof T]: { input: any; output: any } },
+  A extends Adapter<T>,
+  K extends keyof T & string
+> {
   protected templateEngine: TemplateEngine;
   protected adapter: A;
-  protected path: string | undefined;
+  public path: K;
   public template: unknown;
   
-  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path?: string | undefined) {
+  constructor(template: unknown, templateEngine: TemplateEngine, adapter: A, path: K) {
     this.template = template;
     this.templateEngine = templateEngine;
     this.adapter = adapter;
@@ -25,17 +19,19 @@ export class ObjectPrompt<
   }
 
   async format(
-    props: Input,
+    props: T[K]["input"],
     options: JSONObject = {}
-  ): Promise<AdapterObjectOutput<A, Output>> {
+  ): Promise<ReturnType<A['adaptObject']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
-    const typedSchema = jsonSchema<Output>(compiledTemplate.metadata.model.settings.schema);
+    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.model.schema);
     const enhancedTemplate = {
       ...compiledTemplate,
-      typedSchema,
+      model: {
+        ...compiledTemplate.model,
+        typedSchema,
+      },
     };
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    const result = this.adapter.adaptObject<Output>(enhancedTemplate, options, metadata);
-    return result as AdapterObjectOutput<A, Output>;
+    return this.adapter.adaptObject<K>(enhancedTemplate, options, metadata);
   }
 } 
