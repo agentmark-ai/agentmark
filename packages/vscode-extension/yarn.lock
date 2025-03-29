@@ -46,6 +46,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/provider-utils@npm:2.2.1":
+  version: 2.2.1
+  resolution: "@ai-sdk/provider-utils@npm:2.2.1"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.1.0"
+    nanoid: "npm:^3.3.8"
+    secure-json-parse: "npm:^2.7.0"
+  peerDependencies:
+    zod: ^3.23.8
+  checksum: 10c0/72d9e8c0d40a5ee6e5f3281c7670cb44402b40bcc6fb310c9664c6d698df8d06109c65a5fa1f1194e27f3e08310dc86eab374508730cc02398cf2bb1191731b2
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/provider@npm:1.0.1":
   version: 1.0.1
   resolution: "@ai-sdk/provider@npm:1.0.1"
@@ -55,39 +68,43 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/react@npm:1.0.4":
-  version: 1.0.4
-  resolution: "@ai-sdk/react@npm:1.0.4"
+"@ai-sdk/provider@npm:1.1.0":
+  version: 1.1.0
+  resolution: "@ai-sdk/provider@npm:1.1.0"
   dependencies:
-    "@ai-sdk/provider-utils": "npm:2.0.2"
-    "@ai-sdk/ui-utils": "npm:1.0.3"
+    json-schema: "npm:^0.4.0"
+  checksum: 10c0/5ed274802ed2c288fa8fb398ba532d0934ead3be7571db0abd25054c5e2c9517cbd7a99dcef9e16a91ad7123750c96d0ca3877b0273e3fc3a57b11abc09555fd
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/react@npm:1.2.3":
+  version: 1.2.3
+  resolution: "@ai-sdk/react@npm:1.2.3"
+  dependencies:
+    "@ai-sdk/provider-utils": "npm:2.2.1"
+    "@ai-sdk/ui-utils": "npm:1.2.2"
     swr: "npm:^2.2.5"
     throttleit: "npm:2.1.0"
   peerDependencies:
     react: ^18 || ^19 || ^19.0.0-rc
-    zod: ^3.0.0
+    zod: ^3.23.8
   peerDependenciesMeta:
-    react:
-      optional: true
     zod:
       optional: true
-  checksum: 10c0/c752b8b20d2c100473729772318d92a80509c077ea08db6e350ebe374ff3bd29d3a4f6b4595701f61caa31372fab2a4f5efcd6b6fc5534c1c902f556d90c8ffe
+  checksum: 10c0/621e312a483ca6a9a3b27ff4cc16275426c1ee2562a82670b25d59970e30f9e44872d73bdd214f8904c1ab5938bb39d043461b68233ad3734d6fb3e30b75f875
   languageName: node
   linkType: hard
 
-"@ai-sdk/ui-utils@npm:1.0.3":
-  version: 1.0.3
-  resolution: "@ai-sdk/ui-utils@npm:1.0.3"
+"@ai-sdk/ui-utils@npm:1.2.2":
+  version: 1.2.2
+  resolution: "@ai-sdk/ui-utils@npm:1.2.2"
   dependencies:
-    "@ai-sdk/provider": "npm:1.0.1"
-    "@ai-sdk/provider-utils": "npm:2.0.2"
-    zod-to-json-schema: "npm:^3.23.5"
+    "@ai-sdk/provider": "npm:1.1.0"
+    "@ai-sdk/provider-utils": "npm:2.2.1"
+    zod-to-json-schema: "npm:^3.24.1"
   peerDependencies:
-    zod: ^3.0.0
-  peerDependenciesMeta:
-    zod:
-      optional: true
-  checksum: 10c0/91949becfe84c1a44288c1e4af1dc070d514423adc84e44e4e628bf38562098b4d31b3a40f702d78fabd90e09daa4d39f89e3c145debff05a0818dc7bb1052a1
+    zod: ^3.23.8
+  checksum: 10c0/e765374a87316fa87da1bf9f5c60a83343de3f638983c2cd05ef26dbe97101e931368f8d936289feaf0fa8c05c737cc5875ba91a5ff525105ba7dedf7eb8a8ed
   languageName: node
   linkType: hard
 
@@ -492,17 +509,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "@puzzlet/agentmark@npm:2.2.0"
+"@puzzlet/agentmark@npm:^2.2.1":
+  version: 2.2.2
+  resolution: "@puzzlet/agentmark@npm:2.2.2"
   dependencies:
     "@puzzlet/templatedx": "npm:^0.6.2"
-    ai: "npm:^4.0.3"
+    ai: "npm:^4.1.34"
     ajv: "npm:^8.17.1"
     front-matter: "npm:^4.0.2"
     js-yaml: "npm:^4.1.0"
     zod: "npm:^3.23.8"
-  checksum: 10c0/98ac3cf29c5412367c0844617ba40bccd861e46b3fb04e6f945051277b7077706c9c2552dab0d34f0afd678346ce980c459ce14ac0fcb5f4e23342636d735207
+  checksum: 10c0/78ce53bb368d08250dd9a61540a967f7dc413fbd6cf0a6f37e4ae99ae294c71d4daf7e3d5715c052e1994c644d93b1955d013b4378365365adb10241bd05dfbe
   languageName: node
   linkType: hard
 
@@ -1229,7 +1246,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "agentmark@workspace:."
   dependencies:
-    "@puzzlet/agentmark": "npm:^2.2.0"
+    "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/all-models": "npm:^1.1.5"
     "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/mocha": "npm:^10.0.8"
@@ -1258,26 +1275,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.0.3":
-  version: 4.0.11
-  resolution: "ai@npm:4.0.11"
+"ai@npm:^4.1.34":
+  version: 4.2.8
+  resolution: "ai@npm:4.2.8"
   dependencies:
-    "@ai-sdk/provider": "npm:1.0.1"
-    "@ai-sdk/provider-utils": "npm:2.0.2"
-    "@ai-sdk/react": "npm:1.0.4"
-    "@ai-sdk/ui-utils": "npm:1.0.3"
+    "@ai-sdk/provider": "npm:1.1.0"
+    "@ai-sdk/provider-utils": "npm:2.2.1"
+    "@ai-sdk/react": "npm:1.2.3"
+    "@ai-sdk/ui-utils": "npm:1.2.2"
     "@opentelemetry/api": "npm:1.9.0"
     jsondiffpatch: "npm:0.6.0"
-    zod-to-json-schema: "npm:^3.23.5"
   peerDependencies:
     react: ^18 || ^19 || ^19.0.0-rc
-    zod: ^3.0.0
+    zod: ^3.23.8
   peerDependenciesMeta:
     react:
       optional: true
-    zod:
-      optional: true
-  checksum: 10c0/45a99f5cfd2bb4bca448d4d3977cae5d0af546f4558642aaa7788f205213b69646fadb088838d946a5f463a78d9807e952f566d3e38fd64e9de811b53089159f
+  checksum: 10c0/df1e7cfae16c1802aa9a1320442f54835e21e65017bd629b7bbc8b3782c154bdf8e54148c2c2fedced2e2ede4b56d968503401a76f3d13a6f8e3083f2f46da01
   languageName: node
   linkType: hard
 
@@ -4464,6 +4478,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoid@npm:^3.3.8":
+  version: 3.3.11
+  resolution: "nanoid@npm:3.3.11"
+  bin:
+    nanoid: bin/nanoid.cjs
+  checksum: 10c0/40e7f70b3d15f725ca072dfc4f74e81fcf1fbb02e491cf58ac0c79093adc9b0a73b152bcde57df4b79cd097e13023d7504acb38404a4da7bc1cd8e887b82fe0b
+  languageName: node
+  linkType: hard
+
 "napi-build-utils@npm:^1.0.1":
   version: 1.0.2
   resolution: "napi-build-utils@npm:1.0.2"
@@ -5555,14 +5578,14 @@ __metadata:
   linkType: hard
 
 "tar-fs@npm:^2.0.0":
-  version: 2.1.1
-  resolution: "tar-fs@npm:2.1.1"
+  version: 2.1.2
+  resolution: "tar-fs@npm:2.1.2"
   dependencies:
     chownr: "npm:^1.1.1"
     mkdirp-classic: "npm:^0.5.2"
     pump: "npm:^3.0.0"
     tar-stream: "npm:^2.1.4"
-  checksum: 10c0/871d26a934bfb7beeae4c4d8a09689f530b565f79bd0cf489823ff0efa3705da01278160da10bb006d1a793fa0425cf316cec029b32a9159eacbeaff4965fb6d
+  checksum: 10c0/9c704bd4a53be7565caf34ed001d1428532457fe3546d8fc1233f0f0882c3d2403f8602e8046e0b0adeb31fe95336572a69fb28851a391523126b697537670fc
   languageName: node
   linkType: hard
 
@@ -5787,9 +5810,9 @@ __metadata:
   linkType: hard
 
 "undici@npm:^6.19.5":
-  version: 6.21.1
-  resolution: "undici@npm:6.21.1"
-  checksum: 10c0/d604080e4f8db89b35a63b483b5f96a5f8b19ec9f716e934639345449405809d2997e1dd7212d67048f210e54534143384d712bd9075e4394f0788895ef9ca8e
+  version: 6.21.2
+  resolution: "undici@npm:6.21.2"
+  checksum: 10c0/799bbc02b77dda9b6b12d56d2620a3a4d4cf087908d6a548acc3ce32f21b5c27467f75c2c4b30fab281daf341210be3d685e8fe99854288de541715ae5735027
   languageName: node
   linkType: hard
 
@@ -6257,12 +6280,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod-to-json-schema@npm:^3.23.5":
-  version: 3.23.5
-  resolution: "zod-to-json-schema@npm:3.23.5"
+"zod-to-json-schema@npm:^3.24.1":
+  version: 3.24.5
+  resolution: "zod-to-json-schema@npm:3.24.5"
   peerDependencies:
-    zod: ^3.23.3
-  checksum: 10c0/bf50455f446c96b9a161476347ebab6e3bcae7fdf1376ce0b74248e79db733590164476dac2fc481a921868f705fefdcafd223a98203a700b3f01ba1cda6aa90
+    zod: ^3.24.1
+  checksum: 10c0/0745b94ba53e652d39f262641cdeb2f75d24339fb6076a38ce55bcf53d82dfaea63adf524ebc5f658681005401687f8e9551c4feca7c4c882e123e66091dfb90
   languageName: node
   linkType: hard
 
