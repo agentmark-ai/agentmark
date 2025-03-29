@@ -1,4 +1,4 @@
-import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ObjectConfig } from "../types";
+import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ImageConfig } from "../types";
 
 export class ImagePrompt<
   T extends { [K in keyof T]: { input: any; output: any } },
@@ -21,7 +21,7 @@ export class ImagePrompt<
     props: T[K]["input"],
     options: JSONObject = {}
   ): Promise<ReturnType<A['adaptImage']>> {
-    const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
+    const compiledTemplate = await this.templateEngine.compile(this.template, props) as ImageConfig;
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
     return this.adapter.adaptImage(compiledTemplate, options, metadata);
   }
