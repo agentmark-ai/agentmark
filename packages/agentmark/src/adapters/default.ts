@@ -1,34 +1,29 @@
 import { 
   Adapter, 
-  TextConfig, 
+  TextConfig,
+  ImageConfig,
   ObjectConfig, 
-  ImageConfig, 
-  AdapterTextResult,
-  AdapterObjectResult,
-  AdapterImageResult
 } from "../types";
 import type { Schema } from 'ai';
 
-export type DefaultTextResult<T = string> = TextConfig & AdapterTextResult<T>;
-export type DefaultObjectResult<T = unknown> = ObjectConfig & AdapterObjectResult<T> & { schema?: Schema<T> };
-export type DefaultImageResult<T = string> = ImageConfig & AdapterImageResult<T>;
-
-export class DefaultAdapter implements Adapter<DefaultTextResult<any>, DefaultObjectResult<any>, DefaultImageResult<any>> {
-  adaptText<T = string>(
-    input: TextConfig, 
-  ): DefaultTextResult<T> {
+export class DefaultAdapter<
+  T extends { [K in keyof T]: { input: any; output: any } },
+> implements Adapter<T> {
+  adaptText(
+    input: TextConfig,
+  ): TextConfig {
     return input;
   }
 
-  adaptObject<T = unknown>(
-    input: ObjectConfig & { typedSchema: Schema<T> },
-  ): DefaultObjectResult<T> {
+  adaptObject<K extends keyof T & string>(
+    input: ObjectConfig<Schema<T[K]["output"]>>,
+  ): ObjectConfig<Schema<T[K]["output"]>> {
     return input;
   }
 
-  adaptImage<T = string>(
+  adaptImage(
     input: ImageConfig,
-  ): DefaultImageResult<T> {
+  ): ImageConfig {
     return input;
   }
 }

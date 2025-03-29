@@ -19,5 +19,8 @@
   "devDependencies": {
     "@changesets/cli": "^2.27.9",
     "turbo": "latest"
+  },
+  "dependencies": {
+    "@isaacs/ttlcache": "^1.4.1"
   }
 }
