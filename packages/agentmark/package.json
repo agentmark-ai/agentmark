@@ -21,7 +21,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && cp ../../README.md ../../logo.svg ./"
+    "build": "tsup"
   },
   "devDependencies": {
     "@types/node": "^22.8.1",

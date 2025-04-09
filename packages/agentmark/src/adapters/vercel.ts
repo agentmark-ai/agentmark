@@ -11,7 +11,7 @@ import type {
   LanguageModel,
   ImageModel, 
   generateText,
-  Schema
+  Schema,
 } from "ai";
 import { jsonSchema } from "ai";
 
@@ -50,7 +50,7 @@ export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) =
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
+  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator, provider: string): void;
 }
 
 const getTelemetryConfig = (
@@ -88,6 +88,7 @@ export class VercelToolRegistry {
 
 export class VercelModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
+  private providerMatches: Record<string, string> = {};
   private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
   private defaultCreator?: ModelFunctionCreator;
 
@@ -95,13 +96,18 @@ export class VercelModelRegistry {
     this.defaultCreator = defaultCreator;
   }
 
-  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
+  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator, provider: string): void {
     if (typeof modelPattern === 'string') {
       this.exactMatches[modelPattern] = creator;
+      this.providerMatches[modelPattern] = provider;
     } else if (Array.isArray(modelPattern)) {
-      modelPattern.forEach(model => this.exactMatches[model] = creator);
+      modelPattern.forEach(model => {
+        this.exactMatches[model] = creator;
+        this.providerMatches[model] = provider;
+      });
     } else {
       this.patternMatches.push([modelPattern, creator]);
+      this.providerMatches[modelPattern.source] = provider;
     }
   }
 
@@ -123,9 +129,21 @@ export class VercelModelRegistry {
     throw new Error(`No model function found for: ${modelName}`);
   }
 
-  registerModels(mappings: Record<string, ModelFunctionCreator>): void {
-    for (const [pattern, creator] of Object.entries(mappings)) {
-      this.registerModel(pattern, creator);
+  getProvider(modelName: string): string | undefined {
+    if (this.providerMatches[modelName]) {
+      return this.providerMatches[modelName];
+    }
+    for (const [pattern, provider] of Object.entries(this.providerMatches)) {
+      if (new RegExp(pattern).test(modelName)) {
+        return provider;
+      }
+    }
+    return undefined;
+  }
+
+  registerModels(mappings: Record<string, { creator: ModelFunctionCreator, provider: string }>): void {
+    for (const [pattern, { creator, provider }] of Object.entries(mappings)) {
+      this.registerModel(pattern, creator, provider);
     }
   }
 
@@ -151,7 +169,7 @@ export class VercelAdapter<
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): TextResult {
-    const { name, ...settings } = input.model;
+    const { model_name: name, ...settings } = input.text_model;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
 
@@ -183,11 +201,15 @@ export class VercelAdapter<
   }
 
   adaptObject<K extends keyof T & string>(
-    input: ObjectConfig<Schema<T[K]["output"]>>,
+    input: Omit<ObjectConfig<Schema<T[K]["output"]>>, "object_model"> & {
+      object_model: ObjectConfig<Schema<T[K]["output"]>>["object_model"] & {
+        typedSchema: Schema<T[K]["output"]>;
+      };
+    },
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelObjectParams<T[K]["output"]> {
-    const { name, ...settings } = input.model;
+    const { model_name: name, ...settings } = input.object_model;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
     
@@ -212,7 +234,7 @@ export class VercelAdapter<
     input: ImageConfig, 
     options: AdaptOptions,
   ): VercelImageParams {
-    const { name, ...settings } = input.model;
+    const { model_name: name, ...settings } = input.image_model;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;
     const prompt = input.messages.map(message => message.content).join('\n');

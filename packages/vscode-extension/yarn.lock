@@ -59,6 +59,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/provider-utils@npm:2.2.6":
+  version: 2.2.6
+  resolution: "@ai-sdk/provider-utils@npm:2.2.6"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.1.2"
+    nanoid: "npm:^3.3.8"
+    secure-json-parse: "npm:^2.7.0"
+  peerDependencies:
+    zod: ^3.23.8
+  checksum: 10c0/76a4556d1a88580a9242d1c9c95db231220b929c3e134a59d0e5e6dc5570b235640dc222d1ddb9e464ca650b10c5bc14b3bdb20106c5c7978202bfb4639a9dee
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/provider@npm:1.0.1":
   version: 1.0.1
   resolution: "@ai-sdk/provider@npm:1.0.1"
@@ -74,6 +87,15 @@ __metadata:
   dependencies:
     json-schema: "npm:^0.4.0"
   checksum: 10c0/5ed274802ed2c288fa8fb398ba532d0934ead3be7571db0abd25054c5e2c9517cbd7a99dcef9e16a91ad7123750c96d0ca3877b0273e3fc3a57b11abc09555fd
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider@npm:1.1.2":
+  version: 1.1.2
+  resolution: "@ai-sdk/provider@npm:1.1.2"
+  dependencies:
+    json-schema: "npm:^0.4.0"
+  checksum: 10c0/ff00ef03aa3dc5b627f9544de46adc2a705e517a6fd300f9901c0c82f771da347162ac0660c52c6a48b4164a204caab2a472d47b701911c1c3048114c56086e2
   languageName: node
   linkType: hard
 
@@ -95,6 +117,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/react@npm:1.2.8":
+  version: 1.2.8
+  resolution: "@ai-sdk/react@npm:1.2.8"
+  dependencies:
+    "@ai-sdk/provider-utils": "npm:2.2.6"
+    "@ai-sdk/ui-utils": "npm:1.2.7"
+    swr: "npm:^2.2.5"
+    throttleit: "npm:2.1.0"
+  peerDependencies:
+    react: ^18 || ^19 || ^19.0.0-rc
+    zod: ^3.23.8
+  peerDependenciesMeta:
+    zod:
+      optional: true
+  checksum: 10c0/fc114851a696ff6f80f4f7d7a45cc05ad0b7e317a4262b7e8a5284f162b3f620e03f51f1b97b72fe3c341bb4dbabb6f5e0cb1e5fb7f0fea4507b9883c2f46a77
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/ui-utils@npm:1.2.2":
   version: 1.2.2
   resolution: "@ai-sdk/ui-utils@npm:1.2.2"
@@ -105,6 +145,19 @@ __metadata:
   peerDependencies:
     zod: ^3.23.8
   checksum: 10c0/e765374a87316fa87da1bf9f5c60a83343de3f638983c2cd05ef26dbe97101e931368f8d936289feaf0fa8c05c737cc5875ba91a5ff525105ba7dedf7eb8a8ed
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/ui-utils@npm:1.2.7":
+  version: 1.2.7
+  resolution: "@ai-sdk/ui-utils@npm:1.2.7"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.1.2"
+    "@ai-sdk/provider-utils": "npm:2.2.6"
+    zod-to-json-schema: "npm:^3.24.1"
+  peerDependencies:
+    zod: ^3.23.8
+  checksum: 10c0/7fed35ca239a14a860071cfdbc453f2a073587033ad12f31ad9ad94de91179c55c3212fc47495849cdc5cf75534af5dad9a8029d6cb6b0dc7cd17a0ca558da93
   languageName: node
   linkType: hard
 
@@ -1257,6 +1310,7 @@ __metadata:
     "@vscode/test-cli": "npm:^0.0.10"
     "@vscode/test-electron": "npm:^2.4.1"
     "@vscode/vsce": "npm:^3.2.1"
+    ai: "npm:^4.3.4"
     eslint: "npm:^9.11.1"
     ts-loader: "npm:^9.5.1"
     typescript: "npm:^5.6.2"
@@ -1292,6 +1346,26 @@ __metadata:
     react:
       optional: true
   checksum: 10c0/df1e7cfae16c1802aa9a1320442f54835e21e65017bd629b7bbc8b3782c154bdf8e54148c2c2fedced2e2ede4b56d968503401a76f3d13a6f8e3083f2f46da01
+  languageName: node
+  linkType: hard
+
+"ai@npm:^4.3.4":
+  version: 4.3.4
+  resolution: "ai@npm:4.3.4"
+  dependencies:
+    "@ai-sdk/provider": "npm:1.1.2"
+    "@ai-sdk/provider-utils": "npm:2.2.6"
+    "@ai-sdk/react": "npm:1.2.8"
+    "@ai-sdk/ui-utils": "npm:1.2.7"
+    "@opentelemetry/api": "npm:1.9.0"
+    jsondiffpatch: "npm:0.6.0"
+  peerDependencies:
+    react: ^18 || ^19 || ^19.0.0-rc
+    zod: ^3.23.8
+  peerDependenciesMeta:
+    react:
+      optional: true
+  checksum: 10c0/6bc465b5d402c9feb57464816107b7716d7725a35bb51d5fba4a1a77828f31235b26e48677ca102ae552679f3479bc317ea422df726784501d4cdb91e7aee640
   languageName: node
   linkType: hard
 

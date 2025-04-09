@@ -23,11 +23,11 @@ export class ObjectPrompt<
     options: JSONObject = {}
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
-    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.model.schema);
+    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.object_model.schema);
     const enhancedTemplate = {
       ...compiledTemplate,
       model: {
-        ...compiledTemplate.model,
+        ...compiledTemplate.object_model,
         typedSchema,
       },
     };
