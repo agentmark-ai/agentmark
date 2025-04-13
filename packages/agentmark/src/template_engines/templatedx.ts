@@ -89,8 +89,8 @@ export async function getRawConfig(ast: Ast, props?: JSONObject) {
   return {
     name: frontMatter.name,
     messages: messages,
-    image_config: frontMatter.image_config,
-    object_config: frontMatter.object_config,
-    text_config: frontMatter.text_config,
+    ...(frontMatter.image_config && { image_config: frontMatter.image_config }),
+    ...(frontMatter.object_config && { object_config: frontMatter.object_config }),
+    ...(frontMatter.text_config && { text_config: frontMatter.text_config }),
   };
 }

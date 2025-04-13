@@ -50,7 +50,7 @@ export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) =
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator, provider: string): void;
+  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator, provider?: string): void;
 }
 
 const getTelemetryConfig = (
@@ -96,7 +96,7 @@ export class VercelModelRegistry {
     this.defaultCreator = defaultCreator;
   }
 
-  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator, provider: string): void {
+  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator, provider = ''): void {
     if (typeof modelPattern === 'string') {
       this.exactMatches[modelPattern] = creator;
       this.providerMatches[modelPattern] = provider;

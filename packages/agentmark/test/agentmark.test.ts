@@ -38,9 +38,9 @@ describe('AgentMark Integration', () => {
     expect(result.messages[2].role).toBe('assistant');
     expect(result.messages[2].content).toBe('Here\'s your answer!');
 
-    expect(result.model.name).toBe('test-model');
-    expect(result.model.schema).toBeDefined();
-    expect(result.model.schema.properties.answer).toBeDefined();
+    expect(result.object_config.model_name).toBe('test-model');
+    expect(result.object_config.schema).toBeDefined();
+    expect(result.object_config.schema.properties.answer).toBeDefined();
   });
 
   it('should enforce type safety on prompt paths', () => {
@@ -95,9 +95,9 @@ describe('AgentMark Integration', () => {
     expect(result.messages[2].role).toBe('assistant');
     expect(result.messages[2].content).toBe('Here\'s your answer!');
 
-    expect(result.model.name).toBe('test-model');
-    expect(result.model.schema).toBeDefined();
-    expect(result.model.schema.properties.answer).toBeDefined();
+    expect(result.object_config.model_name).toBe('test-model');
+    expect(result.object_config.schema).toBeDefined();
+    expect(result.object_config.schema.properties.answer).toBeDefined();
   });
 
   describe('VercelAdapter Integration', () => {
