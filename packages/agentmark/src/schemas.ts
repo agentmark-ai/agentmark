@@ -70,7 +70,7 @@ export type ImageSettings = z.infer<typeof ImageSettingsConfig>;
 export const TextConfigSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
-  text_model: TextSettingsConfig,
+  text_config: TextSettingsConfig,
 });
 
 export type TextConfig = z.infer<typeof TextConfigSchema>;
@@ -78,7 +78,7 @@ export type TextConfig = z.infer<typeof TextConfigSchema>;
 export const ObjectConfigSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
-  object_model: ObjectSettingsConfig,
+  object_config: ObjectSettingsConfig,
 });
 
 export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
@@ -86,7 +86,7 @@ export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
 export const ImageConfigSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
-  image_model: ImageSettingsConfig,
+  image_config: ImageSettingsConfig,
 });
 
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;

@@ -1,13 +1,7 @@
 ---
 name: math
-object_config:
+text_config:
   model_name: gpt-4o
-  schema:
-    type: object
-    properties:
-      answer:
-        type: string
-    required: ["answer"]
 input_schema:
   type: object
   properties:
@@ -21,7 +15,7 @@ test_settings:
 ---
 
 <System>
-You are a helpful math tutor.
+You are a story teller but only make it 150 words long.
 </System>
 
 <User>
@@ -29,5 +23,5 @@ You are a helpful math tutor.
 </User>
 
 <Assistant>
-Here's your answer!
+Here's your story!
 </Assistant> 

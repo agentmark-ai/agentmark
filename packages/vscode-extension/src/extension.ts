@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
-import { createAgentMark, FileLoader, TemplateDXTemplateEngine, VercelAdapter, VercelModelRegistry } from "@puzzlet/agentmark";
-import { openai } from '@ai-sdk/openai';
+import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter, VercelModelRegistry } from "@puzzlet/agentmark";
+import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { experimental_generateImage as generateImage, streamObject, streamText } from "ai";
+import { getFrontMatter, load } from "@puzzlet/templatedx";
 
 const modelRegistry = new VercelModelRegistry();
 modelRegistry.registerModel([
@@ -12,22 +14,32 @@ modelRegistry.registerModel([
   "o1-mini",
   "o1-preview",
   "gpt-3.5-turbo",
-], (name: string) => openai(name), "openai");
-modelRegistry.registerModel('dall-e-3', (name: string) => openai.image(name), "openai");
-// modelRegistry.registerModel('claude-3', (name: string) => createAnthropic(name), "anthropic");
+], (name: string, options) => {
+  const provider = createOpenAI(options); 
+  return provider(name); 
+}, "openai");
+
+modelRegistry.registerModel(['dall-e-3', 'dall-e-2'], 
+  (name: string, options) => {
+    const provider = createOpenAI(options);
+    return provider.image(name);
+  }, "openai");
+
+modelRegistry.registerModel([
+    "claude-3-opus-20240229",
+    "claude-3-sonnet-20240229",
+    "claude-3-haiku-20240307"
+  ], (name: string, options) => {
+    const provider = createAnthropic(options);
+    return provider(name);
+  }, "anthropic");
+
 const templateEngine = new TemplateDXTemplateEngine();
 
 export function activate(context: vscode.ExtensionContext) {
-  const editor = vscode.window.activeTextEditor;
-  const loader = new FileLoader(context.extensionPath);
   const adapter = new VercelAdapter(modelRegistry);
-  const agentMark = createAgentMark({ loader, adapter, templateEngine });
-  const modelConfigMap = {
-    "image_model": {generate: generateImage, load: agentMark.loadImagePrompt},
-    "object_model": {generate: streamObject, load: agentMark.loadObjectPrompt},
-    "text_model": {generate: streamText, load: agentMark.loadTextPrompt}
-  }
-  
+  const agentMark = createAgentMark({ adapter, templateEngine });
+
   const disposable = vscode.commands.registerCommand(
     "prompt-dx-extension.runInference",
     async () => {
@@ -42,24 +54,26 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const loadedFile = await loader.load(file);
-      const yaml = await templateEngine.compile(loadedFile);
+      const ast: any = await load(file);
+      const frontmatter: any = getFrontMatter(ast);
+      const compiledYaml = await templateEngine.compile(ast);
       const modelEntries = [
-        ["image_model", yaml.image_model],
-        ["object_model", yaml.object_model],
-        ["text_model", yaml.text_model]
+        ["image_config", compiledYaml.image_config],
+        ["object_config", compiledYaml.object_config],
+        ["text_config", compiledYaml.text_config]
       ].filter(([_, val]) => Boolean(val));
-      
+
       if (modelEntries.length !== 1) {
-        throw new Error("Only one model (image_model, object_model, or text_model) should be defined at a time.");
+        const message = modelEntries.length === 0
+          ? "No config (image_config, object_config, or text_config) found in the file."
+          : "Only one config (image_config, object_config, or text_config) should be defined at a time.";
+        return vscode.window.showErrorMessage(message);
       }
 
-      const [modelConfig, model] = modelEntries[0] as [keyof typeof modelConfigMap, any];
+      const [modelConfig, model] = modelEntries[0];
       const modelName = model?.model_name || '';
 
       let apiKey = await context.secrets.get(`prompt-dx.${modelRegistry.getProvider(modelName)}`);
-      const modelConfigObj = modelConfigMap[modelConfig];
-
       if (!apiKey) {
         apiKey = await vscode.window.showInputBox({
           placeHolder: `Enter your ${modelRegistry.getProvider(modelName)} API key`,
@@ -80,47 +94,72 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       try {
-        const props = yaml.test_settings?.props || {};
-        const prompt = await modelConfigObj.load(file);
-        const ast = await prompt.format(props, {apiKey});
+        const props = frontmatter.test_settings?.props || {};
         const ch = vscode.window.createOutputChannel("AgentMark");
 
         switch (modelConfig) {
-          case "image_model":
+          case "image_config": {
+            const prompt = await agentMark.loadImagePrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            // It may take 1-2 minutes to generate the image, so show a message to the user.
+            ch.clear();
             ch.appendLine("Generating image...");
-            // @ts-ignore
-            const imageResult = await modelConfigObj.generate(ast);
-            ch.appendLine(imageResult);
+            const imageResult = await generateImage(vercelInput);
+            ch.appendLine("RESULT:");
+            ch.appendLine(JSON.stringify(imageResult, null, 2));
+            ch.show();
             break;
-          case "object_model":
-          case "text_model":
-            // @ts-ignore
-            const streamResult = await modelConfigObj.generate(ast);
-            if (streamResult.resultStream) {
+          }
+        
+          case "object_config": {
+            const prompt = await agentMark.loadObjectPrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            const { partialObjectStream: objectStream } = await streamObject(vercelInput);
+            if (objectStream) {
               let isFirstChunk = true;
-              for await (const chunk of streamResult.resultStream) {
-                if (typeof chunk === 'string') {
-                  if (isFirstChunk) {
-                    ch.append('RESULT: ');
-                    ch.show();
-                    isFirstChunk = false;
-                  }
-                  ch.append(chunk);
-                } else {
-                  if (isFirstChunk) {
-                    ch.append('OBJECT:');
-                    ch.show();
-                    isFirstChunk = false;
-                  }
+              let printed = false;
+            
+              for await (const chunk of objectStream) {
+                if (isFirstChunk) {
                   ch.clear();
-                  ch.appendLine(`${JSON.stringify(chunk, null, 2)}`);
-                  // ch.appendLine(`OBJECT: ${JSON.stringify(chunk, null, 2)}`);
+                  ch.append('RESULT:\n');
+                  ch.show();
+                  isFirstChunk = false;
+                } else if (printed) {
+                  // Clear and reprint the entire object on each update.
+                  // While not the most efficient approach, this simulates a "live update" effect
+                  // similar to a console refreshing its output, making the stream progression easier to follow.
+                  ch.clear();
+                  ch.append('RESULT:\n');
                 }
+                ch.append(JSON.stringify(chunk, null, 2));
+                printed = true;
               }
             }
+            break;
+          }
+        
+          case "text_config": {
+            const prompt = await agentMark.loadTextPrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            const { textStream } = await streamText(vercelInput);
+            if (textStream) {
+              let isFirstChunk = true;
+              for await (const chunk of textStream) {
+                if (isFirstChunk) {
+                  ch.append('TEXT: ');
+                  ch.show();
+                  isFirstChunk = false;
+                }
+                ch.append(chunk);
+              }
+            }
+            break;
+          }
+        
         }
         context.secrets.store(`prompt-dx.${modelRegistry.getProvider(modelName)}`, apiKey);
-        
+
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);
       }
@@ -130,4 +169,4 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-export function deactivate() {}
+export function deactivate() { }
