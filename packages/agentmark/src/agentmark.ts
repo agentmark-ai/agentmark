@@ -3,9 +3,7 @@ import { ObjectPrompt } from "./prompts/object";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ImagePrompt } from "./prompts/image";
-
 import { TextPrompt } from "./prompts/text";
-import { FileLoader } from "./loaders/file";
 
 export interface AgentMarkOptions<
   T extends { [K in keyof T]: { input: any; output: any } },
