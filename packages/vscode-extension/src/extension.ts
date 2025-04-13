@@ -58,9 +58,9 @@ export function activate(context: vscode.ExtensionContext) {
       const frontmatter: any = getFrontMatter(ast);
       const compiledYaml = await templateEngine.compile(ast);
       const modelEntries = [
-        ["image_config", compiledYaml.image_config],
-        ["object_config", compiledYaml.object_config],
-        ["text_config", compiledYaml.text_config]
+        ["image_config", compiledYaml?.image_config],
+        ["object_config", compiledYaml?.object_config],
+        ["text_config", compiledYaml?.text_config]
       ].filter(([_, val]) => Boolean(val));
 
       if (modelEntries.length !== 1) {
