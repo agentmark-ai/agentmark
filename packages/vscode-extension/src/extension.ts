@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter } from "@puzzlet/agentmark";
 import { experimental_generateImage as generateImage, streamObject, streamText } from "ai";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
-import { modelConfig, modelRegistry } from "./modelRegistry";
+import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
 const adapter = new VercelAdapter(modelRegistry);
@@ -48,10 +48,10 @@ export function activate(context: vscode.ExtensionContext) {
       const [modelConfig, model] = modelEntries[0];
       const modelName = model?.model_name || '';
 
-      let apiKey = await context.secrets.get(`prompt-dx.${modelRegistry.getProvider(modelName)}`);
+      let apiKey = await context.secrets.get(`prompt-dx.${modelProviderMap[modelName]}`);
       if (!apiKey) {
         apiKey = await vscode.window.showInputBox({
-          placeHolder: `Enter your ${modelRegistry.getProvider(modelName)} API key`,
+          placeHolder: `Enter your ${modelProviderMap[modelName]} API key`,
           prompt: "Enter api key",
           ignoreFocusOut: true,
           password: true,
@@ -133,7 +133,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
         
         }
-        context.secrets.store(`prompt-dx.${modelRegistry.getProvider(modelName)}`, apiKey);
+        context.secrets.store(`prompt-dx.${modelProviderMap[modelName]}`, apiKey);
 
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);

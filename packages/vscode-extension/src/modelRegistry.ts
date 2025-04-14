@@ -14,13 +14,13 @@ modelRegistry.registerModel([
 ], (name: string, options) => {
   const provider = createOpenAI(options); 
   return provider(name); 
-}, "openai");
+});
 
 modelRegistry.registerModel(['dall-e-3', 'dall-e-2'], 
   (name: string, options) => {
     const provider = createOpenAI(options);
     return provider.image(name);
-  }, "openai");
+  });
 
 modelRegistry.registerModel([
     "claude-3-opus-20240229",
@@ -29,6 +29,23 @@ modelRegistry.registerModel([
   ], (name: string, options) => {
     const provider = createAnthropic(options);
     return provider(name);
-  }, "anthropic");
+  });
 
-export type modelConfig = 'image_config' | 'object_config' | 'text_config'
+export const modelProviderMap: Record<string, 'openai' | 'anthropic'> = {
+  // OpenAI models
+  "gpt-4o": "openai",
+  "gpt-4o-mini": "openai",
+  "gpt-4-turbo": "openai",
+  "gpt-4": "openai",
+  "o1-mini": "openai",
+  "o1-preview": "openai",
+  "gpt-3.5-turbo": "openai",
+  "dall-e-3": "openai",
+  "dall-e-2": "openai",
+
+  // Anthropic models
+  "claude-3-opus-20240229": "anthropic",
+  "claude-3-sonnet-20240229": "anthropic",
+  "claude-3-haiku-20240307": "anthropic",
+};
+export type modelConfig = 'image_config' | 'object_config' | 'text_config';

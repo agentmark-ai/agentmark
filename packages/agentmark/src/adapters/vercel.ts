@@ -50,7 +50,7 @@ export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) =
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator, provider?: string): void;
+  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
 }
 
 const getTelemetryConfig = (
@@ -88,7 +88,6 @@ export class VercelToolRegistry {
 
 export class VercelModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
-  private providerMatches: Record<string, string> = {};
   private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
   private defaultCreator?: ModelFunctionCreator;
 
@@ -96,18 +95,15 @@ export class VercelModelRegistry {
     this.defaultCreator = defaultCreator;
   }
 
-  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator, provider = ''): void {
+  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
     if (typeof modelPattern === 'string') {
       this.exactMatches[modelPattern] = creator;
-      this.providerMatches[modelPattern] = provider;
     } else if (Array.isArray(modelPattern)) {
       modelPattern.forEach(model => {
         this.exactMatches[model] = creator;
-        this.providerMatches[model] = provider;
       });
     } else {
       this.patternMatches.push([modelPattern, creator]);
-      this.providerMatches[modelPattern.source] = provider;
     }
   }
 
@@ -129,21 +125,9 @@ export class VercelModelRegistry {
     throw new Error(`No model function found for: ${modelName}`);
   }
 
-  getProvider(modelName: string): string | undefined {
-    if (this.providerMatches[modelName]) {
-      return this.providerMatches[modelName];
-    }
-    for (const [pattern, provider] of Object.entries(this.providerMatches)) {
-      if (new RegExp(pattern).test(modelName)) {
-        return provider;
-      }
-    }
-    return undefined;
-  }
-
-  registerModels(mappings: Record<string, { creator: ModelFunctionCreator, provider: string }>): void {
-    for (const [pattern, { creator, provider }] of Object.entries(mappings)) {
-      this.registerModel(pattern, creator, provider);
+  registerModels(mappings: Record<string, { creator: ModelFunctionCreator}>): void {
+    for (const [pattern, { creator }] of Object.entries(mappings)) {
+      this.registerModel(pattern, creator);
     }
   }
 
