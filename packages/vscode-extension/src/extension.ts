@@ -32,20 +32,36 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const compiledYaml = await templateEngine.compile(ast);
-      const modelEntries = [
-        ["image_config", compiledYaml?.image_config],
-        ["object_config", compiledYaml?.object_config],
-        ["text_config", compiledYaml?.text_config]
-      ].filter(([_, val]) => Boolean(val)) as [modelConfig, any][];
 
-      if (modelEntries.length !== 1) {
-        const message = modelEntries.length === 0
-          ? "No config (image_config, object_config, or text_config) found in the file."
-          : "Only one config (image_config, object_config, or text_config) should be defined at a time.";
-        return vscode.window.showErrorMessage(message);
+      let modelConfig: modelConfig | undefined;
+      let model: any;
+      
+      const definedConfigs = [
+        compiledYaml?.image_config,
+        compiledYaml?.object_config,
+        compiledYaml?.text_config,
+      ].filter(Boolean);
+      
+      if (definedConfigs.length > 1) {
+        return vscode.window.showErrorMessage(
+          "Only one config (image_config, object_config, or text_config) should be defined at a time."
+        );
       }
-
-      const [modelConfig, model] = modelEntries[0];
+      if (compiledYaml?.image_config) {
+        modelConfig = "image_config";
+        model = compiledYaml.image_config;
+      } else if (compiledYaml?.object_config) {
+        modelConfig = "object_config";
+        model = compiledYaml.object_config;
+      } else if (compiledYaml?.text_config) {
+        modelConfig = "text_config";
+        model = compiledYaml.text_config;
+      } else {
+        return vscode.window.showErrorMessage(
+          "No config (image_config, object_config, or text_config) found in the file."
+        );
+      }
+      
       const modelName = model?.model_name || '';
 
       let apiKey = await context.secrets.get(`prompt-dx.${modelProviderMap[modelName]}`);
