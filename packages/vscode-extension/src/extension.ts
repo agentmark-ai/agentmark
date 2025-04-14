@@ -1,43 +1,13 @@
 import * as vscode from "vscode";
-import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter, VercelModelRegistry } from "@puzzlet/agentmark";
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter } from "@puzzlet/agentmark";
 import { experimental_generateImage as generateImage, streamObject, streamText } from "ai";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
+import { modelConfig, modelRegistry } from "./modelRegistry";
+import { loadOldFormat } from "./loadOldFormat";
 
-const modelRegistry = new VercelModelRegistry();
-modelRegistry.registerModel([
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gpt-4-turbo",
-  "gpt-4",
-  "o1-mini",
-  "o1-preview",
-  "gpt-3.5-turbo",
-], (name: string, options) => {
-  const provider = createOpenAI(options); 
-  return provider(name); 
-}, "openai");
-
-modelRegistry.registerModel(['dall-e-3', 'dall-e-2'], 
-  (name: string, options) => {
-    const provider = createOpenAI(options);
-    return provider.image(name);
-  }, "openai");
-
-modelRegistry.registerModel([
-    "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
-    "claude-3-haiku-20240307"
-  ], (name: string, options) => {
-    const provider = createAnthropic(options);
-    return provider(name);
-  }, "anthropic");
-
+const adapter = new VercelAdapter(modelRegistry);
 const templateEngine = new TemplateDXTemplateEngine();
-
 export function activate(context: vscode.ExtensionContext) {
-  const adapter = new VercelAdapter(modelRegistry);
   const agentMark = createAgentMark({ adapter, templateEngine });
 
   const disposable = vscode.commands.registerCommand(
@@ -54,14 +24,19 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const ast: any = await load(file);
+      let ast: any = await load(file);
       const frontmatter: any = getFrontMatter(ast);
+
+      if (frontmatter?.metadata) {
+        ast = await loadOldFormat({ file });
+      }
+
       const compiledYaml = await templateEngine.compile(ast);
       const modelEntries = [
         ["image_config", compiledYaml?.image_config],
         ["object_config", compiledYaml?.object_config],
         ["text_config", compiledYaml?.text_config]
-      ].filter(([_, val]) => Boolean(val));
+      ].filter(([_, val]) => Boolean(val)) as [modelConfig, any][];
 
       if (modelEntries.length !== 1) {
         const message = modelEntries.length === 0

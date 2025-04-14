@@ -1264,6 +1264,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/js-yaml@npm:^4":
+  version: 4.0.9
+  resolution: "@types/js-yaml@npm:4.0.9"
+  checksum: 10c0/24de857aa8d61526bbfbbaa383aa538283ad17363fcd5bb5148e2c7f604547db36646440e739d78241ed008702a8920665d1add5618687b6743858fae00da211
+  languageName: node
+  linkType: hard
+
 "@types/json-schema@npm:*, @types/json-schema@npm:^7.0.15, @types/json-schema@npm:^7.0.9":
   version: 7.0.15
   resolution: "@types/json-schema@npm:7.0.15"
@@ -1967,6 +1974,7 @@ __metadata:
     "@puzzlet/agentmark": "npm:^2.2.1"
     "@puzzlet/all-models": "npm:^1.1.5"
     "@puzzlet/templatedx": "npm:^0.6.2"
+    "@types/js-yaml": "npm:^4"
     "@types/mocha": "npm:^10.0.8"
     "@types/node": "npm:20.x"
     "@types/vscode": "npm:^1.93.0"
@@ -1976,6 +1984,7 @@ __metadata:
     "@vscode/test-electron": "npm:^2.4.1"
     "@vscode/vsce": "npm:^3.2.1"
     eslint: "npm:^9.11.1"
+    js-yaml: "npm:^4.1.0"
     ts-loader: "npm:^9.5.1"
     typescript: "npm:^5.6.2"
     webpack: "npm:^5.95.0"
