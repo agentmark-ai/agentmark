@@ -11,7 +11,16 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  'image.prompt.mdx': {
+    input: { userMessage: string };
+    output: never;
+  };
+  'text.prompt.mdx': {
+    input: { userMessage: string };
+    output: never;
+  };
 }
+
 describe('AgentMark Integration', () => {
 
   it('should load and compile prompts with type safety', async () => {
@@ -41,6 +50,36 @@ describe('AgentMark Integration', () => {
     expect(result.object_config.model_name).toBe('test-model');
     expect(result.object_config.schema).toBeDefined();
     expect(result.object_config.schema.properties.answer).toBeDefined();
+  });
+
+  it('should load and compile image prompt with type safety', async () => {
+    const fixturesDir = path.resolve(__dirname, './fixtures');
+    const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+  
+    const agentMark = createAgentMark({
+      loader: fileLoader,
+      adapter: new DefaultAdapter(),
+      templateEngine: new TemplateDXTemplateEngine()
+    });
+  
+    const imagePrompt = await agentMark.loadImagePrompt('image.prompt.mdx');
+    const result = await imagePrompt.format({
+      userMessage: 'Design an image showing a triangle and a circle.'
+    });
+  
+    expect(result).toBeDefined();
+    expect(result.name).toBe('image');
+    expect(result.messages).toHaveLength(3);
+    expect(result.messages[0].role).toBe('system');
+    expect(result.messages[0].content).toBe('You are a graphic designer designing math problems.');
+    expect(result.messages[1].role).toBe('user');
+    expect(result.messages[1].content).toBe('Design an image showing a triangle and a circle.');
+    expect(result.messages[2].role).toBe('assistant');
+    expect(result.messages[2].content).toBe("Here's your image!");
+    expect(result.image_config).toEqual({
+      model_name: 'test-model',
+      num_images: 1
+    });
   });
 
   it('should enforce type safety on prompt paths', () => {
@@ -152,7 +191,7 @@ describe('AgentMark Integration', () => {
         templateEngine: new TemplateDXTemplateEngine()
       });
 
-      const mathPrompt = await agentMark.loadTextPrompt('math.prompt.mdx');
+      const mathPrompt = await agentMark.loadTextPrompt('text.prompt.mdx');
       const result = await mathPrompt.format({
         userMessage: 'What is the sum of 5 and 3?'
       });

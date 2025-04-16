@@ -190,7 +190,7 @@ export class VercelAdapter<
     return {
       model,
       messages: input.messages,
-      schema: input.object_config.typedSchema,
+      schema: jsonSchema(input.object_config.schema),
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),

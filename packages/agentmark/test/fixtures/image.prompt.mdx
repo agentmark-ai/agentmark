@@ -1,0 +1,24 @@
+---
+name: image
+image_config:
+  model_name: test-model
+  num_images: 1
+input_schema:
+  type: image
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+<System>
+You are a graphic designer designing math problems.
+</System>
+
+<User>
+{props.userMessage}
+</User>
+
+<Assistant>
+Here's your image!
+</Assistant> 
