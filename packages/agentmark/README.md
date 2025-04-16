@@ -125,7 +125,7 @@ import { openai } from '@ai-sdk/openai';
 
 // Import/Register any Vercel compatible models
 const modelRegistry = new VercelModelRegistry();
-modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
+modelRegistry.registerModels(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
   return openai(name);
 });
 
@@ -218,7 +218,7 @@ import { openai } from '@ai-sdk/openai';
 import PuzzletTypes from './puzzlet.types';
 
 const modelRegistry = new VercelModelRegistry();
-modelRegistry.registerModel(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
+modelRegistry.registerModels(['gpt-4o', 'gpt-4o-mini'], (name: string, options: any) => {
   return openai(name);
 });
 

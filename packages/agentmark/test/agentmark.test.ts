@@ -109,7 +109,7 @@ describe('AgentMark Integration', () => {
         generate: vi.fn()
       }));
       const modelRegistry = new VercelModelRegistry();
-      modelRegistry.registerModel('test-model', mockModelFn);
+      modelRegistry.registerModels('test-model', mockModelFn);
 
       const agentMark = createAgentMark({
         loader: fileLoader,
@@ -144,7 +144,7 @@ describe('AgentMark Integration', () => {
       }));
 
       const modelRegistry = new VercelModelRegistry();
-      modelRegistry.registerModel('test-model', mockModelFn);
+      modelRegistry.registerModels('test-model', mockModelFn);
 
       const agentMark = createAgentMark({
         loader: fileLoader,
@@ -181,7 +181,7 @@ describe('AgentMark Integration', () => {
       });
 
       const modelRegistry = new VercelModelRegistry();
-      modelRegistry.registerModel('test-model', mockModelFn);
+      modelRegistry.registerModels('test-model', mockModelFn);
 
       const agentMark = createAgentMark({
         loader: fileLoader,
@@ -213,7 +213,7 @@ describe('AgentMark Integration', () => {
       }));
 
       const modelRegistry = new VercelModelRegistry();
-      modelRegistry.registerModel('test-model', mockModelFn);
+      modelRegistry.registerModels('test-model', mockModelFn);
 
       const agentMark = createAgentMark({
         loader: fileLoader,

@@ -50,7 +50,7 @@ export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) =
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
+  registerModels(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
 }
 
 const getTelemetryConfig = (
@@ -95,7 +95,7 @@ export class VercelModelRegistry {
     this.defaultCreator = defaultCreator;
   }
 
-  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
+  registerModels(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
     if (typeof modelPattern === 'string') {
       this.exactMatches[modelPattern] = creator;
     } else if (Array.isArray(modelPattern)) {
@@ -123,12 +123,6 @@ export class VercelModelRegistry {
     }
 
     throw new Error(`No model function found for: ${modelName}`);
-  }
-
-  registerModels(mappings: Record<string, { creator: ModelFunctionCreator}>): void {
-    for (const [pattern, { creator }] of Object.entries(mappings)) {
-      this.registerModel(pattern, creator);
-    }
   }
 
   setDefaultCreator(creator: ModelFunctionCreator): void {

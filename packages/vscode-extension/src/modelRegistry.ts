@@ -3,7 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 
 export const modelRegistry = new VercelModelRegistry();
-modelRegistry.registerModel([
+modelRegistry.registerModels([
   "gpt-4o",
   "gpt-4o-mini",
   "gpt-4-turbo",
@@ -16,13 +16,13 @@ modelRegistry.registerModel([
   return provider(name); 
 });
 
-modelRegistry.registerModel(['dall-e-3', 'dall-e-2'], 
+modelRegistry.registerModels(['dall-e-3', 'dall-e-2'], 
   (name: string, options) => {
     const provider = createOpenAI(options);
     return provider.image(name);
   });
 
-modelRegistry.registerModel([
+modelRegistry.registerModels([
     "claude-3-opus-20240229",
     "claude-3-sonnet-20240229",
     "claude-3-haiku-20240307"
