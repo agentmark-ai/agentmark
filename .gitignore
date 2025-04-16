@@ -3,3 +3,5 @@ dist
 .turbo
 .yarn/install-state.gz
 .yarn/releases/*
+.yalc
+yalc.lock

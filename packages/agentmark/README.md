@@ -50,8 +50,8 @@ Below is a basic example to help you get started with AgentMark:
 ```mdx
 ---
 name: basic-prompt
-model:
-  name: gpt-4o-mini
+object_config:
+  model_name: gpt-4o-mini
 test_settings:
   props:
     num: 3
@@ -175,8 +175,8 @@ AgentMark & Puzzlet supports automatic type generation from your prompt schemas.
 ```mdx
 ---
 name: math-addition
-model:
-  name: gpt-4o
+object_config:
+  model_name: gpt-4o
   schema:
     type: "object"
     properties:
