@@ -49,7 +49,7 @@ export type BaseAdaptOptions = {
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
 export type ObjectConfig<T = any> = UntypedObjectConfig & {
-  model: {
+  object_config: {
     typedSchema: T;
   };
 };

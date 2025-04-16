@@ -35,18 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       let modelConfig: modelConfig | undefined;
       let model: any;
-      
-      const definedConfigs = [
-        compiledYaml?.image_config,
-        compiledYaml?.object_config,
-        compiledYaml?.text_config,
-      ].filter(Boolean);
-      
-      if (definedConfigs.length > 1) {
-        return vscode.window.showErrorMessage(
-          "Only one config (image_config, object_config, or text_config) should be defined at a time."
-        );
-      }
+
       if (compiledYaml?.image_config) {
         modelConfig = "image_config";
         model = compiledYaml.image_config;

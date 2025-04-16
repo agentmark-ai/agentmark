@@ -185,11 +185,7 @@ export class VercelAdapter<
   }
 
   adaptObject<K extends keyof T & string>(
-    input: Omit<ObjectConfig<Schema<T[K]["output"]>>, "object_model"> & {
-      object_config: ObjectConfig<Schema<T[K]["output"]>>["object_config"] & {
-        typedSchema: Schema<T[K]["output"]>;
-      };
-    },
+    input: ObjectConfig,
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelObjectParams<T[K]["output"]> {
@@ -200,7 +196,7 @@ export class VercelAdapter<
     return {
       model,
       messages: input.messages,
-      schema: input.model.typedSchema,
+      schema: input.object_config.typedSchema,
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
