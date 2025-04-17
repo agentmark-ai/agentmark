@@ -77,14 +77,13 @@ export function activate(context: vscode.ExtensionContext) {
         const props = frontmatter.test_settings?.props || {};
         const ch = vscode.window.createOutputChannel("AgentMark");
 
+        ch.appendLine("Generating Response...");
         switch (modelConfig) {
           case "image_config": {
             const prompt = await agentMark.loadImagePrompt(ast);
             const vercelInput = await prompt.format(props, { apiKey });
-            // It may take 1-2 minutes to generate the image, so show a message to the user.
-            ch.clear();
-            ch.appendLine("Generating image...");
             const imageResult = await generateImage(vercelInput);
+            ch.clear();
             ch.appendLine("RESULT:");
             ch.appendLine(JSON.stringify(imageResult, null, 2));
             ch.show();
@@ -127,6 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
               let isFirstChunk = true;
               for await (const chunk of textStream) {
                 if (isFirstChunk) {
+                  ch.clear();
                   ch.append('TEXT: ');
                   ch.show();
                   isFirstChunk = false;

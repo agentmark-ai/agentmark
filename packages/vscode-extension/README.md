@@ -24,7 +24,7 @@ By leveraging Markdown and JSX, AgentMark provides a clean, composable, and exte
 ```mdx Basic Prompt
 ---
 name: basic-prompt
-object_config:
+text_config:
   model_name: gpt-4o-mini
 ---
 
@@ -43,7 +43,7 @@ You can import `.md` or `.mdx` file within your files.
 ```mdx Imports
 ---
 name: basic-prompt
-object_config:
+text_config:
   model_name: gpt-4o-mini
 ---
 
@@ -63,7 +63,7 @@ Props can be accessed using `{props.varName}`. You can test props in your file c
 ```mdx Props
 ---
 name: basic-prompt
-object_config:
+text_config:
   model_name: gpt-4o-mini
 test_settings:
   props:
