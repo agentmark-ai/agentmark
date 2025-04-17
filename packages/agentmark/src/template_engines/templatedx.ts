@@ -86,10 +86,11 @@ export async function getRawConfig(ast: Ast, props?: JSONObject) {
   const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
-  frontMatter.model = frontMatter.model || {};
   return {
     name: frontMatter.name,
     messages: messages,
-    model: frontMatter.model,
+    ...(frontMatter.image_config && { image_config: frontMatter.image_config }),
+    ...(frontMatter.object_config && { object_config: frontMatter.object_config }),
+    ...(frontMatter.text_config && { text_config: frontMatter.text_config }),
   };
 }

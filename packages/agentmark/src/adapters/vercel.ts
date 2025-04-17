@@ -11,7 +11,7 @@ import type {
   LanguageModel,
   ImageModel, 
   generateText,
-  Schema
+  Schema,
 } from "ai";
 import { jsonSchema } from "ai";
 
@@ -50,7 +50,7 @@ export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) =
 
 interface ModelRegistry {
   getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModel(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
+  registerModels(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
 }
 
 const getTelemetryConfig = (
@@ -95,11 +95,13 @@ export class VercelModelRegistry {
     this.defaultCreator = defaultCreator;
   }
 
-  registerModel(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
+  registerModels(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
     if (typeof modelPattern === 'string') {
       this.exactMatches[modelPattern] = creator;
     } else if (Array.isArray(modelPattern)) {
-      modelPattern.forEach(model => this.exactMatches[model] = creator);
+      modelPattern.forEach(model => {
+        this.exactMatches[model] = creator;
+      });
     } else {
       this.patternMatches.push([modelPattern, creator]);
     }
@@ -121,12 +123,6 @@ export class VercelModelRegistry {
     }
 
     throw new Error(`No model function found for: ${modelName}`);
-  }
-
-  registerModels(mappings: Record<string, ModelFunctionCreator>): void {
-    for (const [pattern, creator] of Object.entries(mappings)) {
-      this.registerModel(pattern, creator);
-    }
   }
 
   setDefaultCreator(creator: ModelFunctionCreator): void {
@@ -151,7 +147,7 @@ export class VercelAdapter<
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): TextResult {
-    const { name, ...settings } = input.model;
+    const { model_name: name, ...settings } = input.text_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
 
@@ -183,18 +179,18 @@ export class VercelAdapter<
   }
 
   adaptObject<K extends keyof T & string>(
-    input: ObjectConfig<Schema<T[K]["output"]>>,
+    input: ObjectConfig,
     options: AdaptOptions, 
     metadata: PromptMetadata
   ): VercelObjectParams<T[K]["output"]> {
-    const { name, ...settings } = input.model;
+    const { model_name: name, ...settings } = input.object_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
     
     return {
       model,
       messages: input.messages,
-      schema: settings.typedSchema,
+      schema: jsonSchema(input.object_config.schema),
       ...(settings?.temperature !== undefined ? { temperature: settings.temperature } : {}),
       ...(settings?.max_tokens !== undefined ? { maxTokens: settings.max_tokens } : {}),
       ...(settings?.top_p !== undefined ? { topP: settings.top_p } : {}),
@@ -212,7 +208,7 @@ export class VercelAdapter<
     input: ImageConfig, 
     options: AdaptOptions,
   ): VercelImageParams {
-    const { name, ...settings } = input.model;
+    const { model_name: name, ...settings } = input.image_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;
     const prompt = input.messages.map(message => message.content).join('\n');

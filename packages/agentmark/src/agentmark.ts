@@ -3,14 +3,13 @@ import { ObjectPrompt } from "./prompts/object";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ImagePrompt } from "./prompts/image";
-
 import { TextPrompt } from "./prompts/text";
 
 export interface AgentMarkOptions<
   T extends { [K in keyof T]: { input: any; output: any } },
   A extends Adapter<T>
 > {
-  loader: Loader<T>;
+  loader?: Loader<T>;
   adapter: A;
   templateEngine?: TemplateEngine;
 }
@@ -19,7 +18,7 @@ export class AgentMark<
   T extends { [K in keyof T]: { input: any; output: any } },
   A extends Adapter<T>
 > {
-  protected loader: Loader<T>;
+  protected loader?: Loader<T>
   protected adapter: A;
   protected templateEngine: TemplateEngine;
 
@@ -30,12 +29,12 @@ export class AgentMark<
   }
 
   async loadTextPrompt<K extends keyof T & string>(
-    pathOrPreloaded: K, 
+    pathOrPreloaded: K,
     options?: any
   ): Promise<TextPrompt<T, A, K>> {
     let content: unknown;
     
-    if (typeof pathOrPreloaded === 'string') {
+    if (typeof pathOrPreloaded === 'string' && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -56,7 +55,7 @@ export class AgentMark<
   ): Promise<ObjectPrompt<T, A, K>> {
     let content: unknown;
     
-    if (typeof pathOrPreloaded === 'string') {
+    if (typeof pathOrPreloaded === 'string' && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -77,7 +76,7 @@ export class AgentMark<
   ): Promise<ImagePrompt<T, A, K>> {
     let content: unknown;
     
-    if (typeof pathOrPreloaded === 'string') {
+    if (typeof pathOrPreloaded === 'string' && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -98,7 +97,7 @@ export function createAgentMark<
   L extends Loader<any>,
   A extends Adapter<any>,
 >(
-  opts: { loader: L; adapter: A; templateEngine?: any }
+  opts: { loader?: L; adapter: A; templateEngine?: any }
 ) {
   return new AgentMark({
     loader: opts.loader,

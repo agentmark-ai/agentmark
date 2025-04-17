@@ -8,7 +8,7 @@ export const ChatMessageSchema = z.object({
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 export const TextSettingsConfig = z.object({
-  name: z.string(),
+  model_name: z.string(),
   max_tokens: z.number().optional(),
   temperature: z.number().optional(),
   max_calls: z.number().optional(),
@@ -39,7 +39,7 @@ export const TextSettingsConfig = z.object({
 export type TextSettings = z.infer<typeof TextSettingsConfig>;
 
 export const ObjectSettingsConfig = z.object({
-  name: z.string(),
+  model_name: z.string(),
   max_tokens: z.number().optional(),
   temperature: z.number().optional(),
   max_calls: z.number().optional(),
@@ -58,7 +58,7 @@ export const ObjectSettingsConfig = z.object({
 export type ObjectSettings = z.infer<typeof ObjectSettingsConfig>;
 
 export const ImageSettingsConfig = z.object({
-  name: z.string(),
+  model_name: z.string(),
   num_images: z.number().optional(),
   size: z.string().regex(/^\d+x\d+$/).optional(),
   aspect_ratio: z.string().regex(/^\d+:\d+$/).optional(),
@@ -70,7 +70,7 @@ export type ImageSettings = z.infer<typeof ImageSettingsConfig>;
 export const TextConfigSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
-  model: TextSettingsConfig,
+  text_config: TextSettingsConfig,
 });
 
 export type TextConfig = z.infer<typeof TextConfigSchema>;
@@ -78,7 +78,7 @@ export type TextConfig = z.infer<typeof TextConfigSchema>;
 export const ObjectConfigSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
-  model: ObjectSettingsConfig,
+  object_config: ObjectSettingsConfig,
 });
 
 export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
@@ -86,7 +86,7 @@ export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
 export const ImageConfigSchema = z.object({
   name: z.string(),
   messages: z.array(ChatMessageSchema),
-  model: ImageSettingsConfig,
+  image_config: ImageSettingsConfig,
 });
 
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;

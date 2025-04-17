@@ -1,16 +1,15 @@
-import {
-  ModelPluginRegistry,
-  getModel,
-  load,
-  streamInference,
-} from "@puzzlet/agentmark";
-import { getFrontMatter } from "@puzzlet/templatedx";
-import AllModelPlugins from '@puzzlet/all-models';
 import * as vscode from "vscode";
+import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter } from "@puzzlet/agentmark";
+import { experimental_generateImage as generateImage, streamObject, streamText } from "ai";
+import { getFrontMatter, load } from "@puzzlet/templatedx";
+import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
+import { loadOldFormat } from "./loadOldFormat";
 
-ModelPluginRegistry.registerAll(AllModelPlugins);
-
+const adapter = new VercelAdapter(modelRegistry);
+const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
+  const agentMark = createAgentMark({ adapter, templateEngine });
+
   const disposable = vscode.commands.registerCommand(
     "prompt-dx-extension.runInference",
     async () => {
@@ -24,21 +23,40 @@ export function activate(context: vscode.ExtensionContext) {
       if (!document.fileName.endsWith(".mdx")) {
         return;
       }
-      const ast = await load(file);
 
-      const model = getModel(ast);
+      let ast: any = await load(file);
+      const frontmatter: any = getFrontMatter(ast);
 
-      const plugin = ModelPluginRegistry.getPlugin(model);
-
-      if (!plugin) {
-        return vscode.window.showErrorMessage(`Error: No Support for ${model}`);
+      if (frontmatter?.metadata) {
+        ast = await loadOldFormat({ file });
       }
 
-      let apiKey = await context.secrets.get(`prompt-dx.${plugin.provider}`);
+      const compiledYaml = await templateEngine.compile(ast);
 
+      let modelConfig: modelConfig | undefined;
+      let model: any;
+
+      if (compiledYaml?.image_config) {
+        modelConfig = "image_config";
+        model = compiledYaml.image_config;
+      } else if (compiledYaml?.object_config) {
+        modelConfig = "object_config";
+        model = compiledYaml.object_config;
+      } else if (compiledYaml?.text_config) {
+        modelConfig = "text_config";
+        model = compiledYaml.text_config;
+      } else {
+        return vscode.window.showErrorMessage(
+          "No config (image_config, object_config, or text_config) found in the file."
+        );
+      }
+      
+      const modelName = model?.model_name || '';
+
+      let apiKey = await context.secrets.get(`prompt-dx.${modelProviderMap[modelName]}`);
       if (!apiKey) {
         apiKey = await vscode.window.showInputBox({
-          placeHolder: `Enter your ${plugin.provider} API key`,
+          placeHolder: `Enter your ${modelProviderMap[modelName]} API key`,
           prompt: "Enter api key",
           ignoreFocusOut: true,
           password: true,
@@ -55,49 +73,73 @@ export function activate(context: vscode.ExtensionContext) {
         return vscode.window.showErrorMessage(`Error: Could not set api key`);
       }
 
-      plugin.setApiKey(apiKey);
-
       try {
-        const frontMatter = getFrontMatter(ast) as any;
-        const testProps = frontMatter.test_settings?.props || {};
-        const result = await streamInference(ast, testProps);
-        if (!result) {
-          throw new Error("Could not run inference.");
-        }
-        context.secrets.store(`prompt-dx.${plugin.provider}`, apiKey);
-
-        const output = result;
-
+        const props = frontmatter.test_settings?.props || {};
         const ch = vscode.window.createOutputChannel("AgentMark");
-        if (output.resultStream) {
-          let isFirstChunk = true;
-          for await (const chunk of output.resultStream) {
-            if (typeof chunk === 'string') {
-              if (isFirstChunk) {
-                ch.append('RESULT: ');
-                ch.show();
-                isFirstChunk = false;
-              }
-              ch.append(chunk);
-            } else {
-              if (isFirstChunk) {
-                ch.append('OBJECT:');
-                ch.show();
-                isFirstChunk = false;
-              }
-              ch.clear();
-              ch.appendLine(`${JSON.stringify(chunk, null, 2)}`);
-              // ch.appendLine(`OBJECT: ${JSON.stringify(chunk, null, 2)}`);
-            }
+
+        ch.appendLine("Generating Response...");
+        switch (modelConfig) {
+          case "image_config": {
+            const prompt = await agentMark.loadImagePrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            const imageResult = await generateImage(vercelInput);
+            ch.clear();
+            ch.appendLine("RESULT:");
+            ch.appendLine(JSON.stringify(imageResult, null, 2));
+            ch.show();
+            break;
           }
-        }
-        if (output.tools) {
-          const tools = await output.tools;
-          if (tools.length) {
-            ch.appendLine(`TOOLS: ${JSON.stringify(tools, null, 2)}`);
-          }
-        }
         
+          case "object_config": {
+            const prompt = await agentMark.loadObjectPrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            const { partialObjectStream: objectStream } = await streamObject(vercelInput);
+            if (objectStream) {
+              let isFirstChunk = true;
+              let printed = false;
+            
+              for await (const chunk of objectStream) {
+                if (isFirstChunk) {
+                  ch.clear();
+                  ch.append('RESULT:\n');
+                  ch.show();
+                  isFirstChunk = false;
+                } else if (printed) {
+                  // Clear and reprint the entire object on each update.
+                  // While not the most efficient approach, this simulates a "live update" effect
+                  // similar to a console refreshing its output, making the stream progression easier to follow.
+                  ch.clear();
+                  ch.append('RESULT:\n');
+                }
+                ch.append(JSON.stringify(chunk, null, 2));
+                printed = true;
+              }
+            }
+            break;
+          }
+        
+          case "text_config": {
+            const prompt = await agentMark.loadTextPrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            const { textStream } = await streamText(vercelInput);
+            if (textStream) {
+              let isFirstChunk = true;
+              for await (const chunk of textStream) {
+                if (isFirstChunk) {
+                  ch.clear();
+                  ch.append('TEXT: ');
+                  ch.show();
+                  isFirstChunk = false;
+                }
+                ch.append(chunk);
+              }
+            }
+            break;
+          }
+        
+        }
+        context.secrets.store(`prompt-dx.${modelProviderMap[modelName]}`, apiKey);
+
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);
       }
@@ -107,4 +149,4 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-export function deactivate() {}
+export function deactivate() { }

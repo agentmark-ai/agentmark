@@ -1,5 +1,4 @@
 import { Adapter, TemplateEngine, JSONObject, PromptMetadata, ObjectConfig } from "../types";
-import { jsonSchema } from 'ai';
 
 export class ObjectPrompt<
   T extends { [K in keyof T]: { input: any; output: any } },
@@ -23,15 +22,7 @@ export class ObjectPrompt<
     options: JSONObject = {}
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiledTemplate = await this.templateEngine.compile(this.template, props) as ObjectConfig;
-    const typedSchema = jsonSchema<T[K]["output"]>(compiledTemplate.model.schema);
-    const enhancedTemplate = {
-      ...compiledTemplate,
-      model: {
-        ...compiledTemplate.model,
-        typedSchema,
-      },
-    };
     const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    return this.adapter.adaptObject<K>(enhancedTemplate, options, metadata);
+    return this.adapter.adaptObject(compiledTemplate, options, metadata);
   }
 } 

@@ -3,11 +3,10 @@ import {
   ObjectSettings,
   ImageSettings,
   TextConfig,
-  ObjectConfig as UntypedObjectConfig,
+  ObjectConfig,
   ImageConfig,
   ChatMessage
 } from './schemas';
-import type { Schema } from 'ai';
 
 export type JSONPrimitive = string | number | boolean | null;
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
@@ -20,6 +19,7 @@ export type {
   ImageSettings,
   TextConfig,
   ImageConfig,
+  ObjectConfig,
   ChatMessage
 };
 
@@ -48,19 +48,13 @@ export type BaseAdaptOptions = {
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
-export type ObjectConfig<T = any> = UntypedObjectConfig & {
-  model: {
-    typedSchema: T;
-  };
-};
-
 export interface Loader<T extends { [K in keyof T]: { input: any; output: any } } = any> {
   load(path: string, options?: any): Promise<unknown>;
 }
 
 export interface Adapter<T extends { [K in keyof T]: { input: any; output: any } }> {
-  adaptObject<K extends keyof T & string>(
-    input: ObjectConfig<Schema<T[K]["output"]>>,
+  adaptObject(
+    input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
   ): any;
