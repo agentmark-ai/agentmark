@@ -7,7 +7,6 @@ import {
   ImageConfig,
   ChatMessage
 } from './schemas';
-import type { Schema } from 'ai';
 
 export type JSONPrimitive = string | number | boolean | null;
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
