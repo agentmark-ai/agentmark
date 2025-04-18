@@ -6,6 +6,19 @@ import { DefaultAdapter } from '../src/adapters/default';
 import { TemplateDXTemplateEngine } from '../src/template_engines/templatedx';
 import { VercelAdapter, VercelModelRegistry } from '../src/adapters/vercel';
 
+type TestPromptTypes2 = {
+  'math.prompt.mdx': {
+    kind: 'object';
+    input: { userMessage: string };
+    output: { answer: string };
+  };
+  'image.prompt.mdx': {
+    kind: 'image';
+    input: { userMessage: string };
+    output: { answer: string };
+  };
+}
+
 type TestPromptTypes = {
   'math.prompt.mdx': {
     input: { userMessage: string };
@@ -25,11 +38,11 @@ describe('AgentMark Integration', () => {
 
   it('should load and compile prompts with type safety', async () => {
     const fixturesDir = path.resolve(__dirname, './fixtures');
-    const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+    const fileLoader = new FileLoader(fixturesDir);
 
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
+      adapter: new DefaultAdapter<TestPromptTypes2>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -54,11 +67,11 @@ describe('AgentMark Integration', () => {
 
   it('should load and compile image prompt with type safety', async () => {
     const fixturesDir = path.resolve(__dirname, './fixtures');
-    const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+    const fileLoader = new FileLoader(fixturesDir);
   
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
+      adapter: new DefaultAdapter<TestPromptTypes2>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
   
@@ -83,7 +96,7 @@ describe('AgentMark Integration', () => {
   });
 
   it('should enforce type safety on prompt paths', () => {
-    const fileLoader = new FileLoader<TestPromptTypes>(path.resolve(__dirname, './fixtures'));
+    const fileLoader = new FileLoader(path.resolve(__dirname, './fixtures'));
     const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter<TestPromptTypes>(),
@@ -95,7 +108,7 @@ describe('AgentMark Integration', () => {
   });
 
   it('should enforce type safety on input props', async () => {
-    const fileLoader = new FileLoader<TestPromptTypes>(path.resolve(__dirname, './fixtures'));
+    const fileLoader = new FileLoader(path.resolve(__dirname, './fixtures'));
     const agentMark = createAgentMark({
       loader: fileLoader,
       adapter: new DefaultAdapter<TestPromptTypes>(),
@@ -109,7 +122,7 @@ describe('AgentMark Integration', () => {
 
   it('should work with preloaded prompt objects', async () => {
     const fixturesDir = path.resolve(__dirname, './fixtures');
-    const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+    const fileLoader = new FileLoader(fixturesDir);
 
     const agentMark = createAgentMark({
       loader: fileLoader,
@@ -142,7 +155,7 @@ describe('AgentMark Integration', () => {
   describe('VercelAdapter Integration', () => {
     it('should adapt object prompts for Vercel AI SDK', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
-      const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+      const fileLoader = new FileLoader(fixturesDir);
       const mockModelFn = vi.fn().mockImplementation((modelName) => ({
         name: modelName,
         generate: vi.fn()
@@ -175,7 +188,7 @@ describe('AgentMark Integration', () => {
 
     it('should adapt text prompts for Vercel AI SDK', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
-      const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+      const fileLoader = new FileLoader(fixturesDir);
 
       const mockModelFn = vi.fn().mockImplementation((modelName) => ({
         name: modelName,
@@ -209,7 +222,7 @@ describe('AgentMark Integration', () => {
 
     it('should handle custom runtime config in Vercel adapter', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
-      const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+      const fileLoader = new FileLoader(fixturesDir);
 
       const mockModelFn = vi.fn().mockImplementation((modelName, config) => {
         return {
@@ -243,7 +256,7 @@ describe('AgentMark Integration', () => {
 
     it('should properly handle runtime configuration', async () => {
       const fixturesDir = path.resolve(__dirname, './fixtures');
-      const fileLoader = new FileLoader<TestPromptTypes>(fixturesDir);
+      const fileLoader = new FileLoader(fixturesDir);
 
       const mockModelFn = vi.fn().mockImplementation((modelName, config) => ({
         name: modelName,

@@ -1,4 +1,4 @@
-import { Loader, TemplateEngine, Adapter, PromptShape, PromptKey } from "./types";
+import { Loader, TemplateEngine, Adapter, PromptShape, PromptKey, KeysWithKind } from "./types";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ObjectPrompt, ImagePrompt, TextPrompt } from "./prompts";
@@ -26,10 +26,10 @@ export class AgentMark<
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
   }
 
-  async loadTextPrompt<K extends PromptKey<T>>(
+  async loadTextPrompt<K extends KeysWithKind<T, 'text'> & string>(
     pathOrPreloaded: K,
     options?: any
-  ): Promise<TextPrompt<T, A, K>> {
+  ) {
     let content: unknown;
     
     if (typeof pathOrPreloaded === 'string' && this.loader) {
@@ -44,10 +44,10 @@ export class AgentMark<
     );
   }
 
-  async loadObjectPrompt<K extends PromptKey<T>>(
+  async loadObjectPrompt<K extends KeysWithKind<T, 'object'> & string>(
     pathOrPreloaded: K,
     options?: any
-  ): Promise<ObjectPrompt<T, A, K>> {
+  ) {
     let content: unknown;
     
     if (typeof pathOrPreloaded === 'string' && this.loader) {
@@ -62,10 +62,10 @@ export class AgentMark<
     );
   }
 
-  async loadImagePrompt<K extends PromptKey<T>>(
+  async loadImagePrompt<K extends KeysWithKind<T, 'image'> & string>(
     pathOrPreloaded: K, 
     options?: any
-  ): Promise<ImagePrompt<T, A, K>> {
+  ) {
     let content: unknown;
     
     if (typeof pathOrPreloaded === 'string' && this.loader) {

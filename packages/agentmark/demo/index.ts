@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { VercelAdapter, VercelModelRegistry, FileLoader, createAgentMark } from "../src";
 import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { generateObject, generateText } from 'ai';
 import PuzzletTypes from './puzzlet1.types';
 
 const modelRegistry = new VercelModelRegistry();
@@ -23,8 +23,8 @@ async function run () {
   };
 
   const vercelInput = await prompt.format(props);
-  const result = await generateObject(vercelInput);
-  console.log(result.object.answer);
+  const result = await generateText(vercelInput);
+  console.log(result.text);
 }
 
 run();
