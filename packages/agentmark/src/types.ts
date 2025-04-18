@@ -27,6 +27,15 @@ export type PromptShape<T> = { [K in keyof T]: { input: any; output: any } };
 export type PromptDict = PromptShape<any>;
 export type PromptKey<T extends PromptDict> = keyof T & string;
 
+export type PromptKind = 'object' | 'text' | 'image';
+export type KindOf<V> = V extends { kind: infer K } ? K : PromptKind;
+export type KeysWithKind<
+  Dict,
+  K extends PromptKind,
+> = {
+  [P in keyof Dict]: K extends KindOf<Dict[P]> ? P : never
+}[keyof Dict];
+
 export interface TemplateEngine {
   compile<R = unknown, P extends Record<string, unknown> = JSONObject>(
     template: unknown,
