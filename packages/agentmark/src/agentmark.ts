@@ -1,9 +1,7 @@
-import { Loader, TemplateEngine, Adapter } from "./types";
-import { ObjectPrompt } from "./prompts/object";
+import { Loader, TemplateEngine, Adapter, PromptShape } from "./types";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
-import { ImagePrompt } from "./prompts/image";
-import { TextPrompt } from "./prompts/text";
+import { ObjectPrompt, ImagePrompt, TextPrompt } from "./prompts";
 
 export interface AgentMarkOptions<
   T extends { [K in keyof T]: { input: any; output: any } },
@@ -15,7 +13,7 @@ export interface AgentMarkOptions<
 }
 
 export class AgentMark<
-  T extends { [K in keyof T]: { input: any; output: any } },
+  T extends PromptShape<T>,
   A extends Adapter<T>
 > {
   protected loader?: Loader<T>
@@ -42,10 +40,7 @@ export class AgentMark<
     
     TextConfigSchema.parse(await this.templateEngine.compile(content));
     return new TextPrompt<T, A, K>(
-      content,
-      this.templateEngine,
-      this.adapter,
-      pathOrPreloaded
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
 
@@ -63,10 +58,7 @@ export class AgentMark<
     
     ObjectConfigSchema.parse(await this.templateEngine.compile(content));
     return new ObjectPrompt<T, A, K>(
-      content,
-      this.templateEngine,
-      this.adapter,
-      pathOrPreloaded
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
 
@@ -84,22 +76,19 @@ export class AgentMark<
     
     ImageConfigSchema.parse(await this.templateEngine.compile(content));
     return new ImagePrompt<T, A, K>(
-      content,
-      this.templateEngine,
-      this.adapter,
-      pathOrPreloaded
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
 }
 
 export function createAgentMark<
-  T extends { [K in keyof T]: { input: any; output: any } },
-  L extends Loader<any>,
-  A extends Adapter<any>,
+  T extends PromptShape<T> = any,
+  L extends Loader<T>  = Loader<T>,
+  A extends Adapter<T> = Adapter<T>,
 >(
-  opts: { loader?: L; adapter: A; templateEngine?: any }
-) {
-  return new AgentMark({
+  opts: { loader?: L; adapter: A; templateEngine?: TemplateEngine },
+): AgentMark<T, A> {
+  return new AgentMark<T, A>({
     loader: opts.loader,
     adapter: opts.adapter,
     templateEngine: opts.templateEngine,

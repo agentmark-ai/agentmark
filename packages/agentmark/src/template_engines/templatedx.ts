@@ -2,7 +2,7 @@ import { TagPluginRegistry, transform } from "@puzzlet/templatedx";
 import { TagPlugin, PluginContext, getFrontMatter } from "@puzzlet/templatedx";
 import type { Ast } from "@puzzlet/templatedx";
 import type { Node } from "mdast";
-import { TemplateEngine, ChatMessage, JSONObject } from "../types";
+import { TemplateEngine, ChatMessage, JSONObject, ObjectConfig, TextConfig, ImageConfig } from "../types";
 
 type ExtractedField = {
   name: string;
@@ -62,8 +62,11 @@ export class ExtractTextPlugin extends TagPlugin {
 TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
 export class TemplateDXTemplateEngine implements TemplateEngine {
-  async compile(template: Ast, props?: JSONObject) {
-    return getRawConfig(template, props);
+  async compile<
+    R = unknown,
+    P extends Record<string, any> = JSONObject,
+  >(template: Ast, props?: P): Promise<R> {
+    return getRawConfig(template, props) as R;
   }
 }
 
@@ -79,7 +82,9 @@ function getMessages(extractedFields: Array<any>): ChatMessage[] {
   return messages;
 }
 
-export async function getRawConfig(ast: Ast, props?: JSONObject) {
+export async function getRawConfig<
+  R extends ObjectConfig | ImageConfig | TextConfig
+>(ast: Ast, props?: JSONObject): Promise<R> {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
   await transform(ast, props || {}, shared);

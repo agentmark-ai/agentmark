@@ -5,7 +5,8 @@ import type {
   PromptMetadata,
   ChatMessage,
   AdaptOptions,
-  ObjectConfig
+  ObjectConfig,
+  PromptShape
 } from "../types";
 import type {
   LanguageModel,
@@ -131,7 +132,7 @@ export class VercelModelRegistry {
 }
 
 export class VercelAdapter<
-  T extends { [K in keyof T]: { input: any; output: any } }
+  T extends PromptShape<T> = any
 > implements Adapter<T> {
   private toolRegistry: VercelToolRegistry;
 

@@ -3,10 +3,11 @@ import {
   TextConfig,
   ImageConfig,
   ObjectConfig, 
+  PromptShape
 } from "../types";
 
 export class DefaultAdapter<
-  T extends { [K in keyof T]: { input: any; output: any } },
+  T extends PromptShape<T> = any
 > implements Adapter<T> {
   adaptText(
     input: TextConfig,
