@@ -6,7 +6,8 @@ import type {
   ChatMessage,
   AdaptOptions,
   ObjectConfig,
-  PromptShape
+  PromptShape,
+  PromptKey
 } from "../types";
 import type {
   LanguageModel,
@@ -180,7 +181,7 @@ export class VercelAdapter<
     };
   }
 
-  adaptObject<K extends keyof T & string>(
+  adaptObject<K extends PromptKey<T>>(
     input: ObjectConfig,
     options: AdaptOptions, 
     metadata: PromptMetadata

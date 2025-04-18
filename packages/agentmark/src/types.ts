@@ -24,6 +24,8 @@ export type {
 };
 
 export type PromptShape<T> = { [K in keyof T]: { input: any; output: any } };
+export type PromptDict = PromptShape<any>;
+export type PromptKey<T extends PromptDict> = keyof T & string;
 
 export interface TemplateEngine {
   compile<R = unknown, P extends Record<string, unknown> = JSONObject>(
@@ -56,7 +58,7 @@ export interface Loader<T extends PromptShape<T>> {
 
 export interface Adapter<T extends PromptShape<T>> {
   readonly __dict: T;
-  adaptObject<_T extends keyof T & string>(
+  adaptObject<_T extends PromptKey<T>>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata

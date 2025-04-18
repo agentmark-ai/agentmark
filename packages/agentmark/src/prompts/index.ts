@@ -7,6 +7,7 @@ import {
   ImageConfig,
   TextConfig,
   PromptShape,
+  PromptKey,
 } from '../types';
 
 export type AdaptObjectReturn<
@@ -20,7 +21,7 @@ export type AdaptObjectReturn<
 export abstract class BasePrompt<
   T extends PromptShape<T>,
   A,
-  K extends keyof T & string,
+  K extends PromptKey<T>,
   C,
 > {
   public readonly templateEngine: TemplateEngine;
@@ -48,7 +49,7 @@ export abstract class BasePrompt<
 export class ObjectPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends keyof T & string,
+  K extends PromptKey<T>,
 > extends BasePrompt<T, A, K, ObjectConfig> {
 
   constructor(
@@ -76,7 +77,7 @@ export class ObjectPrompt<
 export class TextPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends keyof T & string,
+  K extends PromptKey<T>,
 > extends BasePrompt<T, A, K, TextConfig> {
 
   constructor(
@@ -104,7 +105,7 @@ export class TextPrompt<
 export class ImagePrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends keyof T & string,
+  K extends PromptKey<T>,
 > extends BasePrompt<T, A, K, ImageConfig> {
 
   constructor(
