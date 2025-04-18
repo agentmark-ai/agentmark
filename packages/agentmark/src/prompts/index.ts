@@ -10,14 +10,6 @@ import {
   PromptKey,
 } from '../types';
 
-export type AdaptObjectReturn<
-  A extends Adapter<any>,
-  K extends keyof any & string,
-> =
-  A extends { adaptObject: <_K extends K>(...args: any) => infer R }
-    ? R
-    : never;
-
 export abstract class BasePrompt<
   T extends PromptShape<T>,
   A,
@@ -64,7 +56,7 @@ export class ObjectPrompt<
   async format(
     props: T[K]['input'],
     options: AdaptOptions = {},
-  ): Promise<AdaptObjectReturn<A, K>> {
+  ): Promise<ReturnType<A['adaptObject']>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptObject<K>(
       compiled,
