@@ -4,7 +4,7 @@ import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ObjectPrompt, ImagePrompt, TextPrompt } from "./prompts";
 
 export interface AgentMarkOptions<
-  T extends { [K in keyof T]: { input: any; output: any } },
+  T extends PromptShape<T>,
   A extends Adapter<T>
 > {
   loader?: Loader<T>;
@@ -81,16 +81,18 @@ export class AgentMark<
   }
 }
 
-export function createAgentMark<
-  T extends PromptShape<T> = any,
-  L extends Loader<T>  = Loader<T>,
-  A extends Adapter<T> = Adapter<T>,
->(
-  opts: { loader?: L; adapter: A; templateEngine?: TemplateEngine },
-): AgentMark<T, A> {
-  return new AgentMark<T, A>({
-    loader: opts.loader,
+type DictOf<A extends Adapter<any>> = A['__dict'];
+
+export function createAgentMark<A extends Adapter<any>>(
+  opts: {
+    adapter: A;
+    loader?: Loader<DictOf<A>>;
+    templateEngine?: TemplateEngine;
+  },
+): AgentMark<DictOf<A>, A> {
+  return new AgentMark({
     adapter: opts.adapter,
+    loader:  opts.loader,
     templateEngine: opts.templateEngine,
   });
 }

@@ -135,6 +135,7 @@ export class VercelAdapter<
   T extends PromptShape<T> = any
 > implements Adapter<T> {
   private toolRegistry: VercelToolRegistry;
+  declare readonly __dict: T;
 
   constructor(
     private modelRegistry: ModelRegistry

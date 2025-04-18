@@ -55,7 +55,8 @@ export interface Loader<T extends PromptShape<T>> {
 }
 
 export interface Adapter<T extends PromptShape<T>> {
-  adaptObject(
+  readonly __dict: T;
+  adaptObject<_T extends keyof T & string>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -73,12 +74,3 @@ export interface Adapter<T extends PromptShape<T>> {
     metadata: PromptMetadata
   ): any;
 }
-
-export type UnifiedPuzzleType<L, A> =
-  L extends Loader<infer T1>
-    ? A extends Adapter<infer T2>
-      ? T1 extends T2
-        ? (T2 extends T1 ? T1 : never)
-        : never 
-      : never
-    : never;

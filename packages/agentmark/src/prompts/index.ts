@@ -6,16 +6,23 @@ import {
   ObjectConfig,
   ImageConfig,
   TextConfig,
+  PromptShape,
 } from '../types';
 
+export type AdaptObjectReturn<
+  A extends Adapter<any>,
+  K extends keyof any & string,
+> =
+  A extends { adaptObject: <_K extends K>(...args: any) => infer R }
+    ? R
+    : never;
+
 export abstract class BasePrompt<
-  T extends Record<string, { input: any; output: any }>,
-  A extends Adapter<T>,
+  T extends PromptShape<T>,
+  A,
   K extends keyof T & string,
   C,
-  M extends 'adaptObject' | 'adaptText' | 'adaptImage',
 > {
-  /** Exposed so the older codebase keeps compiling */
   public readonly templateEngine: TemplateEngine;
 
   protected constructor(
@@ -23,51 +30,101 @@ export abstract class BasePrompt<
     engine: TemplateEngine,
     protected readonly adapter: A,
     protected readonly path: K,
-    private readonly method: M,
   ) {
     this.templateEngine = engine;
+  }
+
+  protected compile(props: T[K]['input']): Promise<C> {
+    return this.templateEngine.compile<C, T[K]['input']>(this.template, props);
+  }
+
+  protected metadata(props: T[K]['input']): PromptMetadata {
+    return { props, path: this.path, template: this.template };
+  }
+}
+
+
+
+export class ObjectPrompt<
+  T extends PromptShape<T>,
+  A extends Adapter<T>,
+  K extends keyof T & string,
+> extends BasePrompt<T, A, K, ObjectConfig> {
+
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path: K,
+  ) {
+    super(tpl, eng, ad, path);
   }
 
   async format(
     props: T[K]['input'],
     options: AdaptOptions = {},
-  ): Promise<T[K]['output']> {
-    const compiled = await this.templateEngine
-      .compile<C, T[K]['input']>(this.template, props);
-
-    const metadata: PromptMetadata = { props, path: this.path, template: this.template };
-    return (this.adapter[this.method] as any)(
-      compiled, options, metadata,
-    ) as T[K]['output'];
-  }
-}
-
-export class ObjectPrompt<
-  T extends Record<string, { input: any; output: any }>,
-  A extends Adapter<T>,
-  K extends keyof T & string
-> extends BasePrompt<T, A, K, ObjectConfig, 'adaptObject'> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path: K) {
-    super(tpl, eng, ad, path, 'adaptObject');
+  ): Promise<AdaptObjectReturn<A, K>> {
+    const compiled = await this.compile(props);
+    return this.adapter.adaptObject<K>(
+      compiled,
+      options,
+      this.metadata(props),
+    );
   }
 }
 
 export class TextPrompt<
-  T extends Record<string, { input: any; output: any }>,
+  T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends keyof T & string
-> extends BasePrompt<T, A, K, TextConfig, 'adaptText'> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path: K) {
-    super(tpl, eng, ad, path, 'adaptText');
+  K extends keyof T & string,
+> extends BasePrompt<T, A, K, TextConfig> {
+
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path: K,
+  ) {
+    super(tpl, eng, ad, path);
+  }
+
+  async format(
+    props: T[K]['input'],
+    options: AdaptOptions = {},
+  ): Promise<ReturnType<A['adaptText']>> {
+    const compiled = await this.compile(props);
+    return this.adapter.adaptText(
+      compiled,
+      options,
+      this.metadata(props),
+    );
   }
 }
 
 export class ImagePrompt<
-  T extends Record<string, { input: any; output: any }>,
+  T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends keyof T & string
-> extends BasePrompt<T, A, K, ImageConfig, 'adaptImage'> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path: K) {
-    super(tpl, eng, ad, path, 'adaptImage');
+  K extends keyof T & string,
+> extends BasePrompt<T, A, K, ImageConfig> {
+
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path: K,
+  ) {
+    super(tpl, eng, ad, path);
+  }
+
+  async format(
+    props: T[K]['input'],
+    options: AdaptOptions = {},
+  ): Promise<ReturnType<A['adaptImage']>> {
+    const compiled = await this.compile(props);
+    return this.adapter.adaptImage(
+      compiled,
+      options,
+      this.metadata(props),
+    );
   }
 }
