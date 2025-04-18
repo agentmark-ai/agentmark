@@ -1,12 +1,10 @@
-import { Loader, TemplateEngine, Adapter } from "./types";
-import { ObjectPrompt } from "./prompts/object";
+import { Loader, TemplateEngine, Adapter, PromptShape, PromptKey } from "./types";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
-import { ImagePrompt } from "./prompts/image";
-import { TextPrompt } from "./prompts/text";
+import { ObjectPrompt, ImagePrompt, TextPrompt } from "./prompts";
 
 export interface AgentMarkOptions<
-  T extends { [K in keyof T]: { input: any; output: any } },
+  T extends PromptShape<T>,
   A extends Adapter<T>
 > {
   loader?: Loader<T>;
@@ -15,7 +13,7 @@ export interface AgentMarkOptions<
 }
 
 export class AgentMark<
-  T extends { [K in keyof T]: { input: any; output: any } },
+  T extends PromptShape<T>,
   A extends Adapter<T>
 > {
   protected loader?: Loader<T>
@@ -28,7 +26,7 @@ export class AgentMark<
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
   }
 
-  async loadTextPrompt<K extends keyof T & string>(
+  async loadTextPrompt<K extends PromptKey<T>>(
     pathOrPreloaded: K,
     options?: any
   ): Promise<TextPrompt<T, A, K>> {
@@ -42,14 +40,11 @@ export class AgentMark<
     
     TextConfigSchema.parse(await this.templateEngine.compile(content));
     return new TextPrompt<T, A, K>(
-      content,
-      this.templateEngine,
-      this.adapter,
-      pathOrPreloaded
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
 
-  async loadObjectPrompt<K extends keyof T & string>(
+  async loadObjectPrompt<K extends PromptKey<T>>(
     pathOrPreloaded: K,
     options?: any
   ): Promise<ObjectPrompt<T, A, K>> {
@@ -63,14 +58,11 @@ export class AgentMark<
     
     ObjectConfigSchema.parse(await this.templateEngine.compile(content));
     return new ObjectPrompt<T, A, K>(
-      content,
-      this.templateEngine,
-      this.adapter,
-      pathOrPreloaded
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
 
-  async loadImagePrompt<K extends keyof T & string>(
+  async loadImagePrompt<K extends PromptKey<T>>(
     pathOrPreloaded: K, 
     options?: any
   ): Promise<ImagePrompt<T, A, K>> {
@@ -84,24 +76,23 @@ export class AgentMark<
     
     ImageConfigSchema.parse(await this.templateEngine.compile(content));
     return new ImagePrompt<T, A, K>(
-      content,
-      this.templateEngine,
-      this.adapter,
-      pathOrPreloaded
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
 }
 
-export function createAgentMark<
-  T extends { [K in keyof T]: { input: any; output: any } },
-  L extends Loader<any>,
-  A extends Adapter<any>,
->(
-  opts: { loader?: L; adapter: A; templateEngine?: any }
-) {
+type DictOf<A extends Adapter<any>> = A['__dict'];
+
+export function createAgentMark<A extends Adapter<any>>(
+  opts: {
+    adapter: A;
+    loader?: Loader<DictOf<A>>;
+    templateEngine?: TemplateEngine;
+  },
+): AgentMark<DictOf<A>, A> {
   return new AgentMark({
-    loader: opts.loader,
     adapter: opts.adapter,
+    loader:  opts.loader,
     templateEngine: opts.templateEngine,
   });
 }

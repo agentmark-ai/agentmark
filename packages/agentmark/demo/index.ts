@@ -1,18 +1,15 @@
 import 'dotenv/config';
-import { VercelAdapter, VercelModelRegistry, PuzzletLoader, createAgentMark } from "../src";
-import { generateObject } from 'ai';
+import { VercelAdapter, VercelModelRegistry, FileLoader, createAgentMark } from "../src";
 import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import PuzzletTypes from './puzzlet1.types';
 
 const modelRegistry = new VercelModelRegistry();
+const loader = new FileLoader('./fixtures');
 modelRegistry.registerModels(['gpt-4o', 'gpt-4o-mini'], (name: string) => {
   return openai(name);
 });
 
-const loader = new PuzzletLoader<PuzzletTypes>({
-  appId: process.env.PUZZLET_APP_ID!,
-  apiKey: process.env.PUZZLET_API_KEY!,
-});
 const adapter = new VercelAdapter<PuzzletTypes>(modelRegistry);
 const agentMark = createAgentMark({
   loader,
@@ -26,8 +23,8 @@ async function run () {
   };
 
   const vercelInput = await prompt.format(props);
-  const result2 = await generateObject(vercelInput);
-  return result2.object.answer;
+  const result = await generateObject(vercelInput);
+  console.log(result.object.answer);
 }
 
-run().then((result) => console.log(result)).catch(console.error);
+run();

@@ -29,7 +29,7 @@ describe('AgentMark Integration', () => {
 
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter(),
+      adapter: new DefaultAdapter<TestPromptTypes>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
@@ -58,7 +58,7 @@ describe('AgentMark Integration', () => {
   
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter(),
+      adapter: new DefaultAdapter<TestPromptTypes>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
   
@@ -86,7 +86,7 @@ describe('AgentMark Integration', () => {
     const fileLoader = new FileLoader<TestPromptTypes>(path.resolve(__dirname, './fixtures'));
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter(),
+      adapter: new DefaultAdapter<TestPromptTypes>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
     expect(async () => {
@@ -98,7 +98,7 @@ describe('AgentMark Integration', () => {
     const fileLoader = new FileLoader<TestPromptTypes>(path.resolve(__dirname, './fixtures'));
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter(),
+      adapter: new DefaultAdapter<TestPromptTypes>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
 
@@ -113,7 +113,7 @@ describe('AgentMark Integration', () => {
 
     const agentMark = createAgentMark({
       loader: fileLoader,
-      adapter: new DefaultAdapter(),
+      adapter: new DefaultAdapter<TestPromptTypes>(),
       templateEngine: new TemplateDXTemplateEngine()
     });
 
@@ -152,7 +152,7 @@ describe('AgentMark Integration', () => {
 
       const agentMark = createAgentMark({
         loader: fileLoader,
-        adapter: new VercelAdapter(modelRegistry),
+        adapter: new VercelAdapter<TestPromptTypes>(modelRegistry),
         templateEngine: new TemplateDXTemplateEngine()
       });
 
@@ -187,7 +187,7 @@ describe('AgentMark Integration', () => {
 
       const agentMark = createAgentMark({
         loader: fileLoader,
-        adapter: new VercelAdapter(modelRegistry),
+        adapter: new VercelAdapter<TestPromptTypes>(modelRegistry),
         templateEngine: new TemplateDXTemplateEngine()
       });
 
@@ -224,7 +224,7 @@ describe('AgentMark Integration', () => {
 
       const agentMark = createAgentMark({
         loader: fileLoader,
-        adapter: new VercelAdapter(modelRegistry),
+        adapter: new VercelAdapter<TestPromptTypes>(modelRegistry),
         templateEngine: new TemplateDXTemplateEngine()
       });
 
@@ -256,7 +256,7 @@ describe('AgentMark Integration', () => {
 
       const agentMark = createAgentMark({
         loader: fileLoader,
-        adapter: new VercelAdapter(modelRegistry),
+        adapter: new VercelAdapter<TestPromptTypes>(modelRegistry),
         templateEngine: new TemplateDXTemplateEngine()
       });
 

@@ -23,11 +23,15 @@ export type {
   ChatMessage
 };
 
+export type PromptShape<T> = { [K in keyof T]: { input: any; output: any } };
+export type PromptDict = PromptShape<any>;
+export type PromptKey<T extends PromptDict> = keyof T & string;
+
 export interface TemplateEngine {
-  compile(
+  compile<R = unknown, P extends Record<string, unknown> = JSONObject>(
     template: unknown,
-    props?: JSONObject,
-  ): Promise<unknown>;
+    props?: P,
+  ): Promise<R>;
 }
 
 export interface PromptMetadata {
@@ -48,12 +52,13 @@ export type BaseAdaptOptions = {
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
-export interface Loader<T extends { [K in keyof T]: { input: any; output: any } } = any> {
+export interface Loader<T extends PromptShape<T>> {
   load(path: string, options?: any): Promise<unknown>;
 }
 
-export interface Adapter<T extends { [K in keyof T]: { input: any; output: any } }> {
-  adaptObject(
+export interface Adapter<T extends PromptShape<T>> {
+  readonly __dict: T;
+  adaptObject<_T extends PromptKey<T>>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -71,12 +76,3 @@ export interface Adapter<T extends { [K in keyof T]: { input: any; output: any }
     metadata: PromptMetadata
   ): any;
 }
-
-export type UnifiedPuzzleType<L, A> =
-  L extends Loader<infer T1>
-    ? A extends Adapter<infer T2>
-      ? T1 extends T2
-        ? (T2 extends T1 ? T1 : never)
-        : never 
-      : never
-    : never;

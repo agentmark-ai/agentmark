@@ -2,9 +2,10 @@ import path from "path";
 import { load } from "@puzzlet/templatedx";
 import { Loader } from "../types";
 import type { Ast } from "@puzzlet/templatedx";
-
-export class FileLoader<T extends { [K in keyof T]: { input: any; output: any } }> implements Loader<T> {
-  private basePath: string;
+import { PromptShape } from "../types";
+export class FileLoader<
+  T extends PromptShape<T> = any
+> implements Loader<T> {  private basePath: string;
 
   constructor(
     private rootDir: string,
