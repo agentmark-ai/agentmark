@@ -1,4 +1,4 @@
-import { Loader, TemplateEngine, Adapter, PromptShape, PromptKey, KeysWithKind } from "./types";
+import { Loader, TemplateEngine, Adapter, PromptShape, KeysWithKind } from "./types";
 import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ObjectPrompt, ImagePrompt, TextPrompt } from "./prompts";
