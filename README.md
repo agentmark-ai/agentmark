@@ -25,7 +25,7 @@
 
 ## Overview
 
-Markdown-based prompts and evals for the AI Era.
+Type-safe markdown-based prompts and evals.
 
 ![AgentMark](https://mintlify.s3.us-west-1.amazonaws.com/puzzlet-9ba7bb98/images/example.png)
 
