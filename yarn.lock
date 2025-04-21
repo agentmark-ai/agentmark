@@ -982,26 +982,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/ai-v4-adapter@workspace:packages/ai-v4-adapter":
-  version: 0.0.0-use.local
-  resolution: "@puzzlet/ai-v4-adapter@workspace:packages/ai-v4-adapter"
-  dependencies:
-    "@puzzlet/agentmark": "workspace:*"
-    "@types/node": "npm:^22.8.1"
-    "@types/react": "npm:^18"
-    ai: "npm:^4.0.0"
-    cpy-cli: "npm:^5.0.0"
-    react: "npm:^18.3.1"
-    tsup: "npm:^8.3.5"
-    typescript: "npm:^5.6.2"
-    vitest: "npm:^3.0.8"
-    zod: "npm:^3.23.8"
-  peerDependencies:
-    "@puzzlet/agentmark": "workspace:*"
-    ai: ^4.0.0
-  languageName: unknown
-  linkType: soft
-
 "@puzzlet/templatedx@npm:^0.6.2":
   version: 0.6.2
   resolution: "@puzzlet/templatedx@npm:0.6.2"
@@ -1020,6 +1000,26 @@ __metadata:
   checksum: 10c0/69badd9f4acbf00fb0aaa0620fc3f4019af30c1a4b50d2501d6a145c6d9b48d8c2414ce2e8dee04621b5a329957283caa84b99a83c3c9f2ac3430bd7889e18f8
   languageName: node
   linkType: hard
+
+"@puzzlet/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
+  version: 0.0.0-use.local
+  resolution: "@puzzlet/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
+  dependencies:
+    "@puzzlet/agentmark": "workspace:*"
+    "@types/node": "npm:^22.8.1"
+    "@types/react": "npm:^18"
+    ai: "npm:^4.0.0"
+    cpy-cli: "npm:^5.0.0"
+    react: "npm:^18.3.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.2"
+    vitest: "npm:^3.0.8"
+    zod: "npm:^3.23.8"
+  peerDependencies:
+    "@puzzlet/agentmark": "workspace:*"
+    ai: ^4.0.0
+  languageName: unknown
+  linkType: soft
 
 "@rollup/rollup-android-arm-eabi@npm:4.40.0":
   version: 4.40.0
