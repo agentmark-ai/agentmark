@@ -21,7 +21,7 @@ type AITextParams = Parameters<typeof generateText>[0];
 type RequiredAITextParams = Pick<AITextParams, 'model' | 'messages'>;
 type TextResult = RequiredAITextParams & Partial<Omit<AITextParams, 'model' | 'messages'>>;
 
-export interface AIObjectParams<T> {
+export interface VercelAIObjectParams<T> {
   model: LanguageModel;
   messages: ChatMessage[];
   schema: Schema<T>;
@@ -37,7 +37,7 @@ export interface AIObjectParams<T> {
   experimental_telemetry?: any;
 }
 
-export interface AIImageParams {
+export interface VercelAIImageParams {
   model: ImageModel;
   prompt: string;
   n?: number;
@@ -49,11 +49,6 @@ export interface AIImageParams {
 export type Tool = (args: any) => any;
 
 export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) => LanguageModel | ImageModel;
-
-interface ModelRegistry {
-  getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModels(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
-}
 
 const getTelemetryConfig = (
   telemetry: AdaptOptions['telemetry'],
@@ -70,7 +65,7 @@ const getTelemetryConfig = (
   }
 }
 
-export class AIToolRegistry {
+export class VercelAIToolRegistry {
   private tools: Record<string, Tool> = {};
 
   constructor() { }
@@ -88,7 +83,7 @@ export class AIToolRegistry {
   }
 }
 
-export class AIModelRegistry {
+export class VercelAIModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
   private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
   private defaultCreator?: ModelFunctionCreator;
@@ -132,14 +127,14 @@ export class AIModelRegistry {
   }
 }
 
-export class AIAdapter<
+export class VercelAIAdapter<
   T extends PromptShape<T> = any
 > implements Adapter<T> {
   declare readonly __dict: T;
 
   constructor(
-    private modelRegistry: AIModelRegistry,
-    private toolRegistry?: AIToolRegistry
+    private modelRegistry: VercelAIModelRegistry,
+    private toolRegistry?: VercelAIToolRegistry
   ) {
     this.modelRegistry = modelRegistry;
     this.toolRegistry = toolRegistry;
@@ -185,7 +180,7 @@ export class AIAdapter<
     input: ObjectConfig,
     options: AdaptOptions, 
     metadata: PromptMetadata
-  ): AIObjectParams<T[K]["output"]> {
+  ): VercelAIObjectParams<T[K]["output"]> {
     const { model_name: name, ...settings } = input.object_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
@@ -210,7 +205,7 @@ export class AIAdapter<
   adaptImage(
     input: ImageConfig, 
     options: AdaptOptions,
-  ): AIImageParams {
+  ): VercelAIImageParams {
     const { model_name: name, ...settings } = input.image_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;

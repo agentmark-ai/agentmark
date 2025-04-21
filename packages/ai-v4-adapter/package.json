@@ -1,5 +1,5 @@
 {
-  "name": "@puzzlet/ai-v4-adapter",
+  "name": "@puzzlet/vercel-ai-v4-adapter",
   "version": "2.2.2",
   "license": "MIT",
   "type": "module",

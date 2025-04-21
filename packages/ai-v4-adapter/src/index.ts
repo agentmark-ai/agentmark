@@ -1,5 +1,5 @@
 export {
-  AIAdapter,
-  AIModelRegistry,
-  AIToolRegistry
+  VercelAIAdapter,
+  VercelAIModelRegistry,
+  VercelAIToolRegistry
 } from "./adapter";
