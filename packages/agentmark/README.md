@@ -22,15 +22,19 @@
 
 ---
 
+
 ## Overview
 
-Type-safe prompts and evals for the AI Era.
+Markdown-based prompts and evals for the AI Era.
+
+![AgentMark](https://mintlify.s3.us-west-1.amazonaws.com/puzzlet-9ba7bb98/images/example.png)
 
 ### Features
 
 AgentMark supports:
 
 1. Markdown: 📝
+1. Syntax highlighting: 🌈
 1. Type Safety: 🛡️
 1. Unified prompt config: 🔗
 1. JSX components, props, & plugins: 🧩
@@ -53,12 +57,12 @@ npx @agentmark/cli@latest init
 
 2. Start with npm:
 ```bash
-npm start
+npm install && npm start
 ```
 
 Or with yarn:
 ```bash
-yarn start
+yarn && yarn start
 ```
 
 3. Run tests with npm:
@@ -77,11 +81,9 @@ yarn test
 npx @agentmark/cli@latest generate-types
 ```
 
-## Models
+## Supported Adapters
 
 By default, AgentMark doesn't support any models or calling any LLM providers. Instead, we format the input of your prompt through an adapter to match the input of the SDK you're using.
-
-### Supported Adapters
 
 | Adapter   | Supported | Supports Type-Safety |
 |-----------|-----------|-----------|
@@ -115,31 +117,13 @@ Run `.prompt.mdx` files directly within your VSCode editor. Note: You can test p
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
 
-### 2. SDK w/ Local File Loader
+### 2. Run AgentMark files with our SDK
 
-You can
-
-### 3. SDK w/ AgentMark Studio Loader
-
-AgentMark Studio is a platform for managing, versioning, and monitoring your LLM prompts in production, with built-in observability, evaluations, prompt management, alerts, and more. 
-
-```ts
-// Specify the puzzlet loader instead of file loader
-const studioLoader = new StudioLoader({
-  apiKey: process.env.PUZZLET_API_KEY!,
-  appId: process.env.PUZZLET_APP_ID!,
-  baseUrl: process.env.PUZZLET_BASE_URL!,
-});
-
-const agentMark = createAgentMark({
-  loader: studioLoader,
-  // rest stays the same...
-});
-```
+Read more about how to run AgentMark files with our SDK [here](https://docs.agentmark.co/agentmark/getting_started/overview).
 
 ## Type Safety
 
-AgentMark Studio supports type safety out of the box. Read more about it [here](https://docs.puzzlet.ai/agentmark/type-safety/).
+AgentMark Studio supports type safety out of the box. Read more about it [here](https://docs.agentmark.co/puzzlet/further_reference/type-safety).
 
 ## Contributing
 
