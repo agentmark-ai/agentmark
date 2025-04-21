@@ -8,7 +8,7 @@ import type {
   ObjectConfig,
   PromptShape,
   PromptKey
-} from "../types";
+} from "@puzzlet/agentmark";
 import type {
   LanguageModel,
   ImageModel, 
@@ -17,11 +17,11 @@ import type {
 } from "ai";
 import { jsonSchema } from "ai";
 
-type VercelTextParams = Parameters<typeof generateText>[0];
-type RequiredVercelTextParams = Pick<VercelTextParams, 'model' | 'messages'>;
-type TextResult = RequiredVercelTextParams & Partial<Omit<VercelTextParams, 'model' | 'messages'>>;
+type AITextParams = Parameters<typeof generateText>[0];
+type RequiredAITextParams = Pick<AITextParams, 'model' | 'messages'>;
+type TextResult = RequiredAITextParams & Partial<Omit<AITextParams, 'model' | 'messages'>>;
 
-export interface VercelObjectParams<T> {
+export interface VercelAIObjectParams<T> {
   model: LanguageModel;
   messages: ChatMessage[];
   schema: Schema<T>;
@@ -37,7 +37,7 @@ export interface VercelObjectParams<T> {
   experimental_telemetry?: any;
 }
 
-export interface VercelImageParams {
+export interface VercelAIImageParams {
   model: ImageModel;
   prompt: string;
   n?: number;
@@ -49,11 +49,6 @@ export interface VercelImageParams {
 export type Tool = (args: any) => any;
 
 export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) => LanguageModel | ImageModel;
-
-interface ModelRegistry {
-  getModelFunction(modelName: string): ModelFunctionCreator;
-  registerModels(modelPattern: string | RegExp, creator: ModelFunctionCreator): void;
-}
 
 const getTelemetryConfig = (
   telemetry: AdaptOptions['telemetry'],
@@ -70,7 +65,7 @@ const getTelemetryConfig = (
   }
 }
 
-export class VercelToolRegistry {
+export class VercelAIToolRegistry {
   private tools: Record<string, Tool> = {};
 
   constructor() { }
@@ -88,7 +83,7 @@ export class VercelToolRegistry {
   }
 }
 
-export class VercelModelRegistry {
+export class VercelAIModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
   private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
   private defaultCreator?: ModelFunctionCreator;
@@ -132,17 +127,17 @@ export class VercelModelRegistry {
   }
 }
 
-export class VercelAdapter<
+export class VercelAIAdapter<
   T extends PromptShape<T> = any
 > implements Adapter<T> {
-  private toolRegistry: VercelToolRegistry;
   declare readonly __dict: T;
 
   constructor(
-    private modelRegistry: ModelRegistry
+    private modelRegistry: VercelAIModelRegistry,
+    private toolRegistry?: VercelAIToolRegistry
   ) {
     this.modelRegistry = modelRegistry;
-    this.toolRegistry = new VercelToolRegistry();
+    this.toolRegistry = toolRegistry;
   }
 
   adaptText(
@@ -173,7 +168,7 @@ export class VercelAdapter<
             {
               description: tool.description || '',
               parameters: jsonSchema(tool.parameters),
-              execute: this.toolRegistry.hasTool(name) ? this.toolRegistry.getTool(name) : undefined
+              execute: this.toolRegistry?.hasTool(name) ? this.toolRegistry?.getTool(name) : undefined
             }
           ])
         )
@@ -185,7 +180,7 @@ export class VercelAdapter<
     input: ObjectConfig,
     options: AdaptOptions, 
     metadata: PromptMetadata
-  ): VercelObjectParams<T[K]["output"]> {
+  ): VercelAIObjectParams<T[K]["output"]> {
     const { model_name: name, ...settings } = input.object_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
@@ -210,7 +205,7 @@ export class VercelAdapter<
   adaptImage(
     input: ImageConfig, 
     options: AdaptOptions,
-  ): VercelImageParams {
+  ): VercelAIImageParams {
     const { model_name: name, ...settings } = input.image_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;

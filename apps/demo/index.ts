@@ -1,10 +1,10 @@
 import 'dotenv/config';
-import { VercelAdapter, VercelModelRegistry, FileLoader, createAgentMark } from "../src";
+import { AIAgentMarkAdapter, AIModelRegistry } from "../../packages/ai-v4-adapter/src";
 import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText } from 'ai';
 import PuzzletTypes from './puzzlet1.types';
 
-const modelRegistry = new VercelModelRegistry();
+const modelRegistry = new AIModelRegistry();
 const loader = new FileLoader('./fixtures');
 modelRegistry.registerModels(['gpt-4o', 'gpt-4o-mini'], (name: string) => {
   return openai(name);

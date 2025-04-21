@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@ai-sdk/anthropic@npm:^1.1.6, @ai-sdk/anthropic@npm:^1.2.10":
+"@ai-sdk/anthropic@npm:^1.2.10":
   version: 1.2.10
   resolution: "@ai-sdk/anthropic@npm:1.2.10"
   dependencies:
@@ -14,18 +14,6 @@ __metadata:
   peerDependencies:
     zod: ^3.0.0
   checksum: 10c0/6f822cd4848610ccf552dd7f099611d4dd8eab44e51253282e2e3ac6aa48b0c6d7d8b151dfff8e6c0d6941e22c440ee6b6621434c0725d5e32f2b99a222c4075
-  languageName: node
-  linkType: hard
-
-"@ai-sdk/openai@npm:^1.1.9":
-  version: 1.3.13
-  resolution: "@ai-sdk/openai@npm:1.3.13"
-  dependencies:
-    "@ai-sdk/provider": "npm:1.1.3"
-    "@ai-sdk/provider-utils": "npm:2.2.7"
-  peerDependencies:
-    zod: ^3.0.0
-  checksum: 10c0/5b98393b12a23ff02e08af7a5cdab9eb1a16d31561cbe042d260ffc95bf85a9d0430bbd50b1f3929e3db3ec9265d90547f129df7107223d3af66be5e238e53a4
   languageName: node
   linkType: hard
 
@@ -974,7 +962,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:packages/agentmark":
+"@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:*, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
   dependencies:
@@ -994,38 +982,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@puzzlet/all-models@npm:^1.1.5":
-  version: 1.1.6
-  resolution: "@puzzlet/all-models@npm:1.1.6"
-  dependencies:
-    "@puzzlet/anthropic": "npm:^1.2.1"
-    "@puzzlet/openai": "npm:^1.2.1"
-  checksum: 10c0/9e1c2b6778da223127e4f84d1b2ae2b44f347091fa0f8cba585f3cdf41acc928b29d7ab0492a5c66101bb6cd2f1b0ce9d0d815c4abd63242184708e8dbee6beb
-  languageName: node
-  linkType: hard
-
-"@puzzlet/anthropic@npm:^1.2.1":
-  version: 1.2.1
-  resolution: "@puzzlet/anthropic@npm:1.2.1"
-  dependencies:
-    "@ai-sdk/anthropic": "npm:^1.1.6"
-  peerDependencies:
-    zod: ^3.23.8
-  checksum: 10c0/fc48f75e4e3b3f0ee628a1d8711c5fc18e7f24d4388ac373d22d2e25f9874891251bacfd0128a446c784fe14ef71361eb7580315188dcd8d07e783d433c4b61f
-  languageName: node
-  linkType: hard
-
-"@puzzlet/openai@npm:^1.2.1":
-  version: 1.2.1
-  resolution: "@puzzlet/openai@npm:1.2.1"
-  dependencies:
-    "@ai-sdk/openai": "npm:^1.1.9"
-  peerDependencies:
-    zod: ^3.23.8
-  checksum: 10c0/e79a495e0441d487e7dec4fac5625f8918ed7e7986e01dada0f94193aae834a9f6b3b9a9d9d801ed2556fcf848716b09149a687c4ba5e42ffd8e572998a0e61b
-  languageName: node
-  linkType: hard
-
 "@puzzlet/templatedx@npm:^0.6.2":
   version: 0.6.2
   resolution: "@puzzlet/templatedx@npm:0.6.2"
@@ -1044,6 +1000,26 @@ __metadata:
   checksum: 10c0/69badd9f4acbf00fb0aaa0620fc3f4019af30c1a4b50d2501d6a145c6d9b48d8c2414ce2e8dee04621b5a329957283caa84b99a83c3c9f2ac3430bd7889e18f8
   languageName: node
   linkType: hard
+
+"@puzzlet/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
+  version: 0.0.0-use.local
+  resolution: "@puzzlet/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
+  dependencies:
+    "@puzzlet/agentmark": "workspace:*"
+    "@types/node": "npm:^22.8.1"
+    "@types/react": "npm:^18"
+    ai: "npm:^4.0.0"
+    cpy-cli: "npm:^5.0.0"
+    react: "npm:^18.3.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.2"
+    vitest: "npm:^3.0.8"
+    zod: "npm:^3.23.8"
+  peerDependencies:
+    "@puzzlet/agentmark": "workspace:*"
+    ai: ^4.0.0
+  languageName: unknown
+  linkType: soft
 
 "@rollup/rollup-android-arm-eabi@npm:4.40.0":
   version: 4.40.0
@@ -1962,8 +1938,6 @@ __metadata:
     "@ai-sdk/anthropic": "npm:^1.2.10"
     "@ai-sdk/openai": "npm:^1.3.13"
     "@puzzlet/agentmark": "npm:^2.2.1"
-    "@puzzlet/all-models": "npm:^1.1.5"
-    "@puzzlet/templatedx": "npm:^0.6.2"
     "@types/js-yaml": "npm:^4"
     "@types/mocha": "npm:^10.0.8"
     "@types/node": "npm:20.x"
