@@ -8,7 +8,7 @@ import type {
   ObjectConfig,
   PromptShape,
   PromptKey
-} from "@puzzlet/agentmark";
+} from "@agentmark/agentmark";
 import type {
   LanguageModel,
   ImageModel, 
