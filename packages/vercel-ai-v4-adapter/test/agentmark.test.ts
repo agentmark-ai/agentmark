@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import path from 'path';
-import { FileLoader, createAgentMark } from '@puzzlet/agentmark';
+import { FileLoader, createAgentMark } from '@agentmark/agentmark';
 import { VercelAIAdapter, VercelAIModelRegistry } from '../src';
 
 type TestPromptTypes2 = {
