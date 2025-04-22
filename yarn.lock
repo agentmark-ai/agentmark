@@ -1931,9 +1931,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"agentmark@workspace:packages/vscode-extension":
+"agentmark@workspace:apps/vscode-extension":
   version: 0.0.0-use.local
-  resolution: "agentmark@workspace:packages/vscode-extension"
+  resolution: "agentmark@workspace:apps/vscode-extension"
   dependencies:
     "@agentmark/agentmark": "workspace:*"
     "@agentmark/vercel-ai-v4-adapter": "workspace:*"
