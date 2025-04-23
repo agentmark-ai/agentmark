@@ -6,7 +6,8 @@ import { createExampleApp } from "../utils/examples/create-example-app";
 const init = async () => {
   const config: any = {
     "$schema": "https://docs.agentmark.co/agentmark.schema.json",
-    version: "1.1.0",
+    version: "2.0.0",
+    mdxVersion: "2.0.0",
     agentmarkPath: "/",
   };
   console.log("Initializing project.");
