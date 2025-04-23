@@ -1,7 +1,6 @@
 import type {
   TextConfig,
   ImageConfig,
-  Adapter,
   PromptMetadata,
   ChatMessage,
   AdaptOptions,
@@ -17,9 +16,43 @@ import type {
 } from "ai";
 import { jsonSchema } from "ai";
 
-type AITextParams = Parameters<typeof generateText>[0];
-type RequiredAITextParams = Pick<AITextParams, 'model' | 'messages'>;
-type TextResult = RequiredAITextParams & Partial<Omit<AITextParams, 'model' | 'messages'>>;
+type ToolDict = Record<
+  string,
+  {
+    args: any;
+  }
+>;
+
+
+type ToolInputs<R>  =
+  R extends { __tools: { input: infer I } }  ? I : never;
+
+type ToolOutputs<R> =
+  R extends { __tools: { output: infer O } } ? O : never;
+
+export type VercelAITextParams<
+  U extends ToolDict,
+  O extends Partial<Record<keyof U, any>> = {},
+> = {
+  model:    LanguageModel;
+  messages: ChatMessage[];
+  temperature?: number;
+  maxTokens?:   number;
+  topP?:        number;
+  topK?:        number;
+  frequencyPenalty?: number;
+  presencePenalty?:  number;
+  seed?:             number;
+  stopSequences?:    string[];
+  tools?: {
+    [K in keyof O & keyof U]: {
+      description: string;
+      parameters: Schema<U[K]['args']>;
+      execute?: (args: U[K]['args']) => O[K];
+    }
+  };
+};
+
 
 export interface VercelAIObjectParams<T> {
   model: LanguageModel;
@@ -65,23 +98,48 @@ const getTelemetryConfig = (
   }
 }
 
-export class VercelAIToolRegistry {
-  private tools: Record<string, Tool> = {};
+type Merge<A, B> = {
+  [K in keyof A | keyof B]:
+      K extends keyof B ? B[K]
+    : K extends keyof A ? A[K]
+    : never;
+};
 
-  constructor() { }
+export class VercelAIToolRegistry<
+  TD extends { [K in keyof TD]: { args: any } },
+  RM extends Partial<Record<keyof TD, any>> = {}
+> {
+  declare readonly __tools: { input: TD; output: RM };
 
-  registerTool(name: string, tool: Tool) {
-    this.tools[name] = tool;
+  private map: {
+    [K in keyof TD]?: (args: TD[K]['args']) => any;
+  } = {};
+  register<
+    K extends keyof TD,
+    R,
+  >(
+    name: K,
+    fn: (args: TD[K]['args']) => R,
+  ): VercelAIToolRegistry<TD, Merge<RM, { [P in K]: R }>> {
+    (this.map as any)[name] = fn;
+    return this as unknown as VercelAIToolRegistry<
+      TD,
+      Merge<RM, { [P in K]: R }>
+    >;
   }
 
-  hasTool(name: string) {
-    return this.tools[name] !== undefined;
+  get<K extends keyof TD>(
+    name: K,
+  ): (args: TD[K]['args']) => RM[K] {
+    return this.map[name] as any;
   }
 
-  getTool(name: string) {
-    return this.tools[name];
+  has<K extends keyof TD>(name: K): name is K & keyof RM {
+    return name in this.map;
   }
 }
+
+
 
 export class VercelAIModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
@@ -128,23 +186,28 @@ export class VercelAIModelRegistry {
 }
 
 export class VercelAIAdapter<
-  T extends PromptShape<T> = any
-> implements Adapter<T> {
+  T extends PromptShape<T>,
+  R extends VercelAIToolRegistry<any, any> = VercelAIToolRegistry<any, any>,
+> {
   declare readonly __dict: T;
+
+  private readonly toolsRegistry: R | undefined;
 
   constructor(
     private modelRegistry: VercelAIModelRegistry,
-    private toolRegistry?: VercelAIToolRegistry
+    toolRegistry?: R,
   ) {
     this.modelRegistry = modelRegistry;
-    this.toolRegistry = toolRegistry;
+    this.toolsRegistry = toolRegistry;
   }
 
   adaptText(
     input: TextConfig, 
     options: AdaptOptions, 
     metadata: PromptMetadata
-  ): TextResult {
+  ): VercelAITextParams<ToolDict> {
+    type Inp  = ToolInputs<R>;
+    type Outp = ToolOutputs<R>;
     const { model_name: name, ...settings } = input.text_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
@@ -162,16 +225,23 @@ export class VercelAIAdapter<
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
       ...(options.telemetry ? { experimental_telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name) } : {}),
       ...(settings?.tools ? {
-        tools: Object.fromEntries(
-          Object.entries(settings.tools).map(([name, tool]) => [
-            name,
-            {
-              description: tool.description || '',
-              parameters: jsonSchema(tool.parameters),
-              execute: this.toolRegistry?.hasTool(name) ? this.toolRegistry?.getTool(name) : undefined
-            }
-          ])
-        )
+        tools: settings.tools
+        ? Object.fromEntries(
+            (Object.keys(settings.tools) as Array<keyof Inp>).map(key => [
+              key,
+              {
+                description:
+                  (settings.tools as any)[key].description ?? '',
+                parameters: jsonSchema(
+                  (settings.tools as any)[key].parameters,
+                ) as Schema<Inp[typeof key]['args']>,
+                execute: this.toolsRegistry?.get(key) as (
+                  args: Inp[typeof key]['args']
+                ) => Outp[typeof key],
+              },
+            ]),
+          )
+        : undefined,
       } : {})
     };
   }
