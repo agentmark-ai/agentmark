@@ -1,0 +1,92 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/product.schema.json",
+    "title": "Agentmark",
+    "description": "Agentmark is a cool tool for writing agents in markdown.",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "string",
+            "description": "The version of the agentmark schema"
+        },
+        "agentmarkPath": {
+            "type": "string",
+            "description": "The path to the agentmark directory"
+        },
+        "builtInModels": {
+            "type": "array",
+            "description": "The built in models for the agentmark",
+            "items": {
+                "type": "string",
+                "description": "The name of the built in model"
+            }
+        },
+        "modelSchemas": {
+            "type": "object",
+            "description": "The model schemas for the agentmark",
+            "patternProperties": {
+                "^[a-zA-Z0-9_-]+$": {
+                    "type": "object",
+                    "description": "The model schema for the agentmark",
+                    "properties": {
+                        "label": {
+                            "type": "string",
+                            "description": "The label of the model schema"
+                        },
+                        "settings": {
+                            "type": "object",
+                            "description": "The settings of the model schema",
+                            "properties": {
+                                "patternProperties": {
+                                    "^[a-zA-Z0-9_-]+$": {
+                                        "type": "object",
+                                        "description": "The setting of the model schema",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "description": "The type of the setting"
+                                            },
+                                            "ui": {
+                                                "type": "string",
+                                                "description": "The ui of the setting"
+                                            },
+                                            "order": {
+                                                "type": "number",
+                                                "description": "The order of the setting"
+                                            },
+                                            "label": {
+                                                "type": "string",
+                                                "description": "The label of the setting"
+                                            },
+                                            "minimum": {
+                                                "type": "number",
+                                                "description": "The minimum of the setting"
+                                            },
+                                            "maximum": {
+                                                "type": "number",
+                                                "description": "The maximum of the setting"
+                                            },
+                                            "default": {
+                                                "type": "number",
+                                                "description": "The default of the setting"
+                                            },
+                                            "multipleOf": {
+                                                "type": "number",
+                                                "description": "The multiple of the setting"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "version",
+        "agentmarkPath"
+    ],
+    "additionalProperties": false
+}
