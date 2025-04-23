@@ -7,33 +7,33 @@ export type ModelSettingsTypeSlider = {
   ui?: "slider";
 };
 
-export type PuzzletModelSettingsConfig = {
+export type AgentmarkModelSettingsConfig = {
   label: string;
   order: number;
   deafult: any;
 } & ModelSettingsTypeSlider;
 
-export type PuzzletModelSettingsSchema = {
-  [key: string]: PuzzletModelSettingsConfig;
+export type AgentmarkModelSettingsSchema = {
+  [key: string]: AgentmarkModelSettingsConfig;
 };
 
-export type PuzzletModelConfig = {
+export type AgentmarkModelConfig = {
   label: string;
   cost: {
     inputCost: number;
     outputCost: number;
     unitScale: number;
   };
-  settings: PuzzletModelSettingsSchema;
+  settings: AgentmarkModelSettingsSchema;
 };
 
-export type PuzzletModelSchema = {
-  [key: string]: PuzzletModelConfig;
+export type AgentmarkModelSchema = {
+  [key: string]: AgentmarkModelConfig;
 };
 
-export type PuzzletConfig = {
-  puzzletPath: string;
-  modelSchemas?: PuzzletModelSchema;
+export type AgentmarkConfig = {
+  agentmarkPath: string;
+  modelSchemas?: AgentmarkModelSchema;
   version: string;
   builtInModels?: string[];
-};
+}; 

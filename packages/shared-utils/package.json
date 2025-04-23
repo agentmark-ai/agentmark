@@ -12,8 +12,5 @@
     "tsup": "^8.3.5",
     "typescript": "^5.4.5"
   },
-  "license": "MIT",
-  "dependencies": {
-    "@puzzlet/agentmark": "^1.2.2"
-  }
+  "license": "MIT"
 }
