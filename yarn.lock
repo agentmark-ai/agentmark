@@ -35,7 +35,6 @@ __metadata:
   resolution: "@agentmark/shared-utils@workspace:packages/shared-utils"
   dependencies:
     "@babel/preset-typescript": "npm:^7.24.1"
-    "@puzzlet/agentmark": "npm:^1.2.2"
     "@types/jest": "npm:^29.5.12"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.4.5"
@@ -1303,19 +1302,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@npm:^1.2.2":
-  version: 1.2.2
-  resolution: "@puzzlet/agentmark@npm:1.2.2"
-  dependencies:
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    ai: "npm:^4.0.3"
-    front-matter: "npm:^4.0.2"
-    js-yaml: "npm:^4.1.0"
-    zod: "npm:^3.23.8"
-  checksum: 10c0/d216fd9a4d9484d94496844cd80b751826d3f4a15d1fa0d409c569296621d85a28b29db29ce93a000e20bbe87e03e8bf1c0ef834c2fbf284199cbf5783bea845
-  languageName: node
-  linkType: hard
-
 "@puzzlet/agentmark@npm:^2.2.1, @puzzlet/agentmark@workspace:*, @puzzlet/agentmark@workspace:packages/agentmark":
   version: 0.0.0-use.local
   resolution: "@puzzlet/agentmark@workspace:packages/agentmark"
@@ -2543,26 +2529,6 @@ __metadata:
     react:
       optional: true
   checksum: 10c0/af2f3d9838ff402bd9f998eca73efb99e02931696f9b7584c8dd542858b6c997c10bf8dd72fabf36fddc1974e3a399dc568f3857d0646690ca0be59ebcb75cc4
-  languageName: node
-  linkType: hard
-
-"ai@npm:^4.0.3":
-  version: 4.3.9
-  resolution: "ai@npm:4.3.9"
-  dependencies:
-    "@ai-sdk/provider": "npm:1.1.3"
-    "@ai-sdk/provider-utils": "npm:2.2.7"
-    "@ai-sdk/react": "npm:1.2.9"
-    "@ai-sdk/ui-utils": "npm:1.2.8"
-    "@opentelemetry/api": "npm:1.9.0"
-    jsondiffpatch: "npm:0.6.0"
-  peerDependencies:
-    react: ^18 || ^19 || ^19.0.0-rc
-    zod: ^3.23.8
-  peerDependenciesMeta:
-    react:
-      optional: true
-  checksum: 10c0/7615d68265d4c139f694f0546d50ed797355b27bb1ddc1d5181e256073d8ce0013a2b28c0b5da8a1f8bd1e90670ecebed491d045e657e4dda32756dbaef15b35
   languageName: node
   linkType: hard
 
