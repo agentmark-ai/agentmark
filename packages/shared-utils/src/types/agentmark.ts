@@ -32,7 +32,7 @@ export type AgentmarkModelSchema = {
 };
 
 export type AgentmarkConfig = {
-  $schema: string;
+  $schema?: string;
   mdxVersion?: "1.0" | "0.0";
   agentmarkPath: string;
   modelSchemas?: AgentmarkModelSchema;
