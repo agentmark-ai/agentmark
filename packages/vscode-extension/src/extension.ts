@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
-import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter } from "@puzzlet/agentmark";
+import { createAgentMark, TemplateDXTemplateEngine } from "@puzzlet/agentmark";
+import { VercelAIAdapter } from "@puzzlet/vercel-ai-v4-adapter";
 import { experimental_generateImage as generateImage, streamObject, streamText } from "ai";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
 import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
-const adapter = new VercelAdapter(modelRegistry);
+const adapter = new VercelAIAdapter(modelRegistry);
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
   const agentMark = createAgentMark({ adapter, templateEngine });

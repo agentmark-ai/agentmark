@@ -1,8 +1,8 @@
-import { VercelModelRegistry } from "@puzzlet/agentmark";
+import { VercelAIModelRegistry } from "@puzzlet/vercel-ai-v4-adapter";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 
-export const modelRegistry = new VercelModelRegistry();
+export const modelRegistry = new VercelAIModelRegistry();
 modelRegistry.registerModels([
   "gpt-4o",
   "gpt-4o-mini",

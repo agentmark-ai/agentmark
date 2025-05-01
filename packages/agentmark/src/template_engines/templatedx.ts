@@ -61,9 +61,17 @@ export class ExtractTextPlugin extends TagPlugin {
 
 TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
 
+type CompiledConfig = {
+  name: string;
+  messages: ChatMessage[];
+  image_config?: ImageConfig;
+  object_config?: ObjectConfig;
+  text_config?: TextConfig;
+};
+
 export class TemplateDXTemplateEngine implements TemplateEngine {
   async compile<
-    R = unknown,
+    R = CompiledConfig,
     P extends Record<string, any> = JSONObject,
   >(template: Ast, props?: P): Promise<R> {
     return getRawConfig(template, props) as R;
