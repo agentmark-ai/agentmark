@@ -8,6 +8,7 @@ import {
   TextConfig,
   PromptShape,
   PromptKey,
+  SpeechConfig,
 } from '../types';
 
 export abstract class BasePrompt<
@@ -115,6 +116,34 @@ export class ImagePrompt<
   ): Promise<ReturnType<A['adaptImage']>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptImage(
+      compiled,
+      options,
+      this.metadata(props),
+    );
+  }
+}
+
+export class SpeechPrompt<
+  T extends PromptShape<T>,
+  A extends Adapter<T>,
+  K extends PromptKey<T>,
+> extends BasePrompt<T, A, K, SpeechConfig> {
+
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path: K,
+  ) {
+    super(tpl, eng, ad, path);
+  }
+
+  async format(
+    props: T[K]['input'],
+    options: AdaptOptions = {},
+  ): Promise<ReturnType<A['adaptSpeech']>> {
+    const compiled = await this.compile(props);
+    return this.adapter.adaptSpeech(
       compiled,
       options,
       this.metadata(props),

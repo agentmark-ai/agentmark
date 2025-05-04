@@ -5,3 +5,4 @@ dist
 .yarn/releases/*
 .yalc
 yalc.lock
+.env

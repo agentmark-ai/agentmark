@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const ChatMessageSchema = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
+  role: z.enum(["system", "user", "assistant"]),
   content: z.string(),
 });
 
@@ -19,13 +19,15 @@ export const TextSettingsConfig = z.object({
   stop_sequences: z.array(z.string()).optional(),
   seed: z.number().optional(),
   max_retries: z.number().optional(),
-  tool_choice: z.union([
-    z.enum(['auto', 'none', 'required']),
-    z.object({
-      type: z.literal('tool'),
-      tool_name: z.string()
-    })
-  ]).optional(),
+  tool_choice: z
+    .union([
+      z.enum(["auto", "none", "required"]),
+      z.object({
+        type: z.literal("tool"),
+        tool_name: z.string(),
+      }),
+    ])
+    .optional(),
   tools: z
     .record(
       z.object({
@@ -60,12 +62,29 @@ export type ObjectSettings = z.infer<typeof ObjectSettingsConfig>;
 export const ImageSettingsConfig = z.object({
   model_name: z.string(),
   num_images: z.number().optional(),
-  size: z.string().regex(/^\d+x\d+$/).optional(),
-  aspect_ratio: z.string().regex(/^\d+:\d+$/).optional(),
+  size: z
+    .string()
+    .regex(/^\d+x\d+$/)
+    .optional(),
+  aspect_ratio: z
+    .string()
+    .regex(/^\d+:\d+$/)
+    .optional(),
   seed: z.number().optional(),
 });
 
 export type ImageSettings = z.infer<typeof ImageSettingsConfig>;
+
+export const SpeechSettingsConfig = z.object({
+  model_name: z.string(),
+  text: z.string(),
+  voice: z.string().optional(),
+  outputFormat: z.string().optional(),
+  instructions: z.string().optional(),
+  speed: z.number().optional(),
+});
+
+export type SpeechSettings = z.infer<typeof SpeechSettingsConfig>;
 
 export const TextConfigSchema = z.object({
   name: z.string(),
@@ -90,3 +109,11 @@ export const ImageConfigSchema = z.object({
 });
 
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
+
+export const SpeechCongfigSchema = z.object({
+  name: z.string(),
+  messages: z.array(ChatMessageSchema),
+  speech_config: SpeechSettingsConfig,
+});
+
+export type SpeechConfig = z.infer<typeof SpeechCongfigSchema>;

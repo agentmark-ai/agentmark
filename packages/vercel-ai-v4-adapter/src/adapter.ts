@@ -7,13 +7,15 @@ import type {
   AdaptOptions,
   ObjectConfig,
   PromptShape,
-  PromptKey
+  PromptKey,
+  SpeechConfig,
 } from "@puzzlet/agentmark";
 import type {
   LanguageModel,
-  ImageModel, 
+  ImageModel,
   generateText,
   Schema,
+  SpeechModel,
 } from "ai";
 import { jsonSchema } from "ai";
 
@@ -46,9 +48,18 @@ export interface VercelAIImageParams {
   seed?: number;
 }
 
+export interface VercelAISpeechParams {
+  model: SpeechModel;
+  text: string;
+  voice?: string;
+  outputFormat?: string;
+  instructions?: string;
+  speed?: number;
+}
+
 export type Tool = (args: any) => any;
 
-export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) => LanguageModel | ImageModel;
+export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) => LanguageModel | ImageModel | SpeechModel;
 
 const getTelemetryConfig = (
   telemetry: AdaptOptions['telemetry'],
@@ -141,8 +152,8 @@ export class VercelAIAdapter<
   }
 
   adaptText(
-    input: TextConfig, 
-    options: AdaptOptions, 
+    input: TextConfig,
+    options: AdaptOptions,
     metadata: PromptMetadata
   ): TextResult {
     const { model_name: name, ...settings } = input.text_config;
@@ -178,13 +189,13 @@ export class VercelAIAdapter<
 
   adaptObject<K extends PromptKey<T>>(
     input: ObjectConfig,
-    options: AdaptOptions, 
+    options: AdaptOptions,
     metadata: PromptMetadata
   ): VercelAIObjectParams<T[K]["output"]> {
     const { model_name: name, ...settings } = input.object_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
-    
+
     return {
       model,
       messages: input.messages,
@@ -203,7 +214,7 @@ export class VercelAIAdapter<
   }
 
   adaptImage(
-    input: ImageConfig, 
+    input: ImageConfig,
     options: AdaptOptions,
   ): VercelAIImageParams {
     const { model_name: name, ...settings } = input.image_config;
@@ -218,6 +229,25 @@ export class VercelAIAdapter<
       ...(settings?.size !== undefined ? { size: settings.size as `${number}x${number}` } : {}),
       ...(settings?.aspect_ratio !== undefined ? { aspectRatio: settings.aspect_ratio as `${number}:${number}` } : {}),
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {})
+    };
+  }
+
+  adaptSpeech(
+    input: SpeechConfig,
+    options: AdaptOptions,
+  ): VercelAISpeechParams {
+    const { model_name: name, ...settings } = input.speech_config;
+    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const model = modelCreator(name, options) as SpeechModel;
+    const prompt = input.messages.map(message => message.content).join('\n');
+
+    return {
+      model,
+      text: settings.text,
+      ...(settings?.voice !== undefined ? { voice: settings.voice } : {}),
+      ...(settings?.outputFormat !== undefined ? { outputFormat: settings.outputFormat } : {}),
+      ...(settings?.instructions !== undefined ? { instructions: settings.instructions } : {}),
+      ...(settings?.speed !== undefined ? { speed: settings.speed } : {})
     };
   }
 }

@@ -1,7 +1,7 @@
 import { Loader, TemplateEngine, Adapter, PromptShape, KeysWithKind } from "./types";
-import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema } from "./schemas";
+import { ImageConfigSchema, ObjectConfigSchema, TextConfigSchema, SpeechCongfigSchema } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
-import { ObjectPrompt, ImagePrompt, TextPrompt } from "./prompts";
+import { ObjectPrompt, ImagePrompt, TextPrompt, SpeechPrompt } from "./prompts";
 
 export interface AgentMarkOptions<
   T extends PromptShape<T>,
@@ -79,6 +79,25 @@ export class AgentMark<
       content, this.templateEngine, this.adapter, pathOrPreloaded,
     );
   }
+
+  async loadSpeechPrompt<K extends KeysWithKind<T, 'speech'> & string>(
+    pathOrPreloaded: K,
+    options?: any
+  ) {
+    let content: unknown;
+    
+    if (typeof pathOrPreloaded === 'string' && this.loader) {
+      content = await this.loader.load(pathOrPreloaded, options);
+    } else {
+      content = pathOrPreloaded;
+    }
+    
+    SpeechCongfigSchema.parse(await this.templateEngine.compile(content));
+    return new SpeechPrompt<T, A, K>(
+      content, this.templateEngine, this.adapter, pathOrPreloaded,
+    );
+  }
+
 }
 
 type DictOf<A extends Adapter<any>> = A['__dict'];
