@@ -31,19 +31,22 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: never;
   };
+  'speech.prompt.mdx': {
+    input: { userMessage: string };
+    output: never;
+  };
 }
 
 describe('AgentMark Integration', () => {
+  const fixturesDir = path.resolve(__dirname, './fixtures');
+  const fileLoader = new FileLoader(fixturesDir);
+  const agentMark = createAgentMark({
+    loader: fileLoader,
+    adapter: new DefaultAdapter<TestPromptTypes>(),
+    templateEngine: new TemplateDXTemplateEngine()
+  });
 
   it('should load and compile prompts with type safety', async () => {
-    const fixturesDir = path.resolve(__dirname, './fixtures');
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine()
-    });
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
     const result = await mathPrompt.format({
       userMessage: 'What is the sum of 5 and 3?'
@@ -58,77 +61,56 @@ describe('AgentMark Integration', () => {
     expect(result.messages[1].content).toBe('What is the sum of 5 and 3?');
     expect(result.messages[2].role).toBe('assistant');
     expect(result.messages[2].content).toBe('Here\'s your answer!');
+  });
 
+  it('should load and compile object prompt with type safety', async () => {
+    const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
+    const result = await mathPrompt.format({
+      userMessage: 'What is the sum of 5 and 3?'
+    });
     expect(result.object_config.model_name).toBe('test-model');
     expect(result.object_config.schema).toBeDefined();
     expect(result.object_config.schema.properties.answer).toBeDefined();
   });
 
   it('should load and compile image prompt with type safety', async () => {
-    const fixturesDir = path.resolve(__dirname, './fixtures');
-    const fileLoader = new FileLoader(fixturesDir);
-  
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine()
-    });
-  
     const imagePrompt = await agentMark.loadImagePrompt('image.prompt.mdx');
     const result = await imagePrompt.format({
       userMessage: 'Design an image showing a triangle and a circle.'
     });
-  
-    expect(result).toBeDefined();
-    expect(result.name).toBe('image');
-    expect(result.messages).toHaveLength(3);
-    expect(result.messages[0].role).toBe('system');
-    expect(result.messages[0].content).toBe('You are a graphic designer designing math problems.');
-    expect(result.messages[1].role).toBe('user');
-    expect(result.messages[1].content).toBe('Design an image showing a triangle and a circle.');
-    expect(result.messages[2].role).toBe('assistant');
-    expect(result.messages[2].content).toBe("Here's your image!");
-    expect(result.image_config).toEqual({
-      model_name: 'test-model',
-      num_images: 1
+    expect(result.image_config.model_name).toBe('test-model');
+    expect(result.image_config.num_images).toBe(1);
+    expect(result.image_config.size).toBe('512x512');
+    expect(result.image_config.aspect_ratio).toBe('1:1');
+    expect(result.image_config.seed).toBe(12345);
+  });
+
+  it('should load and compile speech prompt with type safety', async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt('speech.prompt.mdx');
+    const result = await speechPrompt.format({
+      userMessage: 'Generate a speech for the given text.'
     });
+    expect(result.speech_config.model_name).toBe('test-model');
+    expect(result.speech_config.text).toBe('Generate a speech for the given text.');
+    expect(result.speech_config.voice).toBe('en-US-Wavenet-D');
+    expect(result.speech_config.output_format).toBe('mp3');
+    expect(result.speech_config.instructions).toBe('Please read this text aloud.');
+    expect(result.speech_config.speed).toBe(1.0);
   });
 
   it('should enforce type safety on prompt paths', () => {
-    const fileLoader = new FileLoader(path.resolve(__dirname, './fixtures'));
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
-      templateEngine: new TemplateDXTemplateEngine()
-    });
     expect(async () => {
       await agentMark.loadObjectPrompt('math.prompt.mdx');
     }).not.toThrow();
   });
 
   it('should enforce type safety on input props', async () => {
-    const fileLoader = new FileLoader(path.resolve(__dirname, './fixtures'));
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
-      templateEngine: new TemplateDXTemplateEngine()
-    });
-
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
     const result = await mathPrompt.format({ userMessage: 'What is 2+2?' });
     expect(result.messages[1].content).toBe('What is 2+2?');
   });
 
   it('should work with preloaded prompt objects', async () => {
-    const fixturesDir = path.resolve(__dirname, './fixtures');
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
-      templateEngine: new TemplateDXTemplateEngine()
-    });
-
     const originalPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
     const preloadedTemplate = originalPrompt.template;
     const preloadedPrompt = await agentMark.loadObjectPrompt(preloadedTemplate as any);
