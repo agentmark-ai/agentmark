@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
 import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter } from "@puzzlet/agentmark";
-import { experimental_generateImage as generateImage, streamObject, streamText } from "ai";
+import {
+  experimental_generateImage as generateImage,
+  experimental_generateSpeech as generateSpeech,
+  streamObject,
+  streamText,
+} from "ai";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
 import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
@@ -45,6 +50,9 @@ export function activate(context: vscode.ExtensionContext) {
       } else if (compiledYaml?.text_config) {
         modelConfig = "text_config";
         model = compiledYaml.text_config;
+      } else if (compiledYaml?.speech_config) {
+        modelConfig = "speech_config";
+        model = compiledYaml.speech_config;
       } else {
         return vscode.window.showErrorMessage(
           "No config (image_config, object_config, or text_config) found in the file."
@@ -90,6 +98,17 @@ export function activate(context: vscode.ExtensionContext) {
             break;
           }
         
+          case "speech_config": {
+            const prompt = await agentMark.loadSpeechPrompt(ast);
+            const vercelInput = await prompt.format(props, { apiKey });
+            const speechResult = await generateSpeech(vercelInput);
+            ch.clear();
+            ch.appendLine("RESULT:");
+            ch.appendLine(JSON.stringify(speechResult, null, 2));
+            ch.show();
+            break;
+          }
+
           case "object_config": {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format(props, { apiKey });
