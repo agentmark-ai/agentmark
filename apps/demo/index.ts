@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { VercelAIAdapter, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/vercel-ai-v4-adapter";
 import { openai } from '@ai-sdk/openai';
-import { generateObject, generateText } from 'ai';
+import { generateText } from 'ai';
 import PuzzletTypes, { Tools } from './puzzlet1.types';
 import { FileLoader, createAgentMark } from '@agentmark/agentmark';
 
@@ -11,16 +11,10 @@ modelRegistry.registerModels(['gpt-4o', 'gpt-4o-mini'], (name: string) => {
   return openai(name);
 });
 
-const toolRegistry = new VercelAIToolRegistry<Tools>()
-  .register('weather', async (args) => {
-    return {
-      a: 1,
-      b: 2,
-    };
-  });
+const tools = new VercelAIToolRegistry<Tools>()
+  .register('weather', ({ location }) => ({ tempC: 22 }));
 
-
-const adapter = new VercelAIAdapter<PuzzletTypes>(modelRegistry, toolRegistry);
+const adapter = new VercelAIAdapter<PuzzletTypes, typeof tools>(modelRegistry, tools);
 const agentMark = createAgentMark({
   loader,
   adapter,
@@ -34,6 +28,12 @@ async function run () {
 
   const vercelInput = await prompt.format(props);
   const result = await generateText(vercelInput);
+  result.toolResults?.forEach((toolResult) => {
+    console.log(toolResult);
+    if (toolResult.toolName === 'weather') {
+      console.log(toolResult.result.tempC);
+    }
+  });
   console.log(result.text);
 }
 
