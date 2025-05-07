@@ -22,6 +22,5 @@
   },
   "dependencies": {
     "@isaacs/ttlcache": "^1.4.1"
-  },
-  "description": "A simple Node.js app using the Agentmark SDK"
+  }
 }
