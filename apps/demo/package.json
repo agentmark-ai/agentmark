@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@puzzlet/agentmark": "workspace:*",
-    "@puzzlet/vercel-ai-v4-adapter": "workspace:*"
+    "@agentmark/agentmark": "workspace:*",
+    "@agentmark/vercel-ai-v4-adapter": "workspace:*"
   }
 }
