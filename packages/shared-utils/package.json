@@ -1,0 +1,16 @@
+{
+  "name": "@agentmark/shared-utils",
+  "main": "./dist/index.js",
+  "types": "./dist/index.ts",
+  "version": "0.2.0",
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.24.1",
+    "@types/jest": "^29.5.12",
+    "tsup": "^8.3.5",
+    "typescript": "^5.4.5"
+  },
+  "license": "MIT"
+}
