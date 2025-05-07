@@ -176,7 +176,7 @@ async function fetchPromptsFrontmatter(options: { local?: number, rootDir?: stri
   throw new Error('Either --local or --root-dir must be specified');
 }
 
-const generateTypes = async ({ language, local }: Options) => {
+const generateTypes = async ({ language, local, rootDir }: Options) => {
   if (language !== 'typescript') {
     console.error(`Unsupported language: ${language}. Only TypeScript is supported.`);
     return;
@@ -184,7 +184,7 @@ const generateTypes = async ({ language, local }: Options) => {
 
   try {
     console.error('Generating type definitions...');
-    const prompts = await fetchPromptsFrontmatter({ local });
+    const prompts = await fetchPromptsFrontmatter({ local, rootDir });
     
     const typeDefinitions = await generateTypeDefinitions(prompts);
     
