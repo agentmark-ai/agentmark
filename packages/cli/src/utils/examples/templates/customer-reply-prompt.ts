@@ -3,10 +3,6 @@ export const getCustomerReplyPrompt = (model: string): string => {
 name: customer-reply
 text_config:
   model_name: ${model}
-  settings:
-    top_p: 1
-    max_tokens: 4096
-
 test_settings:
   props:
     customer_question: "I'm having trouble with my order"

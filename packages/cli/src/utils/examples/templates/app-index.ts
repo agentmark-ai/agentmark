@@ -41,7 +41,7 @@ const telemetry = {
 };
 
 const runPrompt = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt<AgentMarkTypes["customer-reply.prompt.mdx"]>("customer-reply.prompt.mdx");
+  const prompt = await agentmark.loadTextPrompt("customer-reply.prompt.mdx");
   const vercelInput = await prompt.format({
     customer_question: customer_message,
   });
@@ -55,7 +55,7 @@ const runPrompt = async (customer_message: string) => {
 };
 
 const runEvaluation = async (assistant: string, customer_message: string) => {
-  const prompt = await agentmark.loadObjectPrompt<AgentMarkTypes["response-quality-eval.prompt.mdx"]>(
+  const prompt = await agentmark.loadObjectPrompt(
     "response-quality-eval.prompt.mdx"
   );
 

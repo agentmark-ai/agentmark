@@ -45,10 +45,6 @@ alwaysApply: true
     
     // Create types file
     fs.writeFileSync('./agentmark.types.ts', getTypesFileContent());
-
-    // Setup package.json and install dependencies
-    setupPackageJson();
-    installDependencies(modelProvider, useCloud);
     
     // Create .env file
     fs.writeFileSync('./.env', getEnvFileContent(modelProvider, useCloud));
@@ -58,6 +54,10 @@ alwaysApply: true
     
     // Create tsconfig.json
     fs.writeJSONSync('./tsconfig.json', getTsConfigContent(), { spaces: 2 });
+    
+    // Setup package.json and install dependencies
+    setupPackageJson();
+    installDependencies(modelProvider, useCloud);
     
     // Success message
     console.log('\n✅ Example Agentmark app created successfully!');

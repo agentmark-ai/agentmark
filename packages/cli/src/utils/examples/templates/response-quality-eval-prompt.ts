@@ -3,25 +3,22 @@ export const getResponseQualityEvalPrompt = (model: string): string => {
 name: response-quality-eval
 object_config:
   model_name: ${model}
-  settings:
-    top_p: 1
-    max_tokens: 4096
-    schema:
-      type: object
-      properties:
-        score:
-          type: number
-          description: "The score of the response"
-        label:
-          type: string
-          description: "The label of the response"
-        reason: 
-          type: string
-          description: "The reason for the score"
-      required:
-        - score
-        - label
-        - reason
+  schema:
+    type: object
+    properties:
+      score:
+        type: number
+        description: "The score of the response"
+      label:
+        type: string
+        description: "The label of the response"
+      reason: 
+        type: string
+        description: "The reason for the score"
+    required:
+      - score
+      - label
+      - reason
 test_settings:
   props:
     customer_message: "I'm having trouble with my order"
