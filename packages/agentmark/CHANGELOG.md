@@ -1,4 +1,4 @@
-# @puzzlet/agentmark
+# @agentmark/agentmark
 
 ## 2.2.2
 

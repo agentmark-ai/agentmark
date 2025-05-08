@@ -1,37 +1,46 @@
 import { VercelAIModelRegistry } from "@puzzlet/vercel-ai-v4-adapter";
+import { VercelModelRegistry } from "@agentmark/agentmark";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 
 export const modelRegistry = new VercelAIModelRegistry();
-modelRegistry.registerModels([
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gpt-4-turbo",
-  "gpt-4",
-  "o1-mini",
-  "o1-preview",
-  "gpt-3.5-turbo",
-], (name: string, options) => {
-  const provider = createOpenAI(options); 
-  return provider(name); 
-});
+modelRegistry.registerModels(
+  [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "o1-mini",
+    "o1-preview",
+    "gpt-3.5-turbo",
+  ],
+  (name: string, options) => {
+    const provider = createOpenAI(options);
+    return provider(name);
+  }
+);
 
-modelRegistry.registerModels(['dall-e-3', 'dall-e-2'], 
+modelRegistry.registerModels(
+  ["dall-e-3", "dall-e-2"],
   (name: string, options) => {
     const provider = createOpenAI(options);
     return provider.image(name);
-  });
+  }
+);
 
-modelRegistry.registerModels([
+modelRegistry.registerModels(
+  [
     "claude-3-opus-20240229",
     "claude-3-sonnet-20240229",
-    "claude-3-haiku-20240307"
-  ], (name: string, options) => {
+    "claude-3-haiku-20240307",
+  ],
+  (name: string, options) => {
     const provider = createAnthropic(options);
     return provider(name);
-  });
+  }
+);
 
-export const modelProviderMap: Record<string, 'openai' | 'anthropic'> = {
+export const modelProviderMap: Record<string, "openai" | "anthropic"> = {
   // OpenAI models
   "gpt-4o": "openai",
   "gpt-4o-mini": "openai",
@@ -48,4 +57,4 @@ export const modelProviderMap: Record<string, 'openai' | 'anthropic'> = {
   "claude-3-sonnet-20240229": "anthropic",
   "claude-3-haiku-20240307": "anthropic",
 };
-export type modelConfig = 'image_config' | 'object_config' | 'text_config';
+export type modelConfig = "image_config" | "object_config" | "text_config";
