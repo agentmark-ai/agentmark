@@ -41,7 +41,7 @@ const telemetry = {
 };
 
 const runPrompt = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt<AgentMarkTypes["customer-reply.prompt.mdx"]>("customer-reply.prompt.mdx");
+  const prompt = await agentmark.loadTextPrompt("customer-reply.prompt.mdx");
   const vercelInput = await prompt.format({
     customer_question: customer_message,
   });
@@ -55,7 +55,7 @@ const runPrompt = async (customer_message: string) => {
 };
 
 const runEvaluation = async (assistant: string, customer_message: string) => {
-  const prompt = await agentmark.loadObjectPrompt<AgentMarkTypes["response-quality-eval.prompt.mdx"]>(
+  const prompt = await agentmark.loadObjectPrompt(
     "response-quality-eval.prompt.mdx"
   );
 
@@ -119,7 +119,7 @@ const agentmark = createAgentMark({
 
 // Function to run the customer reply prompt
 const runPrompt = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt<AgentMarkTypes["customer-reply.prompt.mdx"]>('customer-reply.prompt.mdx');
+  const prompt = await agentmark.loadTextPrompt('customer-reply.prompt.mdx');
   const vercelInput = await prompt.format({
     customer_question: customer_message,
   });
@@ -130,7 +130,7 @@ const runPrompt = async (customer_message: string) => {
 
 // Function to run the evaluation prompt
 const runEvaluation = async (assistant: string, customer_message: string) => {
-  const prompt = await agentmark.loadObjectPrompt<AgentMarkTypes["response-quality-eval.prompt.mdx"]>('response-quality-eval.prompt.mdx');
+  const prompt = await agentmark.loadObjectPrompt('response-quality-eval.prompt.mdx');
   const vercelInput = await prompt.format({
     model_output: assistant,
     customer_message: customer_message,
