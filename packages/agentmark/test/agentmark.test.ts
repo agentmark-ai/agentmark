@@ -45,9 +45,9 @@ describe('AgentMark Integration', () => {
       templateEngine: new TemplateDXTemplateEngine()
     });
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
-    const result = await mathPrompt.format({
+    const result = await mathPrompt.format({props: {
       userMessage: 'What is the sum of 5 and 3?'
-    });
+    }});
 
     expect(result).toBeDefined();
     expect(result.name).toBe('math');
@@ -75,9 +75,9 @@ describe('AgentMark Integration', () => {
     });
   
     const imagePrompt = await agentMark.loadImagePrompt('image.prompt.mdx');
-    const result = await imagePrompt.format({
+    const result = await imagePrompt.format({props: {
       userMessage: 'Design an image showing a triangle and a circle.'
-    });
+    }});
   
     expect(result).toBeDefined();
     expect(result.name).toBe('image');
@@ -115,7 +115,7 @@ describe('AgentMark Integration', () => {
     });
 
     const mathPrompt = await agentMark.loadObjectPrompt('math.prompt.mdx');
-    const result = await mathPrompt.format({ userMessage: 'What is 2+2?' });
+    const result = await mathPrompt.format({props: { userMessage: 'What is 2+2?' }});
     expect(result.messages[1].content).toBe('What is 2+2?');
   });
 
@@ -133,7 +133,7 @@ describe('AgentMark Integration', () => {
     const preloadedTemplate = originalPrompt.template;
     const preloadedPrompt = await agentMark.loadObjectPrompt(preloadedTemplate as any);
     const result = await preloadedPrompt.format({
-      userMessage: 'What is the sum of 5 and 3?'
+      props: { userMessage: 'What is the sum of 5 and 3?' }
     });
 
     expect(result).toBeDefined();
