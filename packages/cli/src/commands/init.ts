@@ -5,7 +5,7 @@ import { createExampleApp } from "../utils/examples/create-example-app";
 
 const init = async () => {
   const config: any = {
-    "$schema": "https://docs.agentmark.co/agentmark.schema.json",
+    "$schema": "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
     version: "2.0.0",
     mdxVersion: "1.0",
     agentmarkPath: "/",

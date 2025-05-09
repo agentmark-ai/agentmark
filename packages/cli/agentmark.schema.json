@@ -5,9 +5,17 @@
     "description": "Agentmark is a cool tool for writing agents in markdown.",
     "type": "object",
     "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "The schema of the agentmark"
+        },
         "version": {
             "type": "string",
             "description": "The version of the agentmark schema"
+        },
+        "mdxVersion": {
+            "type": "string",
+            "description": "The version of the agentmark mdx format"
         },
         "agentmarkPath": {
             "type": "string",
