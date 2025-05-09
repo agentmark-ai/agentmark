@@ -26,7 +26,7 @@ async function run () {
     userMessage: "Whats 2 + 3?"
   };
 
-  const vercelInput = await prompt.format(props);
+  const vercelInput = await prompt.format({props});
   const result = await generateText(vercelInput);
   result.toolResults?.forEach((toolResult) => {
     console.log(toolResult);
