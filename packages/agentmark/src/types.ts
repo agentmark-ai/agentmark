@@ -57,6 +57,7 @@ export type BaseAdaptOptions = {
   }
   apiKey?: string;
   baseURL?: string;
+  toolContext?: Record<string, unknown>;
 }
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };

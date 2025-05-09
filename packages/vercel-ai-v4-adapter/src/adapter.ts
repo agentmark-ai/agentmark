@@ -113,7 +113,8 @@ export class VercelAIToolRegistry<
   register<
     K extends keyof TD,
     R,
-  >(name: K, fn: (args: TD[K]['args']) => R)
+    ToolContext = Record<string, any>
+  >(name: K, fn: (args: TD[K]['args'] & ToolContext) => R)
     : VercelAIToolRegistry<TD, Merge<RM, { [P in K]: R }>> {
     this.map[name] = fn;
     return this as unknown as VercelAIToolRegistry<
@@ -223,7 +224,7 @@ export class VercelAIAdapter<
         (toolsObj as any)[key] = {
           parameters : jsonSchema(def.parameters),
           description: def.description ?? '',
-          execute    : impl as ToolWithExec<Ret[typeof key]>['execute'],
+          execute    : ((args) => impl({...args, ...options.toolContext || {}})) as ToolWithExec<Ret[typeof key]>['execute'],
         } satisfies ToolWithExec<Ret[typeof key]>;
       }
     }
