@@ -6,11 +6,12 @@ export { TemplateDXTemplateEngine } from './template_engines/templatedx';
 export type { 
   TextConfig,
   ImageConfig,
+  SpeechConfig,
+  ObjectConfig,
   Adapter,
   PromptMetadata,
   ChatMessage,
   AdaptOptions,
-  ObjectConfig,
   PromptShape,
   PromptKey
 } from './types';
