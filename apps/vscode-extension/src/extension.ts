@@ -11,15 +11,15 @@ import {
   streamText,
 } from "ai";
 import { getFrontMatter, load } from "@puzzlet/templatedx";
-import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
+import {
+  modelConfig,
+  modelRegistry,
+  modelProviderMap,
+  AnyPromptType,
+} from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
-type AnyPromptDict = Record<
-  string,
-  { kind: "text" | "image" | "object" | "speech"; input: any; output: any }
->;
-
-const adapter = new VercelAIAdapter<AnyPromptDict>(modelRegistry);
+const adapter = new VercelAIAdapter<AnyPromptType>(modelRegistry);
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
   const agentMark = createAgentMark({ adapter, templateEngine });

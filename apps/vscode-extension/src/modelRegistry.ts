@@ -69,3 +69,8 @@ export type modelConfig =
   | "object_config"
   | "text_config"
   | "speech_config";
+
+export type AnyPromptType = Record<
+  string,
+  { kind: "text" | "image" | "object" | "speech"; input: any; output: any }
+>;
