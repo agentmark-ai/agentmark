@@ -10,7 +10,7 @@ import PuzzletTypes, { Tools } from "./puzzlet1.types";
 import { FileLoader, createAgentMark } from "@agentmark/agentmark";
 
 const modelRegistry = new VercelAIModelRegistry();
-const loader = new FileLoader("./packages/agentmark/test");
+const loader = new FileLoader("./fixtures");
 modelRegistry.registerModels(["gpt-4o", "gpt-4o-mini"], (name: string) => {
   return openai(name);
 });
