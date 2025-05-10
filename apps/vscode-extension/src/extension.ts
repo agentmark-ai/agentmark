@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import { createAgentMark, TemplateDXTemplateEngine, VercelAdapter } from "@puzzlet/agentmark";
+import {
+  createAgentMark,
+  TemplateDXTemplateEngine,
+} from "@agentmark/agentmark";
+import { VercelAIAdapter } from "@agentmark/vercel-ai-v4-adapter";
 import {
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
@@ -10,7 +14,7 @@ import { getFrontMatter, load } from "@puzzlet/templatedx";
 import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
-const adapter = new VercelAdapter(modelRegistry);
+const adapter = new VercelAIAdapter(modelRegistry);
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
   const agentMark = createAgentMark({ adapter, templateEngine });
@@ -58,10 +62,12 @@ export function activate(context: vscode.ExtensionContext) {
           "No config (image_config, object_config, or text_config) found in the file."
         );
       }
-      
-      const modelName = model?.model_name || '';
 
-      let apiKey = await context.secrets.get(`prompt-dx.${modelProviderMap[modelName]}`);
+      const modelName = model?.model_name || "";
+
+      let apiKey = await context.secrets.get(
+        `prompt-dx.${modelProviderMap[modelName]}`
+      );
       if (!apiKey) {
         apiKey = await vscode.window.showInputBox({
           placeHolder: `Enter your ${modelProviderMap[modelName]} API key`,
@@ -97,7 +103,6 @@ export function activate(context: vscode.ExtensionContext) {
             ch.show();
             break;
           }
-        
           case "speech_config": {
             const prompt = await agentMark.loadSpeechPrompt(ast);
             const vercelInput = await prompt.format(props, { apiKey });
@@ -108,19 +113,20 @@ export function activate(context: vscode.ExtensionContext) {
             ch.show();
             break;
           }
-
           case "object_config": {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format(props, { apiKey });
-            const { partialObjectStream: objectStream } = await streamObject(vercelInput);
+            const { partialObjectStream: objectStream } = await streamObject(
+              vercelInput
+            );
             if (objectStream) {
               let isFirstChunk = true;
               let printed = false;
-            
+
               for await (const chunk of objectStream) {
                 if (isFirstChunk) {
                   ch.clear();
-                  ch.append('RESULT:\n');
+                  ch.append("RESULT:\n");
                   ch.show();
                   isFirstChunk = false;
                 } else if (printed) {
@@ -128,7 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
                   // While not the most efficient approach, this simulates a "live update" effect
                   // similar to a console refreshing its output, making the stream progression easier to follow.
                   ch.clear();
-                  ch.append('RESULT:\n');
+                  ch.append("RESULT:\n");
                 }
                 ch.append(JSON.stringify(chunk, null, 2));
                 printed = true;
@@ -136,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
             break;
           }
-        
+
           case "text_config": {
             const prompt = await agentMark.loadTextPrompt(ast);
             const vercelInput = await prompt.format(props, { apiKey });
@@ -146,7 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
               for await (const chunk of textStream) {
                 if (isFirstChunk) {
                   ch.clear();
-                  ch.append('TEXT: ');
+                  ch.append("TEXT: ");
                   ch.show();
                   isFirstChunk = false;
                 }
@@ -155,10 +161,11 @@ export function activate(context: vscode.ExtensionContext) {
             }
             break;
           }
-        
         }
-        context.secrets.store(`prompt-dx.${modelProviderMap[modelName]}`, apiKey);
-
+        context.secrets.store(
+          `prompt-dx.${modelProviderMap[modelName]}`,
+          apiKey
+        );
       } catch (error: any) {
         vscode.window.showErrorMessage("Error: " + error.message);
       }
@@ -168,4 +175,4 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-export function deactivate() { }
+export function deactivate() {}

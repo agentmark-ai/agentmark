@@ -1,3 +1,5 @@
+import { AgentmarkConfig } from "./types";
+
 export function toFrontMatter(content: { [key: string]: any }): string {
   function jsonToFrontMatter(json: { [key: string]: any }, indent = 0) {
     let frontMatter = "";
@@ -43,18 +45,51 @@ export type SerializeParams = {
     output?: {
       data: string;
     } & Record<string, any>;
+    input_schema?: any;
   };
+  mdxVersion?: AgentmarkConfig["mdxVersion"];
+  promptType?: string;
 };
 
-export const serialize = ({ name, prompt }: SerializeParams) => {
+export const serialize = ({
+  name,
+  prompt,
+  mdxVersion,
+  promptType,
+}: SerializeParams) => {
+  let data: any = {};
+  if (mdxVersion === "1.0") {
+    const settings = {
+      model_name: prompt.model,
+      ...prompt.parameters,
+    };
+    if (promptType === "object") {
+      data = {
+        object_config: settings,
+      };
+    } else {
+      data = {
+        text_config: settings,
+      };
+    }
+  } else {
+    data = {
+      metadata: {
+        model: {
+          name: prompt.model,
+          settings: { ...prompt.parameters },
+        },
+      },
+    };
+  }
+
+  if (prompt.input_schema) {
+    data.input_schema = prompt.input_schema;
+  }
+
   const promptDx = {
     name: name,
-    metadata: {
-      model: {
-        name: prompt.model,
-        settings: { ...prompt.parameters },
-      },
-    },
+    ...data,
     test_settings: {
       props: prompt.variables
         ? prompt.variables.reduce(
@@ -65,11 +100,7 @@ export const serialize = ({ name, prompt }: SerializeParams) => {
     },
   } as any;
 
-  const frontMatter = toFrontMatter({
-    name: promptDx.name,
-    metadata: promptDx.metadata,
-    test_settings: promptDx.test_settings,
-  });
+  const frontMatter = toFrontMatter(promptDx);
 
   const mdx = `${frontMatter}\n\n${prompt.input}`;
 

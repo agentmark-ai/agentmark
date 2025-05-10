@@ -109,9 +109,5 @@ export function createAgentMark<A extends Adapter<any>>(
     templateEngine?: TemplateEngine;
   },
 ): AgentMark<DictOf<A>, A> {
-  return new AgentMark({
-    adapter: opts.adapter,
-    loader:  opts.loader,
-    templateEngine: opts.templateEngine,
-  });
+  return new AgentMark(opts);
 }

@@ -56,6 +56,7 @@ export type BaseAdaptOptions = {
   };
   apiKey?: string;
   baseURL?: string;
+  toolContext?: Record<string, unknown>;
 };
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
@@ -72,7 +73,7 @@ export interface Adapter<T extends PromptShape<T>> {
     metadata: PromptMetadata
   ): any;
 
-  adaptText(
+  adaptText<_T extends PromptKey<T>>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata

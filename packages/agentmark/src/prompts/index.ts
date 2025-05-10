@@ -37,6 +37,9 @@ export abstract class BasePrompt<
   }
 }
 
+type PromptFormatParams<T> = {
+  props?: T,
+} & AdaptOptions;
 
 
 export class ObjectPrompt<
@@ -55,8 +58,7 @@ export class ObjectPrompt<
   }
 
   async format(
-    props: T[K]['input'],
-    options: AdaptOptions = {},
+    { props, ...options }: PromptFormatParams<T[K]['input']>,
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptObject<K>(
@@ -83,8 +85,7 @@ export class TextPrompt<
   }
 
   async format(
-    props: T[K]['input'],
-    options: AdaptOptions = {},
+    { props, ...options }: PromptFormatParams<T[K]['input']>,
   ): Promise<ReturnType<A['adaptText']>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptText(
@@ -111,8 +112,7 @@ export class ImagePrompt<
   }
 
   async format(
-    props: T[K]['input'],
-    options: AdaptOptions = {},
+    { props, ...options }: PromptFormatParams<T[K]['input']>,
   ): Promise<ReturnType<A['adaptImage']>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptImage(
