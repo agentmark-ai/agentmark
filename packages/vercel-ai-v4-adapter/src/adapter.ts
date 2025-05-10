@@ -351,7 +351,6 @@ export class VercelAIAdapter<
     const { model_name: name, ...settings } = input.speech_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as SpeechModel;
-    const prompt = input.messages.map((message) => message.content).join("\n");
 
     return {
       model,

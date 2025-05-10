@@ -98,7 +98,7 @@ describe("AgentMark Integration", () => {
     expect(result.speech_config.text).toBe(
       "Generate a speech for the given text."
     );
-    expect(result.speech_config.voice).toBe("en-US-Wavenet-D");
+    expect(result.speech_config.voice).toBe("nova");
     expect(result.speech_config.output_format).toBe("mp3");
     expect(result.speech_config.instructions).toBe(
       "Please read this text aloud."
