@@ -12,8 +12,6 @@ import type {
 import type {
   LanguageModel,
   ImageModel,
-  generateText,
-  ImageModel,
   Schema,
   Tool,
   ToolExecutionOptions,

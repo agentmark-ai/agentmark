@@ -14,7 +14,12 @@ import { getFrontMatter, load } from "@puzzlet/templatedx";
 import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
-const adapter = new VercelAIAdapter(modelRegistry);
+type AnyPromptDict = Record<
+  string,
+  { kind: "text" | "image" | "object" | "speech"; input: any; output: any }
+>;
+
+const adapter = new VercelAIAdapter<AnyPromptDict>(modelRegistry);
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
   const agentMark = createAgentMark({ adapter, templateEngine });
@@ -95,7 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
         switch (modelConfig) {
           case "image_config": {
             const prompt = await agentMark.loadImagePrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
+            const vercelInput = await prompt.format({ props, apiKey });
             const imageResult = await generateImage(vercelInput);
             ch.clear();
             ch.appendLine("RESULT:");
@@ -105,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
           case "speech_config": {
             const prompt = await agentMark.loadSpeechPrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
+            const vercelInput = await prompt.format({ props, apiKey });
             const speechResult = await generateSpeech(vercelInput);
             ch.clear();
             ch.appendLine("RESULT:");
@@ -115,7 +120,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
           case "object_config": {
             const prompt = await agentMark.loadObjectPrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
+            const vercelInput = await prompt.format({ props, apiKey });
             const { partialObjectStream: objectStream } = await streamObject(
               vercelInput
             );
@@ -145,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
 
           case "text_config": {
             const prompt = await agentMark.loadTextPrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
+            const vercelInput = await prompt.format({ props, apiKey });
             const { textStream } = await streamText(vercelInput);
             if (textStream) {
               let isFirstChunk = true;
