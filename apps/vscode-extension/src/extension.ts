@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
   const agentMark = createAgentMark({ adapter, templateEngine });
 
   const disposable = vscode.commands.registerCommand(
-    "prompt-dx-extension.runInference",
+    "agentmark-extension.runInference",
     async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
       const modelName = model?.model_name || "";
 
       let apiKey = await context.secrets.get(
-        `prompt-dx.${modelProviderMap[modelName]}`
+        `agentmark.${modelProviderMap[modelName]}`
       );
       if (!apiKey) {
         apiKey = await vscode.window.showInputBox({
@@ -90,8 +90,8 @@ export function activate(context: vscode.ExtensionContext) {
         ch.appendLine("Generating Response...");
         switch (modelConfig) {
           case "image_config": {
-            const prompt = await agentMark.loadImagePrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
+            const prompt = await agentMark.loadImagePrompt(ast as never);
+            const vercelInput = await prompt.format({ props, apiKey });
             const imageResult = await generateImage(vercelInput);
             ch.clear();
             ch.appendLine("RESULT:");
@@ -101,8 +101,8 @@ export function activate(context: vscode.ExtensionContext) {
           }
 
           case "object_config": {
-            const prompt = await agentMark.loadObjectPrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
+            const prompt = await agentMark.loadObjectPrompt(ast as never);
+            const vercelInput = await prompt.format({ props, apiKey });
             const { partialObjectStream: objectStream } = await streamObject(
               vercelInput
             );
@@ -131,9 +131,9 @@ export function activate(context: vscode.ExtensionContext) {
           }
 
           case "text_config": {
-            const prompt = await agentMark.loadTextPrompt(ast);
-            const vercelInput = await prompt.format(props, { apiKey });
-            const { textStream } = await streamText(vercelInput);
+            const prompt = await agentMark.loadTextPrompt(ast as never);
+            const vercelInput = await prompt.format({ props, apiKey });
+            const { textStream } = streamText(vercelInput);
             if (textStream) {
               let isFirstChunk = true;
               for await (const chunk of textStream) {
@@ -150,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
         context.secrets.store(
-          `prompt-dx.${modelProviderMap[modelName]}`,
+          `agentmark.${modelProviderMap[modelName]}`,
           apiKey
         );
       } catch (error: any) {

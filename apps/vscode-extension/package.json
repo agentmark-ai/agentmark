@@ -1,7 +1,7 @@
 {
   "name": "agentmark",
   "displayName": "AgentMark",
-  "publisher": "puzzlet",
+  "publisher": "agentmark",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
   "version": "1.4.0",
   "repository": "https://github.com/puzzlet-ai/agentmark",
@@ -21,7 +21,7 @@
   "contributes": {
     "keybindings": [
       {
-        "command": "prompt-dx-extension.runInference",
+        "command": "agentmark-extension.runInference",
         "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
         "key": "f5"
       }
@@ -30,7 +30,7 @@
       "editor/title/run": [
         {
           "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
-          "command": "prompt-dx-extension.runInference",
+          "command": "agentmark-extension.runInference",
           "alt": "",
           "group": "navigation"
         }
@@ -38,7 +38,7 @@
     },
     "commands": [
       {
-        "command": "prompt-dx-extension.runInference",
+        "command": "agentmark-extension.runInference",
         "title": "Run Mdx",
         "icon": "$(play)"
       }
