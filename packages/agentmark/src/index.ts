@@ -1,9 +1,9 @@
-export { createAgentMark } from './agentmark';
-export { DefaultAdapter } from './adapters/default';
-export { FileLoader } from './loaders/file';
-export { TemplateDXTemplateEngine } from './template_engines/templatedx';
+export { createAgentMark } from "./agentmark";
+export { DefaultAdapter } from "./adapters/default";
+export { FileLoader } from "./loaders/file";
+export { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 
-export type { 
+export type {
   TextConfig,
   ImageConfig,
   Adapter,
@@ -12,5 +12,6 @@ export type {
   AdaptOptions,
   ObjectConfig,
   PromptShape,
-  PromptKey
-} from './types';
+  PromptKey,
+  RichChatMessage,
+} from "./types";
