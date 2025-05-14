@@ -43,7 +43,9 @@ const telemetry = {
 const runPrompt = async (customer_message: string) => {
   const prompt = await agentmark.loadTextPrompt("customer-reply.prompt.mdx");
   const vercelInput = await prompt.format({
-    customer_question: customer_message,
+    props: {
+      customer_question: customer_message,
+    },
   });
 
   const resp = await generateText({
@@ -60,8 +62,10 @@ const runEvaluation = async (assistant: string, customer_message: string) => {
   );
 
   const vercelInput = await prompt.format({
-    model_output: assistant,
-    customer_message: customer_message,
+    props: {
+      model_output: assistant,
+      customer_message: customer_message,
+    },
   });
 
   const resp = await generateObject({
@@ -121,7 +125,9 @@ const agentmark = createAgentMark({
 const runPrompt = async (customer_message: string) => {
   const prompt = await agentmark.loadTextPrompt('customer-reply.prompt.mdx');
   const vercelInput = await prompt.format({
-    customer_question: customer_message,
+    props: {
+      customer_question: customer_message,
+    },
   });
 
   const result = await generateText(vercelInput);
@@ -132,8 +138,10 @@ const runPrompt = async (customer_message: string) => {
 const runEvaluation = async (assistant: string, customer_message: string) => {
   const prompt = await agentmark.loadObjectPrompt('response-quality-eval.prompt.mdx');
   const vercelInput = await prompt.format({
-    model_output: assistant,
-    customer_message: customer_message,
+    props: {
+      model_output: assistant,
+      customer_message: customer_message,
+    },
   });
 
   const result = await generateObject(vercelInput);
