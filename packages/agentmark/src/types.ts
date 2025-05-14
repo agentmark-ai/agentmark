@@ -5,8 +5,9 @@ import {
   TextConfig,
   ObjectConfig,
   ImageConfig,
-  ChatMessage
-} from './schemas';
+  ChatMessage,
+  RichChatMessage,
+} from "./schemas";
 
 export type JSONPrimitive = string | number | boolean | null;
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
@@ -20,26 +21,24 @@ export type {
   TextConfig,
   ImageConfig,
   ObjectConfig,
-  ChatMessage
+  ChatMessage,
+  RichChatMessage,
 };
 
 export type PromptShape<T> = { [K in keyof T]: { input: any; output: any } };
 export type PromptDict = PromptShape<any>;
 export type PromptKey<T extends PromptDict> = keyof T & string;
 
-export type PromptKind = 'object' | 'text' | 'image';
+export type PromptKind = "object" | "text" | "image";
 export type KindOf<V> = V extends { kind: infer K } ? K : PromptKind;
-export type KeysWithKind<
-  Dict,
-  K extends PromptKind,
-> = {
-  [P in keyof Dict]: K extends KindOf<Dict[P]> ? P : never
+export type KeysWithKind<Dict, K extends PromptKind> = {
+  [P in keyof Dict]: K extends KindOf<Dict[P]> ? P : never;
 }[keyof Dict];
 
 export interface TemplateEngine {
   compile<R = unknown, P extends Record<string, unknown> = JSONObject>(
     template: unknown,
-    props?: P,
+    props?: P
   ): Promise<R>;
 }
 
@@ -54,11 +53,11 @@ export type BaseAdaptOptions = {
     isEnabled: boolean;
     functionId?: string;
     metadata?: Record<string, unknown>;
-  }
+  };
   apiKey?: string;
   baseURL?: string;
   toolContext?: Record<string, unknown>;
-}
+};
 
 export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 

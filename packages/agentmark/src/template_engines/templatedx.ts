@@ -2,16 +2,58 @@ import { TagPluginRegistry, transform } from "@puzzlet/templatedx";
 import { TagPlugin, PluginContext, getFrontMatter } from "@puzzlet/templatedx";
 import type { Ast } from "@puzzlet/templatedx";
 import type { Node } from "mdast";
-import { TemplateEngine, ChatMessage, JSONObject, ObjectConfig, TextConfig, ImageConfig } from "../types";
+import {
+  TemplateEngine,
+  ChatMessage,
+  JSONObject,
+  ObjectConfig,
+  TextConfig,
+  ImageConfig,
+} from "../types";
+import { RichChatMessage } from "../schemas";
+import { ImagePart, TextPart, FilePart } from "ai";
 
 type ExtractedField = {
   name: string;
-  content: string;
-}
+  content: string | Array<TextPart | ImagePart | FilePart>;
+};
 
 type SharedContext = {
   "__puzzlet-extractTextPromises"?: Promise<ExtractedField>[];
-}
+};
+
+type positionProp = {
+  start: attributePositionProp;
+  end: attributePositionProp;
+};
+
+type attributePositionProp = {
+  start: number;
+  end: number;
+  offset: number;
+};
+
+type attributes = {
+  type: string;
+  name: string;
+  value: string;
+  position: positionProp;
+};
+
+type children = {
+  type: string;
+  value: string;
+  position: positionProp;
+};
+
+type childNode = {
+  type: string;
+  value?: string;
+  name?: string;
+  attributes?: attributes[];
+  children?: children[];
+  position?: positionProp;
+};
 
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
@@ -36,13 +78,25 @@ export class ExtractTextPlugin extends TagPlugin {
             return Array.isArray(result) ? result : [result];
           })
         );
-        const flattenedChildren = processedChildren.flat();
-        const extractedText = nodeHelpers.toMarkdown({
-          type: "root",
-          // @ts-ignore
-          children: flattenedChildren,
-        });
-        resolve({ content: extractedText.trim(), name: tagName });
+        const flattenedChildren: childNode[] = processedChildren.flat();
+        const hasRichContent =
+          tagName === "User" &&
+          flattenedChildren.some((child) => child.type === "mdxJsxFlowElement");
+        if (hasRichContent) {
+          resolve(
+            await this.extractUserTagValues({
+              tagName,
+              childNodes: flattenedChildren,
+            })
+          );
+        } else {
+          const extractedText = nodeHelpers.toMarkdown({
+            type: "root",
+            // @ts-ignore
+            children: flattenedChildren,
+          });
+          resolve({ content: extractedText.trim(), name: tagName });
+        }
       } catch (error) {
         reject(error);
       }
@@ -57,9 +111,86 @@ export class ExtractTextPlugin extends TagPlugin {
 
     return [];
   }
+
+  private extractUserTagValues({
+    tagName,
+    childNodes,
+  }: {
+    tagName: string;
+    childNodes: childNode[];
+  }) {
+    const extractedParts: Array<TextPart | ImagePart | FilePart> = [];
+
+    childNodes.forEach((child) => {
+      switch (child.type) {
+        case "paragraph": {
+          const text =
+            child.children && child.children[0]?.value
+              ? child.children[0].value
+              : "";
+          if (text) {
+            extractedParts.push({
+              type: "text",
+              text,
+            });
+          }
+          break;
+        }
+
+        case "text": {
+          if (child.value) {
+            extractedParts.push({
+              type: "text",
+              text: child.value,
+            });
+          }
+          break;
+        }
+
+        case "mdxJsxFlowElement": {
+          const attributes = child.attributes || [];
+          const attributeMap = Object.fromEntries(
+            attributes.map((attr) => [attr.name, attr])
+          );
+
+          if (child.name === "image") {
+            const data = attributeMap["image"];
+            const mimeType = attributeMap["mimeType"];
+            if (data) {
+              extractedParts.push({
+                type: "image",
+                image: data.value,
+                ...(mimeType && { mimeType: mimeType.value }),
+              });
+            }
+          } else if (child.name === "file") {
+            const data = attributeMap["data"];
+            const mimeType = attributeMap["mimeType"];
+            if (data && mimeType) {
+              extractedParts.push({
+                type: "file",
+                data: data.value,
+                mimeType: mimeType.value,
+              });
+            }
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
+    });
+
+    return Promise.resolve({ name: tagName, content: extractedParts });
+  }
 }
 
-TagPluginRegistry.register(new ExtractTextPlugin(), ["User", "System", "Assistant"]);
+TagPluginRegistry.register(new ExtractTextPlugin(), [
+  "User",
+  "System",
+  "Assistant",
+]);
 
 type CompiledConfig = {
   name: string;
@@ -70,20 +201,22 @@ type CompiledConfig = {
 };
 
 export class TemplateDXTemplateEngine implements TemplateEngine {
-  async compile<
-    R = CompiledConfig,
-    P extends Record<string, any> = JSONObject,
-  >(template: Ast, props?: P): Promise<R> {
+  async compile<R = CompiledConfig, P extends Record<string, any> = JSONObject>(
+    template: Ast,
+    props?: P
+  ): Promise<R> {
     return getRawConfig(template, props) as R;
   }
 }
 
-function getMessages(extractedFields: Array<any>): ChatMessage[] {
-  const messages: ChatMessage[] = [];
+function getMessages(extractedFields: Array<any>): RichChatMessage[] {
+  const messages: RichChatMessage[] = [];
   extractedFields.forEach((field, index) => {
     const fieldName = field.name.toLocaleLowerCase();
-    if (index !== 0 && fieldName === 'system') {
-      throw new Error(`System message may only be the first message only: ${field.content}`);
+    if (index !== 0 && fieldName === "system") {
+      throw new Error(
+        `System message may only be the first message only: ${field.content}`
+      );
     }
     messages.push({ role: fieldName, content: field.content });
   });
@@ -103,7 +236,9 @@ export async function getRawConfig<
     name: frontMatter.name,
     messages: messages,
     ...(frontMatter.image_config && { image_config: frontMatter.image_config }),
-    ...(frontMatter.object_config && { object_config: frontMatter.object_config }),
+    ...(frontMatter.object_config && {
+      object_config: frontMatter.object_config,
+    }),
     ...(frontMatter.text_config && { text_config: frontMatter.text_config }),
   };
 }
