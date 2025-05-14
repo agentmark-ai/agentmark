@@ -12,5 +12,6 @@ export type {
   AdaptOptions,
   ObjectConfig,
   PromptShape,
-  PromptKey
+  PromptKey,
+  Loader
 } from './types';

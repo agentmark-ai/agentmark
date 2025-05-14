@@ -12,40 +12,42 @@ const init = async () => {
   };
   console.log("Initializing project.");
 
+  const { provider } = await prompts({
+    name: "provider",
+    type: "select",
+    message: "Select a model provider you want to start with",
+    choices: Object.entries(Providers).map(([key, provider]) => {
+      return {
+        title: provider.label,
+        value: key,
+      };
+    }),
+  });
+
+  const modelChoices = Providers[provider as keyof typeof Providers].models
+    .map((model) => {
+      return {
+        title: model,
+        value: model,
+      };
+    })
+  
+  const { model } = await prompts({
+    name: "model",
+    type: "select",
+    message: "Select a model",
+    choices: modelChoices,
+  });
+
   const { shouldCreateExample } = await prompts({
     name: "shouldCreateExample",
-    message: "Would you like to create an example app?",
+    message: "Do you want to include a typescript example app?",
     type: "confirm",
   });
 
-  if (shouldCreateExample) {
-    const { provider } = await prompts({
-      name: "provider",
-      type: "select",
-      message: "Select a provider",
-      choices: Object.entries(Providers).map(([key, provider]) => {
-        return {
-          title: provider.label,
-          value: key,
-        };
-      }),
-    });
-  
-    const modelChoices = Providers[provider as keyof typeof Providers].models
-      .map((model) => {
-        return {
-          title: model,
-          value: model,
-        };
-      })
-    
-    const { model } = await prompts({
-      name: "model",
-      type: "select",
-      message: "Select a model",
-      choices: modelChoices,
-    });
+  let cloud = "local";
 
+  if (shouldCreateExample) {
     const { useCloud } = await prompts({
       name: "useCloud",
       message: "Are you planning to integrate with AgentMark Cloud or just use local development?",
@@ -56,14 +58,14 @@ const init = async () => {
       ]
     });
 
-    if (useCloud === "cloud") {
-      config.cloud = true;
-    }
-
-    createExampleApp(provider, model, useCloud);
+    cloud = useCloud;
   }
 
-  fs.writeJsonSync("agentmark.json", config, { spaces: 2 });
+  createExampleApp(provider, model, cloud, shouldCreateExample);
+
+  if (cloud === "cloud") {
+    fs.writeJsonSync("agentmark.json", config, { spaces: 2 });
+  }
 
   console.log(
     "🚀 Deploy to Production: https://docs.agentmark.ai/agentmark/getting_started/quickstart"
