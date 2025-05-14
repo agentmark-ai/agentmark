@@ -153,7 +153,7 @@ export class ExtractTextPlugin extends TagPlugin {
             attributes.map((attr) => [attr.name, attr])
           );
 
-          if (child.name === "image") {
+          if (child.name?.toLowerCase() === "image") {
             const data = attributeMap["image"];
             const mimeType = attributeMap["mimeType"];
             if (data) {
@@ -163,7 +163,7 @@ export class ExtractTextPlugin extends TagPlugin {
                 ...(mimeType && { mimeType: mimeType.value }),
               });
             }
-          } else if (child.name === "file") {
+          } else if (child.name?.toLowerCase() === "file") {
             const data = attributeMap["data"];
             const mimeType = attributeMap["mimeType"];
             if (data && mimeType) {
