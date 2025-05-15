@@ -15,9 +15,9 @@
 </p>
 
 <p align="center">
-  <a href="https://agentmark.co">Homepage</a>
+  <a href="https://agentmark.co">Homepage</a> |
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://docs.puzzlet.ai/agentmark/">Docs</a> |
+  <a href="https://docs.agentmark.co/agentmark/">Docs</a>
 </p>
 
 ---
@@ -26,8 +26,6 @@
 ## Overview
 
 Type-safe markdown-based prompts and evals.
-
-![AgentMark](https://mintlify.s3.us-west-1.amazonaws.com/puzzlet-9ba7bb98/images/example.png)
 
 ### Features
 
@@ -44,7 +42,7 @@ AgentMark supports:
 1. Tools & Agents: 🕵️
 1. Text, Object, and Image generation. Audio/Video coming soon. 📝 🖼 🔊
 
-Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
+Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
 ## Quick Start
 
@@ -91,10 +89,8 @@ By default, AgentMark doesn't support any models or calling any LLM providers. I
 | Custom    | ✅ | ✅ |
 | Vercel (Recommended)  | ✅ | ✅ |
 | Mastra    | ⚠️ Coming Soon | ⚠️ |
-| LangChain  | ⚠️ Coming Soon | ❌ |
-| OpenAI Compatible    | ⚠️ Coming Soon | ❌ |
 
-Want to add support for another adapter? Open an [issue](https://github.com/puzzlet-ai/agentmark/issues).
+Want to add support for another adapter? Open an [issue](https://github.com/agentmark-ai/agentmark/issues).
 
 ## Language Support
 
@@ -105,7 +101,7 @@ We plan on providing support for AgentMark across a variety of languages.
 | TypeScript | ✅ Supported |
 | JavaScript | ✅ Supported |
 | Python | ⚠️ Coming Soon |
-| Others | Need something else? [Open an issue](https://github.com/puzzlet-ai/agentmark/issues) |
+| Others | Need something else? [Open an issue](https://github.com/agentmark-ai/agentmark/issues) |
 
 ## Running AgentMark
 
@@ -115,7 +111,7 @@ You can run AgentMark using any of the following methods:
 
 Run `.prompt.mdx` files directly within your VSCode editor. Note: You can test props by using `test_settings` in your prompts. This is useful for iterating on prompts quickly.
 
-[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
+[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=agentmark.agentmark)
 
 ### 2. Run AgentMark files with our SDK
 
@@ -139,4 +135,4 @@ Join our community to collaborate, ask questions, and stay updated:
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/agentmark-ai/agentmark/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/agentmark-ai/agentmark/blob/main/LICENSE.md).
