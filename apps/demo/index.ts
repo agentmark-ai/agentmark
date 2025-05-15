@@ -3,7 +3,7 @@ import { VercelAIAdapter, VercelAIModelRegistry, VercelAIToolRegistry } from "@a
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import PuzzletTypes, { Tools } from './puzzlet1.types';
-import { FileLoader, createAgentMark } from '@agentmark/agentmark';
+import { FileLoader, createAgentMark } from '../../packages/agentmark-core/dist';
 
 const modelRegistry = new VercelAIModelRegistry();
 const loader = new FileLoader('./fixtures');

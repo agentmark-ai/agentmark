@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import {
-  createAgentMark,
+  AgentMark,
   TemplateDXTemplateEngine,
-} from "@agentmark/agentmark";
+} from "@agentmark/agentmark-core";
 import { VercelAIAdapter } from "@agentmark/vercel-ai-v4-adapter";
 import {
   experimental_generateImage as generateImage,
@@ -16,7 +16,7 @@ import { loadOldFormat } from "./loadOldFormat";
 const adapter = new VercelAIAdapter(modelRegistry);
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
-  const agentMark = createAgentMark({ adapter, templateEngine });
+  const agentMark = new AgentMark({ adapter, templateEngine });
 
   const disposable = vscode.commands.registerCommand(
     "agentmark-extension.runInference",

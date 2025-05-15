@@ -4,12 +4,13 @@ import {
   ImageConfig,
   ObjectConfig, 
   PromptShape
-} from "../types";
+} from "@agentmark/agentmark-core";
 
 export class DefaultAdapter<
-  T extends PromptShape<T> = any
+  T extends PromptShape<T>
 > implements Adapter<T> {
   declare readonly __dict: T;
+  
 
   adaptText(
     input: TextConfig,

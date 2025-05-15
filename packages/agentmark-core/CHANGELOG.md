@@ -1,4 +1,4 @@
-# @agentmark/agentmark
+# @agentmark/agentmark-core
 
 ## 2.2.2
 
