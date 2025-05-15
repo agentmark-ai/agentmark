@@ -22,39 +22,6 @@ type SharedContext = {
   "__puzzlet-extractTextPromises"?: Promise<ExtractedField>[];
 };
 
-type positionProp = {
-  start: attributePositionProp;
-  end: attributePositionProp;
-};
-
-type attributePositionProp = {
-  start: number;
-  end: number;
-  offset: number;
-};
-
-type attributes = {
-  type: string;
-  name: string;
-  value: string;
-  position: positionProp;
-};
-
-type children = {
-  type: string;
-  value: string;
-  position: positionProp;
-};
-
-type childNode = {
-  type: string;
-  value?: string;
-  name?: string;
-  attributes?: attributes[];
-  children?: children[];
-  position?: positionProp;
-};
-
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
     _props: Record<string, any>,
@@ -71,6 +38,10 @@ export class ExtractTextPlugin extends TagPlugin {
     const promise = new Promise(async (resolve, reject) => {
       try {
         const childScope = scope.createChild();
+        if (tagName === "User") {
+          childScope.setShared("__insideUserTag", true);
+        }
+
         const transformer = createNodeTransformer(childScope);
         const processedChildren = await Promise.all(
           children.map(async (child) => {
@@ -78,30 +49,30 @@ export class ExtractTextPlugin extends TagPlugin {
             return Array.isArray(result) ? result : [result];
           })
         );
-        const flattenedChildren: childNode[] = processedChildren.flat();
-        const hasRichContent =
-          tagName === "User" &&
-          flattenedChildren.some((child) => child.type === "mdxJsxFlowElement");
-        if (hasRichContent) {
-          resolve(
-            await this.extractUserTagValues({
-              tagName,
-              childNodes: flattenedChildren,
-            })
-          );
-        } else {
-          const extractedText = nodeHelpers.toMarkdown({
-            type: "root",
-            // @ts-ignore
-            children: flattenedChildren,
-          });
-          resolve({ content: extractedText.trim(), name: tagName });
-        }
+
+        const flattenedChildren = processedChildren.flat();
+        const extractedText = nodeHelpers.toMarkdown({
+          type: "root",
+          // @ts-ignore
+          children: flattenedChildren,
+        });
+
+        const mediaParts = scope.getShared("__puzzlet-mediaParts") || [];
+        const hasMediaContent = tagName === "User" && mediaParts.length;
+        const content = hasMediaContent
+          ? [{ type: "text", text: extractedText.trim() }, ...media]
+          : extractedText.trim();
+
+        resolve({
+          content,
+          name: tagName,
+        });
       } catch (error) {
         reject(error);
       }
     });
 
+    const media = scope.getShared("__puzzlet-mediaParts") || [];
     const promises = scope.getShared("__puzzlet-extractTextPromises");
     if (!promises) {
       scope.setShared("__puzzlet-extractTextPromises", [promise]);
@@ -111,80 +82,51 @@ export class ExtractTextPlugin extends TagPlugin {
 
     return [];
   }
+}
 
-  private extractUserTagValues({
-    tagName,
-    childNodes,
-  }: {
-    tagName: string;
-    childNodes: childNode[];
-  }) {
-    const extractedParts: Array<TextPart | ImagePart | FilePart> = [];
+export class ExtractMediaPlugin extends TagPlugin {
+  private readonly key = "__puzzlet-mediaParts";
+  async transform(
+    props: Record<string, any>,
+    _children: Node[],
+    pluginContext: PluginContext
+  ): Promise<Node[]> {
+    const { tagName, scope } = pluginContext;
+    if (!tagName) throw new Error("Missing tagName in pluginContext");
 
-    childNodes.forEach((child) => {
-      switch (child.type) {
-        case "paragraph": {
-          const text =
-            child.children && child.children[0]?.value
-              ? child.children[0].value
-              : "";
-          if (text) {
-            extractedParts.push({
-              type: "text",
-              text,
-            });
-          }
-          break;
-        }
+    const isInsideUser = scope.getShared("__insideUserTag");
+    if (!isInsideUser)
+      throw new Error(
+        "ImageAttachment and FileAttachment tags must be inside User tag"
+      );
 
-        case "text": {
-          if (child.value) {
-            extractedParts.push({
-              type: "text",
-              text: child.value,
-            });
-          }
-          break;
-        }
+    const mediaParts = scope.getShared(this.key) || [];
 
-        case "mdxJsxFlowElement": {
-          const attributes = child.attributes || [];
-          const attributeMap = Object.fromEntries(
-            attributes.map((attr) => [attr.name, attr])
-          );
-
-          if (child.name?.toLowerCase() === "image") {
-            const data = attributeMap["image"];
-            const mimeType = attributeMap["mimeType"];
-            if (data) {
-              extractedParts.push({
-                type: "image",
-                image: data.value,
-                ...(mimeType && { mimeType: mimeType.value }),
-              });
-            }
-          } else if (child.name?.toLowerCase() === "file") {
-            const data = attributeMap["data"];
-            const mimeType = attributeMap["mimeType"];
-            if (data && mimeType) {
-              extractedParts.push({
-                type: "file",
-                data: data.value,
-                mimeType: mimeType.value,
-              });
-            }
-          }
-          break;
-        }
-
-        default:
-          break;
+    if (tagName === "ImageAttachment") {
+      const { image, mimeType } = props;
+      if (image) {
+        mediaParts.push({
+          type: "image",
+          image,
+          ...(mimeType && { mimeType }),
+        });
       }
-    });
+    } else if (tagName === "FileAttachment") {
+      const { data, mimeType } = props;
+      if (data && mimeType) {
+        mediaParts.push({ type: "file", data, mimeType });
+      }
+    }
+    scope.setShared(this.key, mediaParts);
 
-    return Promise.resolve({ name: tagName, content: extractedParts });
+    return [];
   }
 }
+
+TagPluginRegistry.register(new ExtractMediaPlugin(), [
+  "ImageAttachment",
+  "FileAttachment",
+]);
 
 TagPluginRegistry.register(new ExtractTextPlugin(), [
   "User",

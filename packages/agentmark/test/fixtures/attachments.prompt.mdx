@@ -11,10 +11,20 @@ object_config:
     required: ["answer"]
 ---
 
+<System>
+You are a helpful math tutor.
+</System>
+
 <User>
-hello!!!! what do you think about this image?
-<Image image="https://example.com/image1.png" />
-<Image image="https://example.com/image2.jpeg" mimeType="image/jpeg" />
-<File data="https://example.com/document.pdf" mimeType="application/pdf" />
-{props.userMessage}
+  hello!!!!
+  {props.userMessage}
+  <ImageAttachment image="https://example.com/image.png" />
+  <FileAttachment data="https://example.com/document.pdf" mimeType={props.fileMimeType} />
+  <ForEach arr={["image/jpeg", "image/png"]}>
+    {(item) => (
+      <>
+        <ImageAttachment image="https://example.com/loop.png" mimeType={item}/>
+      </ >
+    )}
+</ForEach>
 </User>

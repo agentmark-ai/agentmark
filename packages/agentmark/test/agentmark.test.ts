@@ -18,7 +18,7 @@ type TestPromptTypes2 = {
   };
   "attachments.prompt.mdx": {
     kind: "object";
-    input: { userMessage: string };
+    input: { userMessage: string; fileMimeType: string };
     output: { answer: string };
   };
 };
@@ -167,7 +167,7 @@ describe("AgentMark Integration", () => {
     expect(result.object_config.schema.properties.answer).toBeDefined();
   });
 
-  it("should extract rich content from <User> including images, files, and text", async () => {
+  it("should extract rich content from <User> including images, files, and text (with looped mimeTypes)", async () => {
     const fixturesDir = path.resolve(__dirname, "./fixtures");
     const fileLoader = new FileLoader(fixturesDir);
 
@@ -179,7 +179,10 @@ describe("AgentMark Integration", () => {
 
     const prompt = await agentMark.loadObjectPrompt("attachments.prompt.mdx");
     const result = await prompt.format({
-      props: { userMessage: "And here’s a file too." },
+      props: {
+        userMessage: "Take a look at those attachments.",
+        fileMimeType: "application/pdf",
+      },
     });
 
     const userMessage = result.messages.find((m) => m.role === "user");
@@ -187,44 +190,28 @@ describe("AgentMark Integration", () => {
 
     const content = userMessage!.content;
     expect(Array.isArray(content)).toBe(true);
-    expect(content).toHaveLength(5);
+    expect(content).toHaveLength(5); // 1 text + 1 image + 1 file + 2 looped images
 
-    const parts = content as Array<any>;
+    const parts = content;
 
-    const initialText = parts.find(
-      (p) => p.type === "text" && p.text.includes("hello!!!!")
-    );
-    expect(initialText).toBeDefined();
-    expect(initialText!.text).toContain("hello!!!!");
-
-    // --- Check first <Image> with only image
-    const imageOnly = parts.find(
-      (p) => p.type === "image" && p.image === "https://example.com/image1.png"
-    );
-    expect(imageOnly).toBeDefined();
-
-    // --- Check second <Image> with mimeType
-    const imageWithMime = parts.find(
-      (p) =>
-        p.type === "image" &&
-        p.image === "https://example.com/image2.jpeg" &&
-        p.mimeType === "image/jpeg"
-    );
-    expect(imageWithMime).toBeDefined();
-
-    // --- Check <File>
-    const filePart = parts.find(
-      (p) =>
-        p.type === "file" &&
-        p.data === "https://example.com/document.pdf" &&
-        p.mimeType === "application/pdf"
-    );
-    expect(filePart).toBeDefined();
-
-    // --- Check userMessage appended text
-    const userAppendedText = parts.find(
-      (p) => p.type === "text" && p.text.includes("And here’s a file too.")
-    );
-    expect(userAppendedText).toBeDefined();
+    expect(parts).toEqual([
+      { type: "text", text: "hello!!!!Take a look at those attachments." },
+      { type: "image", image: "https://example.com/image.png" },
+      {
+        type: "file",
+        data: "https://example.com/document.pdf",
+        mimeType: "application/pdf",
+      },
+      {
+        type: "image",
+        image: "https://example.com/loop.png",
+        mimeType: "image/jpeg",
+      },
+      {
+        type: "image",
+        image: "https://example.com/loop.png",
+        mimeType: "image/png",
+      },
+    ]);
   });
 });
