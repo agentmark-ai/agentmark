@@ -1,5 +1,5 @@
 import { AgentMark, Loader, PromptShape } from '@agentmark/agentmark-core';
-import { DefaultAdapter } from './adapter';
+import { DefaultAdapter, DefaultAgentmark } from './adapter';
 
 
 export function createAgentMarkClient<
@@ -9,8 +9,8 @@ export function createAgentMarkClient<
 }) {
   const adapter = new DefaultAdapter<D>();
 
-  return new AgentMark<D, typeof adapter>({
-    loader : opts.loader,
+  return new DefaultAgentmark<D>({
+    loader: opts.loader,
     adapter,
   });
 }

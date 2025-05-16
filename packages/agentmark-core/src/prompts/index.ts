@@ -37,7 +37,7 @@ export abstract class BasePrompt<
   }
 }
 
-type PromptFormatParams<T> = {
+export type PromptFormatParams<T> = {
   props?: T,
 } & AdaptOptions;
 
