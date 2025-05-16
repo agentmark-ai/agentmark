@@ -59,7 +59,7 @@ export class ObjectPrompt<
 
   async format(
     { props, ...options }: PromptFormatParams<T[K]['input']>,
-  ): Promise<ReturnType<A['adaptObject']>> {
+  ) {
     const compiled = await this.compile(props);
     return this.adapter.adaptObject(
       compiled,
@@ -86,7 +86,7 @@ export class TextPrompt<
 
   async format(
     { props, ...options }: PromptFormatParams<T[K]['input']>,
-  ): Promise<ReturnType<A['adaptText']>> {
+  ) {
     const compiled = await this.compile(props);
     return this.adapter.adaptText<K>(
       compiled,

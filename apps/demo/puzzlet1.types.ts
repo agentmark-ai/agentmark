@@ -15,7 +15,7 @@ interface ImageEntry<I, O>  { kind: 'image';  input: I; output: O }
 
 interface MathIn { [key: string]: any }
 
-interface MathOut { [key: string]: string }
+interface MathOut { answer2: string }
 
 interface Test$Math2In {
   /**
@@ -36,10 +36,9 @@ interface Test$Math2Out {
 type Math = { kind: 'object'; input: MathIn; output: MathOut };
 
 type Test$Math2 = {
-  kind: 'text';
+  kind: 'object';
   input:  Test$Math2In;
   output: Test$Math2Out;
-  tools?: Array<keyof Tools>;
 };
 
 interface PuzzletTypes {
