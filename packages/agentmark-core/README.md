@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://agentmark.co">Homepage</a>
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://docs.puzzlet.ai/agentmark/">Docs</a> |
+  <a href="https://docs.agentmark.co/agentmark/">Docs</a> |
 </p>
 
 ---
@@ -44,7 +44,7 @@ AgentMark supports:
 1. Tools & Agents: 🕵️
 1. Text, Object, and Image generation. Audio/Video coming soon. 📝 🖼 🔊
 
-Read our [docs](https://docs.puzzlet.ai/agentmark/) to learn more.
+Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
 ## Quick Start
 
