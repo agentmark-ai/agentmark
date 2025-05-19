@@ -24,6 +24,7 @@
     "build": "tsup && npx cpy ../../README.md ../../logo.svg ./"
   },
   "devDependencies": {
+    "@agentmark/agentmark-core": "workspace:^",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "ai": "^4.0.0",
@@ -34,7 +35,6 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
-    "@agentmark/agentmark-core": "workspace:*",
     "zod": "^3.23.8"
   },
   "peerDependencies": {
