@@ -7,7 +7,7 @@ import type {
   ObjectConfig,
   PromptShape,
   KeysWithKind
-} from "../../agentmark-core/dist";
+} from "@agentmark/agentmark-core";
 import type {
   LanguageModel,
   ImageModel,

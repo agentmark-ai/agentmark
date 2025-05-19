@@ -95,6 +95,7 @@ __metadata:
     vitest: "npm:^3.0.8"
     zod: "npm:^3.23.8"
   peerDependencies:
+    "@agentmark/agentmark-core": "workspace:*"
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
