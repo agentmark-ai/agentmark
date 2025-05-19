@@ -17,6 +17,6 @@ export type {
   PromptShape,
   PromptKey,
   KeysWithKind,
-  Loader,
   TemplateEngine,
+  Loader
 } from './types';
