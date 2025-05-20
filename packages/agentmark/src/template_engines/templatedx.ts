@@ -104,8 +104,19 @@ export class ExtractMediaPlugin extends TagPlugin {
 
     const mediaParts = scope.getShared(this.key) || [];
 
+    /*
+     * For both ImageAttachment and FileAttachment, we need to ensure the required prop
+     * Are defined (even if they are an empty string or passed from inputProps).
+     * This allows for placeholders like image={props.image}, which resolve later during formatting.
+     */
+
     if (tagName === "ImageAttachment") {
       const { image, mimeType } = props;
+
+      if (image == undefined) {
+        throw new Error("ImageAttachment must contains an image prop");
+      }
+
       if (image) {
         mediaParts.push({
           type: "image",
@@ -115,6 +126,9 @@ export class ExtractMediaPlugin extends TagPlugin {
       }
     } else if (tagName === "FileAttachment") {
       const { data, mimeType } = props;
+      if (data == undefined || mimeType == undefined) {
+        throw new Error("FileAttachment must contains data and mimeType props");
+      }
       if (data && mimeType) {
         mediaParts.push({ type: "file", data, mimeType });
       }

@@ -18,7 +18,7 @@ type TestPromptTypes2 = {
   };
   "attachments.prompt.mdx": {
     kind: "object";
-    input: { userMessage: string; fileMimeType: string };
+    input: { userMessage: string; fileMimeType: string; imageLink: string };
     output: { answer: string };
   };
   "incorrectAttachments.prompt.mdx": {
@@ -187,6 +187,7 @@ describe("AgentMark Integration", () => {
       props: {
         userMessage: "Take a look at those attachments.",
         fileMimeType: "application/pdf",
+        imageLink: "https://example.com/image.png",
       },
     });
 

@@ -12,13 +12,13 @@ object_config:
 ---
 
 <System>
-You are a helpful math tutor.
+You are an observer that comments on images and files.
 </System>
 
 <User>
   hello!!!!
   {props.userMessage}
-  <ImageAttachment image="https://example.com/image.png" />
+  <ImageAttachment image={props.imageLink} />
   <FileAttachment data="https://example.com/document.pdf" mimeType={props.fileMimeType} />
   <ForEach arr={["image/jpeg", "image/png"]}>
     {(item) => (
