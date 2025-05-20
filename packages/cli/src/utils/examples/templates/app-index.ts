@@ -93,7 +93,7 @@ main();
 `;
   } else {
     return `import "dotenv/config";
-import { FileLoader } from "@agentmark/agentmark";
+import { FileLoader } from "@agentmark/agentmark-core";
 import { generateObject, generateText } from "ai";
 import {
   VercelAIModelRegistry,

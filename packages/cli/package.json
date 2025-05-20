@@ -28,7 +28,6 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@agentmark/shared-utils": "workspace:^",
     "@types/express": "^4",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.13",

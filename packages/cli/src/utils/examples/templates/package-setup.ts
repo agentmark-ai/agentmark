@@ -11,8 +11,12 @@ export const setupPackageJson = () => {
 
   // Update the created package.json with additional information
   const pkgJson = fs.readJSONSync(packageJsonPath);
-  pkgJson.name = pkgJson.name || "agentmark-example-app";
-  pkgJson.description = pkgJson.description || "A simple Node.js app using the Agentmark SDK";
+  pkgJson.name =
+    pkgJson.name === "test" || !pkgJson.name
+      ? "agentmark-example-app"
+      : pkgJson.name;
+  pkgJson.description =
+    pkgJson.description || "A simple Node.js app using the Agentmark SDK";
   pkgJson.scripts = {
     ...pkgJson.scripts,
     start: "ts-node index.ts",
@@ -20,7 +24,10 @@ export const setupPackageJson = () => {
   fs.writeJSONSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 
-export const installDependencies = (modelProvider: string, useCloud: string = 'cloud') => {
+export const installDependencies = (
+  modelProvider: string,
+  useCloud: string = "cloud"
+) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
 
@@ -31,13 +38,13 @@ export const installDependencies = (modelProvider: string, useCloud: string = 'c
     });
 
     // Install the common packages
-    let installCmd = `npm install dotenv @agentmark/agentmark @agentmark/vercel-ai-v4-adapter @ai-sdk/${modelProvider} ai`;
-    
+    let installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter @ai-sdk/${modelProvider} ai`;
+
     // Add the AgentMark SDK only if cloud integration is selected
-    if (useCloud === 'cloud') {
-      installCmd += ' @agentmark/sdk';
+    if (useCloud === "cloud") {
+      installCmd += " @agentmark/sdk";
     }
-    
+
     execSync(installCmd, { stdio: "inherit" });
 
     console.log("Packages installed successfully!");
