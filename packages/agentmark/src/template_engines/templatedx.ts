@@ -22,6 +22,8 @@ type SharedContext = {
   "__puzzlet-extractTextPromises"?: Promise<ExtractedField>[];
 };
 
+const USER = "User";
+
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
     _props: Record<string, any>,
@@ -38,8 +40,8 @@ export class ExtractTextPlugin extends TagPlugin {
     const promise = new Promise(async (resolve, reject) => {
       try {
         const childScope = scope.createChild();
-        if (tagName === "User") {
-          childScope.setShared("__insideUserTag", true);
+        if (tagName === USER) {
+          childScope.setShared("__insideMessageType", USER);
         }
 
         const transformer = createNodeTransformer(childScope);
@@ -58,7 +60,7 @@ export class ExtractTextPlugin extends TagPlugin {
         });
 
         const mediaParts = scope.getShared("__puzzlet-mediaParts") || [];
-        const hasMediaContent = tagName === "User" && mediaParts.length;
+        const hasMediaContent = tagName === USER && mediaParts.length;
         const content = hasMediaContent
           ? [{ type: "text", text: extractedText.trim() }, ...media]
           : extractedText.trim();
@@ -94,10 +96,10 @@ export class ExtractMediaPlugin extends TagPlugin {
     const { tagName, scope } = pluginContext;
     if (!tagName) throw new Error("Missing tagName in pluginContext");
 
-    const isInsideUser = scope.getShared("__insideUserTag");
-    if (!isInsideUser)
+    const isInsideUser = scope.getShared("__insideMessageType");
+    if (!(isInsideUser === USER))
       throw new Error(
-        "ImageAttachment and FileAttachment tags must be inside User tag"
+        "ImageAttachment and FileAttachment tags must be inside User tag."
       );
 
     const mediaParts = scope.getShared(this.key) || [];
@@ -129,7 +131,7 @@ TagPluginRegistry.register(new ExtractMediaPlugin(), [
 ]);
 
 TagPluginRegistry.register(new ExtractTextPlugin(), [
-  "User",
+  USER,
   "System",
   "Assistant",
 ]);

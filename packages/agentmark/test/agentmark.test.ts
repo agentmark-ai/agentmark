@@ -21,6 +21,11 @@ type TestPromptTypes2 = {
     input: { userMessage: string; fileMimeType: string };
     output: { answer: string };
   };
+  "incorrectAttachments.prompt.mdx": {
+    kind: "object";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
 };
 
 type TestPromptTypes = {
@@ -213,5 +218,22 @@ describe("AgentMark Integration", () => {
         mimeType: "image/png",
       },
     ]);
+  });
+
+  it("should throw an error if the attachments are not inside User tag only", async () => {
+    const fixturesDir = path.resolve(__dirname, "./fixtures");
+    const fileLoader = new FileLoader(fixturesDir);
+
+    const agentMark = createAgentMark({
+      loader: fileLoader,
+      adapter: new DefaultAdapter<TestPromptTypes2>(),
+      templateEngine: new TemplateDXTemplateEngine(),
+    });
+
+    await expect(
+      agentMark.loadObjectPrompt("incorrectAttachments.prompt.mdx")
+    ).rejects.toThrowError(
+      "Error processing MDX JSX Element: ImageAttachment and FileAttachment tags must be inside User tag."
+    );
   });
 });
