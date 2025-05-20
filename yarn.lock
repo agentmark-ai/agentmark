@@ -85,7 +85,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
   dependencies:
-    "@agentmark/agentmark-core": "workspace:^"
+    "@agentmark/agentmark-core": "npm:^3.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -96,7 +96,7 @@ __metadata:
     vitest: "npm:^3.0.8"
     zod: "npm:^3.23.8"
   peerDependencies:
-    "@agentmark/agentmark-core": "workspace:*"
+    "@agentmark/agentmark-core": ^3.0.0
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
