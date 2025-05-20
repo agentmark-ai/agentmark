@@ -1,20 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import path from "path";
-import { FileLoader, createAgentMark } from "@agentmark/agentmark";
-import { VercelAIAdapter, VercelAIModelRegistry } from "../src";
-
-type TestPromptTypes2 = {
-  "math.prompt.mdx": {
-    kind: "object";
-    input: { userMessage: string };
-    output: { answer: string };
-  };
-  "image.prompt.mdx": {
-    kind: "image";
-    input: { userMessage: string };
-    output: { answer: string };
-  };
-};
+import { FileLoader } from "@agentmark/agentmark-core";
+import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
@@ -31,8 +18,6 @@ type TestPromptTypes = {
   };
 };
 
-const modelRegistry = new VercelAIModelRegistry();
-
 describe("AgentMark Integration", () => {
   describe("AIAdapter Integration", () => {
     it("should adapt object prompts for Vercel AI SDK", async () => {
@@ -45,9 +30,9 @@ describe("AgentMark Integration", () => {
       const modelRegistry = new VercelAIModelRegistry();
       modelRegistry.registerModels("test-model", mockModelFn);
 
-      const agentMark = createAgentMark({
+      const agentMark = createAgentMarkClient<TestPromptTypes>({
         loader: fileLoader,
-        adapter: new VercelAIAdapter(modelRegistry),
+        modelRegistry,
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
@@ -84,9 +69,9 @@ describe("AgentMark Integration", () => {
       const modelRegistry = new VercelAIModelRegistry();
       modelRegistry.registerModels("test-model", mockModelFn);
 
-      const agentMark = createAgentMark({
+      const agentMark = createAgentMarkClient<TestPromptTypes>({
         loader: fileLoader,
-        adapter: new VercelAIAdapter(modelRegistry),
+        modelRegistry,
       });
 
       const mathPrompt = await agentMark.loadTextPrompt("text.prompt.mdx");
@@ -125,9 +110,9 @@ describe("AgentMark Integration", () => {
       const modelRegistry = new VercelAIModelRegistry();
       modelRegistry.registerModels("test-model", mockModelFn);
 
-      const agentMark = createAgentMark({
+      const agentMark = createAgentMarkClient<TestPromptTypes>({
         loader: fileLoader,
-        adapter: new VercelAIAdapter(modelRegistry),
+        modelRegistry
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
@@ -162,9 +147,9 @@ describe("AgentMark Integration", () => {
       const modelRegistry = new VercelAIModelRegistry();
       modelRegistry.registerModels("test-model", mockModelFn);
 
-      const agentMark = createAgentMark({
+      const agentMark = createAgentMarkClient<TestPromptTypes>({
         loader: fileLoader,
-        adapter: new VercelAIAdapter(modelRegistry),
+        modelRegistry
       });
 
       const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");

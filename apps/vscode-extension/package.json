@@ -74,7 +74,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@agentmark/agentmark": "workspace:*",
+    "@agentmark/agentmark-core": "workspace:*",
     "@agentmark/vercel-ai-v4-adapter": "workspace:*",
     "@ai-sdk/anthropic": "^1.2.10",
     "@ai-sdk/openai": "^1.3.13",

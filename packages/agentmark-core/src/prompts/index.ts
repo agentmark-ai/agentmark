@@ -8,6 +8,7 @@ import {
   TextConfig,
   PromptShape,
   PromptKey,
+  KeysWithKind,
 } from '../types';
 
 export abstract class BasePrompt<
@@ -36,7 +37,7 @@ export abstract class BasePrompt<
   }
 }
 
-type PromptFormatParams<T> = {
+export type PromptFormatParams<T> = {
   props?: T,
 } & AdaptOptions;
 
@@ -44,7 +45,7 @@ type PromptFormatParams<T> = {
 export class ObjectPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends PromptKey<T>,
+  K extends KeysWithKind<T,'object'> & string,
 > extends BasePrompt<T, A, K, ObjectConfig> {
 
   constructor(
@@ -60,7 +61,7 @@ export class ObjectPrompt<
     { props, ...options }: PromptFormatParams<T[K]['input']>,
   ): Promise<ReturnType<A['adaptObject']>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptObject<K>(
+    return this.adapter.adaptObject(
       compiled,
       options,
       this.metadata(props),
@@ -71,7 +72,7 @@ export class ObjectPrompt<
 export class TextPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends PromptKey<T>,
+  K extends KeysWithKind<T,'text'> & string,
 > extends BasePrompt<T, A, K, TextConfig> {
 
   constructor(
@@ -87,7 +88,7 @@ export class TextPrompt<
     { props, ...options }: PromptFormatParams<T[K]['input']>,
   ): Promise<ReturnType<A['adaptText']>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptText(
+    return this.adapter.adaptText<K>(
       compiled,
       options,
       this.metadata(props),
@@ -98,7 +99,7 @@ export class TextPrompt<
 export class ImagePrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends PromptKey<T>,
+  K extends KeysWithKind<T,'image'> & string,
 > extends BasePrompt<T, A, K, ImageConfig> {
 
   constructor(

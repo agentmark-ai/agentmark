@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@agentmark/agentmark": "workspace:*",
+    "@agentmark/agentmark-core": "workspace:*",
     "@agentmark/vercel-ai-v4-adapter": "workspace:*"
   }
 }
