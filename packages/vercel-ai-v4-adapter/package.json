@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/vercel-ai-v4-adapter",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
