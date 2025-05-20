@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.0.1
+
+### Patch Changes
+
+- 1a72dcf: Update references from puzzlet to agentmark
+
 ## 3.0.0
 
 ### Major Changes
