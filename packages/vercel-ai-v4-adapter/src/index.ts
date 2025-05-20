@@ -34,7 +34,7 @@ export interface VercelAgentMark<
 }
 
 export function createAgentMarkClient<
-  D extends PromptShape<D>,
+  D extends PromptShape<D> = any,
   T extends VercelAIToolRegistry<any, any> = VercelAIToolRegistry<any, any>
 >(opts: {
   loader?: Loader<D>;
