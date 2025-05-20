@@ -18,7 +18,7 @@
   <a href="https://agentmark.co">Homepage</a> |
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://docs.agentmark.co/agentmark/">Docs</a>
-</p>
+</p>F
 
 ---
 
@@ -26,7 +26,9 @@
 ## Overview
 
 Type-safe markdown-based prompts and evals.
-
+<p>
+  <img src="https://github.com/agentmark-ai/agentmark/blob/main/assets/agentmark-mdx.png" alt="AgentMark"> 
+<p>
 ### Features
 
 AgentMark supports:
