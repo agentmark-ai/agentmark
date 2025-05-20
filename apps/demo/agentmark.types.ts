@@ -41,9 +41,9 @@ type Test$Math2 = {
   output: Test$Math2Out;
 };
 
-interface PuzzletTypes {
+interface AgentmarkTypes {
   "math.prompt.mdx": Math,
   "test/math2.prompt.mdx": Test$Math2,
 }
 
-export default PuzzletTypes;
+export default AgentmarkTypes;

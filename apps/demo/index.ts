@@ -3,7 +3,7 @@ import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } fr
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { FileLoader } from '@agentmark/agentmark-core';
-import PuzzletTypes, { Tools } from './puzzlet1.types';
+import AgentmarkTypes, { Tools } from './agentmark.types';
 
 const modelRegistry = new VercelAIModelRegistry();
 const loader = new FileLoader('./fixtures');
@@ -14,7 +14,7 @@ modelRegistry.registerModels(['gpt-4o', 'gpt-4o-mini'], (name: string) => {
 const tools = new VercelAIToolRegistry<Tools>()
   .register('weather', ({ location }) => ({ tempC: 22 }));
 
-const agentMark = createAgentMarkClient<PuzzletTypes>({
+const agentMark = createAgentMarkClient<AgentmarkTypes>({
   loader,
   modelRegistry,
   toolRegistry: tools,

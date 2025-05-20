@@ -1,7 +1,7 @@
 <h1 align="center">AgentMark</h1>
 
 <p align="center">
-  <a href="https://github.com/puzzlet-ai">
+  <a href="https://github.com/agentmark-ai">
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="https://i.imgur.com/j7nNMip.png">
       <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/j7nNMip.png">
@@ -94,7 +94,7 @@ By default, AgentMark doesn't support any models or calling any LLM providers. I
 | LangChain  | ⚠️ Coming Soon | ❌ |
 | OpenAI Compatible    | ⚠️ Coming Soon | ❌ |
 
-Want to add support for another adapter? Open an [issue](https://github.com/puzzlet-ai/agentmark/issues).
+Want to add support for another adapter? Open an [issue](https://github.com/agentmark-ai/agentmark/issues).
 
 ## Language Support
 
@@ -105,7 +105,7 @@ We plan on providing support for AgentMark across a variety of languages.
 | TypeScript | ✅ Supported |
 | JavaScript | ✅ Supported |
 | Python | ⚠️ Coming Soon |
-| Others | Need something else? [Open an issue](https://github.com/puzzlet-ai/agentmark/issues) |
+| Others | Need something else? [Open an issue](https://github.com/agentmark-ai/agentmark/issues) |
 
 ## Running AgentMark
 
@@ -115,7 +115,7 @@ You can run AgentMark using any of the following methods:
 
 Run `.prompt.mdx` files directly within your VSCode editor. Note: You can test props by using `test_settings` in your prompts. This is useful for iterating on prompts quickly.
 
-[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=puzzlet.agentmark)
+[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=agentmark.agentmark)
 
 ### 2. Run AgentMark files with our SDK
 

@@ -77,7 +77,7 @@ test_settings:
 
 ## Documentation
 
-Comprehensive documentation, including guides and API references, is available in the [AgentMark GitHub repository](https://github.com/puzzlet-ai/agentmark/). Refer to the documentation for detailed instructions on using AgentMark features and integrating it with your workflow.
+Comprehensive documentation, including guides and API references, is available in the [AgentMark GitHub repository](https://github.com/agentmark-ai/agentmark/). Refer to the documentation for detailed instructions on using AgentMark features and integrating it with your workflow.
 
 ## Community
 
@@ -85,4 +85,4 @@ Chat with our growing, tight-knit community. Join our [Discord](https://discord.
 
 ## Feedback
 
-We value your feedback to continuously improve AgentMark. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/puzzlet-ai/agentmark/issues).
+We value your feedback to continuously improve AgentMark. Please submit any issues, feature requests, or other feedback through the [GitHub repository's issue tracker](https://github.com/agenmark-ai/agentmark/issues).
