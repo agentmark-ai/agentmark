@@ -35,7 +35,7 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
-    "@puzzlet/templatedx": "^0.6.2",
+    "@agentmark/templatedx": "^0.6.3",
     "zod": "^3.23.8"
   },
   "peerDependencies": {
