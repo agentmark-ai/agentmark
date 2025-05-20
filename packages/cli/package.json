@@ -18,6 +18,7 @@
     "agentmark": "./dist/index.js"
   },
   "dependencies": {
+    "@agentmark/templatedx": "^0.6.3",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.20.0",

@@ -1,6 +1,6 @@
-import { TagPluginRegistry, transform } from "@puzzlet/templatedx";
-import { TagPlugin, PluginContext, getFrontMatter } from "@puzzlet/templatedx";
-import type { Ast } from "@puzzlet/templatedx";
+import { TagPluginRegistry, transform } from "@agentmark/templatedx";
+import { TagPlugin, PluginContext, getFrontMatter } from "@agentmark/templatedx";
+import type { Ast } from "@agentmark/templatedx";
 import type { Node } from "mdast";
 import { TemplateEngine, ChatMessage, JSONObject, ObjectConfig, TextConfig, ImageConfig } from "../types";
 

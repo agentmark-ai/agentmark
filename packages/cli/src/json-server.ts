@@ -20,7 +20,7 @@ app.get('/v1/templates', async (req: Request, res: Response) => {
     const fullPath = path.join(agentmarkTemplatesBase, filePath);
 
     try {
-        const { parse } = await import('@puzzlet/templatedx');
+        const { parse } = await import('@agentmark/templatedx');
         const fileContent = fs.readFileSync(fullPath, 'utf-8');
         const data = await parse(fileContent, path.dirname(fullPath), async (path) => {
             return fs.readFileSync(path, 'utf-8');

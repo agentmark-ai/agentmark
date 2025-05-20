@@ -9,7 +9,6 @@ export default defineConfig({
   clean: true,
   target: 'es2019',
   treeshake: true,
-  noExternal: ['@puzzlet/templatedx'],
   outExtension({ format }) {
     return {
       js: format === 'cjs' ? '.cjs' : '.js'

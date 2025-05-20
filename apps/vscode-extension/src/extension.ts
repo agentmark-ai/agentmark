@@ -6,7 +6,7 @@ import {
   streamObject,
   streamText,
 } from "ai";
-import { getFrontMatter, load } from "@puzzlet/templatedx";
+import { getFrontMatter, load } from "@agentmark/templatedx";
 import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
