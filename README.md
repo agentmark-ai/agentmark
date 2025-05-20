@@ -18,7 +18,7 @@
   <a href="https://agentmark.co">Homepage</a> |
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://docs.agentmark.co/agentmark/">Docs</a>
-</p>F
+</p>
 
 ---
 
