@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.0.0
+
+### Major Changes
+
+- a814d3c: Agentmark V3
+
 ## 2.2.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @agentmark/shared-utils
 
+## 1.0.0
+
+### Major Changes
+
+- a814d3c: Agentmark V3
+
 ## 0.2.0
 
 ### Minor Changes
