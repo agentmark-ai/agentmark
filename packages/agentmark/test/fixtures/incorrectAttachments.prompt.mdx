@@ -19,16 +19,6 @@ You are a helpful math tutor.
 
 <User>
   hello!!!!
-  {props.userMessage}
-  <ImageAttachment image="https://example.com/image.png" />
-  <FileAttachment data="https://example.com/document.pdf" mimeType={props.fileMimeType} />
-  <ForEach arr={["image/jpeg", "image/png"]}>
-    {(item) => (
-      <>
-        <ImageAttachment image="https://example.com/loop.png" mimeType={item}/>
-      </ >
-    )}
-</ForEach>
 </User>
 
 <Assistant>

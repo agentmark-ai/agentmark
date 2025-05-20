@@ -23,7 +23,7 @@ type TestPromptTypes2 = {
   };
   "incorrectAttachments.prompt.mdx": {
     kind: "object";
-    input: { userMessage: string };
+    input: {};
     output: { answer: string };
   };
 };
