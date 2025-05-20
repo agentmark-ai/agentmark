@@ -1,5 +1,11 @@
 # @agentmark/default-adapter
 
+## 3.0.1
+
+### Patch Changes
+
+- 37d055d: Change agentmark deps from workspace:\* to 3.0.0
+
 ## 3.0.0
 
 ### Patch Changes
