@@ -9,6 +9,7 @@ import {
   PromptShape,
   PromptKey,
   KeysWithKind,
+  SpeechConfig,
 } from "../types";
 
 export abstract class BasePrompt<

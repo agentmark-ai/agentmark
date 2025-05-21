@@ -7,7 +7,7 @@ import type {
   ObjectConfig,
   PromptShape,
   KeysWithKind,
-  speechConfig,
+  SpeechConfig,
 } from "@agentmark/agentmark-core";
 import type {
   LanguageModel,

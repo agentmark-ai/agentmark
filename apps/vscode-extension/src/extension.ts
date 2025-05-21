@@ -8,12 +8,7 @@ import {
   streamText,
 } from "ai";
 import { getFrontMatter, load } from "@agentmark/templatedx";
-import {
-  modelConfig,
-  modelRegistry,
-  modelProviderMap,
-  AnyPromptType,
-} from "./modelRegistry";
+import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
 
 const templateEngine = new TemplateDXTemplateEngine();
