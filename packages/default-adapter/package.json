@@ -1,5 +1,5 @@
 {
-  "name": "@agentmark/vercel-ai-v4-adapter",
+  "name": "@agentmark/default-adapter",
   "version": "3.0.1",
   "license": "MIT",
   "type": "module",

@@ -1,7 +1,7 @@
 import path from "path";
-import { load } from "@puzzlet/templatedx";
+import { load } from "@agentmark/templatedx";
 import { Loader } from "../types";
-import type { Ast } from "@puzzlet/templatedx";
+import type { Ast } from "@agentmark/templatedx";
 import { PromptShape } from "../types";
 export class FileLoader<
   T extends PromptShape<T> = any

@@ -1,4 +1,4 @@
-import { load, getFrontMatter} from '@puzzlet/templatedx';
+import { load, getFrontMatter} from '@agentmark/templatedx';
 import { dump } from 'js-yaml';
 
 export const loadOldFormat = async ({ file }: { file: string }) => {

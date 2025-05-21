@@ -1,4 +1,4 @@
-import { VercelAIModelRegistry } from "@agentMark/vercel-ai-v4-adapter";
+import { VercelAIModelRegistry } from "@agentmark/vercel-ai-v4-adapter";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 

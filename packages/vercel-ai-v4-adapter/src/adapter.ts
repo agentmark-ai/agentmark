@@ -6,9 +6,9 @@ import type {
   AdaptOptions,
   ObjectConfig,
   PromptShape,
-  PromptKey,
-  SpeechConfig,
-} from "@agentmark/agentmark";
+  KeysWithKind,
+  speechConfig,
+} from "@agentmark/agentmark-core";
 import type {
   LanguageModel,
   ImageModel,
@@ -18,12 +18,6 @@ import type {
   SpeechModel,
 } from "ai";
 import { jsonSchema } from "ai";
-
-type ArgOf<X> = X extends { args: infer A } ? A : never;
-
-type ToolArgs<R> = R extends { __tools: { input: infer I } }
-  ? { [K in keyof I]: ArgOf<I[K]> }
-  : never;
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
 
@@ -209,7 +203,7 @@ export class VercelAIAdapter<
     this.toolsRegistry = toolRegistry;
   }
 
-  adaptText(
+  adaptText<K extends KeysWithKind<T, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -218,7 +212,6 @@ export class VercelAIAdapter<
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
 
-    type Args = ToolArgs<R>;
     type Ret = ToolRet<R>;
 
     let toolsObj: ToolSetMap<Ret> | undefined;
@@ -278,7 +271,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptObject<K extends PromptKey<T>>(
+  adaptObject<K extends KeysWithKind<T, "object"> & string>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -324,7 +317,10 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptImage(input: ImageConfig, options: AdaptOptions): VercelAIImageParams {
+  adaptImage<K extends KeysWithKind<T, "image"> & string>(
+    input: ImageConfig,
+    options: AdaptOptions
+  ): VercelAIImageParams {
     const { model_name: name, ...settings } = input.image_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;

@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/cli",
-  "version": "0.6.1",
+  "version": "1.0.1",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "scripts": {
@@ -18,6 +18,7 @@
     "agentmark": "./dist/index.js"
   },
   "dependencies": {
+    "@agentmark/templatedx": "^0.6.3",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.20.0",
@@ -28,7 +29,6 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@agentmark/shared-utils": "workspace:^",
     "@types/express": "^4",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.13",

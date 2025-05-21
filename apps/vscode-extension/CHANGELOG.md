@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [a814d3c]
+  - @agentmark/vercel-ai-v4-adapter@3.0.0
+  - @agentmark/agentmark-core@3.0.0
+
 ## 1.4.0
 
 ### Minor Changes
@@ -56,7 +64,7 @@
 - Updated dependencies [72e5005]
   - @puzzlet/agentmark@1.0.5
 
-All notable changes to the "prompt-dx-extension" extension will be documented in this file.
+All notable changes to the "agentmark-extension" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
