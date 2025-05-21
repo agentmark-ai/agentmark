@@ -13,8 +13,8 @@ import {
   ObjectConfig,
   TextConfig,
   ImageConfig,
+  RichChatMessage,
 } from "../types";
-import { RichChatMessage } from "../schemas";
 import { ImagePart, TextPart, FilePart } from "ai";
 
 type ExtractedField = {

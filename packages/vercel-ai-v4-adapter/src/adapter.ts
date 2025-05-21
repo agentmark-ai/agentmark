@@ -2,7 +2,6 @@ import type {
   TextConfig,
   ImageConfig,
   PromptMetadata,
-  ChatMessage,
   RichChatMessage,
   AdaptOptions,
   ObjectConfig,
