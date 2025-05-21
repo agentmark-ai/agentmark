@@ -1,6 +1,6 @@
 {
-  "name": "@agentmark/agentmark",
-  "version": "2.2.2",
+  "name": "@agentmark/agentmark-core",
+  "version": "3.0.1",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,7 +35,7 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
-    "@puzzlet/templatedx": "^0.6.2",
+    "@agentmark/templatedx": "^0.6.3",
     "zod": "^3.23.8"
   },
   "peerDependencies": {

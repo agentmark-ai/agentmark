@@ -1,12 +1,11 @@
 export const getIndexFileContent = (modelProvider: string, modelName: string, useCloud: string = 'cloud'): string => {
   if (useCloud === 'cloud') {
     return `import "dotenv/config";
-import { Agentmark } from "@agentmark/sdk";
-import { createAgentMark } from "@agentmark/agentmark";
+import { AgentmarkClient } from "@agentmark/sdk";
 import { generateObject, generateText } from "ai";
 import {
-  VercelAIAdapter,
   VercelAIModelRegistry,
+  createAgentMarkClient,
 } from "@agentmark/vercel-ai-v4-adapter";
 import { ${modelProvider} } from "@ai-sdk/${modelProvider}";
 import AgentMarkTypes from "./agentmark.types";
@@ -16,7 +15,7 @@ modelRegistry.registerModels(['${modelName}'], (name: string) => {
   return ${modelProvider}(name);
 });
 
-const agentmarkClient = new Agentmark({
+const agentmarkClient = new AgentmarkClient({
   apiKey: process.env.AGENTMARK_API_KEY!,
   appId: process.env.AGENTMARK_APP_ID!,
   baseUrl: process.env.AGENTMARK_BASE_URL!,
@@ -24,11 +23,11 @@ const agentmarkClient = new Agentmark({
 
 agentmarkClient.initTracing({ disableBatch: true });
 
-const agentMarkLoader = agentmarkClient.createLoader();
+const agentMarkLoader = agentmarkClient.getFileLoader();
 
-const agentmark = createAgentMark({
+const agentmark = createAgentMarkClient<AgentMarkTypes>({
   loader: agentMarkLoader,
-  adapter: new VercelAIAdapter<AgentMarkTypes>(modelRegistry),
+  modelRegistry
 });
 
 const traceId = crypto.randomUUID();
@@ -43,7 +42,9 @@ const telemetry = {
 const runPrompt = async (customer_message: string) => {
   const prompt = await agentmark.loadTextPrompt("customer-reply.prompt.mdx");
   const vercelInput = await prompt.format({
-    customer_question: customer_message,
+    props: {
+      customer_question: customer_message,
+    },
   });
 
   const resp = await generateText({
@@ -60,8 +61,10 @@ const runEvaluation = async (assistant: string, customer_message: string) => {
   );
 
   const vercelInput = await prompt.format({
-    model_output: assistant,
-    customer_message: customer_message,
+    props: {
+      model_output: assistant,
+      customer_message: customer_message,
+    },
   });
 
   const resp = await generateObject({
@@ -90,38 +93,34 @@ main();
 `;
   } else {
     return `import "dotenv/config";
-import { createAgentMark, FileLoader } from "@agentmark/agentmark";
+import { FileLoader } from "@agentmark/agentmark-core";
 import { generateObject, generateText } from "ai";
 import {
-  VercelAIAdapter,
   VercelAIModelRegistry,
+  createAgentMarkClient
 } from "@agentmark/vercel-ai-v4-adapter";
 import { ${modelProvider} } from "@ai-sdk/${modelProvider}";
 import AgentMarkTypes from "./agentmark.types";
 
-// Setup model registry with your selected provider and model
 const modelRegistry = new VercelAIModelRegistry();
 modelRegistry.registerModels(['${modelName}'], (name: string) => {
   return ${modelProvider}(name);
 });
 
-// Create a local file loader pointing to your prompts directory
 const loader = new FileLoader('./agentmark');
 
-// Setup the adapter
-const adapter = new VercelAIAdapter<AgentMarkTypes>(modelRegistry);
-
-// Initialize AgentMark with local configuration
-const agentmark = createAgentMark({
+const agentmark = createAgentMarkClient<AgentMarkTypes>({
   loader,
-  adapter,
+  modelRegistry,
 });
 
 // Function to run the customer reply prompt
 const runPrompt = async (customer_message: string) => {
   const prompt = await agentmark.loadTextPrompt('customer-reply.prompt.mdx');
   const vercelInput = await prompt.format({
-    customer_question: customer_message,
+    props: {
+      customer_question: customer_message,
+    },
   });
 
   const result = await generateText(vercelInput);
@@ -132,8 +131,10 @@ const runPrompt = async (customer_message: string) => {
 const runEvaluation = async (assistant: string, customer_message: string) => {
   const prompt = await agentmark.loadObjectPrompt('response-quality-eval.prompt.mdx');
   const vercelInput = await prompt.format({
-    model_output: assistant,
-    customer_message: customer_message,
+    props: {
+      model_output: assistant,
+      customer_message: customer_message,
+    },
   });
 
   const result = await generateObject(vercelInput);

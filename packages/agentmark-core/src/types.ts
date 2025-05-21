@@ -65,23 +65,24 @@ export interface Loader<T extends PromptShape<T>> {
   load(path: string, options?: any): Promise<unknown>;
 }
 
-export interface Adapter<T extends PromptShape<T>> {
-  readonly __dict: T;
-  adaptObject<_T extends PromptKey<T>>(
-    input: ObjectConfig,
-    options: AdaptOptions,
-    metadata: PromptMetadata
-  ): any;
+export interface Adapter<D extends PromptShape<D>> {
+  readonly __dict: D;
 
-  adaptText<_T extends PromptKey<T>>(
+  adaptText  <K extends KeysWithKind<D,'text'  > & string>(
     input: TextConfig,
     options: AdaptOptions,
-    metadata: PromptMetadata
+    metadata: PromptMetadata,
   ): any;
 
-  adaptImage(
+  adaptObject<K extends KeysWithKind<D,'object'> & string>(
+    input: ObjectConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata,
+  ): any;
+
+  adaptImage <K extends KeysWithKind<D,'image' > & string>(
     input: ImageConfig,
     options: AdaptOptions,
-    metadata: PromptMetadata
+    metadata: PromptMetadata,
   ): any;
 }

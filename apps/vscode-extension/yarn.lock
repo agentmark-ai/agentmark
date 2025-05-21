@@ -5,6 +5,30 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"@agentmark/agentmark-core@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@agentmark/agentmark-core@npm:3.0.0"
+  dependencies:
+    "@puzzlet/templatedx": "npm:^0.6.2"
+    zod: "npm:^3.23.8"
+  peerDependencies:
+    ai: ^4.0.0
+  checksum: 10c0/16b4c72d499cfb0f3ccc06c43c4d77df2b232adc03fd94e957f8cf4f68ecb5cb3bd7756d6cea511c6f5f476e862426aeaa293e96615f6714ee83265dc415e41a
+  languageName: node
+  linkType: hard
+
+"@agentmark/vercel-ai-v4-adapter@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@agentmark/vercel-ai-v4-adapter@npm:3.0.0"
+  dependencies:
+    zod: "npm:^3.23.8"
+  peerDependencies:
+    "@agentmark/agentmark-core": "workspace:*"
+    ai: ^4.0.0
+  checksum: 10c0/b2b5a2a093b49d9bc53ea893f9de1c723c711b6c151b502ee05b73bcee598ea278cd5b258493e42eb296e403df21e910f3cc0c05f47d44d2426f9f7d9a8e6ba9
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/anthropic@npm:^1.2.10":
   version: 1.2.10
   resolution: "@ai-sdk/anthropic@npm:1.2.10"
@@ -483,20 +507,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puzzlet/agentmark@npm:^2.2.1":
-  version: 2.2.2
-  resolution: "@puzzlet/agentmark@npm:2.2.2"
-  dependencies:
-    "@puzzlet/templatedx": "npm:^0.6.2"
-    ai: "npm:^4.1.34"
-    ajv: "npm:^8.17.1"
-    front-matter: "npm:^4.0.2"
-    js-yaml: "npm:^4.1.0"
-    zod: "npm:^3.23.8"
-  checksum: 10c0/78ce53bb368d08250dd9a61540a967f7dc413fbd6cf0a6f37e4ae99ae294c71d4daf7e3d5715c052e1994c644d93b1955d013b4378365365adb10241bd05dfbe
-  languageName: node
-  linkType: hard
-
 "@puzzlet/templatedx@npm:^0.6.2":
   version: 0.6.2
   resolution: "@puzzlet/templatedx@npm:0.6.2"
@@ -513,18 +523,6 @@ __metadata:
     unified: "npm:^11.0.5"
     unist-util-visit: "npm:^5.0.0"
   checksum: 10c0/69badd9f4acbf00fb0aaa0620fc3f4019af30c1a4b50d2501d6a145c6d9b48d8c2414ce2e8dee04621b5a329957283caa84b99a83c3c9f2ac3430bd7889e18f8
-  languageName: node
-  linkType: hard
-
-"@puzzlet/vercel-ai-v4-adapter@npm:^2.2.2":
-  version: 2.2.2
-  resolution: "@puzzlet/vercel-ai-v4-adapter@npm:2.2.2"
-  dependencies:
-    zod: "npm:^3.23.8"
-  peerDependencies:
-    "@puzzlet/agentmark": "workspace:*"
-    ai: ^4.0.0
-  checksum: 10c0/29d4469be9a8d906f32e8001791c7f1db1278b97105bf09240df9986769860a42e3e4f8b4d5fe18b094ce2a23a13a1f2db0906bc440a9e0ce41c8be5a2f9c3c8
   languageName: node
   linkType: hard
 
@@ -1207,10 +1205,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "agentmark@workspace:."
   dependencies:
+    "@agentmark/agentmark-core": "npm:^3.0.0"
+    "@agentmark/vercel-ai-v4-adapter": "npm:^3.0.0"
     "@ai-sdk/anthropic": "npm:^1.2.10"
     "@ai-sdk/openai": "npm:^1.3.13"
-    "@puzzlet/agentmark": "npm:^2.2.1"
-    "@puzzlet/vercel-ai-v4-adapter": "npm:^2.2.2"
     "@types/js-yaml": "npm:^4"
     "@types/mocha": "npm:^10.0.8"
     "@types/node": "npm:20.x"
@@ -1240,7 +1238,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.0.0, ai@npm:^4.1.34":
+"ai@npm:^4.0.0":
   version: 4.3.8
   resolution: "ai@npm:4.3.8"
   dependencies:
@@ -1278,18 +1276,6 @@ __metadata:
     json-schema-traverse: "npm:^0.4.1"
     uri-js: "npm:^4.2.2"
   checksum: 10c0/41e23642cbe545889245b9d2a45854ebba51cda6c778ebced9649420d9205f2efb39cb43dbc41e358409223b1ea43303ae4839db682c848b891e4811da1a5a71
-  languageName: node
-  linkType: hard
-
-"ajv@npm:^8.17.1":
-  version: 8.17.1
-  resolution: "ajv@npm:8.17.1"
-  dependencies:
-    fast-deep-equal: "npm:^3.1.3"
-    fast-uri: "npm:^3.0.1"
-    json-schema-traverse: "npm:^1.0.0"
-    require-from-string: "npm:^2.0.2"
-  checksum: 10c0/ec3ba10a573c6b60f94639ffc53526275917a2df6810e4ab5a6b959d87459f9ef3f00d5e7865b82677cb7d21590355b34da14d1d0b9c32d75f95a187e76fff35
   languageName: node
   linkType: hard
 
@@ -1346,15 +1332,6 @@ __metadata:
     normalize-path: "npm:^3.0.0"
     picomatch: "npm:^2.0.4"
   checksum: 10c0/57b06ae984bc32a0d22592c87384cd88fe4511b1dd7581497831c56d41939c8a001b28e7b853e1450f2bf61992dfcaa8ae2d0d161a0a90c4fb631ef07098fbac
-  languageName: node
-  linkType: hard
-
-"argparse@npm:^1.0.7":
-  version: 1.0.10
-  resolution: "argparse@npm:1.0.10"
-  dependencies:
-    sprintf-js: "npm:~1.0.2"
-  checksum: 10c0/b2972c5c23c63df66bca144dbc65d180efa74f25f8fd9b7d9a0a6c88ae839db32df3d54770dcb6460cf840d232b60695d1a6b1053f599d84e73f7437087712de
   languageName: node
   linkType: hard
 
@@ -2339,16 +2316,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esprima@npm:^4.0.0":
-  version: 4.0.1
-  resolution: "esprima@npm:4.0.1"
-  bin:
-    esparse: ./bin/esparse.js
-    esvalidate: ./bin/esvalidate.js
-  checksum: 10c0/ad4bab9ead0808cf56501750fd9d3fb276f6b105f987707d059005d57e182d18a7c9ec7f3a01794ebddcca676773e42ca48a32d67a250c9d35e009ca613caba3
-  languageName: node
-  linkType: hard
-
 "esquery@npm:^1.5.0":
   version: 1.6.0
   resolution: "esquery@npm:1.6.0"
@@ -2464,13 +2431,6 @@ __metadata:
   version: 2.0.6
   resolution: "fast-levenshtein@npm:2.0.6"
   checksum: 10c0/111972b37338bcb88f7d9e2c5907862c280ebf4234433b95bc611e518d192ccb2d38119c4ac86e26b668d75f7f3894f4ff5c4982899afced7ca78633b08287c4
-  languageName: node
-  linkType: hard
-
-"fast-uri@npm:^3.0.1":
-  version: 3.0.6
-  resolution: "fast-uri@npm:3.0.6"
-  checksum: 10c0/74a513c2af0584448aee71ce56005185f81239eab7a2343110e5bad50c39ad4fb19c5a6f99783ead1cac7ccaf3461a6034fda89fffa2b30b6d99b9f21c2f9d29
   languageName: node
   linkType: hard
 
@@ -2597,15 +2557,6 @@ __metadata:
   version: 0.2.2
   resolution: "format@npm:0.2.2"
   checksum: 10c0/6032ba747541a43abf3e37b402b2f72ee08ebcb58bf84d816443dd228959837f1cddf1e8775b29fa27ff133f4bd146d041bfca5f9cf27f048edf3d493cf8fee6
-  languageName: node
-  linkType: hard
-
-"front-matter@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "front-matter@npm:4.0.2"
-  dependencies:
-    js-yaml: "npm:^3.13.1"
-  checksum: 10c0/7a0df5ca37428dd563c057bc17a8940481fe53876609bcdc443a02ce463c70f1842c7cb4628b80916de46a253732794b36fb6a31105db0f185698a93acee4011
   languageName: node
   linkType: hard
 
@@ -3264,18 +3215,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:^3.13.1":
-  version: 3.14.1
-  resolution: "js-yaml@npm:3.14.1"
-  dependencies:
-    argparse: "npm:^1.0.7"
-    esprima: "npm:^4.0.0"
-  bin:
-    js-yaml: bin/js-yaml.js
-  checksum: 10c0/6746baaaeac312c4db8e75fa22331d9a04cccb7792d126ed8ce6a0bbcfef0cedaddd0c5098fade53db067c09fe00aa1c957674b4765610a8b06a5a189e46433b
-  languageName: node
-  linkType: hard
-
 "js-yaml@npm:^4.1.0":
   version: 4.1.0
   resolution: "js-yaml@npm:4.1.0"
@@ -3319,13 +3258,6 @@ __metadata:
   version: 0.4.1
   resolution: "json-schema-traverse@npm:0.4.1"
   checksum: 10c0/108fa90d4cc6f08243aedc6da16c408daf81793bf903e9fd5ab21983cda433d5d2da49e40711da016289465ec2e62e0324dcdfbc06275a607fe3233fde4942ce
-  languageName: node
-  linkType: hard
-
-"json-schema-traverse@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "json-schema-traverse@npm:1.0.0"
-  checksum: 10c0/71e30015d7f3d6dc1c316d6298047c8ef98a06d31ad064919976583eb61e1018a60a0067338f0f79cabc00d84af3fcc489bd48ce8a46ea165d9541ba17fb30c6
   languageName: node
   linkType: hard
 
@@ -5030,13 +4962,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"require-from-string@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "require-from-string@npm:2.0.2"
-  checksum: 10c0/aaa267e0c5b022fc5fd4eef49d8285086b15f2a1c54b28240fdf03599cbd9c26049fee3eab894f2e1f6ca65e513b030a7c264201e3f005601e80c49fb2937ce2
-  languageName: node
-  linkType: hard
-
 "resolve-cwd@npm:^3.0.0":
   version: 3.0.0
   resolution: "resolve-cwd@npm:3.0.0"
@@ -5338,13 +5263,6 @@ __metadata:
   version: 1.1.3
   resolution: "sprintf-js@npm:1.1.3"
   checksum: 10c0/09270dc4f30d479e666aee820eacd9e464215cdff53848b443964202bf4051490538e5dd1b42e1a65cf7296916ca17640aebf63dae9812749c7542ee5f288dec
-  languageName: node
-  linkType: hard
-
-"sprintf-js@npm:~1.0.2":
-  version: 1.0.3
-  resolution: "sprintf-js@npm:1.0.3"
-  checksum: 10c0/ecadcfe4c771890140da5023d43e190b7566d9cf8b2d238600f31bec0fc653f328da4450eb04bd59a431771a8e9cc0e118f0aa3974b683a4981b4e07abc2a5bb
   languageName: node
   linkType: hard
 

@@ -1,9 +1,9 @@
 {
   "name": "agentmark-demo",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "private": true,
   "dependencies": {
-    "@agentmark/agentmark": "workspace:*",
+    "@agentmark/agentmark-core": "workspace:*",
     "@agentmark/vercel-ai-v4-adapter": "workspace:*"
   }
 }

@@ -1,6 +1,10 @@
-import { TagPluginRegistry, transform } from "@puzzlet/templatedx";
-import { TagPlugin, PluginContext, getFrontMatter } from "@puzzlet/templatedx";
-import type { Ast } from "@puzzlet/templatedx";
+import { TagPluginRegistry, transform } from "@agentmark/templatedx";
+import {
+  TagPlugin,
+  PluginContext,
+  getFrontMatter,
+} from "@agentmark/templatedx";
+import type { Ast } from "@agentmark/templatedx";
 import type { Node } from "mdast";
 import {
   TemplateEngine,
@@ -19,7 +23,7 @@ type ExtractedField = {
 };
 
 type SharedContext = {
-  "__puzzlet-extractTextPromises"?: Promise<ExtractedField>[];
+  "__agentmark-extractTextPromises"?: Promise<ExtractedField>[];
 };
 
 const USER = "User";
@@ -75,9 +79,9 @@ export class ExtractTextPlugin extends TagPlugin {
     });
 
     const media = scope.getShared("__puzzlet-mediaParts") || [];
-    const promises = scope.getShared("__puzzlet-extractTextPromises");
+    const promises = scope.getShared("__agentmark-extractTextPromises");
     if (!promises) {
-      scope.setShared("__puzzlet-extractTextPromises", [promise]);
+      scope.setShared("__agentmark-extractTextPromises", [promise]);
     } else {
       promises.push(promise);
     }
@@ -187,7 +191,8 @@ export async function getRawConfig<
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
   await transform(ast, props || {}, shared);
-  const extractedFieldPromises = shared["__puzzlet-extractTextPromises"] || [];
+  const extractedFieldPromises =
+    shared["__agentmark-extractTextPromises"] || [];
   const messages = getMessages(await Promise.all(extractedFieldPromises));
 
   return {
