@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.1.0
+
+### Minor Changes
+
+- fe78baf: Support file attachments
+
 ## 3.0.1
 
 ### Patch Changes
