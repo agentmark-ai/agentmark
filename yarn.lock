@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@agentmark/agentmark-core@npm:^3.0.0, @agentmark/agentmark-core@npm:^3.0.1, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
+"@agentmark/agentmark-core@npm:^3.1.0, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
   version: 0.0.0-use.local
   resolution: "@agentmark/agentmark-core@workspace:packages/agentmark-core"
   dependencies:
@@ -54,7 +54,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/default-adapter@workspace:packages/default-adapter"
   dependencies:
-    "@agentmark/agentmark-core": "npm:^3.0.0"
+    "@agentmark/agentmark-core": "npm:^3.1.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -65,7 +65,7 @@ __metadata:
     vitest: "npm:^3.0.8"
     zod: "npm:^3.23.8"
   peerDependencies:
-    "@agentmark/agentmark-core": ^3.0.0
+    "@agentmark/agentmark-core": ^3.1.0
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
@@ -100,11 +100,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/vercel-ai-v4-adapter@npm:^3.0.0, @agentmark/vercel-ai-v4-adapter@workspace:*, @agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
+"@agentmark/vercel-ai-v4-adapter@npm:^4.0.0, @agentmark/vercel-ai-v4-adapter@workspace:*, @agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
   dependencies:
-    "@agentmark/agentmark-core": "npm:^3.0.0"
+    "@agentmark/agentmark-core": "npm:^3.1.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -115,7 +115,7 @@ __metadata:
     vitest: "npm:^3.0.8"
     zod: "npm:^3.23.8"
   peerDependencies:
-    "@agentmark/agentmark-core": ^3.0.0
+    "@agentmark/agentmark-core": ^3.1.0
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
@@ -2509,8 +2509,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "agentmark@workspace:apps/vscode-extension"
   dependencies:
-    "@agentmark/agentmark-core": "npm:^3.0.1"
-    "@agentmark/vercel-ai-v4-adapter": "npm:^3.0.0"
+    "@agentmark/agentmark-core": "npm:^3.1.0"
+    "@agentmark/vercel-ai-v4-adapter": "npm:^4.0.0"
     "@ai-sdk/anthropic": "npm:^1.2.10"
     "@ai-sdk/openai": "npm:^1.3.13"
     "@types/js-yaml": "npm:^4"
