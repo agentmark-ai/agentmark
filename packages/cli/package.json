@@ -10,7 +10,7 @@
     "lint": "next lint",
     "serve": "node ./dist/src/json-server",
     "build": "tsc && yarn copy-editor-rules",
-    "copy-editor-rules": "npx cpy ./src/utils/editor-rules ./dist/utils/editor-rules"
+    "copy-editor-rules": "npx cpy --flat ./src/utils/editor-rules  ./dist/utils/editor-rules"
   },
   "author": "",
   "license": "ISC",
