@@ -4,6 +4,7 @@ import {
   ImageConfig,
   ObjectConfig,
   PromptShape,
+  SpeechConfig,
 } from "@agentmark/agentmark-core";
 
 export class DefaultAdapter<T extends PromptShape<T>> implements Adapter<T> {
@@ -18,6 +19,10 @@ export class DefaultAdapter<T extends PromptShape<T>> implements Adapter<T> {
   }
 
   adaptImage(input: ImageConfig): ImageConfig {
+    return input;
+  }
+
+  adaptSpeech(input: SpeechConfig) {
     return input;
   }
 }

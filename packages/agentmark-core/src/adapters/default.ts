@@ -29,4 +29,10 @@ export class DefaultAdapter<
   ): ImageConfig {
     return input;
   }
+
+  adaptSpeech(
+    input: any,
+  ): any {
+    return input;
+  }
 }

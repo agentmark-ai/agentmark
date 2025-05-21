@@ -9,11 +9,12 @@ export type { AgentMarkOptions } from './agentmark';
 export type { 
   TextConfig,
   ImageConfig,
+  SpeechConfig,
+  ObjectConfig,
   Adapter,
   PromptMetadata,
   ChatMessage,
   AdaptOptions,
-  ObjectConfig,
   PromptShape,
   PromptKey,
   KeysWithKind,
