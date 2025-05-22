@@ -39,6 +39,8 @@ const init = async () => {
     choices: modelChoices,
   });
 
+  config.builtInModels = [model]
+
   const { shouldCreateExample } = await prompts({
     name: "shouldCreateExample",
     message: "Do you want to include a typescript example app?",
