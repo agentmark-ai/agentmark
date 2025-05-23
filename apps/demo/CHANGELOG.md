@@ -1,5 +1,12 @@
 # agentmark-demo
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [3278b5f]
+  - @agentmark/agentmark-core@3.1.1
+
 ## 0.0.5
 
 ### Patch Changes
