@@ -102,7 +102,7 @@ export function activate(context: vscode.ExtensionContext) {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const { partialObjectStream: objectStream } = streamObject(
-              vercelInput
+              vercelInput as any
             );
             if (objectStream) {
               let isFirstChunk = true;
