@@ -1,7 +1,7 @@
 <h1 align="center">AgentMark</h1>
 
 <p align="center">
-  <a href="https://github.com/agentmark-ai">
+  <a href="https://github.com/puzzlet-ai">
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="https://i.imgur.com/j7nNMip.png">
       <source media="(prefers-color-scheme: dark)" srcset="https://i.imgur.com/j7nNMip.png">
@@ -15,9 +15,9 @@
 </p>
 
 <p align="center">
-  <a href="https://agentmark.co">Homepage</a>
+  <a href="https://agentmark.co">Homepage</a> |
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
-  <a href="https://docs.agentmark.co/agentmark/">Docs</a> |
+  <a href="https://docs.agentmark.co/agentmark/">Docs</a>
 </p>
 
 ---
@@ -25,9 +25,10 @@
 
 ## Overview
 
-Markdown-based prompts and evals for the AI Era.
-
-![AgentMark](https://mintlify.s3.us-west-1.amazonaws.com/puzzlet-9ba7bb98/images/example.png)
+Type-safe markdown-based prompts and evals.
+<p>
+  <img src="https://github.com/agentmark-ai/agentmark/blob/main/assets/agentmark-mdx.png" alt="AgentMark"> 
+<p>
 
 ### Features
 
@@ -91,8 +92,6 @@ By default, AgentMark doesn't support any models or calling any LLM providers. I
 | Custom    | ✅ | ✅ |
 | Vercel (Recommended)  | ✅ | ✅ |
 | Mastra    | ⚠️ Coming Soon | ⚠️ |
-| LangChain  | ⚠️ Coming Soon | ❌ |
-| OpenAI Compatible    | ⚠️ Coming Soon | ❌ |
 
 Want to add support for another adapter? Open an [issue](https://github.com/agentmark-ai/agentmark/issues).
 
@@ -139,4 +138,4 @@ Join our community to collaborate, ask questions, and stay updated:
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/agentmark-ai/agentmark/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/agentmark-ai/agentmark/blob/main/LICENSE.md).

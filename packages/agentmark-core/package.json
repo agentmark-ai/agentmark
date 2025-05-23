@@ -21,7 +21,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && npx cpy ../../README.md ../../logo.svg ./"
+    "build": "tsup && npx cpy --flat ../../README.md ./"
   },
   "devDependencies": {
     "@types/node": "^22.8.1",
