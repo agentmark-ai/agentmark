@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.0.3
+
+### Patch Changes
+
+- addfd9b: Add built in model during cli init
+
 ## 1.0.2
 
 ### Patch Changes
