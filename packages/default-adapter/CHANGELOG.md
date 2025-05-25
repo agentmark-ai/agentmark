@@ -1,5 +1,16 @@
 # @agentmark/default-adapter
 
+## 4.0.0
+
+### Minor Changes
+
+- fe78baf: Support file attachments
+
+### Patch Changes
+
+- Updated dependencies [fe78baf]
+  - @agentmark/agentmark-core@3.1.0
+
 ## 3.0.1
 
 ### Patch Changes

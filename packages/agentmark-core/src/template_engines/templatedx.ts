@@ -13,17 +13,21 @@ import {
   ObjectConfig,
   TextConfig,
   ImageConfig,
+  RichChatMessage,
   SpeechConfig,
 } from "../types";
+import { ImagePart, TextPart, FilePart } from "ai";
 
 type ExtractedField = {
   name: string;
-  content: string;
+  content: string | Array<TextPart | ImagePart | FilePart>;
 };
 
 type SharedContext = {
   "__agentmark-extractTextPromises"?: Promise<ExtractedField>[];
 };
+
+const USER = "User";
 
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
@@ -41,6 +45,10 @@ export class ExtractTextPlugin extends TagPlugin {
     const promise = new Promise(async (resolve, reject) => {
       try {
         const childScope = scope.createChild();
+        if (tagName === USER) {
+          childScope.setShared("__insideMessageType", USER);
+        }
+
         const transformer = createNodeTransformer(childScope);
         const processedChildren = await Promise.all(
           children.map(async (child) => {
@@ -48,18 +56,30 @@ export class ExtractTextPlugin extends TagPlugin {
             return Array.isArray(result) ? result : [result];
           })
         );
+
         const flattenedChildren = processedChildren.flat();
         const extractedText = nodeHelpers.toMarkdown({
           type: "root",
           // @ts-ignore
           children: flattenedChildren,
         });
-        resolve({ content: extractedText.trim(), name: tagName });
+
+        const mediaParts = scope.getShared("__puzzlet-mediaParts") || [];
+        const hasMediaContent = tagName === USER && mediaParts.length;
+        const content = hasMediaContent
+          ? [{ type: "text", text: extractedText.trim() }, ...media]
+          : extractedText.trim();
+
+        resolve({
+          content,
+          name: tagName,
+        });
       } catch (error) {
         reject(error);
       }
     });
 
+    const media = scope.getShared("__puzzlet-mediaParts") || [];
     const promises = scope.getShared("__agentmark-extractTextPromises");
     if (!promises) {
       scope.setShared("__agentmark-extractTextPromises", [promise]);
@@ -71,8 +91,66 @@ export class ExtractTextPlugin extends TagPlugin {
   }
 }
 
+export class ExtractMediaPlugin extends TagPlugin {
+  private readonly key = "__puzzlet-mediaParts";
+  async transform(
+    props: Record<string, any>,
+    _children: Node[],
+    pluginContext: PluginContext
+  ): Promise<Node[]> {
+    const { tagName, scope } = pluginContext;
+    if (!tagName) throw new Error("Missing tagName in pluginContext");
+
+    const isInsideUser = scope.getShared("__insideMessageType");
+    if (!(isInsideUser === USER))
+      throw new Error(
+        "ImageAttachment and FileAttachment tags must be inside User tag."
+      );
+
+    const mediaParts = scope.getShared(this.key) || [];
+
+    /*
+     * For both ImageAttachment and FileAttachment, we need to ensure the required prop
+     * Are defined (even if they are an empty string or passed from inputProps).
+     * This allows for placeholders like image={props.image}, which resolve later during formatting.
+     */
+
+    if (tagName === "ImageAttachment") {
+      const { image, mimeType } = props;
+
+      if (image == undefined) {
+        throw new Error("ImageAttachment must contains an image prop");
+      }
+
+      if (image) {
+        mediaParts.push({
+          type: "image",
+          image,
+          ...(mimeType && { mimeType }),
+        });
+      }
+    } else if (tagName === "FileAttachment") {
+      const { data, mimeType } = props;
+      if (data == undefined || mimeType == undefined) {
+        throw new Error("FileAttachment must contains data and mimeType props");
+      }
+      if (data && mimeType) {
+        mediaParts.push({ type: "file", data, mimeType });
+      }
+    }
+    scope.setShared(this.key, mediaParts);
+
+    return [];
+  }
+}
+
+TagPluginRegistry.register(new ExtractMediaPlugin(), [
+  "ImageAttachment",
+  "FileAttachment",
+]);
+
 TagPluginRegistry.register(new ExtractTextPlugin(), [
-  "User",
+  USER,
   "System",
   "Assistant",
 ]);
@@ -95,8 +173,8 @@ export class TemplateDXTemplateEngine implements TemplateEngine {
   }
 }
 
-function getMessages(extractedFields: Array<any>): ChatMessage[] {
-  const messages: ChatMessage[] = [];
+function getMessages(extractedFields: Array<any>): RichChatMessage[] {
+  const messages: RichChatMessage[] = [];
   extractedFields.forEach((field, index) => {
     const fieldName = field.name.toLocaleLowerCase();
     if (index !== 0 && fieldName === "system") {

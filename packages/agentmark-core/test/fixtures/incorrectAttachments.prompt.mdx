@@ -1,0 +1,27 @@
+---
+name: math
+object_config:
+  model_name: test-model
+  temperature: 0.5
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+    required: ["answer"]
+---
+
+<System>
+You are a helpful math tutor.
+<ImageAttachment image="https://example.com/image.png" />
+<FileAttachment data="https://example.com/document.pdf" mimeType={props.fileMimeType} />
+</System>
+
+<User>
+  hello!!!!
+</User>
+
+<Assistant>
+  <ImageAttachment image="https://example.com/image.png" />
+  <FileAttachment data="https://example.com/document.pdf" mimeType={props.fileMimeType} />
+</Assistant>

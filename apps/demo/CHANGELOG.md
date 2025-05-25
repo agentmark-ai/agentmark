@@ -1,5 +1,20 @@
 # agentmark-demo
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [3278b5f]
+  - @agentmark/agentmark-core@3.1.1
+
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [fe78baf]
+  - @agentmark/agentmark-core@3.1.0
+  - @agentmark/vercel-ai-v4-adapter@4.0.0
+
 ## 0.0.4
 
 ### Patch Changes

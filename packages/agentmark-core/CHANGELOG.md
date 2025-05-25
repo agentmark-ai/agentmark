@@ -1,5 +1,17 @@
 # @agentmark/agentmark-core
 
+## 3.1.1
+
+### Patch Changes
+
+- 3278b5f: Agentmark readme not being copied correctly
+
+## 3.1.0
+
+### Minor Changes
+
+- fe78baf: Support file attachments
+
 ## 3.0.1
 
 ### Patch Changes

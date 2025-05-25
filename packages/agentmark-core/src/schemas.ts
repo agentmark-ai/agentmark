@@ -7,6 +7,49 @@ export const ChatMessageSchema = z.object({
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
+export const textPartSchema = z.object({
+  type: z.literal("text"),
+  text: z.string(),
+});
+
+export const imagePartSchema = z.object({
+  type: z.literal("image"),
+  image: z.string().url(),
+  mimeType: z.string().optional(),
+});
+
+export const filePartSchema = z.object({
+  type: z.literal("file"),
+  data: z.string().url(),
+  mimeType: z.string(),
+});
+
+export const userMessagesSchema = z.object({
+  role: z.literal("user"),
+  content: z.union([
+    z.string(),
+    z.array(z.union([textPartSchema, imagePartSchema, filePartSchema])),
+  ]),
+});
+
+export const assistantMessagesSchema = z.object({
+  role: z.literal("assistant"),
+  content: z.string(),
+});
+
+export const systemMessagesSchema = z.object({
+  role: z.literal("system"),
+  content: z.string(),
+});
+
+export const RichChatMessageSchema = z.union([
+  userMessagesSchema,
+  assistantMessagesSchema,
+  systemMessagesSchema,
+]);
+
+export type RichChatMessage = z.infer<typeof RichChatMessageSchema>;
+
 export const TextSettingsConfig = z.object({
   model_name: z.string(),
   max_tokens: z.number().optional(),
@@ -96,7 +139,7 @@ export type TextConfig = z.infer<typeof TextConfigSchema>;
 
 export const ObjectConfigSchema = z.object({
   name: z.string(),
-  messages: z.array(ChatMessageSchema),
+  messages: z.array(RichChatMessageSchema),
   object_config: ObjectSettingsConfig,
 });
 
@@ -104,7 +147,7 @@ export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
 
 export const ImageConfigSchema = z.object({
   name: z.string(),
-  messages: z.array(ChatMessageSchema),
+  messages: z.array(RichChatMessageSchema),
   image_config: ImageSettingsConfig,
 });
 

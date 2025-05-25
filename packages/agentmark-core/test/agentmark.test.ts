@@ -16,6 +16,16 @@ type TestPromptTypes2 = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  "attachments.prompt.mdx": {
+    kind: "object";
+    input: { userMessage: string; fileMimeType: string; imageLink: string };
+    output: { answer: string };
+  };
+  "incorrectAttachments.prompt.mdx": {
+    kind: "object";
+    input: {};
+    output: { answer: string };
+  };
 };
 
 type TestPromptTypes = {
@@ -143,5 +153,71 @@ describe("AgentMark Integration", () => {
     expect(result.object_config.model_name).toBe("test-model");
     expect(result.object_config.schema).toBeDefined();
     expect(result.object_config.schema.properties.answer).toBeDefined();
+  });
+
+  it("should extract rich content from <User> including images, files, and text (with looped mimeTypes)", async () => {
+    const fixturesDir = path.resolve(__dirname, "./fixtures");
+    const fileLoader = new FileLoader(fixturesDir);
+
+    const agentMark = createAgentMark({
+      loader: fileLoader,
+      adapter: new DefaultAdapter<TestPromptTypes2>(),
+      templateEngine: new TemplateDXTemplateEngine(),
+    });
+
+    const prompt = await agentMark.loadObjectPrompt("attachments.prompt.mdx");
+    const result = await prompt.format({
+      props: {
+        userMessage: "Take a look at those attachments.",
+        fileMimeType: "application/pdf",
+        imageLink: "https://example.com/image.png",
+      },
+    });
+
+    const userMessage = result.messages.find((m) => m.role === "user");
+    expect(userMessage).toBeDefined();
+
+    const content = userMessage!.content;
+    expect(Array.isArray(content)).toBe(true);
+    expect(content).toHaveLength(5); // 1 text + 1 image + 1 file + 2 looped images
+
+    const parts = content;
+
+    expect(parts).toEqual([
+      { type: "text", text: "hello!!!!Take a look at those attachments." },
+      { type: "image", image: "https://example.com/image.png" },
+      {
+        type: "file",
+        data: "https://example.com/document.pdf",
+        mimeType: "application/pdf",
+      },
+      {
+        type: "image",
+        image: "https://example.com/loop.png",
+        mimeType: "image/jpeg",
+      },
+      {
+        type: "image",
+        image: "https://example.com/loop.png",
+        mimeType: "image/png",
+      },
+    ]);
+  });
+
+  it("should throw an error if the attachments are not inside User tag only", async () => {
+    const fixturesDir = path.resolve(__dirname, "./fixtures");
+    const fileLoader = new FileLoader(fixturesDir);
+
+    const agentMark = createAgentMark({
+      loader: fileLoader,
+      adapter: new DefaultAdapter<TestPromptTypes2>(),
+      templateEngine: new TemplateDXTemplateEngine(),
+    });
+
+    await expect(
+      agentMark.loadObjectPrompt("incorrectAttachments.prompt.mdx")
+    ).rejects.toThrowError(
+      "Error processing MDX JSX Element: ImageAttachment and FileAttachment tags must be inside User tag."
+    );
   });
 });

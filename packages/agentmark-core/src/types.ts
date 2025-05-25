@@ -7,6 +7,7 @@ import {
   ImageConfig,
   SpeechConfig,
   ChatMessage,
+  RichChatMessage,
 } from "./schemas";
 
 export type JSONPrimitive = string | number | boolean | null;
@@ -23,6 +24,7 @@ export type {
   ObjectConfig,
   SpeechConfig,
   ChatMessage,
+  RichChatMessage,
 };
 
 export type PromptShape<T> = { [K in keyof T]: { input: any; output: any } };

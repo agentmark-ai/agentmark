@@ -2,7 +2,7 @@ import type {
   TextConfig,
   ImageConfig,
   PromptMetadata,
-  ChatMessage,
+  RichChatMessage,
   AdaptOptions,
   ObjectConfig,
   PromptShape,
@@ -32,7 +32,7 @@ type ToolSetMap<O extends Record<string, any>> = {
 
 export type VercelAITextParams<TS extends Record<string, Tool>> = {
   model: LanguageModel;
-  messages: ChatMessage[];
+  messages: RichChatMessage[];
   temperature?: number;
   maxTokens?: number;
   topP?: number;
@@ -47,7 +47,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
 
 export interface VercelAIObjectParams<T> {
   model: LanguageModel;
-  messages: ChatMessage[];
+  messages: RichChatMessage[];
   schema: Schema<T>;
   temperature?: number;
   maxTokens?: number;

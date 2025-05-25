@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/cli",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "lint": "next lint",
     "serve": "node ./dist/src/json-server",
     "build": "tsc && yarn copy-editor-rules",
-    "copy-editor-rules": "npx cpy ./src/utils/editor-rules ./dist/utils/editor-rules"
+    "copy-editor-rules": "npx cpy --flat ./src/utils/editor-rules  ./dist/utils/editor-rules"
   },
   "author": "",
   "license": "ISC",

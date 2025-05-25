@@ -114,8 +114,9 @@ export function activate(context: vscode.ExtensionContext) {
           case "object_config": {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
-            const { partialObjectStream: objectStream } =
-              streamObject(vercelInput);
+            const { partialObjectStream: objectStream } = streamObject(
+              vercelInput as any
+            );
             if (objectStream) {
               let isFirstChunk = true;
               let printed = false;
