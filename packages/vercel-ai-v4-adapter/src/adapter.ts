@@ -351,8 +351,8 @@ export class VercelAIAdapter<
       model,
       text: settings.text,
       ...(settings?.voice !== undefined ? { voice: settings.voice } : {}),
-      ...(settings?.outputFormat !== undefined
-        ? { outputFormat: settings.outputFormat }
+      ...(settings?.output_format !== undefined
+        ? { outputFormat: settings.output_format }
         : {}),
       ...(settings?.instructions !== undefined
         ? { instructions: settings.instructions }
