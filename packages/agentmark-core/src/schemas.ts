@@ -153,9 +153,9 @@ export const ImageConfigSchema = z.object({
 
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
-export const SpeechCongfigSchema = z.object({
+export const SpeechConfigSchema = z.object({
   name: z.string(),
   speech_config: SpeechSettingsConfig,
 });
 
-export type SpeechConfig = z.infer<typeof SpeechCongfigSchema>;
+export type SpeechConfig = z.infer<typeof SpeechConfigSchema>;

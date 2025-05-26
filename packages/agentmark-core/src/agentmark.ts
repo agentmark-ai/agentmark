@@ -9,7 +9,7 @@ import {
   ImageConfigSchema,
   ObjectConfigSchema,
   TextConfigSchema,
-  SpeechCongfigSchema,
+  SpeechConfigSchema,
 } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ObjectPrompt, ImagePrompt, TextPrompt, SpeechPrompt } from "./prompts";
@@ -124,7 +124,7 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    SpeechCongfigSchema.parse(
+    SpeechConfigSchema.parse(
       await this.templateEngine.compile({
         template: content,
         configType: "speech",

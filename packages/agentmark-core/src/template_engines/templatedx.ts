@@ -27,17 +27,15 @@ type ExtractedField = {
 type SharedContext = {
   "__agentmark-extractTextPromises"?: Promise<ExtractedField>[];
 };
-export enum Role {
-  user = "user",
-  system = "system",
-  assistant = "assistant",
-}
 
 const USER = "User";
 const SYSTEM = "System";
 const ASSISTANT = "Assistant";
+const ROLETAGS = new Set([USER, SYSTEM, ASSISTANT]);
+
 const SPEECH_PROMPT = "SpeechPrompt";
 const IMAGE_PROMPT = "ImagePrompt";
+const PROMPTTAGS = new Set([SPEECH_PROMPT, IMAGE_PROMPT]);
 
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
@@ -188,7 +186,13 @@ export class TemplateDXTemplateEngine implements TemplateEngine {
   }
 }
 
-function getMessages(extractedFields: Array<any>): RichChatMessage[] {
+function getMessages({
+  extractedFields,
+  configType,
+}: {
+  extractedFields: Array<any>;
+  configType?: PromptKind;
+}): RichChatMessage[] {
   const messages: RichChatMessage[] = [];
   extractedFields.forEach((field, index) => {
     const fieldName = field.name;
@@ -197,10 +201,14 @@ function getMessages(extractedFields: Array<any>): RichChatMessage[] {
         `System message may only be the first message: ${field.content}`
       );
     }
-    const role = fieldName.toLocaleLowerCase();
-    if (Object.values(Role).includes(role)) {
-      messages.push({ role, content: field.content });
+    if (!ROLETAGS.has(fieldName)) {
+      throw new Error(
+        `Invalid role tag:"${fieldName}" in config type: ${configType}.`
+      );
     }
+
+    const role = fieldName.toLocaleLowerCase();
+    messages.push({ role, content: field.content });
   });
   return messages;
 }
@@ -208,20 +216,32 @@ function getMessages(extractedFields: Array<any>): RichChatMessage[] {
 function getPrompt({
   tagName,
   extractedFields,
+  configType,
 }: {
   tagName: typeof SPEECH_PROMPT | typeof IMAGE_PROMPT;
   extractedFields: Array<ExtractedField>;
+  configType: PromptKind;
 }): string {
   switch (tagName) {
     case SPEECH_PROMPT:
       const speechField = extractedFields.find(
         (field) => field.name === SPEECH_PROMPT
       );
+      if (!speechField) {
+        throw new Error(
+          `'SpeechPrompt' tag not found for config type: ${configType}.`
+        );
+      }
       return (speechField?.content as string) ?? "";
     case IMAGE_PROMPT:
       const imageField = extractedFields.find(
         (field) => field.name === IMAGE_PROMPT
       );
+      if (!imageField) {
+        throw new Error(
+          `'ImagePrompt' tag not found for config type: ${configType}.`
+        );
+      }
       return (imageField?.content as string) ?? "";
     default:
       return "";
@@ -245,7 +265,18 @@ export async function getRawConfig({
   const extractedFields = await Promise.all(extractedFieldPromises);
 
   const name: string = frontMatter.name;
-  const messages = getMessages(extractedFields);
+
+  let prompt: string | undefined;
+  let messages: RichChatMessage[] = [];
+  if (configType === "speech" || configType === "image") {
+    prompt = getPrompt({
+      tagName: configType === "speech" ? SPEECH_PROMPT : IMAGE_PROMPT,
+      extractedFields,
+      configType,
+    });
+  } else {
+    messages = getMessages({ extractedFields, configType });
+  }
 
   let speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
   let imageSettings: ImageSettings | undefined = frontMatter.image_config;
@@ -254,29 +285,24 @@ export async function getRawConfig({
 
   switch (configType) {
     case "speech": {
-      const speechPrompt = getPrompt({
-        tagName: SPEECH_PROMPT,
-        extractedFields,
-      });
-      if (speechSettings) {
+      if (speechSettings && prompt) {
         return {
           name,
           speech_config: {
             ...speechSettings,
-            text: speechPrompt,
+            text: prompt,
           },
         };
       }
       break;
     }
     case "image": {
-      const imagePrompt = getPrompt({ tagName: IMAGE_PROMPT, extractedFields });
-      if (imageSettings) {
+      if (imageSettings && prompt) {
         return {
           name,
           image_config: {
             ...imageSettings,
-            prompt: imagePrompt,
+            prompt: prompt,
           },
         };
       }
