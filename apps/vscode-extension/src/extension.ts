@@ -3,6 +3,7 @@ import { TemplateDXTemplateEngine } from "@agentmark/agentmark-core";
 import { createAgentMarkClient } from "@agentmark/vercel-ai-v4-adapter";
 import {
   experimental_generateImage as generateImage,
+  experimental_generateSpeech as generateSpeech,
   streamObject,
   streamText,
 } from "ai";
@@ -51,6 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
       } else if (compiledYaml?.text_config) {
         modelConfig = "text_config";
         model = compiledYaml.text_config;
+      } else if (compiledYaml?.speech_config) {
+        modelConfig = "speech_config";
+        model = compiledYaml.speech_config;
       } else {
         return vscode.window.showErrorMessage(
           "No config (image_config, object_config, or text_config) found in the file."
@@ -97,7 +101,16 @@ export function activate(context: vscode.ExtensionContext) {
             ch.show();
             break;
           }
-
+          case "speech_config": {
+            const prompt = await agentMark.loadSpeechPrompt(ast);
+            const vercelInput = await prompt.format({ props, apiKey });
+            const speechResult = await generateSpeech(vercelInput);
+            ch.clear();
+            ch.appendLine("RESULT:");
+            ch.appendLine(JSON.stringify(speechResult, null, 2));
+            ch.show();
+            break;
+          }
           case "object_config": {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });

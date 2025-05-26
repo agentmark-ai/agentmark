@@ -28,6 +28,14 @@ modelRegistry.registerModels(
 );
 
 modelRegistry.registerModels(
+  ["tts-1-hd", "tts-1", "gpt-4o-mini-tts"],
+  (name: string, options) => {
+    const provider = createOpenAI(options);
+    return provider.speech(name);
+  }
+);
+
+modelRegistry.registerModels(
   [
     "claude-3-opus-20240229",
     "claude-3-sonnet-20240229",
@@ -56,4 +64,8 @@ export const modelProviderMap: Record<string, "openai" | "anthropic"> = {
   "claude-3-sonnet-20240229": "anthropic",
   "claude-3-haiku-20240307": "anthropic",
 };
-export type modelConfig = "image_config" | "object_config" | "text_config";
+export type modelConfig =
+  | "image_config"
+  | "object_config"
+  | "text_config"
+  | "speech_config";

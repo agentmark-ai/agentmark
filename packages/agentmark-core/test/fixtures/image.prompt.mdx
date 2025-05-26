@@ -3,6 +3,9 @@ name: image
 image_config:
   model_name: test-model
   num_images: 1
+  size: 512x512
+  aspect_ratio: 1:1
+  seed: 12345
 input_schema:
   type: image
   properties:
@@ -11,14 +14,7 @@ input_schema:
   required:
     - userMessage
 ---
-<System>
-You are a graphic designer designing math problems.
-</System>
 
-<User>
-{props.userMessage}
-</User>
-
-<Assistant>
-Here's your image!
-</Assistant> 
+<ImagePrompt>
+This is a test for the image prompt to be drawn.
+</ImagePrompt>

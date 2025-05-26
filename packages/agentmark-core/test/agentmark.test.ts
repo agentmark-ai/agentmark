@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "path";
-import { createAgentMark } from "../src/agentmark";
+import { createAgentMarkClient } from "@agentmark/default-adapter";
 import { FileLoader } from "../src/loaders/file";
 import { DefaultAdapter } from "../src/adapters/default";
 import { TemplateDXTemplateEngine } from "../src/template_engines/templatedx";
 
-type TestPromptTypes2 = {
+type TestPromptTypes = {
   "math.prompt.mdx": {
     kind: "object";
     input: { userMessage: string };
@@ -26,33 +26,26 @@ type TestPromptTypes2 = {
     input: {};
     output: { answer: string };
   };
-};
-
-type TestPromptTypes = {
-  "math.prompt.mdx": {
+  "incorrectImage.prompt.mdx": {
+    kind: "image";
+    input: { userMessage: string };
+    output: never;
+  };
+  "speech.prompt.mdx": {
+    kind: "speech";
     input: { userMessage: string };
     output: { answer: string };
-  };
-  "image.prompt.mdx": {
-    input: { userMessage: string };
-    output: never;
-  };
-  "text.prompt.mdx": {
-    input: { userMessage: string };
-    output: never;
   };
 };
 
 describe("AgentMark Integration", () => {
-  it("should load and compile prompts with type safety", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
+  const fixturesDir = path.resolve(__dirname, "./fixtures");
+  const fileLoader = new FileLoader(fixturesDir);
+  const agentMark = createAgentMarkClient<TestPromptTypes>({
+    loader: fileLoader,
+  });
 
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
+  it("should load and compile prompts with type safety", async () => {
     const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
     const result = await mathPrompt.format({
       props: {
@@ -69,68 +62,67 @@ describe("AgentMark Integration", () => {
     expect(result.messages[1].content).toBe("What is the sum of 5 and 3?");
     expect(result.messages[2].role).toBe("assistant");
     expect(result.messages[2].content).toBe("Here's your answer!");
+  });
 
+  it("should load and compile object prompt with type safety", async () => {
+    const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
+    const result = await mathPrompt.format({
+      userMessage: "What is the sum of 5 and 3?",
+    });
     expect(result.object_config.model_name).toBe("test-model");
     expect(result.object_config.schema).toBeDefined();
     expect(result.object_config.schema.properties.answer).toBeDefined();
   });
 
   it("should load and compile image prompt with type safety", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     const imagePrompt = await agentMark.loadImagePrompt("image.prompt.mdx");
     const result = await imagePrompt.format({
       props: {
         userMessage: "Design an image showing a triangle and a circle.",
       },
     });
+    expect(result.image_config.prompt).toBe(
+      "This is a test for the image prompt to be drawn."
+    );
+    expect(result.image_config.model_name).toBe("test-model");
+    expect(result.image_config.num_images).toBe(1);
+    expect(result.image_config.size).toBe("512x512");
+    expect(result.image_config.aspect_ratio).toBe("1:1");
+    expect(result.image_config.seed).toBe(12345);
+  });
 
-    expect(result).toBeDefined();
-    expect(result.name).toBe("image");
-    expect(result.messages).toHaveLength(3);
-    expect(result.messages[0].role).toBe("system");
-    expect(result.messages[0].content).toBe(
-      "You are a graphic designer designing math problems."
-    );
-    expect(result.messages[1].role).toBe("user");
-    expect(result.messages[1].content).toBe(
-      "Design an image showing a triangle and a circle."
-    );
-    expect(result.messages[2].role).toBe("assistant");
-    expect(result.messages[2].content).toBe("Here's your image!");
-    expect(result.image_config).toEqual({
-      model_name: "test-model",
-      num_images: 1,
+  it("should load and compile speech prompt with type safety", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech.prompt.mdx");
+    const result = await speechPrompt.format({
+      userMessage: "Generate a speech for the given text.",
     });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe(
+      "This is a test for the speech prompt to be spoken aloud."
+    );
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe(
+      "Please read this text aloud."
+    );
+    expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should throw an error for invalid prompt tags", async () => {
+    await expect(
+      agentMark.loadImagePrompt("incorrectImage.prompt.mdx")
+    ).rejects.toThrowError(
+      "ImagePrompt and System tags cannot be used together."
+    );
   });
 
   it("should enforce type safety on prompt paths", () => {
-    const fileLoader = new FileLoader(path.resolve(__dirname, "./fixtures"));
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
     expect(async () => {
       await agentMark.loadObjectPrompt("math.prompt.mdx");
     }).not.toThrow();
   });
 
   it("should enforce type safety on input props", async () => {
-    const fileLoader = new FileLoader(path.resolve(__dirname, "./fixtures"));
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
     const result = await mathPrompt.format({
       props: { userMessage: "What is 2+2?" },
@@ -139,15 +131,6 @@ describe("AgentMark Integration", () => {
   });
 
   it("should work with preloaded prompt objects", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     const originalPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
     const preloadedTemplate = originalPrompt.template;
     const preloadedPrompt = await agentMark.loadObjectPrompt(
@@ -173,15 +156,6 @@ describe("AgentMark Integration", () => {
   });
 
   it("should extract rich content from <User> including images, files, and text (with looped mimeTypes)", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     const prompt = await agentMark.loadObjectPrompt("attachments.prompt.mdx");
     const result = await prompt.format({
       props: {
@@ -222,15 +196,6 @@ describe("AgentMark Integration", () => {
   });
 
   it("should throw an error if the attachments are not inside User tag only", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     await expect(
       agentMark.loadObjectPrompt("incorrectAttachments.prompt.mdx")
     ).rejects.toThrowError(

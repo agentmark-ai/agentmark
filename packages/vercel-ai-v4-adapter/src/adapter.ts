@@ -7,6 +7,7 @@ import type {
   ObjectConfig,
   PromptShape,
   KeysWithKind,
+  SpeechConfig,
 } from "@agentmark/agentmark-core";
 import type {
   LanguageModel,
@@ -14,6 +15,7 @@ import type {
   Schema,
   Tool,
   ToolExecutionOptions,
+  SpeechModel,
 } from "ai";
 import { jsonSchema } from "ai";
 
@@ -68,10 +70,19 @@ export interface VercelAIImageParams {
   seed?: number;
 }
 
+export interface VercelAISpeechParams {
+  model: SpeechModel;
+  text: string;
+  voice?: string;
+  outputFormat?: string;
+  instructions?: string;
+  speed?: number;
+}
+
 export type ModelFunctionCreator = (
   modelName: string,
   options?: AdaptOptions
-) => LanguageModel | ImageModel;
+) => LanguageModel | ImageModel | SpeechModel;
 
 const getTelemetryConfig = (
   telemetry: AdaptOptions["telemetry"],
@@ -313,11 +324,10 @@ export class VercelAIAdapter<
     const { model_name: name, ...settings } = input.image_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;
-    const prompt = input.messages.map((message) => message.content).join("\n");
 
     return {
       model,
-      prompt,
+      prompt: settings.prompt,
       ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
       ...(settings?.size !== undefined
         ? { size: settings.size as `${number}x${number}` }
@@ -326,6 +336,28 @@ export class VercelAIAdapter<
         ? { aspectRatio: settings.aspect_ratio as `${number}:${number}` }
         : {}),
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
+    };
+  }
+
+  adaptSpeech(
+    input: SpeechConfig,
+    options: AdaptOptions
+  ): VercelAISpeechParams {
+    const { model_name: name, ...settings } = input.speech_config;
+    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const model = modelCreator(name, options) as SpeechModel;
+
+    return {
+      model,
+      text: settings.text,
+      ...(settings?.voice !== undefined ? { voice: settings.voice } : {}),
+      ...(settings?.output_format !== undefined
+        ? { outputFormat: settings.output_format }
+        : {}),
+      ...(settings?.instructions !== undefined
+        ? { instructions: settings.instructions }
+        : {}),
+      ...(settings?.speed !== undefined ? { speed: settings.speed } : {}),
     };
   }
 }
