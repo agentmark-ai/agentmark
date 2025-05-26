@@ -5,7 +5,7 @@ import { FileLoader } from "../src/loaders/file";
 import { DefaultAdapter } from "../src/adapters/default";
 import { TemplateDXTemplateEngine } from "../src/template_engines/templatedx";
 
-type TestPromptTypes2 = {
+type TestPromptTypes = {
   "math.prompt.mdx": {
     kind: "object";
     input: { userMessage: string };
@@ -15,35 +15,6 @@ type TestPromptTypes2 = {
     kind: "image";
     input: { userMessage: string };
     output: { answer: string };
-  };
-  "attachments.prompt.mdx": {
-    kind: "object";
-    input: { userMessage: string; fileMimeType: string; imageLink: string };
-    output: { answer: string };
-  };
-  "incorrectAttachments.prompt.mdx": {
-    kind: "object";
-    input: {};
-    output: { answer: string };
-  };
-};
-
-type TestPromptTypes = {
-  "math.prompt.mdx": {
-    input: { userMessage: string };
-    output: { answer: string };
-  };
-  "image.prompt.mdx": {
-    input: { userMessage: string };
-    output: never;
-  };
-  "text.prompt.mdx": {
-    input: { userMessage: string };
-    output: never;
-  };
-  "speech.prompt.mdx": {
-    input: { userMessage: string };
-    output: never;
   };
   "attachments.prompt.mdx": {
     kind: "object";
@@ -59,6 +30,11 @@ type TestPromptTypes = {
     kind: "image";
     input: { userMessage: string };
     output: never;
+  };
+  "speech.prompt.mdx": {
+    kind: "speech";
+    input: { userMessage: string };
+    output: { answer: string };
   };
 };
 
