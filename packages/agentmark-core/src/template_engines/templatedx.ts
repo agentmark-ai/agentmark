@@ -36,8 +36,8 @@ export enum Role {
 const USER = "User";
 const SYSTEM = "System";
 const ASSISTANT = "Assistant";
-const SPEECH_TEXT = "SpeechText";
-const IMAGE_TEXT = "ImageText";
+const SPEECH_PROMPT = "SpeechPrompt";
+const IMAGE_PROMPT = "ImagePrompt";
 
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
@@ -162,8 +162,8 @@ TagPluginRegistry.register(new ExtractTextPlugin(), [
   USER,
   SYSTEM,
   ASSISTANT,
-  SPEECH_TEXT,
-  IMAGE_TEXT,
+  SPEECH_PROMPT,
+  IMAGE_PROMPT,
 ]);
 
 type CompiledConfig = {
@@ -209,18 +209,18 @@ function getPrompt({
   tagName,
   extractedFields,
 }: {
-  tagName: typeof SPEECH_TEXT | typeof IMAGE_TEXT;
+  tagName: typeof SPEECH_PROMPT | typeof IMAGE_PROMPT;
   extractedFields: Array<ExtractedField>;
 }): string {
   switch (tagName) {
-    case SPEECH_TEXT:
+    case SPEECH_PROMPT:
       const speechField = extractedFields.find(
-        (field) => field.name === SPEECH_TEXT
+        (field) => field.name === SPEECH_PROMPT
       );
       return (speechField?.content as string) ?? "";
-    case IMAGE_TEXT:
+    case IMAGE_PROMPT:
       const imageField = extractedFields.find(
-        (field) => field.name === IMAGE_TEXT
+        (field) => field.name === IMAGE_PROMPT
       );
       return (imageField?.content as string) ?? "";
     default:
@@ -247,19 +247,22 @@ export async function getRawConfig({
   const name: string = frontMatter.name;
   const messages = getMessages(extractedFields);
 
-  let speech_config: SpeechSettings | undefined = frontMatter.speech_config;
-  let image_config: ImageSettings | undefined = frontMatter.image_config;
-  let object_config: ObjectSettings | undefined = frontMatter.object_config;
-  let text_config: TextSettings | undefined = frontMatter.text_config;
+  let speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
+  let imageSettings: ImageSettings | undefined = frontMatter.image_config;
+  let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
+  let textSettings: TextSettings | undefined = frontMatter.text_config;
 
   switch (configType) {
     case "speech": {
-      const speechPrompt = getPrompt({ tagName: SPEECH_TEXT, extractedFields });
-      if (speech_config) {
+      const speechPrompt = getPrompt({
+        tagName: SPEECH_PROMPT,
+        extractedFields,
+      });
+      if (speechSettings) {
         return {
           name,
           speech_config: {
-            ...speech_config,
+            ...speechSettings,
             text: speechPrompt,
           },
         };
@@ -267,12 +270,12 @@ export async function getRawConfig({
       break;
     }
     case "image": {
-      const imagePrompt = getPrompt({ tagName: IMAGE_TEXT, extractedFields });
-      if (image_config) {
+      const imagePrompt = getPrompt({ tagName: IMAGE_PROMPT, extractedFields });
+      if (imageSettings) {
         return {
           name,
           image_config: {
-            ...image_config,
+            ...imageSettings,
             prompt: imagePrompt,
           },
         };
@@ -280,22 +283,22 @@ export async function getRawConfig({
       break;
     }
     case "object": {
-      if (object_config) {
+      if (objectSettings) {
         return {
           name,
           messages,
-          object_config,
+          object_config: objectSettings,
         };
       }
       break;
     }
     case "text":
     default: {
-      if (text_config) {
+      if (textSettings) {
         return {
           name,
           messages,
-          text_config,
+          text_config: textSettings,
         };
       }
     }

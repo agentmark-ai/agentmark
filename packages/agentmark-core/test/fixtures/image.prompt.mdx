@@ -15,8 +15,13 @@ input_schema:
     - userMessage
 ---
 
+<System>
+# System Prompt
+You are an image generation model. Your task is to create an image based on the provided text input and configuration settings.
+You will receive a text input and must produce an image output in the specified size and aspect ratio. 
+Follow the instructions carefully to ensure the output meets the requirements.
+</System>
 
-<ImageText>
-# Image Prompt
-This is a test for the image prompt. The model should generate an image based on the provided text input.
-</ImageText>
+<ImagePrompt>
+This is a test for the image prompt to be drawn.
+</ImagePrompt>

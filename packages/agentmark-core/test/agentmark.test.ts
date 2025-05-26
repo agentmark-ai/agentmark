@@ -45,7 +45,7 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: never;
   };
-    "attachments.prompt.mdx": {
+  "attachments.prompt.mdx": {
     kind: "object";
     input: { userMessage: string; fileMimeType: string; imageLink: string };
     output: { answer: string };
@@ -102,6 +102,9 @@ describe("AgentMark Integration", () => {
         userMessage: "Design an image showing a triangle and a circle.",
       },
     });
+    expect(result.image_config.prompt).toBe(
+      "This is a test for the image prompt to be drawn."
+    );
     expect(result.image_config.model_name).toBe("test-model");
     expect(result.image_config.num_images).toBe(1);
     expect(result.image_config.size).toBe("512x512");
@@ -116,7 +119,7 @@ describe("AgentMark Integration", () => {
     });
     expect(result.speech_config.model_name).toBe("test-model");
     expect(result.speech_config.text).toBe(
-      "Generate a speech for the given text."
+      "This is a test for the speech prompt to be spoken aloud."
     );
     expect(result.speech_config.voice).toBe("nova");
     expect(result.speech_config.output_format).toBe("mp3");

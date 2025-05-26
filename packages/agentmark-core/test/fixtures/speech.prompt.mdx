@@ -1,8 +1,7 @@
 ---
 name: speech
 speech_config:
-  model_name: tts-1
-  text: "Generate a speech for the given text."
+  model_name: test-model
   voice: "nova"
   speed: 1.0
   output_format: "mp3"
@@ -16,7 +15,6 @@ You will receive a text input and must produce an audio output in the specified 
 </System>
 
 
-<SpeechText>
-# Speech Prompt
-This is a test for the speech prompt. The text should be read aloud by the TTS model specified in the configuration.
-</SpeechText>
+<SpeechPrompt>
+This is a test for the speech prompt to be spoken aloud.
+</SpeechPrompt>
