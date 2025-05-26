@@ -123,7 +123,7 @@ export const SpeechSettingsConfig = z.object({
   model_name: z.string(),
   text: z.string(),
   voice: z.string().optional(),
-  outputFormat: z.string().optional(),
+  output_format: z.string().optional(),
   instructions: z.string().optional(),
   speed: z.number().optional(),
 });

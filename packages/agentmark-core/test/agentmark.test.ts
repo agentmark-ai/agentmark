@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "path";
-import { createAgentMark } from "../src/agentmark";
+import { createAgentMarkClient } from "@agentmark/default-adapter";
 import { FileLoader } from "../src/loaders/file";
 import { DefaultAdapter } from "../src/adapters/default";
 import { TemplateDXTemplateEngine } from "../src/template_engines/templatedx";
@@ -41,10 +41,8 @@ type TestPromptTypes = {
 describe("AgentMark Integration", () => {
   const fixturesDir = path.resolve(__dirname, "./fixtures");
   const fileLoader = new FileLoader(fixturesDir);
-  const agentMark = createAgentMark({
+  const agentMark = createAgentMarkClient<TestPromptTypes>({
     loader: fileLoader,
-    adapter: new DefaultAdapter<TestPromptTypes>(),
-    templateEngine: new TemplateDXTemplateEngine(),
   });
 
   it("should load and compile prompts with type safety", async () => {
