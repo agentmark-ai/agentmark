@@ -104,6 +104,7 @@ export type ObjectSettings = z.infer<typeof ObjectSettingsConfig>;
 
 export const ImageSettingsConfig = z.object({
   model_name: z.string(),
+  prompt: z.string(),
   num_images: z.number().optional(),
   size: z
     .string()
@@ -131,7 +132,7 @@ export type SpeechSettings = z.infer<typeof SpeechSettingsConfig>;
 
 export const TextConfigSchema = z.object({
   name: z.string(),
-  messages: z.array(ChatMessageSchema),
+  messages: z.array(RichChatMessageSchema),
   text_config: TextSettingsConfig,
 });
 
@@ -147,7 +148,6 @@ export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
 
 export const ImageConfigSchema = z.object({
   name: z.string(),
-  messages: z.array(RichChatMessageSchema),
   image_config: ImageSettingsConfig,
 });
 
@@ -155,7 +155,6 @@ export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
 export const SpeechCongfigSchema = z.object({
   name: z.string(),
-  messages: z.array(ChatMessageSchema),
   speech_config: SpeechSettingsConfig,
 });
 

@@ -46,7 +46,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    TextConfigSchema.parse(await this.templateEngine.compile(content));
+    TextConfigSchema.parse(
+      await this.templateEngine.compile({
+        template: content,
+        configType: "text",
+      })
+    );
     return new TextPrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -67,7 +72,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    ObjectConfigSchema.parse(await this.templateEngine.compile(content));
+    ObjectConfigSchema.parse(
+      await this.templateEngine.compile({
+        template: content,
+        configType: "object",
+      })
+    );
     return new ObjectPrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -88,7 +98,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    ImageConfigSchema.parse(await this.templateEngine.compile(content));
+    ImageConfigSchema.parse(
+      await this.templateEngine.compile({
+        template: content,
+        configType: "image",
+      })
+    );
     return new ImagePrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -109,7 +124,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    SpeechCongfigSchema.parse(await this.templateEngine.compile(content));
+    SpeechCongfigSchema.parse(
+      await this.templateEngine.compile({
+        template: content,
+        configType: "speech",
+      })
+    );
     return new SpeechPrompt<T, A, K>(
       content,
       this.templateEngine,

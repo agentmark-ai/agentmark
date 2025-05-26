@@ -45,6 +45,16 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: never;
   };
+    "attachments.prompt.mdx": {
+    kind: "object";
+    input: { userMessage: string; fileMimeType: string; imageLink: string };
+    output: { answer: string };
+  };
+  "incorrectAttachments.prompt.mdx": {
+    kind: "object";
+    input: {};
+    output: { answer: string };
+  };
 };
 
 describe("AgentMark Integration", () => {
@@ -156,15 +166,6 @@ describe("AgentMark Integration", () => {
   });
 
   it("should extract rich content from <User> including images, files, and text (with looped mimeTypes)", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     const prompt = await agentMark.loadObjectPrompt("attachments.prompt.mdx");
     const result = await prompt.format({
       props: {
@@ -205,15 +206,6 @@ describe("AgentMark Integration", () => {
   });
 
   it("should throw an error if the attachments are not inside User tag only", async () => {
-    const fixturesDir = path.resolve(__dirname, "./fixtures");
-    const fileLoader = new FileLoader(fixturesDir);
-
-    const agentMark = createAgentMark({
-      loader: fileLoader,
-      adapter: new DefaultAdapter<TestPromptTypes2>(),
-      templateEngine: new TemplateDXTemplateEngine(),
-    });
-
     await expect(
       agentMark.loadObjectPrompt("incorrectAttachments.prompt.mdx")
     ).rejects.toThrowError(

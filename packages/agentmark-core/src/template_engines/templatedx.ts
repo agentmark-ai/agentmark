@@ -6,17 +6,18 @@ import {
 } from "@agentmark/templatedx";
 import type { Ast } from "@agentmark/templatedx";
 import type { Node } from "mdast";
-import {
-  TemplateEngine,
-  ChatMessage,
-  JSONObject,
-  ObjectConfig,
-  TextConfig,
-  ImageConfig,
+import type { TemplateEngine, JSONObject } from "../types";
+import type { ImagePart, TextPart, FilePart } from "ai";
+import type {
+  PromptKind,
+  ImageSettings,
+  ObjectSettings,
+  TextSettings,
+  SpeechSettings,
   RichChatMessage,
-  SpeechConfig,
+  ChatMessage,
+  AgentmarkConfig,
 } from "../types";
-import { ImagePart, TextPart, FilePart } from "ai";
 
 type ExtractedField = {
   name: string;
@@ -26,8 +27,17 @@ type ExtractedField = {
 type SharedContext = {
   "__agentmark-extractTextPromises"?: Promise<ExtractedField>[];
 };
+export enum Role {
+  user = "user",
+  system = "system",
+  assistant = "assistant",
+}
 
 const USER = "User";
+const SYSTEM = "System";
+const ASSISTANT = "Assistant";
+const SPEECH_TEXT = "SpeechText";
+const IMAGE_TEXT = "ImageText";
 
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
@@ -139,7 +149,6 @@ export class ExtractMediaPlugin extends TagPlugin {
       }
     }
     scope.setShared(this.key, mediaParts);
-
     return [];
   }
 }
@@ -151,62 +160,146 @@ TagPluginRegistry.register(new ExtractMediaPlugin(), [
 
 TagPluginRegistry.register(new ExtractTextPlugin(), [
   USER,
-  "System",
-  "Assistant",
+  SYSTEM,
+  ASSISTANT,
+  SPEECH_TEXT,
+  IMAGE_TEXT,
 ]);
 
 type CompiledConfig = {
   name: string;
   messages: ChatMessage[];
-  image_config?: ImageConfig;
-  object_config?: ObjectConfig;
-  text_config?: TextConfig;
-  speech_config?: SpeechConfig;
+  image_config?: ImageSettings;
+  object_config?: ObjectSettings;
+  text_config?: TextSettings;
+  speech_config?: SpeechSettings;
 };
 
 export class TemplateDXTemplateEngine implements TemplateEngine {
-  async compile<R = CompiledConfig, P extends Record<string, any> = JSONObject>(
-    template: Ast,
-    props?: P
-  ): Promise<R> {
-    return getRawConfig(template, props) as R;
+  async compile<
+    R = CompiledConfig,
+    P extends Record<string, any> = JSONObject
+  >(options: {
+    template: Ast;
+    props?: P;
+    configType?: PromptKind;
+  }): Promise<R> {
+    return getRawConfig({ ...options, ast: options.template }) as R;
   }
 }
 
 function getMessages(extractedFields: Array<any>): RichChatMessage[] {
   const messages: RichChatMessage[] = [];
   extractedFields.forEach((field, index) => {
-    const fieldName = field.name.toLocaleLowerCase();
-    if (index !== 0 && fieldName === "system") {
+    const fieldName = field.name;
+    if (index !== 0 && fieldName === SYSTEM) {
       throw new Error(
-        `System message may only be the first message only: ${field.content}`
+        `System message may only be the first message: ${field.content}`
       );
     }
-    messages.push({ role: fieldName, content: field.content });
+    if (Object.values(Role).includes(fieldName)) {
+      const role = fieldName.toLocaleLowerCase();
+      messages.push({ role, content: field.content });
+    }
   });
   return messages;
 }
 
-export async function getRawConfig<
-  R extends ObjectConfig | ImageConfig | TextConfig | SpeechConfig
->(ast: Ast, props?: JSONObject): Promise<R> {
+function getPrompt({
+  tagName,
+  extractedFields,
+}: {
+  tagName: typeof SPEECH_TEXT | typeof IMAGE_TEXT;
+  extractedFields: Array<ExtractedField>;
+}): string {
+  switch (tagName) {
+    case SPEECH_TEXT:
+      const speechField = extractedFields.find(
+        (field) => field.name === SPEECH_TEXT
+      );
+      return (speechField?.content as string) ?? "";
+    case IMAGE_TEXT:
+      const imageField = extractedFields.find(
+        (field) => field.name === IMAGE_TEXT
+      );
+      return (imageField?.content as string) ?? "";
+    default:
+      return "";
+  }
+}
+
+export async function getRawConfig({
+  ast,
+  props,
+  configType,
+}: {
+  ast: Ast;
+  props?: JSONObject;
+  configType?: PromptKind;
+}): Promise<AgentmarkConfig> {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
   await transform(ast, props || {}, shared);
   const extractedFieldPromises =
     shared["__agentmark-extractTextPromises"] || [];
-  const messages = getMessages(await Promise.all(extractedFieldPromises));
+  const extractedFields = await Promise.all(extractedFieldPromises);
 
-  return {
-    name: frontMatter.name,
-    messages: messages,
-    ...(frontMatter.image_config && { image_config: frontMatter.image_config }),
-    ...(frontMatter.object_config && {
-      object_config: frontMatter.object_config,
-    }),
-    ...(frontMatter.text_config && { text_config: frontMatter.text_config }),
-    ...(frontMatter.speech_config && {
-      speech_config: frontMatter.speech_config,
-    }),
-  };
+  const name: string = frontMatter.name;
+  const messages = getMessages(extractedFields);
+
+  let speech_config: SpeechSettings | undefined = frontMatter.speech_config;
+  let image_config: ImageSettings | undefined = frontMatter.image_config;
+  let object_config: ObjectSettings | undefined = frontMatter.object_config;
+  let text_config: TextSettings | undefined = frontMatter.text_config;
+
+  switch (configType) {
+    case "speech": {
+      const speechPrompt = getPrompt({ tagName: SPEECH_TEXT, extractedFields });
+      if (speech_config) {
+        return {
+          name,
+          speech_config: {
+            ...speech_config,
+            text: speechPrompt,
+          },
+        };
+      }
+      break;
+    }
+    case "image": {
+      const imagePrompt = getPrompt({ tagName: IMAGE_TEXT, extractedFields });
+      if (image_config) {
+        return {
+          name,
+          image_config: {
+            ...image_config,
+            prompt: imagePrompt,
+          },
+        };
+      }
+      break;
+    }
+    case "object": {
+      if (object_config) {
+        return {
+          name,
+          messages,
+          object_config,
+        };
+      }
+      break;
+    }
+    case "text":
+    default: {
+      if (text_config) {
+        return {
+          name,
+          messages,
+          text_config,
+        };
+      }
+    }
+  }
+
+  throw new Error("No valid config found in frontmatter.");
 }

@@ -324,11 +324,10 @@ export class VercelAIAdapter<
     const { model_name: name, ...settings } = input.image_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as ImageModel;
-    const prompt = input.messages.map((message) => message.content).join("\n");
 
     return {
       model,
-      prompt,
+      prompt: settings.prompt,
       ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
       ...(settings?.size !== undefined
         ? { size: settings.size as `${number}x${number}` }

@@ -8,6 +8,7 @@ import {
   SpeechConfig,
   ChatMessage,
   RichChatMessage,
+  SpeechSettings,
 } from "./schemas";
 
 export type JSONPrimitive = string | number | boolean | null;
@@ -25,7 +26,14 @@ export type {
   SpeechConfig,
   ChatMessage,
   RichChatMessage,
+  SpeechSettings,
 };
+
+export type AgentmarkConfig =
+  | ObjectConfig
+  | ImageConfig
+  | SpeechConfig
+  | TextConfig;
 
 export type PromptShape<T> = { [K in keyof T]: { input: any; output: any } };
 export type PromptDict = PromptShape<any>;
@@ -38,10 +46,14 @@ export type KeysWithKind<Dict, K extends PromptKind> = {
 }[keyof Dict];
 
 export interface TemplateEngine {
-  compile<R = unknown, P extends Record<string, unknown> = JSONObject>(
-    template: unknown,
-    props?: P
-  ): Promise<R>;
+  compile<
+    R = unknown,
+    P extends Record<string, unknown> = JSONObject
+  >(options: {
+    template: unknown;
+    props?: P;
+    configType?: PromptKind;
+  }): Promise<R>;
 }
 
 export interface PromptMetadata {
@@ -70,25 +82,25 @@ export interface Loader<T extends PromptShape<T>> {
 export interface Adapter<D extends PromptShape<D>> {
   readonly __dict: D;
 
-  adaptText  <K extends KeysWithKind<D,'text'  > & string>(
+  adaptText<K extends KeysWithKind<D, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
-    metadata: PromptMetadata,
+    metadata: PromptMetadata
   ): any;
 
-  adaptObject<K extends KeysWithKind<D,'object'> & string>(
+  adaptObject<K extends KeysWithKind<D, "object"> & string>(
     input: ObjectConfig,
     options: AdaptOptions,
-    metadata: PromptMetadata,
+    metadata: PromptMetadata
   ): any;
 
-  adaptImage <K extends KeysWithKind<D,'image' > & string>(
+  adaptImage<K extends KeysWithKind<D, "image"> & string>(
     input: ImageConfig,
     options: AdaptOptions,
-    metadata: PromptMetadata,
+    metadata: PromptMetadata
   ): any;
 
-  adaptSpeech(
+  adaptSpeech<K extends KeysWithKind<D, "speech"> & string>(
     input: SpeechConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
