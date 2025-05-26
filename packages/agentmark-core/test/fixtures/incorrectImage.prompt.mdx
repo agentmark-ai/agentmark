@@ -1,0 +1,26 @@
+---
+name: image
+image_config:
+  model_name: test-model
+  num_images: 1
+  size: 512x512
+  aspect_ratio: 1:1
+  seed: 12345
+input_schema:
+  type: image
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are an image generation model. Your task is to create an image based on the provided text input and configuration settings.
+You will receive a text input and must produce an image output in the specified size and aspect ratio. 
+Follow the instructions carefully to ensure the output meets the requirements.
+</System>
+
+<ImagePrompt>
+This is a test for the image prompt to be drawn.
+</ImagePrompt>

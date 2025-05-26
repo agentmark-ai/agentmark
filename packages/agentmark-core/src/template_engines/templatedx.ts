@@ -35,7 +35,6 @@ const ROLETAGS = new Set([USER, SYSTEM, ASSISTANT]);
 
 const SPEECH_PROMPT = "SpeechPrompt";
 const IMAGE_PROMPT = "ImagePrompt";
-const PROMPTTAGS = new Set([SPEECH_PROMPT, IMAGE_PROMPT]);
 
 export class ExtractTextPlugin extends TagPlugin {
   async transform(
@@ -213,38 +212,73 @@ function getMessages({
   return messages;
 }
 
-function getPrompt({
-  tagName,
+function validatePrompts({
   extractedFields,
   configType,
 }: {
+  extractedFields: ExtractedField[];
+  configType?: PromptKind;
+}) {
+  const tagNames = new Set(extractedFields.map((f) => f.name));
+  const invalidTags = [ASSISTANT, USER];
+
+  const hasSystem = tagNames.has(SYSTEM);
+  const hasSpeechPrompt = tagNames.has(SPEECH_PROMPT);
+  const hasImagePrompt = tagNames.has(IMAGE_PROMPT);
+  const invalidTag = invalidTags.find((tag) => tagNames.has(tag));
+
+  if (invalidTag)
+    throw new Error(
+      `Invalid tag: ${invalidTag} found in config type: ${configType}.`
+    );
+
+  if (configType === "speech" && !hasSpeechPrompt) {
+    throw new Error(
+      `'SpeechPrompt' tag not found for config type: ${configType}.`
+    );
+  }
+
+  if (configType === "image" && !hasImagePrompt) {
+    throw new Error(
+      `'ImagePrompt' tag not found for config type: ${configType}.`
+    );
+  }
+  if (hasSpeechPrompt && hasImagePrompt)
+    throw new Error(
+      `SpeechPrompt and ImagePrompt tags cannot be used together.`
+    );
+  if (hasImagePrompt && hasSystem)
+    throw new Error(`ImagePrompt and System tags cannot be used together.`);
+}
+
+function getPrompt({
+  tagName,
+  extractedFields,
+}: {
   tagName: typeof SPEECH_PROMPT | typeof IMAGE_PROMPT;
   extractedFields: Array<ExtractedField>;
-  configType: PromptKind;
-}): string {
+}): { prompt: string; instructions?: string } {
   switch (tagName) {
     case SPEECH_PROMPT:
       const speechField = extractedFields.find(
         (field) => field.name === SPEECH_PROMPT
       );
-      if (!speechField) {
-        throw new Error(
-          `'SpeechPrompt' tag not found for config type: ${configType}.`
-        );
-      }
-      return (speechField?.content as string) ?? "";
+      const systemField = extractedFields.find(
+        (field) => field.name === SYSTEM
+      );
+
+      return {
+        prompt: (speechField?.content as string) ?? "",
+        instructions: systemField?.content as string,
+      };
     case IMAGE_PROMPT:
       const imageField = extractedFields.find(
         (field) => field.name === IMAGE_PROMPT
       );
-      if (!imageField) {
-        throw new Error(
-          `'ImagePrompt' tag not found for config type: ${configType}.`
-        );
-      }
-      return (imageField?.content as string) ?? "";
+
+      return { prompt: (imageField?.content as string) ?? "" };
     default:
-      return "";
+      return { prompt: "" };
   }
 }
 
@@ -267,13 +301,14 @@ export async function getRawConfig({
   const name: string = frontMatter.name;
 
   let prompt: string | undefined;
+  let instructions: string | undefined;
   let messages: RichChatMessage[] = [];
   if (configType === "speech" || configType === "image") {
-    prompt = getPrompt({
+    validatePrompts({ extractedFields, configType });
+    ({ prompt, instructions } = getPrompt({
       tagName: configType === "speech" ? SPEECH_PROMPT : IMAGE_PROMPT,
       extractedFields,
-      configType,
-    });
+    }));
   } else {
     messages = getMessages({ extractedFields, configType });
   }
@@ -291,6 +326,7 @@ export async function getRawConfig({
           speech_config: {
             ...speechSettings,
             text: prompt,
+            instructions: instructions ?? "",
           },
         };
       }

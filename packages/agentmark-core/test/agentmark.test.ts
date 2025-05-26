@@ -55,6 +55,11 @@ type TestPromptTypes = {
     input: {};
     output: { answer: string };
   };
+  "incorrectImage.prompt.mdx": {
+    kind: "image";
+    input: { userMessage: string };
+    output: never;
+  };
 };
 
 describe("AgentMark Integration", () => {
@@ -127,6 +132,14 @@ describe("AgentMark Integration", () => {
       "Please read this text aloud."
     );
     expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should throw an error for invalid prompt tags", async () => {
+    await expect(
+      agentMark.loadImagePrompt("incorrectImage.prompt.mdx")
+    ).rejects.toThrowError(
+      "ImagePrompt and System tags cannot be used together."
+    );
   });
 
   it("should enforce type safety on prompt paths", () => {
