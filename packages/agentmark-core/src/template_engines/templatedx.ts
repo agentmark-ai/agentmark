@@ -197,8 +197,8 @@ function getMessages(extractedFields: Array<any>): RichChatMessage[] {
         `System message may only be the first message: ${field.content}`
       );
     }
-    if (Object.values(Role).includes(fieldName)) {
-      const role = fieldName.toLocaleLowerCase();
+    const role = fieldName.toLocaleLowerCase();
+    if (Object.values(Role).includes(role)) {
       messages.push({ role, content: field.content });
     }
   });
