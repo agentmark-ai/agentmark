@@ -300,6 +300,24 @@ export async function getRawConfig({
 
   const name: string = frontMatter.name;
 
+  if (!configType) {
+    // If no configType is provided, we will return everything found from frontmatter.
+    return {
+      name: frontMatter.name,
+      messages: [],
+      ...(frontMatter.image_config && {
+        image_config: frontMatter.image_config,
+      }),
+      ...(frontMatter.object_config && {
+        object_config: frontMatter.object_config,
+      }),
+      ...(frontMatter.text_config && { text_config: frontMatter.text_config }),
+      ...(frontMatter.speech_config && {
+        speech_config: frontMatter.speech_config,
+      }),
+    };
+  }
+
   let prompt: string | undefined;
   let instructions: string | undefined;
   let messages: RichChatMessage[] = [];
@@ -317,7 +335,6 @@ export async function getRawConfig({
   let imageSettings: ImageSettings | undefined = frontMatter.image_config;
   let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
   let textSettings: TextSettings | undefined = frontMatter.text_config;
-
   switch (configType) {
     case "speech": {
       if (speechSettings && prompt) {

@@ -10,6 +10,8 @@ import {
 import { getFrontMatter, load } from "@agentmark/templatedx";
 import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
+import type { Root } from "mdast";
+import { audioHtmlFormat, imageHtmlFormat } from "./formatWebView";
 
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
@@ -31,17 +33,18 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      let ast: any = await load(file);
+      let ast: Root = await load(file);
       const frontmatter: any = getFrontMatter(ast);
 
       if (frontmatter?.metadata) {
         ast = await loadOldFormat({ file });
       }
 
-      const compiledYaml = await templateEngine.compile(ast);
-
+      const compiledYaml = await templateEngine.compile({ template: ast });
       let modelConfig: modelConfig | undefined;
       let model: any;
+
+      modelConfig = "image_config";
 
       if (compiledYaml?.image_config) {
         modelConfig = "image_config";
@@ -57,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
         model = compiledYaml.speech_config;
       } else {
         return vscode.window.showErrorMessage(
-          "No config (image_config, object_config, or text_config) found in the file."
+          "No config (image_config, object_config, text_config, or speech_config) found in the file."
         );
       }
 
@@ -92,26 +95,38 @@ export function activate(context: vscode.ExtensionContext) {
         ch.appendLine("Generating Response...");
         switch (modelConfig) {
           case "image_config": {
+            //@ts-ignore
             const prompt = await agentMark.loadImagePrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const imageResult = await generateImage(vercelInput);
-            ch.clear();
-            ch.appendLine("RESULT:");
-            ch.appendLine(JSON.stringify(imageResult, null, 2));
-            ch.show();
+
+            const panel = vscode.window.createWebviewPanel(
+              "agentmarkImageView",
+              "Generated Image",
+              vscode.ViewColumn.One,
+              { enableScripts: true }
+            );
+
+            panel.webview.html = imageHtmlFormat(imageResult.images);
             break;
           }
           case "speech_config": {
+            //@ts-ignore
             const prompt = await agentMark.loadSpeechPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const speechResult = await generateSpeech(vercelInput);
-            ch.clear();
-            ch.appendLine("RESULT:");
-            ch.appendLine(JSON.stringify(speechResult, null, 2));
-            ch.show();
+            const panel = vscode.window.createWebviewPanel(
+              "agentmarkAudioView",
+              "Generated Audio",
+              vscode.ViewColumn.One,
+              { enableScripts: true }
+            );
+
+            panel.webview.html = audioHtmlFormat(speechResult.audio);
             break;
           }
           case "object_config": {
+            //@ts-ignore
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const { partialObjectStream: objectStream } = streamObject(
@@ -142,6 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
 
           case "text_config": {
+            //@ts-ignore
             const prompt = await agentMark.loadTextPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const { textStream } = streamText(vercelInput);

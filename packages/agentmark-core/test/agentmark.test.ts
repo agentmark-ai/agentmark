@@ -86,7 +86,7 @@ describe("AgentMark Integration", () => {
     );
     expect(result.image_config.model_name).toBe("test-model");
     expect(result.image_config.num_images).toBe(1);
-    expect(result.image_config.size).toBe("512x512");
+    expect(result.image_config.size).toBe("1024x1024");
     expect(result.image_config.aspect_ratio).toBe("1:1");
     expect(result.image_config.seed).toBe(12345);
   });
