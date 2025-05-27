@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.0.4
+
+### Patch Changes
+
+- d9c49c0: Telemetry is not working properly in cli
+
 ## 1.0.3
 
 ### Patch Changes
