@@ -35,8 +35,10 @@ const traceName = "customer-support";
 
 const telemetry = {
   isEnabled: true,
-  traceId,
-  traceName,
+  metadata: {
+    traceId,
+    traceName,
+  },
 };
 
 const runPrompt = async (customer_message: string) => {
@@ -45,12 +47,10 @@ const runPrompt = async (customer_message: string) => {
     props: {
       customer_question: customer_message,
     },
+    telemetry,
   });
 
-  const resp = await generateText({
-    ...vercelInput,
-    experimental_telemetry: telemetry,
-  });
+  const resp = await generateText(vercelInput);
 
   return resp.text;
 };
@@ -64,13 +64,10 @@ const runEvaluation = async (assistant: string, customer_message: string) => {
     props: {
       model_output: assistant,
       customer_message: customer_message,
-    },
+    }
   });
 
-  const resp = await generateObject({
-    ...vercelInput,
-    experimental_telemetry: telemetry,
-  });
+  const resp = await generateObject(vercelInput);
 
   return resp.object;
 };
