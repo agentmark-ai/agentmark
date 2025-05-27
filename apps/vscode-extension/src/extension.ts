@@ -44,8 +44,6 @@ export function activate(context: vscode.ExtensionContext) {
       let modelConfig: modelConfig | undefined;
       let model: any;
 
-      modelConfig = "image_config";
-
       if (compiledYaml?.image_config) {
         modelConfig = "image_config";
         model = compiledYaml.image_config;
