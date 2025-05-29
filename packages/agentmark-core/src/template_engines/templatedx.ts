@@ -176,11 +176,7 @@ export class TemplateDXTemplateEngine implements TemplateEngine {
   async compile<
     R = CompiledConfig,
     P extends Record<string, any> = JSONObject
-  >(options: {
-    template: Ast;
-    props?: P;
-    configType?: PromptKind;
-  }): Promise<R> {
+  >(options: { template: Ast; props?: P }): Promise<R> {
     return getRawConfig({ ...options, ast: options.template }) as R;
   }
 }
@@ -190,7 +186,7 @@ function getMessages({
   configType,
 }: {
   extractedFields: Array<any>;
-  configType?: PromptKind;
+  configType: PromptKind;
 }): RichChatMessage[] {
   const messages: RichChatMessage[] = [];
   extractedFields.forEach((field, index) => {
@@ -217,7 +213,7 @@ function validatePrompts({
   configType,
 }: {
   extractedFields: ExtractedField[];
-  configType?: PromptKind;
+  configType: PromptKind;
 }) {
   const tagNames = new Set(extractedFields.map((f) => f.name));
   const invalidTags = [ASSISTANT, USER];
@@ -285,11 +281,9 @@ function getPrompt({
 export async function getRawConfig({
   ast,
   props,
-  configType,
 }: {
   ast: Ast;
   props?: JSONObject;
-  configType?: PromptKind;
 }): Promise<AgentmarkConfig> {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
@@ -300,41 +294,35 @@ export async function getRawConfig({
 
   const name: string = frontMatter.name;
 
-  if (!configType) {
-    // If no configType is provided, we will return everything found from frontmatter.
-    return {
-      name: frontMatter.name,
-      messages: [],
-      ...(frontMatter.image_config && {
-        image_config: frontMatter.image_config,
-      }),
-      ...(frontMatter.object_config && {
-        object_config: frontMatter.object_config,
-      }),
-      ...(frontMatter.text_config && { text_config: frontMatter.text_config }),
-      ...(frontMatter.speech_config && {
-        speech_config: frontMatter.speech_config,
-      }),
-    };
-  }
-
+  let configType: PromptKind | undefined = undefined;
   let prompt: string | undefined;
   let instructions: string | undefined;
   let messages: RichChatMessage[] = [];
+  let speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
+  let imageSettings: ImageSettings | undefined = frontMatter.image_config;
+  let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
+  let textSettings: TextSettings | undefined = frontMatter.text_config;
+
+  if (speechSettings) {
+    configType = "speech";
+  } else if (imageSettings) {
+    configType = "image";
+  } else if (objectSettings) {
+    configType = "object";
+  } else if (textSettings) {
+    configType = "text";
+  }
+
   if (configType === "speech" || configType === "image") {
     validatePrompts({ extractedFields, configType });
     ({ prompt, instructions } = getPrompt({
       tagName: configType === "speech" ? SPEECH_PROMPT : IMAGE_PROMPT,
       extractedFields,
     }));
-  } else {
+  } else if (configType === "object" || configType === "text") {
     messages = getMessages({ extractedFields, configType });
   }
 
-  let speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
-  let imageSettings: ImageSettings | undefined = frontMatter.image_config;
-  let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
-  let textSettings: TextSettings | undefined = frontMatter.text_config;
   switch (configType) {
     case "speech": {
       if (speechSettings && prompt) {

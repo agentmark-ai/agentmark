@@ -1,11 +1,4 @@
 import {
-  Loader,
-  TemplateEngine,
-  Adapter,
-  PromptShape,
-  KeysWithKind,
-} from "./types";
-import {
   ImageConfigSchema,
   ObjectConfigSchema,
   TextConfigSchema,
@@ -13,6 +6,14 @@ import {
 } from "./schemas";
 import { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 import { ObjectPrompt, ImagePrompt, TextPrompt, SpeechPrompt } from "./prompts";
+import type {
+  Loader,
+  TemplateEngine,
+  Adapter,
+  PromptShape,
+  KeysWithKind,
+} from "./types";
+import type { Root } from "mdast";
 
 export interface AgentMarkOptions<
   T extends PromptShape<T>,
@@ -35,12 +36,13 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
   }
 
   async loadTextPrompt<K extends KeysWithKind<T, "text"> & string>(
-    pathOrPreloaded: K,
+    pathOrPreloaded: K | Root,
     options?: any
   ) {
     let content: unknown;
+    const pathProvided = typeof pathOrPreloaded === "string";
 
-    if (typeof pathOrPreloaded === "string" && this.loader) {
+    if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -49,24 +51,24 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     TextConfigSchema.parse(
       await this.templateEngine.compile({
         template: content,
-        configType: "text",
       })
     );
     return new TextPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathOrPreloaded
+      pathProvided ? pathOrPreloaded : undefined
     );
   }
 
   async loadObjectPrompt<K extends KeysWithKind<T, "object"> & string>(
-    pathOrPreloaded: K,
+    pathOrPreloaded: K | Root,
     options?: any
   ) {
     let content: unknown;
+    const pathProvided = typeof pathOrPreloaded === "string";
 
-    if (typeof pathOrPreloaded === "string" && this.loader) {
+    if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -75,24 +77,24 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     ObjectConfigSchema.parse(
       await this.templateEngine.compile({
         template: content,
-        configType: "object",
       })
     );
     return new ObjectPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathOrPreloaded
+      pathProvided ? pathOrPreloaded : undefined
     );
   }
 
   async loadImagePrompt<K extends KeysWithKind<T, "image"> & string>(
-    pathOrPreloaded: K,
+    pathOrPreloaded: K | Root,
     options?: any
   ) {
     let content: unknown;
+    const pathProvided = typeof pathOrPreloaded === "string";
 
-    if (typeof pathOrPreloaded === "string" && this.loader) {
+    if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -101,24 +103,24 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     ImageConfigSchema.parse(
       await this.templateEngine.compile({
         template: content,
-        configType: "image",
       })
     );
     return new ImagePrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathOrPreloaded
+      pathProvided ? pathOrPreloaded : undefined
     );
   }
 
   async loadSpeechPrompt<K extends KeysWithKind<T, "speech"> & string>(
-    pathOrPreloaded: K,
+    pathOrPreloaded: K | Root,
     options?: any
   ) {
     let content: unknown;
+    const pathProvided = typeof pathOrPreloaded === "string";
 
-    if (typeof pathOrPreloaded === "string" && this.loader) {
+    if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, options);
     } else {
       content = pathOrPreloaded;
@@ -127,14 +129,13 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     SpeechConfigSchema.parse(
       await this.templateEngine.compile({
         template: content,
-        configType: "speech",
       })
     );
     return new SpeechPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathOrPreloaded
+      pathProvided ? pathOrPreloaded : undefined
     );
   }
 }

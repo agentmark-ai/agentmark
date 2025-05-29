@@ -7,6 +7,7 @@ import {
   PromptShape,
 } from "@agentmark/agentmark-core";
 import { DefaultAdapter } from "./adapter";
+import type { Root } from "mdast";
 
 export interface DefaultObjectPrompt<
   T extends PromptShape<T>,
@@ -21,7 +22,7 @@ export interface DefaultObjectPrompt<
 export interface DefaultAgentmark<T extends PromptShape<T>>
   extends AgentMark<T, DefaultAdapter<T>> {
   loadObjectPrompt<K extends KeysWithKind<T, "object"> & string>(
-    pathOrPreloaded: K,
+    pathOrPreloaded: K | Root,
     options?: any
   ): Promise<DefaultObjectPrompt<T, DefaultAdapter<T>, K>>;
 }
