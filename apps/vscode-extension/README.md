@@ -21,14 +21,100 @@ By leveraging Markdown and JSX, AgentMark provides a clean, composable, and exte
 
 ## Running the Extension
 
-```mdx Basic Prompt
+AgentMark supports multiple types of generation:
+
+### Text Generation
+
+```mdx text.prompt.mdx
 ---
-name: basic-prompt
+name: text
 text_config:
   model_name: gpt-4o-mini
 ---
 
 <User>What's 2 + 2?</User>
+```
+
+### Object Generation
+
+```mdx example.prompt.mdx
+---
+name: example
+object_config:
+  model_name: gpt-4
+  schema:
+    type: object
+    properties:
+      event:
+        type: object
+        properties:
+          name: 
+            type: string
+            description: The name of the event
+          date:
+            type: string
+            description: The date of the event
+          attendees:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: The name of the attendee
+                role:
+                  type: string
+                  description: The role of the attendee
+              required:
+                - name
+                - role
+        required: 
+          - name
+          - date
+          - attendees
+---
+
+<System>You are a math tutor that can perform calculations.</System>
+<User>What's 235 * 18?</User>
+```
+
+### Image Generation
+
+```mdx image.prompt.mdx
+---
+name: image
+image_config:
+  model_name: dall-e-3
+  num_images: 1
+  size: 1024x1024
+  aspect_ratio: 1:1
+  seed: 12345
+---
+
+<ImagePrompt>
+A futuristic cityscape at sunset with flying cars and neon lights
+</ImagePrompt>
+```
+
+### Speech Generation
+
+```mdx speach.prompt.mdx
+---
+name: speech
+speech_config:
+  model_name: tts-1-hd
+  voice: "nova"
+  speed: 1.0
+  output_format: "mp3"
+---
+
+<System>
+Please read this text aloud.
+</System>
+
+<SpeechPrompt>
+This is a test for the speech prompt to be spoken aloud.
+</SpeechPrompt>
 ```
 
 1. Open Visual Studio Code.
