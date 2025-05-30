@@ -71,7 +71,7 @@ export class ExtractTextPlugin extends TagPlugin {
           children: flattenedChildren,
         });
 
-        const mediaParts = scope.getShared("__puzzlet-mediaParts") || [];
+        const mediaParts = scope.getShared("__agentmark-mediaParts") || [];
         const hasMediaContent = tagName === USER && mediaParts.length;
         const content = hasMediaContent
           ? [{ type: "text", text: extractedText.trim() }, ...media]
@@ -86,7 +86,7 @@ export class ExtractTextPlugin extends TagPlugin {
       }
     });
 
-    const media = scope.getShared("__puzzlet-mediaParts") || [];
+    const media = scope.getShared("__agentmark-mediaParts") || [];
     const promises = scope.getShared("__agentmark-extractTextPromises");
     if (!promises) {
       scope.setShared("__agentmark-extractTextPromises", [promise]);
@@ -99,7 +99,7 @@ export class ExtractTextPlugin extends TagPlugin {
 }
 
 export class ExtractMediaPlugin extends TagPlugin {
-  private readonly key = "__puzzlet-mediaParts";
+  private readonly key = "__agentmark-mediaParts";
   async transform(
     props: Record<string, any>,
     _children: Node[],
