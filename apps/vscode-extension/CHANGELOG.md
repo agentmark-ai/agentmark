@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.4.4
+
+### Patch Changes
+
+- 222dfab: Display images and audio in webview
+- Updated dependencies [222dfab]
+  - @agentmark/vercel-ai-v4-adapter@4.0.1
+  - @agentmark/agentmark-core@3.1.2
+
 ## 1.4.2
 
 ### Patch Changes

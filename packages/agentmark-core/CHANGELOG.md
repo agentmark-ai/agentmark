@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.1.2
+
+### Patch Changes
+
+- 222dfab: Fix: type issue in agentmark loaders
+
 ## 3.1.1
 
 ### Patch Changes
