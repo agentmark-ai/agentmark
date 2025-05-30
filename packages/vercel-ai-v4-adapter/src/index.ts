@@ -12,6 +12,7 @@ import {
   VercelAIObjectParams,
   VercelAIToolRegistry,
 } from "./adapter";
+import type { Root } from "mdast";
 
 export interface VercelAIObjectPrompt<
   T extends PromptShape<T>,
@@ -28,7 +29,7 @@ export interface VercelAgentMark<
   Tools extends VercelAIToolRegistry<any, any>
 > extends AgentMark<T, VercelAIAdapter<T, Tools>> {
   loadObjectPrompt<K extends KeysWithKind<T, "object"> & string>(
-    pathOrPreloaded: K,
+    pathOrPreloaded: K | Root,
     options?: any
   ): Promise<VercelAIObjectPrompt<T, K, Tools>>;
 }

@@ -64,8 +64,3 @@ export const modelProviderMap: Record<string, "openai" | "anthropic"> = {
   "claude-3-sonnet-20240229": "anthropic",
   "claude-3-haiku-20240307": "anthropic",
 };
-export type modelConfig =
-  | "image_config"
-  | "object_config"
-  | "text_config"
-  | "speech_config";

@@ -21,4 +21,5 @@ export type {
   KeysWithKind,
   TemplateEngine,
   Loader,
+  PromptKind,
 } from "./types";

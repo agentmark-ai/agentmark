@@ -52,7 +52,6 @@ export interface TemplateEngine {
   >(options: {
     template: unknown;
     props?: P;
-    configType?: PromptKind;
   }): Promise<R>;
 }
 

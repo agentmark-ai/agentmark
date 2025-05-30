@@ -8,8 +8,11 @@ import {
   streamText,
 } from "ai";
 import { getFrontMatter, load } from "@agentmark/templatedx";
-import { modelConfig, modelRegistry, modelProviderMap } from "./modelRegistry";
+import { modelRegistry, modelProviderMap } from "./modelRegistry";
 import { loadOldFormat } from "./loadOldFormat";
+import { audioHtmlFormat, imageHtmlFormat } from "./formatWebView";
+import type { Root } from "mdast";
+import type { PromptKind } from "@agentmark/agentmark-core";
 
 const templateEngine = new TemplateDXTemplateEngine();
 export function activate(context: vscode.ExtensionContext) {
@@ -31,37 +34,37 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      let ast: any = await load(file);
+      let ast: Root = await load(file);
       const frontmatter: any = getFrontMatter(ast);
 
       if (frontmatter?.metadata) {
         ast = await loadOldFormat({ file });
       }
 
-      const compiledYaml = await templateEngine.compile(ast);
-
-      let modelConfig: modelConfig | undefined;
-      let model: any;
+      const compiledYaml = await templateEngine.compile({ template: ast });
+      let promptKind: PromptKind | undefined;
+      //TODO: Refactor to use a stricter type and rename config to settings
+      let promptConfig: any;
 
       if (compiledYaml?.image_config) {
-        modelConfig = "image_config";
-        model = compiledYaml.image_config;
+        promptKind = "image";
+        promptConfig = compiledYaml.image_config;
       } else if (compiledYaml?.object_config) {
-        modelConfig = "object_config";
-        model = compiledYaml.object_config;
+        promptKind = "object";
+        promptConfig = compiledYaml.object_config;
       } else if (compiledYaml?.text_config) {
-        modelConfig = "text_config";
-        model = compiledYaml.text_config;
+        promptKind = "text";
+        promptConfig = compiledYaml.text_config;
       } else if (compiledYaml?.speech_config) {
-        modelConfig = "speech_config";
-        model = compiledYaml.speech_config;
+        promptKind = "speech";
+        promptConfig = compiledYaml.speech_config;
       } else {
         return vscode.window.showErrorMessage(
-          "No config (image_config, object_config, or text_config) found in the file."
+          "No config (image_config, object_config, text_config, or speech_config) found in the file."
         );
       }
 
-      const modelName = model?.model_name || "";
+      const modelName: string = promptConfig?.model_name || "";
 
       let apiKey = await context.secrets.get(
         `agentmark.${modelProviderMap[modelName]}`
@@ -90,28 +93,37 @@ export function activate(context: vscode.ExtensionContext) {
         const ch = vscode.window.createOutputChannel("AgentMark");
 
         ch.appendLine("Generating Response...");
-        switch (modelConfig) {
-          case "image_config": {
+        switch (promptKind) {
+          case "image": {
             const prompt = await agentMark.loadImagePrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const imageResult = await generateImage(vercelInput);
-            ch.clear();
-            ch.appendLine("RESULT:");
-            ch.appendLine(JSON.stringify(imageResult, null, 2));
-            ch.show();
+
+            const panel = vscode.window.createWebviewPanel(
+              "agentmarkImageView",
+              "Generated Image",
+              vscode.ViewColumn.One,
+              { enableScripts: true }
+            );
+
+            panel.webview.html = imageHtmlFormat(imageResult.images);
             break;
           }
-          case "speech_config": {
+          case "speech": {
             const prompt = await agentMark.loadSpeechPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const speechResult = await generateSpeech(vercelInput);
-            ch.clear();
-            ch.appendLine("RESULT:");
-            ch.appendLine(JSON.stringify(speechResult, null, 2));
-            ch.show();
+            const panel = vscode.window.createWebviewPanel(
+              "agentmarkAudioView",
+              "Generated Audio",
+              vscode.ViewColumn.One,
+              { enableScripts: true }
+            );
+
+            panel.webview.html = audioHtmlFormat(speechResult.audio);
             break;
           }
-          case "object_config": {
+          case "object": {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const { partialObjectStream: objectStream } = streamObject(
@@ -141,7 +153,7 @@ export function activate(context: vscode.ExtensionContext) {
             break;
           }
 
-          case "text_config": {
+          case "text": {
             const prompt = await agentMark.loadTextPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
             const { textStream } = streamText(vercelInput);

@@ -71,7 +71,7 @@ export class ExtractTextPlugin extends TagPlugin {
           children: flattenedChildren,
         });
 
-        const mediaParts = scope.getShared("__puzzlet-mediaParts") || [];
+        const mediaParts = scope.getShared("__agentmark-mediaParts") || [];
         const hasMediaContent = tagName === USER && mediaParts.length;
         const content = hasMediaContent
           ? [{ type: "text", text: extractedText.trim() }, ...media]
@@ -86,7 +86,7 @@ export class ExtractTextPlugin extends TagPlugin {
       }
     });
 
-    const media = scope.getShared("__puzzlet-mediaParts") || [];
+    const media = scope.getShared("__agentmark-mediaParts") || [];
     const promises = scope.getShared("__agentmark-extractTextPromises");
     if (!promises) {
       scope.setShared("__agentmark-extractTextPromises", [promise]);
@@ -99,7 +99,7 @@ export class ExtractTextPlugin extends TagPlugin {
 }
 
 export class ExtractMediaPlugin extends TagPlugin {
-  private readonly key = "__puzzlet-mediaParts";
+  private readonly key = "__agentmark-mediaParts";
   async transform(
     props: Record<string, any>,
     _children: Node[],
@@ -176,11 +176,7 @@ export class TemplateDXTemplateEngine implements TemplateEngine {
   async compile<
     R = CompiledConfig,
     P extends Record<string, any> = JSONObject
-  >(options: {
-    template: Ast;
-    props?: P;
-    configType?: PromptKind;
-  }): Promise<R> {
+  >(options: { template: Ast; props?: P }): Promise<R> {
     return getRawConfig({ ...options, ast: options.template }) as R;
   }
 }
@@ -190,7 +186,7 @@ function getMessages({
   configType,
 }: {
   extractedFields: Array<any>;
-  configType?: PromptKind;
+  configType: PromptKind;
 }): RichChatMessage[] {
   const messages: RichChatMessage[] = [];
   extractedFields.forEach((field, index) => {
@@ -217,7 +213,7 @@ function validatePrompts({
   configType,
 }: {
   extractedFields: ExtractedField[];
-  configType?: PromptKind;
+  configType: PromptKind;
 }) {
   const tagNames = new Set(extractedFields.map((f) => f.name));
   const invalidTags = [ASSISTANT, USER];
@@ -285,11 +281,9 @@ function getPrompt({
 export async function getRawConfig({
   ast,
   props,
-  configType,
 }: {
   ast: Ast;
   props?: JSONObject;
-  configType?: PromptKind;
 }): Promise<AgentmarkConfig> {
   const frontMatter: any = getFrontMatter(ast);
   const shared: SharedContext = {};
@@ -300,23 +294,34 @@ export async function getRawConfig({
 
   const name: string = frontMatter.name;
 
+  let configType: PromptKind | undefined = undefined;
   let prompt: string | undefined;
   let instructions: string | undefined;
   let messages: RichChatMessage[] = [];
+  let speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
+  let imageSettings: ImageSettings | undefined = frontMatter.image_config;
+  let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
+  let textSettings: TextSettings | undefined = frontMatter.text_config;
+
+  if (speechSettings) {
+    configType = "speech";
+  } else if (imageSettings) {
+    configType = "image";
+  } else if (objectSettings) {
+    configType = "object";
+  } else if (textSettings) {
+    configType = "text";
+  }
+
   if (configType === "speech" || configType === "image") {
     validatePrompts({ extractedFields, configType });
     ({ prompt, instructions } = getPrompt({
       tagName: configType === "speech" ? SPEECH_PROMPT : IMAGE_PROMPT,
       extractedFields,
     }));
-  } else {
+  } else if (configType === "object" || configType === "text") {
     messages = getMessages({ extractedFields, configType });
   }
-
-  let speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
-  let imageSettings: ImageSettings | undefined = frontMatter.image_config;
-  let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
-  let textSettings: TextSettings | undefined = frontMatter.text_config;
 
   switch (configType) {
     case "speech": {
