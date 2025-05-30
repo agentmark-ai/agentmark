@@ -63,7 +63,19 @@ const init = async () => {
     cloud = useCloud;
   }
 
-  createExampleApp(provider, model, cloud, shouldCreateExample);
+  const { editor } = await prompts({
+    name: "editor",
+    type: "select",
+    message: "Select an AI editor to add AgentMark rules (rules provide AI assistance for writing prompts and datasets in your editor)",
+    choices: [
+      { title: "Cursor", value: "cursor" },
+      { title: "Windsurf", value: "windsurf" },
+      { title: "Copilot", value: "copilot" },
+      { title: "None", value: "none" },
+    ],
+  });
+
+  createExampleApp(provider, model, cloud, shouldCreateExample, editor);
 
   if (cloud === "cloud") {
     fs.writeJsonSync("agentmark.json", config, { spaces: 2 });
