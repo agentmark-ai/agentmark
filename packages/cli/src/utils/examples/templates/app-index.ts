@@ -1,7 +1,7 @@
 export const getIndexFileContent = (modelProvider: string, modelName: string, useCloud: string = 'cloud'): string => {
   if (useCloud === 'cloud') {
     return `import "dotenv/config";
-import { AgentmarkClient } from "@agentmark/sdk";
+import { AgentMarkSDK } from "@agentmark/sdk";
 import { generateObject, generateText } from "ai";
 import {
   VercelAIModelRegistry,
@@ -15,15 +15,15 @@ modelRegistry.registerModels(['${modelName}'], (name: string) => {
   return ${modelProvider}(name);
 });
 
-const agentmarkClient = new AgentmarkClient({
+const sdk = new AgentMarkSDK({
   apiKey: process.env.AGENTMARK_API_KEY!,
   appId: process.env.AGENTMARK_APP_ID!,
   baseUrl: process.env.AGENTMARK_BASE_URL!,
 });
 
-agentmarkClient.initTracing({ disableBatch: true });
+sdk.initTracing({ disableBatch: true });
 
-const agentMarkLoader = agentmarkClient.getFileLoader();
+const agentMarkLoader = sdk.getFileLoader();
 
 const agentmark = createAgentMarkClient<AgentMarkTypes>({
   loader: agentMarkLoader,
@@ -77,7 +77,7 @@ const main = async () => {
   const assistant = await runPrompt(user_message);
   const evaluation = await runEvaluation(assistant, user_message);
 
-  agentmarkClient.score({
+  sdk.score({
     resourceId: traceId,
     name: "response-quality",
     label: evaluation.label,

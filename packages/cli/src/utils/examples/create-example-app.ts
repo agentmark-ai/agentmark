@@ -9,12 +9,14 @@ import {
   createExamplePrompts,
   getTypesFileContent,
 } from "./templates";
+import { addRules } from "./add-rules";
 
 export const createExampleApp = async (
   modelProvider: string,
   model: string,
   useCloud: string = "cloud",
-  shouldCreateExample: boolean = true
+  shouldCreateExample: boolean = true,
+  editor: string
 ) => {
   try {
     console.log("Creating Agent Mark example app...");
@@ -22,40 +24,7 @@ export const createExampleApp = async (
     // Create directory structure
     fs.ensureDirSync("./agentmark");
 
-    // Create .cursor/rules directory
-    fs.ensureDirSync(".cursor/rules");
-
-    const cursorRuleMetadata = `---
-description: Always apply in any situation
-globs: 
-alwaysApply: true
----`;
-
-    // Copy editor rules files
-    const editorRulesDir = path.resolve(__dirname, "../editor-rules");
-    const targetRulesDir = ".cursor/rules";
-
-    // Copy agentmark-prompt.md to .cursor/rules/prompt-guidelines.mdc
-    const rulesForPrompt = fs.readFileSync(
-      path.join(editorRulesDir, "agentmark-prompt.md"),
-      "utf8"
-    );
-    const cursorRuleForPrompt = `${cursorRuleMetadata}\n\n${rulesForPrompt}`;
-    fs.writeFileSync(
-      path.join(targetRulesDir, "prompt-guidelines.mdc"),
-      cursorRuleForPrompt
-    );
-
-    // Copy agentmark-dataset.md to .cursor/rules/dataset-guidelines.mdc
-    const rulesForDataset = fs.readFileSync(
-      path.join(editorRulesDir, "agentmark-dataset.md"),
-      "utf8"
-    );
-    const cursorRuleForDataset = `${cursorRuleMetadata}\n\n${rulesForDataset}`;
-    fs.writeFileSync(
-      path.join(targetRulesDir, "dataset-guidelines.mdc"),
-      cursorRuleForDataset
-    );
+    addRules(editor);
 
     // Create example prompts
     createExamplePrompts(model);
