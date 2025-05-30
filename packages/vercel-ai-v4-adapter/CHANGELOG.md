@@ -1,5 +1,13 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 4.0.1
+
+### Patch Changes
+
+- 222dfab: Fix: type issue in agentmark loaders
+- Updated dependencies [222dfab]
+  - @agentmark/agentmark-core@3.1.2
+
 ## 4.0.0
 
 ### Minor Changes
