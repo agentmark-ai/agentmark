@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.1.0
+
+### Minor Changes
+
+- 73b390d: Add ai editor rules
+
 ## 1.0.4
 
 ### Patch Changes
