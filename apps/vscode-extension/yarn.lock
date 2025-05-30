@@ -5,15 +5,15 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@agentmark/agentmark-core@npm:^3.1.1":
-  version: 3.1.1
-  resolution: "@agentmark/agentmark-core@npm:3.1.1"
+"@agentmark/agentmark-core@npm:^3.1.2":
+  version: 3.1.2
+  resolution: "@agentmark/agentmark-core@npm:3.1.2"
   dependencies:
     "@agentmark/templatedx": "npm:^0.6.3"
     zod: "npm:^3.23.8"
   peerDependencies:
     ai: ^4.0.0
-  checksum: 10c0/7b3289164113fc92a904c42f4922e372c45697888a33443a21e560df9039f7da92615c6941161a12e7e34aa21ffe117d4142052e930fd6302fbf95ec0afac4ea
+  checksum: 10c0/951ba67a419062f88ffa5b1deee7bab068b7ae74aa53585e629cd6bed40a8075745457a69f804a32e14ac5bb6bf93198218e3a16348568691355cae8d7f8c184
   languageName: node
   linkType: hard
 
@@ -36,15 +36,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/vercel-ai-v4-adapter@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@agentmark/vercel-ai-v4-adapter@npm:4.0.0"
+"@agentmark/vercel-ai-v4-adapter@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "@agentmark/vercel-ai-v4-adapter@npm:4.0.1"
   dependencies:
     zod: "npm:^3.23.8"
   peerDependencies:
-    "@agentmark/agentmark-core": ^3.1.0
+    "@agentmark/agentmark-core": ^3.1.2
     ai: ^4.0.0
-  checksum: 10c0/b48a525d6961794415bca9443f7024de35a291bdad9e9a29c904487596feac72b01060842ea4469a19e5c2d2843376b8d398475a66be47fd0dd9415b285a704d
+  checksum: 10c0/c30944c5150ba7feefcddf24cf4df0d9ddfcbaeef2f4bb02d6ae0b22f3ef301e7073c606fabbfc799b8c95a77331e97e87b941f947a78bd67a99e83121d6cfbf
   languageName: node
   linkType: hard
 
@@ -1451,8 +1451,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "agentmark@workspace:."
   dependencies:
-    "@agentmark/agentmark-core": "npm:^3.1.1"
-    "@agentmark/vercel-ai-v4-adapter": "npm:^4.0.0"
+    "@agentmark/agentmark-core": "npm:^3.1.2"
+    "@agentmark/vercel-ai-v4-adapter": "npm:^4.0.1"
     "@ai-sdk/anthropic": "npm:^1.2.10"
     "@ai-sdk/openai": "npm:^1.3.13"
     "@types/js-yaml": "npm:^4"
