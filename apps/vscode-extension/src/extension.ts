@@ -66,6 +66,10 @@ export function activate(context: vscode.ExtensionContext) {
 
       const modelName: string = promptConfig?.model_name || "";
 
+      if (!modelProviderMap[modelName]) {
+        return vscode.window.showErrorMessage(`Unsupported model name: ${modelName}`);
+      }
+
       let apiKey = await context.secrets.get(
         `agentmark.${modelProviderMap[modelName]}`
       );
@@ -185,4 +189,4 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-export function deactivate() {}
+export function deactivate() { }

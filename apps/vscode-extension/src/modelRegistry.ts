@@ -58,6 +58,9 @@ export const modelProviderMap: Record<string, "openai" | "anthropic"> = {
   "gpt-3.5-turbo": "openai",
   "dall-e-3": "openai",
   "dall-e-2": "openai",
+  "tts-1-hd": "openai",
+  "tts-1": "openai",
+  "gpt-4o-mini-tts": "openai",
 
   // Anthropic models
   "claude-3-opus-20240229": "anthropic",
