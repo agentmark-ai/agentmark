@@ -66,26 +66,26 @@ export function activate(context: vscode.ExtensionContext) {
 
       const modelName: string = promptConfig?.model_name || "";
 
+      if (!modelProviderMap[modelName]) {
+        return vscode.window.showErrorMessage(`Unsupported model name: ${modelName}`);
+      }
+
       let apiKey = await context.secrets.get(
         `agentmark.${modelProviderMap[modelName]}`
       );
       if (!apiKey) {
-        if (modelProviderMap[modelName]!!) {
-          apiKey = await vscode.window.showInputBox({
-            placeHolder: `Enter your ${modelProviderMap[modelName]} API key`,
-            prompt: "Enter api key",
-            ignoreFocusOut: true,
-            password: true,
-            validateInput(input: string) {
-              if (!input) {
-                return "Api key cannot be empty";
-              }
-              return undefined;
-            },
-          });
-        } else {
-          throw new Error("Unsupported model name");
-        }
+        apiKey = await vscode.window.showInputBox({
+          placeHolder: `Enter your ${modelProviderMap[modelName]} API key`,
+          prompt: "Enter api key",
+          ignoreFocusOut: true,
+          password: true,
+          validateInput(input: string) {
+            if (!input) {
+              return "Api key cannot be empty";
+            }
+            return undefined;
+          },
+        });
       }
 
       if (!apiKey) {
@@ -189,4 +189,4 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-export function deactivate() {}
+export function deactivate() { }
