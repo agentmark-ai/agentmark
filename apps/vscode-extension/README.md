@@ -21,20 +21,110 @@ By leveraging Markdown and JSX, AgentMark provides a clean, composable, and exte
 
 ## Running the Extension
 
-```mdx Basic Prompt
----
-name: basic-prompt
-text_config:
-  model_name: gpt-4o-mini
----
-
-<User>What's 2 + 2?</User>
-```
-
 1. Open Visual Studio Code.
 2. Navigate to your `.prompt.mdx` prompt
 3. Copy this, or create your own.
 4. Press F5 or click the "Run" button in VS Code to launch the extension.
+
+AgentMark supports multiple types of generation:
+
+### Text Generation
+
+```jsx text.prompt.mdx
+---
+name: text
+text_config:
+  model_name: gpt-4o-mini
+---
+<User>Tell me a good joke</User>
+```
+
+![Text](https://i.imgur.com/nDsCxit.png)
+
+### Object Generation
+
+```jsx object.prompt.mdx
+---
+name: example
+object_config:
+  model_name: gpt-4
+  temperature: 0.5
+  schema:
+    type: object
+    properties:
+      event:
+        type: object
+        properties:
+          date:
+            type: string
+            description: The date of the event
+          attendees:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: The name of the attendee
+                role:
+                  type: string
+                  description: The role of the attendee
+              required:
+                - name
+                - role
+        required: 
+          - date
+          - attendees
+---
+
+<System>Parse event details from the text.</System>
+<User>The company picnic is on July 15th. John (host) and Mary (coordinator) are organizing it</User>
+```
+
+![Object](https://i.imgur.com/m9VPY9v.png)
+
+### Image Generation
+
+```jsx image.prompt.mdx
+---
+name: image
+image_config:
+  model_name: dall-e-3
+  num_images: 2
+  size: 1024x1024
+  aspect_ratio: 1:1
+  seed: 12345
+---
+
+<ImagePrompt>
+Cute cats playing
+</ImagePrompt>
+```
+
+![Img](https://i.imgur.com/Coq6Ody.png)
+
+### Speech Generation
+
+```jsx speach.prompt.mdx
+---
+name: speech
+speech_config:
+  model_name: tts-1-hd
+  voice: "nova"
+  speed: 1.0
+  output_format: "mp3"
+---
+
+<System>
+Please read this text aloud.
+</System>
+
+<SpeechPrompt>
+This is a test for the speech prompt to be spoken aloud.
+</SpeechPrompt>
+```
+
+![Audio](https://i.imgur.com/ovOZUNE.png)
 
 ## Modules
 
