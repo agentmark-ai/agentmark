@@ -21,36 +21,40 @@ By leveraging Markdown and JSX, AgentMark provides a clean, composable, and exte
 
 ## Running the Extension
 
+1. Open Visual Studio Code.
+2. Navigate to your `.prompt.mdx` prompt
+3. Copy this, or create your own.
+4. Press F5 or click the "Run" button in VS Code to launch the extension.
+
 AgentMark supports multiple types of generation:
 
 ### Text Generation
 
-```mdx text.prompt.mdx
+```jsx text.prompt.mdx
 ---
 name: text
 text_config:
   model_name: gpt-4o-mini
 ---
-
-<User>What's 2 + 2?</User>
+<User>Tell me a good joke</User>
 ```
+
+![Text](https://i.imgur.com/nDsCxit.png)
 
 ### Object Generation
 
-```mdx example.prompt.mdx
+```jsx object.prompt.mdx
 ---
 name: example
 object_config:
   model_name: gpt-4
+  temperature: 0.5
   schema:
     type: object
     properties:
       event:
         type: object
         properties:
-          name: 
-            type: string
-            description: The name of the event
           date:
             type: string
             description: The date of the event
@@ -69,36 +73,39 @@ object_config:
                 - name
                 - role
         required: 
-          - name
           - date
           - attendees
 ---
 
-<System>You are a math tutor that can perform calculations.</System>
-<User>What's 235 * 18?</User>
+<System>Parse event details from the text.</System>
+<User>The company picnic is on July 15th. John (host) and Mary (coordinator) are organizing it</User>
 ```
+
+![Object](https://i.imgur.com/m9VPY9v.png)
 
 ### Image Generation
 
-```mdx image.prompt.mdx
+```jsx image.prompt.mdx
 ---
 name: image
 image_config:
   model_name: dall-e-3
-  num_images: 1
+  num_images: 2
   size: 1024x1024
   aspect_ratio: 1:1
   seed: 12345
 ---
 
 <ImagePrompt>
-A futuristic cityscape at sunset with flying cars and neon lights
+Cute cats playing
 </ImagePrompt>
 ```
 
+![Img](https://i.imgur.com/Coq6Ody.png)
+
 ### Speech Generation
 
-```mdx speach.prompt.mdx
+```jsx speach.prompt.mdx
 ---
 name: speech
 speech_config:
@@ -117,10 +124,7 @@ This is a test for the speech prompt to be spoken aloud.
 </SpeechPrompt>
 ```
 
-1. Open Visual Studio Code.
-2. Navigate to your `.prompt.mdx` prompt
-3. Copy this, or create your own.
-4. Press F5 or click the "Run" button in VS Code to launch the extension.
+![Audio](https://i.imgur.com/ovOZUNE.png)
 
 ## Modules
 
