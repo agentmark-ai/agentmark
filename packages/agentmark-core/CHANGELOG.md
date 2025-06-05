@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.1.3
+
+### Patch Changes
+
+- 5794f73: Update readme
+
 ## 3.1.2
 
 ### Patch Changes
