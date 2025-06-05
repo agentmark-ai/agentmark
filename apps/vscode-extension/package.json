@@ -3,7 +3,7 @@
   "displayName": "AgentMark",
   "publisher": "agentmark",
   "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
-  "version": "1.4.5",
+  "version": "1.4.7",
   "repository": "https://github.com/agentmark-ai/agentmark",
   "license": "MIT",
   "icon": "static/agentmark-logo.png",
