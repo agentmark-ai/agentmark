@@ -1,24 +1,6 @@
 ---
-name: math
+name: text
 text_config:
-  model_name: test-model
-input_schema:
-  type: object
-  properties:
-    userMessage:
-      type: string
-  required:
-    - userMessage
+  model_name: gpt-4o-mini
 ---
-
-<System>
-You are a helpful math tutor.
-</System>
-
-<User>
-{props.userMessage}
-</User>
-
-<Assistant>
-Here's your answer!
-</Assistant> 
+<User>Tell me a good joke</User>
