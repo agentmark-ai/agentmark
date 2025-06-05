@@ -22,59 +22,41 @@
 
 ---
 
+**AgentMark is a readable, markdown-based prompting language for building reliable AI applications and agents**.
 
-## Overview
+AgentMark makes prompt engineering intuitive by combining familiar Markdown syntax with JSX components, allowing developers to focus on crafting effective prompts rather than wrestling with complex APIs, or learning a new syntax. You don't need to rewrite your entire application in AgentMark, just your prompts! AgentMark seamlessly integrates with your existing codebase in TypeScript and JavaScript, with Python support coming soon.
 
-Type-safe markdown-based prompts and evals.
-<p>
-  <img src="https://github.com/agentmark-ai/agentmark/blob/main/assets/agentmark-mdx.png" alt="AgentMark"> 
-<p>
+AgentMark comes with comprehensive tooling included—featuring full type safety, unified prompt configuration, syntax highlighting, loops and conditionals, custom SDK adapters, and support for text, object, image, and speech generation across multiple model providers, even when they don't support native structured output APIs.
 
-### Features
-
-AgentMark supports:
-
-1. Markdown: 📝
-1. Syntax highlighting: 🌈
-1. Type Safety: 🛡️
-1. Unified prompt config: 🔗
-1. JSX components, props, & plugins: 🧩
-1. Loops, Conditionals, and Filter Functions: ♻️
-1. Custom SDK Adapters: 🛠️
-1. JSON Output: 📦
-1. Tools & Agents: 🕵️
-1. Text, Object, Image and Speech generation.📝 🖼 🔊
-
- AgentMark supports multiple types of generation:
+## Generation Types
 
 ### Text Generation
 
-```mdx text.prompt.mdx
+```jsx text.prompt.mdx
 ---
 name: text
 text_config:
   model_name: gpt-4o-mini
 ---
-
-<User>What's 2 + 2?</User>
+<User>Tell me a good joke</User>
 ```
+
+![Text](https://i.imgur.com/nDsCxit.png)
 
 ### Object Generation
 
-```mdx example.prompt.mdx
+```jsx object.prompt.mdx
 ---
 name: example
 object_config:
   model_name: gpt-4
+  temperature: 0.5
   schema:
     type: object
     properties:
       event:
         type: object
         properties:
-          name: 
-            type: string
-            description: The name of the event
           date:
             type: string
             description: The date of the event
@@ -93,36 +75,39 @@ object_config:
                 - name
                 - role
         required: 
-          - name
           - date
           - attendees
 ---
 
-<System>You are a math tutor that can perform calculations.</System>
-<User>What's 235 * 18?</User>
+<System>Parse event details from the text.</System>
+<User>The company picnic is on July 15th. John (host) and Mary (coordinator) are organizing it</User>
 ```
+
+![Object](https://i.imgur.com/m9VPY9v.png)
 
 ### Image Generation
 
-```mdx image.prompt.mdx
+```jsx image.prompt.mdx
 ---
 name: image
 image_config:
   model_name: dall-e-3
-  num_images: 1
+  num_images: 2
   size: 1024x1024
   aspect_ratio: 1:1
   seed: 12345
 ---
 
 <ImagePrompt>
-A futuristic cityscape at sunset with flying cars and neon lights
+Cute cats playing
 </ImagePrompt>
 ```
 
+![Img](https://i.imgur.com/Coq6Ody.png)
+
 ### Speech Generation
 
-```mdx speach.prompt.mdx
+```jsx speach.prompt.mdx
 ---
 name: speech
 speech_config:
@@ -140,6 +125,23 @@ Please read this text aloud.
 This is a test for the speech prompt to be spoken aloud.
 </SpeechPrompt>
 ```
+
+![Audio](https://i.imgur.com/ovOZUNE.png)
+
+### Features
+
+AgentMark supports:
+
+1. Markdown: 📝
+1. Syntax highlighting: 🌈
+1. Type Safety: 🛡️
+1. Unified prompt config: 🔗
+1. JSX components, props, & plugins: 🧩
+1. Loops, Conditionals, and Filter Functions: ♻️
+1. Custom SDK Adapters: 🛠️
+1. JSON Output: 📦
+1. Tools & Agents: 🕵️
+1. Text, Object, Image and Speech generation.📝 🖼 🔊
 
 Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
@@ -162,21 +164,6 @@ Or with yarn:
 yarn && yarn start
 ```
 
-3. Run tests with npm:
-```bash
-npm test
-```
-
-or with yarn:
-
-```bash
-yarn test
-```
-
-4. (Optional) Generate types:
-```bash
-npx @agentmark/cli@latest generate-types
-```
 
 ## Supported Adapters
 
