@@ -10,7 +10,6 @@ import type {
   PromptKey,
   KeysWithKind,
   SpeechConfig,
-  PromptKind,
 } from "../types";
 
 export abstract class BasePrompt<
@@ -39,6 +38,43 @@ export abstract class BasePrompt<
 
   protected metadata(props: T[K]["input"]): PromptMetadata {
     return { props, path: this.path, template: this.template };
+  }
+
+  abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
+
+  formatWithDatasetStream(
+    datasetStream: ReadableStream<Record<string, unknown>>,
+    options?: AdaptOptions
+  ): ReadableStream<any> {
+    const reader = datasetStream.getReader();
+
+    return new ReadableStream({
+      start: async (controller) => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              controller.close();
+              break;
+            }
+            const formattedOutput = await this.format({
+              props: value,
+              ...options,
+            });
+            controller.enqueue(formattedOutput);
+          }
+        } catch (error) {
+          console.error(
+            "Error processing dataset stream in BasePrompt:",
+            error
+          );
+        }
+      },
+      cancel: (reason) => {
+        console.log("Output stream cancelled because ", reason);
+        return datasetStream.cancel(reason);
+      },
+    });
   }
 }
 
