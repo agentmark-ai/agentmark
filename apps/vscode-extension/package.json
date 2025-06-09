@@ -24,6 +24,11 @@
         "command": "agentmark-extension.runInference",
         "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
         "key": "f5"
+      },
+      {
+        "command": "agentmark-extension.runInferenceWithDataset",
+        "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+        "key": "shift+f5"
       }
     ],
     "menus": {
@@ -31,16 +36,48 @@
         {
           "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
           "command": "agentmark-extension.runInference",
-          "alt": "",
+          "alt": "agentmark-extension.runInferenceWithDataset",
           "group": "navigation"
+        },
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInferenceWithDataset",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInference",
+          "group": "agentmark@1"
+        },
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInferenceWithDataset",
+          "group": "agentmark@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "agentmark-extension.runInference",
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/"
+        },
+        {
+          "command": "agentmark-extension.runInferenceWithDataset",
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/"
         }
       ]
     },
     "commands": [
       {
         "command": "agentmark-extension.runInference",
-        "title": "Run Mdx",
+        "title": "AgentMark: Run Prompt",
         "icon": "$(play)"
+      },
+      {
+        "command": "agentmark-extension.runInferenceWithDataset",
+        "title": "AgentMark: Run Prompt with Dataset",
+        "icon": "$(run-all)"
       }
     ]
   },
