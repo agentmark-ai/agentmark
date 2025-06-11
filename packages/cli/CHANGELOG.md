@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.2.0
+
+### Minor Changes
+
+- acca86b: Require cloud input, fix docs link
+
 ## 1.1.0
 
 ### Minor Changes
