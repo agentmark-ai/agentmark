@@ -47,21 +47,16 @@ const init = async () => {
     type: "confirm",
   });
 
-  let cloud = "local";
 
-  if (shouldCreateExample) {
-    const { useCloud } = await prompts({
-      name: "useCloud",
-      message: "Are you planning to integrate with AgentMark Cloud or just use local development?",
-      type: "select",
-      choices: [
-        { title: "AgentMark Cloud", value: "cloud" },
-        { title: "Local Development", value: "local" }
-      ]
-    });
-
-    cloud = useCloud;
-  }
+  const { useCloud } = await prompts({
+    name: "useCloud",
+    message: "Are you planning to integrate with AgentMark Cloud or just use local development?",
+    type: "select",
+    choices: [
+      { title: "AgentMark Cloud", value: "cloud" },
+      { title: "Local Development", value: "local" }
+    ]
+  });
 
   const { editor } = await prompts({
     name: "editor",
@@ -75,15 +70,14 @@ const init = async () => {
     ],
   });
 
-  createExampleApp(provider, model, cloud, shouldCreateExample, editor);
+  createExampleApp(provider, model, useCloud, shouldCreateExample, editor);
 
-  if (cloud === "cloud") {
+  if (useCloud === "cloud") {
     fs.writeJsonSync("agentmark.json", config, { spaces: 2 });
+    console.log(
+      "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
+    );
   }
-
-  console.log(
-    "🚀 Deploy to Production: https://docs.agentmark.ai/agentmark/getting_started/quickstart"
-  );
 };
 
 export default init;
