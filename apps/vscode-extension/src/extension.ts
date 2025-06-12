@@ -20,6 +20,12 @@ export function activate(context: vscode.ExtensionContext) {
     modelRegistry,
   });
 
+  // Create output channel once during activation
+  const outputChannel = vscode.window.createOutputChannel("AgentMark");
+  
+  // Add output channel to subscriptions for automatic disposal
+  context.subscriptions.push(outputChannel);
+
   const disposable = vscode.commands.registerCommand(
     "agentmark-extension.runInference",
     async () => {
@@ -94,9 +100,9 @@ export function activate(context: vscode.ExtensionContext) {
 
       try {
         const props = frontmatter.test_settings?.props || {};
-        const ch = vscode.window.createOutputChannel("AgentMark");
-
-        ch.appendLine("Generating Response...");
+        outputChannel.clear();
+        outputChannel.show();
+        outputChannel.appendLine("Generating Response...");
         switch (promptKind) {
           case "image": {
             const prompt = await agentMark.loadImagePrompt(ast);
@@ -130,7 +136,7 @@ export function activate(context: vscode.ExtensionContext) {
           case "object": {
             const prompt = await agentMark.loadObjectPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
-            const { partialObjectStream: objectStream } = streamObject(
+            const { partialObjectStream: objectStream, fullStream } = streamObject(
               vercelInput as any
             );
             if (objectStream) {
@@ -139,19 +145,23 @@ export function activate(context: vscode.ExtensionContext) {
 
               for await (const chunk of objectStream) {
                 if (isFirstChunk) {
-                  ch.clear();
-                  ch.append("RESULT:\n");
-                  ch.show();
+                  outputChannel.clear();
+                  outputChannel.append("RESULT:\n");
                   isFirstChunk = false;
                 } else if (printed) {
                   // Clear and reprint the entire object on each update.
                   // While not the most efficient approach, this simulates a "live update" effect
                   // similar to a console refreshing its output, making the stream progression easier to follow.
-                  ch.clear();
-                  ch.append("RESULT:\n");
+                  outputChannel.clear();
+                  outputChannel.append("RESULT:\n");
                 }
-                ch.append(JSON.stringify(chunk, null, 2));
+                outputChannel.append(JSON.stringify(chunk, null, 2));
                 printed = true;
+              }
+            }
+            for await (const chunk of fullStream) {
+              if (chunk.type === "error") {
+                throw chunk.error
               }
             }
             break;
@@ -160,17 +170,21 @@ export function activate(context: vscode.ExtensionContext) {
           case "text": {
             const prompt = await agentMark.loadTextPrompt(ast);
             const vercelInput = await prompt.format({ props, apiKey });
-            const { textStream } = streamText(vercelInput);
+            const { textStream, fullStream } = streamText(vercelInput);
             if (textStream) {
               let isFirstChunk = true;
               for await (const chunk of textStream) {
                 if (isFirstChunk) {
-                  ch.clear();
-                  ch.append("TEXT: ");
-                  ch.show();
+                  outputChannel.clear();
+                  outputChannel.append("TEXT: ");
                   isFirstChunk = false;
                 }
-                ch.append(chunk);
+                outputChannel.append(chunk);
+              }
+            }
+            for await (const chunk of fullStream) {
+              if (chunk.type === "error") {
+                throw chunk.error
               }
             }
             break;
