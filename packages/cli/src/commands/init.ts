@@ -78,6 +78,9 @@ const init = async () => {
       "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
     );
   }
+  console.log(
+    "▶️ Run prompts directly in VSCode: https://marketplace.visualstudio.com/items?itemName=agentmark.agentmark"
+  );
 };
 
 export default init;
