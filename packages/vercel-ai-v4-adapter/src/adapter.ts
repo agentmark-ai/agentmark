@@ -339,7 +339,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptSpeech(
+  adaptSpeech<K extends KeysWithKind<T, "speech"> & string>(
     input: SpeechConfig,
     options: AdaptOptions
   ): VercelAISpeechParams {
