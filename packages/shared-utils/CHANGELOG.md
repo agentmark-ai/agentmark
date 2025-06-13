@@ -1,5 +1,11 @@
 # @agentmark/shared-utils
 
+## 1.1.0
+
+### Minor Changes
+
+- 5c5de5d: Add speach and images support for shared-utils and cli
+
 ## 1.0.0
 
 ### Major Changes
