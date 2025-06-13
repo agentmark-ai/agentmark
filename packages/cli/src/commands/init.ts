@@ -5,7 +5,8 @@ import { createExampleApp } from "../utils/examples/create-example-app";
 
 const init = async () => {
   const config: any = {
-    "$schema": "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
+    $schema:
+      "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
     version: "2.0.0",
     mdxVersion: "1.0",
     agentmarkPath: "/",
@@ -24,22 +25,29 @@ const init = async () => {
     }),
   });
 
-  const modelChoices = Providers[provider as keyof typeof Providers].models
-    .map((model) => {
-      return {
-        title: model,
-        value: model,
-      };
-    })
-  
+  const models = [
+    ...Providers[provider as keyof typeof Providers].languageModels.map((model) => ({
+      title: `${model} (Language Model)`,
+      value: model,
+    })),
+    ...Providers[provider as keyof typeof Providers].imageModels.map((model) => ({
+      title: `${model} (Image Generation)`,
+      value: model,
+    })),
+    ...Providers[provider as keyof typeof Providers].speechModels.map((model) => ({
+      title: `${model} (Text to Speech)`,
+      value: model,
+    })),
+  ];
+
   const { model } = await prompts({
     name: "model",
     type: "select",
     message: "Select a model",
-    choices: modelChoices,
+    choices: models,
   });
 
-  config.builtInModels = [model]
+  config.builtInModels = [model];
 
   const { shouldCreateExample } = await prompts({
     name: "shouldCreateExample",
@@ -47,21 +55,22 @@ const init = async () => {
     type: "confirm",
   });
 
-
   const { useCloud } = await prompts({
     name: "useCloud",
-    message: "Are you planning to integrate with AgentMark Cloud or just use local development?",
+    message:
+      "Are you planning to integrate with AgentMark Cloud or just use local development?",
     type: "select",
     choices: [
       { title: "AgentMark Cloud", value: "cloud" },
-      { title: "Local Development", value: "local" }
-    ]
+      { title: "Local Development", value: "local" },
+    ],
   });
 
   const { editor } = await prompts({
     name: "editor",
     type: "select",
-    message: "Select an AI editor to add AgentMark rules (rules provide AI assistance for writing prompts and datasets in your editor)",
+    message:
+      "Select an AI editor to add AgentMark rules (rules provide AI assistance for writing prompts and datasets in your editor)",
     choices: [
       { title: "Cursor", value: "cursor" },
       { title: "Windsurf", value: "windsurf" },

@@ -42,9 +42,7 @@ export type SerializeParams = {
     model: string;
     parameters?: any;
     variables?: { name: string; value: string }[];
-    output?: {
-      data: string;
-    } & Record<string, any>;
+    output?: any;
     input_schema?: any;
   };
   mdxVersion?: AgentmarkConfig["mdxVersion"];
@@ -67,9 +65,23 @@ export const serialize = ({
       data = {
         object_config: settings,
       };
-    } else {
+    }
+
+    if (promptType === "text") {
       data = {
         text_config: settings,
+      };
+    }
+
+    if (promptType === "image") {
+      data = {
+        image_config: settings,
+      };
+    }
+
+    if (promptType === "speech") {
+      data = {
+        speech_config: settings,
       };
     }
   } else {

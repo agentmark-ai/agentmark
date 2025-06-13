@@ -1,15 +1,25 @@
 export const Providers = {
   openai: {
     label: "OpenAI",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
+    languageModels: [
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-4",
+      "gpt-4-turbo",
+      "gpt-3.5-turbo",
+    ],
+    imageModels: ["dall-e-3", "dall-e-2"],
+    speechModels: ["tts-1", "tts-1-hd"],
   },
   anthropic: {
     label: "Anthropic",
-    models: ["claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
+    languageModels: ["claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
+    imageModels: [],
+    speechModels: [],
   },
   ollama: {
     label: "Ollama",
-    models: [
+    languageModels: [
       "llama3.1",
       "llama3.2",
       "mistral",
@@ -24,30 +34,36 @@ export const Providers = {
       "deepseek-r1",
       "tinyllama",
     ],
+    imageModels: [],
+    speechModels: [],
   },
   grok: {
     label: "Grok",
-    models: [
+    languageModels: [
       "grok-3",
       "grok-3-mini",
       "grok-3-fast",
       "grok-3-mini-fast",
       "grok-2-vision",
     ],
+    imageModels: [],
+    speechModels: [],
   },
   gemini: {
     label: "Gemini",
-    models: [
+    languageModels: [
       "gemini-2.5-pro-preview-03-25",
       "gemini-2.0-flash",
       "gemini-2.0-flash-lite",
       "gemini-1.5-flash",
       "gemini-1.5-pro",
     ],
+    imageModels: [],
+    speechModels: [],
   },
   groq: {
     label: "Groq",
-    models: [
+    languageModels: [
       "gemma2-9b-it",
       "llama-3.3-70b-versatile",
       "llama-3.1-8b-instant",
@@ -55,5 +71,7 @@ export const Providers = {
       "llama3-70b-8192",
       "llama3-8b-8192",
     ],
+    imageModels: [],
+    speechModels: [],
   },
 };
