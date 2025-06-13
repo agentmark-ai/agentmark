@@ -28,14 +28,30 @@ const pullModels = async () => {
     }),
   });
 
-  const modelChoices = Providers[provider as keyof typeof Providers].models
-    .map((model) => {
-      return {
-        title: model,
+  const allModels = [
+    ...Providers[provider as keyof typeof Providers].languageModels.map(
+      (model) => ({
+        title: `${model} (Language Model)`,
         value: model,
-      };
-    })
-    .filter((m) => !agentmarkConfig?.["builtInModels"]?.includes(m.value));
+      })
+    ),
+    ...Providers[provider as keyof typeof Providers].imageModels.map(
+      (model) => ({
+        title: `${model} (Image Generation)`,
+        value: model,
+      })
+    ),
+    ...Providers[provider as keyof typeof Providers].speechModels.map(
+      (model) => ({
+        title: `${model} (Text to Speech)`,
+        value: model,
+      })
+    ),
+  ];
+
+  const modelChoices = allModels.filter(
+    (m) => !agentmarkConfig?.["builtInModels"]?.includes(m.value)
+  );
 
   if (!modelChoices.length) {
     console.log("All models already added.");
@@ -53,9 +69,13 @@ const pullModels = async () => {
     ...new Set([...models, ...(agentmarkConfig.builtInModels || [])]),
   ];
 
-  await fs.writeJSON(path.join(process.cwd(), "agentmark.json"), agentmarkConfig, {
-    spaces: 2,
-  });
+  await fs.writeJSON(
+    path.join(process.cwd(), "agentmark.json"),
+    agentmarkConfig,
+    {
+      spaces: 2,
+    }
+  );
 
   console.log("Models pulled successfully.");
 };
