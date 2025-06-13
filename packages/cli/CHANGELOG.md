@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.3.0
+
+### Minor Changes
+
+- 5c5de5d: Add speach and images support for shared-utils and cli
+
 ## 1.2.0
 
 ### Minor Changes
