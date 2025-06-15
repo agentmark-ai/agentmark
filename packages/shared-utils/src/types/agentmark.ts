@@ -1,3 +1,8 @@
+type Option = {
+  label: string;
+  value: string;
+};
+
 export type ModelSettingsTypeSlider = {
   minimum: number;
   maximum: number;
@@ -7,11 +12,35 @@ export type ModelSettingsTypeSlider = {
   ui?: "slider";
 };
 
+export type ModelSettingsTypeAspectRatio = {
+  type: "string";
+  ui?: "aspectRatio";
+  default: string;
+};
+
+export type ModelSettingsTypeImageSize = {
+  type: "string";
+  ui?: "imageSize";
+  default: string;
+};
+
+export type ModelSettingsTypeSelect = {
+  type: "string";
+  ui?: "select";
+  options: Option[];
+  default: string;
+};
+
 export type AgentmarkModelSettingsConfig = {
   label: string;
   order: number;
   deafult: any;
-} & ModelSettingsTypeSlider;
+} & (
+  | ModelSettingsTypeSlider
+  | ModelSettingsTypeSelect
+  | ModelSettingsTypeImageSize
+  | ModelSettingsTypeAspectRatio
+);
 
 export type AgentmarkModelSettingsSchema = {
   [key: string]: AgentmarkModelSettingsConfig;
