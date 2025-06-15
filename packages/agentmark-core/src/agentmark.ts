@@ -12,6 +12,10 @@ import type {
   Adapter,
   PromptShape,
   KeysWithKind,
+  SpeechConfig,
+  ImageConfig,
+  ObjectConfig,
+  TextConfig,
 } from "./types";
 import type { Root } from "mdast";
 
@@ -48,16 +52,16 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    TextConfigSchema.parse(
-      await this.templateEngine.compile({
-        template: content,
-      })
-    );
+    const textConfig: TextConfig = await this.templateEngine.compile({
+      template: content,
+    });
+    TextConfigSchema.parse(textConfig);
     return new TextPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathProvided ? pathOrPreloaded : undefined
+      pathProvided ? pathOrPreloaded : undefined,
+      textConfig.test_settings
     );
   }
 
@@ -74,16 +78,16 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    ObjectConfigSchema.parse(
-      await this.templateEngine.compile({
-        template: content,
-      })
-    );
+    const objectConfig: ObjectConfig = await this.templateEngine.compile({
+      template: content,
+    });
+    ObjectConfigSchema.parse(objectConfig);
     return new ObjectPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathProvided ? pathOrPreloaded : undefined
+      pathProvided ? pathOrPreloaded : undefined,
+      objectConfig.test_settings
     );
   }
 
@@ -100,16 +104,16 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    ImageConfigSchema.parse(
-      await this.templateEngine.compile({
-        template: content,
-      })
-    );
+    const imageConfig: ImageConfig = await this.templateEngine.compile({
+      template: content,
+    });
+    ImageConfigSchema.parse(imageConfig);
     return new ImagePrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathProvided ? pathOrPreloaded : undefined
+      pathProvided ? pathOrPreloaded : undefined,
+      imageConfig.test_settings
     );
   }
 
@@ -126,16 +130,16 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       content = pathOrPreloaded;
     }
 
-    SpeechConfigSchema.parse(
-      await this.templateEngine.compile({
-        template: content,
-      })
-    );
+    const speechConfig: SpeechConfig = await this.templateEngine.compile({
+      template: content,
+    });
+    SpeechConfigSchema.parse(speechConfig);
     return new SpeechPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.adapter,
-      pathProvided ? pathOrPreloaded : undefined
+      pathProvided ? pathOrPreloaded : undefined,
+      speechConfig.test_settings
     );
   }
 }

@@ -10,6 +10,7 @@ import type {
   PromptKey,
   KeysWithKind,
   SpeechConfig,
+  TestSettings,
 } from "../types";
 
 export abstract class BasePrompt<
@@ -24,7 +25,8 @@ export abstract class BasePrompt<
     public readonly template: unknown,
     engine: TemplateEngine,
     protected readonly adapter: A,
-    protected readonly path?: K
+    protected readonly path?: K,
+    protected readonly testSettings?: TestSettings
   ) {
     this.templateEngine = engine;
   }
@@ -41,6 +43,19 @@ export abstract class BasePrompt<
   }
 
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
+
+  formatWithTestSettings(options: AdaptOptions): Promise<any> {
+    console.log("testSettings", this.testSettings);
+    if (!this.testSettings?.props) {
+      throw new Error(
+        "Test settings are not defined for this prompt. Please provide valid test settings."
+      );
+    }
+    return this.format({
+      props: this.testSettings?.props,
+      ...options,
+    });
+  }
 
   formatWithDatasetStream(
     datasetStream: ReadableStream<Record<"input", unknown>>,
@@ -78,8 +93,14 @@ export class ObjectPrompt<
   A extends Adapter<T>,
   K extends KeysWithKind<T, "object"> & string
 > extends BasePrompt<T, A, K, ObjectConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings
+  ) {
+    super(tpl, eng, ad, path, testSettings);
   }
 
   async format({
@@ -96,8 +117,14 @@ export class TextPrompt<
   A extends Adapter<T>,
   K extends KeysWithKind<T, "text"> & string
 > extends BasePrompt<T, A, K, TextConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings
+  ) {
+    super(tpl, eng, ad, path, testSettings);
   }
 
   async format({
@@ -114,8 +141,14 @@ export class ImagePrompt<
   A extends Adapter<T>,
   K extends KeysWithKind<T, "image"> & string
 > extends BasePrompt<T, A, K, ImageConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings
+  ) {
+    super(tpl, eng, ad, path, testSettings);
   }
 
   async format({
@@ -123,7 +156,7 @@ export class ImagePrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptImage"]>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptImage(compiled, options, this.metadata(props));
+    return this.adapter.adaptImage(compiled, options);
   }
 }
 
@@ -132,8 +165,14 @@ export class SpeechPrompt<
   A extends Adapter<T>,
   K extends KeysWithKind<T, "speech"> & string
 > extends BasePrompt<T, A, K, SpeechConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings
+  ) {
+    super(tpl, eng, ad, path, testSettings);
   }
 
   async format({
@@ -141,6 +180,6 @@ export class SpeechPrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptSpeech"]>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptSpeech(compiled, options, this.metadata(props));
+    return this.adapter.adaptSpeech(compiled, options);
   }
 }

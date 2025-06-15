@@ -26,7 +26,6 @@ const runPrompt = async ({
   apiKey,
   ch,
   runMode,
-  props,
   datasetPath,
   fileLoader,
 }: {
@@ -35,7 +34,6 @@ const runPrompt = async ({
   apiKey: string;
   ch: vscode.OutputChannel;
   runMode: "default" | "dataset";
-  props: Record<string, any>;
   datasetPath: string;
   fileLoader: FileLoader;
 }) => {
@@ -49,7 +47,7 @@ const runPrompt = async ({
     vercelInputs = prompt.formatWithDatasetStream(datasetStream, { apiKey });
   } else {
     // Treat a single run as a stream with one item
-    const vercelInput = await prompt.format({ props, apiKey });
+    const vercelInput = await prompt.formatWithTestSettings({ apiKey });
     vercelInputs = new ReadableStream({
       start(controller) {
         controller.enqueue(vercelInput);
@@ -140,7 +138,6 @@ const runAgentMarkCommandHandler = async (
   }
 
   try {
-    const props = frontmatter.test_settings?.props || {};
     const datasetPath = frontmatter.test_settings?.dataset || "";
     const ch = vscode.window.createOutputChannel("AgentMark");
 
@@ -151,7 +148,6 @@ const runAgentMarkCommandHandler = async (
       apiKey,
       ch,
       runMode,
-      props,
       datasetPath,
       fileLoader,
     });

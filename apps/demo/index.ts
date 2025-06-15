@@ -10,7 +10,7 @@ import { FileLoader } from "@agentmark/agentmark-core"; // Correct import
 import AgentmarkTypes, { Tools } from "./agentmark.types";
 
 const modelRegistry = new VercelAIModelRegistry();
-const loader = new FileLoader("./apps/demo/fixtures"); // Instantiated FileLoader
+const loader = new FileLoader("./packages/agentmark-core/test"); // Instantiated FileLoader
 
 modelRegistry.registerModels(["gpt-4o", "gpt-4o-mini"], (name: string) => {
   return openai(name);
@@ -70,6 +70,24 @@ async function testFormatWithDatasetStream() {
   }
 }
 
+async function testFormatWithTestSettings() {
+  console.log("\nTesting prompt.formatWithTestSettings()...");
+  try {
+    // const datasetStream = loader.loadDataset("math_ops.dataset.jsonl");
+
+    const prompt = await agentMark.loadObjectPrompt(
+      "fixtures/mathDataset.prompt.mdx"
+    );
+    const formattedOutputSteam = prompt.formatWithTestSettings({});
+
+    let count = 0;
+    console.log("Formatted Output Stream:", formattedOutputSteam);
+    console.log("Finished processing dataset stream with prompt.");
+  } catch (error) {
+    console.error("Error in testFormatWithDatasetStream:", error);
+  }
+}
+
 async function run() {
   const prompt = await agentMark.loadObjectPrompt("test/math2.prompt.mdx");
   const props = {
@@ -84,4 +102,4 @@ async function run() {
 // run();
 // testLoadDataset();
 
-testFormatWithDatasetStream();
+testFormatWithTestSettings();

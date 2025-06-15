@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import path from "path";
 import { createAgentMarkClient } from "@agentmark/default-adapter";
 import { FileLoader } from "../src/loaders/file";
-import { DefaultAdapter } from "../src/adapters/default";
-import { TemplateDXTemplateEngine } from "../src/template_engines/templatedx";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
