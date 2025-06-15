@@ -43,26 +43,20 @@ export abstract class BasePrompt<
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
   formatWithDatasetStream(
-    datasetStream: ReadableStream<Record<string, unknown>>,
+    datasetStream: ReadableStream<Record<"input", unknown>>,
     options?: AdaptOptions
   ): ReadableStream<any> {
-    const reader = datasetStream.getReader();
-
     return new ReadableStream({
       start: async (controller) => {
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              controller.close();
-              break;
-            }
+          for await (const value of datasetStream) {
             const formattedOutput = await this.format({
-              props: value,
+              props: value.input,
               ...options,
             });
             controller.enqueue(formattedOutput);
           }
+          controller.close();
         } catch (error) {
           console.error(
             "Error processing dataset stream in BasePrompt:",
@@ -70,10 +64,7 @@ export abstract class BasePrompt<
           );
         }
       },
-      cancel: (reason) => {
-        console.log("Output stream cancelled because ", reason);
-        return datasetStream.cancel(reason);
-      },
+      cancel: (reason) => datasetStream.cancel(reason),
     });
   }
 }
