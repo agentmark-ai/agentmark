@@ -47,7 +47,7 @@ export abstract class BasePrompt<
 
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
-  formatWithTestSettings(options: AdaptOptions): Promise<any> {
+  formatWithTestProps(options: AdaptOptions): Promise<any> {
     console.log("testSettings", this.testSettings);
     if (!this.testSettings?.props) {
       throw new Error(
@@ -60,7 +60,7 @@ export abstract class BasePrompt<
     });
   }
 
-  formatWithDatasetStream(options?: AdaptOptions): ReadableStream<any> {
+  formatWithDataset(options?: AdaptOptions): ReadableStream<any> {
     if (!this.loader || !this.testSettings?.dataset) {
       throw new Error(
         "Loader or dataset is not defined for this prompt. Please provide valid loader and dataset."
@@ -79,10 +79,7 @@ export abstract class BasePrompt<
           }
           controller.close();
         } catch (error) {
-          console.error(
-            "Error processing dataset stream in BasePrompt:",
-            error
-          );
+          console.error("Error processing dataset stream:", error);
         }
       },
       cancel: (reason) => datasetStream.cancel(reason),

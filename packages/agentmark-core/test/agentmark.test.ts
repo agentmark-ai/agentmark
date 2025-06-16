@@ -205,4 +205,28 @@ describe("AgentMark Integration", () => {
       "Error processing MDX JSX Element: ImageAttachment and FileAttachment tags must be inside User tag."
     );
   });
+
+  it("should handle formatting with data sets", async () => {
+    const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
+    const vercelInputs = prompt.formatWithDataset({});
+
+    let entryIndex = 1;
+    for await (const input of vercelInputs) {
+      expect(input).toBeDefined();
+      expect(input.name).toBe("mathDatasetOps");
+      expect(input.messages).toHaveLength(3);
+      expect(input.messages[0].role).toBe("system");
+      expect(input.messages[0].content).toBe("You are a helpful math tutor.");
+      if (entryIndex === 1) {
+        expect(input.messages[1].role).toBe("user");
+        expect(input.messages[1].content).toBe("What is 5 + 7?");
+      } else if (entryIndex === 2) {
+        expect(input.messages[1].role).toBe("user");
+        expect(input.messages[1].content).toBe("Calculate 10 - 3.");
+      }
+      expect(input.messages[2].role).toBe("assistant");
+      expect(input.messages[2].content).toBe("Here's your answer!");
+      entryIndex++;
+    }
+  });
 });

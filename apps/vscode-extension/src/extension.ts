@@ -42,10 +42,10 @@ const runPrompt = async ({
   let vercelInputs: ReadableStream<any>;
 
   if (runMode === "dataset") {
-    vercelInputs = prompt.formatWithDatasetStream({ apiKey });
+    vercelInputs = prompt.formatWithDataset({ apiKey });
   } else {
     // Treat a single run as a stream with one item
-    const vercelInput = await prompt.formatWithTestSettings({ apiKey });
+    const vercelInput = await prompt.formatWithTestProps({ apiKey });
     vercelInputs = new ReadableStream({
       start(controller) {
         controller.enqueue(vercelInput);
