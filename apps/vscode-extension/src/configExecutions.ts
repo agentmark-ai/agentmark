@@ -12,40 +12,71 @@ const handleTextExecution = async (
   ch: vscode.OutputChannel
 ) => {
   ch.clear();
-  ch.append("Text Prompt Results:\n");
   ch.show();
-  let entryIndex = 0;
+  ch.append("Text Prompt Results:\n");
+  let entryIndex = 1;
   for await (const input of inputs) {
-    entryIndex++;
-    ch.append(`\n--- Result for Entry ${entryIndex} ---\n`);
-    const { textStream } = streamText(input);
+    if (entryIndex > 1) {
+      // first entry does not need a header
+      // subsequent entries should have a header to separate results
+      ch.append(`\n--- Result for Entry ${entryIndex} ---\n`);
+    }
+    const { textStream, fullStream } = streamText(input);
     if (textStream) {
       for await (const chunk of textStream) {
         ch.append(chunk);
       }
     }
+    for await (const chunk of fullStream) {
+      if (chunk.type === "error") {
+        throw chunk.error;
+      }
+    }
+    entryIndex++;
   }
 };
-
 const handleObjectExecution = async (
   inputs: ReadableStream<any>,
   ch: vscode.OutputChannel
 ) => {
   ch.clear();
-  ch.append("Object Prompt Results:\n");
   ch.show();
-  let entryIndex = 0;
+
+  // 1. This buffer holds the results of all completed entries.
+  let historyOutput = "Object Prompt Results:\n";
+  ch.append(historyOutput);
+
+  let entryIndex = 1;
   for await (const input of inputs) {
+    // 2. This buffer will hold the JSON string of the object currently streaming.
+    let currentObjectStr = "";
+    let entryHeader = "";
+    if (entryIndex > 1) {
+      entryHeader = `\n--- Result for Entry ${entryIndex} ---\n`;
+    }
+
+    const { partialObjectStream: objectStream } = streamObject(input);
+
+    // 3. Use a SINGLE loop to process the stream for the current entry.
+    for await (const chunk of objectStream) {
+      currentObjectStr = JSON.stringify(chunk, null, 2);
+
+      // Re-render the entire output: the history + the streaming current object.
+      ch.clear();
+      ch.append(historyOutput + entryHeader + currentObjectStr);
+    }
+
+    // 4. AFTER the stream for this entry is finished, "commit" its final state
+    historyOutput += entryHeader + currentObjectStr;
+
+    // for await (const chunk of fullStream) {
+    //   if (chunk.type === "error") {
+    //     const errorMsg = `\n--- ERROR for Entry ${entryIndex}: ${chunk.error} ---\n`;
+    //     ch.append(errorMsg); // Append the error to the output
+    //     historyOutput += errorMsg; // Also add it to the history
+    //   }
+    // }
     entryIndex++;
-    const { partialObjectStream } = streamObject(input);
-    let finalObject: any = null;
-    for await (const chunk of partialObjectStream) {
-      finalObject = chunk;
-    }
-    if (finalObject && Object.keys(finalObject).length > 0) {
-      ch.append(`\n--- Result for Entry ${entryIndex} ---\n`);
-      ch.append(JSON.stringify(finalObject, null, 2));
-    }
   }
 };
 

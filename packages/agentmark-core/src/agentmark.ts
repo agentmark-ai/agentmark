@@ -39,6 +39,10 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
   }
 
+  setLoader(loader: Loader<T>) {
+    this.loader = loader;
+  }
+
   async loadTextPrompt<K extends KeysWithKind<T, "text"> & string>(
     pathOrPreloaded: K | Root,
     options?: any
@@ -61,7 +65,8 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       this.templateEngine,
       this.adapter,
       pathProvided ? pathOrPreloaded : undefined,
-      textConfig.test_settings
+      textConfig.test_settings,
+      this.loader
     );
   }
 
@@ -87,7 +92,8 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       this.templateEngine,
       this.adapter,
       pathProvided ? pathOrPreloaded : undefined,
-      objectConfig.test_settings
+      objectConfig.test_settings,
+      this.loader
     );
   }
 
@@ -113,7 +119,8 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       this.templateEngine,
       this.adapter,
       pathProvided ? pathOrPreloaded : undefined,
-      imageConfig.test_settings
+      imageConfig.test_settings,
+      this.loader
     );
   }
 
@@ -139,7 +146,8 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       this.templateEngine,
       this.adapter,
       pathProvided ? pathOrPreloaded : undefined,
-      speechConfig.test_settings
+      speechConfig.test_settings,
+      this.loader
     );
   }
 }

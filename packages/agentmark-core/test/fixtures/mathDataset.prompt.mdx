@@ -1,7 +1,7 @@
 ---
 name: math
 object_config:
-  model_name: gpt-4o
+  model_name: test-model
   temperature: 0.5
   schema:
     type: object
@@ -10,7 +10,7 @@ object_config:
         type: string
     required: ["answer"]
 test_settings:
-  dataset: math_ops.dataset.jsonl
+  dataset: ../datasets/mathOps.dataset.jsonl
   props: 
     userMessage: "What is the integral of x^2?"
 ---

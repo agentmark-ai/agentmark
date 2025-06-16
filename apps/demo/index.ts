@@ -52,9 +52,11 @@ async function testLoadDataset() {
 async function testFormatWithDatasetStream() {
   console.log("\nTesting prompt.formatWithDatasetStream()...");
   try {
-    const datasetStream = loader.loadDataset("math_ops.dataset.jsonl");
+    const datasetStream = loader.loadDataset("datasets/mathOps.dataset.jsonl");
 
-    const prompt = await agentMark.loadObjectPrompt("math2.prompt.mdx");
+    const prompt = await agentMark.loadObjectPrompt(
+      "fixtures/mathDataset.prompt.mdx"
+    );
     const formattedOutputSteam = prompt.formatWithDatasetStream(datasetStream);
 
     let count = 0;
@@ -103,3 +105,4 @@ async function run() {
 // testLoadDataset();
 
 testFormatWithTestSettings();
+testFormatWithDatasetStream();

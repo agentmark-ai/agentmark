@@ -1,3 +1,4 @@
+import { FileLoader } from "../loaders/file";
 import type {
   Adapter,
   AdaptOptions,
@@ -11,6 +12,7 @@ import type {
   KeysWithKind,
   SpeechConfig,
   TestSettings,
+  Loader,
 } from "../types";
 
 export abstract class BasePrompt<
@@ -26,7 +28,8 @@ export abstract class BasePrompt<
     engine: TemplateEngine,
     protected readonly adapter: A,
     protected readonly path?: K,
-    protected readonly testSettings?: TestSettings
+    protected readonly testSettings?: TestSettings,
+    protected readonly loader?: Loader<T>
   ) {
     this.templateEngine = engine;
   }
@@ -57,10 +60,13 @@ export abstract class BasePrompt<
     });
   }
 
-  formatWithDatasetStream(
-    datasetStream: ReadableStream<Record<"input", unknown>>,
-    options?: AdaptOptions
-  ): ReadableStream<any> {
+  formatWithDatasetStream(options?: AdaptOptions): ReadableStream<any> {
+    if (!this.loader || !this.testSettings?.dataset) {
+      throw new Error(
+        "Loader or dataset is not defined for this prompt. Please provide valid loader and dataset."
+      );
+    }
+    const datasetStream = this.loader?.loadDataset(this.testSettings?.dataset);
     return new ReadableStream({
       start: async (controller) => {
         try {
@@ -98,9 +104,10 @@ export class ObjectPrompt<
     eng: TemplateEngine,
     ad: A,
     path?: K,
-    testSettings?: TestSettings
+    testSettings?: TestSettings,
+    loader?: Loader<T>
   ) {
-    super(tpl, eng, ad, path, testSettings);
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -122,9 +129,10 @@ export class TextPrompt<
     eng: TemplateEngine,
     ad: A,
     path?: K,
-    testSettings?: TestSettings
+    testSettings?: TestSettings,
+    loader?: Loader<T>
   ) {
-    super(tpl, eng, ad, path, testSettings);
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -146,9 +154,10 @@ export class ImagePrompt<
     eng: TemplateEngine,
     ad: A,
     path?: K,
-    testSettings?: TestSettings
+    testSettings?: TestSettings,
+    loader?: Loader<T>
   ) {
-    super(tpl, eng, ad, path, testSettings);
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -170,9 +179,10 @@ export class SpeechPrompt<
     eng: TemplateEngine,
     ad: A,
     path?: K,
-    testSettings?: TestSettings
+    testSettings?: TestSettings,
+    loader?: Loader<T>
   ) {
-    super(tpl, eng, ad, path, testSettings);
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({

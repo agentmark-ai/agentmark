@@ -26,7 +26,6 @@ const runPrompt = async ({
   apiKey,
   ch,
   runMode,
-  datasetPath,
   fileLoader,
 }: {
   ast: Root;
@@ -34,17 +33,16 @@ const runPrompt = async ({
   apiKey: string;
   ch: vscode.OutputChannel;
   runMode: "default" | "dataset";
-  datasetPath: string;
   fileLoader: FileLoader;
 }) => {
+  agentMark.setLoader(fileLoader);
   const promptLoader = loaderMap[promptKind];
   const prompt = await promptLoader(ast);
 
   let vercelInputs: ReadableStream<any>;
 
   if (runMode === "dataset") {
-    const datasetStream = fileLoader.loadDataset(datasetPath);
-    vercelInputs = prompt.formatWithDatasetStream(datasetStream, { apiKey });
+    vercelInputs = prompt.formatWithDatasetStream({ apiKey });
   } else {
     // Treat a single run as a stream with one item
     const vercelInput = await prompt.formatWithTestSettings({ apiKey });
@@ -62,7 +60,8 @@ const runPrompt = async ({
 
 const runAgentMarkCommandHandler = async (
   context: vscode.ExtensionContext,
-  runMode: "default" | "dataset" = "default"
+  runMode: "default" | "dataset" = "default",
+  ch: vscode.OutputChannel = vscode.window.createOutputChannel("AgentMark")
 ) => {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
@@ -139,16 +138,12 @@ const runAgentMarkCommandHandler = async (
 
   try {
     const datasetPath = frontmatter.test_settings?.dataset || "";
-    const ch = vscode.window.createOutputChannel("AgentMark");
-
-    ch.appendLine("Generating Response...");
     await runPrompt({
       ast,
       promptKind,
       apiKey,
       ch,
       runMode,
-      datasetPath,
       fileLoader,
     });
     context.secrets.store(`agentmark.${modelProviderMap[modelName]}`, apiKey);
@@ -158,19 +153,23 @@ const runAgentMarkCommandHandler = async (
 };
 
 export function activate(context: vscode.ExtensionContext) {
+  // Create output channel once during activation
+  const outputChannel = vscode.window.createOutputChannel("AgentMark");
+
   const runInferenceDisposable = vscode.commands.registerCommand(
     "agentmark-extension.runInference",
-    () => runAgentMarkCommandHandler(context, "default")
+    () => runAgentMarkCommandHandler(context, "default", outputChannel)
   );
 
   const runInferenceWithDatasetDisposable = vscode.commands.registerCommand(
     "agentmark-extension.runInferenceWithDataset",
-    () => runAgentMarkCommandHandler(context, "dataset")
+    () => runAgentMarkCommandHandler(context, "dataset", outputChannel)
   );
 
   context.subscriptions.push(
     runInferenceDisposable,
-    runInferenceWithDatasetDisposable
+    runInferenceWithDatasetDisposable,
+    outputChannel
   );
 }
 

@@ -34,6 +34,11 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  "mathDataset.prompt.mdx": {
+    kind: "object";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
 };
 
 describe("AgentMark Integration", () => {
