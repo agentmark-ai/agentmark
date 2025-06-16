@@ -229,4 +229,23 @@ describe("AgentMark Integration", () => {
       entryIndex++;
     }
   });
+
+  it("should handle formatting with test props", async () => {
+    const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
+    const vercelInput = await prompt.formatWithTestProps({});
+
+    expect(vercelInput).toBeDefined();
+    expect(vercelInput.name).toBe("mathDatasetOps");
+    expect(vercelInput.messages).toHaveLength(3);
+    expect(vercelInput.messages[0].role).toBe("system");
+    expect(vercelInput.messages[0].content).toBe(
+      "You are a helpful math tutor."
+    );
+    expect(vercelInput.messages[1].role).toBe("user");
+    expect(vercelInput.messages[1].content).toBe(
+      "What is the integral of x^2?"
+    );
+    expect(vercelInput.messages[2].role).toBe("assistant");
+    expect(vercelInput.messages[2].content).toBe("Here's your answer!");
+  });
 });
