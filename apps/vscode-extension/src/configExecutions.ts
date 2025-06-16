@@ -72,8 +72,8 @@ const handleObjectExecution = async (
     // for await (const chunk of fullStream) {
     //   if (chunk.type === "error") {
     //     const errorMsg = `\n--- ERROR for Entry ${entryIndex}: ${chunk.error} ---\n`;
-    //     ch.append(errorMsg); // Append the error to the output
-    //     historyOutput += errorMsg; // Also add it to the history
+    //     ch.append(errorMsg);
+    //     historyOutput += errorMsg;
     //   }
     // }
     entryIndex++;
