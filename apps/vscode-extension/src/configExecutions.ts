@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import {
   streamText,
-  streamObject,
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
+  generateObject,
 } from "ai";
 import { imageHtmlFormat, audioHtmlFormat } from "./formatWebView";
 
@@ -49,33 +49,13 @@ const handleObjectExecution = async (
   let entryIndex = 1;
   for await (const input of inputs) {
     // 2. This buffer will hold the JSON string of the object currently streaming.
-    let currentObjectStr = "";
-    let entryHeader = "";
     if (entryIndex > 1) {
-      entryHeader = `\n--- Result for Entry ${entryIndex} ---\n`;
+      ch.append(`\n--- Result for Entry ${entryIndex} ---\n`);
     }
 
-    const { partialObjectStream: objectStream } = streamObject(input);
-
-    // 3. Use a SINGLE loop to process the stream for the current entry.
-    for await (const chunk of objectStream) {
-      currentObjectStr = JSON.stringify(chunk, null, 2);
-
-      // Re-render the entire output: the history + the streaming current object.
-      ch.clear();
-      ch.append(historyOutput + entryHeader + currentObjectStr);
-    }
-
-    // 4. AFTER the stream for this entry is finished, "commit" its final state
-    historyOutput += entryHeader + currentObjectStr;
-
-    // for await (const chunk of fullStream) {
-    //   if (chunk.type === "error") {
-    //     const errorMsg = `\n--- ERROR for Entry ${entryIndex}: ${chunk.error} ---\n`;
-    //     ch.append(errorMsg);
-    //     historyOutput += errorMsg;
-    //   }
-    // }
+    const { object } = await generateObject(input);
+    console.log("object", object);
+    ch.append(JSON.stringify(object, null, 2));
     entryIndex++;
   }
 };

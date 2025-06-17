@@ -50,11 +50,6 @@ export abstract class BasePrompt<
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
   formatWithTestProps(options: AdaptOptions): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
-    if (!this.testSettings?.props) {
-      throw new Error(
-        "Test settings are not defined for this prompt. Please provide valid test settings."
-      );
-    }
     return this.format({
       props: this.testSettings?.props,
       ...options,
