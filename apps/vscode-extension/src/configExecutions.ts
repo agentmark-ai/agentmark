@@ -54,7 +54,6 @@ const handleObjectExecution = async (
     }
 
     const { object } = await generateObject(input);
-    console.log("object", object);
     ch.append(JSON.stringify(object, null, 2));
     entryIndex++;
   }
