@@ -1,4 +1,5 @@
 import {
+  AdaptOptions,
   AgentMark,
   KeysWithKind,
   Loader,
@@ -21,6 +22,14 @@ export interface VercelAIObjectPrompt<
 > extends ObjectPrompt<T, VercelAIAdapter<T, Tools>, K> {
   format(
     params: PromptFormatParams<T[K]["input"]>
+  ): Promise<VercelAIObjectParams<T[K]["output"]>>;
+
+  formatWithDataset(
+    options?: AdaptOptions
+  ): ReadableStream<VercelAIObjectParams<T[K]["output"]>>;
+
+  formatWithTestProps(
+    options: AdaptOptions
   ): Promise<VercelAIObjectParams<T[K]["output"]>>;
 }
 

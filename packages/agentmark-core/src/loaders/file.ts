@@ -19,7 +19,10 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     return content;
   }
 
-  loadDataset(datasetPath: string): ReadableStream<Record<string, unknown>> {
+  loadDataset(datasetPath: string): ReadableStream<{
+    input: Record<string, unknown>;
+    expectedOutput?: string;
+  }> {
     if (!datasetPath.endsWith(".jsonl"))
       throw new Error("Dataset must be a JSON Lines file (.jsonl)");
 

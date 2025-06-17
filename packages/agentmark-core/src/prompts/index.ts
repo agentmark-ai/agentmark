@@ -13,13 +13,15 @@ import type {
   SpeechConfig,
   TestSettings,
   Loader,
+  PromptKind,
 } from "../types";
 
 export abstract class BasePrompt<
   T extends PromptShape<T>,
-  A,
+  A extends Adapter<T>,
   K extends PromptKey<T>,
-  C
+  C,
+  PK extends PromptKind
 > {
   public readonly templateEngine: TemplateEngine;
 
@@ -47,8 +49,7 @@ export abstract class BasePrompt<
 
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
-  formatWithTestProps(options: AdaptOptions): Promise<any> {
-    console.log("testSettings", this.testSettings);
+  formatWithTestProps(options: AdaptOptions): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
     if (!this.testSettings?.props) {
       throw new Error(
         "Test settings are not defined for this prompt. Please provide valid test settings."
@@ -60,7 +61,9 @@ export abstract class BasePrompt<
     });
   }
 
-  formatWithDataset(options?: AdaptOptions): ReadableStream<any> {
+  formatWithDataset(
+    options?: AdaptOptions
+  ): ReadableStream<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
     if (!this.loader || !this.testSettings?.dataset) {
       throw new Error(
         "Loader or dataset is not defined for this prompt. Please provide valid loader and dataset."
@@ -95,7 +98,7 @@ export class ObjectPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "object"> & string
-> extends BasePrompt<T, A, K, ObjectConfig> {
+> extends BasePrompt<T, A, K, ObjectConfig, "object"> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
@@ -120,7 +123,7 @@ export class TextPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "text"> & string
-> extends BasePrompt<T, A, K, TextConfig> {
+> extends BasePrompt<T, A, K, TextConfig, "text"> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
@@ -145,7 +148,7 @@ export class ImagePrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "image"> & string
-> extends BasePrompt<T, A, K, ImageConfig> {
+> extends BasePrompt<T, A, K, ImageConfig, "image"> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
@@ -170,7 +173,7 @@ export class SpeechPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "speech"> & string
-> extends BasePrompt<T, A, K, SpeechConfig> {
+> extends BasePrompt<T, A, K, SpeechConfig, "speech"> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,

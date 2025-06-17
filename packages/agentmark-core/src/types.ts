@@ -78,7 +78,12 @@ export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
 export interface Loader<T extends PromptShape<T>> {
   load(path: string, options?: any): Promise<unknown>;
-  loadDataset(datasetPath: string): ReadableStream<Record<string, unknown>>;
+  loadDataset(
+    datasetPath: string
+  ): ReadableStream<{
+    input: Record<string, unknown>;
+    expectedOutput?: string;
+  }>;
 }
 
 export interface Adapter<D extends PromptShape<D>> {
