@@ -1,5 +1,16 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 5.0.0
+
+### Minor Changes
+
+- 07c7806: Support dataset linking
+
+### Patch Changes
+
+- Updated dependencies [07c7806]
+  - @agentmark/agentmark-core@3.2.0
+
 ## 4.0.1
 
 ### Patch Changes

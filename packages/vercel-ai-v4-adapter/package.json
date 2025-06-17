@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/vercel-ai-v4-adapter",
-  "version": "4.0.1",
+  "version": "5.0.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,7 +24,7 @@
     "build": "tsup && npx cpy ../../README.md ../../logo.svg ./"
   },
   "devDependencies": {
-    "@agentmark/agentmark-core": "^3.1.2",
+    "@agentmark/agentmark-core": "^3.2.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "ai": "^4.0.0",
@@ -38,7 +38,7 @@
     "zod": "^3.23.8"
   },
   "peerDependencies": {
-    "@agentmark/agentmark-core": "^3.1.2",
+    "@agentmark/agentmark-core": "^3.2.0",
     "ai": "^4.0.0"
   },
   "files": [
