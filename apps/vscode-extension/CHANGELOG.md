@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.5.0
+
+### Minor Changes
+
+- eb21b07: Support dataset linking
+
 ## 1.4.9
 
 ### Patch Changes
