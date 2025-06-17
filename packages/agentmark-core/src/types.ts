@@ -9,6 +9,7 @@ import {
   ChatMessage,
   RichChatMessage,
   SpeechSettings,
+  TestSettings,
 } from "./schemas";
 
 export type JSONPrimitive = string | number | boolean | null;
@@ -27,6 +28,7 @@ export type {
   ChatMessage,
   RichChatMessage,
   SpeechSettings,
+  TestSettings,
 };
 
 export type AgentmarkConfig =
@@ -76,6 +78,12 @@ export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
 
 export interface Loader<T extends PromptShape<T>> {
   load(path: string, options?: any): Promise<unknown>;
+  loadDataset(
+    datasetPath: string
+  ): ReadableStream<{
+    input: Record<string, unknown>;
+    expectedOutput?: string;
+  }>;
 }
 
 export interface Adapter<D extends PromptShape<D>> {
@@ -95,13 +103,11 @@ export interface Adapter<D extends PromptShape<D>> {
 
   adaptImage<K extends KeysWithKind<D, "image"> & string>(
     input: ImageConfig,
-    options: AdaptOptions,
-    metadata: PromptMetadata
+    options: AdaptOptions
   ): any;
 
   adaptSpeech<K extends KeysWithKind<D, "speech"> & string>(
     input: SpeechConfig,
-    options: AdaptOptions,
-    metadata: PromptMetadata
+    options: AdaptOptions
   ): any;
 }

@@ -1,3 +1,4 @@
+import { FileLoader } from "../loaders/file";
 import type {
   Adapter,
   AdaptOptions,
@@ -10,14 +11,17 @@ import type {
   PromptKey,
   KeysWithKind,
   SpeechConfig,
+  TestSettings,
+  Loader,
   PromptKind,
 } from "../types";
 
 export abstract class BasePrompt<
   T extends PromptShape<T>,
-  A,
+  A extends Adapter<T>,
   K extends PromptKey<T>,
-  C
+  C,
+  PK extends PromptKind
 > {
   public readonly templateEngine: TemplateEngine;
 
@@ -25,7 +29,9 @@ export abstract class BasePrompt<
     public readonly template: unknown,
     engine: TemplateEngine,
     protected readonly adapter: A,
-    protected readonly path?: K
+    protected readonly path?: K,
+    protected readonly testSettings?: TestSettings,
+    protected readonly loader?: Loader<T>
   ) {
     this.templateEngine = engine;
   }
@@ -40,6 +46,43 @@ export abstract class BasePrompt<
   protected metadata(props: T[K]["input"]): PromptMetadata {
     return { props, path: this.path, template: this.template };
   }
+
+  abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
+
+  formatWithTestProps(options: AdaptOptions): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
+    return this.format({
+      props: this.testSettings?.props,
+      ...options,
+    });
+  }
+
+  formatWithDataset(
+    options?: AdaptOptions
+  ): ReadableStream<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
+    if (!this.loader || !this.testSettings?.dataset) {
+      throw new Error(
+        "Loader or dataset is not defined for this prompt. Please provide valid loader and dataset."
+      );
+    }
+    const datasetStream = this.loader?.loadDataset(this.testSettings?.dataset);
+    return new ReadableStream({
+      start: async (controller) => {
+        try {
+          for await (const value of datasetStream) {
+            const formattedOutput = await this.format({
+              props: value.input,
+              ...options,
+            });
+            controller.enqueue(formattedOutput);
+          }
+          controller.close();
+        } catch (error) {
+          console.error("Error processing dataset stream:", error);
+        }
+      },
+      cancel: (reason) => datasetStream.cancel(reason),
+    });
+  }
 }
 
 export type PromptFormatParams<T> = {
@@ -50,9 +93,16 @@ export class ObjectPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "object"> & string
-> extends BasePrompt<T, A, K, ObjectConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+> extends BasePrompt<T, A, K, ObjectConfig, "object"> {
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings,
+    loader?: Loader<T>
+  ) {
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -68,9 +118,16 @@ export class TextPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "text"> & string
-> extends BasePrompt<T, A, K, TextConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+> extends BasePrompt<T, A, K, TextConfig, "text"> {
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings,
+    loader?: Loader<T>
+  ) {
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -86,9 +143,16 @@ export class ImagePrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "image"> & string
-> extends BasePrompt<T, A, K, ImageConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+> extends BasePrompt<T, A, K, ImageConfig, "image"> {
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings,
+    loader?: Loader<T>
+  ) {
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -96,7 +160,7 @@ export class ImagePrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptImage"]>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptImage(compiled, options, this.metadata(props));
+    return this.adapter.adaptImage(compiled, options);
   }
 }
 
@@ -104,9 +168,16 @@ export class SpeechPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
   K extends KeysWithKind<T, "speech"> & string
-> extends BasePrompt<T, A, K, SpeechConfig> {
-  constructor(tpl: unknown, eng: TemplateEngine, ad: A, path?: K) {
-    super(tpl, eng, ad, path);
+> extends BasePrompt<T, A, K, SpeechConfig, "speech"> {
+  constructor(
+    tpl: unknown,
+    eng: TemplateEngine,
+    ad: A,
+    path?: K,
+    testSettings?: TestSettings,
+    loader?: Loader<T>
+  ) {
+    super(tpl, eng, ad, path, testSettings, loader);
   }
 
   async format({
@@ -114,6 +185,6 @@ export class SpeechPrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptSpeech"]>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptSpeech(compiled, options, this.metadata(props));
+    return this.adapter.adaptSpeech(compiled, options);
   }
 }

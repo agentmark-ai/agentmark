@@ -6,7 +6,7 @@ import {
 } from "@agentmark/templatedx";
 import type { Ast } from "@agentmark/templatedx";
 import type { Node } from "mdast";
-import type { TemplateEngine, JSONObject } from "../types";
+import type { TemplateEngine, JSONObject, TestSettings } from "../types";
 import type { ImagePart, TextPart, FilePart } from "ai";
 import type {
   PromptKind,
@@ -302,6 +302,7 @@ export async function getRawConfig({
   let imageSettings: ImageSettings | undefined = frontMatter.image_config;
   let objectSettings: ObjectSettings | undefined = frontMatter.object_config;
   let textSettings: TextSettings | undefined = frontMatter.text_config;
+  let testSettings: TestSettings | undefined = frontMatter.test_settings;
 
   if (speechSettings) {
     configType = "speech";
@@ -333,6 +334,7 @@ export async function getRawConfig({
             text: prompt,
             instructions: instructions ?? "",
           },
+          test_settings: testSettings,
         };
       }
       break;
@@ -345,6 +347,7 @@ export async function getRawConfig({
             ...imageSettings,
             prompt: prompt,
           },
+          test_settings: testSettings,
         };
       }
       break;
@@ -355,6 +358,7 @@ export async function getRawConfig({
           name,
           messages,
           object_config: objectSettings,
+          test_settings: frontMatter.test_settings,
         };
       }
       break;
@@ -366,6 +370,7 @@ export async function getRawConfig({
           name,
           messages,
           text_config: textSettings,
+          test_settings: frontMatter.test_settings,
         };
       }
     }

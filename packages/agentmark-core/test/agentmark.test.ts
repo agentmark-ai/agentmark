@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import path from "path";
 import { createAgentMarkClient } from "@agentmark/default-adapter";
 import { FileLoader } from "../src/loaders/file";
-import { DefaultAdapter } from "../src/adapters/default";
-import { TemplateDXTemplateEngine } from "../src/template_engines/templatedx";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
@@ -33,6 +31,11 @@ type TestPromptTypes = {
   };
   "speech.prompt.mdx": {
     kind: "speech";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
+  "mathDataset.prompt.mdx": {
+    kind: "object";
     input: { userMessage: string };
     output: { answer: string };
   };
@@ -201,5 +204,48 @@ describe("AgentMark Integration", () => {
     ).rejects.toThrowError(
       "Error processing MDX JSX Element: ImageAttachment and FileAttachment tags must be inside User tag."
     );
+  });
+
+  it("should handle formatting with data sets", async () => {
+    const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
+    const vercelInputs = prompt.formatWithDataset({});
+
+    let entryIndex = 1;
+    for await (const input of vercelInputs) {
+      expect(input).toBeDefined();
+      expect(input.name).toBe("mathDatasetOps");
+      expect(input.messages).toHaveLength(3);
+      expect(input.messages[0].role).toBe("system");
+      expect(input.messages[0].content).toBe("You are a helpful math tutor.");
+      if (entryIndex === 1) {
+        expect(input.messages[1].role).toBe("user");
+        expect(input.messages[1].content).toBe("What is 5 + 7?");
+      } else if (entryIndex === 2) {
+        expect(input.messages[1].role).toBe("user");
+        expect(input.messages[1].content).toBe("Calculate 10 - 3.");
+      }
+      expect(input.messages[2].role).toBe("assistant");
+      expect(input.messages[2].content).toBe("Here's your answer!");
+      entryIndex++;
+    }
+  });
+
+  it("should handle formatting with test props", async () => {
+    const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
+    const vercelInput = await prompt.formatWithTestProps({});
+
+    expect(vercelInput).toBeDefined();
+    expect(vercelInput.name).toBe("mathDatasetOps");
+    expect(vercelInput.messages).toHaveLength(3);
+    expect(vercelInput.messages[0].role).toBe("system");
+    expect(vercelInput.messages[0].content).toBe(
+      "You are a helpful math tutor."
+    );
+    expect(vercelInput.messages[1].role).toBe("user");
+    expect(vercelInput.messages[1].content).toBe(
+      "What is the integral of x^2?"
+    );
+    expect(vercelInput.messages[2].role).toBe("assistant");
+    expect(vercelInput.messages[2].content).toBe("Here's your answer!");
   });
 });
