@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.5.1
+
+### Patch Changes
+
+- Updated dependencies [85066c1]
+  - @agentmark/vercel-ai-v4-adapter@3.2.0
+
 ## 1.5.0
 
 ### Minor Changes
