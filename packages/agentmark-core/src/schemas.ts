@@ -84,7 +84,7 @@ export const TextSettingsConfig = z.object({
 export type TextSettings = z.infer<typeof TextSettingsConfig>;
 
 export const TestSettingsSchema = z.object({
-  props: z.record(z.any()).optional(),
+  props: z.record(z.any()).nullable().optional(),
   dataset: z.string().optional(),
 });
 

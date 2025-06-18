@@ -49,22 +49,30 @@ export abstract class BasePrompt<
 
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
-  formatWithTestProps(options: AdaptOptions): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
+  formatWithTestProps(
+    options: AdaptOptions
+  ): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
     return this.format({
-      props: this.testSettings?.props,
+      props: this.testSettings?.props || {},
       ...options,
     });
   }
 
-  formatWithDataset(
-    options?: AdaptOptions
-  ): ReadableStream<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
-    if (!this.loader || !this.testSettings?.dataset) {
+  async formatWithDataset(
+    options?: AdaptOptions & { datasetPath?: string }
+  ): Promise<ReadableStream<ReturnType<A[`adapt${Capitalize<PK>}`]>>> {
+    if (
+      !this.loader ||
+      (!this.testSettings?.dataset && !options?.datasetPath)
+    ) {
       throw new Error(
         "Loader or dataset is not defined for this prompt. Please provide valid loader and dataset."
       );
     }
-    const datasetStream = this.loader?.loadDataset(this.testSettings?.dataset);
+
+    const dsPath = options?.datasetPath || this.testSettings?.dataset;
+
+    const datasetStream = await this.loader?.loadDataset(dsPath!);
     return new ReadableStream({
       start: async (controller) => {
         try {

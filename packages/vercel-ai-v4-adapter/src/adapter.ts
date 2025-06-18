@@ -195,6 +195,7 @@ export class VercelAIAdapter<
   R extends VercelAIToolRegistry<any, any> = VercelAIToolRegistry<any, any>
 > {
   declare readonly __dict: T;
+  readonly __name = "vercel-ai-v4";
 
   private readonly toolsRegistry: R | undefined;
 
