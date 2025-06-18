@@ -10,15 +10,7 @@ import * as path from "path";
 import { executionHandlerMap } from "./configExecutions";
 
 const templateEngine = new TemplateDXTemplateEngine();
-const agentMark = createAgentMarkClient({
-  modelRegistry,
-});
-const loaderMap = {
-  text: (ast: Root) => agentMark.loadTextPrompt(ast),
-  object: (ast: Root) => agentMark.loadObjectPrompt(ast),
-  image: (ast: Root) => agentMark.loadImagePrompt(ast),
-  speech: (ast: Root) => agentMark.loadSpeechPrompt(ast),
-};
+
 
 const runPrompt = async ({
   ast,
@@ -35,7 +27,16 @@ const runPrompt = async ({
   runMode: "default" | "dataset";
   fileLoader: FileLoader;
 }) => {
-  agentMark.setLoader(fileLoader);
+  const agentMark = createAgentMarkClient({
+    modelRegistry,
+    loader: fileLoader,
+  });
+  const loaderMap = {
+    text: (ast: Root) => agentMark.loadTextPrompt(ast),
+    object: (ast: Root) => agentMark.loadObjectPrompt(ast),
+    image: (ast: Root) => agentMark.loadImagePrompt(ast),
+    speech: (ast: Root) => agentMark.loadSpeechPrompt(ast),
+  };
   const promptLoader = loaderMap[promptKind];
   const prompt = await promptLoader(ast);
 
