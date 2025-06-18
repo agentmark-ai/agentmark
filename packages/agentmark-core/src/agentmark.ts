@@ -39,8 +39,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
   }
 
-  setLoader(loader: Loader<T>) {
-    this.loader = loader;
+  getLoader() {
+    return this.loader;
+  }
+
+  getAdapter() {
+    return this.adapter;
   }
 
   async loadTextPrompt<K extends KeysWithKind<T, "text"> & string>(

@@ -208,7 +208,7 @@ describe("AgentMark Integration", () => {
 
   it("should handle formatting with data sets", async () => {
     const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
-    const vercelInputs = prompt.formatWithDataset({});
+    const vercelInputs = await prompt.formatWithDataset({});
 
     let entryIndex = 1;
     for await (const input of vercelInputs) {

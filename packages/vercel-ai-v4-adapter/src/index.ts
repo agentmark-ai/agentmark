@@ -26,7 +26,7 @@ export interface VercelAIObjectPrompt<
 
   formatWithDataset(
     options?: AdaptOptions
-  ): ReadableStream<VercelAIObjectParams<T[K]["output"]>>;
+  ): Promise<ReadableStream<VercelAIObjectParams<T[K]["output"]>>>;
 
   formatWithTestProps(
     options: AdaptOptions

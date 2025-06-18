@@ -9,6 +9,7 @@ import {
 
 export class DefaultAdapter<T extends PromptShape<T>> implements Adapter<T> {
   declare readonly __dict: T;
+  readonly __name = "default";
 
   adaptText(input: TextConfig): TextConfig {
     return input;
