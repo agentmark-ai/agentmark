@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.3.0
+
+### Minor Changes
+
+- 6f640c7: Add adapter name to adapters and remove setLoader()
+
 ## 3.2.0
 
 ### Minor Changes
