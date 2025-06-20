@@ -9,9 +9,13 @@ import {
 } from "@agentmark/agentmark-core";
 import {
   MastraAdapter,
-  MastraModelRegistry,
+  MastraAgentRegistry,
   MastraObjectParams,
   MastraToolRegistry,
+  MastraTextParams,
+  MastraImageParams,
+  MastraSpeechParams,
+  AgentFunctionCreator,
 } from "./adapter";
 import type { Root } from "mdast";
 
@@ -28,44 +32,121 @@ export interface MastraObjectPrompt<
     options?: AdaptOptions
   ): Promise<ReadableStream<MastraObjectParams<T[K]["output"]>>>;
 
-  formatWithTestProps(
-    options: AdaptOptions
-  ): Promise<MastraObjectParams<T[K]["output"]>>;
+  formatWithDatasetSync(
+    options?: AdaptOptions
+  ): ReadableStream<MastraObjectParams<T[K]["output"]>>;
+}
+
+export interface MastraTextPrompt<
+  T extends PromptShape<T>,
+  K extends KeysWithKind<T, "text"> & string,
+  Tools extends MastraToolRegistry<any, any>
+> {
+  format(
+    params: PromptFormatParams<T[K]["input"]>
+  ): Promise<MastraTextParams<any>>;
+
+  formatWithDataset(
+    options?: AdaptOptions
+  ): Promise<ReadableStream<MastraTextParams<any>>>;
+
+  formatWithDatasetSync(
+    options?: AdaptOptions
+  ): ReadableStream<MastraTextParams<any>>;
+}
+
+export interface MastraImagePrompt<
+  T extends PromptShape<T>,
+  K extends KeysWithKind<T, "image"> & string
+> {
+  format(
+    params: PromptFormatParams<T[K]["input"]>
+  ): Promise<MastraImageParams>;
+
+  formatWithDataset(
+    options?: AdaptOptions
+  ): Promise<ReadableStream<MastraImageParams>>;
+
+  formatWithDatasetSync(
+    options?: AdaptOptions
+  ): ReadableStream<MastraImageParams>;
+}
+
+export interface MastraSpeechPrompt<
+  T extends PromptShape<T>,
+  K extends KeysWithKind<T, "speech"> & string
+> {
+  format(
+    params: PromptFormatParams<T[K]["input"]>
+  ): Promise<MastraSpeechParams>;
+
+  formatWithDataset(
+    options?: AdaptOptions
+  ): Promise<ReadableStream<MastraSpeechParams>>;
+
+  formatWithDatasetSync(
+    options?: AdaptOptions
+  ): ReadableStream<MastraSpeechParams>;
 }
 
 export interface MastraAgentMark<
   T extends PromptShape<T>,
   Tools extends MastraToolRegistry<any, any>
 > extends AgentMark<T, MastraAdapter<T, Tools>> {
-  loadObjectPrompt<K extends KeysWithKind<T, "object"> & string>(
-    pathOrPreloaded: K | Root,
-    options?: any
-  ): Promise<MastraObjectPrompt<T, K, Tools>>;
+  object<K extends KeysWithKind<T, "object"> & string>(
+    name: K
+  ): MastraObjectPrompt<T, K, Tools>;
+
+  text<K extends KeysWithKind<T, "text"> & string>(
+    name: K
+  ): MastraTextPrompt<T, K, Tools>;
+
+  image<K extends KeysWithKind<T, "image"> & string>(
+    name: K
+  ): MastraImagePrompt<T, K>;
+
+  speech<K extends KeysWithKind<T, "speech"> & string>(
+    name: K
+  ): MastraSpeechPrompt<T, K>;
 }
 
+// Factory function for creating AgentMark client with Mastra adapter
 export function createAgentMarkClient<
-  D extends PromptShape<D> = any,
-  T extends MastraToolRegistry<any, any> = MastraToolRegistry<any, any>
->(opts: {
-  loader?: Loader<D>;
-  modelRegistry: MastraModelRegistry;
-  agentRegistry: Record<string, any>;
-  toolRegistry?: T;
-}): MastraAgentMark<D, T> {
-  const adapter = new MastraAdapter<D, T>(
-    opts.modelRegistry,
-    opts.agentRegistry,
-    opts.toolRegistry
-  );
-
-  return new AgentMark<D, MastraAdapter<D, T>>({
-    loader: opts.loader,
+  T extends PromptShape<T>,
+  Tools extends MastraToolRegistry<any, any> = MastraToolRegistry<any, any>
+>(options: {
+  agentRegistry: MastraAgentRegistry;
+  toolRegistry?: Tools;
+  loader: Loader<T>;
+}): MastraAgentMark<T, Tools> {
+  const adapter = new MastraAdapter<T, Tools>(options.agentRegistry, options.toolRegistry);
+  
+  return new AgentMark<T, MastraAdapter<T, Tools>>({
     adapter,
-  });
+    loader: options.loader,
+  }) as MastraAgentMark<T, Tools>;
 }
 
+// Export all the core components
 export {
   MastraAdapter,
-  MastraModelRegistry,
+  MastraAgentRegistry,
   MastraToolRegistry,
-} from "./adapter";
+};
+
+export type {
+  MastraTextParams,
+  MastraObjectParams,
+  MastraImageParams,
+  MastraSpeechParams,
+  AgentFunctionCreator,
+};
+
+// Re-export AgentMark core types for convenience
+export type {
+  AdaptOptions,
+  PromptShape,
+  KeysWithKind,
+  PromptFormatParams,
+  Loader,
+} from "@agentmark/agentmark-core";

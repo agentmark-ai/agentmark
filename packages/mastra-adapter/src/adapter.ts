@@ -12,51 +12,111 @@ import type {
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
-// Import types - using any for now since we don't have direct types access
+// Mastra types (using any for now since we don't have direct types access)
 type Agent = any;
 type Tool = any;
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
 
+type MastraToolWithExec<R> = {
+  description: string;
+  inputSchema: z.ZodSchema<any>;
+  outputSchema?: z.ZodSchema<R>;
+  execute: (args: { context: any }) => Promise<R>;
+};
+
+type MastraToolSetMap<O extends Record<string, any>> = {
+  [K in keyof O]: MastraToolWithExec<O[K]>;
+};
+
 export type MastraTextParams<TS extends Record<string, Tool>> = {
-  agent: Agent;
   messages: RichChatMessage[];
-  tools?: TS;
   toolsets?: Record<string, TS>;
+  temperature?: number;
+  maxSteps?: number;
+  maxRetries?: number;
   experimental_telemetry?: any;
+  context?: any[];
+  instructions?: string;
+  memory?: {
+    thread: string | { id: string; metadata?: Record<string, any>; title?: string };
+    resource: string;
+    options?: {
+      lastMessages?: number | false;
+      semanticRecall?: boolean | object;
+      workingMemory?: {
+        enabled?: boolean;
+        template?: string;
+      };
+      threads?: {
+        generateTitle?: boolean;
+      };
+    };
+  };
+  telemetry?: {
+    isEnabled?: boolean;
+    recordInputs?: boolean;
+    recordOutputs?: boolean;
+    functionId?: string;
+    metadata?: Record<string, any>;
+    tracer?: any;
+  };
 };
 
 export interface MastraObjectParams<T> {
-  agent: Agent;
   messages: RichChatMessage[];
-  schema: z.ZodSchema<T>;
-  schemaName?: string;
-  schemaDescription?: string;
+  output: z.ZodSchema<T>;
+  temperature?: number;
+  maxSteps?: number;
+  maxRetries?: number;
   experimental_telemetry?: any;
+  context?: any[];
+  instructions?: string;
+  memory?: {
+    thread: string | { id: string; metadata?: Record<string, any>; title?: string };
+    resource: string;
+    options?: {
+      lastMessages?: number | false;
+      semanticRecall?: boolean | object;
+      workingMemory?: {
+        enabled?: boolean;
+        template?: string;
+      };
+      threads?: {
+        generateTitle?: boolean;
+      };
+    };
+  };
+  telemetry?: {
+    isEnabled?: boolean;
+    recordInputs?: boolean;
+    recordOutputs?: boolean;
+    functionId?: string;
+    metadata?: Record<string, any>;
+    tracer?: any;
+  };
 }
 
 export interface MastraImageParams {
-  prompt: string;
-  model: any;
-  n?: number;
-  size?: `${number}x${number}`;
-  aspectRatio?: `${number}:${number}`;
-  seed?: number;
+  messages: RichChatMessage[];
+  instructions?: string;
+  temperature?: number;
+  context?: any[];
+  experimental_telemetry?: any;
 }
 
 export interface MastraSpeechParams {
-  text: string;
-  model: any;
-  voice?: string;
-  outputFormat?: string;
+  messages: RichChatMessage[];
   instructions?: string;
-  speed?: number;
+  temperature?: number;
+  context?: any[];
+  experimental_telemetry?: any;
 }
 
-export type ModelCreator = (
-  modelName: string,
+export type AgentFunctionCreator = (
+  agentName: string,
   options?: AdaptOptions
-) => any;
+) => Agent;
 
 const getTelemetryConfig = (
   telemetry: AdaptOptions["telemetry"],
@@ -117,37 +177,37 @@ export class MastraToolRegistry<
   }
 }
 
-export class MastraModelRegistry {
-  private exactMatches: Record<string, ModelCreator> = {};
-  private patternMatches: Array<[RegExp, ModelCreator]> = [];
-  private defaultCreator?: ModelCreator;
+export class MastraAgentRegistry {
+  private exactMatches: Record<string, AgentFunctionCreator> = {};
+  private patternMatches: Array<[RegExp, AgentFunctionCreator]> = [];
+  private defaultCreator?: AgentFunctionCreator;
 
-  constructor(defaultCreator?: ModelCreator) {
+  constructor(defaultCreator?: AgentFunctionCreator) {
     this.defaultCreator = defaultCreator;
   }
 
-  registerModels(
-    modelPattern: string | RegExp | Array<string>,
-    creator: ModelCreator
+  registerAgents(
+    agentPattern: string | RegExp | Array<string>,
+    creator: AgentFunctionCreator
   ): void {
-    if (typeof modelPattern === "string") {
-      this.exactMatches[modelPattern] = creator;
-    } else if (Array.isArray(modelPattern)) {
-      modelPattern.forEach((model) => {
-        this.exactMatches[model] = creator;
+    if (typeof agentPattern === "string") {
+      this.exactMatches[agentPattern] = creator;
+    } else if (Array.isArray(agentPattern)) {
+      agentPattern.forEach((agent) => {
+        this.exactMatches[agent] = creator;
       });
     } else {
-      this.patternMatches.push([modelPattern, creator]);
+      this.patternMatches.push([agentPattern, creator]);
     }
   }
 
-  getModelFunction(modelName: string): ModelCreator {
-    if (this.exactMatches[modelName]) {
-      return this.exactMatches[modelName];
+  getAgentFunction(agentName: string): AgentFunctionCreator {
+    if (this.exactMatches[agentName]) {
+      return this.exactMatches[agentName];
     }
 
     for (const [pattern, creator] of this.patternMatches) {
-      if (pattern.test(modelName)) {
+      if (pattern.test(agentName)) {
         return creator;
       }
     }
@@ -156,10 +216,10 @@ export class MastraModelRegistry {
       return this.defaultCreator;
     }
 
-    throw new Error(`No model function found for: ${modelName}`);
+    throw new Error(`No agent function found for: ${agentName}`);
   }
 
-  setDefaultCreator(creator: ModelCreator): void {
+  setDefaultCreator(creator: AgentFunctionCreator): void {
     this.defaultCreator = creator;
   }
 }
@@ -174,11 +234,9 @@ export class MastraAdapter<
   private readonly toolsRegistry: R | undefined;
 
   constructor(
-    private modelRegistry: MastraModelRegistry,
-    private agentRegistry: Record<string, Agent>,
+    private agentRegistry: MastraAgentRegistry,
     toolRegistry?: R
   ) {
-    this.modelRegistry = modelRegistry;
     this.agentRegistry = agentRegistry;
     this.toolsRegistry = toolRegistry;
   }
@@ -187,17 +245,17 @@ export class MastraAdapter<
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): MastraTextParams<Record<string, Tool>> {
-    const { model_name: name } = input.text_config;
-    
-    // Get or create a Mastra agent for this configuration
-    const agent = this.getOrCreateAgent(name, input, options);
+  ): MastraTextParams<MastraToolSetMap<ToolRet<R>>> {
+    const { model_name: name, ...settings } = input.text_config;
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
 
     type Ret = ToolRet<R>;
-    let toolsObj: Record<string, Tool> | undefined;
+
+    let toolsObj: MastraToolSetMap<Ret> | undefined;
 
     if (input.text_config.tools) {
-      toolsObj = {} as Record<string, Tool>;
+      toolsObj = {} as MastraToolSetMap<Ret>;
 
       for (const [keyAny, def] of Object.entries(input.text_config.tools)) {
         const key = keyAny as keyof Ret;
@@ -207,29 +265,41 @@ export class MastraAdapter<
           : (_: any) =>
               Promise.reject(new Error(`Tool ${String(key)} not registered`));
 
-        // Create the tool and cast to the expected type
-        toolsObj[keyAny] = createTool({
+        (toolsObj as any)[key] = createTool({
           id: String(key),
           description: def.description ?? "",
           inputSchema: z.object(def.parameters),
-          execute: async ({ context }) => impl(context, options.toolContext),
-        }) as Tool;
+          execute: async ({ context }) => {
+            return impl(context, options.toolContext);
+          },
+        });
       }
     }
 
     return {
-      agent,
       messages: input.messages,
-      ...(toolsObj ? { toolsets: { default: toolsObj } } : {}),
+      ...(settings?.temperature !== undefined
+        ? { temperature: settings.temperature }
+        : {}),
+      ...(settings?.max_tokens !== undefined
+        ? { maxSteps: Math.floor(settings.max_tokens / 100) } // rough conversion
+        : {}),
+      ...(settings?.stop_sequences !== undefined
+        ? { maxRetries: settings.stop_sequences.length }
+        : {}),
       ...(options.telemetry
         ? {
-            experimental_telemetry: getTelemetryConfig(
-              options.telemetry,
-              metadata.props,
-              input.name
-            ),
+            telemetry: {
+              isEnabled: true,
+              ...getTelemetryConfig(
+                options.telemetry,
+                metadata.props,
+                input.name
+              ),
+            },
           }
         : {}),
+      ...(toolsObj ? { toolsets: { tools: toolsObj } } : {}),
     };
   }
 
@@ -238,28 +308,29 @@ export class MastraAdapter<
     options: AdaptOptions,
     metadata: PromptMetadata
   ): MastraObjectParams<T[K]["output"]> {
-    const { model_name: name } = input.object_config;
-    
-    // Get or create a Mastra agent for this configuration
-    const agent = this.getOrCreateAgent(name, input, options);
+    const { model_name: name, ...settings } = input.object_config;
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
 
     return {
-      agent,
       messages: input.messages,
-      schema: z.object(input.object_config.schema),
-      ...(input.object_config.schema_name !== undefined
-        ? { schemaName: input.object_config.schema_name }
+      output: z.object(input.object_config.schema),
+      ...(settings?.temperature !== undefined
+        ? { temperature: settings.temperature }
         : {}),
-      ...(input.object_config.schema_description !== undefined
-        ? { schemaDescription: input.object_config.schema_description }
+      ...(settings?.max_tokens !== undefined
+        ? { maxSteps: Math.floor(settings.max_tokens / 100) }
         : {}),
       ...(options.telemetry
         ? {
-            experimental_telemetry: getTelemetryConfig(
-              options.telemetry,
-              metadata.props,
-              input.name
-            ),
+            telemetry: {
+              isEnabled: true,
+              ...getTelemetryConfig(
+                options.telemetry,
+                metadata.props,
+                input.name
+              ),
+            },
           }
         : {}),
     };
@@ -270,20 +341,31 @@ export class MastraAdapter<
     options: AdaptOptions
   ): MastraImageParams {
     const { model_name: name, ...settings } = input.image_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name);
-    const model = modelCreator(name, options);
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
+
+    // Create a message with the image prompt
+    const messages: RichChatMessage[] = [
+      {
+        role: "user",
+        content: settings.prompt,
+      },
+    ];
 
     return {
-      model,
-      prompt: settings.prompt,
-      ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
-      ...(settings?.size !== undefined
-        ? { size: settings.size as `${number}x${number}` }
+      messages,
+      ...(settings?.num_images !== undefined
+        ? { instructions: `Generate ${settings.num_images} images` }
         : {}),
-      ...(settings?.aspect_ratio !== undefined
-        ? { aspectRatio: settings.aspect_ratio as `${number}:${number}` }
+      ...(options.telemetry
+        ? {
+            experimental_telemetry: getTelemetryConfig(
+              options.telemetry,
+              {},
+              input.name
+            ),
+          }
         : {}),
-      ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
     };
   }
 
@@ -292,60 +374,34 @@ export class MastraAdapter<
     options: AdaptOptions
   ): MastraSpeechParams {
     const { model_name: name, ...settings } = input.speech_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name);
-    const model = modelCreator(name, options);
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
+
+    // Create a message with the speech text
+    const messages: RichChatMessage[] = [
+      {
+        role: "user",
+        content: settings.text,
+      },
+    ];
 
     return {
-      model,
-      text: settings.text,
-      ...(settings?.voice !== undefined ? { voice: settings.voice } : {}),
-      ...(settings?.output_format !== undefined
-        ? { outputFormat: settings.output_format }
+      messages,
+      ...(settings?.voice !== undefined
+        ? { instructions: `Use voice: ${settings.voice}` }
         : {}),
-      ...(settings?.instructions !== undefined
-        ? { instructions: settings.instructions }
+      ...(settings?.speed !== undefined
+        ? { instructions: `Speak at speed: ${settings.speed}` }
         : {}),
-      ...(settings?.speed !== undefined ? { speed: settings.speed } : {}),
+      ...(options.telemetry
+        ? {
+            experimental_telemetry: getTelemetryConfig(
+              options.telemetry,
+              {},
+              input.name
+            ),
+          }
+        : {}),
     };
-  }
-
-  private getOrCreateAgent(
-    modelName: string,
-    input: TextConfig | ObjectConfig,
-    options: AdaptOptions
-  ): Agent {
-    const agentKey = `${input.name}-${modelName}`;
-    
-    if (this.agentRegistry[agentKey]) {
-      return this.agentRegistry[agentKey];
-    }
-
-    // Create a new agent with the model and configuration
-    const modelCreator = this.modelRegistry.getModelFunction(modelName);
-    const model = modelCreator(modelName, options);
-
-    // Convert messages to instructions for the agent
-    const systemMessages = input.messages
-      .filter(msg => msg.role === 'system')
-      .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
-      .join('\n');
-
-    // Dynamic import for Agent to avoid build-time dependency issues
-    let Agent: any;
-    try {
-      Agent = require("@mastra/core").Agent;
-    } catch (error) {
-      // Fallback - could also use dynamic import()
-      throw new Error("@mastra/core is required but not available. Please install @mastra/core.");
-    }
-    
-    const agent = new Agent({
-      name: input.name,
-      instructions: systemMessages || `You are a helpful AI assistant.`,
-      model: model,
-    });
-
-    this.agentRegistry[agentKey] = agent;
-    return agent;
   }
 }
