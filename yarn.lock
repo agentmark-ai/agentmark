@@ -70,6 +70,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark/mastra-adapter@workspace:packages/mastra-adapter":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/mastra-adapter@workspace:packages/mastra-adapter"
+  dependencies:
+    "@agentmark/agentmark-core": "npm:^3.3.0"
+    "@types/node": "npm:^22.8.1"
+    "@types/react": "npm:^18"
+    cpy-cli: "npm:^5.0.0"
+    react: "npm:^18.3.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.2"
+    vitest: "npm:^3.0.8"
+    zod: "npm:^3.23.8"
+  peerDependencies:
+    "@agentmark/agentmark-core": ^3.2.0
+    "@mastra/core": ^1.0.0
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
   resolution: "@agentmark/shared-utils@workspace:packages/shared-utils"

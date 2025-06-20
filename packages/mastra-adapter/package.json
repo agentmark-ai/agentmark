@@ -1,0 +1,46 @@
+{
+  "name": "@agentmark/mastra-adapter",
+  "version": "3.3.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsup && npx cpy ../../README.md ../../logo.svg ./"
+  },
+  "devDependencies": {
+    "@agentmark/agentmark-core": "^3.3.0",
+    "@types/node": "^22.8.1",
+    "@types/react": "^18",
+    "cpy-cli": "^5.0.0",
+    "react": "^18.3.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.2",
+    "vitest": "^3.0.8"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "peerDependencies": {
+    "@agentmark/agentmark-core": "^3.2.0",
+    "@mastra/core": "^1.0.0"
+  },
+  "files": [
+    "dist/"
+  ]
+}
