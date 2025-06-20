@@ -9,9 +9,32 @@ import type {
   KeysWithKind,
   SpeechConfig,
 } from "@agentmark/agentmark-core";
-import { Agent } from "@mastra/core";
-import { createTool } from "@mastra/core";
 import { z } from "zod";
+
+// Type definitions for Mastra interfaces (avoid importing during tests)
+export interface MastraAgent {
+  name: string;
+  instructions?: string;
+  model?: any;
+  generate?: (messages: any[]) => Promise<any>;
+  stream?: (messages: any[]) => AsyncIterable<any>;
+}
+
+export interface MastraTool {
+  id: string;
+  description: string;
+  inputSchema: z.ZodSchema<any>;
+  outputSchema?: z.ZodSchema<any>;
+  execute: (args: { context: any }) => Promise<any>;
+}
+
+// Factory function type for creating tools
+export type ToolFactory = (config: {
+  id: string;
+  description: string;
+  inputSchema: z.ZodSchema<any>;
+  execute: (args: { context: any }) => Promise<any>;
+}) => MastraTool;
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
 
@@ -28,13 +51,13 @@ type ToolSetMap<O extends Record<string, any>> = {
 };
 
 export type MastraTextParams<TS extends Record<string, any>> = {
-  agent: Agent;
+  agent: MastraAgent;
   messages: RichChatMessage[];
   tools?: TS;
 };
 
 export interface MastraObjectParams<T> {
-  agent: Agent;
+  agent: MastraAgent;
   messages: RichChatMessage[];
   schema: z.ZodSchema<T>;
   schemaName?: string;
@@ -42,7 +65,7 @@ export interface MastraObjectParams<T> {
 }
 
 export interface MastraImageParams {
-  agent: Agent;
+  agent: MastraAgent;
   prompt: string;
   n?: number;
   size?: `${number}x${number}`;
@@ -51,7 +74,7 @@ export interface MastraImageParams {
 }
 
 export interface MastraSpeechParams {
-  agent: Agent;
+  agent: MastraAgent;
   text: string;
   voice?: string;
   outputFormat?: string;
@@ -64,7 +87,7 @@ export type AgentFunction = (
   instructions: string,
   model: any,
   options?: AdaptOptions
-) => Agent;
+) => MastraAgent;
 
 const getTelemetryConfig = (
   telemetry: AdaptOptions["telemetry"],
@@ -180,11 +203,25 @@ export class MastraAdapter<
   readonly __name = "mastra";
 
   private readonly toolsRegistry: R | undefined;
+  private readonly toolFactory: ToolFactory;
 
-  constructor(private agentRegistry: MastraAgentRegistry, toolRegistry?: R) {
+  constructor(
+    private agentRegistry: MastraAgentRegistry, 
+    toolRegistry?: R,
+    toolFactory?: ToolFactory
+  ) {
     this.agentRegistry = agentRegistry;
     this.toolsRegistry = toolRegistry;
+    this.toolFactory = toolFactory || this.defaultToolFactory;
   }
+
+  // Default tool factory for testing
+  private defaultToolFactory: ToolFactory = (config) => ({
+    id: config.id,
+    description: config.description,
+    inputSchema: config.inputSchema,
+    execute: config.execute,
+  });
 
   adaptText<K extends KeysWithKind<T, "text"> & string>(
     input: TextConfig,
@@ -216,7 +253,7 @@ export class MastraAdapter<
           : (_: any) =>
               Promise.reject(new Error(`Tool ${String(key)} not registered`));
 
-        (toolsObj as any)[key] = createTool({
+        (toolsObj as any)[key] = this.toolFactory({
           id: String(key),
           description: def.description ?? "",
           inputSchema: z.object(def.parameters as any),
