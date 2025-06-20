@@ -85,13 +85,20 @@ export interface MastraObjectParams<T> extends MastraGenerateOptions {
 export interface MastraImageParams extends MastraGenerateOptions {
   agent: Agent;
   messages: RichChatMessage[];
-  instructions?: string;
+  prompt: string;
+  n?: number;
+  size?: `${number}x${number}`;
+  aspectRatio?: `${number}:${number}`;
+  seed?: number;
 }
 
 export interface MastraSpeechParams extends MastraGenerateOptions {
   agent: Agent;
   messages: RichChatMessage[];
-  instructions?: string;
+  text: string;
+  voice?: string;
+  outputFormat?: string;
+  speed?: number;
 }
 
 export type AgentFunctionCreator = (
@@ -107,12 +114,9 @@ const getTelemetryConfig = (
   if (!telemetry) return undefined;
   
   return {
-    isEnabled: telemetry.isEnabled ?? true,
-    recordInputs: true,
-    recordOutputs: true,
-    functionId: telemetry.functionId ?? promptName,
+    ...telemetry,
     metadata: {
-      ...telemetry.metadata,
+      ...telemetry?.metadata,
       prompt: promptName,
       props: JSON.stringify(props),
     },
@@ -130,6 +134,65 @@ const getMemoryConfig = (
   
   // Return undefined if no memory config - let Mastra handle defaults
   return undefined;
+};
+
+// Helper function to convert JSON Schema-like objects to Zod schemas
+const convertToZodSchema = (parameters: Record<string, any>): z.ZodSchema<any> => {
+  try {
+    if (typeof parameters === 'object' && parameters !== null) {
+      const zodFields: Record<string, z.ZodTypeAny> = {};
+      
+      for (const [key, value] of Object.entries(parameters)) {
+        if (typeof value === 'object' && value?.type) {
+          switch (value.type) {
+            case 'string':
+              zodFields[key] = value.enum ? z.enum(value.enum) : z.string();
+              if (value.description) zodFields[key] = zodFields[key].describe(value.description);
+              break;
+            case 'number':
+              zodFields[key] = z.number();
+              if (value.description) zodFields[key] = zodFields[key].describe(value.description);
+              break;
+            case 'integer':
+              zodFields[key] = z.number().int();
+              if (value.description) zodFields[key] = zodFields[key].describe(value.description);
+              break;
+            case 'boolean':
+              zodFields[key] = z.boolean();
+              if (value.description) zodFields[key] = zodFields[key].describe(value.description);
+              break;
+            case 'array':
+              // Simplified array handling - just use z.any() for items
+              zodFields[key] = z.array(z.any());
+              if (value.description) zodFields[key] = zodFields[key].describe(value.description);
+              break;
+            case 'object':
+              zodFields[key] = value.properties ? convertToZodSchema(value.properties) : z.object({});
+              if (value.description) zodFields[key] = zodFields[key].describe(value.description);
+              break;
+            default:
+              zodFields[key] = z.any();
+          }
+          
+          // Handle optional fields
+          if (!value.required) {
+            zodFields[key] = zodFields[key].optional();
+          }
+        } else {
+          zodFields[key] = z.any();
+        }
+      }
+      
+      return Object.keys(zodFields).length > 0 
+        ? z.object(zodFields) 
+        : z.object(parameters);
+    }
+    
+    return z.object(parameters);
+  } catch (error) {
+    // Fallback to treating the entire parameters object as a Zod object
+    return z.object(parameters);
+  }
 };
 
 type Merge<A, B> = {
@@ -272,11 +335,11 @@ export class MastraAdapter<
     const { model_name: name, ...settings } = input.text_config;
     
     // Get the agent for this model
-    const agent = this.agentRegistry.getAgent(name, options);
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
 
     type Ret = ToolRet<R>;
     let toolsObj: MastraToolSetMap<Ret> | undefined;
-    let clientTools: MastraToolSetMap<Ret> | undefined;
 
     // Handle tools if they exist
     if (input.text_config.tools) {
@@ -294,7 +357,7 @@ export class MastraAdapter<
         const mastraTool = createTool({
           id: String(key),
           description: def.description ?? `Tool: ${String(key)}`,
-          inputSchema: this.convertParametersToZodSchema(def.parameters),
+          inputSchema: convertToZodSchema(def.parameters),
           execute: async ({ context }) => {
             try {
               return await impl(context, options.toolContext);
@@ -308,34 +371,25 @@ export class MastraAdapter<
       }
     }
 
-    // Build the generate options
-    const generateOptions: MastraGenerateOptions = {
-      ...(settings?.temperature !== undefined
-        ? { temperature: settings.temperature }
-        : {}),
-      ...(settings?.max_tokens !== undefined
-        ? { maxSteps: Math.max(1, Math.floor(settings.max_tokens / 100)) }
-        : {}),
-      ...(settings?.max_retries !== undefined
-        ? { maxRetries: settings.max_retries }
-        : {}),
-      ...(settings?.tool_choice !== undefined
-        ? { toolChoice: this.convertToolChoice(settings.tool_choice) }
-        : {}),
-      memory: getMemoryConfig(options, input.name),
-      telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name),
-    };
-
-    // Add custom instructions if needed
-    if (settings?.stop_sequences?.length) {
-      generateOptions.instructions = `Stop generation when encountering: ${settings.stop_sequences.join(', ')}`;
-    }
-
     return {
       agent,
       messages: input.messages,
-      ...(toolsObj ? { toolsets: { [input.name]: toolsObj } } : {}),
-      ...generateOptions,
+      ...(settings?.temperature !== undefined && { temperature: settings.temperature }),
+      ...(settings?.max_tokens !== undefined && { 
+        maxSteps: Math.max(1, Math.floor(settings.max_tokens / 100)) 
+      }),
+      ...(settings?.max_retries !== undefined && { maxRetries: settings.max_retries }),
+      ...(settings?.tool_choice !== undefined && { 
+        toolChoice: this.convertToolChoice(settings.tool_choice) 
+      }),
+      ...(settings?.stop_sequences?.length && {
+        instructions: `Stop generation when encountering: ${settings.stop_sequences.join(', ')}`
+      }),
+      ...(toolsObj && { toolsets: { [input.name]: toolsObj } }),
+      memory: getMemoryConfig(options, input.name),
+      ...(options.telemetry && {
+        telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name)
+      }),
     };
   }
 
@@ -347,26 +401,12 @@ export class MastraAdapter<
     const { model_name: name, ...settings } = input.object_config;
     
     // Get the agent for this model
-    const agent = this.agentRegistry.getAgent(name, options);
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
 
     // Convert schema to Zod schema
-    const schema = this.convertParametersToZodSchema(input.object_config.schema);
+    const schema = convertToZodSchema(input.object_config.schema);
 
-    const generateOptions: MastraGenerateOptions = {
-      ...(settings?.temperature !== undefined
-        ? { temperature: settings.temperature }
-        : {}),
-      ...(settings?.max_tokens !== undefined
-        ? { maxSteps: Math.max(1, Math.floor(settings.max_tokens / 100)) }
-        : {}),
-      ...(settings?.max_retries !== undefined
-        ? { maxRetries: settings.max_retries }
-        : {}),
-      memory: getMemoryConfig(options, input.name),
-      telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name),
-    };
-
-    // Add schema-specific instructions
     let instructions = '';
     if (settings?.schema_name) {
       instructions += `Generate a ${settings.schema_name}. `;
@@ -374,16 +414,22 @@ export class MastraAdapter<
     if (settings?.schema_description) {
       instructions += settings.schema_description;
     }
-    if (instructions) {
-      generateOptions.instructions = instructions.trim();
-    }
 
     return {
       agent,
       messages: input.messages,
       output: schema,
       experimental_output: schema, // Mastra supports both
-      ...generateOptions,
+      ...(settings?.temperature !== undefined && { temperature: settings.temperature }),
+      ...(settings?.max_tokens !== undefined && { 
+        maxSteps: Math.max(1, Math.floor(settings.max_tokens / 100)) 
+      }),
+      ...(settings?.max_retries !== undefined && { maxRetries: settings.max_retries }),
+      ...(instructions && { instructions: instructions.trim() }),
+      memory: getMemoryConfig(options, input.name),
+      ...(options.telemetry && {
+        telemetry: getTelemetryConfig(options.telemetry, metadata.props, input.name)
+      }),
     };
   }
 
@@ -394,7 +440,8 @@ export class MastraAdapter<
     const { model_name: name, ...settings } = input.image_config;
     
     // Get the agent for this model
-    const agent = this.agentRegistry.getAgent(name, options);
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
 
     // Create messages with the image prompt and settings
     const messages: RichChatMessage[] = [
@@ -422,7 +469,16 @@ export class MastraAdapter<
     return {
       agent,
       messages,
-      ...(instructions ? { instructions: instructions.trim() } : {}),
+      prompt: settings.prompt,
+      ...(settings?.num_images !== undefined && { n: settings.num_images }),
+      ...(settings?.size !== undefined && { 
+        size: settings.size as `${number}x${number}` 
+      }),
+      ...(settings?.aspect_ratio !== undefined && { 
+        aspectRatio: settings.aspect_ratio as `${number}:${number}` 
+      }),
+      ...(settings?.seed !== undefined && { seed: settings.seed }),
+      ...(instructions && { instructions: instructions.trim() }),
     };
   }
 
@@ -433,7 +489,8 @@ export class MastraAdapter<
     const { model_name: name, ...settings } = input.speech_config;
     
     // Get the agent for this model
-    const agent = this.agentRegistry.getAgent(name, options);
+    const agentCreator = this.agentRegistry.getAgentFunction(name);
+    const agent = agentCreator(name, options);
 
     // Create messages with the speech text
     const messages: RichChatMessage[] = [
@@ -461,56 +518,17 @@ export class MastraAdapter<
     return {
       agent,
       messages,
-      ...(instructions ? { instructions: instructions.trim() } : {}),
+      text: settings.text,
+      ...(settings?.voice !== undefined && { voice: settings.voice }),
+      ...(settings?.output_format !== undefined && { 
+        outputFormat: settings.output_format 
+      }),
+      ...(settings?.speed !== undefined && { speed: settings.speed }),
+      ...(instructions && { instructions: instructions.trim() }),
     };
   }
 
-  // Helper methods for better integration
-
-  private convertParametersToZodSchema(parameters: Record<string, any>): z.ZodSchema<any> {
-    try {
-      // Simple conversion from JSON schema-like object to Zod
-      if (typeof parameters === 'object' && parameters !== null) {
-        const zodFields: Record<string, z.ZodTypeAny> = {};
-        
-        for (const [key, value] of Object.entries(parameters)) {
-          if (typeof value === 'object' && value.type) {
-            switch (value.type) {
-              case 'string':
-                zodFields[key] = z.string();
-                break;
-              case 'number':
-                zodFields[key] = z.number();
-                break;
-              case 'boolean':
-                zodFields[key] = z.boolean();
-                break;
-              case 'array':
-                zodFields[key] = z.array(z.any());
-                break;
-              case 'object':
-                zodFields[key] = z.object({});
-                break;
-              default:
-                zodFields[key] = z.any();
-            }
-          } else {
-            zodFields[key] = z.any();
-          }
-        }
-        
-        return Object.keys(zodFields).length > 0 
-          ? z.object(zodFields) 
-          : z.object(parameters);
-      }
-      
-      return z.object(parameters);
-    } catch (error) {
-      // Fallback to treating the entire parameters object as a Zod object
-      return z.object(parameters);
-    }
-  }
-
+  // Helper method for tool choice conversion
   private convertToolChoice(
     toolChoice: 'auto' | 'none' | 'required' | { type: 'tool'; tool_name: string }
   ): MastraGenerateOptions['toolChoice'] {

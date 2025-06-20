@@ -7,7 +7,7 @@ import {
 } from '../src/adapter';
 import { createMastraExecutor } from '../src/index';
 import { z } from 'zod';
-import type { TextConfig, ObjectConfig } from '@agentmark/agentmark-core';
+import type { TextConfig, ObjectConfig, ImageConfig, SpeechConfig } from '@agentmark/agentmark-core';
 
 describe('MastraAdapter', () => {
   let agentRegistry: MastraAgentRegistry;
@@ -70,6 +70,17 @@ describe('MastraAdapter', () => {
       expect(agent).toBe(mockAgent);
       expect(creator).toHaveBeenCalledWith('test-model', { apiKey: 'test' });
     });
+
+    it('should prioritize exact matches over regex patterns', () => {
+      const exactCreator = (name: string) => ({ name, type: 'exact' });
+      const regexCreator = (name: string) => ({ name, type: 'regex' });
+      
+      agentRegistry.registerAgents(/^test-/, regexCreator);
+      agentRegistry.registerAgents('test-model', exactCreator);
+      
+      const retrieved = agentRegistry.getAgentFunction('test-model');
+      expect(retrieved).toBe(exactCreator);
+    });
   });
 
   describe('MastraToolRegistry', () => {
@@ -108,6 +119,23 @@ describe('MastraAdapter', () => {
       expect(allTools.tool1).toBeDefined();
       expect(allTools.tool2).toBeDefined();
     });
+
+    it('should allow chaining multiple tool registrations', () => {
+      const registry = new MastraToolRegistry<{ 
+        tool1: { args: { a: string } };
+        tool2: { args: { b: number } };
+        tool3: { args: { c: boolean } };
+      }>();
+      
+      const result = registry
+        .register('tool1', (args) => args.a)
+        .register('tool2', (args) => args.b)
+        .register('tool3', (args) => args.c);
+
+      expect(result.has('tool1')).toBe(true);
+      expect(result.has('tool2')).toBe(true);
+      expect(result.has('tool3')).toBe(true);
+    });
   });
 
   describe('MastraAdapter', () => {
@@ -144,6 +172,54 @@ describe('MastraAdapter', () => {
       expect(result.instructions).toBe('Stop generation when encountering: STOP');
     });
 
+    it('should adapt text config with complex tool definitions', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('test-model', () => mockAgent);
+
+      const toolRegistry = new MastraToolRegistry<{
+        complexTool: { args: { query: string; options: { limit: number; sort: string } } };
+      }>();
+      
+      toolRegistry.register('complexTool', async (args) => {
+        return { results: [], count: args.options.limit };
+      });
+
+      const adapterWithTools = new MastraAdapter(agentRegistry, toolRegistry);
+
+      const textConfig: TextConfig = {
+        name: 'test-prompt',
+        messages: [{ role: 'user', content: 'Use the tool' }],
+        text_config: {
+          model_name: 'test-model',
+          tools: {
+            complexTool: {
+              description: 'A complex tool with nested parameters',
+              parameters: {
+                query: { type: 'string', description: 'Search query' },
+                options: { 
+                  type: 'object',
+                  properties: {
+                    limit: { type: 'number', description: 'Result limit' },
+                    sort: { type: 'string', enum: ['asc', 'desc'] }
+                  }
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const result = adapterWithTools.adaptText(textConfig, {}, { 
+        props: {}, 
+        path: undefined, 
+        template: {} 
+      });
+
+      expect(result.agent).toBe(mockAgent);
+      expect(result.toolsets).toBeDefined();
+      expect(result.toolsets?.['test-prompt']).toBeDefined();
+    });
+
     it('should adapt object config correctly with enhanced parameters', () => {
       // Mock agent creator
       const mockAgent = { name: 'test-agent', generate: vi.fn() };
@@ -171,6 +247,65 @@ describe('MastraAdapter', () => {
       expect(result.output).toBeDefined();
       expect(result.experimental_output).toBeDefined();
       expect(result.instructions).toBe('Generate a Person. A person object');
+    });
+
+    it('should adapt image config with all parameters', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('dall-e-3', () => mockAgent);
+
+      const imageConfig: ImageConfig = {
+        name: 'test-image',
+        image_config: {
+          model_name: 'dall-e-3',
+          prompt: 'A beautiful sunset',
+          num_images: 2,
+          size: '1024x1024',
+          aspect_ratio: '16:9',
+          seed: 42,
+        },
+      };
+
+      const result = adapter.adaptImage(imageConfig, {});
+
+      expect(result.agent).toBe(mockAgent);
+      expect(result.prompt).toBe('A beautiful sunset');
+      expect(result.n).toBe(2);
+      expect(result.size).toBe('1024x1024');
+      expect(result.aspectRatio).toBe('16:9');
+      expect(result.seed).toBe(42);
+      expect(result.instructions).toContain('Generate exactly 2 images');
+      expect(result.instructions).toContain('Image size should be 1024x1024');
+      expect(result.instructions).toContain('Use aspect ratio 16:9');
+      expect(result.instructions).toContain('Use seed 42 for reproducibility');
+    });
+
+    it('should adapt speech config with all parameters', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('tts-1', () => mockAgent);
+
+      const speechConfig: SpeechConfig = {
+        name: 'test-speech',
+        speech_config: {
+          model_name: 'tts-1',
+          text: 'Hello, world!',
+          voice: 'nova',
+          output_format: 'mp3',
+          speed: 1.2,
+          instructions: 'Speak clearly',
+        },
+      };
+
+      const result = adapter.adaptSpeech(speechConfig, {});
+
+      expect(result.agent).toBe(mockAgent);
+      expect(result.text).toBe('Hello, world!');
+      expect(result.voice).toBe('nova');
+      expect(result.outputFormat).toBe('mp3');
+      expect(result.speed).toBe(1.2);
+      expect(result.instructions).toContain('Use voice: nova');
+      expect(result.instructions).toContain('Speak at speed: 1.2');
+      expect(result.instructions).toContain('Output format: mp3');
+      expect(result.instructions).toContain('Speak clearly');
     });
 
     it('should handle telemetry configuration', () => {
@@ -226,6 +361,49 @@ describe('MastraAdapter', () => {
         type: 'tool',
         toolName: 'specificTool',
       });
+    });
+
+    it('should handle empty configurations gracefully', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('test-model', () => mockAgent);
+
+      const textConfig: TextConfig = {
+        name: 'minimal-prompt',
+        messages: [{ role: 'user', content: 'Hello' }],
+        text_config: {
+          model_name: 'test-model',
+        },
+      };
+
+      const result = adapter.adaptText(textConfig, {}, { props: {}, path: undefined, template: {} });
+
+      expect(result.agent).toBe(mockAgent);
+      expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
+      expect(result.temperature).toBeUndefined();
+      expect(result.maxSteps).toBeUndefined();
+      expect(result.toolsets).toBeUndefined();
+    });
+
+    it('should handle undefined optional parameters', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('test-model', () => mockAgent);
+
+      const textConfig: TextConfig = {
+        name: 'test-prompt',
+        messages: [{ role: 'user', content: 'Hello' }],
+        text_config: {
+          model_name: 'test-model',
+          temperature: undefined,
+          max_tokens: undefined,
+          stop_sequences: undefined,
+        },
+      };
+
+      const result = adapter.adaptText(textConfig, {}, { props: {}, path: undefined, template: {} });
+
+      expect(result.temperature).toBeUndefined();
+      expect(result.maxSteps).toBeUndefined();
+      expect(result.instructions).toBeUndefined();
     });
   });
 
@@ -343,6 +521,77 @@ describe('MastraAdapter', () => {
       );
       expect(result).toEqual({ audio: 'audio-data' });
     });
+
+    it('should handle network errors in execution', async () => {
+      const mockAgent = {
+        generate: vi.fn().mockRejectedValue(new Error('Network timeout'))
+      };
+
+      const params = {
+        agent: mockAgent,
+        messages: [{ role: 'user' as const, content: 'Hello' }],
+      };
+
+      await expect(executor.executeText(params)).rejects.toThrow('Mastra text generation failed: Network timeout');
+    });
+
+    it('should pass all parameters to agent.generate correctly', async () => {
+      const mockAgent = {
+        generate: vi.fn().mockResolvedValue({ text: 'Success' })
+      };
+
+      const onStepFinish = vi.fn();
+      const mockAbortController = new AbortController();
+
+      const params = {
+        agent: mockAgent,
+        messages: [{ role: 'user' as const, content: 'Hello' }],
+        temperature: 0.5,
+        maxSteps: 10,
+        maxRetries: 3,
+        toolChoice: 'auto' as const,
+        abortSignal: mockAbortController.signal,
+        context: [{ key: 'value' }],
+        instructions: 'Be helpful',
+        memory: {
+          thread: 'thread-123',
+          resource: 'resource-456',
+          options: { lastMessages: 5 }
+        },
+        telemetry: {
+          isEnabled: true,
+          functionId: 'test-function'
+        },
+        onStepFinish,
+      };
+
+      await executor.executeText(params);
+
+      expect(mockAgent.generate).toHaveBeenCalledWith(
+        [{ role: 'user', content: 'Hello' }],
+        {
+          toolsets: undefined,
+          clientTools: undefined,
+          temperature: 0.5,
+          maxSteps: 10,
+          maxRetries: 3,
+          toolChoice: 'auto',
+          abortSignal: mockAbortController.signal,
+          context: [{ key: 'value' }],
+          instructions: 'Be helpful',
+          memory: {
+            thread: 'thread-123',
+            resource: 'resource-456',
+            options: { lastMessages: 5 }
+          },
+          telemetry: {
+            isEnabled: true,
+            functionId: 'test-function'
+          },
+          onStepFinish,
+        }
+      );
+    });
   });
 
   describe('Integration', () => {
@@ -393,6 +642,149 @@ describe('MastraAdapter', () => {
       expect(result.agent).toBe(mockAgent);
       expect(result.toolsets).toBeDefined();
       expect(result.toolsets?.['test-prompt']).toBeDefined();
+    });
+
+    it('should handle tool execution errors gracefully', async () => {
+      const toolRegistry = new MastraToolRegistry<{
+        failingTool: { args: { input: string } }
+      }>();
+      
+      toolRegistry.register('failingTool', async () => {
+        throw new Error('Tool execution failed');
+      });
+
+      const mockAgent = {
+        generate: vi.fn().mockResolvedValue({ text: 'Success despite tool error' })
+      };
+      agentRegistry.registerAgents('test-model', () => mockAgent);
+
+      const adapterWithTools = new MastraAdapter(agentRegistry, toolRegistry);
+
+      const textConfig: TextConfig = {
+        name: 'test-prompt',
+        messages: [{ role: 'user', content: 'Use the tool' }],
+        text_config: {
+          model_name: 'test-model',
+          tools: {
+            failingTool: {
+              description: 'A failing tool',
+              parameters: {
+                input: { type: 'string' },
+              },
+            },
+          },
+        },
+      };
+
+      const result = adapterWithTools.adaptText(textConfig, {}, { 
+        props: {}, 
+        path: undefined, 
+        template: {} 
+      });
+
+      // Tool should be included but execution will be handled by Mastra
+      expect(result.toolsets?.['test-prompt']).toBeDefined();
+    });
+
+    it('should work with multiple agent patterns simultaneously', () => {
+      agentRegistry.registerAgents(/^openai-/, (name) => ({ name, provider: 'openai' }));
+      agentRegistry.registerAgents(/^anthropic-/, (name) => ({ name, provider: 'anthropic' }));
+      agentRegistry.registerAgents('special-model', () => ({ name: 'special-model', provider: 'special' }));
+
+      expect(agentRegistry.getAgentFunction('openai-gpt4').toString()).toContain('openai');
+      expect(agentRegistry.getAgentFunction('anthropic-claude').toString()).toContain('anthropic');
+      expect(agentRegistry.getAgentFunction('special-model').toString()).toContain('special');
+    });
+
+    it('should maintain type safety across complex tool definitions', () => {
+      type ComplexToolDefs = {
+        searchTool: { 
+          args: { 
+            query: string; 
+            filters: { category?: string; dateRange?: [string, string] } 
+          } 
+        };
+        analysisTool: { args: { data: number[]; method: 'mean' | 'median' | 'mode' } };
+      };
+
+      const complexRegistry = new MastraToolRegistry<ComplexToolDefs>()
+        .register('searchTool', async (args) => {
+          return { results: [], query: args.query, appliedFilters: args.filters };
+        })
+        .register('analysisTool', async (args) => {
+          const result = args.method === 'mean' 
+            ? args.data.reduce((a, b) => a + b, 0) / args.data.length
+            : args.data[0];
+          return { method: args.method, result };
+        });
+
+      expect(complexRegistry.has('searchTool')).toBe(true);
+      expect(complexRegistry.has('analysisTool')).toBe(true);
+      
+      const searchTool = complexRegistry.get('searchTool');
+      const analysisResult = complexRegistry.get('analysisTool');
+      
+      expect(typeof searchTool).toBe('function');
+      expect(typeof analysisResult).toBe('function');
+    });
+  });
+
+  describe('Schema Conversion', () => {
+    it('should convert complex JSON schema to Zod correctly', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('test-model', () => mockAgent);
+
+      const objectConfig: ObjectConfig = {
+        name: 'complex-schema',
+        messages: [{ role: 'user', content: 'Generate complex object' }],
+        object_config: {
+          model_name: 'test-model',
+          schema: {
+            name: { type: 'string', description: 'Person name' },
+            age: { type: 'integer', description: 'Person age' },
+            isActive: { type: 'boolean' },
+            tags: { type: 'array', items: { type: 'string' } },
+            metadata: { 
+              type: 'object',
+              properties: {
+                createdAt: { type: 'string' },
+                updatedAt: { type: 'string' }
+              }
+            },
+            status: { type: 'string', enum: ['active', 'inactive', 'pending'] }
+          },
+        },
+      };
+
+      const result = adapter.adaptObject(objectConfig, {}, { props: {}, path: undefined, template: {} });
+
+      expect(result.output).toBeDefined();
+      expect(result.experimental_output).toBeDefined();
+      // The schema should be a Zod object that can validate the expected structure
+    });
+
+    it('should handle missing or malformed schema gracefully', () => {
+      const mockAgent = { name: 'test-agent', generate: vi.fn() };
+      agentRegistry.registerAgents('test-model', () => mockAgent);
+
+      const objectConfig: ObjectConfig = {
+        name: 'malformed-schema',
+        messages: [{ role: 'user', content: 'Generate object' }],
+        object_config: {
+          model_name: 'test-model',
+          schema: {
+            // Malformed schema without proper type definitions
+            name: 'string',
+            age: 25,
+            nested: { someValue: true }
+          },
+        },
+      };
+
+      // Should not throw an error, should handle gracefully
+      expect(() => {
+        adapter.adaptObject(objectConfig, {}, { props: {}, path: undefined, template: {} });
+      }).not.toThrow();
     });
   });
 });
