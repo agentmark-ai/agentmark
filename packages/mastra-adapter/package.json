@@ -25,9 +25,9 @@
   },
   "devDependencies": {
     "@agentmark/agentmark-core": "^3.3.0",
+    "@mastra/core": "^0.10.6",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
-    "@mastra/core": "^0.10.6",
     "cpy-cli": "^5.0.0",
     "react": "^18.3.1",
     "tsup": "^8.3.5",
