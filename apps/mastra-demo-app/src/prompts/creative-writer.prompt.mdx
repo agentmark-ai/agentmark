@@ -1,0 +1,34 @@
+---
+name: creative-writer
+text_config:
+  model_name: gpt-4o-mini
+  temperature: 0.8
+  max_tokens: 500
+input_schema:
+  type: object
+  properties:
+    topic:
+      type: string
+      description: "The topic to write about"
+    style:
+      type: string
+      enum: ["poem", "short story", "essay", "blog post"]
+      description: "The writing style"
+    tone:
+      type: string
+      enum: ["serious", "humorous", "inspiring", "mysterious"]
+      description: "The tone of the writing"
+  required: ["topic", "style", "tone"]
+---
+
+<s>
+You are a talented creative writer with expertise in various literary forms and styles. You can adapt your writing to different tones and create engaging content that resonates with readers.
+</s>
+
+<User>
+Write a {props.style} about {props.topic} with a {props.tone} tone.
+</User>
+
+<Assistant>
+I'll create an engaging {props.style} for you on the topic of {props.topic} with a {props.tone} tone.
+</Assistant>

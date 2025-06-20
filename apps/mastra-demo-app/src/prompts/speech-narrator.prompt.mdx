@@ -1,0 +1,20 @@
+---
+name: speech-narrator
+speech_config:
+  model_name: tts-1
+  text: "{props.text_to_speak}"
+  voice: "{props.voice}"
+  speed: 1.0
+  output_format: "mp3"
+input_schema:
+  type: object
+  properties:
+    text_to_speak:
+      type: string
+      description: "The text to convert to speech"
+    voice:
+      type: string
+      enum: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+      description: "The voice to use for speech synthesis"
+  required: ["text_to_speak", "voice"]
+---

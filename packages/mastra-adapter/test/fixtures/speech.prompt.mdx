@@ -1,0 +1,14 @@
+---
+name: speech
+speech_config:
+  model_name: test-model
+  text: "Speaking: {props.userMessage}"
+  voice: "alloy"
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---

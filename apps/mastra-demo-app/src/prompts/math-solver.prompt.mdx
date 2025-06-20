@@ -1,0 +1,43 @@
+---
+name: math-solver
+object_config:
+  model_name: gpt-4o-mini
+  temperature: 0.1
+  max_tokens: 200
+  schema:
+    type: object
+    properties:
+      step_by_step_solution:
+        type: array
+        items:
+          type: string
+        description: "Step by step solution to the math problem"
+      final_answer:
+        type: string
+        description: "The final numeric answer"
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+        description: "Confidence level in the solution (0-1)"
+    required: ["step_by_step_solution", "final_answer", "confidence"]
+input_schema:
+  type: object
+  properties:
+    problem:
+      type: string
+      description: "The math problem to solve"
+  required: ["problem"]
+---
+
+<s>
+You are an expert mathematics tutor. Your task is to solve math problems step by step and provide clear explanations. Always show your work and be precise with calculations.
+</s>
+
+<User>
+Please solve this math problem: {props.problem}
+</User>
+
+<Assistant>
+I'll solve this step by step for you.
+</Assistant>

@@ -1,0 +1,25 @@
+---
+name: image-generator
+image_config:
+  model_name: dall-e-3
+  prompt: "Create a {props.style} style image of {props.subject} in {props.setting}. {props.additional_details}"
+  num_images: 1
+  size: "1024x1024"
+input_schema:
+  type: object
+  properties:
+    subject:
+      type: string
+      description: "The main subject of the image"
+    style:
+      type: string
+      enum: ["realistic", "artistic", "cartoon", "abstract", "photographic"]
+      description: "The artistic style"
+    setting:
+      type: string
+      description: "The setting or environment"
+    additional_details:
+      type: string
+      description: "Any additional details or specifications"
+  required: ["subject", "style", "setting"]
+---
