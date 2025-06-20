@@ -482,6 +482,7 @@ describe('MastraAdapter', () => {
       const params = {
         agent: mockAgent,
         messages: [{ role: 'user' as const, content: 'Generate an image' }],
+        prompt: 'A beautiful sunset over mountains',
         instructions: 'Generate exactly 1 images.',
         temperature: 0.8,
       };
@@ -506,6 +507,7 @@ describe('MastraAdapter', () => {
       const params = {
         agent: mockAgent,
         messages: [{ role: 'user' as const, content: 'Say hello' }],
+        text: 'Hello, how are you today?',
         instructions: 'Use voice: nova.',
         temperature: 0.9,
       };
