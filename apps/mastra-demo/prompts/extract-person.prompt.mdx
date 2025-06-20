@@ -1,0 +1,52 @@
+---
+name: extract-person
+object_config:
+  model_name: gpt-4o
+  temperature: 0.1
+  max_tokens: 300
+  schema:
+    name:
+      type: string
+      description: Full name of the person
+    age:
+      type: integer
+      description: Age in years
+    occupation:
+      type: string
+      description: Job title or profession
+    location:
+      type: string
+      description: City and country where they live
+    skills:
+      type: array
+      items:
+        type: string
+      description: List of professional skills
+    experience_years:
+      type: integer
+      description: Years of professional experience
+    contact:
+      type: object
+      properties:
+        email:
+          type: string
+        phone:
+          type: string
+      description: Contact information
+---
+
+# Person Information Extractor
+
+Extract structured information about a person from the provided text.
+
+## Text to Extract From
+
+{{{inputText}}}
+
+## Instructions
+
+- Extract all available information about the person
+- If information is not available, omit the field
+- Be accurate and don't make assumptions
+- Format phone numbers consistently
+- Validate email addresses

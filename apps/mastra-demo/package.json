@@ -1,0 +1,25 @@
+{
+  "name": "@agentmark/mastra-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end demo of AgentMark with Mastra adapter",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "tsx index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@agentmark/agentmark-core": "*",
+    "@agentmark/mastra-adapter": "*",
+    "@mastra/core": "^0.1.0",
+    "dotenv": "^16.0.0",
+    "openai": "^4.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
