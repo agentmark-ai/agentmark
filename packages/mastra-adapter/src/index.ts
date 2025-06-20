@@ -15,6 +15,8 @@ import {
   MastraTextParams,
   MastraImageParams,
   MastraSpeechParams,
+  MastraGenerateOptions,
+  MastraExecutor,
   AgentFunctionCreator,
 } from "./adapter";
 import type { Root } from "mdast";
@@ -127,11 +129,17 @@ export function createAgentMarkClient<
   }) as MastraAgentMark<T, Tools>;
 }
 
+// Helper function for creating executor
+export function createMastraExecutor(adapter: MastraAdapter<any, any>): MastraExecutor {
+  return new MastraExecutor(adapter);
+}
+
 // Export all the core components
 export {
   MastraAdapter,
   MastraAgentRegistry,
   MastraToolRegistry,
+  MastraExecutor,
 };
 
 export type {
@@ -139,6 +147,7 @@ export type {
   MastraObjectParams,
   MastraImageParams,
   MastraSpeechParams,
+  MastraGenerateOptions,
   AgentFunctionCreator,
 };
 

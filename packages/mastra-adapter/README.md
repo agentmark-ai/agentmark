@@ -12,73 +12,105 @@ npm install @agentmark/mastra-adapter @mastra/core
 
 The Mastra adapter enables AgentMark prompts to work seamlessly with Mastra agents. Unlike model-based adapters, the Mastra adapter focuses on **agent orchestration** - converting AgentMark configurations into parameters that can be passed to Mastra agents' `generate()` method.
 
+## Key Features
+
+✅ **Complete AgentMark Integration** - Supports all four configuration types (text, object, image, speech)  
+✅ **Agent Registry System** - Flexible agent management with pattern matching  
+✅ **Tool Integration** - Type-safe tool registration and execution  
+✅ **Memory & Context Support** - Full support for Mastra's memory and context features  
+✅ **Telemetry & Observability** - Built-in telemetry and monitoring support  
+✅ **Error Handling & Retries** - Comprehensive error handling with retry logic  
+✅ **TypeScript Support** - Full type safety and inference  
+✅ **Execution Helpers** - Easy-to-use execution utilities  
+
 ## Key Concepts
 
 - **Agent Registry**: Maps model names to Mastra agent creators
 - **Tool Registry**: Manages tool implementations for agent use
 - **Parameter Generation**: Converts AgentMark configs to Mastra-compatible parameters
+- **Execution Helpers**: Utilities for easy execution with error handling
 
-## Usage
+## Quick Start
 
 ### Basic Setup
 
 ```typescript
-import { createAgentMarkClient, MastraAgentRegistry, MastraToolRegistry } from '@agentmark/mastra-adapter';
+import { 
+  createAgentMarkClient, 
+  createMastraExecutor,
+  MastraAgentRegistry, 
+  MastraToolRegistry 
+} from '@agentmark/mastra-adapter';
 import { Agent } from '@mastra/core';
 import { openai } from '@ai-sdk/openai';
 
-// Create an agent registry
+// 1. Create agent registry
 const agentRegistry = new MastraAgentRegistry();
 
-// Register agents by model name
-agentRegistry.registerAgents('gpt-4o', (modelName, options) => {
+// 2. Register agents
+agentRegistry.registerAgents('gpt-4o', (modelName) => {
   return new Agent({
-    name: `Agent for ${modelName}`,
-    instructions: 'You are a helpful assistant.',
+    name: 'GPT-4o Assistant',
+    instructions: 'You are a helpful AI assistant.',
     model: openai('gpt-4o'),
   });
 });
 
-// Register multiple models with one agent creator
-agentRegistry.registerAgents(['gpt-4o-mini', 'gpt-3.5-turbo'], (modelName) => {
-  return new Agent({
-    name: `OpenAI ${modelName}`,
-    instructions: 'You are a helpful assistant.',
-    model: openai(modelName),
-  });
-});
-
-// Create AgentMark client
+// 3. Create AgentMark client
 const client = createAgentMarkClient({
   agentRegistry,
   loader: yourLoader, // Your AgentMark loader
 });
+
+// 4. Create executor for easy execution
+const executor = createMastraExecutor(client.adapter);
 ```
 
-### Working with Tools
+### Agent Registry Patterns
 
 ```typescript
-import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+const agentRegistry = new MastraAgentRegistry();
 
-// Create a tool registry
-const toolRegistry = new MastraToolRegistry<{
-  getWeather: { args: { location: string } };
+// Exact name matching
+agentRegistry.registerAgents('gpt-4o', (name) => createAgent(name));
+
+// Multiple models
+agentRegistry.registerAgents(['gpt-4o', 'gpt-4o-mini'], (name) => createAgent(name));
+
+// Pattern matching with regex
+agentRegistry.registerAgents(/^claude-/, (name) => createClaudeAgent(name));
+
+// Default fallback
+agentRegistry.setDefaultCreator((name) => createDefaultAgent(name));
+
+// Direct agent access
+const agent = agentRegistry.getAgent('gpt-4o', { temperature: 0.7 });
+```
+
+### Tool Integration
+
+```typescript
+// Define tool types
+type ToolDefinitions = {
+  getWeather: { args: { location: string; unit?: 'celsius' | 'fahrenheit' } };
   sendEmail: { args: { to: string; subject: string; body: string } };
-}>();
+};
 
-// Register tools
+// Create tool registry
+const toolRegistry = new MastraToolRegistry<ToolDefinitions>();
+
+// Register tool implementations
 toolRegistry
   .register('getWeather', async (args) => {
-    // Tool implementation
-    return `Weather in ${args.location}: Sunny, 72°F`;
+    // Implement weather API call
+    return { location: args.location, temperature: 22, unit: args.unit || 'celsius' };
   })
   .register('sendEmail', async (args) => {
-    // Email implementation
-    return `Email sent to ${args.to}`;
+    // Implement email sending
+    return { messageId: `msg_${Date.now()}`, status: 'sent' };
   });
 
-// Create client with tools
+// Use with AgentMark client
 const client = createAgentMarkClient({
   agentRegistry,
   toolRegistry,
@@ -86,165 +118,243 @@ const client = createAgentMarkClient({
 });
 ```
 
-### Using AgentMark Prompts
+## Usage Examples
+
+### Text Generation with Tools
 
 ```typescript
-// Load and format a text prompt
-const textPrompt = client.text('chat-assistant');
-const textParams = await textPrompt.format({
-  userMessage: 'Hello, how are you?'
-});
+// Format AgentMark prompt
+const textPrompt = client.text('assistant-with-tools');
+const params = await textPrompt.format({ query: 'What\'s the weather in NYC?' });
 
-// Get the agent and generate response
-const agent = agentRegistry.getAgentFunction('gpt-4o')('gpt-4o');
-const response = await agent.generate(textParams.messages, {
-  temperature: textParams.temperature,
-  toolsets: textParams.toolsets,
-});
+// Execute with Mastra
+const result = await executor.executeText(params);
+console.log(result.text); // Generated response
+console.log(result.toolCalls); // Tool calls made
+```
 
-// Load and format an object prompt
+### Structured Output Generation
+
+```typescript
+// Format object prompt
 const objectPrompt = client.object('data-extractor');
-const objectParams = await objectPrompt.format({
-  document: 'Some document content...'
+const params = await objectPrompt.format({ 
+  document: 'John Doe, age 30, works at ACME Corp.' 
 });
 
-const structuredResponse = await agent.generate(objectParams.messages, {
-  output: objectParams.output,
-  temperature: objectParams.temperature,
-});
+// Execute structured output
+const result = await executor.executeObject(params);
+console.log(result.object); // { name: 'John Doe', age: 30, company: 'ACME Corp' }
 ```
 
-### Advanced Agent Registry Patterns
+### Advanced Configuration
 
 ```typescript
-// Pattern-based registration
-agentRegistry.registerAgents(/^claude-/, (modelName) => {
-  return new Agent({
-    name: `Anthropic ${modelName}`,
-    instructions: 'You are Claude, an AI assistant.',
-    model: anthropic(modelName),
-  });
-});
-
-// Default fallback
-agentRegistry.setDefaultCreator((modelName) => {
-  console.warn(`No specific agent for ${modelName}, using default`);
-  return new Agent({
-    name: 'Default Agent',
-    instructions: 'You are a helpful assistant.',
-    model: openai('gpt-4o-mini'), // fallback model
-  });
-});
-```
-
-## API Reference
-
-### MastraAgentRegistry
-
-Manages the mapping between model names and Mastra agent creators.
-
-```typescript
-class MastraAgentRegistry {
-  registerAgents(pattern: string | RegExp | string[], creator: AgentFunctionCreator): void
-  getAgentFunction(agentName: string): AgentFunctionCreator
-  setDefaultCreator(creator: AgentFunctionCreator): void
-}
-
-type AgentFunctionCreator = (agentName: string, options?: AdaptOptions) => Agent
-```
-
-### MastraToolRegistry
-
-Type-safe tool registry for managing tool implementations.
-
-```typescript
-class MastraToolRegistry<TD, RM> {
-  register<K, R>(name: K, fn: (args: TD[K]['args'], toolContext?: any) => R): MastraToolRegistry<TD, RM & {[K]: R}>
-  get<K>(name: K): (args: TD[K]['args'], toolContext?: any) => RM[K]
-  has<K>(name: K): boolean
-}
-```
-
-### Parameter Types
-
-The adapter generates these parameter objects for Mastra agents:
-
-```typescript
-// Text generation parameters
-type MastraTextParams = {
-  messages: RichChatMessage[];
-  toolsets?: Record<string, any>;
-  temperature?: number;
-  maxSteps?: number;
-  maxRetries?: number;
-  // ... other Mastra options
-}
-
-// Structured output parameters  
-type MastraObjectParams<T> = {
-  messages: RichChatMessage[];
-  output: z.ZodSchema<T>;
-  temperature?: number;
-  // ... other Mastra options
-}
-```
-
-## Integration with Mastra Features
-
-### Memory Management
-
-```typescript
-const textParams = await textPrompt.format({ query: 'Hello' });
-
-const response = await agent.generate(textParams.messages, {
-  ...textParams,
+// Enhanced parameters with memory and telemetry
+const params = {
+  agent: agentRegistry.getAgent('gpt-4o'),
+  messages: [{ role: 'user', content: 'Hello!' }],
+  
+  // Generation settings
+  temperature: 0.7,
+  maxSteps: 5,
+  maxRetries: 3,
+  toolChoice: 'auto',
+  
+  // Memory configuration
   memory: {
-    thread: 'user-123',
-    resource: 'conversation',
+    thread: 'conversation-123',
+    resource: 'user-456',
     options: {
       lastMessages: 10,
-      semanticRecall: true,
+      semanticRecall: {
+        topK: 5,
+        messageRange: { before: 5, after: 5 },
+      },
+      workingMemory: { enabled: true },
     },
   },
-});
-```
-
-### Telemetry
-
-```typescript
-const response = await agent.generate(textParams.messages, {
-  ...textParams,
+  
+  // Telemetry
   telemetry: {
     isEnabled: true,
     recordInputs: true,
     recordOutputs: true,
-    functionId: 'chat-assistant',
+    functionId: 'my-function',
+    metadata: { userId: 'user-123' },
   },
+  
+  // Step monitoring
+  onStepFinish: (step) => {
+    console.log('Step completed:', step);
+  },
+};
+
+const result = await executor.executeText(params);
+```
+
+### Multi-Agent Workflows
+
+```typescript
+// Register specialized agents
+agentRegistry.registerAgents('research-agent', () => new Agent({
+  name: 'Research Specialist',
+  instructions: 'Expert at research and fact-finding.',
+  model: openai('gpt-4o'),
+}));
+
+agentRegistry.registerAgents('writing-agent', () => new Agent({
+  name: 'Writing Specialist', 
+  instructions: 'Expert at writing and communication.',
+  model: openai('gpt-4o'),
+}));
+
+// Research phase
+const researchResult = await executor.executeText({
+  agent: agentRegistry.getAgent('research-agent'),
+  messages: [{ role: 'user', content: 'Research AI trends' }],
+  toolsets: { search: toolRegistry.getAllTools() },
+});
+
+// Writing phase
+const articleResult = await executor.executeText({
+  agent: agentRegistry.getAgent('writing-agent'),
+  messages: [
+    { role: 'user', content: `Write an article based on: ${researchResult.text}` }
+  ],
 });
 ```
 
-## Migration from Other Adapters
+## Error Handling
 
-If you're migrating from the Vercel AI adapter:
+```typescript
+try {
+  const result = await executor.executeText({
+    agent: agentRegistry.getAgent('gpt-4o'),
+    messages: [{ role: 'user', content: 'Hello' }],
+    maxRetries: 3,
+    maxSteps: 10,
+  });
+} catch (error) {
+  if (error.message.includes('Mastra text generation failed')) {
+    // Handle Mastra-specific errors
+    console.error('Generation failed:', error);
+  }
+  // Handle other errors
+}
+```
 
-1. **Replace model registry with agent registry**
-2. **Update tool definitions** - Mastra uses `createTool()` instead of direct tool objects
-3. **Agent-centric approach** - Focus on agent capabilities rather than just model routing
+## API Reference
 
-## Examples
+### Core Classes
 
-See the `examples/` directory for complete working examples including:
+#### `MastraAdapter<T, R>`
+Main adapter class implementing the AgentMark Adapter interface.
 
-- Basic chat agent
-- RAG agent with document processing  
-- Multi-agent workflows
-- Tool-using agents
-- Voice-enabled agents
+- **Methods**: `adaptText()`, `adaptObject()`, `adaptImage()`, `adaptSpeech()`
+- **Properties**: `__name: "mastra"`, `__dict: T`
 
-## Contributing
+#### `MastraAgentRegistry`
+Manages agent creators and resolution.
 
-Contributions are welcome! Please see the main AgentMark repository for contribution guidelines.
+- **Methods**: `registerAgents()`, `getAgentFunction()`, `getAgent()`, `setDefaultCreator()`
+
+#### `MastraToolRegistry<TD, RM>`
+Type-safe tool registration and management.
+
+- **Methods**: `register()`, `get()`, `has()`, `getAllTools()`
+
+#### `MastraExecutor`
+Execution helper with error handling.
+
+- **Methods**: `executeText()`, `executeObject()`, `executeImage()`, `executeSpeech()`
+
+### Parameter Types
+
+#### `MastraTextParams<TS>`
+Parameters for text generation with Mastra agents.
+
+```typescript
+{
+  agent: Agent;
+  messages: RichChatMessage[];
+  toolsets?: Record<string, TS>;
+  clientTools?: TS;
+  // ... plus all MastraGenerateOptions
+}
+```
+
+#### `MastraObjectParams<T>`
+Parameters for structured output generation.
+
+```typescript
+{
+  agent: Agent;
+  messages: RichChatMessage[];
+  output: z.ZodSchema<T>;
+  experimental_output?: z.ZodSchema<T>;
+  // ... plus all MastraGenerateOptions
+}
+```
+
+#### `MastraGenerateOptions`
+Comprehensive generation options matching Mastra's API.
+
+```typescript
+{
+  temperature?: number;
+  maxSteps?: number;
+  maxRetries?: number;
+  toolChoice?: 'auto' | 'none' | 'required' | { type: 'tool'; toolName: string };
+  context?: any[];
+  instructions?: string;
+  memory?: MastraMemoryConfig;
+  telemetry?: MastraTelemetryConfig;
+  onStepFinish?: (step: any) => void;
+}
+```
+
+### Factory Functions
+
+#### `createAgentMarkClient<T, Tools>(options)`
+Creates an AgentMark client with Mastra adapter.
+
+#### `createMastraExecutor(adapter)`
+Creates an executor helper for easy execution.
+
+## Integration with AgentMark Ecosystem
+
+The Mastra adapter seamlessly integrates with the AgentMark ecosystem:
+
+- **Loaders**: Works with any AgentMark loader (file, database, etc.)
+- **Datasets**: Supports dataset processing with `formatWithDataset()`
+- **Validation**: Full schema validation for inputs and outputs
+- **Type Safety**: Complete TypeScript support with proper inference
+- **Telemetry**: Built-in integration with AgentMark telemetry
+
+## Best Practices
+
+1. **Agent Registration**: Use pattern matching for similar models
+2. **Tool Management**: Register tools with proper error handling
+3. **Memory Configuration**: Use appropriate memory settings for your use case
+4. **Error Handling**: Always wrap execution in try-catch blocks
+5. **Type Safety**: Define proper tool types for better development experience
+6. **Resource Management**: Clean up agents and tools when done
+
+## Differences from Other Adapters
+
+Unlike model-based adapters (like Vercel AI), the Mastra adapter is **agent-centric**:
+
+- **Agents vs Models**: Works with Mastra Agent instances rather than raw models
+- **Orchestration**: Focuses on agent orchestration and workflow management
+- **Memory**: Built-in support for persistent memory and context
+- **Tools**: Native tool integration with agent capabilities
+- **Multi-Step**: Support for multi-step reasoning and tool use
 
 ## License
 
-MIT
+MIT License - see the [LICENSE](../../LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please see the [contributing guidelines](../../CONTRIBUTING.md) for details.
