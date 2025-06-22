@@ -16,54 +16,60 @@ export const createExampleApp = async (
   model: string,
   useCloud: string = "cloud",
   shouldCreateExample: boolean = true,
-  editor: string
+  editor: string,
+  targetPath: string = "."
 ) => {
   try {
     console.log("Creating Agent Mark example app...");
 
     // Create directory structure
-    fs.ensureDirSync("./agentmark");
+    fs.ensureDirSync(`${targetPath}/agentmark`);
 
-    addRules(editor);
+    addRules(editor, targetPath);
 
     // Create example prompts
-    createExamplePrompts(model);
+    createExamplePrompts(model, targetPath);
 
     if (shouldCreateExample) {
       // Create types file
-      fs.writeFileSync("./agentmark.types.ts", getTypesFileContent());
+      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
 
       // Create .env file
-      fs.writeFileSync("./.env", getEnvFileContent(modelProvider, useCloud));
+      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, useCloud));
 
       // Create the main application file
       fs.writeFileSync(
-        "./index.ts",
+        `${targetPath}/index.ts`,
         getIndexFileContent(modelProvider, model, useCloud)
       );
 
       // Create tsconfig.json
-      fs.writeJSONSync("./tsconfig.json", getTsConfigContent(), { spaces: 2 });
+      fs.writeJSONSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
       // Setup package.json and install dependencies
-      setupPackageJson();
-      installDependencies(modelProvider, useCloud);
+      setupPackageJson(targetPath);
+      installDependencies(modelProvider, useCloud, targetPath);
     }
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
     console.log("To get started:");
 
+    const folderName = targetPath.replace("./", "");
+    if (folderName !== ".") {
+      console.log(`1. Navigate to your project folder: cd ${folderName}`);
+    }
+
     if (useCloud === "cloud") {
       console.log(
-        "1. Update the .env file with your AgentMark Cloud and API credentials"
+        `${folderName !== "." ? "2" : "1"}. Update the .env file with your AgentMark Cloud and API credentials`
       );
-      console.log('2. Run "npm start" to execute the example');
-      console.log("3. View your evaluations in the AgentMark Cloud dashboard");
+      console.log(`${folderName !== "." ? "3" : "2"}. Run "npm start" to execute the example`);
+      console.log(`${folderName !== "." ? "4" : "3"}. View your evaluations in the AgentMark Cloud dashboard`);
     } else {
-      console.log("1. Update the .env file with your API credentials");
+      console.log(`${folderName !== "." ? "2" : "1"}. Update the .env file with your API credentials`);
       console.log(
-        '2. Run "npm start" to execute the example and see the results locally'
+        `${folderName !== "." ? "3" : "2"}. Run "npm start" to execute the example and see the results locally`
       );
     }
 

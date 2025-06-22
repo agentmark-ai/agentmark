@@ -13,6 +13,17 @@ const init = async () => {
   };
   console.log("Initializing project.");
 
+  const { folderName } = await prompts({
+    name: "folderName",
+    type: "text",
+    message: "Where would you like to create your AgentMark app?",
+    initial: "my-agentmark-app",
+  });
+
+  // Create the target folder
+  const targetPath = `./${folderName}`;
+  fs.ensureDirSync(targetPath);
+
   const { provider } = await prompts({
     name: "provider",
     type: "select",
@@ -79,10 +90,10 @@ const init = async () => {
     ],
   });
 
-  createExampleApp(provider, model, useCloud, shouldCreateExample, editor);
+  createExampleApp(provider, model, useCloud, shouldCreateExample, editor, targetPath);
 
   if (useCloud === "cloud") {
-    fs.writeJsonSync("agentmark.json", config, { spaces: 2 });
+    fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
     console.log(
       "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
     );

@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 
-export const addRules = (editor: string) => {
+export const addRules = (editor: string, targetPath: string = ".") => {
   if(editor === "none") {
     return;
   }
@@ -25,13 +25,13 @@ globs:
 alwaysApply: true
 ---`;
     // Create .cursor/rules directory
-    fs.ensureDirSync(".cursor/rules");
+    fs.ensureDirSync(path.join(targetPath, ".cursor/rules"));
     fs.writeFileSync(
-      path.join(".cursor/rules", "prompt-guidelines.mdc"),
+      path.join(targetPath, ".cursor/rules", "prompt-guidelines.mdc"),
       `${cursorRuleMetadata}\n\n${rulesForPrompt}`
     );
     fs.writeFileSync(
-      path.join(".cursor/rules", "dataset-guidelines.mdc"),
+      path.join(targetPath, ".cursor/rules", "dataset-guidelines.mdc"),
       `${cursorRuleMetadata}\n\n${rulesForDataset}`
     );
   }
@@ -41,25 +41,25 @@ alwaysApply: true
 trigger: always_on
 --- 
 `;
-    fs.ensureDirSync(".windsurf/rules");
+    fs.ensureDirSync(path.join(targetPath, ".windsurf/rules"));
     fs.writeFileSync(
-      path.join(".windsurf/rules", "prompt-guidelines.md"),
+      path.join(targetPath, ".windsurf/rules", "prompt-guidelines.md"),
       `${windsurfRuleMetadata}\n\n${rulesForPrompt}`
     );
     fs.writeFileSync(
-      path.join(".windsurf/rules", "dataset-guidelines.md"),
+      path.join(targetPath, ".windsurf/rules", "dataset-guidelines.md"),
       `${windsurfRuleMetadata}\n\n${rulesForDataset}`
     );
   }
 
   if(editor === "copilot") {
-    fs.ensureDirSync(".github/instructions");
+    fs.ensureDirSync(path.join(targetPath, ".github/instructions"));
     fs.writeFileSync(
-      path.join(".github/instructions", "prompt-guidelines.instructions.md"),
+      path.join(targetPath, ".github/instructions", "prompt-guidelines.instructions.md"),
       rulesForPrompt
     );
     fs.writeFileSync(
-      path.join(".github/instructions", "dataset-guidelines.instructions.md"),
+      path.join(targetPath, ".github/instructions", "dataset-guidelines.instructions.md"),
       rulesForDataset
     );
   }
