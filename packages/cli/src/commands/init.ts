@@ -1,6 +1,6 @@
 import * as fs from "fs-extra";
 import prompts from "prompts";
-import { Providers } from "../utils/providers";
+import { Providers as ProvidersMap } from "../utils/providers";
 import { createExampleApp } from "../utils/examples/create-example-app";
 
 const init = async () => {
@@ -19,6 +19,8 @@ const init = async () => {
     message: "Where would you like to create your AgentMark app?",
     initial: "my-agentmark-app",
   });
+
+  const { ollama: _, ...Providers } = ProvidersMap;
 
   // Create the target folder
   const targetPath = `./${folderName}`;
