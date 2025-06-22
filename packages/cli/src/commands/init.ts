@@ -38,27 +38,10 @@ const init = async () => {
     }),
   });
 
-  const models = [
-    ...Providers[provider as keyof typeof Providers].languageModels.map((model) => ({
-      title: `${model} (Language Model)`,
-      value: model,
-    })),
-    ...Providers[provider as keyof typeof Providers].imageModels.map((model) => ({
-      title: `${model} (Image Generation)`,
-      value: model,
-    })),
-    ...Providers[provider as keyof typeof Providers].speechModels.map((model) => ({
-      title: `${model} (Text to Speech)`,
-      value: model,
-    })),
-  ];
-
-  const { model } = await prompts({
-    name: "model",
-    type: "select",
-    message: "Select a model",
-    choices: models,
-  });
+  // Default to the first language model of the chosen provider
+  const model = Providers[provider as keyof typeof Providers].languageModels[0];
+  
+  console.log(`Using model: ${model}`);
 
   config.builtInModels = [model];
 
