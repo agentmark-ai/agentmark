@@ -43,12 +43,6 @@ const init = async () => {
 
   config.builtInModels = [model];
 
-  const { shouldCreateExample } = await prompts({
-    name: "shouldCreateExample",
-    message: "Do you want to include a typescript example app?",
-    type: "confirm",
-  });
-
   const { useCloud } = await prompts({
     name: "useCloud",
     message:
@@ -72,7 +66,7 @@ const init = async () => {
     ],
   });
 
-  createExampleApp(provider, model, useCloud, shouldCreateExample, client, targetPath);
+  createExampleApp(provider, model, useCloud, client, targetPath);
 
   if (useCloud === "cloud") {
     fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });

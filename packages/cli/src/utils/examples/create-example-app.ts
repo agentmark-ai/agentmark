@@ -38,7 +38,6 @@ export const createExampleApp = async (
   modelProvider: string,
   model: string,
   useCloud: string = "cloud",
-  shouldCreateExample: boolean = true,
   client: string,
   targetPath: string = "."
 ) => {
@@ -53,26 +52,24 @@ export const createExampleApp = async (
     // Create example prompts
     createExamplePrompts(model, targetPath);
 
-    if (shouldCreateExample) {
-      // Create types file
-      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
+    // Create types file
+    fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
 
-      // Create .env file
-      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, useCloud));
+    // Create .env file
+    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, useCloud));
 
-      // Create the main application file
-      fs.writeFileSync(
-        `${targetPath}/index.ts`,
-        getIndexFileContent(modelProvider, model, useCloud)
-      );
+    // Create the main application file
+    fs.writeFileSync(
+      `${targetPath}/index.ts`,
+      getIndexFileContent(modelProvider, model, useCloud)
+    );
 
-      // Create tsconfig.json
-      fs.writeJSONSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
+    // Create tsconfig.json
+    fs.writeJSONSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
-      // Setup package.json and install dependencies
-      setupPackageJson(targetPath);
-      installDependencies(modelProvider, useCloud, targetPath);
-    }
+    // Setup package.json and install dependencies
+    setupPackageJson(targetPath);
+    installDependencies(modelProvider, useCloud, targetPath);
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
