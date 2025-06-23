@@ -74,7 +74,7 @@ const init = async () => {
       "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
     );
     console.log(
-      "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/configuration/test-webhook"
+      "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/webhook/overview"
     );
   }
 };
