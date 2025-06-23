@@ -18,7 +18,6 @@ modelRegistry.registerModels(['${modelName}'], (name: string) => {
 const sdk = new AgentMarkSDK({
   apiKey: process.env.AGENTMARK_API_KEY!,
   appId: process.env.AGENTMARK_APP_ID!,
-  baseUrl: process.env.AGENTMARK_BASE_URL!,
 });
 
 sdk.initTracing({ disableBatch: true });
