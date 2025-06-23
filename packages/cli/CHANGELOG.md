@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.4.0
+
+### Minor Changes
+
+- f68b68a: Feat: MCP, better onboarding experience
+
 ## 1.3.0
 
 ### Minor Changes
