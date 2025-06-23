@@ -42,9 +42,9 @@ export const installDependencies = (
     // Install the common packages
     let installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter @ai-sdk/${modelProvider} ai`;
 
-    // Add the AgentMark SDK only if cloud integration is selected
+    // Add the Cloud specific packages
     if (useCloud === "cloud") {
-      installCmd += " @agentmark/sdk";
+      installCmd += " @agentmark/sdk @agentmark/vercel-ai-v4-webhook-helper";
     }
 
     execSync(installCmd, { stdio: "inherit", cwd: targetPath });
