@@ -8,7 +8,13 @@ const providerApiKeyMap: Record<string, string> = {
   ollama: "" // Ollama doesn't need an API key for local usage
 };
 
-export const getEnvFileContent = (modelProvider: string, useCloud: string = 'cloud', apiKey: string = ''): string => {
+export const getEnvFileContent = (
+  modelProvider: string, 
+  useCloud: string = 'cloud', 
+  apiKey: string = '',
+  agentmarkApiKey: string = '',
+  agentmarkAppId: string = ''
+): string => {
   const envVarName = providerApiKeyMap[modelProvider] || `${modelProvider.toUpperCase()}_API_KEY`;
   const apiKeyValue = apiKey || 'your_api_key_here';
   
@@ -17,8 +23,8 @@ export const getEnvFileContent = (modelProvider: string, useCloud: string = 'clo
   
   if (useCloud === 'cloud') {
     let content = `# Agentmark API credentials
-AGENTMARK_API_KEY=your_api_key_here
-AGENTMARK_APP_ID=your_app_id_here
+AGENTMARK_API_KEY=${agentmarkApiKey || 'your_api_key_here'}
+AGENTMARK_APP_ID=${agentmarkAppId || 'your_app_id_here'}
 `;
     if (needsApiKey) {
       content += `${envVarName}=${apiKeyValue}\n`;

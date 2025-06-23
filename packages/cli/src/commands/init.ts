@@ -66,6 +66,27 @@ const init = async () => {
     ],
   });
 
+  // Prompt for AgentMark credentials if using cloud
+  let agentmarkApiKey = "";
+  let agentmarkAppId = "";
+  if (useCloud === "cloud") {
+    const { providedAgentmarkApiKey } = await prompts({
+      name: "providedAgentmarkApiKey",
+      type: "password",
+      message: "Enter your AgentMark API key (or press Enter to skip):",
+      initial: "",
+    });
+    agentmarkApiKey = providedAgentmarkApiKey || "";
+
+    const { providedAgentmarkAppId } = await prompts({
+      name: "providedAgentmarkAppId",
+      type: "text",
+      message: "Enter your AgentMark App ID (or press Enter to skip):",
+      initial: "",
+    });
+    agentmarkAppId = providedAgentmarkAppId || "";
+  }
+
   const { client } = await prompts({
     name: "client",
     type: "select",
@@ -78,7 +99,7 @@ const init = async () => {
     ],
   });
 
-  createExampleApp(provider, model, useCloud, client, targetPath, apiKey);
+  createExampleApp(provider, model, useCloud, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
 
   if (useCloud === "cloud") {
     fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });

@@ -40,7 +40,9 @@ export const createExampleApp = async (
   useCloud: string = "cloud",
   client: string,
   targetPath: string = ".",
-  apiKey: string = ""
+  apiKey: string = "",
+  agentmarkApiKey: string = "",
+  agentmarkAppId: string = ""
 ) => {
   try {
     console.log("Creating Agent Mark example app...");
@@ -57,7 +59,7 @@ export const createExampleApp = async (
     fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
 
     // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, useCloud, apiKey));
+    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, useCloud, apiKey, agentmarkApiKey, agentmarkAppId));
 
     // Create the main application file
     fs.writeFileSync(
