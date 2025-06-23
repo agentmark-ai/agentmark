@@ -18,15 +18,18 @@ const setupMCPServer = (client: string, targetPath: string) => {
   }
 
   try {
-    console.log(`Setting up MCP server for ${client}...`);
+    const folderName = targetPath.replace("./", "");
+    console.log(`Setting up MCP server for ${client} in ${folderName}...`);
     execSync(`npx mint-mcp add docs.agentmark.co --client ${client}`, {
       stdio: "inherit",
       cwd: targetPath,
     });
-    console.log(`✅ MCP server configured for ${client}`);
+    console.log(`✅ MCP server configured for ${client} in ${folderName}`);
   } catch (error) {
     console.warn(`Warning: Could not set up MCP server for ${client}:`, error);
-    console.log("You can manually set it up later with:");
+    const folderName = targetPath.replace("./", "");
+    console.log("You can manually set it up later by running this command in your project folder:");
+    console.log(`cd ${folderName}`);
     console.log(`npx mint-mcp add docs.agentmark.co --client ${client}`);
   }
 };
