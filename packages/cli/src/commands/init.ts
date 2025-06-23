@@ -43,6 +43,18 @@ const init = async () => {
 
   config.builtInModels = [model];
 
+  // Prompt for API key if not Ollama (which doesn't need one for local usage)
+  let apiKey = "";
+  if (provider !== "ollama") {
+    const { providedApiKey } = await prompts({
+      name: "providedApiKey",
+      type: "password",
+      message: `Enter your ${Providers[provider as keyof typeof Providers].label} API key (or press Enter to skip):`,
+      initial: "",
+    });
+    apiKey = providedApiKey || "";
+  }
+
   const { useCloud } = await prompts({
     name: "useCloud",
     message:
@@ -66,7 +78,7 @@ const init = async () => {
     ],
   });
 
-  createExampleApp(provider, model, useCloud, client, targetPath);
+  createExampleApp(provider, model, useCloud, client, targetPath, apiKey);
 
   if (useCloud === "cloud") {
     fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
