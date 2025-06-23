@@ -37,8 +37,8 @@ export const Providers = {
     imageModels: [],
     speechModels: [],
   },
-  grok: {
-    label: "Grok",
+  xai: {
+    label: "xAI Grok",
     languageModels: [
       "grok-3",
       "grok-3-mini",
@@ -49,8 +49,8 @@ export const Providers = {
     imageModels: [],
     speechModels: [],
   },
-  gemini: {
-    label: "Gemini",
+  google: {
+    label: "Google",
     languageModels: [
       "gemini-2.5-pro-preview-03-25",
       "gemini-2.0-flash",

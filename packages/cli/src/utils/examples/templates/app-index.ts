@@ -18,7 +18,6 @@ modelRegistry.registerModels(['${modelName}'], (name: string) => {
 const sdk = new AgentMarkSDK({
   apiKey: process.env.AGENTMARK_API_KEY!,
   appId: process.env.AGENTMARK_APP_ID!,
-  baseUrl: process.env.AGENTMARK_BASE_URL!,
 });
 
 sdk.initTracing({ disableBatch: true });
@@ -73,17 +72,21 @@ const runEvaluation = async (assistant: string, customer_message: string) => {
 };
 
 const main = async () => {
-  const user_message = "I'm having trouble with my order";
-  const assistant = await runPrompt(user_message);
-  const evaluation = await runEvaluation(assistant, user_message);
+  try {
+    const user_message = "I'm having trouble with my order";
+    const assistant = await runPrompt(user_message);
+    const evaluation = await runEvaluation(assistant, user_message);
 
   sdk.score({
     resourceId: traceId,
     name: "response-quality",
     label: evaluation.label,
-    reason: evaluation.reason,
-    score: evaluation.score,
-  });
+      reason: evaluation.reason,
+      score: evaluation.score,
+    });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 main();
@@ -140,14 +143,15 @@ const runEvaluation = async (assistant: string, customer_message: string) => {
 
 // Main function to execute the example
 const main = async () => {
-  const user_message = "I'm having trouble with my order";
-  console.log("User message:", user_message);
-  
-  const assistant = await runPrompt(user_message);
-  console.log("Assistant response:", assistant);
-  
-  const evaluation = await runEvaluation(assistant, user_message);
-  console.log("Evaluation result:", evaluation);
+  try {
+    const user_message = "I'm having trouble with my order";
+    const assistant = await runPrompt(user_message);
+    console.log("Assistant response:", assistant);
+    const evaluation = await runEvaluation(assistant, user_message);
+    console.log("Evaluation result:", evaluation);
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 main();

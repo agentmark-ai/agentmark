@@ -1,12 +1,12 @@
 import * as fs from "fs-extra";
 import { execSync } from "child_process";
 
-export const setupPackageJson = () => {
-  const packageJsonPath = "./package.json";
+export const setupPackageJson = (targetPath: string = ".") => {
+  const packageJsonPath = `${targetPath}/package.json`;
 
   if (!fs.existsSync(packageJsonPath)) {
     console.log("Creating package.json...");
-    execSync("npm init -y");
+    execSync("npm init -y", { cwd: targetPath });
   }
 
   // Update the created package.json with additional information
@@ -26,7 +26,8 @@ export const setupPackageJson = () => {
 
 export const installDependencies = (
   modelProvider: string,
-  useCloud: string = "cloud"
+  useCloud: string = "cloud",
+  targetPath: string = "."
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
@@ -35,17 +36,18 @@ export const installDependencies = (
     // Install TypeScript and ts-node for development
     execSync("npm install --save-dev typescript ts-node @types/node", {
       stdio: "inherit",
+      cwd: targetPath,
     });
 
     // Install the common packages
     let installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter @ai-sdk/${modelProvider} ai`;
 
-    // Add the AgentMark SDK only if cloud integration is selected
+    // Add the Cloud specific packages
     if (useCloud === "cloud") {
-      installCmd += " @agentmark/sdk";
+      installCmd += " @agentmark/sdk @agentmark/vercel-ai-v4-webhook-helper";
     }
 
-    execSync(installCmd, { stdio: "inherit" });
+    execSync(installCmd, { stdio: "inherit", cwd: targetPath });
 
     console.log("Packages installed successfully!");
   } catch (error) {

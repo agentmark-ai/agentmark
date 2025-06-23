@@ -13,6 +13,17 @@ const init = async () => {
   };
   console.log("Initializing project.");
 
+  const { folderName } = await prompts({
+    name: "folderName",
+    type: "text",
+    message: "Where would you like to create your AgentMark app?",
+    initial: "my-agentmark-app",
+  });
+
+  // Create the target folder
+  const targetPath = `./${folderName}`;
+  fs.ensureDirSync(targetPath);
+
   const { provider } = await prompts({
     name: "provider",
     type: "select",
@@ -25,35 +36,24 @@ const init = async () => {
     }),
   });
 
-  const models = [
-    ...Providers[provider as keyof typeof Providers].languageModels.map((model) => ({
-      title: `${model} (Language Model)`,
-      value: model,
-    })),
-    ...Providers[provider as keyof typeof Providers].imageModels.map((model) => ({
-      title: `${model} (Image Generation)`,
-      value: model,
-    })),
-    ...Providers[provider as keyof typeof Providers].speechModels.map((model) => ({
-      title: `${model} (Text to Speech)`,
-      value: model,
-    })),
-  ];
-
-  const { model } = await prompts({
-    name: "model",
-    type: "select",
-    message: "Select a model",
-    choices: models,
-  });
+  // Default to the first language model of the chosen provider
+  const model = Providers[provider as keyof typeof Providers].languageModels[0];
+  
+  console.log(`Using model: ${model}`);
 
   config.builtInModels = [model];
 
-  const { shouldCreateExample } = await prompts({
-    name: "shouldCreateExample",
-    message: "Do you want to include a typescript example app?",
-    type: "confirm",
-  });
+  // Prompt for API key if not Ollama (which doesn't need one for local usage)
+  let apiKey = "";
+  if (provider !== "ollama") {
+    const { providedApiKey } = await prompts({
+      name: "providedApiKey",
+      type: "password",
+      message: `Enter your ${Providers[provider as keyof typeof Providers].label} API key (or press Enter to skip):`,
+      initial: "",
+    });
+    apiKey = providedApiKey || "";
+  }
 
   const { useCloud } = await prompts({
     name: "useCloud",
@@ -66,25 +66,47 @@ const init = async () => {
     ],
   });
 
-  const { editor } = await prompts({
-    name: "editor",
+  // Prompt for AgentMark credentials if using cloud
+  let agentmarkApiKey = "";
+  let agentmarkAppId = "";
+  if (useCloud === "cloud") {
+    const { providedAgentmarkAppId } = await prompts({
+      name: "providedAgentmarkAppId",
+      type: "text",
+      message: "Enter your AgentMark App ID (or press Enter to skip):",
+      initial: "",
+    });
+    agentmarkAppId = providedAgentmarkAppId || "";
+    const { providedAgentmarkApiKey } = await prompts({
+      name: "providedAgentmarkApiKey",
+      type: "password",
+      message: "Enter your AgentMark API key (or press Enter to skip):",
+      initial: "",
+    });
+    agentmarkApiKey = providedAgentmarkApiKey || "";
+  }
+
+  const { client } = await prompts({
+    name: "client",
     type: "select",
-    message:
-      "Select an AI editor to add AgentMark rules (rules provide AI assistance for writing prompts and datasets in your editor)",
+    message: "Make your IDE an AgentMark expert",
     choices: [
       { title: "Cursor", value: "cursor" },
       { title: "Windsurf", value: "windsurf" },
-      { title: "Copilot", value: "copilot" },
-      { title: "None", value: "none" },
+      { title: "Claude", value: "claude" },
+      { title: "Skip", value: "skip" },
     ],
   });
 
-  createExampleApp(provider, model, useCloud, shouldCreateExample, editor);
+  createExampleApp(provider, model, useCloud, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
 
   if (useCloud === "cloud") {
-    fs.writeJsonSync("agentmark.json", config, { spaces: 2 });
+    fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
     console.log(
       "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
+    );
+    console.log(
+      "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/configuration/test-webhook"
     );
   }
 };
