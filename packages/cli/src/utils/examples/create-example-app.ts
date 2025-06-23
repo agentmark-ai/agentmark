@@ -1,5 +1,6 @@
 import * as fs from "fs-extra";
 import * as path from "path";
+import { execSync } from "child_process";
 import {
   setupPackageJson,
   installDependencies,
@@ -9,14 +10,33 @@ import {
   createExamplePrompts,
   getTypesFileContent,
 } from "./templates";
-import { addRules } from "./add-rules";
+
+const setupMCPServer = (client: string, targetPath: string) => {
+  if (client === "skip") {
+    console.log("Skipping MCP server setup.");
+    return;
+  }
+
+  try {
+    console.log(`Setting up MCP server for ${client}...`);
+    execSync(`npx mint-mcp add docs.agentmark.co --client ${client}`, {
+      stdio: "inherit",
+      cwd: targetPath,
+    });
+    console.log(`✅ MCP server configured for ${client}`);
+  } catch (error) {
+    console.warn(`Warning: Could not set up MCP server for ${client}:`, error);
+    console.log("You can manually set it up later with:");
+    console.log(`npx mint-mcp add docs.agentmark.co --client ${client}`);
+  }
+};
 
 export const createExampleApp = async (
   modelProvider: string,
   model: string,
   useCloud: string = "cloud",
   shouldCreateExample: boolean = true,
-  editor: string,
+  client: string,
   targetPath: string = "."
 ) => {
   try {
@@ -25,7 +45,7 @@ export const createExampleApp = async (
     // Create directory structure
     fs.ensureDirSync(`${targetPath}/agentmark`);
 
-    addRules(editor, targetPath);
+    setupMCPServer(client, targetPath);
 
     // Create example prompts
     createExamplePrompts(model, targetPath);
