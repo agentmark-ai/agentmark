@@ -70,14 +70,6 @@ const init = async () => {
   let agentmarkApiKey = "";
   let agentmarkAppId = "";
   if (useCloud === "cloud") {
-    const { providedAgentmarkApiKey } = await prompts({
-      name: "providedAgentmarkApiKey",
-      type: "password",
-      message: "Enter your AgentMark API key (or press Enter to skip):",
-      initial: "",
-    });
-    agentmarkApiKey = providedAgentmarkApiKey || "";
-
     const { providedAgentmarkAppId } = await prompts({
       name: "providedAgentmarkAppId",
       type: "text",
@@ -85,6 +77,13 @@ const init = async () => {
       initial: "",
     });
     agentmarkAppId = providedAgentmarkAppId || "";
+    const { providedAgentmarkApiKey } = await prompts({
+      name: "providedAgentmarkApiKey",
+      type: "password",
+      message: "Enter your AgentMark API key (or press Enter to skip):",
+      initial: "",
+    });
+    agentmarkApiKey = providedAgentmarkApiKey || "";
   }
 
   const { client } = await prompts({
