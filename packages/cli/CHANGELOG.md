@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.5.0
+
+### Minor Changes
+
+- 6db6144: Allow target option on init
+
 ## 1.4.0
 
 ### Minor Changes
