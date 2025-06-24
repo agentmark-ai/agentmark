@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@agentmark/agentmark-core@npm:^3.2.0, @agentmark/agentmark-core@npm:^3.3.0, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
+"@agentmark/agentmark-core@npm:^3.2.0, @agentmark/agentmark-core@npm:^3.3.1, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
   version: 0.0.0-use.local
   resolution: "@agentmark/agentmark-core@workspace:packages/agentmark-core"
   dependencies:
@@ -54,7 +54,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/default-adapter@workspace:packages/default-adapter"
   dependencies:
-    "@agentmark/agentmark-core": "npm:^3.3.0"
+    "@agentmark/agentmark-core": "npm:^3.3.1"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -104,7 +104,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
   dependencies:
-    "@agentmark/agentmark-core": "npm:^3.3.0"
+    "@agentmark/agentmark-core": "npm:^3.3.1"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"

@@ -44,6 +44,7 @@ export type SerializeParams = {
     variables?: { name: string; value: string }[];
     output?: any;
     input_schema?: any;
+    datasetPath?: string;
   };
   mdxVersion?: AgentmarkConfig["mdxVersion"];
   promptType?: string;
@@ -103,6 +104,7 @@ export const serialize = ({
     name: name,
     ...data,
     test_settings: {
+      ...(prompt.datasetPath ? { dataset: prompt.datasetPath } : {}),
       props: prompt.variables
         ? prompt.variables.reduce(
             (acc: any, v: any) => ({ ...acc, [v.name]: v.value }),

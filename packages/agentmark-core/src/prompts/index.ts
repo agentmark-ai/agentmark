@@ -60,7 +60,15 @@ export abstract class BasePrompt<
 
   async formatWithDataset(
     options?: AdaptOptions & { datasetPath?: string }
-  ): Promise<ReadableStream<ReturnType<A[`adapt${Capitalize<PK>}`]>>> {
+  ): Promise<
+    ReadableStream<{
+      dataset: {
+        input: Record<string, any>;
+        expectedOutput?: string;
+      };
+      formatted: ReturnType<A[`adapt${Capitalize<PK>}`]>;
+    }>
+  > {
     if (
       !this.loader ||
       (!this.testSettings?.dataset && !options?.datasetPath)
@@ -81,7 +89,13 @@ export abstract class BasePrompt<
               props: value.input,
               ...options,
             });
-            controller.enqueue(formattedOutput);
+            controller.enqueue({
+              dataset: {
+                input: value.input,
+                expectedOutput: value.expectedOutput,
+              },
+              formatted: formattedOutput,
+            });
           }
           controller.close();
         } catch (error) {

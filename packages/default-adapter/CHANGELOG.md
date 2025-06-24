@@ -1,5 +1,11 @@
 # @agentmark/default-adapter
 
+## 3.3.1
+
+### Patch Changes
+
+Expose dataset when formatting with dataset
+
 ## 3.3.0
 
 ### Minor Changes
