@@ -1,5 +1,5 @@
-export const getIndexFileContent = (modelProvider: string, modelName: string, useCloud: string = 'cloud'): string => {
-  if (useCloud === 'cloud') {
+export const getIndexFileContent = (modelProvider: string, modelName: string, target: string = 'cloud'): string => {
+  if (target === 'cloud') {
     return `import "dotenv/config";
 import { AgentMarkSDK } from "@agentmark/sdk";
 import { generateObject, generateText } from "ai";

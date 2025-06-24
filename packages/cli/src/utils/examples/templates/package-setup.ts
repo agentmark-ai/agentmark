@@ -26,7 +26,7 @@ export const setupPackageJson = (targetPath: string = ".") => {
 
 export const installDependencies = (
   modelProvider: string,
-  useCloud: string = "cloud",
+  target: string = "cloud",
   targetPath: string = "."
 ) => {
   console.log("Installing required packages...");
@@ -43,7 +43,7 @@ export const installDependencies = (
     let installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter @ai-sdk/${modelProvider} ai`;
 
     // Add the Cloud specific packages
-    if (useCloud === "cloud") {
+    if (target === "cloud") {
       installCmd += " @agentmark/sdk @agentmark/vercel-ai-v4-webhook-helper";
     }
 

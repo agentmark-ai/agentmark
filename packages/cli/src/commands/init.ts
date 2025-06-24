@@ -3,7 +3,7 @@ import prompts from "prompts";
 import { Providers } from "../utils/providers";
 import { createExampleApp } from "../utils/examples/create-example-app";
 
-const init = async () => {
+const init = async (options: { target: string }) => {
   const config: any = {
     $schema:
       "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
@@ -55,21 +55,25 @@ const init = async () => {
     apiKey = providedApiKey || "";
   }
 
-  const { useCloud } = await prompts({
-    name: "useCloud",
-    message:
-      "Are you planning to integrate with AgentMark Cloud or just use local development?",
-    type: "select",
-    choices: [
-      { title: "AgentMark Cloud", value: "cloud" },
-      { title: "Local Development", value: "local" },
-    ],
-  });
+  let deployTarget = options.target;
+  if (!deployTarget) {
+    const { target } = await prompts({
+      name: "target",
+      message:
+        "Are you planning to integrate with AgentMark Cloud or just use local development?",
+      type: "select",
+      choices: [
+        { title: "AgentMark Cloud", value: "cloud" },
+        { title: "Local Development", value: "local" },
+      ],
+    });
+    deployTarget = target;
+  }
 
   // Prompt for AgentMark credentials if using cloud
   let agentmarkApiKey = "";
   let agentmarkAppId = "";
-  if (useCloud === "cloud") {
+  if (deployTarget === "cloud") {
     const { providedAgentmarkAppId } = await prompts({
       name: "providedAgentmarkAppId",
       type: "text",
@@ -98,9 +102,9 @@ const init = async () => {
     ],
   });
 
-  createExampleApp(provider, model, useCloud, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
+  createExampleApp(provider, model, deployTarget, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
 
-  if (useCloud === "cloud") {
+  if (deployTarget === "cloud") {
     fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
     console.log(
       "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
