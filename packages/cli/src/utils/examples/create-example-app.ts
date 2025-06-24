@@ -37,7 +37,7 @@ const setupMCPServer = (client: string, targetPath: string) => {
 export const createExampleApp = async (
   modelProvider: string,
   model: string,
-  useCloud: string = "cloud",
+  target: string = "cloud",
   client: string,
   targetPath: string = ".",
   apiKey: string = "",
@@ -59,12 +59,12 @@ export const createExampleApp = async (
     fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
 
     // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, useCloud, apiKey, agentmarkApiKey, agentmarkAppId));
+    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, target, apiKey, agentmarkApiKey, agentmarkAppId));
 
     // Create the main application file
     fs.writeFileSync(
       `${targetPath}/index.ts`,
-      getIndexFileContent(modelProvider, model, useCloud)
+      getIndexFileContent(modelProvider, model, target)
     );
 
     // Create tsconfig.json
@@ -72,7 +72,7 @@ export const createExampleApp = async (
 
     // Setup package.json and install dependencies
     setupPackageJson(targetPath);
-    installDependencies(modelProvider, useCloud, targetPath);
+    installDependencies(modelProvider, target, targetPath);
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
@@ -83,7 +83,7 @@ export const createExampleApp = async (
       console.log(`1. Navigate to your project folder: cd ${folderName}`);
     }
 
-    if (useCloud === "cloud") {
+    if (target === "cloud") {
       console.log(
         `${folderName !== "." ? "2" : "1"}. Update the .env file with your AgentMark Cloud and API credentials`
       );

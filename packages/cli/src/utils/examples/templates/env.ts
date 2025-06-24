@@ -10,7 +10,7 @@ const providerApiKeyMap: Record<string, string> = {
 
 export const getEnvFileContent = (
   modelProvider: string, 
-  useCloud: string = 'cloud', 
+  target: string = 'cloud', 
   apiKey: string = '',
   agentmarkApiKey: string = '',
   agentmarkAppId: string = ''
@@ -21,7 +21,7 @@ export const getEnvFileContent = (
   // Ollama doesn't need an API key for local usage
   const needsApiKey = modelProvider !== 'ollama';
   
-  if (useCloud === 'cloud') {
+  if (target === 'cloud') {
     let content = `# Agentmark API credentials
 AGENTMARK_API_KEY=${agentmarkApiKey || 'your_api_key_here'}
 AGENTMARK_APP_ID=${agentmarkAppId || 'your_app_id_here'}

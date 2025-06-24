@@ -10,6 +10,7 @@ import pullModels from "./commands/pull-models";
 program
   .command("init")
   .description("Intialize the agentmark project")
+  .option("-t, --target <target>", "Target to initialize the project for")
   .action(init);
 
 program
