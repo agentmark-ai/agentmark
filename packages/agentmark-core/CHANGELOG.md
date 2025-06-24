@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.3.2
+
+### Patch Changes
+
+- Minor bug fixes and improvements
+
 ## 3.3.1
 
 ### Patch Changes

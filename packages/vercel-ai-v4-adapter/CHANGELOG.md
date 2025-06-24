@@ -1,5 +1,13 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 3.3.2
+
+### Patch Changes
+
+- Minor bug fixes and improvements
+- Updated dependencies
+  - @agentmark/agentmark-core@3.3.2
+
 ## 3.3.1
 
 ### Patch Changes

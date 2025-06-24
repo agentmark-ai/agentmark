@@ -81,7 +81,7 @@ export interface Loader<T extends PromptShape<T>> {
   loadDataset(datasetPath: string): Promise<
     ReadableStream<{
       input: Record<string, unknown>;
-      expectedOutput?: string;
+      expected_output?: string;
     }>
   >;
 }

@@ -22,7 +22,7 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
   async loadDataset(datasetPath: string): Promise<
     ReadableStream<{
       input: Record<string, unknown>;
-      expectedOutput?: string;
+      expected_output?: string;
     }>
   > {
     if (!datasetPath.endsWith(".jsonl"))

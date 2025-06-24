@@ -28,7 +28,7 @@ export interface VercelAIObjectPrompt<
     ReadableStream<{
       dataset: {
         input: Record<string, any>;
-        expectedOutput?: string;
+        expected_output?: string;
       };
       formatted: VercelAIObjectParams<T[K]["output"]>;
     }>
