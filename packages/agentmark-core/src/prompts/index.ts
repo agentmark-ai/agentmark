@@ -64,7 +64,7 @@ export abstract class BasePrompt<
     ReadableStream<{
       dataset: {
         input: Record<string, any>;
-        expectedOutput?: string;
+        expected_output?: string;
       };
       formatted: ReturnType<A[`adapt${Capitalize<PK>}`]>;
     }>
@@ -92,7 +92,7 @@ export abstract class BasePrompt<
             controller.enqueue({
               dataset: {
                 input: value.input,
-                expectedOutput: value.expectedOutput,
+                expected_output: value.expected_output,
               },
               formatted: formattedOutput,
             });

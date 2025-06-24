@@ -11,7 +11,6 @@ import { executionHandlerMap } from "./configExecutions";
 
 const templateEngine = new TemplateDXTemplateEngine();
 
-
 const runPrompt = async ({
   ast,
   promptKind,
@@ -43,7 +42,7 @@ const runPrompt = async ({
   let vercelInputs: ReadableStream<any>;
 
   if (runMode === "dataset") {
-    vercelInputs = prompt.formatWithDataset({ apiKey });
+    vercelInputs = await prompt.formatWithDataset({ apiKey });
   } else {
     // Treat a single run as a stream with one item
     const vercelInput = await prompt.formatWithTestProps({ apiKey });
