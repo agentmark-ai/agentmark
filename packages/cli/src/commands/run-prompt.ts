@@ -105,8 +105,8 @@ const formatDatasetResults = async (resultsStream: any) => {
   
   const table = new Table({
     head: ['#', 'Input', 'Expected Output', 'Result'],
-    colWidths: [5, 40, 30, 40],
-    wordWrap: true
+    wordWrap: true,
+    style: { 'padding-left': 1, 'padding-right': 1 }
   });
 
   let index = 1;
@@ -117,15 +117,15 @@ const formatDatasetResults = async (resultsStream: any) => {
       const { done, value: result } = await reader.read();
       if (done) break;
       
-      const input = JSON.stringify(result.dataset.input, null, 0);
+      const input = JSON.stringify(result.dataset.input, null, 2);
       const expectedOutput = result.dataset.expected_output || 'N/A';
-      const formattedResult = JSON.stringify(result.formatted, null, 0);
+      const formattedResult = JSON.stringify(result.formatted, null, 2);
       
       table.push([
         index.toString(),
-        input.length > 37 ? input.substring(0, 37) + '...' : input,
-        expectedOutput.length > 27 ? expectedOutput.substring(0, 27) + '...' : expectedOutput,
-        formattedResult.length > 37 ? formattedResult.substring(0, 37) + '...' : formattedResult
+        input,
+        expectedOutput,
+        formattedResult
       ]);
       
       index++;
