@@ -198,12 +198,13 @@ export const createAudioFile = (audio: AudioFile, title?: string): string => {
   return tempFile;
 };
 
-// Create clickable terminal link
+// Create clickable terminal link (fallback to plain path if ANSI not supported)
 export const createClickableLink = (filePath: string, displayText?: string): string => {
   const fileUrl = `file://${filePath}`;
   const text = displayText || fileUrl;
-  // ANSI escape sequence for hyperlinks: \e]8;;URL\e\\TEXT\e]8;;\e\\
-  return `\u001b]8;;${fileUrl}\u001b\\${text}\u001b]8;;\u001b\\`;
+  
+  // Show the description and file path on separate lines for better readability
+  return `${text}\n    📂 ${filePath}`;
 };
 
 // Combined function for mixed content

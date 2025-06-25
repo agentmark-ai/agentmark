@@ -138,11 +138,15 @@ const executeSpeechPropsPrompt = async (input: any) => {
 const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Text Dataset Results ===");
   
-  const table = new Table({
+  // Print table header immediately
+  const headerTable = new Table({
     head: ['#', 'Input', 'Expected Output', 'AI Result'],
     colWidths: [5, 40, 30, 40],
     wordWrap: true
   });
+  
+  // Print just the header by creating empty table and getting header part
+  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
 
   let index = 1;
   const reader = inputs.getReader();
@@ -157,12 +161,25 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const input = JSON.stringify(entry.dataset.input, null, 0);
       const expectedOutput = entry.dataset.expected_output || 'N/A';
       
-      table.push([
+      // Create a single-row table for this entry and print immediately
+      const rowTable = new Table({
+        colWidths: [5, 40, 30, 40],
+        wordWrap: true,
+        style: { head: [] } // No header for individual rows
+      });
+      
+      rowTable.push([
         index.toString(),
         input,
         expectedOutput,
         text
       ]);
+      
+      // Print just the data row (skip header lines)
+      const tableString = rowTable.toString();
+      const lines = tableString.split('\n');
+      // Print the middle content row(s), skipping top/bottom borders and header
+      console.log(lines.slice(1, -1).join('\n'));
       
       index++;
     }
@@ -170,17 +187,22 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
     reader.releaseLock();
   }
   
-  console.log(table.toString());
+  // Print table footer
+  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
 };
 
 const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Object Dataset Results ===");
   
-  const table = new Table({
+  // Print table header immediately
+  const headerTable = new Table({
     head: ['#', 'Input', 'Expected Output', 'AI Result'],
     colWidths: [5, 40, 30, 40],
     wordWrap: true
   });
+  
+  // Print just the header by creating empty table and getting header part
+  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
 
   let index = 1;
   const reader = inputs.getReader();
@@ -196,12 +218,25 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const expectedOutput = entry.dataset.expected_output || 'N/A';
       const aiResult = JSON.stringify(object, null, 0);
       
-      table.push([
+      // Create a single-row table for this entry and print immediately
+      const rowTable = new Table({
+        colWidths: [5, 40, 30, 40],
+        wordWrap: true,
+        style: { head: [] } // No header for individual rows
+      });
+      
+      rowTable.push([
         index.toString(),
         input,
         expectedOutput,
         aiResult
       ]);
+      
+      // Print just the data row (skip header lines)
+      const tableString = rowTable.toString();
+      const lines = tableString.split('\n');
+      // Print the middle content row(s), skipping top/bottom borders and header
+      console.log(lines.slice(1, -1).join('\n'));
       
       index++;
     }
@@ -209,17 +244,23 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
     reader.releaseLock();
   }
   
-  console.log(table.toString());
+  // Print table footer
+  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
 };
 
 const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Image Dataset Results ===");
+  console.log("💡 Copy and paste the file paths into your browser to view images\n");
   
-  const table = new Table({
+  // Print table header immediately
+  const headerTable = new Table({
     head: ['#', 'Input', 'Expected Output', 'AI Result'],
     colWidths: [5, 40, 30, 40],
     wordWrap: true
   });
+  
+  // Print just the header by creating empty table and getting header part
+  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
 
   let index = 1;
   const reader = inputs.getReader();
@@ -244,12 +285,25 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const linkText = `${imageCount} image(s) (${totalSizeKB}KB) - Click to view`;
       const clickableResult = createClickableLink(htmlFile, linkText);
       
-      table.push([
+      // Create a single-row table for this entry and print immediately
+      const rowTable = new Table({
+        colWidths: [5, 40, 30, 40],
+        wordWrap: true,
+        style: { head: [] } // No header for individual rows
+      });
+      
+      rowTable.push([
         index.toString(),
         input,
         expectedOutput,
         clickableResult
       ]);
+      
+      // Print just the data row (skip header lines)
+      const tableString = rowTable.toString();
+      const lines = tableString.split('\n');
+      // Print the middle content row(s), skipping top/bottom borders and header
+      console.log(lines.slice(1, -1).join('\n'));
       
       index++;
     }
@@ -257,17 +311,23 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
     reader.releaseLock();
   }
   
-  console.log(table.toString());
+  // Print table footer
+  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
 };
 
 const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Speech Dataset Results ===");
+  console.log("💡 Copy and paste the file paths into your browser to play audio\n");
   
-  const table = new Table({
+  // Print table header immediately
+  const headerTable = new Table({
     head: ['#', 'Input', 'Expected Output', 'AI Result'],
     colWidths: [5, 40, 30, 40],
     wordWrap: true
   });
+  
+  // Print just the header by creating empty table and getting header part
+  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
 
   let index = 1;
   const reader = inputs.getReader();
@@ -291,12 +351,25 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const linkText = `Audio: ${result.audio.mimeType} (${sizeKB}KB) - Click to play`;
       const clickableResult = createClickableLink(htmlFile, linkText);
       
-      table.push([
+      // Create a single-row table for this entry and print immediately
+      const rowTable = new Table({
+        colWidths: [5, 40, 30, 40],
+        wordWrap: true,
+        style: { head: [] } // No header for individual rows
+      });
+      
+      rowTable.push([
         index.toString(),
         input,
         expectedOutput,
         clickableResult
       ]);
+      
+      // Print just the data row (skip header lines)
+      const tableString = rowTable.toString();
+      const lines = tableString.split('\n');
+      // Print the middle content row(s), skipping top/bottom borders and header
+      console.log(lines.slice(1, -1).join('\n'));
       
       index++;
     }
@@ -304,7 +377,8 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
     reader.releaseLock();
   }
   
-  console.log(table.toString());
+  // Print table footer
+  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
 };
 
 const runPrompt = async (filepath: string, options: RunPromptOptions) => {

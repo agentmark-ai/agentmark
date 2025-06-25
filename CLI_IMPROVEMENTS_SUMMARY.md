@@ -164,8 +164,26 @@ const createImageHtml = (images: ImageFile[], title: string) => {
 export const createImageFile = (images: ImageFile[], title?: string): string
 export const createAudioFile = (audio: AudioFile, title?: string): string
 
-// Generate clickable terminal links  
+// Generate user-friendly file paths with 📂 emoji
 export const createClickableLink = (filePath: string, displayText?: string): string
+```
+
+### Streaming Dataset Results
+All dataset functions now use real-time streaming:
+
+```typescript
+// 1. Print table header immediately
+console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
+
+// 2. Process and print each row as AI generation completes  
+for await (const entry of inputs) {
+  const result = await generateAI(entry.formatted);
+  // Print row immediately
+  console.log(rowTable.toString().split('\n').slice(1, -1).join('\n'));
+}
+
+// 3. Print table footer when complete
+console.log('└───┴──────...───┘');
 ```
 
 ## Benefits
@@ -177,11 +195,13 @@ export const createClickableLink = (filePath: string, displayText?: string): str
 5. **Real-time Feedback**: Streaming text output provides immediate response feedback
 6. **Comprehensive Results**: All prompt types (text, object, image, speech) are fully supported
 7. **Professional Media Viewing**: Images and audio open in beautiful, responsive web pages instead of terminal previews
-8. **User-Controlled Media Access**: Dataset mode provides clickable links instead of auto-opening, giving users control
+8. **User-Controlled Media Access**: Dataset mode provides file paths instead of auto-opening, giving users control
 9. **Consistent Table Format**: Image and audio datasets now use same table structure as text/object results
-10. **Cross-Platform Compatibility**: Web viewer works seamlessly on macOS, Windows, and Linux
-11. **Zero External Dependencies**: Media files are embedded as base64, no need for external hosting
-12. **Automatic Cleanup**: Temporary files are automatically removed, keeping the system clean
+10. **Real-time Streaming Results**: Dataset rows appear immediately as each AI generation completes
+11. **Universal File Access**: Plain file paths work in any terminal and can be copy-pasted into any browser
+12. **Cross-Platform Compatibility**: Web viewer works seamlessly on macOS, Windows, and Linux
+13. **Zero External Dependencies**: Media files are embedded as base64, no need for external hosting
+14. **Automatic Cleanup**: Temporary files are automatically removed, keeping the system clean
 
 ## Files Modified
 
@@ -210,17 +230,21 @@ Image 2: image/png (312KB) - Opening in browser...
 
 *Browser automatically opens showing beautiful, responsive gallery with full-size images*
 
-### After (Dataset Mode):
+### After (Dataset Mode - Streaming):
 ```
 === Image Dataset Results ===
+💡 Copy and paste the file paths into your browser to view images
+
 ┌───┬──────────────────────────────────────┬─────────────────┬──────────────────────────────────────┐
 │ # │ Input                                │ Expected Output │ AI Result                            │
 ├───┼──────────────────────────────────────┼─────────────────┼──────────────────────────────────────┤
 │ 1 │ {"prompt":"Generate a cat image"}   │ N/A             │ 2 image(s) (557KB) - Click to view  │
+│   │                                      │                 │     📂 /tmp/agentmark-123.html      │
 │ 2 │ {"prompt":"Generate a dog image"}   │ N/A             │ 1 image(s) (342KB) - Click to view  │
+│   │                                      │                 │     📂 /tmp/agentmark-456.html      │
 └───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘
 ```
 
-*Clickable links in "AI Result" column open beautiful image galleries in browser when clicked*
+*Each row appears immediately as the AI generation completes, with copy-pasteable file paths*
 
-The CLI now provides a **complete, production-ready experience** for running AgentMark prompts with actual AI model execution, properly formatted output display, and professional media viewing capabilities.
+The CLI now provides a **complete, production-ready experience** for running AgentMark prompts with actual AI model execution, real-time streaming dataset results, properly formatted output display, and professional media viewing capabilities with universal file access.
