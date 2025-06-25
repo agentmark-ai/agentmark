@@ -6,6 +6,7 @@ import serve from "./commands/serve";
 import dev from "./commands/dev";
 import generateTypes from "./commands/generate-types";
 import pullModels from "./commands/pull-models";
+import runPrompt from "./commands/run-prompt";
 
 program
   .command("init")
@@ -41,6 +42,20 @@ program
   .action(async () => {
     try {
       await pullModels();
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("run")
+  .description('Run an AgentMark prompt')
+  .argument('<file>', 'Path to the .mdx prompt file')
+  .option('-d, --dataset', 'Run with dataset instead of test props')
+  .option('-k, --api-key <key>', 'API key for the model provider')
+  .action(async (file: string, options: { dataset?: boolean; apiKey?: string }) => {
+    try {
+      await runPrompt(file, options);
     } catch (error) {
       program.error((error as Error).message);
     }
