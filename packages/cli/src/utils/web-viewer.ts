@@ -203,8 +203,15 @@ export const createClickableLink = (filePath: string, displayText?: string): str
   const fileUrl = `file://${filePath}`;
   const text = displayText || fileUrl;
   
-  // Show the description and file path on separate lines for better readability
-  return `${text}\n    📂 ${filePath}`;
+  // Show just the description, print the path separately to avoid table truncation
+  return text;
+};
+
+// Print the file path outside the table for full visibility
+export const printFilePath = (filePath: string, description: string): void => {
+  console.log(`   ${description}`);
+  console.log(`   📂 Path: ${filePath}`);
+  console.log(`   💡 Copy and paste this path into your browser address bar\n`);
 };
 
 // Combined function for mixed content

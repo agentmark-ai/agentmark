@@ -12,7 +12,7 @@ import {
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
 } from "ai";
-import { displayImagesInBrowser, displayAudioInBrowser, createImageFile, createAudioFile, createClickableLink } from "../utils/web-viewer";
+import { displayImagesInBrowser, displayAudioInBrowser, createImageFile, createAudioFile, createClickableLink, printFilePath } from "../utils/web-viewer";
 // Dynamic import for ESM module
 import type { Root } from "mdast";
 import prompts from "prompts";
@@ -92,51 +92,84 @@ interface RunPromptOptions {
 
 const executeTextPropsPrompt = async (input: any) => {
   console.log("\n=== Text Prompt Results ===");
-  const { textStream } = streamText(input);
   
-  if (textStream) {
-    for await (const chunk of textStream) {
-      process.stdout.write(chunk);
+  try {
+    const { textStream } = streamText(input);
+    
+    if (textStream) {
+      for await (const chunk of textStream) {
+        process.stdout.write(chunk);
+      }
+    }
+    console.log("\n");
+  } catch (error: any) {
+    console.error(`❌ Error generating text: ${error.message}`);
+    if (error.message.includes('401') || error.message.includes('API key')) {
+      console.error('💡 Please check your API key is valid and has sufficient credits.');
     }
   }
-  console.log("\n");
 };
 
 const executeObjectPropsPrompt = async (input: any) => {
   console.log("\n=== Object Prompt Results ===");
-  const { object } = await generateObject(input);
-  console.log(JSON.stringify(object, null, 2));
+  
+  try {
+    const { object } = await generateObject(input);
+    console.log(JSON.stringify(object, null, 2));
+  } catch (error: any) {
+    console.error(`❌ Error generating object: ${error.message}`);
+    if (error.message.includes('401') || error.message.includes('API key')) {
+      console.error('💡 Please check your API key is valid and has sufficient credits.');
+    }
+  }
 };
 
 const executeImagePropsPrompt = async (input: any) => {
   console.log("\n=== Image Prompt Results ===");
-  const result = await generateImage(input);
-  console.log(`Generated ${result.images.length} image(s)`);
   
-  // Display images in browser
-  displayImagesInBrowser(result.images, "AgentMark Generated Images");
-  
-  // Also show summary in terminal
-  result.images.forEach((image, index) => {
-    const sizeKB = Math.round(image.base64.length * 0.75 / 1024);
-    console.log(`Image ${index + 1}: ${image.mimeType} (${sizeKB}KB) - Opening in browser...`);
-  });
+  try {
+    const result = await generateImage(input);
+    console.log(`Generated ${result.images.length} image(s)`);
+    
+    // Display images in browser
+    displayImagesInBrowser(result.images, "AgentMark Generated Images");
+    
+    // Also show summary in terminal
+    result.images.forEach((image, index) => {
+      const sizeKB = Math.round(image.base64.length * 0.75 / 1024);
+      console.log(`Image ${index + 1}: ${image.mimeType} (${sizeKB}KB) - Opening in browser...`);
+    });
+  } catch (error: any) {
+    console.error(`❌ Error generating images: ${error.message}`);
+    if (error.message.includes('401') || error.message.includes('API key')) {
+      console.error('💡 Please check your API key is valid and has sufficient credits.');
+    }
+  }
 };
 
 const executeSpeechPropsPrompt = async (input: any) => {
   console.log("\n=== Speech Prompt Results ===");
-  const result = await generateSpeech(input);
   
-  // Display audio in browser
-  displayAudioInBrowser(result.audio, "AgentMark Generated Audio");
-  
-  // Also show summary in terminal
-  const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
-  console.log(`Generated audio: ${result.audio.mimeType} (${sizeKB}KB) - Opening in browser...`);
+  try {
+    const result = await generateSpeech(input);
+    
+    // Display audio in browser
+    displayAudioInBrowser(result.audio, "AgentMark Generated Audio");
+    
+    // Also show summary in terminal
+    const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
+    console.log(`Generated audio: ${result.audio.mimeType} (${sizeKB}KB) - Opening in browser...`);
+  } catch (error: any) {
+    console.error(`❌ Error generating audio: ${error.message}`);
+    if (error.message.includes('401') || error.message.includes('API key')) {
+      console.error('💡 Please check your API key is valid and has sufficient credits.');
+    }
+  }
 };
 
 const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Text Dataset Results ===");
+  console.log("🔄 Processing dataset entries...\n");
   
   // Print table header immediately
   const headerTable = new Table({
@@ -156,30 +189,55 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const { done, value: entry } = await reader.read();
       if (done) break;
       
-      const { text } = await generateText(entry.formatted);
-      
-      const input = JSON.stringify(entry.dataset.input, null, 0);
-      const expectedOutput = entry.dataset.expected_output || 'N/A';
-      
-      // Create a single-row table for this entry and print immediately
-      const rowTable = new Table({
-        colWidths: [5, 40, 30, 40],
-        wordWrap: true,
-        style: { head: [] } // No header for individual rows
-      });
-      
-      rowTable.push([
-        index.toString(),
-        input,
-        expectedOutput,
-        text
-      ]);
-      
-      // Print just the data row (skip header lines)
-      const tableString = rowTable.toString();
-      const lines = tableString.split('\n');
-      // Print the middle content row(s), skipping top/bottom borders and header
-      console.log(lines.slice(1, -1).join('\n'));
+      try {
+        const { text } = await generateText(entry.formatted);
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        // Create a single-row table for this entry and print immediately
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] } // No header for individual rows
+        });
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          text
+        ]);
+        
+        // Print just the data row (skip header lines)
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+        
+      } catch (error: any) {
+        console.error(`❌ Error generating text for entry ${index}: ${error.message}`);
+        
+        // Still print a table row showing the error
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] }
+        });
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          `❌ Error: ${error.message}`
+        ]);
+        
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+      }
       
       index++;
     }
@@ -193,6 +251,7 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
 
 const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Object Dataset Results ===");
+  console.log("🔄 Processing dataset entries...\n");
   
   // Print table header immediately
   const headerTable = new Table({
@@ -212,31 +271,56 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const { done, value: entry } = await reader.read();
       if (done) break;
       
-      const { object } = await generateObject(entry.formatted);
-      
-      const input = JSON.stringify(entry.dataset.input, null, 0);
-      const expectedOutput = entry.dataset.expected_output || 'N/A';
-      const aiResult = JSON.stringify(object, null, 0);
-      
-      // Create a single-row table for this entry and print immediately
-      const rowTable = new Table({
-        colWidths: [5, 40, 30, 40],
-        wordWrap: true,
-        style: { head: [] } // No header for individual rows
-      });
-      
-      rowTable.push([
-        index.toString(),
-        input,
-        expectedOutput,
-        aiResult
-      ]);
-      
-      // Print just the data row (skip header lines)
-      const tableString = rowTable.toString();
-      const lines = tableString.split('\n');
-      // Print the middle content row(s), skipping top/bottom borders and header
-      console.log(lines.slice(1, -1).join('\n'));
+      try {
+        const { object } = await generateObject(entry.formatted);
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        const aiResult = JSON.stringify(object, null, 0);
+        
+        // Create a single-row table for this entry and print immediately
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] } // No header for individual rows
+        });
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          aiResult
+        ]);
+        
+        // Print just the data row (skip header lines)
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+        
+      } catch (error: any) {
+        console.error(`❌ Error generating object for entry ${index}: ${error.message}`);
+        
+        // Still print a table row showing the error
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] }
+        });
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          `❌ Error: ${error.message}`
+        ]);
+        
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+      }
       
       index++;
     }
@@ -250,7 +334,7 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
 
 const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Image Dataset Results ===");
-  console.log("💡 Copy and paste the file paths into your browser to view images\n");
+  console.log("� Processing dataset entries...\n");
   
   // Print table header immediately
   const headerTable = new Table({
@@ -270,40 +354,67 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const { done, value: entry } = await reader.read();
       if (done) break;
       
-      const result = await generateImage(entry.formatted);
-      
-      const input = JSON.stringify(entry.dataset.input, null, 0);
-      const expectedOutput = entry.dataset.expected_output || 'N/A';
-      
-      // Create HTML file for images but don't auto-open
-      const title = `AgentMark Dataset Entry ${index} - Generated Images`;
-      const htmlFile = createImageFile(result.images, title);
-      
-      // Create clickable link for the AI result
-      const imageCount = result.images.length;
-      const totalSizeKB = result.images.reduce((sum, img) => sum + Math.round(img.base64.length * 0.75 / 1024), 0);
-      const linkText = `${imageCount} image(s) (${totalSizeKB}KB) - Click to view`;
-      const clickableResult = createClickableLink(htmlFile, linkText);
-      
-      // Create a single-row table for this entry and print immediately
-      const rowTable = new Table({
-        colWidths: [5, 40, 30, 40],
-        wordWrap: true,
-        style: { head: [] } // No header for individual rows
-      });
-      
-      rowTable.push([
-        index.toString(),
-        input,
-        expectedOutput,
-        clickableResult
-      ]);
-      
-      // Print just the data row (skip header lines)
-      const tableString = rowTable.toString();
-      const lines = tableString.split('\n');
-      // Print the middle content row(s), skipping top/bottom borders and header
-      console.log(lines.slice(1, -1).join('\n'));
+      try {
+        const result = await generateImage(entry.formatted);
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        // Create HTML file for images but don't auto-open
+        const title = `AgentMark Dataset Entry ${index} - Generated Images`;
+        const htmlFile = createImageFile(result.images, title);
+        
+        // Create result text for the table
+        const imageCount = result.images.length;
+        const totalSizeKB = result.images.reduce((sum, img) => sum + Math.round(img.base64.length * 0.75 / 1024), 0);
+        const resultText = `${imageCount} image(s) (${totalSizeKB}KB)`;
+        
+        // Create a single-row table for this entry and print immediately
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] } // No header for individual rows
+        });
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          resultText
+        ]);
+        
+        // Print just the data row (skip header lines)
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+        
+        // Print the file path outside the table for full visibility
+        printFilePath(htmlFile, `Entry ${index} images:`);
+        
+      } catch (error: any) {
+        console.error(`❌ Error generating images for entry ${index}: ${error.message}`);
+        
+        // Still print a table row showing the error
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] }
+        });
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          `❌ Error: ${error.message}`
+        ]);
+        
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+      }
       
       index++;
     }
@@ -317,7 +428,7 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
 
 const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Speech Dataset Results ===");
-  console.log("💡 Copy and paste the file paths into your browser to play audio\n");
+  console.log("� Processing dataset entries...\n");
   
   // Print table header immediately
   const headerTable = new Table({
@@ -337,39 +448,66 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
       const { done, value: entry } = await reader.read();
       if (done) break;
       
-      const result = await generateSpeech(entry.formatted);
-      
-      const input = JSON.stringify(entry.dataset.input, null, 0);
-      const expectedOutput = entry.dataset.expected_output || 'N/A';
-      
-      // Create HTML file for audio but don't auto-open
-      const title = `AgentMark Dataset Entry ${index} - Generated Audio`;
-      const htmlFile = createAudioFile(result.audio, title);
-      
-      // Create clickable link for the AI result
-      const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
-      const linkText = `Audio: ${result.audio.mimeType} (${sizeKB}KB) - Click to play`;
-      const clickableResult = createClickableLink(htmlFile, linkText);
-      
-      // Create a single-row table for this entry and print immediately
-      const rowTable = new Table({
-        colWidths: [5, 40, 30, 40],
-        wordWrap: true,
-        style: { head: [] } // No header for individual rows
-      });
-      
-      rowTable.push([
-        index.toString(),
-        input,
-        expectedOutput,
-        clickableResult
-      ]);
-      
-      // Print just the data row (skip header lines)
-      const tableString = rowTable.toString();
-      const lines = tableString.split('\n');
-      // Print the middle content row(s), skipping top/bottom borders and header
-      console.log(lines.slice(1, -1).join('\n'));
+      try {
+        const result = await generateSpeech(entry.formatted);
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        // Create HTML file for audio but don't auto-open
+        const title = `AgentMark Dataset Entry ${index} - Generated Audio`;
+        const htmlFile = createAudioFile(result.audio, title);
+        
+        // Create result text for the table
+        const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
+        const resultText = `Audio: ${result.audio.mimeType} (${sizeKB}KB)`;
+        
+        // Create a single-row table for this entry and print immediately
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] } // No header for individual rows
+        });
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          resultText
+        ]);
+        
+        // Print just the data row (skip header lines)
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+        
+        // Print the file path outside the table for full visibility
+        printFilePath(htmlFile, `Entry ${index} audio:`);
+        
+      } catch (error: any) {
+        console.error(`❌ Error generating audio for entry ${index}: ${error.message}`);
+        
+        // Still print a table row showing the error
+        const rowTable = new Table({
+          colWidths: [5, 40, 30, 40],
+          wordWrap: true,
+          style: { head: [] }
+        });
+        
+        const input = JSON.stringify(entry.dataset.input, null, 0);
+        const expectedOutput = entry.dataset.expected_output || 'N/A';
+        
+        rowTable.push([
+          index.toString(),
+          input,
+          expectedOutput,
+          `❌ Error: ${error.message}`
+        ]);
+        
+        const tableString = rowTable.toString();
+        const lines = tableString.split('\n');
+        console.log(lines.slice(1, -1).join('\n'));
+      }
       
       index++;
     }
