@@ -6,6 +6,7 @@ import serve from "./commands/serve";
 import dev from "./commands/dev";
 import generateTypes from "./commands/generate-types";
 import pullModels from "./commands/pull-models";
+import runPrompt from "./commands/run-prompt";
 
 program
   .command("init")
@@ -19,6 +20,21 @@ program
   .description("Serve the agentmark templates")
   .action((options) => {
     serve({ port: parseInt(options.port || "9002", 10) });
+  });
+
+program
+  .command("run-prompt <prompt>")
+  .description("Run a prompt with optional dataset")
+  .option("-d, --dataset", "Run with dataset (streams results as each row finishes)")
+  .option("-p, --props <props>", "Custom props as JSON string")
+  .option("--port <number>", "Port for local results server (default: 9003)")
+  .action(async (prompt, options) => {
+    await runPrompt({
+      prompt,
+      dataset: options.dataset,
+      props: options.props,
+      port: parseInt(options.port || "9003", 10),
+    });
   });
 
 program
