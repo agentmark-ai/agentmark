@@ -183,6 +183,29 @@ export const displayAudioInBrowser = (audio: AudioFile, title?: string): void =>
   scheduleCleanup(tempFile);
 };
 
+// Functions to create files without auto-opening (for dataset tables)
+export const createImageFile = (images: ImageFile[], title?: string): string => {
+  const html = createImageHtml(images, title);
+  const tempFile = createTempFile(html);
+  scheduleCleanup(tempFile, 300000); // 5 minutes for dataset files
+  return tempFile;
+};
+
+export const createAudioFile = (audio: AudioFile, title?: string): string => {
+  const html = createAudioHtml(audio, title);
+  const tempFile = createTempFile(html);
+  scheduleCleanup(tempFile, 300000); // 5 minutes for dataset files
+  return tempFile;
+};
+
+// Create clickable terminal link
+export const createClickableLink = (filePath: string, displayText?: string): string => {
+  const fileUrl = `file://${filePath}`;
+  const text = displayText || fileUrl;
+  // ANSI escape sequence for hyperlinks: \e]8;;URL\e\\TEXT\e]8;;\e\\
+  return `\u001b]8;;${fileUrl}\u001b\\${text}\u001b]8;;\u001b\\`;
+};
+
 // Combined function for mixed content
 export const displayMediaInBrowser = (content: {
   images?: ImageFile[];

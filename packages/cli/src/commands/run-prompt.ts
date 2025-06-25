@@ -12,7 +12,7 @@ import {
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
 } from "ai";
-import { displayImagesInBrowser, displayAudioInBrowser } from "../utils/web-viewer";
+import { displayImagesInBrowser, displayAudioInBrowser, createImageFile, createAudioFile, createClickableLink } from "../utils/web-viewer";
 // Dynamic import for ESM module
 import type { Root } from "mdast";
 import prompts from "prompts";
@@ -215,6 +215,12 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
 const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Image Dataset Results ===");
   
+  const table = new Table({
+    head: ['#', 'Input', 'Expected Output', 'AI Result'],
+    colWidths: [5, 40, 30, 40],
+    wordWrap: true
+  });
+
   let index = 1;
   const reader = inputs.getReader();
   
@@ -225,31 +231,44 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
       
       const result = await generateImage(entry.formatted);
       
-      console.log(`\n--- Entry ${index} ---`);
-      console.log(`Input: ${JSON.stringify(entry.dataset.input, null, 0)}`);
-      console.log(`Expected: ${entry.dataset.expected_output || 'N/A'}`);
-      console.log(`Generated ${result.images.length} image(s)`);
+      const input = JSON.stringify(entry.dataset.input, null, 0);
+      const expectedOutput = entry.dataset.expected_output || 'N/A';
       
-      // Display images in browser for this entry
+      // Create HTML file for images but don't auto-open
       const title = `AgentMark Dataset Entry ${index} - Generated Images`;
-      displayImagesInBrowser(result.images, title);
+      const htmlFile = createImageFile(result.images, title);
       
-      // Show summary in terminal
-      result.images.forEach((image, imgIndex) => {
-        const sizeKB = Math.round(image.base64.length * 0.75 / 1024);
-        console.log(`  Image ${imgIndex + 1}: ${image.mimeType} (${sizeKB}KB) - Opening in browser...`);
-      });
+      // Create clickable link for the AI result
+      const imageCount = result.images.length;
+      const totalSizeKB = result.images.reduce((sum, img) => sum + Math.round(img.base64.length * 0.75 / 1024), 0);
+      const linkText = `${imageCount} image(s) (${totalSizeKB}KB) - Click to view`;
+      const clickableResult = createClickableLink(htmlFile, linkText);
+      
+      table.push([
+        index.toString(),
+        input,
+        expectedOutput,
+        clickableResult
+      ]);
       
       index++;
     }
   } finally {
     reader.releaseLock();
   }
+  
+  console.log(table.toString());
 };
 
 const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("\n=== Speech Dataset Results ===");
   
+  const table = new Table({
+    head: ['#', 'Input', 'Expected Output', 'AI Result'],
+    colWidths: [5, 40, 30, 40],
+    wordWrap: true
+  });
+
   let index = 1;
   const reader = inputs.getReader();
   
@@ -260,23 +279,32 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
       
       const result = await generateSpeech(entry.formatted);
       
-      console.log(`\n--- Entry ${index} ---`);
-      console.log(`Input: ${JSON.stringify(entry.dataset.input, null, 0)}`);
-      console.log(`Expected: ${entry.dataset.expected_output || 'N/A'}`);
+      const input = JSON.stringify(entry.dataset.input, null, 0);
+      const expectedOutput = entry.dataset.expected_output || 'N/A';
       
-      // Display audio in browser for this entry
+      // Create HTML file for audio but don't auto-open
       const title = `AgentMark Dataset Entry ${index} - Generated Audio`;
-      displayAudioInBrowser(result.audio, title);
+      const htmlFile = createAudioFile(result.audio, title);
       
-      // Show summary in terminal
+      // Create clickable link for the AI result
       const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
-      console.log(`Generated audio: ${result.audio.mimeType} (${sizeKB}KB) - Opening in browser...`);
+      const linkText = `Audio: ${result.audio.mimeType} (${sizeKB}KB) - Click to play`;
+      const clickableResult = createClickableLink(htmlFile, linkText);
+      
+      table.push([
+        index.toString(),
+        input,
+        expectedOutput,
+        clickableResult
+      ]);
       
       index++;
     }
   } finally {
     reader.releaseLock();
   }
+  
+  console.log(table.toString());
 };
 
 const runPrompt = async (filepath: string, options: RunPromptOptions) => {

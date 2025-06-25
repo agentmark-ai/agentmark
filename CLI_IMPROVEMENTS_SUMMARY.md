@@ -79,15 +79,16 @@ Updated the AgentMark CLI to improve dataset output display and implement actual
 - **Cross-Platform Support**: Works on macOS (`open`), Windows (`start`), and Linux (`xdg-open`)
 
 #### For Images:
-- Displays multiple images in a grid layout
-- Shows image dimensions and file sizes
-- Hover effects and modern styling
-- Proper alt text and accessibility
+- **Props Mode**: Auto-opens gallery in browser with grid layout, file info, and modern styling  
+- **Dataset Mode**: Table format with clickable links for user-controlled viewing
+- Shows image count, total file sizes, and MIME types
+- Responsive design with hover effects and accessibility features
 
 #### For Audio:
-- Full-featured HTML5 audio player with controls
-- Shows audio format and file size information
-- Clean, accessible interface
+- **Props Mode**: Auto-opens audio player in browser with full controls
+- **Dataset Mode**: Table format with clickable links for user-controlled playback
+- Shows audio format, file size, and duration information
+- Clean, accessible HTML5 audio interface
 
 ### 5. Dependencies Added
 - Added `"ai": "^4.0.0"` dependency to CLI package to enable AI model execution
@@ -152,9 +153,20 @@ const createImageHtml = (images: ImageFile[], title: string) => {
 **Key Features:**
 - Platform detection for browser commands
 - Unique temporary file naming to prevent conflicts
-- Automatic cleanup after 30 seconds
+- Automatic cleanup (30s for props, 5min for datasets)
 - Responsive CSS with modern styling
 - Error handling for failed browser launches
+- Clickable terminal links with ANSI escape sequences
+
+**New Functions for Dataset Control:**
+```typescript
+// Create files without auto-opening (for datasets)
+export const createImageFile = (images: ImageFile[], title?: string): string
+export const createAudioFile = (audio: AudioFile, title?: string): string
+
+// Generate clickable terminal links  
+export const createClickableLink = (filePath: string, displayText?: string): string
+```
 
 ## Benefits
 
@@ -165,9 +177,11 @@ const createImageHtml = (images: ImageFile[], title: string) => {
 5. **Real-time Feedback**: Streaming text output provides immediate response feedback
 6. **Comprehensive Results**: All prompt types (text, object, image, speech) are fully supported
 7. **Professional Media Viewing**: Images and audio open in beautiful, responsive web pages instead of terminal previews
-8. **Cross-Platform Compatibility**: Web viewer works seamlessly on macOS, Windows, and Linux
-9. **Zero External Dependencies**: Media files are embedded as base64, no need for external hosting
-10. **Automatic Cleanup**: Temporary files are automatically removed, keeping the system clean
+8. **User-Controlled Media Access**: Dataset mode provides clickable links instead of auto-opening, giving users control
+9. **Consistent Table Format**: Image and audio datasets now use same table structure as text/object results
+10. **Cross-Platform Compatibility**: Web viewer works seamlessly on macOS, Windows, and Linux
+11. **Zero External Dependencies**: Media files are embedded as base64, no need for external hosting
+12. **Automatic Cleanup**: Temporary files are automatically removed, keeping the system clean
 
 ## Files Modified
 
@@ -185,7 +199,7 @@ Image 1: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
 Image 2: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
 ```
 
-### After:
+### After (Props Mode):
 ```
 === Image Prompt Results ===
 Generated 2 image(s)
@@ -195,5 +209,18 @@ Image 2: image/png (312KB) - Opening in browser...
 ```
 
 *Browser automatically opens showing beautiful, responsive gallery with full-size images*
+
+### After (Dataset Mode):
+```
+=== Image Dataset Results ===
+┌───┬──────────────────────────────────────┬─────────────────┬──────────────────────────────────────┐
+│ # │ Input                                │ Expected Output │ AI Result                            │
+├───┼──────────────────────────────────────┼─────────────────┼──────────────────────────────────────┤
+│ 1 │ {"prompt":"Generate a cat image"}   │ N/A             │ 2 image(s) (557KB) - Click to view  │
+│ 2 │ {"prompt":"Generate a dog image"}   │ N/A             │ 1 image(s) (342KB) - Click to view  │
+└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘
+```
+
+*Clickable links in "AI Result" column open beautiful image galleries in browser when clicked*
 
 The CLI now provides a **complete, production-ready experience** for running AgentMark prompts with actual AI model execution, properly formatted output display, and professional media viewing capabilities.
