@@ -147,21 +147,11 @@ Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
 ## Quick Start
 
-Get started with AgentMark in just 3 steps:
+Get started with AgentMark using our CLI.
 
 1. Initialize AgentMark in your project:
 ```bash
 npx @agentmark/cli@latest init
-```
-
-2. Start with npm:
-```bash
-npm install && npm start
-```
-
-Or with yarn:
-```bash
-yarn && yarn start
 ```
 
 

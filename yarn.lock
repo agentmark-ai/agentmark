@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@agentmark/agentmark-core@npm:^3.2.0, @agentmark/agentmark-core@npm:^3.3.2, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
+"@agentmark/agentmark-core@npm:*, @agentmark/agentmark-core@npm:^3.2.0, @agentmark/agentmark-core@npm:^3.3.2, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
   version: 0.0.0-use.local
   resolution: "@agentmark/agentmark-core@workspace:packages/agentmark-core"
   dependencies:
@@ -29,12 +29,19 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/cli@workspace:packages/cli"
   dependencies:
+    "@agentmark/agentmark-core": "npm:*"
     "@agentmark/templatedx": "npm:^0.6.3"
+    "@agentmark/vercel-ai-v4-adapter": "npm:*"
+    "@ai-sdk/anthropic": "npm:^1.2.10"
+    "@ai-sdk/openai": "npm:^1.3.13"
     "@types/express": "npm:^4"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/jest": "npm:^29.5.13"
+    "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^20"
     "@types/prompts": "npm:^2"
+    ai: "npm:^4.0.0"
+    cli-table3: "npm:^0.6.5"
     commander: "npm:^12.1.0"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.20.0"
@@ -45,6 +52,7 @@ __metadata:
     typescript: "npm:^5"
     yaml: "npm:^2.7.0"
     yup: "npm:1.3.2"
+    zod: "npm:^3.23.8"
   bin:
     agentmark: ./dist/index.js
   languageName: unknown
@@ -100,7 +108,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/vercel-ai-v4-adapter@workspace:*, @agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
+"@agentmark/vercel-ai-v4-adapter@npm:*, @agentmark/vercel-ai-v4-adapter@workspace:*, @agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
   dependencies:
@@ -849,6 +857,13 @@ __metadata:
     human-id: "npm:^4.1.1"
     prettier: "npm:^2.7.1"
   checksum: 10c0/311f4d0e536d1b5f2d3f9053537d62b2d4cdbd51e1d2767807ac9d1e0f380367f915d2ad370e5c73902d5a54bffd282d53fff5418c8ad31df51751d652bea826
+  languageName: node
+  linkType: hard
+
+"@colors/colors@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@colors/colors@npm:1.5.0"
+  checksum: 10c0/eb42729851adca56d19a08e48d5a1e95efd2a32c55ae0323de8119052be0510d4b7a1611f2abcbf28c044a6c11e6b7d38f99fccdad7429300c37a8ea5fb95b44
   languageName: node
   linkType: hard
 
@@ -3470,6 +3485,19 @@ __metadata:
   version: 2.9.2
   resolution: "cli-spinners@npm:2.9.2"
   checksum: 10c0/907a1c227ddf0d7a101e7ab8b300affc742ead4b4ebe920a5bf1bc6d45dce2958fcd195eb28fa25275062fe6fa9b109b93b63bc8033396ed3bcb50297008b3a3
+  languageName: node
+  linkType: hard
+
+"cli-table3@npm:^0.6.5":
+  version: 0.6.5
+  resolution: "cli-table3@npm:0.6.5"
+  dependencies:
+    "@colors/colors": "npm:1.5.0"
+    string-width: "npm:^4.2.0"
+  dependenciesMeta:
+    "@colors/colors":
+      optional: true
+  checksum: 10c0/d7cc9ed12212ae68241cc7a3133c52b844113b17856e11f4f81308acc3febcea7cc9fd298e70933e294dd642866b29fd5d113c2c098948701d0c35f09455de78
   languageName: node
   linkType: hard
 

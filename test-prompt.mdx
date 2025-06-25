@@ -1,0 +1,21 @@
+---
+name: test-prompt
+text_config:
+  model_name: gpt-4o-mini
+  temperature: 0.5
+test_settings:
+  props: 
+    userMessage: "What is 2 + 2?"
+---
+
+<s>
+You are a helpful math tutor.
+</s>
+
+<User>
+{props.userMessage}
+</User>
+
+<Assistant>
+Here's your answer!
+</Assistant>

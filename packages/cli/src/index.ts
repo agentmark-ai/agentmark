@@ -6,6 +6,7 @@ import serve from "./commands/serve";
 import dev from "./commands/dev";
 import generateTypes from "./commands/generate-types";
 import pullModels from "./commands/pull-models";
+import runPrompt from "./commands/run-prompt";
 
 program
   .command("init")
@@ -41,6 +42,23 @@ program
   .action(async () => {
     try {
       await pullModels();
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("run-prompt <filepath>")
+  .description('Run a prompt with test props or dataset')
+  .option('-i, --input <type>', 'Input type: "props" or "dataset"', 'props')
+  .action(async (filepath: string, options: { input: string }) => {
+    try {
+      // Validate input option
+      if (options.input !== 'props' && options.input !== 'dataset') {
+        program.error('Input type must be either "props" or "dataset"');
+      }
+      
+      await runPrompt(filepath, { input: options.input as "props" | "dataset" });
     } catch (error) {
       program.error((error as Error).message);
     }
