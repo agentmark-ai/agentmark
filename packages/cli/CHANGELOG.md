@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.6.0
+
+### Minor Changes
+
+- 2afe5d3: Support CLI-based prompt/dataset runs
+
 ## 1.5.0
 
 ### Minor Changes
