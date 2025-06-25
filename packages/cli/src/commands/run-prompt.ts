@@ -5,6 +5,13 @@ import { VercelAIModelRegistry, createAgentMarkClient } from "@agentmark/vercel-
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { FileLoader, PromptKind, TemplateDXTemplateEngine } from "@agentmark/agentmark-core";
+import {
+  streamText,
+  generateText,
+  generateObject,
+  experimental_generateImage as generateImage,
+  experimental_generateSpeech as generateSpeech,
+} from "ai";
 // Dynamic import for ESM module
 import type { Root } from "mdast";
 import prompts from "prompts";
@@ -82,50 +89,66 @@ interface RunPromptOptions {
   input: "props" | "dataset";
 }
 
-const formatPropsResult = (result: any) => {
-  console.log("\n=== Prompt Result ===");
-  if (result.name) {
-    console.log(`Name: ${result.name}`);
-  }
+const executeTextPropsPrompt = async (input: any) => {
+  console.log("\n=== Text Prompt Results ===");
+  const { textStream } = streamText(input);
   
-  if (result.messages && Array.isArray(result.messages)) {
-    console.log("\nMessages:");
-    result.messages.forEach((msg: any, index: number) => {
-      console.log(`${index + 1}. [${msg.role}]: ${msg.content}`);
-    });
-  } else if (result.prompt) {
-    console.log(`\nPrompt: ${result.prompt}`);
-  } else {
-    console.log(`\nResult: ${JSON.stringify(result, null, 2)}`);
+  if (textStream) {
+    for await (const chunk of textStream) {
+      process.stdout.write(chunk);
+    }
   }
+  console.log("\n");
 };
 
-const formatDatasetResults = async (resultsStream: any) => {
-  console.log("\n=== Dataset Results ===");
+const executeObjectPropsPrompt = async (input: any) => {
+  console.log("\n=== Object Prompt Results ===");
+  const { object } = await generateObject(input);
+  console.log(JSON.stringify(object, null, 2));
+};
+
+const executeImagePropsPrompt = async (input: any) => {
+  console.log("\n=== Image Prompt Results ===");
+  const result = await generateImage(input);
+  console.log(`Generated ${result.images.length} image(s)`);
+  result.images.forEach((image, index) => {
+    console.log(`Image ${index + 1}: data:${image.mimeType};base64,${image.base64.substring(0, 50)}...`);
+  });
+};
+
+const executeSpeechPropsPrompt = async (input: any) => {
+  console.log("\n=== Speech Prompt Results ===");
+  const result = await generateSpeech(input);
+  console.log(`Generated audio: data:${result.audio.mimeType};base64,${result.audio.base64.substring(0, 50)}...`);
+};
+
+const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
+  console.log("\n=== Text Dataset Results ===");
   
   const table = new Table({
-    head: ['#', 'Input', 'Expected Output', 'Result'],
+    head: ['#', 'Input', 'Expected Output', 'AI Result'],
     colWidths: [5, 40, 30, 40],
     wordWrap: true
   });
 
   let index = 1;
-  const reader = resultsStream.getReader();
+  const reader = inputs.getReader();
   
   try {
     while (true) {
-      const { done, value: result } = await reader.read();
+      const { done, value: entry } = await reader.read();
       if (done) break;
       
-      const input = JSON.stringify(result.dataset.input, null, 0);
-      const expectedOutput = result.dataset.expected_output || 'N/A';
-      const formattedResult = JSON.stringify(result.formatted, null, 0);
+      const { text } = await generateText(entry.formatted);
+      
+      const input = JSON.stringify(entry.dataset.input, null, 0);
+      const expectedOutput = entry.dataset.expected_output || 'N/A';
       
       table.push([
         index.toString(),
         input,
         expectedOutput,
-        formattedResult
+        text
       ]);
       
       index++;
@@ -135,6 +158,98 @@ const formatDatasetResults = async (resultsStream: any) => {
   }
   
   console.log(table.toString());
+};
+
+const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
+  console.log("\n=== Object Dataset Results ===");
+  
+  const table = new Table({
+    head: ['#', 'Input', 'Expected Output', 'AI Result'],
+    colWidths: [5, 40, 30, 40],
+    wordWrap: true
+  });
+
+  let index = 1;
+  const reader = inputs.getReader();
+  
+  try {
+    while (true) {
+      const { done, value: entry } = await reader.read();
+      if (done) break;
+      
+      const { object } = await generateObject(entry.formatted);
+      
+      const input = JSON.stringify(entry.dataset.input, null, 0);
+      const expectedOutput = entry.dataset.expected_output || 'N/A';
+      const aiResult = JSON.stringify(object, null, 0);
+      
+      table.push([
+        index.toString(),
+        input,
+        expectedOutput,
+        aiResult
+      ]);
+      
+      index++;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  
+  console.log(table.toString());
+};
+
+const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
+  console.log("\n=== Image Dataset Results ===");
+  
+  let index = 1;
+  const reader = inputs.getReader();
+  
+  try {
+    while (true) {
+      const { done, value: entry } = await reader.read();
+      if (done) break;
+      
+      const result = await generateImage(entry.formatted);
+      
+      console.log(`\n--- Entry ${index} ---`);
+      console.log(`Input: ${JSON.stringify(entry.dataset.input, null, 0)}`);
+      console.log(`Expected: ${entry.dataset.expected_output || 'N/A'}`);
+      console.log(`Generated ${result.images.length} image(s)`);
+      result.images.forEach((image, imgIndex) => {
+        console.log(`  Image ${imgIndex + 1}: data:${image.mimeType};base64,${image.base64.substring(0, 50)}...`);
+      });
+      
+      index++;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+};
+
+const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
+  console.log("\n=== Speech Dataset Results ===");
+  
+  let index = 1;
+  const reader = inputs.getReader();
+  
+  try {
+    while (true) {
+      const { done, value: entry } = await reader.read();
+      if (done) break;
+      
+      const result = await generateSpeech(entry.formatted);
+      
+      console.log(`\n--- Entry ${index} ---`);
+      console.log(`Input: ${JSON.stringify(entry.dataset.input, null, 0)}`);
+      console.log(`Expected: ${entry.dataset.expected_output || 'N/A'}`);
+      console.log(`Generated audio: data:${result.audio.mimeType};base64,${result.audio.base64.substring(0, 50)}...`);
+      
+      index++;
+    }
+  } finally {
+    reader.releaseLock();
+  }
 };
 
 const runPrompt = async (filepath: string, options: RunPromptOptions) => {
@@ -230,11 +345,31 @@ const runPrompt = async (filepath: string, options: RunPromptOptions) => {
     if (options.input === "dataset") {
       console.log("Running prompt with dataset...");
       const resultsStream = await prompt.formatWithDataset({ apiKey });
-      await formatDatasetResults(resultsStream);
+      
+      // Execute with appropriate AI function based on prompt type
+      if (promptKind === "text") {
+        await executeTextDatasetPrompt(resultsStream);
+      } else if (promptKind === "object") {
+        await executeObjectDatasetPrompt(resultsStream);
+      } else if (promptKind === "image") {
+        await executeImageDatasetPrompt(resultsStream);
+      } else if (promptKind === "speech") {
+        await executeSpeechDatasetPrompt(resultsStream);
+      }
     } else {
       console.log("Running prompt with test props...");
       const result = await prompt.formatWithTestProps({ apiKey });
-      formatPropsResult(result);
+      
+      // Execute with appropriate AI function based on prompt type
+      if (promptKind === "text") {
+        await executeTextPropsPrompt(result);
+      } else if (promptKind === "object") {
+        await executeObjectPropsPrompt(result);
+      } else if (promptKind === "image") {
+        await executeImagePropsPrompt(result);
+      } else if (promptKind === "speech") {
+        await executeSpeechPropsPrompt(result);
+      }
     }
   } catch (error: any) {
     throw new Error(`Error running prompt: ${error.message}`);
