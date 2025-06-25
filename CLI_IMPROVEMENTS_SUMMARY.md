@@ -65,9 +65,34 @@ Updated the AgentMark CLI to improve dataset output display and implement actual
 - **Props mode**: Audio file details and base64 preview
 - **Dataset mode**: Per-entry breakdown with generated audio details
 
-### 4. Dependencies Added
+### 4. Enhanced Media Display with Web Viewer
+**Problem**: Images and audio couldn't be properly viewed in the terminal, only showing base64 previews.
+
+**Solution**: Created a sophisticated web viewer system that automatically opens media in the browser:
+
+#### Web Viewer Features:
+- **Automatic Browser Opening**: Detects platform (macOS/Windows/Linux) and opens default browser
+- **Beautiful HTML Templates**: Clean, modern UI with responsive design
+- **Embedded Media**: Images and audio embedded as base64 data URLs (no external dependencies)
+- **File Information**: Shows MIME type and file size for each media item
+- **Temporary File Management**: Creates temp files and auto-cleans them after 30 seconds
+- **Cross-Platform Support**: Works on macOS (`open`), Windows (`start`), and Linux (`xdg-open`)
+
+#### For Images:
+- Displays multiple images in a grid layout
+- Shows image dimensions and file sizes
+- Hover effects and modern styling
+- Proper alt text and accessibility
+
+#### For Audio:
+- Full-featured HTML5 audio player with controls
+- Shows audio format and file size information
+- Clean, accessible interface
+
+### 5. Dependencies Added
 - Added `"ai": "^4.0.0"` dependency to CLI package to enable AI model execution
 - Imported necessary functions: `streamText`, `generateText`, `generateObject`, `generateImage`, `generateSpeech`
+- Added web viewer utility for cross-platform browser-based media display
 
 ## Technical Implementation Details
 
@@ -99,6 +124,38 @@ Updated the main `runPrompt()` function to dynamically select the appropriate ex
 - Prompt type (`text`, `object`, `image`, `speech`)
 - Execution mode (`props` vs `dataset`)
 
+### Web Viewer Implementation
+Created `packages/cli/src/utils/web-viewer.ts` with:
+
+```typescript
+// Cross-platform browser opening
+const openInBrowser = (filePath: string): void => {
+  switch (process.platform) {
+    case 'darwin': spawn('open', [fileUrl]); break;
+    case 'win32': spawn('start', ['""', fileUrl]); break;
+    default: spawn('xdg-open', [fileUrl]); break;
+  }
+};
+
+// Temporary file management with auto-cleanup
+const createTempFile = (content: string): string => {
+  const fileName = `agentmark-${Date.now()}-${randomId}.html`;
+  return path.join(os.tmpdir(), fileName);
+};
+
+// Beautiful HTML templates with embedded styling
+const createImageHtml = (images: ImageFile[], title: string) => {
+  // Returns responsive HTML with embedded base64 images
+};
+```
+
+**Key Features:**
+- Platform detection for browser commands
+- Unique temporary file naming to prevent conflicts
+- Automatic cleanup after 30 seconds
+- Responsive CSS with modern styling
+- Error handling for failed browser launches
+
 ## Benefits
 
 1. **Complete Content Visibility**: Users can now see full dataset inputs, expected outputs, and AI results without truncation
@@ -107,10 +164,36 @@ Updated the main `runPrompt()` function to dynamically select the appropriate ex
 4. **Flexible Display**: Tables expand automatically to accommodate content of any length
 5. **Real-time Feedback**: Streaming text output provides immediate response feedback
 6. **Comprehensive Results**: All prompt types (text, object, image, speech) are fully supported
+7. **Professional Media Viewing**: Images and audio open in beautiful, responsive web pages instead of terminal previews
+8. **Cross-Platform Compatibility**: Web viewer works seamlessly on macOS, Windows, and Linux
+9. **Zero External Dependencies**: Media files are embedded as base64, no need for external hosting
+10. **Automatic Cleanup**: Temporary files are automatically removed, keeping the system clean
 
 ## Files Modified
 
 - `packages/cli/package.json` - Added `ai` dependency
-- `packages/cli/src/commands/run-prompt.ts` - Complete rewrite of formatting/execution logic
+- `packages/cli/src/commands/run-prompt.ts` - Complete rewrite of formatting/execution logic with web viewer integration
+- `packages/cli/src/utils/web-viewer.ts` - **NEW** Cross-platform web viewer utility for images and audio
 
-The CLI now provides a complete, production-ready experience for running AgentMark prompts with actual AI model execution and properly formatted output display.
+## Example User Experience
+
+### Before:
+```
+=== Image Prompt Results ===
+Generated 2 image(s)
+Image 1: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+Image 2: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+```
+
+### After:
+```
+=== Image Prompt Results ===
+Generated 2 image(s)
+Opening in browser: file:///tmp/agentmark-1640995200000-abc123.html
+Image 1: image/png (245KB) - Opening in browser...
+Image 2: image/png (312KB) - Opening in browser...
+```
+
+*Browser automatically opens showing beautiful, responsive gallery with full-size images*
+
+The CLI now provides a **complete, production-ready experience** for running AgentMark prompts with actual AI model execution, properly formatted output display, and professional media viewing capabilities.

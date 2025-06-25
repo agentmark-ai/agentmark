@@ -12,6 +12,7 @@ import {
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
 } from "ai";
+import { displayImagesInBrowser, displayAudioInBrowser } from "../utils/web-viewer";
 // Dynamic import for ESM module
 import type { Root } from "mdast";
 import prompts from "prompts";
@@ -111,15 +112,27 @@ const executeImagePropsPrompt = async (input: any) => {
   console.log("\n=== Image Prompt Results ===");
   const result = await generateImage(input);
   console.log(`Generated ${result.images.length} image(s)`);
+  
+  // Display images in browser
+  displayImagesInBrowser(result.images, "AgentMark Generated Images");
+  
+  // Also show summary in terminal
   result.images.forEach((image, index) => {
-    console.log(`Image ${index + 1}: data:${image.mimeType};base64,${image.base64.substring(0, 50)}...`);
+    const sizeKB = Math.round(image.base64.length * 0.75 / 1024);
+    console.log(`Image ${index + 1}: ${image.mimeType} (${sizeKB}KB) - Opening in browser...`);
   });
 };
 
 const executeSpeechPropsPrompt = async (input: any) => {
   console.log("\n=== Speech Prompt Results ===");
   const result = await generateSpeech(input);
-  console.log(`Generated audio: data:${result.audio.mimeType};base64,${result.audio.base64.substring(0, 50)}...`);
+  
+  // Display audio in browser
+  displayAudioInBrowser(result.audio, "AgentMark Generated Audio");
+  
+  // Also show summary in terminal
+  const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
+  console.log(`Generated audio: ${result.audio.mimeType} (${sizeKB}KB) - Opening in browser...`);
 };
 
 const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
@@ -216,8 +229,15 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
       console.log(`Input: ${JSON.stringify(entry.dataset.input, null, 0)}`);
       console.log(`Expected: ${entry.dataset.expected_output || 'N/A'}`);
       console.log(`Generated ${result.images.length} image(s)`);
+      
+      // Display images in browser for this entry
+      const title = `AgentMark Dataset Entry ${index} - Generated Images`;
+      displayImagesInBrowser(result.images, title);
+      
+      // Show summary in terminal
       result.images.forEach((image, imgIndex) => {
-        console.log(`  Image ${imgIndex + 1}: data:${image.mimeType};base64,${image.base64.substring(0, 50)}...`);
+        const sizeKB = Math.round(image.base64.length * 0.75 / 1024);
+        console.log(`  Image ${imgIndex + 1}: ${image.mimeType} (${sizeKB}KB) - Opening in browser...`);
       });
       
       index++;
@@ -243,7 +263,14 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
       console.log(`\n--- Entry ${index} ---`);
       console.log(`Input: ${JSON.stringify(entry.dataset.input, null, 0)}`);
       console.log(`Expected: ${entry.dataset.expected_output || 'N/A'}`);
-      console.log(`Generated audio: data:${result.audio.mimeType};base64,${result.audio.base64.substring(0, 50)}...`);
+      
+      // Display audio in browser for this entry
+      const title = `AgentMark Dataset Entry ${index} - Generated Audio`;
+      displayAudioInBrowser(result.audio, title);
+      
+      // Show summary in terminal
+      const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
+      console.log(`Generated audio: ${result.audio.mimeType} (${sizeKB}KB) - Opening in browser...`);
       
       index++;
     }
