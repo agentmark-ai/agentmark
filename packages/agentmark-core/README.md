@@ -149,7 +149,6 @@ Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
 Get started with AgentMark using our CLI.
 
-1. Initialize AgentMark in your project:
 ```bash
 npx @agentmark/cli@latest init
 ```
