@@ -14,6 +14,7 @@ import {
   StreamResponse,
   TextResponse,
   RunPromptOptions,
+  ToolResultChunk,
 } from "./types";
 
 export class VercelAdapter implements InferenceAdapter {
@@ -51,35 +52,76 @@ async function vercelTextPromptRun(
   const shouldStream =
     options?.shouldStream != undefined ? options.shouldStream : true;
   if (shouldStream) {
-    const { textStream, toolCalls, toolResults, finishReason, usage } =
-      streamText(vercelInput);
+    const { fullStream } = streamText(vercelInput);
 
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        for await (const chunk of textStream) {
-          const chunkData = encoder.encode(
-            JSON.stringify({
-              result: chunk,
-              type: "text",
-            }) + "\n"
-          );
-          controller.enqueue(chunkData);
+        for await (const chunk of fullStream) {
+          if (chunk.type === "error") {
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  error:
+                    (chunk.error as any).data.error.message ||
+                    "Something went wrong during inference",
+                  type: "error",
+                }) + "\n"
+              )
+            );
+            controller.close();
+            return;
+          }
+          if (chunk.type === "text-delta") {
+            const chunkData = encoder.encode(
+              JSON.stringify({
+                result: chunk.textDelta,
+                type: "text",
+              }) + "\n"
+            );
+            controller.enqueue(chunkData);
+          }
+
+          if (chunk.type === "tool-call") {
+            const chunkData = encoder.encode(
+              JSON.stringify({
+                toolCall: {
+                  args: chunk.args,
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                },
+                type: "text",
+              }) + "\n"
+            );
+            controller.enqueue(chunkData);
+          }
+
+          if ((chunk as unknown as ToolResultChunk).type === "tool-result") {
+            const toolResultChunk = chunk as unknown as ToolResultChunk;
+            const chunkData = encoder.encode(
+              JSON.stringify({
+                toolResult: {
+                  args: toolResultChunk.args,
+                  toolCallId: toolResultChunk.toolCallId,
+                  toolName: toolResultChunk.toolName,
+                },
+              }) + "\n"
+            );
+            controller.enqueue(chunkData);
+          }
+
+          if (chunk.type === "finish") {
+            const chunkData = encoder.encode(
+              JSON.stringify({
+                finishReason: chunk.finishReason,
+                usage: chunk.usage,
+                type: "text",
+              }) + "\n"
+            );
+            controller.enqueue(chunkData);
+          }
         }
-        const toolCallsData = await toolCalls;
-        const toolResultsData = await toolResults;
-        const finishReasonData = await finishReason;
-        const usageData = await usage;
-        const metadata = {
-          usage: usageData,
-          toolCalls: toolCallsData,
-          toolResults: toolResultsData,
-          finishReason: finishReasonData,
-          type: "text",
-        };
-        const metadataChunk = JSON.stringify(metadata);
-        const metadataChunkData = encoder.encode(metadataChunk);
-        controller.enqueue(metadataChunkData);
+
         controller.close();
       },
     });
@@ -90,8 +132,11 @@ async function vercelTextPromptRun(
     };
   }
 
-  const { text, toolCalls, toolResults, finishReason, usage } =
-    await generateText(vercelInput);
+  const { text, finishReason, usage, steps } = await generateText(vercelInput);
+
+  const toolCalls = steps.map((step) => step.toolCalls).flat();
+  const toolResults = steps.map((step) => step.toolResults).flat();
+
   return {
     type: "text",
     result: text,
@@ -109,18 +154,34 @@ async function vercelObjectPromptRun(
   const shouldStream =
     options?.shouldStream != undefined ? options.shouldStream : true;
   if (shouldStream) {
-    const { usage, partialObjectStream } = streamObject(vercelInput);
+    const { usage, fullStream } = streamObject(vercelInput);
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        for await (const chunk of partialObjectStream) {
-          const chunkData = encoder.encode(
-            JSON.stringify({
-              result: chunk,
-              type: "object",
-            }) + "\n"
-          );
-          controller.enqueue(chunkData);
+        for await (const chunk of fullStream) {
+          if (chunk.type === "error") {
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  error:
+                    (chunk.error as any).data.error.message ||
+                    "Something went wrong during inference",
+                  type: "error",
+                }) + "\n"
+              )
+            );
+            controller.close();
+            return;
+          }
+          if (chunk.type === "object") {
+            const chunkData = encoder.encode(
+              JSON.stringify({
+                result: chunk.object,
+                type: "object",
+              }) + "\n"
+            );
+            controller.enqueue(chunkData);
+          }
         }
         const usageData = await usage;
         const metadata = {
