@@ -149,12 +149,6 @@ Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
 Get started with AgentMark using our CLI.
 
-1. Initialize AgentMark in your project:
-```bash
-npx @agentmark/cli@latest init
-```
-
-
 ## Supported Adapters
 
 By default, AgentMark doesn't support any models or calling any LLM providers. Instead, we format the input of your prompt through an adapter to match the input of the SDK you're using.
