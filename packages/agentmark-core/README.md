@@ -149,6 +149,10 @@ Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
 Get started with AgentMark using our CLI.
 
+```bash
+npx @agentmark/cli@latest init
+```
+
 
 ## Supported Adapters
 
