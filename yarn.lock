@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@agentmark/agentmark-core@npm:*, @agentmark/agentmark-core@npm:^3.2.0, @agentmark/agentmark-core@npm:^3.3.2, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
+"@agentmark/agentmark-core@npm:*, @agentmark/agentmark-core@npm:^3.2.0, @agentmark/agentmark-core@npm:^3.3.1, @agentmark/agentmark-core@npm:^3.3.2, @agentmark/agentmark-core@workspace:*, @agentmark/agentmark-core@workspace:packages/agentmark-core":
   version: 0.0.0-use.local
   resolution: "@agentmark/agentmark-core@workspace:packages/agentmark-core"
   dependencies:
@@ -124,6 +124,21 @@ __metadata:
     zod: "npm:^3.23.8"
   peerDependencies:
     "@agentmark/agentmark-core": ^3.2.0
+    ai: ^4.0.0
+  languageName: unknown
+  linkType: soft
+
+"@agentmark/vercel-ai-v4-webhook-helper@workspace:packages/vercel-ai-v4-webhook-helper":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/vercel-ai-v4-webhook-helper@workspace:packages/vercel-ai-v4-webhook-helper"
+  dependencies:
+    "@agentmark/agentmark-core": "npm:^3.3.1"
+    "@agentmark/templatedx": "npm:^0.6.3"
+    ai: "npm:^4.3.16"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+  peerDependencies:
+    "@agentmark/agentmark-core": "*"
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
@@ -2776,7 +2791,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.0.0":
+"ai@npm:^4.0.0, ai@npm:^4.3.16":
   version: 4.3.16
   resolution: "ai@npm:4.3.16"
   dependencies:
@@ -9480,7 +9495,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5, typescript@npm:^5.4.5, typescript@npm:^5.6.2":
+"typescript@npm:^5, typescript@npm:^5.4.5, typescript@npm:^5.6.2, typescript@npm:^5.6.3":
   version: 5.8.3
   resolution: "typescript@npm:5.8.3"
   bin:
@@ -9490,7 +9505,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.4.5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.6.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A^5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.4.5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.6.2#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.6.3#optional!builtin<compat/typescript>":
   version: 5.8.3
   resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
   bin:
