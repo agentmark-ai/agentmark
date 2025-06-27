@@ -183,13 +183,32 @@ We plan on providing support for AgentMark across a variety of languages.
 
 You can run AgentMark using any of the following methods:
 
-### 1. VSCode Extension
+### 1. AgentMark CLI
+
+Run `.prompt.mdx` files directly from the command line using our CLI. This is the quickest way to test and execute your prompts.
+
+```bash
+# Run a prompt with test props (default)
+npx @agentmark/cli run-prompt your-prompt.prompt.mdx
+
+# Run a prompt with a dataset
+npx @agentmark/cli run-prompt your-prompt.prompt.mdx -i dataset
+```
+
+The CLI automatically handles:
+- API key management (prompts for missing keys)
+- All generation types (text, object, image, speech)
+- Real-time streaming for text output
+- Browser display for images and audio
+- Dataset processing with formatted results
+
+### 2. VSCode Extension
 
 Run `.prompt.mdx` files directly within your VSCode editor. Note: You can test props by using `test_settings` in your prompts. This is useful for iterating on prompts quickly.
 
 [Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=agentmark.agentmark)
 
-### 2. Run AgentMark files with our SDK
+### 3. Run AgentMark files with our SDK
 
 Read more about how to run AgentMark files with our SDK [here](https://docs.agentmark.co/agentmark/getting_started/overview).
 
