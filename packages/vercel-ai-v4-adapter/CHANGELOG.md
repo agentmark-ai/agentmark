@@ -1,5 +1,11 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 3.3.3
+
+### Patch changes
+
+Convert add maxSteps for adaptText output
+
 ## 3.3.2
 
 ### Patch Changes

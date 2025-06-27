@@ -43,6 +43,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
   stopSequences?: string[];
   tools: TS;
   experimental_telemetry?: any;
+  maxSteps?: number;
 };
 
 export interface VercelAIObjectParams<T> {
@@ -259,6 +260,9 @@ export class VercelAIAdapter<
         ? { stopSequences: settings.stop_sequences }
         : {}),
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
+      ...(settings?.max_calls !== undefined
+        ? { maxSteps: settings.max_calls }
+        : {}),
       ...(options.telemetry
         ? {
             experimental_telemetry: getTelemetryConfig(

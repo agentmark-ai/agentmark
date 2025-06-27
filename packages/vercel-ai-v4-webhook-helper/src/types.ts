@@ -101,3 +101,11 @@ export type RunDatasetResponse = {
   stream: ReadableStream<any>;
   streamHeaders: { "AgentMark-Streaming": "true" };
 };
+
+export type ToolResultChunk = {
+  type: "tool-result";
+  toolCallId: string;
+  toolName: string;
+  args: any;
+  result: any;
+};
