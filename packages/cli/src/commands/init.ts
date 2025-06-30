@@ -73,6 +73,7 @@ const init = async (options: { target: string }) => {
   // Prompt for AgentMark credentials if using cloud
   let agentmarkApiKey = "";
   let agentmarkAppId = "";
+  let webhookPlatform = "";
   if (deployTarget === "cloud") {
     const { providedAgentmarkAppId } = await prompts({
       name: "providedAgentmarkAppId",
@@ -88,6 +89,23 @@ const init = async (options: { target: string }) => {
       initial: "",
     });
     agentmarkApiKey = providedAgentmarkApiKey || "";
+
+    // Ask for webhook deployment platform
+    const { selectedWebhookPlatform } = await prompts({
+      name: "selectedWebhookPlatform",
+      type: "select",
+      message: "Where would you like to deploy your webhook?",
+      choices: [
+        { title: "Vercel", value: "vercel" },
+        { title: "Cloudflare Workers", value: "cloudflare" },
+        { title: "AWS Lambda", value: "aws-lambda" },
+        { title: "Azure Functions", value: "azure" },
+        { title: "Google Cloud Functions", value: "google-cloud" },
+        { title: "Netlify Functions", value: "netlify" },
+        { title: "Local only (ngrok)", value: "local" },
+      ],
+    });
+    webhookPlatform = selectedWebhookPlatform;
   }
 
   const { client } = await prompts({
@@ -102,7 +120,7 @@ const init = async (options: { target: string }) => {
     ],
   });
 
-  createExampleApp(provider, model, deployTarget, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
+  createExampleApp(provider, model, deployTarget, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId, webhookPlatform);
 
   if (deployTarget === "cloud") {
     fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
