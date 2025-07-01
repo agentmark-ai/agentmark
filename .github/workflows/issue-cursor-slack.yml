@@ -17,14 +17,13 @@ jobs:
     steps:
       - name: Send message to Slack
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CURSOR_BOT_WEBHOOK }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           payload=$(jq -n \
-            --arg body "$ISSUE_BODY" \
+            --arg body "${{ github.event.issue.body }}" \
             '{
-               text: "@Cursor\n\nFix this issue:\n" + $body
-             }')
+              text: ("@Cursor\n\nFix this issue:\n" + $body)
+            }')
 
           curl -s -X POST -H 'Content-Type: application/json' \
                --data "$payload" "$SLACK_WEBHOOK_URL"
