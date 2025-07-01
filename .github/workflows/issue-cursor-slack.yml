@@ -1,5 +1,8 @@
 name: Notify Slack on Cursor-Labeled Issue
 
+permissions:
+  contents: read
+
 on:
   issues:
     types: [labeled]
