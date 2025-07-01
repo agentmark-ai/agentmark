@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Send message to Slack
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.CURSOR_BOT_WEBHOOK }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           payload=$(jq -n \
