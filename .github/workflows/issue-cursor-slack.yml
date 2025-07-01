@@ -17,16 +17,18 @@ jobs:
     steps:
       - name: Send message to Slack
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CURSOR_BOT_WEBHOOK }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          CURSOR_BOT_ID: ${{ secrets.CURSOR_BOT_ID }}
+          SLACK_USER_TOKEN: ${{ secrets.SLACK_USER_TOKEN }}
+          CHANNEL_ID:       ${{ secrets.SLACK_CHANNEL_ID }}
+          CURSOR_BOT_ID:     ${{ secrets.CURSOR_BOT_ID }}
         run: |
           mention="<@$CURSOR_BOT_ID>"
-          payload=$(jq -n \
-            --arg mention "$mention" \
-            --arg body "$ISSUE_BODY" \
-            '{ text: ($mention + "\n\nFix this issue:\n" + $body) }')
+          text="$mention\n\nFix this issue:\n${{ github.event.issue.body }}"
 
-
-          curl -s -X POST -H 'Content-Type: application/json' \
-               --data "$payload" "$SLACK_WEBHOOK_URL"
+          curl -s -X POST \
+            -H "Authorization: Bearer $SLACK_USER_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$(jq -n \
+                      --arg channel "$CHANNEL_ID" \
+                      --arg text "$text" \
+                      '{channel:$channel, text:$text, link_names:1}')" \
+            https://slack.com/api/chat.postMessage
