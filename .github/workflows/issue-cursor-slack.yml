@@ -18,9 +18,10 @@ jobs:
       - name: Send message to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CURSOR_BOT_WEBHOOK }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           payload=$(jq -n \
-            --arg body "${{ github.event.issue.body }}" \
+            --arg body "$ISSUE_BODY" \
             '{
                text: "@Cursor\n\nFix this issue:\n" + $body
              }')
