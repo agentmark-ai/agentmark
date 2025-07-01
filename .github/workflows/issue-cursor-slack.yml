@@ -19,12 +19,13 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CURSOR_BOT_WEBHOOK }}
           ISSUE_BODY: ${{ github.event.issue.body }}
+          CURSOR_BOT_ID: ${{ secrets.CURSOR_BOT_ID }}
         run: |
           payload=$(jq -n \
+            --arg mention "$CURSOR_BOT_ID" \
             --arg body "$ISSUE_BODY" \
-            '{
-              text: ("@Cursor\n\nFix this issue:\n" + $body)
-            }')
+            '{ text: ($mention + "\n\nFix this issue:\n" + $body) }')
+
 
           curl -s -X POST -H 'Content-Type: application/json' \
                --data "$payload" "$SLACK_WEBHOOK_URL"
