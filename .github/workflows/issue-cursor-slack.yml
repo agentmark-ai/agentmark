@@ -1,0 +1,21 @@
+name: Notify Slack on Cursor-Labeled Issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  notify-slack:
+    if: github.event.label.name == 'cursor'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send message to Slack
+        env:
+          CURSOR_BOT_WEBHOOK: ${{ secrets.CURSOR_BOT_WEBHOOK }}
+        run: |
+          issue_body="${{ github.event.issue.body }}"
+          payload=$(jq -n \
+            --arg text "@Cursor\n\nFix this issue:\n$issue_body" \
+            '{ text: $text }')
+
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$CURSOR_BOT_WEBHOOK"
