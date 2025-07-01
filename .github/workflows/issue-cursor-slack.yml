@@ -21,8 +21,9 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           CURSOR_BOT_ID: ${{ secrets.CURSOR_BOT_ID }}
         run: |
+          mention="<@$CURSOR_BOT_ID>"
           payload=$(jq -n \
-            --arg mention "$CURSOR_BOT_ID" \
+            --arg mention "$mention" \
             --arg body "$ISSUE_BODY" \
             '{ text: ($mention + "\n\nFix this issue:\n" + $body) }')
 
