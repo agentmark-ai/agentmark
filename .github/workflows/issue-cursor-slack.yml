@@ -1,6 +1,9 @@
 # .github/workflows/notify-cursor.yml
 name: Notify Cursor on Labeled Issue
 
+permissions:
+  contents: read
+
 on:
   issues:
     types: [labeled]
