@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.6.1
+
+### Patch Changes
+
+- d9a8a43: Fix: run-prompt resolves relative path
+
 ## 1.6.0
 
 ### Minor Changes
