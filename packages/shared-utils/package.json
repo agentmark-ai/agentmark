@@ -7,6 +7,7 @@
     "build": "tsup"
   },
   "devDependencies": {
+    "@babel/core": "^7.24.0",
     "@babel/preset-typescript": "^7.24.1",
     "@types/jest": "^29.5.12",
     "tsup": "^8.3.5",
