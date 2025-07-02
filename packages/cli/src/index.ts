@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 import { program } from "commander";
+import path from "path";
+
+// Store the original working directory at the very beginning
+const ORIGINAL_CWD = process.cwd();
 import init from "./commands/init";
 import serve from "./commands/serve";
 import dev from "./commands/dev";
@@ -58,7 +62,10 @@ program
         program.error('Input type must be either "props" or "dataset"');
       }
       
-      await runPrompt(filepath, { input: options.input as "props" | "dataset" });
+      // Resolve filepath relative to the original working directory
+      const resolvedFilepath = path.resolve(ORIGINAL_CWD, filepath);
+      
+      await runPrompt(resolvedFilepath, { input: options.input as "props" | "dataset" });
     } catch (error) {
       program.error((error as Error).message);
     }

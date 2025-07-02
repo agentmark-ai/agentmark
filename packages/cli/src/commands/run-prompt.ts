@@ -520,27 +520,24 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
 };
 
 const runPrompt = async (filepath: string, options: RunPromptOptions) => {
-  // Resolve the file path relative to the current working directory
-  const resolvedFilepath = path.resolve(filepath);
-  
   // Validate file exists and is an .mdx file
-  if (!fs.existsSync(resolvedFilepath)) {
-    throw new Error(`File not found: ${resolvedFilepath}`);
+  if (!fs.existsSync(filepath)) {
+    throw new Error(`File not found: ${filepath}`);
   }
   
-  if (!resolvedFilepath.endsWith('.mdx')) {
+  if (!filepath.endsWith('.mdx')) {
     throw new Error('File must be an .mdx file');
   }
 
   // Get the directory containing the prompt file
-  const fileDirectory = path.dirname(resolvedFilepath);
+  const fileDirectory = path.dirname(filepath);
   const fileLoader = new FileLoader(fileDirectory);
 
   // Dynamic import for ESM module
   const { getFrontMatter, load } = await import("@agentmark/templatedx");
   
   // Load and parse the prompt file
-  let ast: Root = await load(resolvedFilepath);
+  let ast: Root = await load(filepath);
   const frontmatter: any = getFrontMatter(ast);
 
   // Handle old format if needed (from VSCode extension logic)
