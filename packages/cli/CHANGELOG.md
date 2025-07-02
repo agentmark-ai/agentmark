@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.6.2
+
+### Patch Changes
+
+- 8cba23b: Fix: cwd
+
 ## 1.6.1
 
 ### Patch Changes
