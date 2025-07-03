@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.7.1
+
+### Patch Changes
+
+- f5af9ab: Clickable links
+
 ## 1.7.0
 
 ### Minor Changes
