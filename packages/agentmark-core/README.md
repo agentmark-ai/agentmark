@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Markdown for the AI Era</strong>
+  <strong>Develop, test, and evalaute your AI Agents using Markdown</strong>
 </p>
 
 <p align="center">
@@ -22,15 +22,32 @@
 
 ---
 
-**AgentMark is a readable, markdown-based prompting language for building reliable AI applications and agents**.
+**AgentMark makes it easy for developers to develop, test, and evaluate Agents**.
 
-AgentMark makes prompt engineering intuitive by combining familiar Markdown syntax with JSX components, allowing developers to focus on crafting effective prompts rather than wrestling with complex APIs, or learning a new syntax. You don't need to rewrite your entire application in AgentMark, just your prompts! AgentMark seamlessly integrates with your existing codebase in TypeScript and JavaScript, with Python support coming soon.
+AgentMark makes prompt engineering intuitive by combining familiar Markdown syntax with JSX components, allowing developers to focus on creating reliable Agents. AgentMark seamlessly integrates with your favorite SDK's using our adapters, and currently works in TypeScript and JavaScript, with Python support coming soon.
 
 AgentMark comes with comprehensive tooling included—featuring full type safety, unified prompt configuration, syntax highlighting, loops and conditionals, custom SDK adapters, and support for text, object, image, and speech generation across multiple model providers, even when they don't support native structured output APIs.
 
+
+## Quick Start
+
+Get started with AgentMark using our CLI.
+
+```bash
+npx @agentmark/cli@latest init
+```
+
 ## Generation Types
 
-### Text Generation
+AgentMark supports:
+
+- Text Generation
+- Object Generation
+- Image Generation
+- Speech/Audio Generation
+- Tools/Agents
+
+### Text Generation Example
 
 ```jsx text.prompt.mdx
 ---
@@ -41,92 +58,7 @@ text_config:
 <User>Tell me a good joke</User>
 ```
 
-![Text](https://i.imgur.com/nDsCxit.png)
-
-### Object Generation
-
-```jsx object.prompt.mdx
----
-name: example
-object_config:
-  model_name: gpt-4
-  temperature: 0.5
-  schema:
-    type: object
-    properties:
-      event:
-        type: object
-        properties:
-          date:
-            type: string
-            description: The date of the event
-          attendees:
-            type: array
-            items:
-              type: object
-              properties:
-                name:
-                  type: string
-                  description: The name of the attendee
-                role:
-                  type: string
-                  description: The role of the attendee
-              required:
-                - name
-                - role
-        required: 
-          - date
-          - attendees
----
-
-<System>Parse event details from the text.</System>
-<User>The company picnic is on July 15th. John (host) and Mary (coordinator) are organizing it</User>
-```
-
-![Object](https://i.imgur.com/m9VPY9v.png)
-
-### Image Generation
-
-```jsx image.prompt.mdx
----
-name: image
-image_config:
-  model_name: dall-e-3
-  num_images: 2
-  size: 1024x1024
-  aspect_ratio: 1:1
-  seed: 12345
----
-
-<ImagePrompt>
-Cute cats playing
-</ImagePrompt>
-```
-
-![Img](https://i.imgur.com/Coq6Ody.png)
-
-### Speech Generation
-
-```jsx speach.prompt.mdx
----
-name: speech
-speech_config:
-  model_name: tts-1-hd
-  voice: "nova"
-  speed: 1.0
-  output_format: "mp3"
----
-
-<System>
-Please read this text aloud.
-</System>
-
-<SpeechPrompt>
-This is a test for the speech prompt to be spoken aloud.
-</SpeechPrompt>
-```
-
-![Audio](https://i.imgur.com/ovOZUNE.png)
+Read more [here](https://docs.agentmark.co/agentmark/generation_types/overview)
 
 ### Features
 
@@ -144,15 +76,6 @@ AgentMark supports:
 1. Text, Object, Image and Speech generation.📝 🖼 🔊
 
 Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
-
-## Quick Start
-
-Get started with AgentMark using our CLI.
-
-```bash
-npx @agentmark/cli@latest init
-```
-
 
 ## Supported Adapters
 
@@ -201,13 +124,7 @@ The CLI automatically handles:
 - Browser display for images and audio
 - Dataset processing with formatted results
 
-### 2. VSCode Extension
-
-Run `.prompt.mdx` files directly within your VSCode editor. Note: You can test props by using `test_settings` in your prompts. This is useful for iterating on prompts quickly.
-
-[Download the VSCode Extension](https://marketplace.visualstudio.com/items?itemName=agentmark.agentmark)
-
-### 3. Run AgentMark files with our SDK
+### 2. Run AgentMark files with our SDK
 
 Read more about how to run AgentMark files with our SDK [here](https://docs.agentmark.co/agentmark/getting_started/overview).
 

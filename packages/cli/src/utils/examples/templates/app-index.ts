@@ -2,7 +2,7 @@ export const getIndexFileContent = (modelProvider: string, modelName: string, ta
   if (target === 'cloud') {
     return `import "dotenv/config";
 import { AgentMarkSDK } from "@agentmark/sdk";
-import { generateObject, generateText } from "ai";
+import { generateText } from "ai";
 import {
   VercelAIModelRegistry,
   createAgentMarkClient,
@@ -40,8 +40,8 @@ const telemetry = {
   },
 };
 
-const runPrompt = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt("customer-reply.prompt.mdx");
+const runCustomerSupport = async (customer_message: string) => {
+  const prompt = await agentmark.loadTextPrompt("customer-support.prompt.mdx");
   const vercelInput = await prompt.format({
     props: {
       customer_question: customer_message,
@@ -54,36 +54,11 @@ const runPrompt = async (customer_message: string) => {
   return resp.text;
 };
 
-const runEvaluation = async (assistant: string, customer_message: string) => {
-  const prompt = await agentmark.loadObjectPrompt(
-    "response-quality-eval.prompt.mdx"
-  );
-
-  const vercelInput = await prompt.format({
-    props: {
-      model_output: assistant,
-      customer_message: customer_message,
-    }
-  });
-
-  const resp = await generateObject(vercelInput);
-
-  return resp.object;
-};
-
 const main = async () => {
   try {
-    const user_message = "I'm having trouble with my order";
-    const assistant = await runPrompt(user_message);
-    const evaluation = await runEvaluation(assistant, user_message);
-
-  sdk.score({
-    resourceId: traceId,
-    name: "response-quality",
-    label: evaluation.label,
-      reason: evaluation.reason,
-      score: evaluation.score,
-    });
+    const user_message = "My package hasn't arrived yet. Can you help me track it?";
+    const assistant = await runCustomerSupport(user_message);
+    console.log("Customer support response:", assistant);
   } catch (error) {
     console.error(error);
   }
@@ -94,7 +69,7 @@ main();
   } else {
     return `import "dotenv/config";
 import { FileLoader } from "@agentmark/agentmark-core";
-import { generateObject, generateText } from "ai";
+import { generateText } from "ai";
 import {
   VercelAIModelRegistry,
   createAgentMarkClient
@@ -114,9 +89,9 @@ const agentmark = createAgentMarkClient<AgentMarkTypes>({
   modelRegistry,
 });
 
-// Function to run the customer reply prompt
-const runPrompt = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt('customer-reply.prompt.mdx');
+// Function to run the customer support prompt
+const runCustomerSupport = async (customer_message: string) => {
+  const prompt = await agentmark.loadTextPrompt('customer-support.prompt.mdx');
   const vercelInput = await prompt.format({
     props: {
       customer_question: customer_message,
@@ -127,28 +102,12 @@ const runPrompt = async (customer_message: string) => {
   return result.text;
 };
 
-// Function to run the evaluation prompt
-const runEvaluation = async (assistant: string, customer_message: string) => {
-  const prompt = await agentmark.loadObjectPrompt('response-quality-eval.prompt.mdx');
-  const vercelInput = await prompt.format({
-    props: {
-      model_output: assistant,
-      customer_message: customer_message,
-    },
-  });
-
-  const result = await generateObject(vercelInput);
-  return result.object;
-};
-
 // Main function to execute the example
 const main = async () => {
   try {
-    const user_message = "I'm having trouble with my order";
-    const assistant = await runPrompt(user_message);
-    console.log("Assistant response:", assistant);
-    const evaluation = await runEvaluation(assistant, user_message);
-    console.log("Evaluation result:", evaluation);
+    const user_message = "My package hasn't arrived yet. Can you help me track it?";
+    const assistant = await runCustomerSupport(user_message);
+    console.log("Customer support response:", assistant);
   } catch (error) {
     console.error(error);
   }
