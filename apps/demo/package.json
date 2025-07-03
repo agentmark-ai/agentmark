@@ -4,10 +4,6 @@
   "private": true,
   "dependencies": {
     "@agentmark/agentmark-core": "workspace:*",
-    "@agentmark/vercel-ai-v4-adapter": "workspace:*",
-    "@ai-sdk/openai": "^0.0.66",
-    "ai": "^4.0.0",
-    "dotenv": "^16.0.0",
-    "zod": "^3.23.8"
+    "@agentmark/vercel-ai-v4-adapter": "workspace:*"
   }
 }

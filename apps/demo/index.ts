@@ -5,7 +5,7 @@ import {
   VercelAIToolRegistry,
 } from "@agentmark/vercel-ai-v4-adapter";
 import { openai } from "@ai-sdk/openai";
-import { generateObject, generateText } from "ai";
+import { generateObject } from "ai";
 import { FileLoader } from "@agentmark/agentmark-core";
 import AgentmarkTypes, { Tools } from "./agentmark.types";
 
