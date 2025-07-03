@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.6.3
+
+### Patch Changes
+
+- 50fc3b6: Fix: ollama init w/ community provider
+
 ## 1.6.2
 
 ### Patch Changes
