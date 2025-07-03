@@ -24,7 +24,6 @@ interface Test$Math2In {
   userMessage: string;
 }
 
-
 interface Test$Math2Out {
   /**
    * The answer to the math question
@@ -32,6 +31,19 @@ interface Test$Math2Out {
   answer: string;
 }
 
+interface CustomerSupportIn {
+  /**
+   * The customer's question
+   */
+  customer_question: string;
+}
+
+interface CustomerSupportOut {
+  /**
+   * The customer service response
+   */
+  response: string;
+}
 
 type Math = { kind: 'object'; input: MathIn; output: MathOut };
 
@@ -41,9 +53,16 @@ type Test$Math2 = {
   output: Test$Math2Out;
 };
 
+type CustomerSupport = {
+  kind: 'text';
+  input: CustomerSupportIn;
+  output: CustomerSupportOut;
+};
+
 interface AgentmarkTypes {
   "math.prompt.mdx": Math,
   "test/math2.prompt.mdx": Test$Math2,
+  "customer-support.prompt.mdx": CustomerSupport,
 }
 
 export default AgentmarkTypes;

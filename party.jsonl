@@ -1,0 +1,3 @@
+{"input": {"party_text": "We're having a party with Alice, Bob, and Carol."}, "expected_output": "{\"names\": [\"Alice\", \"Bob\", \"Carol\"]}"}
+{"input": {"party_text": "The guest list includes Dave, Emma, and Frank."}, "expected_output": "{\"names\": [\"Dave\", \"Emma\", \"Frank\"]}"}
+{"input": {"party_text": "Join us for a celebration with Grace, Henry, and Isla."}, "expected_output": "{\"names\": [\"Grace\", \"Henry\", \"Isla\"]}"}

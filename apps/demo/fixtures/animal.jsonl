@@ -1,0 +1,3 @@
+{"input": {"animal": "cat"}, "expected_output": "A realistic picture of a cat"}
+{"input": {"animal": "dog"}, "expected_output": "A realistic picture of a dog"}
+{"input": {"animal": "bird"}, "expected_output": "A realistic picture of a bird"}
