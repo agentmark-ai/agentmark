@@ -40,7 +40,9 @@ export const installDependencies = (
     });
 
     // Install the common packages
-    let installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter @ai-sdk/${modelProvider} ai`;
+    // Use different package names for different providers
+    const providerPackage = modelProvider === "ollama" ? "ollama-ai-provider" : `@ai-sdk/${modelProvider}`;
+    let installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter ${providerPackage} ai`;
 
     // Add the Cloud specific packages
     if (target === "cloud") {

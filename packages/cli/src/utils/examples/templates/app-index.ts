@@ -7,7 +7,7 @@ import {
   VercelAIModelRegistry,
   createAgentMarkClient,
 } from "@agentmark/vercel-ai-v4-adapter";
-import { ${modelProvider} } from "@ai-sdk/${modelProvider}";
+import { ${modelProvider} } from "${modelProvider === 'ollama' ? 'ollama-ai-provider' : `@ai-sdk/${modelProvider}`}";
 import AgentMarkTypes from "./agentmark.types";
 
 const modelRegistry = new VercelAIModelRegistry();
@@ -99,7 +99,7 @@ import {
   VercelAIModelRegistry,
   createAgentMarkClient
 } from "@agentmark/vercel-ai-v4-adapter";
-import { ${modelProvider} } from "@ai-sdk/${modelProvider}";
+import { ${modelProvider} } from "${modelProvider === 'ollama' ? 'ollama-ai-provider' : `@ai-sdk/${modelProvider}`}";
 import AgentMarkTypes from "./agentmark.types";
 
 const modelRegistry = new VercelAIModelRegistry();
