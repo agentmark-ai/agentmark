@@ -1,7 +1,8 @@
----
+export const getPartyPlannerPrompt = (model: string): string => {
+  return `---
 name: party-planner
 object_config:
-  model_name: gpt-4o
+  model_name: ${model}
   schema:
     type: object
     properties:
@@ -32,4 +33,5 @@ Extract the names of all people attending the party from the following text. Res
 
 <User>
 Text: {props.party_text}
-</User>
+</User>`;
+};

@@ -1,7 +1,8 @@
----
+export const getCustomerSupportPrompt = (model: string): string => {
+  return `---
 name: customer-reply
 text_config:
-  model_name: gpt-4o
+  model_name: ${model}
 test_settings:
   dataset: ./customer-query.jsonl
   props:
@@ -20,4 +21,5 @@ input_schema:
 You are a customer service agent for a company that sells products online. You are given a customer's reply and you need to respond to the customer's reply. You need to be friendly, professional, and helpful.
 </System>
 
-<User>{props.customer_question}</User>
+<User>{props.customer_question}</User>`;
+};

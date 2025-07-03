@@ -1,18 +1,37 @@
 import * as fs from 'fs-extra';
-import { getCustomerReplyPrompt } from './customer-reply-prompt';
-import { getResponseQualityEvalPrompt } from './response-quality-eval-prompt';
+import { getAnimalDrawingPrompt } from './animal-drawing-prompt';
+import { getCustomerSupportPrompt } from './customer-support-prompt';
+import { getPartyPlannerPrompt } from './party-planner-prompt';
+import { getStoryTellerPrompt } from './story-teller-prompt';
+import { getAnimalDataset, getCustomerQueryDataset, getPartyDataset, getStoryDataset } from './datasets';
 
 export const createExamplePrompts = (model: string, targetPath: string = ".") => {
   // Ensure the templates directory exists
   fs.ensureDirSync(`${targetPath}/agentmark`);
   
-  // Create customer reply prompt
-  const customerReplyPrompt = getCustomerReplyPrompt(model);
-  fs.writeFileSync(`${targetPath}/agentmark/customer-reply.prompt.mdx`, customerReplyPrompt);
+  // Create animal drawing prompt and dataset
+  const animalDrawingPrompt = getAnimalDrawingPrompt();
+  fs.writeFileSync(`${targetPath}/agentmark/animal-drawing.prompt.mdx`, animalDrawingPrompt);
+  const animalDataset = getAnimalDataset();
+  fs.writeFileSync(`${targetPath}/agentmark/animal.jsonl`, animalDataset);
   
-  // Create response quality evaluation prompt
-  const responseQualityEvalPrompt = getResponseQualityEvalPrompt(model);
-  fs.writeFileSync(`${targetPath}/agentmark/response-quality-eval.prompt.mdx`, responseQualityEvalPrompt);
+  // Create customer support prompt and dataset
+  const customerSupportPrompt = getCustomerSupportPrompt(model);
+  fs.writeFileSync(`${targetPath}/agentmark/customer-support.prompt.mdx`, customerSupportPrompt);
+  const customerQueryDataset = getCustomerQueryDataset();
+  fs.writeFileSync(`${targetPath}/agentmark/customer-query.jsonl`, customerQueryDataset);
   
-  console.log('✅ Example prompts created in agentmark folder');
+  // Create party planner prompt and dataset
+  const partyPlannerPrompt = getPartyPlannerPrompt(model);
+  fs.writeFileSync(`${targetPath}/agentmark/party-planner.prompt.mdx`, partyPlannerPrompt);
+  const partyDataset = getPartyDataset();
+  fs.writeFileSync(`${targetPath}/agentmark/party.jsonl`, partyDataset);
+  
+  // Create story teller prompt and dataset
+  const storyTellerPrompt = getStoryTellerPrompt();
+  fs.writeFileSync(`${targetPath}/agentmark/story-teller.prompt.mdx`, storyTellerPrompt);
+  const storyDataset = getStoryDataset();
+  fs.writeFileSync(`${targetPath}/agentmark/story.jsonl`, storyDataset);
+  
+  console.log('✅ Example prompts and datasets created in agentmark folder');
 };

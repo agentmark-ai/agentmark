@@ -1,4 +1,5 @@
----
+export const getAnimalDrawingPrompt = (): string => {
+  return `---
 name: animal-drawing
 image_config:
   model_name: dall-e-3
@@ -13,4 +14,5 @@ test_settings:
 
 <ImagePrompt>
 Draw a hyper-realistic picture of a {props.animal}
-</ImagePrompt>
+</ImagePrompt>`;
+};

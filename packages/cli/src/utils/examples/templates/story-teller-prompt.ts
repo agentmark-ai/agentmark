@@ -1,4 +1,5 @@
----
+export const getStoryTellerPrompt = (): string => {
+  return `---
 name: story-teller
 speech_config:
   model_name: tts-1-hd
@@ -17,4 +18,5 @@ You are a storyteller for children. Make sure your story is engaging and interes
 
 <SpeechPrompt>
 - {props.story}
-</SpeechPrompt>
+</SpeechPrompt>`;
+};
