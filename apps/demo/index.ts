@@ -5,7 +5,7 @@ import {
   VercelAIToolRegistry,
 } from "@agentmark/vercel-ai-v4-adapter";
 import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { generateObject, generateText } from "ai";
 import { FileLoader } from "@agentmark/agentmark-core";
 import AgentmarkTypes, { Tools } from "./agentmark.types";
 
@@ -27,14 +27,14 @@ const agentMark = createAgentMarkClient<AgentmarkTypes>({
 });
 
 async function run() {
-  const prompt = await agentMark.loadTextPrompt("customer-support.prompt.mdx");
+  const prompt = await agentMark.loadObjectPrompt("test/math2.prompt.mdx");
   const props = {
-    customer_question: "My package hasn't arrived yet. Can you help me track it?",
+    userMessage: "Whats 2 + 3?",
   };
 
   const vercelInput = await prompt.format({ props });
-  const result = await generateText(vercelInput);
-  console.log(result.text);
+  const result = await generateObject(vercelInput);
+  console.log(result.object.answer);
 }
 
 run();
