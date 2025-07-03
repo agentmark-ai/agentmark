@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/cli",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "scripts": {
