@@ -203,15 +203,19 @@ export const createClickableLink = (filePath: string, displayText?: string): str
   const fileUrl = `file://${filePath}`;
   const text = displayText || fileUrl;
   
-  // Show just the description, print the path separately to avoid table truncation
-  return text;
+  // ANSI escape sequence for clickable links: \033]8;;URL\033\\TEXT\033]8;;\033\\
+  return `\x1b]8;;${fileUrl}\x1b\\${text}\x1b]8;;\x1b\\`;
 };
 
-// Print the file path outside the table for full visibility
+// Print the file path outside the table for full visibility with clickable link
 export const printFilePath = (filePath: string, description: string): void => {
+  const fileUrl = `file://${filePath}`;
+  const clickableLink = createClickableLink(filePath, "🔗 Click here to open in browser");
+  
   console.log(`   ${description}`);
+  console.log(`   ${clickableLink}`);
   console.log(`   📂 Path: ${filePath}`);
-  console.log(`   💡 Copy and paste this path into your browser address bar\n`);
+  console.log(`   💡 If the link above doesn't work, copy the path into your browser address bar\n`);
 };
 
 // Combined function for mixed content

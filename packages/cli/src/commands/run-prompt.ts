@@ -364,10 +364,11 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
         const title = `AgentMark Dataset Entry ${index} - Generated Images`;
         const htmlFile = createImageFile(result.images, title);
         
-        // Create result text for the table
+        // Create result text for the table with clickable link
         const imageCount = result.images.length;
         const totalSizeKB = result.images.reduce((sum, img) => sum + Math.round(img.base64.length * 0.75 / 1024), 0);
-        const resultText = `${imageCount} image(s) (${totalSizeKB}KB)`;
+        const clickableLink = createClickableLink(htmlFile, "🖼️ View Images");
+        const resultText = `${imageCount} image(s) (${totalSizeKB}KB)\n${clickableLink}`;
         
         // Create a single-row table for this entry and print immediately
         const rowTable = new Table({
@@ -458,9 +459,10 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
         const title = `AgentMark Dataset Entry ${index} - Generated Audio`;
         const htmlFile = createAudioFile(result.audio, title);
         
-        // Create result text for the table
+        // Create result text for the table with clickable link
         const sizeKB = Math.round(result.audio.base64.length * 0.75 / 1024);
-        const resultText = `Audio: ${result.audio.mimeType} (${sizeKB}KB)`;
+        const clickableLink = createClickableLink(htmlFile, "🔊 Play Audio");
+        const resultText = `Audio: ${result.audio.mimeType} (${sizeKB}KB)\n${clickableLink}`;
         
         // Create a single-row table for this entry and print immediately
         const rowTable = new Table({
