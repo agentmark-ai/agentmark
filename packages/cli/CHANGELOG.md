@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.7.0
+
+### Minor Changes
+
+- c392fda: New example prompts and datasets
+
 ## 1.6.3
 
 ### Patch Changes
