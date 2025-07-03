@@ -157,18 +157,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai@npm:^0.0.66":
-  version: 0.0.66
-  resolution: "@ai-sdk/openai@npm:0.0.66"
-  dependencies:
-    "@ai-sdk/provider": "npm:0.0.24"
-    "@ai-sdk/provider-utils": "npm:1.0.20"
-  peerDependencies:
-    zod: ^3.0.0
-  checksum: 10c0/b51bef9fc4e4fbad61997457bf4f8e1da9d8ac97077457a6995b5add0c0eaae6cbb0f53df773ad9a61071a5e7c9f50ea63922af2dbff8ca8fb8e3df37eeed787
-  languageName: node
-  linkType: hard
-
 "@ai-sdk/openai@npm:^1.3.13":
   version: 1.3.22
   resolution: "@ai-sdk/openai@npm:1.3.22"
@@ -178,23 +166,6 @@ __metadata:
   peerDependencies:
     zod: ^3.0.0
   checksum: 10c0/bcc73a84bebd15aa54568c3c77cedd5f999e282c5be180d5e28ebc789f8873dd0a74d87f1ec4a0f16e3e61b658c3b0734835daf176ed910966246db73c72b468
-  languageName: node
-  linkType: hard
-
-"@ai-sdk/provider-utils@npm:1.0.20":
-  version: 1.0.20
-  resolution: "@ai-sdk/provider-utils@npm:1.0.20"
-  dependencies:
-    "@ai-sdk/provider": "npm:0.0.24"
-    eventsource-parser: "npm:1.1.2"
-    nanoid: "npm:3.3.6"
-    secure-json-parse: "npm:2.7.0"
-  peerDependencies:
-    zod: ^3.0.0
-  peerDependenciesMeta:
-    zod:
-      optional: true
-  checksum: 10c0/40b3a9f3188904ba4e56d857d9bf7297ac2787bf92e2af26d95e435dc04cee6a12d82af71a04e1e2bea15e5b3cf7ddffc33323d2e06c372de0d853624f60f6fb
   languageName: node
   linkType: hard
 
@@ -208,15 +179,6 @@ __metadata:
   peerDependencies:
     zod: ^3.23.8
   checksum: 10c0/34c72bf5f23f2d3e7aef496da7099422ba3b3ff243c35511853e16c3f1528717500262eea32b19e3e09bc4452152a5f31e650512f53f08a5f5645d907bff429e
-  languageName: node
-  linkType: hard
-
-"@ai-sdk/provider@npm:0.0.24":
-  version: 0.0.24
-  resolution: "@ai-sdk/provider@npm:0.0.24"
-  dependencies:
-    json-schema: "npm:0.4.0"
-  checksum: 10c0/6e550c33ce6375636897b24ad8dfb2a605ff91d92aabd3c7aba2049f3d943c3a5534a1441e9ae4d7ef35c864687dc41c15704d19f11dcc6624fa1e705255c103
   languageName: node
   linkType: hard
 
@@ -2771,10 +2733,6 @@ __metadata:
   dependencies:
     "@agentmark/agentmark-core": "workspace:*"
     "@agentmark/vercel-ai-v4-adapter": "workspace:*"
-    "@ai-sdk/openai": "npm:^0.0.66"
-    ai: "npm:^4.0.0"
-    dotenv: "npm:^16.0.0"
-    zod: "npm:^3.23.8"
   languageName: unknown
   linkType: soft
 
@@ -4028,13 +3986,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.0.0":
-  version: 16.6.1
-  resolution: "dotenv@npm:16.6.1"
-  checksum: 10c0/15ce56608326ea0d1d9414a5c8ee6dcf0fffc79d2c16422b4ac2268e7e2d76ff5a572d37ffe747c377de12005f14b3cc22361e79fc7f1061cce81f77d2c973dc
-  languageName: node
-  linkType: hard
-
 "dotenv@npm:^16.4.5, dotenv@npm:^16.5.0":
   version: 16.5.0
   resolution: "dotenv@npm:16.5.0"
@@ -4563,13 +4514,6 @@ __metadata:
   version: 3.3.0
   resolution: "events@npm:3.3.0"
   checksum: 10c0/d6b6f2adbccbcda74ddbab52ed07db727ef52e31a61ed26db9feb7dc62af7fc8e060defa65e5f8af9449b86b52cc1a1f6a79f2eafcf4e62add2b7a1fa4a432f6
-  languageName: node
-  linkType: hard
-
-"eventsource-parser@npm:1.1.2":
-  version: 1.1.2
-  resolution: "eventsource-parser@npm:1.1.2"
-  checksum: 10c0/b38948bc81ae6c2a8b9c88383d4f8c2bfbaf23955827a9af68d39bc0550ae83cc400b197e814bea9aef6e0cdc9bae5afd95787418ee3d9ad01ffc4774cf1b84a
   languageName: node
   linkType: hard
 
@@ -5930,7 +5874,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"json-schema@npm:0.4.0, json-schema@npm:^0.4.0":
+"json-schema@npm:^0.4.0":
   version: 0.4.0
   resolution: "json-schema@npm:0.4.0"
   checksum: 10c0/d4a637ec1d83544857c1c163232f3da46912e971d5bf054ba44fdb88f07d8d359a462b4aec46f2745efbc57053365608d88bc1d7b1729f7b4fc3369765639ed3
@@ -7199,15 +7143,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nanoid@npm:3.3.6":
-  version: 3.3.6
-  resolution: "nanoid@npm:3.3.6"
-  bin:
-    nanoid: bin/nanoid.cjs
-  checksum: 10c0/606b355960d0fcbe3d27924c4c52ef7d47d3b57208808ece73279420d91469b01ec1dce10fae512b6d4a8c5a5432b352b228336a8b2202a6ea68e67fa348e2ee
-  languageName: node
-  linkType: hard
-
 "nanoid@npm:^3.3.8":
   version: 3.3.11
   resolution: "nanoid@npm:3.3.11"
@@ -8462,7 +8397,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"secure-json-parse@npm:2.7.0, secure-json-parse@npm:^2.7.0":
+"secure-json-parse@npm:^2.7.0":
   version: 2.7.0
   resolution: "secure-json-parse@npm:2.7.0"
   checksum: 10c0/f57eb6a44a38a3eeaf3548228585d769d788f59007454214fab9ed7f01fbf2e0f1929111da6db28cf0bcc1a2e89db5219a59e83eeaec3a54e413a0197ce879e4
