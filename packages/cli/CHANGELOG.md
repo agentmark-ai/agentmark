@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 1.8.0
+
+### Minor Changes
+
+- 30ec78c: Including trace example for cloud
+
 ## 1.7.1
 
 ### Patch Changes
