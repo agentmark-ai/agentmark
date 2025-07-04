@@ -29,14 +29,14 @@ const agentmark = createAgentMarkClient<AgentMarkTypes>({
   modelRegistry
 });
 
-const traceId = crypto.randomUUID();
-const traceName = "customer-support";
-
 const telemetry = {
   isEnabled: true,
   metadata: {
-    traceId,
-    traceName,
+    traceId: "trace-123",
+    traceName: "customer-support",
+    userId: "user-123",
+    sessionId: "session-123",
+    sessionName: "my-first-session",
   },
 };
 
