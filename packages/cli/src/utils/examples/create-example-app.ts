@@ -88,7 +88,7 @@ export const createExampleApp = async (
         `${folderName !== "." ? "2" : "1"}. Update the .env file with your AgentMark Cloud and API credentials`
       );
       console.log(`${folderName !== "." ? "3" : "2"}. Run "npm run agentmark:example-trace" to execute an example`);
-      console.log(`${folderName !== "." ? "4" : "3"}. View your evaluations in the AgentMark Cloud dashboard`);
+      console.log(`${folderName !== "." ? "4" : "3"}. View your traces in the AgentMark Cloud dashboard`);
     } else {
       console.log(`${folderName !== "." ? "2" : "1"}. Update the .env file with your API credentials`);
       console.log(
@@ -96,7 +96,9 @@ export const createExampleApp = async (
       );
     }
 
-    console.log(`NOTE: You can also test your prompts using our CLI: "npx @agentmark/cli@latest run-prompt agentmark/customer-support.prompt.mdx"`)
+    console.log(`
+      NOTE: You can also test your prompts locally using our CLI: "npx @agentmark/cli run-prompt agentmark/customer-support.prompt.mdx"
+    `)
 
 
     console.log(
