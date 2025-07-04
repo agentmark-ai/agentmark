@@ -18,10 +18,18 @@ export const setupPackageJson = (targetPath: string = ".", target?: string) => {
   pkgJson.description =
     pkgJson.description || "A simple Node.js app using the Agentmark SDK";
   
-  pkgJson.scripts = {
-    ...pkgJson.scripts,
-    start: "ts-node index.ts",
-  };
+  // Create different npm scripts based on target
+  if (target === "cloud") {
+    pkgJson.scripts = {
+      ...pkgJson.scripts,
+      "agentmark:example-trace": "ts-node index.ts",
+    };
+  } else {
+    pkgJson.scripts = {
+      ...pkgJson.scripts,
+      start: "ts-node index.ts",
+    };
+  }
   fs.writeJSONSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 

@@ -87,7 +87,7 @@ export const createExampleApp = async (
       console.log(
         `${folderName !== "." ? "2" : "1"}. Update the .env file with your AgentMark Cloud and API credentials`
       );
-      console.log(`${folderName !== "." ? "3" : "2"}. Run "npm start" to execute an example`);
+      console.log(`${folderName !== "." ? "3" : "2"}. Run "npm run agentmark:example-trace" to execute an example`);
       console.log(`${folderName !== "." ? "4" : "3"}. View your evaluations in the AgentMark Cloud dashboard`);
     } else {
       console.log(`${folderName !== "." ? "2" : "1"}. Update the .env file with your API credentials`);

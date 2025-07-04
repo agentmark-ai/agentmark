@@ -54,7 +54,7 @@ const runCustomerSupport = async (customer_message: string) => {
   return resp.text;
 };
 
-export const agentmarkExampleTrace = async () => {
+const main = async () => {
   try {
     const user_message = "My package hasn't arrived yet. Can you help me track it?";
     const assistant = await runCustomerSupport(user_message);
@@ -64,11 +64,7 @@ export const agentmarkExampleTrace = async () => {
   }
 };
 
-// Export for agentmark:example-trace method
-(global as any)['agentmark:example-trace'] = agentmarkExampleTrace;
-
-// Execute the agentmark:example-trace method
-agentmarkExampleTrace();
+main();
 `;
   } else {
     return `import "dotenv/config";
