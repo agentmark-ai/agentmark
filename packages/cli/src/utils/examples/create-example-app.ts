@@ -71,7 +71,7 @@ export const createExampleApp = async (
     fs.writeJSONSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
     // Setup package.json and install dependencies
-    setupPackageJson(targetPath);
+    setupPackageJson(targetPath, target);
     installDependencies(modelProvider, target, targetPath);
 
     // Success message

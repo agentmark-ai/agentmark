@@ -29,14 +29,14 @@ const agentmark = createAgentMarkClient<AgentMarkTypes>({
   modelRegistry
 });
 
-const traceId = crypto.randomUUID();
-const traceName = "customer-support";
-
 const telemetry = {
   isEnabled: true,
   metadata: {
-    traceId,
-    traceName,
+    traceId: "trace-123",
+    traceName: "customer-support",
+    userId: "user-123",
+    sessionId: "session-123",
+    sessionName: "my-first-session",
   },
 };
 
@@ -54,7 +54,7 @@ const runCustomerSupport = async (customer_message: string) => {
   return resp.text;
 };
 
-const main = async () => {
+export const agentmarkExampleTrace = async () => {
   try {
     const user_message = "My package hasn't arrived yet. Can you help me track it?";
     const assistant = await runCustomerSupport(user_message);
@@ -64,7 +64,11 @@ const main = async () => {
   }
 };
 
-main();
+// Export for agentmark:example-trace method
+(global as any)['agentmark:example-trace'] = agentmarkExampleTrace;
+
+// Execute the agentmark:example-trace method
+agentmarkExampleTrace();
 `;
   } else {
     return `import "dotenv/config";

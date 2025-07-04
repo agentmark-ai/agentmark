@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import { execSync } from "child_process";
 
-export const setupPackageJson = (targetPath: string = ".") => {
+export const setupPackageJson = (targetPath: string = ".", target?: string) => {
   const packageJsonPath = `${targetPath}/package.json`;
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -17,6 +17,7 @@ export const setupPackageJson = (targetPath: string = ".") => {
       : pkgJson.name;
   pkgJson.description =
     pkgJson.description || "A simple Node.js app using the Agentmark SDK";
+  
   pkgJson.scripts = {
     ...pkgJson.scripts,
     start: "ts-node index.ts",
