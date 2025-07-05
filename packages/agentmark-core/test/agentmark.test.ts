@@ -34,6 +34,21 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  "speech-single-prop.prompt.mdx": {
+    kind: "speech";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
+  "speech-simple.prompt.mdx": {
+    kind: "speech";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
+  "speech-hybrid.prompt.mdx": {
+    kind: "speech";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
   "mathDataset.prompt.mdx": {
     kind: "object";
     input: { userMessage: string };
@@ -102,6 +117,53 @@ describe("AgentMark Integration", () => {
     expect(result.speech_config.model_name).toBe("test-model");
     expect(result.speech_config.text).toBe(
       "This is a test for the speech prompt to be spoken aloud."
+    );
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe(
+      "Please read this text aloud."
+    );
+    expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should handle simple text in SpeechPrompt", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech-simple.prompt.mdx");
+    const result = await speechPrompt.format({
+      userMessage: "This is a test message from props",
+    });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe("Simple test text");
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe(
+      "Please read this text aloud."
+    );
+    expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should handle hybrid text with JSX expression in SpeechPrompt", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech-hybrid.prompt.mdx");
+    const result = await speechPrompt.format({
+      userMessage: "test message",
+    });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe("Text before: test message");
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe(
+      "Please read this text aloud."
+    );
+    expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should handle single JSX expression in SpeechPrompt", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech-single-prop.prompt.mdx");
+    const result = await speechPrompt.format({
+      userMessage: "This is a test message from props",
+    });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe(
+      "This is a test message from props"
     );
     expect(result.speech_config.voice).toBe("nova");
     expect(result.speech_config.output_format).toBe("mp3");

@@ -73,9 +73,24 @@ export class ExtractTextPlugin extends TagPlugin {
 
         const mediaParts = scope.getShared("__agentmark-mediaParts") || [];
         const hasMediaContent = tagName === USER && mediaParts.length;
-        const content = hasMediaContent
-          ? [{ type: "text", text: extractedText.trim() }, ...media]
-          : extractedText.trim();
+        
+        const trimmedText = extractedText.trim();
+        
+        // Special handling for SpeechPrompt and ImagePrompt tags
+        // If these tags have children but produce empty content, preserve the original content
+        let content: string | Array<TextPart | ImagePart | FilePart>;
+        if ((tagName === SPEECH_PROMPT || tagName === IMAGE_PROMPT)) {
+          // For speech/image prompts, always preserve content even if it's just whitespace
+          // This ensures JSX expressions don't get lost during markdown conversion
+          const finalText = trimmedText || extractedText || " ";
+          content = hasMediaContent
+            ? [{ type: "text", text: finalText }, ...media]
+            : finalText;
+        } else {
+          content = hasMediaContent
+            ? [{ type: "text", text: trimmedText }, ...media]
+            : trimmedText;
+        }
 
         resolve({
           content,
@@ -263,6 +278,8 @@ function getPrompt({
         (field) => field.name === SYSTEM
       );
 
+
+
       return {
         prompt: (speechField?.content as string) ?? "",
         instructions: systemField?.content as string,
@@ -326,7 +343,7 @@ export async function getRawConfig({
 
   switch (configType) {
     case "speech": {
-      if (speechSettings && prompt) {
+      if (speechSettings && prompt !== undefined) {
         return {
           name,
           speech_config: {

@@ -1,0 +1,19 @@
+---
+name: speech-single-prop
+speech_config:
+  model_name: test-model
+  voice: "nova"
+  speed: 1.0
+  output_format: "mp3"
+test_settings:
+  props:
+    userMessage: "This is a test message from props"
+---
+
+<System>
+Please read this text aloud.
+</System>
+
+<SpeechPrompt>
+{props.userMessage}
+</SpeechPrompt>
