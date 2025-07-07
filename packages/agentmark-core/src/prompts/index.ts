@@ -206,7 +206,10 @@ export class SpeechPrompt<
     props,
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptSpeech"]>> {
-    const compiled = await this.compile(props);
+    const compiled = await this.templateEngine.compile<SpeechConfig, T[K]["input"]>({
+      template: this.template,
+      props: props,
+    });
     return this.adapter.adaptSpeech(compiled, options);
   }
 }

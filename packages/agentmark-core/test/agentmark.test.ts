@@ -34,6 +34,21 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  "speech-simple.prompt.mdx": {
+    kind: "speech";
+    input: {};
+    output: { answer: string };
+  };
+  "speech-hybrid.prompt.mdx": {
+    kind: "speech";
+    input: { userName: string };
+    output: { answer: string };
+  };
+  "speech-single-prop.prompt.mdx": {
+    kind: "speech";
+    input: { userMessage: string };
+    output: { answer: string };
+  };
 
   "mathDataset.prompt.mdx": {
     kind: "object";
@@ -112,7 +127,42 @@ describe("AgentMark Integration", () => {
     expect(result.speech_config.speed).toBe(1.0);
   });
 
+  it("should load and compile speech prompt with simple text", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech-simple.prompt.mdx");
+    const result = await speechPrompt.format({});
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe("Simple test text");
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe("Please read this text aloud.");
+    expect(result.speech_config.speed).toBe(1.0);
+  });
 
+  it("should load and compile speech prompt with mixed text and JSX", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech-hybrid.prompt.mdx");
+    const result = await speechPrompt.format({
+      userName: "Alice",
+    });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe("Hello Alice, this is a test");
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe("Please read this text aloud.");
+    expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should load and compile speech prompt with single JSX expression", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("speech-single-prop.prompt.mdx");
+    const result = await speechPrompt.format({
+      userMessage: "This is my message",
+    });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe("This is my message");
+    expect(result.speech_config.voice).toBe("nova");
+    expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe("Please read this text aloud.");
+    expect(result.speech_config.speed).toBe(1.0);
+  });
 
   it("should throw an error for invalid prompt tags", async () => {
     await expect(

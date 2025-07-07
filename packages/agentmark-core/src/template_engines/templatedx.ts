@@ -1,4 +1,4 @@
-import { TagPluginRegistry, transform } from "@agentmark/templatedx";
+import { TagPluginRegistry, transform, createScope, nodeHelpers } from "@agentmark/templatedx";
 import {
   TagPlugin,
   PluginContext,
@@ -66,6 +66,7 @@ export class ExtractTextPlugin extends TagPlugin {
 
         const flattenedChildren = processedChildren.flat();
         
+        // For all tags, use the standard markdown extraction approach
         const extractedText = nodeHelpers.toMarkdown({
           type: "root",
           // @ts-ignore
@@ -101,6 +102,43 @@ export class ExtractTextPlugin extends TagPlugin {
     }
 
     return [];
+  }
+
+  private extractRawContent(nodes: Node[]): string {
+    // Extract raw text content from nodes, preserving JSX expressions
+    let content = "";
+    
+    for (const node of nodes) {
+      if (node.type === 'text') {
+        content += (node as any).value || "";
+      } else if (node.type === 'mdxTextExpression' || node.type === 'mdxFlowExpression') {
+        // Preserve JSX expressions exactly as they appear
+        const expression = (node as any).value || "";
+        content += `{${expression}}`;
+      } else if (node.type === 'paragraph' && (node as any).children) {
+        // Recursively process paragraph children
+        content += this.extractRawContent((node as any).children);
+      } else if ((node as any).children) {
+        // Recursively process other nodes with children
+        content += this.extractRawContent((node as any).children);
+      } else {
+        // For any other node types, try to get their text value
+        const nodeValue = (node as any).value;
+        if (typeof nodeValue === 'string') {
+          content += nodeValue;
+        }
+      }
+    }
+    
+    // Also handle cases where JSX expressions might be embedded in text nodes
+    // Look for patterns like {props.something} and preserve them
+    return content.replace(/\{[^}]+\}/g, (match) => {
+      // If it looks like a JSX expression, preserve it
+      if (match.includes('props.')) {
+        return match;
+      }
+      return match;
+    });
   }
 }
 
@@ -167,6 +205,7 @@ TagPluginRegistry.register(new ExtractTextPlugin(), [
   ASSISTANT,
   SPEECH_PROMPT,
   IMAGE_PROMPT,
+  "s",
 ]);
 
 type CompiledConfig = {
@@ -253,34 +292,62 @@ function validatePrompts({
     throw new Error(`ImagePrompt and System tags cannot be used together.`);
 }
 
+function renderNodesWithProps(
+  nodes: Node[], 
+  props: JSONObject = {}
+): string {
+  // This is a placeholder implementation
+  // In reality, we need to traverse the AST and extract text content
+  return "";
+}
+
 function getPrompt({
   tagName,
   extractedFields,
+  props = {},
 }: {
   tagName: typeof SPEECH_PROMPT | typeof IMAGE_PROMPT;
   extractedFields: Array<ExtractedField>;
+  props?: JSONObject;
 }): { prompt: string; instructions?: string } {
+  
+  // Helper function to resolve JSX expressions in text
+  const resolveJSXExpressions = (text: string): string => {
+    return text.replace(/\{props\.(\w+)\}/g, (match: string, propName: string) => {
+      return String(props[propName] || '');
+    });
+  };
+
   switch (tagName) {
     case SPEECH_PROMPT:
       const speechField = extractedFields.find(
         (field) => field.name === SPEECH_PROMPT
       );
       const systemField = extractedFields.find(
-        (field) => field.name === SYSTEM
+        (field) => field.name === SYSTEM || field.name === "s"
       );
 
-
+      const promptText = speechField?.content 
+        ? resolveJSXExpressions(speechField.content as string) 
+        : "";
+      const instructionsText = systemField?.content 
+        ? resolveJSXExpressions(systemField.content as string) 
+        : "";
 
       return {
-        prompt: (speechField?.content as string) ?? "",
-        instructions: systemField?.content as string,
+        prompt: promptText,
+        instructions: instructionsText,
       };
     case IMAGE_PROMPT:
       const imageField = extractedFields.find(
         (field) => field.name === IMAGE_PROMPT
       );
 
-      return { prompt: (imageField?.content as string) ?? "" };
+      const imagePromptText = imageField?.content 
+        ? resolveJSXExpressions(imageField.content as string) 
+        : "";
+
+      return { prompt: imagePromptText };
     default:
       return { prompt: "" };
   }
@@ -327,6 +394,7 @@ export async function getRawConfig({
     ({ prompt, instructions } = getPrompt({
       tagName: configType === "speech" ? SPEECH_PROMPT : IMAGE_PROMPT,
       extractedFields,
+      props,
     }));
   } else if (configType === "object" || configType === "text") {
     messages = getMessages({ extractedFields, configType });
@@ -334,12 +402,12 @@ export async function getRawConfig({
 
   switch (configType) {
     case "speech": {
-      if (speechSettings && prompt !== undefined) {
+      if (speechSettings) {
         return {
           name,
           speech_config: {
             ...speechSettings,
-            text: prompt,
+            text: prompt || "",
             instructions: instructions ?? "",
           },
           test_settings: testSettings,
@@ -348,7 +416,7 @@ export async function getRawConfig({
       break;
     }
     case "image": {
-      if (imageSettings && prompt) {
+      if (imageSettings && prompt !== undefined) {
         return {
           name,
           image_config: {
