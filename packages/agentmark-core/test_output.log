@@ -1,0 +1,45 @@
+
+ RUN  v3.1.4 /workspace/packages/agentmark-core
+
+ ❯ test/agentmark.test.ts (15 tests | 1 failed | 14 skipped) 29ms
+   ↓ AgentMark Integration > should load and compile prompts with type safety
+   ↓ AgentMark Integration > should load and compile object prompt with type safety
+   ↓ AgentMark Integration > should load and compile image prompt with type safety
+   ↓ AgentMark Integration > should load and compile speech prompt with type safety
+   ↓ AgentMark Integration > should handle simple text in SpeechPrompt
+   × AgentMark Integration > should handle hybrid text with JSX expression in SpeechPrompt 28ms
+     → expected 'Text before:' to be 'Text before: test message' // Object.is equality
+   ↓ AgentMark Integration > should handle single JSX expression in SpeechPrompt
+   ↓ AgentMark Integration > should throw an error for invalid prompt tags
+   ↓ AgentMark Integration > should enforce type safety on prompt paths
+   ↓ AgentMark Integration > should enforce type safety on input props
+   ↓ AgentMark Integration > should work with preloaded prompt objects
+   ↓ AgentMark Integration > should extract rich content from <User> including images, files, and text (with looped mimeTypes)
+   ↓ AgentMark Integration > should throw an error if the attachments are not inside User tag only
+   ↓ AgentMark Integration > should handle formatting with data sets
+   ↓ AgentMark Integration > should handle formatting with test props
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/agentmark.test.ts > AgentMark Integration > should handle hybrid text with JSX expression in SpeechPrompt
+AssertionError: expected 'Text before:' to be 'Text before: test message' // Object.is equality
+
+Expected: [32m"Text before:[7m test message[27m"[39m
+Received: [31m"Text before:"[39m
+
+ ❯ test/agentmark.test.ts:150:39
+    148|     });
+    149|     expect(result.speech_config.model_name).toBe("test-model");
+    150|     expect(result.speech_config.text).toBe("Text before: test message"…
+       |                                       ^
+    151|     expect(result.speech_config.voice).toBe("nova");
+    152|     expect(result.speech_config.output_format).toBe("mp3");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 skipped (15)
+   Start at  15:56:01
+   Duration  1.23s (transform 731ms, setup 0ms, collect 955ms, tests 29ms, environment 0ms, prepare 67ms)
+

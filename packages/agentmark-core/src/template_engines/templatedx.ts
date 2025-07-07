@@ -65,6 +65,7 @@ export class ExtractTextPlugin extends TagPlugin {
         );
 
         const flattenedChildren = processedChildren.flat();
+        
         const extractedText = nodeHelpers.toMarkdown({
           type: "root",
           // @ts-ignore
@@ -73,23 +74,13 @@ export class ExtractTextPlugin extends TagPlugin {
 
         const mediaParts = scope.getShared("__agentmark-mediaParts") || [];
         const hasMediaContent = tagName === USER && mediaParts.length;
-        
         const trimmedText = extractedText.trim();
         
-        // Special handling for SpeechPrompt and ImagePrompt tags
-        // If these tags have children but produce empty content, preserve the original content
         let content: string | Array<TextPart | ImagePart | FilePart>;
-        if ((tagName === SPEECH_PROMPT || tagName === IMAGE_PROMPT)) {
-          // For speech/image prompts, always preserve content even if it's just whitespace
-          // This ensures JSX expressions don't get lost during markdown conversion
-          const finalText = trimmedText || extractedText || " ";
-          content = hasMediaContent
-            ? [{ type: "text", text: finalText }, ...media]
-            : finalText;
+        if (hasMediaContent) {
+          content = [{ type: "text", text: trimmedText }, ...media];
         } else {
-          content = hasMediaContent
-            ? [{ type: "text", text: trimmedText }, ...media]
-            : trimmedText;
+          content = trimmedText;
         }
 
         resolve({
