@@ -29,51 +29,24 @@ AgentMark makes prompt engineering intuitive by combining familiar Markdown synt
 AgentMark comes with comprehensive tooling included—featuring full type safety, unified prompt configuration, syntax highlighting, loops and conditionals, custom SDK adapters, and support for text, object, image, and speech generation across multiple model providers, even when they don't support native structured output APIs.
 
 
-## Quick Start
+## Example Prompt
 
-Get started with AgentMark using our CLI.
+![AgentMark MDX Example](/assets/agentmark-mdx.png)
 
-```bash
-npx @agentmark/cli@latest init
-```
-
-## Generation Types
-
-AgentMark supports:
-
-- Text Generation
-- Object Generation
-- Image Generation
-- Speech/Audio Generation
-- Tools/Agents
-
-### Text Generation Example
-
-```jsx text.prompt.mdx
----
-name: text
-text_config:
-  model_name: gpt-4o-mini
----
-<User>Tell me a good joke</User>
-```
+_AgentMark prompt file example_
 
 Read more [here](https://docs.agentmark.co/agentmark/generation_types/overview)
 
-### Features
+## Features
 
-AgentMark supports:
-
-1. Markdown: 📝
-1. Syntax highlighting: 🌈
-1. Type Safety: 🛡️
-1. Unified prompt config: 🔗
-1. JSX components, props, & plugins: 🧩
-1. Loops, Conditionals, and Filter Functions: ♻️
-1. Custom SDK Adapters: 🛠️
-1. JSON Output: 📦
-1. Tools & Agents: 🕵️
-1. Text, Object, Image and Speech generation.📝 🖼 🔊
+| Feature | Description |
+|---------|-------------|
+| [Multimodal Generation](https://docs.agentmark.co/agentmark/generation_types/overview) | Generate text, objects, images, and speech from a single prompt file, supporting a wide range of model capabilities. |
+| [Tools and Agents](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Extend prompts with custom tools and agentic workflows, enabling API calls, calculations, and multi-step reasoning. |
+| [File Attachments](https://docs.agentmark.co/agentmark/prompt_basics/file-attachments) | Attach images and files to prompts for tasks like image analysis, document processing, and more. |
+| [Type Safety](https://docs.agentmark.co/agentmark/running_prompts/type-safety) | Ensure reliable, type-checked inputs and outputs for prompts using JSON Schema and auto-generated TypeScript types. |
+| [Conditionals](https://docs.agentmark.co/agentmark/prompt_basics/conditionals), [Loops](https://docs.agentmark.co/agentmark/prompt_basics/loops), [Props](https://docs.agentmark.co/agentmark/prompt_basics/props), [Filter Functions](https://docs.agentmark.co/agentmark/prompt_basics/filter_functions) | Add logic, dynamic data, and transformations to your prompts with powerful JSX-like syntax. |
+| [CLI for running/testing](https://docs.agentmark.co/agentmark/running_prompts/vscode) | Run, test, and debug prompts directly from the command line or your editor for rapid iteration. |
 
 Read our [docs](https://docs.agentmark.co/agentmark/) to learn more.
 
