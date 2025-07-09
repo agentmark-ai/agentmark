@@ -79,45 +79,6 @@ function getMessages({
   return messages;
 }
 
-function validatePrompts({
-  extractedFields,
-  configType,
-}: {
-  extractedFields: ExtractedField[];
-  configType: PromptKind;
-}) {
-  const tagNames = new Set(extractedFields.map((f) => f.name));
-  const invalidTags = [ASSISTANT, USER];
-
-  const hasSystem = tagNames.has(SYSTEM);
-  const hasSpeechPrompt = tagNames.has(SPEECH_PROMPT);
-  const hasImagePrompt = tagNames.has(IMAGE_PROMPT);
-  const invalidTag = invalidTags.find((tag) => tagNames.has(tag));
-
-  if (invalidTag)
-    throw new Error(
-      `Invalid tag: ${invalidTag} found in config type: ${configType}.`
-    );
-
-  if (configType === "speech" && !hasSpeechPrompt) {
-    throw new Error(
-      `'SpeechPrompt' tag not found for config type: ${configType}.`
-    );
-  }
-
-  if (configType === "image" && !hasImagePrompt) {
-    throw new Error(
-      `'ImagePrompt' tag not found for config type: ${configType}.`
-    );
-  }
-  if (hasSpeechPrompt && hasImagePrompt)
-    throw new Error(
-      `SpeechPrompt and ImagePrompt tags cannot be used together.`
-    );
-  if (hasImagePrompt && hasSystem)
-    throw new Error(`ImagePrompt and System tags cannot be used together.`);
-}
-
 function getPrompt({
   tagName,
   extractedFields,
@@ -156,11 +117,9 @@ export async function getRawConfig({
   ast: Ast;
   props?: JSONObject;
 }): Promise<AgentmarkConfig> {
-  // First, get front matter to determine the prompt type
   const frontMatter: any = languageTemplateDX.getFrontMatter(ast);
   const promptType = determinePromptType(frontMatter);
-  
-  // Get the appropriate TemplateDX instance
+
   const templateDXInstance = getTemplateDXInstance(promptType);
   
   const shared: SharedContext = {};
@@ -192,7 +151,6 @@ export async function getRawConfig({
   }
 
   if (configType === "speech" || configType === "image") {
-    validatePrompts({ extractedFields, configType });
     ({ prompt, instructions } = getPrompt({
       tagName: configType === "speech" ? SPEECH_PROMPT : IMAGE_PROMPT,
       extractedFields,
