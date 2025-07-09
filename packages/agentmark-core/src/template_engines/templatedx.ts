@@ -1,11 +1,4 @@
-import { TagPluginRegistry, transform } from "@agentmark/templatedx";
-import {
-  TagPlugin,
-  PluginContext,
-  getFrontMatter,
-} from "@agentmark/templatedx";
 import type { Ast } from "@agentmark/templatedx";
-import type { Node } from "mdast";
 import type { TemplateEngine, JSONObject, TestSettings } from "../types";
 import type { ImagePart, TextPart, FilePart } from "ai";
 import type {
@@ -18,6 +11,11 @@ import type {
   ChatMessage,
   AgentmarkConfig,
 } from "../types";
+import { 
+  languageTemplateDX, 
+  getTemplateDXInstance,
+  determinePromptType 
+} from "./templatedx-instances";
 
 type ExtractedField = {
   name: string;
@@ -35,133 +33,6 @@ const ROLETAGS = new Set([USER, SYSTEM, ASSISTANT]);
 
 const SPEECH_PROMPT = "SpeechPrompt";
 const IMAGE_PROMPT = "ImagePrompt";
-
-export class ExtractTextPlugin extends TagPlugin {
-  async transform(
-    _props: Record<string, any>,
-    children: Node[],
-    pluginContext: PluginContext
-  ): Promise<Node[] | Node> {
-    const { scope, tagName, createNodeTransformer, nodeHelpers } =
-      pluginContext;
-
-    if (!tagName) {
-      throw new Error("elementName must be provided in pluginContext");
-    }
-
-    const promise = new Promise(async (resolve, reject) => {
-      try {
-        const childScope = scope.createChild();
-        if (tagName === USER) {
-          childScope.setShared("__insideMessageType", USER);
-        }
-
-        const transformer = createNodeTransformer(childScope);
-        const processedChildren = await Promise.all(
-          children.map(async (child) => {
-            const result = await transformer.transformNode(child);
-            return Array.isArray(result) ? result : [result];
-          })
-        );
-
-        const flattenedChildren = processedChildren.flat();
-        const extractedText = nodeHelpers.toMarkdown({
-          type: "root",
-          // @ts-ignore
-          children: flattenedChildren,
-        });
-
-        const mediaParts = scope.getShared("__agentmark-mediaParts") || [];
-        const hasMediaContent = tagName === USER && mediaParts.length;
-        const content = hasMediaContent
-          ? [{ type: "text", text: extractedText.trim() }, ...media]
-          : extractedText.trim();
-
-        resolve({
-          content,
-          name: tagName,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    const media = scope.getShared("__agentmark-mediaParts") || [];
-    const promises = scope.getShared("__agentmark-extractTextPromises");
-    if (!promises) {
-      scope.setShared("__agentmark-extractTextPromises", [promise]);
-    } else {
-      promises.push(promise);
-    }
-
-    return [];
-  }
-}
-
-export class ExtractMediaPlugin extends TagPlugin {
-  private readonly key = "__agentmark-mediaParts";
-  async transform(
-    props: Record<string, any>,
-    _children: Node[],
-    pluginContext: PluginContext
-  ): Promise<Node[]> {
-    const { tagName, scope } = pluginContext;
-    if (!tagName) throw new Error("Missing tagName in pluginContext");
-
-    const isInsideUser = scope.getShared("__insideMessageType");
-    if (!(isInsideUser === USER))
-      throw new Error(
-        "ImageAttachment and FileAttachment tags must be inside User tag."
-      );
-
-    const mediaParts = scope.getShared(this.key) || [];
-
-    /*
-     * For both ImageAttachment and FileAttachment, we need to ensure the required prop
-     * Are defined (even if they are an empty string or passed from inputProps).
-     * This allows for placeholders like image={props.image}, which resolve later during formatting.
-     */
-
-    if (tagName === "ImageAttachment") {
-      const { image, mimeType } = props;
-
-      if (image == undefined) {
-        throw new Error("ImageAttachment must contains an image prop");
-      }
-
-      if (image) {
-        mediaParts.push({
-          type: "image",
-          image,
-          ...(mimeType && { mimeType }),
-        });
-      }
-    } else if (tagName === "FileAttachment") {
-      const { data, mimeType } = props;
-      if (data == undefined || mimeType == undefined) {
-        throw new Error("FileAttachment must contains data and mimeType props");
-      }
-      if (data && mimeType) {
-        mediaParts.push({ type: "file", data, mimeType });
-      }
-    }
-    scope.setShared(this.key, mediaParts);
-    return [];
-  }
-}
-
-TagPluginRegistry.register(new ExtractMediaPlugin(), [
-  "ImageAttachment",
-  "FileAttachment",
-]);
-
-TagPluginRegistry.register(new ExtractTextPlugin(), [
-  USER,
-  SYSTEM,
-  ASSISTANT,
-  SPEECH_PROMPT,
-  IMAGE_PROMPT,
-]);
 
 type CompiledConfig = {
   name: string;
@@ -285,9 +156,15 @@ export async function getRawConfig({
   ast: Ast;
   props?: JSONObject;
 }): Promise<AgentmarkConfig> {
-  const frontMatter: any = getFrontMatter(ast);
+  // First, get front matter to determine the prompt type
+  const frontMatter: any = languageTemplateDX.getFrontMatter(ast);
+  const promptType = determinePromptType(frontMatter);
+  
+  // Get the appropriate TemplateDX instance
+  const templateDXInstance = getTemplateDXInstance(promptType);
+  
   const shared: SharedContext = {};
-  await transform(ast, props || {}, shared);
+  await templateDXInstance.transform(ast, props || {}, shared);
   const extractedFieldPromises =
     shared["__agentmark-extractTextPromises"] || [];
   const extractedFields = await Promise.all(extractedFieldPromises);

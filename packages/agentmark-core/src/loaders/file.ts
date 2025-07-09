@@ -1,5 +1,5 @@
 import path from "path";
-import { load } from "@agentmark/templatedx";
+import { languageTemplateDX, determinePromptType, getTemplateDXInstance } from "../template_engines/templatedx-instances";
 import { Loader } from "../types";
 import type { Ast } from "@agentmark/templatedx";
 import { PromptShape } from "../types";
@@ -15,8 +15,29 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
 
   async load(templatePath: string): Promise<Ast> {
     const fullPath = path.join(this.basePath, templatePath);
-    const content = await load(fullPath);
-    return content;
+    const content = fs.readFileSync(fullPath, 'utf-8');
+    
+    // Create a contentLoader function for reading additional files
+    const contentLoader = async (filePath: string) => {
+      return fs.readFileSync(filePath, 'utf-8');
+    };
+    
+    // Use a TemplateDX instance to parse the content instead of static load function
+    // First parse with language instance to get frontmatter and determine type
+    const initialAst = await languageTemplateDX.parse(content, this.basePath, contentLoader);
+    const frontMatter = languageTemplateDX.getFrontMatter(initialAst);
+    const promptType = determinePromptType(frontMatter);
+    
+    // Get the appropriate instance and re-parse if needed
+    const templateDXInstance = getTemplateDXInstance(promptType);
+    
+    // If it's already the language instance, use the existing AST
+    if (promptType === 'language') {
+      return initialAst;
+    }
+    
+    // Otherwise, parse with the appropriate instance
+    return await templateDXInstance.parse(content, this.basePath, contentLoader);
   }
 
   async loadDataset(datasetPath: string): Promise<
