@@ -549,16 +549,16 @@ const runPrompt = async (filepath: string, options: RunPromptOptions) => {
   let promptConfig: any;
 
   // Determine prompt kind based on config
-  if (compiledYaml?.image_config) {
+  if ('image_config' in compiledYaml) {
     promptKind = "image";
     promptConfig = compiledYaml.image_config;
-  } else if (compiledYaml?.object_config) {
+  } else if ('object_config' in compiledYaml) {
     promptKind = "object";
     promptConfig = compiledYaml.object_config;
-  } else if (compiledYaml?.text_config) {
+  } else if ('text_config' in compiledYaml) {
     promptKind = "text";
     promptConfig = compiledYaml.text_config;
-  } else if (compiledYaml?.speech_config) {
+  } else if ('speech_config' in compiledYaml) {
     promptKind = "speech";
     promptConfig = compiledYaml.speech_config;
   } else {
