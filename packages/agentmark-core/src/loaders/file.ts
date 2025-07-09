@@ -1,10 +1,26 @@
 import path from "path";
-import { languageTemplateDX, determinePromptType, getTemplateDXInstance } from "../template_engines/templatedx-instances";
-import { Loader } from "../types";
+import { getTemplateDXInstance } from "../template_engines/templatedx-instances";
+import { Loader, PromptKind } from "../types";
 import type { Ast } from "@agentmark/templatedx";
 import { PromptShape } from "../types";
 import fs from "fs";
 import readline from "readline";
+
+type TemplatedXInstanceType = 'image' | 'speech' | 'language';
+
+function mapPromptKindToInstanceType(promptKind: PromptKind): TemplatedXInstanceType {
+  switch (promptKind) {
+    case 'image':
+      return 'image';
+    case 'speech':
+      return 'speech';
+    case 'text':
+    case 'object':
+      return 'language';
+    default:
+      return 'language';
+  }
+}
 
 export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
   private basePath: string;
@@ -13,7 +29,7 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
-  async load(templatePath: string): Promise<Ast> {
+  async load(templatePath: string, options?: any, promptType?: PromptKind): Promise<Ast> {
     const fullPath = path.join(this.basePath, templatePath);
     const content = fs.readFileSync(fullPath, 'utf-8');
     
@@ -22,21 +38,15 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
       return fs.readFileSync(filePath, 'utf-8');
     };
     
-    // Use a TemplateDX instance to parse the content instead of static load function
-    // First parse with language instance to get frontmatter and determine type
-    const initialAst = await languageTemplateDX.parse(content, this.basePath, contentLoader);
-    const frontMatter = languageTemplateDX.getFrontMatter(initialAst);
-    const promptType = determinePromptType(frontMatter);
-    
-    // Get the appropriate instance and re-parse if needed
-    const templateDXInstance = getTemplateDXInstance(promptType);
-    
-    // If it's already the language instance, use the existing AST
-    if (promptType === 'language') {
-      return initialAst;
+    // If promptType is provided, use the appropriate instance directly
+    if (promptType) {
+      const instanceType = mapPromptKindToInstanceType(promptType);
+      const templateDXInstance = getTemplateDXInstance(instanceType);
+      return await templateDXInstance.parse(content, this.basePath, contentLoader);
     }
     
-    // Otherwise, parse with the appropriate instance
+    // Fallback: use language instance if no promptType specified (for backward compatibility)
+    const templateDXInstance = getTemplateDXInstance('language');
     return await templateDXInstance.parse(content, this.basePath, contentLoader);
   }
 
