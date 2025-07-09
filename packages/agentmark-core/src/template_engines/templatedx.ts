@@ -61,17 +61,17 @@ function getMessages({
       throw new Error(`Invalid role tag:"${fieldName}" in config type: ${configType}.`);
     }
 
-    if (fieldName === "User") {
+    if (fieldName === USER) {
       messages.push({ 
         role: "user", 
         content: field.content as any
       });
-    } else if (fieldName === "Assistant") {
+    } else if (fieldName === ASSISTANT) {
       messages.push({ 
         role: "assistant", 
         content: field.content as string 
       });
-    } else if (fieldName === "System") {
+    } else if (fieldName === SYSTEM) {
       messages.push({ 
         role: "system", 
         content: field.content as string 
