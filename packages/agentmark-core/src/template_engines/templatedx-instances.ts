@@ -17,18 +17,6 @@ const ASSISTANT = "Assistant";
 const SPEECH_PROMPT = "SpeechPrompt";
 const IMAGE_PROMPT = "ImagePrompt";
 
-// Simple tag plugin for basic tags that just pass through their content
-class BasicTagPlugin extends TagPlugin {
-  async transform(
-    _props: Record<string, any>,
-    children: Node[],
-    pluginContext: PluginContext
-  ): Promise<Node[] | Node> {
-    // For basic tags, we just return the children as-is
-    return children;
-  }
-}
-
 class ExtractTextPlugin extends TagPlugin {
   async transform(
     _props: Record<string, any>,
@@ -42,13 +30,10 @@ class ExtractTextPlugin extends TagPlugin {
       throw new Error("elementName must be provided in pluginContext");
     }
 
-    // Handle alias: 's' -> 'System'
-    const normalizedTagName = tagName === 's' ? SYSTEM : tagName;
-
     const promise = new Promise(async (resolve, reject) => {
       try {
         const childScope = scope.createChild();
-        if (normalizedTagName === USER) {
+        if (tagName === USER) {
           childScope.setShared("__insideMessageType", USER);
         }
 
@@ -68,14 +53,14 @@ class ExtractTextPlugin extends TagPlugin {
         });
 
         const mediaParts = scope.getShared("__agentmark-mediaParts") || [];
-        const hasMediaContent = normalizedTagName === USER && mediaParts.length;
+        const hasMediaContent = tagName === USER && mediaParts.length;
         const content = hasMediaContent
           ? [{ type: "text", text: extractedText.trim() }, ...mediaParts]
           : extractedText.trim();
 
         resolve({
           content,
-          name: normalizedTagName,
+          name: tagName,
         });
       } catch (error) {
         reject(error);
@@ -112,12 +97,6 @@ class ExtractMediaPlugin extends TagPlugin {
 
     const mediaParts = scope.getShared(this.key) || [];
 
-    /*
-     * For both ImageAttachment and FileAttachment, we need to ensure the required prop
-     * Are defined (even if they are an empty string or passed from inputProps).
-     * This allows for placeholders like image={props.image}, which resolve later during formatting.
-     */
-
     if (tagName === "ImageAttachment") {
       const { image, mimeType } = props;
 
@@ -146,63 +125,23 @@ class ExtractMediaPlugin extends TagPlugin {
   }
 }
 
-/**
- * TemplateDX instance dedicated to Image processing
- * This instance can have specialized plugins and filters for image generation prompts
- */
-export const imageTemplateDX = new TemplateDX({
-  includeBuiltins: true
-});
+export const imageTemplateDX = new TemplateDX();
 
-/**
- * TemplateDX instance dedicated to Speech processing  
- * This instance can have specialized plugins and filters for speech generation prompts
- */
-export const speechTemplateDX = new TemplateDX({
-  includeBuiltins: true
-});
+export const speechTemplateDX = new TemplateDX();
 
-/**
- * TemplateDX instance dedicated to Language processing (text + object)
- * This instance can have specialized plugins and filters for text and object generation prompts
- */
-export const languageTemplateDX = new TemplateDX({
-  includeBuiltins: true
-});
+export const languageTemplateDX = new TemplateDX();
 
-// Create plugin instances
-const basicTagPlugin = new BasicTagPlugin();
 const extractMediaPlugin = new ExtractMediaPlugin();
 const extractTextPlugin = new ExtractTextPlugin();
 
-// Register plugins on all three instances
-const basicTags = ["s", "ForEach"]; // 's' is an alias for System
+imageTemplateDX.registerTagPlugin(extractTextPlugin, [IMAGE_PROMPT]);
+speechTemplateDX.registerTagPlugin(extractTextPlugin, [SYSTEM, SPEECH_PROMPT]);
+languageTemplateDX.registerTagPlugin(extractTextPlugin, [USER, SYSTEM, ASSISTANT]);
+languageTemplateDX.registerTagPlugin(extractMediaPlugin, [
+  "ImageAttachment",
+  "FileAttachment",
+]);
 
-[imageTemplateDX, speechTemplateDX, languageTemplateDX].forEach((instance) => {
-  // Register basic tags
-  instance.registerTagPlugin(basicTagPlugin, basicTags);
-  
-  // Register media plugins
-  instance.registerTagPlugin(extractMediaPlugin, [
-    "ImageAttachment",
-    "FileAttachment",
-  ]);
-
-  // Register text extraction plugins (including the alias 's')
-  const textTags = [
-    "s", // alias for System
-    USER,
-    SYSTEM,
-    ASSISTANT,
-    SPEECH_PROMPT,
-    IMAGE_PROMPT,
-  ];
-  instance.registerTagPlugin(extractTextPlugin, textTags);
-});
-
-/**
- * Get the appropriate TemplateDX instance based on prompt type
- */
 export function getTemplateDXInstance(type: 'image' | 'speech' | 'language'): TemplateDX {
   switch (type) {
     case 'image':
@@ -216,9 +155,6 @@ export function getTemplateDXInstance(type: 'image' | 'speech' | 'language'): Te
   }
 }
 
-/**
- * Determine the prompt type based on the front matter configuration
- */
 export function determinePromptType(frontMatter: any): 'image' | 'speech' | 'language' {
   if (frontMatter.image_config) {
     return 'image';
@@ -226,11 +162,9 @@ export function determinePromptType(frontMatter: any): 'image' | 'speech' | 'lan
   if (frontMatter.speech_config) {
     return 'speech';
   }
-  // Both text_config and object_config are considered "language" type
   if (frontMatter.text_config || frontMatter.object_config) {
     return 'language';
   }
   
-  // Default to language if no specific config is found
   return 'language';
 }
