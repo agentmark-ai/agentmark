@@ -160,7 +160,7 @@ export async function getRawConfig({
   ast: Ast;
   props?: JSONObject;
 }): Promise<AgentmarkConfig> {
-  // Get front matter and determine prompt type
+  // Get front matter using any instance (they all have the same getFrontMatter method)
   const frontMatter: any = languageTemplateDX.getFrontMatter(ast);
   const promptType = determinePromptType(frontMatter);
   

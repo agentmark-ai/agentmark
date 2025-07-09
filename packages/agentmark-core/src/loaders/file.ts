@@ -18,7 +18,7 @@ function mapPromptKindToInstanceType(promptKind: PromptKind): TemplatedXInstance
     case 'object':
       return 'language';
     default:
-      return 'language';
+      throw new Error(`Invalid prompt kind: ${promptKind}. Must be one of: image, speech, text, object.`);
   }
 }
 
@@ -29,7 +29,7 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
-  async load(templatePath: string, options?: any, promptType?: PromptKind): Promise<Ast> {
+  async load(templatePath: string, promptType: PromptKind, options?: any): Promise<Ast> {
     const fullPath = path.join(this.basePath, templatePath);
     const content = fs.readFileSync(fullPath, 'utf-8');
     
@@ -38,15 +38,8 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
       return fs.readFileSync(filePath, 'utf-8');
     };
     
-    // If promptType is provided, use the appropriate instance directly
-    if (promptType) {
-      const instanceType = mapPromptKindToInstanceType(promptType);
-      const templateDXInstance = getTemplateDXInstance(instanceType);
-      return await templateDXInstance.parse(content, this.basePath, contentLoader);
-    }
-    
-    // Fallback: use language instance if no promptType specified (for backward compatibility)
-    const templateDXInstance = getTemplateDXInstance('language');
+    const instanceType = mapPromptKindToInstanceType(promptType);
+    const templateDXInstance = getTemplateDXInstance(instanceType);
     return await templateDXInstance.parse(content, this.basePath, contentLoader);
   }
 

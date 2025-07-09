@@ -235,5 +235,8 @@ export function determinePromptType(frontMatter: any): 'image' | 'speech' | 'lan
   if (frontMatter.image_config) return 'image';
   if (frontMatter.speech_config) return 'speech';
   if (frontMatter.text_config || frontMatter.object_config) return 'language';
-  return 'language';
+  
+  throw new Error(
+    'No valid config found in frontmatter. Please specify one of: image_config, speech_config, text_config, or object_config.'
+  );
 }
