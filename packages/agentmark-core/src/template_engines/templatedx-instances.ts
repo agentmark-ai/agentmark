@@ -2,22 +2,17 @@ import { TemplateDX, TagPlugin, PluginContext } from "@agentmark/templatedx";
 import type { Node } from "mdast";
 import type { ImagePart, TextPart, FilePart } from "ai";
 
-// Types for extracted content
 type ExtractedField = {
   name: string;
   content: string | Array<TextPart | ImagePart | FilePart>;
 };
 
-// Constants
-const USER = "User";
-const SYSTEM = "System";
-const ASSISTANT = "Assistant";
-const SPEECH_PROMPT = "SpeechPrompt";
-const IMAGE_PROMPT = "ImagePrompt";
+export const USER = "User";
+export const SYSTEM = "System";
+export const ASSISTANT = "Assistant";
+export const SPEECH_PROMPT = "SpeechPrompt";
+export const IMAGE_PROMPT = "ImagePrompt";
 
-/**
- * Simple text extraction plugin for basic tags (System, Assistant, ImagePrompt, SpeechPrompt)
- */
 class SimpleTextPlugin extends TagPlugin {
   async transform(
     _props: Record<string, any>,
@@ -73,9 +68,6 @@ class SimpleTextPlugin extends TagPlugin {
   }
 }
 
-/**
- * User tag plugin - handles text extraction AND media attachment processing
- */
 class UserPlugin extends TagPlugin {
   async transform(
     _props: Record<string, any>,
@@ -84,7 +76,6 @@ class UserPlugin extends TagPlugin {
   ): Promise<Node[]> {
     const { scope, createNodeTransformer, nodeHelpers } = pluginContext;
 
-    // Set context for media attachments to know they're inside a User tag
     const childScope = scope.createChild();
     childScope.setShared("__insideMessageType", USER);
 
@@ -114,7 +105,6 @@ class UserPlugin extends TagPlugin {
       children: flattenedChildren,
     });
 
-    // Check if there are any media parts collected during processing
     const mediaParts = childScope.getShared("__agentmark-mediaParts") || [];
     const hasMediaContent = mediaParts.length > 0;
     
@@ -138,9 +128,6 @@ class UserPlugin extends TagPlugin {
   }
 }
 
-/**
- * Media attachment plugin for ImageAttachment and FileAttachment tags
- */
 class MediaAttachmentPlugin extends TagPlugin {
   async transform(
     props: Record<string, any>,
@@ -153,7 +140,6 @@ class MediaAttachmentPlugin extends TagPlugin {
       throw new Error("tagName must be provided in pluginContext");
     }
 
-    // Verify we're inside a User tag
     const isInsideUser = scope.getShared("__insideMessageType");
     if (isInsideUser !== USER) {
       throw new Error("ImageAttachment and FileAttachment tags must be inside User tag.");
@@ -200,24 +186,20 @@ class MediaAttachmentPlugin extends TagPlugin {
   }
 }
 
-// Create TemplateDX instances
 export const imageTemplateDX = new TemplateDX();
 export const speechTemplateDX = new TemplateDX();
 export const languageTemplateDX = new TemplateDX();
 
-// Create plugin instances
 const simpleTextPlugin = new SimpleTextPlugin();
 const userPlugin = new UserPlugin();
 const mediaAttachmentPlugin = new MediaAttachmentPlugin();
 
-// Register plugins on appropriate instances
 imageTemplateDX.registerTagPlugin(simpleTextPlugin, [IMAGE_PROMPT]);
 speechTemplateDX.registerTagPlugin(simpleTextPlugin, [SYSTEM, SPEECH_PROMPT]);
 languageTemplateDX.registerTagPlugin(simpleTextPlugin, [SYSTEM, ASSISTANT]);
 languageTemplateDX.registerTagPlugin(userPlugin, [USER]);
 languageTemplateDX.registerTagPlugin(mediaAttachmentPlugin, ["ImageAttachment", "FileAttachment"]);
 
-// Helper functions
 export function getTemplateDXInstance(type: 'image' | 'speech' | 'language'): TemplateDX {
   switch (type) {
     case 'image':

@@ -8,16 +8,19 @@ import type {
   TextSettings,
   SpeechSettings,
   RichChatMessage,
-  ChatMessage,
   AgentmarkConfig,
 } from "../types";
 import { 
   languageTemplateDX, 
   getTemplateDXInstance,
-  determinePromptType 
+  determinePromptType,
+  USER,
+  SYSTEM,
+  ASSISTANT,
+  SPEECH_PROMPT,
+  IMAGE_PROMPT,
 } from "./templatedx-instances";
 
-// Types for extracted content and shared context
 type ExtractedField = {
   name: string;
   content: string | Array<TextPart | ImagePart | FilePart>;
@@ -27,15 +30,8 @@ type SharedContext = {
   "__agentmark-extractTextPromises"?: Promise<ExtractedField>[];
 };
 
-// Constants
-const USER = "User";
-const SYSTEM = "System";
-const ASSISTANT = "Assistant";
 const ROLETAGS = new Set([USER, SYSTEM, ASSISTANT]);
-const SPEECH_PROMPT = "SpeechPrompt";
-const IMAGE_PROMPT = "ImagePrompt";
 
-// Template engine implementation
 export class TemplateDXTemplateEngine implements TemplateEngine {
   async compile<
     R = AgentmarkConfig,
@@ -45,7 +41,6 @@ export class TemplateDXTemplateEngine implements TemplateEngine {
   }
 }
 
-// Helper function to convert extracted fields to chat messages
 function getMessages({
   extractedFields,
   configType,
@@ -58,21 +53,18 @@ function getMessages({
   extractedFields.forEach((field, index) => {
     const fieldName = field.name;
     
-    // System message must be first if present
     if (index !== 0 && fieldName === SYSTEM) {
       throw new Error(`System message may only be the first message: ${field.content}`);
     }
     
-    // Validate role tag
     if (!ROLETAGS.has(fieldName)) {
       throw new Error(`Invalid role tag:"${fieldName}" in config type: ${configType}.`);
     }
 
-    // Create properly typed message based on role
     if (fieldName === "User") {
       messages.push({ 
         role: "user", 
-        content: field.content as any // Type compatibility handled at runtime
+        content: field.content as any
       });
     } else if (fieldName === "Assistant") {
       messages.push({ 
@@ -90,7 +82,6 @@ function getMessages({
   return messages;
 }
 
-// Validate prompt structure based on config type
 function validatePrompts({
   extractedFields,
   configType,
@@ -126,7 +117,6 @@ function validatePrompts({
   }
 }
 
-// Extract prompt content for image and speech configs
 function getPrompt({
   tagName,
   extractedFields,
@@ -152,7 +142,6 @@ function getPrompt({
   return { prompt: "" };
 }
 
-// Main configuration processing function
 export async function getRawConfig({
   ast,
   props,
@@ -160,20 +149,16 @@ export async function getRawConfig({
   ast: Ast;
   props?: JSONObject;
 }): Promise<AgentmarkConfig> {
-  // Get front matter using any instance (they all have the same getFrontMatter method)
   const frontMatter: any = languageTemplateDX.getFrontMatter(ast);
   const promptType = determinePromptType(frontMatter);
   
-  // Get the appropriate TemplateDX instance and transform
   const templateDXInstance = getTemplateDXInstance(promptType);
   const shared: SharedContext = {};
   await templateDXInstance.transform(ast, props || {}, shared);
   
-  // Extract all field promises and resolve them
   const extractedFieldPromises = shared["__agentmark-extractTextPromises"] || [];
   const extractedFields = await Promise.all(extractedFieldPromises);
 
-  // Extract settings from front matter
   const name: string = frontMatter.name;
   const speechSettings: SpeechSettings | undefined = frontMatter.speech_config;
   const imageSettings: ImageSettings | undefined = frontMatter.image_config;
@@ -181,14 +166,12 @@ export async function getRawConfig({
   const textSettings: TextSettings | undefined = frontMatter.text_config;
   const testSettings: TestSettings | undefined = frontMatter.test_settings;
 
-  // Determine config type from settings
   let configType: PromptKind | undefined;
   if (speechSettings) configType = "speech";
   else if (imageSettings) configType = "image";
   else if (objectSettings) configType = "object";
   else if (textSettings) configType = "text";
 
-  // Process based on config type
   if (configType === "speech" || configType === "image") {
     validatePrompts({ extractedFields, configType });
     const { prompt, instructions } = getPrompt({
