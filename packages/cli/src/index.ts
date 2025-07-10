@@ -24,17 +24,15 @@ program
 
 program
   .command('generate-types')
-  .option('-l, --language <language>', 'Language to generate types for', 'typescript')
+  .option('-l, --language <language>', 'Language to generate types for (typescript|jsdoc)', 'typescript')
   .option('--local <port>', 'Local server port number')
   .option('--root-dir <path>', 'Root directory containing agentmark files')
-  .option('--generate-jsdoc', 'Generate JSDoc documentation for .prompt.mdx files')
   .action(async (options) => {
     const localPort = options.local ? parseInt(options.local, 10) : undefined;
     await generateTypes({ 
       language: options.language, 
       local: localPort,
-      rootDir: options.rootDir,
-      generateJsdoc: options.generateJsdoc
+      rootDir: options.rootDir
     });
   });
 

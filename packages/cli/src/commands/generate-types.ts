@@ -6,10 +6,9 @@ import { compile } from "json-schema-to-typescript";
 const jsdoc = require("json-schema-to-jsdoc");
 
 type Options = {
-  language: "typescript";
+  language: "typescript" | "jsdoc";
   local?: number;
   rootDir?: string;
-  generateJsdoc?: boolean;
 };
 
 type TextPromptFrontmatterV1_0 = {
@@ -499,32 +498,30 @@ ${prompts.map(prompt => {
   return headerComment + jsdocDefinitions.join("\n\n") + allTypesJsdoc + "\n";
 }
 
-const generateTypes = async ({ language, local, rootDir, generateJsdoc }: Options) => {
-  if (language !== "typescript") {
+const generateTypes = async ({ language, local, rootDir }: Options) => {
+  if (language !== "typescript" && language !== "jsdoc") {
     console.error(
-      `Unsupported language: ${language}. Only TypeScript is supported.`
+      `Unsupported language: ${language}. Supported languages: typescript, jsdoc`
     );
-    return;
+    process.exit(1);
   }
 
   try {
-    console.error("Generating type definitions...");
     const prompts = await fetchPromptsFrontmatter({ local, rootDir });
 
-    if (generateJsdoc) {
+    if (language === "jsdoc") {
       console.error("Generating JSDoc documentation...");
       const jsdocDefinitions = await generateJsdocDefinitions(prompts);
       
-      // Write JSDoc to a separate file
-      const outputPath = rootDir ? path.join(rootDir, "agentmark.jsdoc.js") : "agentmark.jsdoc.js";
-      await fs.writeFile(outputPath, jsdocDefinitions);
-      console.error(`JSDoc written to: ${outputPath}`);
+      // Output JSDoc to stdout so users can redirect with >
+      console.log(jsdocDefinitions);
+      console.error("JSDoc generation completed successfully!");
+    } else {
+      console.error("Generating type definitions...");
+      const typeDefinitions = await generateTypeDefinitions(prompts);
+      console.log(typeDefinitions);
+      console.error("Type generation completed successfully!");
     }
-
-    const typeDefinitions = await generateTypeDefinitions(prompts);
-
-    process.stdout.write(typeDefinitions);
-    console.error("Done");
   } catch (error) {
     console.error("Error generating types:", error);
     process.exit(1);
