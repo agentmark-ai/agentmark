@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "bin": {
-    "agentmark": "./dist/index.js"
+    "agentmark": "./dist/src/index.js"
   },
   "dependencies": {
     "@agentmark/agentmark-core": "*",
