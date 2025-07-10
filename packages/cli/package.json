@@ -29,6 +29,7 @@
     "express": "^4.20.0",
     "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
+    "json-schema-to-jsdoc": "^1.1.1",
     "json-schema-to-typescript": "^15.0.4",
     "prompts": "^2.4.2",
     "yaml": "^2.7.0",
