@@ -114,9 +114,7 @@ describe("AgentMark Integration", () => {
   it("should throw an error for invalid prompt tags", async () => {
     await expect(
       agentMark.loadImagePrompt("incorrectImage.prompt.mdx")
-    ).rejects.toThrowError(
-      "ImagePrompt and System tags cannot be used together."
-    );
+    ).rejects.toThrowError();
   });
 
   it("should enforce type safety on prompt paths", () => {

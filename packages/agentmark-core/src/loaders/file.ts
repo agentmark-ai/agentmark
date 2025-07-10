@@ -1,10 +1,26 @@
 import path from "path";
-import { load } from "@agentmark/templatedx";
-import { Loader } from "../types";
+import { getTemplateDXInstance } from "../template_engines/templatedx-instances";
+import { Loader, PromptKind } from "../types";
 import type { Ast } from "@agentmark/templatedx";
 import { PromptShape } from "../types";
 import fs from "fs";
 import readline from "readline";
+
+type TemplatedXInstanceType = 'image' | 'speech' | 'language';
+
+function mapPromptKindToInstanceType(promptKind: PromptKind): TemplatedXInstanceType {
+  switch (promptKind) {
+    case 'image':
+      return 'image';
+    case 'speech':
+      return 'speech';
+    case 'text':
+    case 'object':
+      return 'language';
+    default:
+      throw new Error(`Invalid prompt kind: ${promptKind}. Must be one of: image, speech, text, object.`);
+  }
+}
 
 export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
   private basePath: string;
@@ -13,10 +29,18 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
-  async load(templatePath: string): Promise<Ast> {
+  async load(templatePath: string, promptType: PromptKind, options?: any): Promise<Ast> {
     const fullPath = path.join(this.basePath, templatePath);
-    const content = await load(fullPath);
-    return content;
+    const content = fs.readFileSync(fullPath, 'utf-8');
+    
+    // Create a contentLoader function for reading additional files
+    const contentLoader = async (filePath: string) => {
+      return fs.readFileSync(filePath, 'utf-8');
+    };
+    
+    const instanceType = mapPromptKindToInstanceType(promptType);
+    const templateDXInstance = getTemplateDXInstance(instanceType);
+    return await templateDXInstance.parse(content, this.basePath, contentLoader);
   }
 
   async loadDataset(datasetPath: string): Promise<

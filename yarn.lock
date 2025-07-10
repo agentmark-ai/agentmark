@@ -9,7 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/agentmark-core@workspace:packages/agentmark-core"
   dependencies:
-    "@agentmark/templatedx": "npm:^0.6.3"
+    "@agentmark/templatedx": "npm:^0.8.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -105,6 +105,25 @@ __metadata:
     unified: "npm:^11.0.5"
     unist-util-visit: "npm:^5.0.0"
   checksum: 10c0/c57400890652671a06d98525ec87282c14085065f520f58812480a16cd764b2e24c6f6cc0c7fa929a71ea503887372a8925c44d22c164150028d40248e31c2d6
+  languageName: node
+  linkType: hard
+
+"@agentmark/templatedx@npm:^0.8.0":
+  version: 0.8.0
+  resolution: "@agentmark/templatedx@npm:0.8.0"
+  dependencies:
+    "@jsep-plugin/object": "npm:^1.2.1"
+    js-yaml: "npm:^4.1.0"
+    jsep: "npm:^1.3.9"
+    mdast: "npm:^3.0.0"
+    mdast-util-to-markdown: "npm:^2.1.0"
+    remark-frontmatter: "npm:^5.0.0"
+    remark-mdx: "npm:^3.0.1"
+    remark-parse: "npm:^11.0.0"
+    remark-stringify: "npm:^11.0.0"
+    unified: "npm:^11.0.5"
+    unist-util-visit: "npm:^5.0.0"
+  checksum: 10c0/16a76968600cb4003c228ceba95820fdbd1c5b1c670e882a20c8899a02b282531cf54087ea1b662ed1a97d20676498ec9c0abc60a7eb34461c614cef04726779
   languageName: node
   linkType: hard
 

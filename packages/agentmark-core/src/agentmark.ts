@@ -55,7 +55,7 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     const pathProvided = typeof pathOrPreloaded === "string";
 
     if (pathProvided && this.loader) {
-      content = await this.loader.load(pathOrPreloaded, options);
+      content = await this.loader.load(pathOrPreloaded, "text", options);
     } else {
       content = pathOrPreloaded;
     }
@@ -82,7 +82,7 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     const pathProvided = typeof pathOrPreloaded === "string";
 
     if (pathProvided && this.loader) {
-      content = await this.loader.load(pathOrPreloaded, options);
+      content = await this.loader.load(pathOrPreloaded, "object", options);
     } else {
       content = pathOrPreloaded;
     }
@@ -109,7 +109,7 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     const pathProvided = typeof pathOrPreloaded === "string";
 
     if (pathProvided && this.loader) {
-      content = await this.loader.load(pathOrPreloaded, options);
+      content = await this.loader.load(pathOrPreloaded, "image", options);
     } else {
       content = pathOrPreloaded;
     }
@@ -136,7 +136,7 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     const pathProvided = typeof pathOrPreloaded === "string";
 
     if (pathProvided && this.loader) {
-      content = await this.loader.load(pathOrPreloaded, options);
+      content = await this.loader.load(pathOrPreloaded, "speech", options);
     } else {
       content = pathOrPreloaded;
     }
