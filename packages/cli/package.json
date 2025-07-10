@@ -9,7 +9,9 @@
     "build:app": "next build",
     "lint": "next lint",
     "serve": "node ./dist/src/json-server",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "ISC",
@@ -43,6 +45,7 @@
     "@types/node": "^20",
     "@types/prompts": "^2",
     "typescript": "^5",
+    "vitest": "^3.0.8",
     "yup": "1.3.2"
   },
   "files": [

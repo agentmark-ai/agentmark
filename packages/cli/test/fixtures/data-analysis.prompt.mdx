@@ -1,0 +1,58 @@
+---
+name: data-analysis
+object_config:
+  model_name: gpt-4o-mini
+  schema:
+    type: object
+    properties:
+      summary:
+        type: string
+        description: "A concise summary of the analysis"
+      insights:
+        type: array
+        items:
+          type: object
+          properties:
+            insight:
+              type: string
+              description: "A key insight from the data"
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+              description: "Confidence level (0-1)"
+          required: [insight, confidence]
+        description: "List of key insights"
+      recommendations:
+        type: array
+        items:
+          type: string
+        description: "Actionable recommendations"
+    required: [summary, insights, recommendations]
+input_schema:
+  type: object
+  properties:
+    dataset:
+      type: string
+      description: "Raw dataset to analyze"
+    analysisType:
+      type: string
+      enum: ["trend", "correlation", "summary", "forecast"]
+      description: "Type of analysis to perform"
+    timeframe:
+      type: string
+      description: "Time period for the analysis"
+  required:
+    - dataset
+    - analysisType
+---
+
+<s>
+You are a data analyst. Analyze the provided dataset and return structured insights.
+</s>
+
+<User>
+Please analyze this dataset: {props.dataset}
+Analysis type: {props.analysisType}
+{props.timeframe && `Timeframe: ${props.timeframe}`}
+</User>
