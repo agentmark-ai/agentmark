@@ -49,13 +49,17 @@ _AgentMark prompt file example for generating text_
 
 ## Quick Start
 
-Get started by running:
+### Intialize AgentMark
+
+Get started by first initializing your AgentMark app.
 
 `npx @agentmark/cli init`
 
-You can then run AgentMark using any of the following methods:
+### Run Prompts
 
-1. AgentMark CLI:
+We offer a few ways to run prompts with AgentMark.
+
+1. Use our AgentMark CLI:
 
 Run `.prompt.mdx` files directly from the command line using our CLI. This is the quickest way to test and execute your prompts.
 
@@ -67,7 +71,7 @@ npx @agentmark/cli run-prompt your-prompt.prompt.mdx
 npx @agentmark/cli run-prompt your-prompt.prompt.mdx -i dataset
 ```
 
-2. Run AgentMark files with our SDK
+2. Run AgentMark files with your favorite SDK
 
 AgentMark doesn't support any models or calling any LLM providers. Instead, we format the input of your prompt through an adapter to match the input of the SDK you're using.
 
