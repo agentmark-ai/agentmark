@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.3.3
+
+### Patch Changes
+
+- 8b77f99: Chore: Use stateful TemplateDX for prompts
+
 ## 3.3.2
 
 ### Patch Changes
