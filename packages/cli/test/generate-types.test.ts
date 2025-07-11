@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs-extra";
 import path from "path";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -232,8 +232,9 @@ input_schema:
 
   describe("Integration with json-schema-to-jsdoc package", () => {
     it("should properly use json-schema-to-jsdoc package features", async () => {
-      const { stdout } = await execAsync(
-        `node ${cliPath} generate-types --root-dir ${fixturesDir} --language jsdoc`
+      const { stdout } = await execFile(
+        "node",
+        [cliPath, "generate-types", "--root-dir", fixturesDir, "--language", "jsdoc"]
       );
 
       // Verify features that are specific to json-schema-to-jsdoc package
