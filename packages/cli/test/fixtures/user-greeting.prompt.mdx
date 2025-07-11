@@ -1,0 +1,68 @@
+---
+name: user-greeting
+text_config:
+  model_name: gpt-4o-mini
+input_schema:
+  type: object
+  properties:
+    userName:
+      type: string
+      description: "The user's full name"
+    age:
+      type: integer
+      description: "The user's age in years"
+      minimum: 0
+      maximum: 150
+    email:
+      type: string
+      description: "User's email address"
+      format: email
+    interests:
+      type: array
+      items:
+        type: string
+      description: "List of user interests and hobbies"
+      minItems: 1
+      maxItems: 10
+    isVip:
+      type: boolean
+      description: "Whether the user is a VIP member"
+    preferences:
+      type: object
+      description: "User preferences configuration"
+      properties:
+        theme:
+          type: string
+          enum: ["light", "dark", "auto"]
+          description: "UI theme preference"
+        notifications:
+          type: boolean
+          description: "Enable notifications"
+      required:
+        - theme
+    metadata:
+      type: object
+      description: "Additional user metadata"
+      additionalProperties: true
+  required:
+    - userName
+    - age
+    - email
+---
+
+<s>
+You are a helpful assistant that creates personalized greetings based on user information.
+</s>
+
+<User>
+Hello! My name is {props.userName}, I am {props.age} years old, and my email is {props.email}.
+{props.interests && props.interests.length > 0 && `I'm interested in ${props.interests.join(', ')}.`}
+{props.isVip && "I'm a VIP member."}
+{props.preferences && `My theme preference is ${props.preferences.theme}.`}
+</User>
+
+<Assistant>
+Hello {props.userName}! It's great to meet you. I see you're {props.age} years old and can be reached at {props.email}.
+{props.isVip && "Welcome, VIP member! "}
+{props.interests && props.interests.length > 0 && `I notice you're interested in ${props.interests.join(', ')} - that's wonderful!`}
+</Assistant>
