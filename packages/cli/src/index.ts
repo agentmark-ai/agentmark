@@ -24,7 +24,7 @@ program
 
 program
   .command('generate-types')
-  .option('-l, --language <language>', 'Language to generate types for', 'typescript')
+  .option('-l, --language <language>', 'Language to generate types for (typescript or jsdoc)', 'typescript')
   .option('--local <port>', 'Local server port number')
   .option('--root-dir <path>', 'Root directory containing agentmark files')
   .action(async (options) => {
