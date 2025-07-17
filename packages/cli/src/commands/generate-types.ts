@@ -2,6 +2,7 @@ import * as fs from "fs-extra";
 import path from "path";
 import fm from "front-matter";
 import { compile } from "json-schema-to-typescript";
+import * as jsdoc from "json-schema-to-jsdoc";
 
 type Options = {
   language: "typescript" | "jsdoc";
@@ -411,41 +412,23 @@ ${Object.keys(tools)
 }
 
 function convertJsonSchemaToJSDoc(schema: any, typeName: string): string {
-  if (!schema || !schema.properties) {
+  if (!schema) {
     return `/**
  * @typedef {Object} ${typeName}
  */`;
   }
 
-  const properties = Object.entries(schema.properties || {}).map(([key, value]: [string, any]) => {
-    const isRequired = schema.required?.includes(key);
-    const optional = isRequired ? '' : '=';
-    let type = 'any';
-    
-    if (value.type === 'string') {
-      type = 'string';
-    } else if (value.type === 'number' || value.type === 'integer') {
-      type = 'number';
-    } else if (value.type === 'boolean') {
-      type = 'boolean';
-    } else if (value.type === 'array') {
-      if (value.items?.type) {
-        type = `${value.items.type}[]`;
-      } else {
-        type = 'Array';
-      }
-    } else if (value.type === 'object') {
-      type = 'Object';
-    }
+  // Add title to schema for proper typedef naming
+  const schemaWithTitle = {
+    ...schema,
+    title: typeName
+  };
 
-    const description = value.description ? ` - ${value.description}` : '';
-    return ` * @property {${type}} ${optional}${key}${description}`;
-  }).join('\n');
-
-  return `/**
- * @typedef {Object} ${typeName}
-${properties}
- */`;
+  // Use json-schema-to-jsdoc package with options for proper formatting
+  return jsdoc(schemaWithTitle, {
+    hyphenatedDescriptions: true,
+    capitalizeTitle: false
+  });
 }
 
 async function generateJSDocDefinitions(

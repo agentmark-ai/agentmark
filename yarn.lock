@@ -47,9 +47,11 @@ __metadata:
     express: "npm:^4.20.0"
     front-matter: "npm:^4.0.2"
     fs-extra: "npm:^11.2.0"
+    json-schema-to-jsdoc: "npm:^1.1.1"
     json-schema-to-typescript: "npm:^15.0.4"
     prompts: "npm:^2.4.2"
     typescript: "npm:^5"
+    vitest: "npm:^3.0.8"
     yaml: "npm:^2.7.0"
     yup: "npm:1.3.2"
     zod: "npm:^3.23.8"
@@ -4811,6 +4813,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"foreach@npm:^2.0.4":
+  version: 2.0.6
+  resolution: "foreach@npm:2.0.6"
+  checksum: 10c0/dc79f83997ac986dadbc95b4035ce8b86699fb654eb85446b0ad779fe69d567fc9894075e460243ca8bc20adb8fd178ad203aef66dc3c620ac78b18a4cb7059c
+  languageName: node
+  linkType: hard
+
 "foreground-child@npm:^3.1.0, foreground-child@npm:^3.1.1":
   version: 3.3.1
   resolution: "foreground-child@npm:3.3.1"
@@ -5857,6 +5866,24 @@ __metadata:
   version: 3.0.2
   resolution: "json-parse-even-better-errors@npm:3.0.2"
   checksum: 10c0/147f12b005768abe9fab78d2521ce2b7e1381a118413d634a40e6d907d7d10f5e9a05e47141e96d6853af7cc36d2c834d0a014251be48791e037ff2f13d2b94b
+  languageName: node
+  linkType: hard
+
+"json-pointer@npm:^0.6.0":
+  version: 0.6.2
+  resolution: "json-pointer@npm:0.6.2"
+  dependencies:
+    foreach: "npm:^2.0.4"
+  checksum: 10c0/47f6103032c0340b3392cb650e0ec817f785eccb553407da13fae85bc535483c9b359d7e756de4ed73130172c28d2b02f8beb53a700a98b12e72c7bf70e734b7
+  languageName: node
+  linkType: hard
+
+"json-schema-to-jsdoc@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "json-schema-to-jsdoc@npm:1.1.1"
+  dependencies:
+    json-pointer: "npm:^0.6.0"
+  checksum: 10c0/6a6ee0a82e5389f2aba14653a7473eb75f4fa930193fecb62b92177f7556b34cacf746eb0746956ce3a6ce9a199cd5952e87b0cacf442a2d609ebe7cfc6af343
   languageName: node
   linkType: hard
 

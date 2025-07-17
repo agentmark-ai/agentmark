@@ -256,6 +256,39 @@ If you were using TypeScript types:
 3. **Compare Types**: Ensure JSDoc types match your previous TypeScript types
 4. **Test**: Verify that type safety still works as expected
 
+## Testing
+
+The JSDoc generation functionality includes comprehensive tests to ensure reliability:
+
+### Running Tests
+
+```bash
+# From the CLI package directory
+cd packages/cli
+npm test
+
+# Or run specific test suites
+npm test generate-jsdoc.test.ts
+npm test integration.test.ts
+```
+
+### Test Coverage
+
+- **Unit Tests**: Test individual functions like `getInterfaceName`, `convertJsonSchemaToJSDoc`
+- **Integration Tests**: Test the complete flow with real `.prompt.mdx` files
+- **Edge Cases**: Handle special characters, nested paths, and complex schemas
+- **Type Validation**: Ensure correct mapping of JSON Schema types to JSDoc
+
+## Implementation Details
+
+The JSDoc generation uses the proven [`json-schema-to-jsdoc`](https://www.npmjs.com/package/json-schema-to-jsdoc) package for reliable schema conversion:
+
+- **Established Library**: Well-tested package with 400+ weekly downloads
+- **Correct Type Mapping**: Handles all JSON Schema types correctly
+- **Enum Support**: Converts enum arrays to union types (`"low"|"medium"|"high"`)
+- **Nested Objects**: Proper handling of complex nested structures
+- **Required vs Optional**: Correctly distinguishes with `[optional]` syntax
+
 ## Contributing
 
 To improve JSDoc generation:
@@ -263,8 +296,9 @@ To improve JSDoc generation:
 1. **Report Issues**: File bugs for incorrect type mappings
 2. **Suggest Enhancements**: Propose new JSDoc features
 3. **Test Edge Cases**: Try complex schemas and report problems
-4. **Improve Documentation**: Help make this guide better
+4. **Add Tests**: Expand test coverage for new use cases
+5. **Improve Documentation**: Help make this guide better
 
 ---
 
-The JSDoc generation feature brings TypeScript-like type safety to your MDX files, making AgentMark development more productive and error-free. Happy coding! 🚀
+The JSDoc generation feature brings TypeScript-like type safety to your MDX files, making AgentMark development more productive and error-free. With comprehensive testing and a reliable implementation using established packages, you can trust it for production use. Happy coding! 🚀
