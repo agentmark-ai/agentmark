@@ -142,6 +142,7 @@ export const TextConfigSchema = z.object({
   messages: z.array(RichChatMessageSchema),
   text_config: TextSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
+  agentmark_meta: z.record(z.any()).optional(),
 });
 
 export type TextConfig = z.infer<typeof TextConfigSchema>;
@@ -151,6 +152,7 @@ export const ObjectConfigSchema = z.object({
   messages: z.array(RichChatMessageSchema),
   object_config: ObjectSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
+  agentmark_meta: z.record(z.any()).optional(),
 });
 
 export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
@@ -159,6 +161,7 @@ export const ImageConfigSchema = z.object({
   name: z.string(),
   image_config: ImageSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
+  agentmark_meta: z.record(z.any()).optional(),
 });
 
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
@@ -167,6 +170,7 @@ export const SpeechConfigSchema = z.object({
   name: z.string(),
   speech_config: SpeechSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
+  agentmark_meta: z.record(z.any()).optional(),
 });
 
 export type SpeechConfig = z.infer<typeof SpeechConfigSchema>;
