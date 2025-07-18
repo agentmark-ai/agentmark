@@ -64,6 +64,7 @@ export interface VercelAIObjectParams<T> {
 
 export interface VercelAIImageParams {
   model: ImageModel;
+  prompt: string;
   n?: number;
   size?: `${number}x${number}`;
   aspectRatio?: `${number}:${number}`;
@@ -72,8 +73,10 @@ export interface VercelAIImageParams {
 
 export interface VercelAISpeechParams {
   model: SpeechModel;
+  text: string;
   voice?: string;
   outputFormat?: string;
+  instructions?: string;
   speed?: number;
 }
 
@@ -329,6 +332,7 @@ export class VercelAIAdapter<
 
     return {
       model,
+      prompt: settings.prompt,
       ...(settings?.num_images !== undefined ? { n: settings.num_images } : {}),
       ...(settings?.size !== undefined
         ? { size: settings.size as `${number}x${number}` }
@@ -350,9 +354,13 @@ export class VercelAIAdapter<
 
     return {
       model,
+      text: settings.text,
       ...(settings?.voice !== undefined ? { voice: settings.voice } : {}),
       ...(settings?.output_format !== undefined
         ? { outputFormat: settings.output_format }
+        : {}),
+      ...(settings?.instructions !== undefined
+        ? { instructions: settings.instructions }
         : {}),
       ...(settings?.speed !== undefined ? { speed: settings.speed } : {}),
     };

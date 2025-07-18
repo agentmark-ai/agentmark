@@ -84,6 +84,9 @@ describe("AgentMark Integration", () => {
         userMessage: "Design an image showing a triangle and a circle.",
       },
     });
+    expect(result.image_config.prompt).toBe(
+      "This is a test for the image prompt to be drawn."
+    );
     expect(result.image_config.model_name).toBe("test-model");
     expect(result.image_config.num_images).toBe(1);
     expect(result.image_config.size).toBe("1024x1024");
@@ -97,8 +100,14 @@ describe("AgentMark Integration", () => {
       userMessage: "Generate a speech for the given text.",
     });
     expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe(
+      "This is a test for the speech prompt to be spoken aloud."
+    );
     expect(result.speech_config.voice).toBe("nova");
     expect(result.speech_config.output_format).toBe("mp3");
+    expect(result.speech_config.instructions).toBe(
+      "Please read this text aloud."
+    );
     expect(result.speech_config.speed).toBe(1.0);
   });
 

@@ -152,9 +152,19 @@ export const ObjectConfigSchema = z.object({
 
 export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
 
+// Extended settings for output configs (include template-generated properties)
+export const ImageOutputSettingsConfig = ImageSettingsConfig.extend({
+  prompt: z.string(),
+});
+
+export const SpeechOutputSettingsConfig = SpeechSettingsConfig.extend({
+  text: z.string(),
+  instructions: z.string(),
+});
+
 export const ImageConfigSchema = z.object({
   name: z.string(),
-  image_config: ImageSettingsConfig,
+  image_config: ImageOutputSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
 });
 
@@ -162,7 +172,7 @@ export type ImageConfig = z.infer<typeof ImageConfigSchema>;
 
 export const SpeechConfigSchema = z.object({
   name: z.string(),
-  speech_config: SpeechSettingsConfig,
+  speech_config: SpeechOutputSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
 });
 
