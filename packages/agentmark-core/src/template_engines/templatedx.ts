@@ -143,24 +143,21 @@ export async function getRawConfig({
       extractedFields,
     });
 
-    if (configType === "speech" && speechSettings && prompt) {
+    if (configType === "speech" && speechSettings) {
       return {
         name,
         speech_config: {
           ...speechSettings,
-          text: prompt,
-          instructions: instructions ?? "",
         },
         test_settings: testSettings,
       };
     }
     
-    if (configType === "image" && imageSettings && prompt) {
+    if (configType === "image" && imageSettings) {
       return {
         name,
         image_config: {
           ...imageSettings,
-          prompt: prompt,
         },
         test_settings: testSettings,
       };

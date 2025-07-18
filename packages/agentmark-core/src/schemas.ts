@@ -111,7 +111,6 @@ export type ObjectSettings = z.infer<typeof ObjectSettingsConfig>;
 
 export const ImageSettingsConfig = z.object({
   model_name: z.string(),
-  prompt: z.string(),
   num_images: z.number().optional(),
   size: z
     .string()
@@ -128,10 +127,8 @@ export type ImageSettings = z.infer<typeof ImageSettingsConfig>;
 
 export const SpeechSettingsConfig = z.object({
   model_name: z.string(),
-  text: z.string(),
   voice: z.string().optional(),
   output_format: z.string().optional(),
-  instructions: z.string().optional(),
   speed: z.number().optional(),
 });
 
