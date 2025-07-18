@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import path from "path";
-import { createAgentMarkClient } from "@agentmark/default-adapter";
+import { createAgentMarkBuilder } from "@agentmark/default-adapter";
 import { FileLoader } from "../src/loaders/file";
 
 type TestPromptTypes = {
@@ -44,9 +44,9 @@ type TestPromptTypes = {
 describe("AgentMark Integration", () => {
   const fixturesDir = path.resolve(__dirname, "./fixtures");
   const fileLoader = new FileLoader(fixturesDir);
-  const agentMark = createAgentMarkClient<TestPromptTypes>({
-    loader: fileLoader,
-  });
+  const agentMark = createAgentMarkBuilder<TestPromptTypes>()
+    .withLoader(fileLoader)
+    .build();
 
   it("should load and compile prompts with type safety", async () => {
     const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
@@ -215,7 +215,9 @@ describe("AgentMark Integration", () => {
       expect(input.formatted.name).toBe("mathDatasetOps");
       expect(input.formatted.messages).toHaveLength(3);
       expect(input.formatted.messages[0].role).toBe("system");
-      expect(input.formatted.messages[0].content).toBe("You are a helpful math tutor.");
+      expect(input.formatted.messages[0].content).toBe(
+        "You are a helpful math tutor."
+      );
       if (entryIndex === 1) {
         expect(input.formatted.messages[1].role).toBe("user");
         expect(input.formatted.messages[1].content).toBe("What is 5 + 7?");

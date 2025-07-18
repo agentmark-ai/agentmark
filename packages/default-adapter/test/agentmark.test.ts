@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark/agentmark-core";
-import { createAgentMarkClient } from "../src";
+import { createAgentMarkBuilder } from "../src";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
@@ -24,9 +24,9 @@ describe("AgentMark Integration", () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
       const fileLoader = new FileLoader(fixturesDir);
 
-      const agentMark = createAgentMarkClient<TestPromptTypes>({
-        loader: fileLoader,
-      });
+      const agentMark = createAgentMarkBuilder<TestPromptTypes>()
+        .withLoader(fileLoader)
+        .build();
 
       const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
       const result = await mathPrompt.format({
@@ -49,9 +49,9 @@ describe("AgentMark Integration", () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
       const fileLoader = new FileLoader(fixturesDir);
 
-      const agentMark = createAgentMarkClient<TestPromptTypes>({
-        loader: fileLoader,
-      });
+      const agentMark = createAgentMarkBuilder<TestPromptTypes>()
+        .withLoader(fileLoader)
+        .build();
 
       const mathPrompt = await agentMark.loadTextPrompt("text.prompt.mdx");
       const result = await mathPrompt.format({
