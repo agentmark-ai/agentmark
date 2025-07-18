@@ -21,9 +21,11 @@ export abstract class BasePrompt<
   A extends Adapter<T>,
   K extends PromptKey<T>,
   C,
-  PK extends PromptKind
+  PK extends PromptKind,
+  Context = unknown
 > {
   public readonly templateEngine: TemplateEngine;
+  public readonly context?: Context;
 
   protected constructor(
     public readonly template: unknown,
@@ -31,9 +33,11 @@ export abstract class BasePrompt<
     protected readonly adapter: A,
     protected readonly path?: K,
     protected readonly testSettings?: TestSettings,
-    protected readonly loader?: Loader<T>
+    protected readonly loader?: Loader<T, unknown>,
+    context?: Context
   ) {
     this.templateEngine = engine;
+    this.context = context;
   }
 
   protected compile(props: T[K]["input"]): Promise<C> {
@@ -114,17 +118,19 @@ export type PromptFormatParams<T> = {
 export class ObjectPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends KeysWithKind<T, "object"> & string
-> extends BasePrompt<T, A, K, ObjectConfig, "object"> {
+  K extends KeysWithKind<T, "object"> & string,
+  Context = unknown
+> extends BasePrompt<T, A, K, ObjectConfig, "object", Context> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
     ad: A,
     path?: K,
     testSettings?: TestSettings,
-    loader?: Loader<T>
+    loader?: Loader<T, unknown>,
+    context?: Context
   ) {
-    super(tpl, eng, ad, path, testSettings, loader);
+    super(tpl, eng, ad, path, testSettings, loader, context);
   }
 
   async format({
@@ -139,17 +145,19 @@ export class ObjectPrompt<
 export class TextPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends KeysWithKind<T, "text"> & string
-> extends BasePrompt<T, A, K, TextConfig, "text"> {
+  K extends KeysWithKind<T, "text"> & string,
+  Context = unknown
+> extends BasePrompt<T, A, K, TextConfig, "text", Context> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
     ad: A,
     path?: K,
     testSettings?: TestSettings,
-    loader?: Loader<T>
+    loader?: Loader<T, unknown>,
+    context?: Context
   ) {
-    super(tpl, eng, ad, path, testSettings, loader);
+    super(tpl, eng, ad, path, testSettings, loader, context);
   }
 
   async format({
@@ -164,17 +172,19 @@ export class TextPrompt<
 export class ImagePrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends KeysWithKind<T, "image"> & string
-> extends BasePrompt<T, A, K, ImageConfig, "image"> {
+  K extends KeysWithKind<T, "image"> & string,
+  Context = unknown
+> extends BasePrompt<T, A, K, ImageConfig, "image", Context> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
     ad: A,
     path?: K,
     testSettings?: TestSettings,
-    loader?: Loader<T>
+    loader?: Loader<T, unknown>,
+    context?: Context
   ) {
-    super(tpl, eng, ad, path, testSettings, loader);
+    super(tpl, eng, ad, path, testSettings, loader, context);
   }
 
   async format({
@@ -189,17 +199,19 @@ export class ImagePrompt<
 export class SpeechPrompt<
   T extends PromptShape<T>,
   A extends Adapter<T>,
-  K extends KeysWithKind<T, "speech"> & string
-> extends BasePrompt<T, A, K, SpeechConfig, "speech"> {
+  K extends KeysWithKind<T, "speech"> & string,
+  Context = unknown
+> extends BasePrompt<T, A, K, SpeechConfig, "speech", Context> {
   constructor(
     tpl: unknown,
     eng: TemplateEngine,
     ad: A,
     path?: K,
     testSettings?: TestSettings,
-    loader?: Loader<T>
+    loader?: Loader<T, unknown>,
+    context?: Context
   ) {
-    super(tpl, eng, ad, path, testSettings, loader);
+    super(tpl, eng, ad, path, testSettings, loader, context);
   }
 
   async format({

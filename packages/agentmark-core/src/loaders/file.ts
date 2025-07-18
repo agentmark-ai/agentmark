@@ -6,41 +6,63 @@ import { PromptShape } from "../types";
 import fs from "fs";
 import readline from "readline";
 
-type TemplatedXInstanceType = 'image' | 'speech' | 'language';
+type TemplatedXInstanceType = "image" | "speech" | "language";
 
-function mapPromptKindToInstanceType(promptKind: PromptKind): TemplatedXInstanceType {
+function mapPromptKindToInstanceType(
+  promptKind: PromptKind
+): TemplatedXInstanceType {
   switch (promptKind) {
-    case 'image':
-      return 'image';
-    case 'speech':
-      return 'speech';
-    case 'text':
-    case 'object':
-      return 'language';
+    case "image":
+      return "image";
+    case "speech":
+      return "speech";
+    case "text":
+    case "object":
+      return "language";
     default:
-      throw new Error(`Invalid prompt kind: ${promptKind}. Must be one of: image, speech, text, object.`);
+      throw new Error(
+        `Invalid prompt kind: ${promptKind}. Must be one of: image, speech, text, object.`
+      );
   }
 }
 
-export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
+export class FileLoader<T extends PromptShape<T> = any, Context = never>
+  implements Loader<T, Context>
+{
   private basePath: string;
 
   constructor(private rootDir: string) {
     this.basePath = path.resolve(process.cwd(), rootDir);
   }
 
-  async load(templatePath: string, promptType: PromptKind, options?: any): Promise<Ast> {
+  async load(
+    templatePath: string,
+    promptType: PromptKind,
+    options?: any
+  ): Promise<{
+    prompt: unknown;
+    context: Context;
+  }> {
     const fullPath = path.join(this.basePath, templatePath);
-    const content = fs.readFileSync(fullPath, 'utf-8');
-    
+    const content = fs.readFileSync(fullPath, "utf-8");
+
     // Create a contentLoader function for reading additional files
     const contentLoader = async (filePath: string) => {
-      return fs.readFileSync(filePath, 'utf-8');
+      return fs.readFileSync(filePath, "utf-8");
     };
-    
+
     const instanceType = mapPromptKindToInstanceType(promptType);
     const templateDXInstance = getTemplateDXInstance(instanceType);
-    return await templateDXInstance.parse(content, this.basePath, contentLoader);
+    const prompt = await templateDXInstance.parse(
+      content,
+      this.basePath,
+      contentLoader
+    );
+
+    return {
+      prompt,
+      context: undefined as Context,
+    };
   }
 
   async loadDataset(datasetPath: string): Promise<
