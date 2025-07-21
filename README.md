@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>Develop, test, and evalaute your AI Agents using Markdown</strong>
+  <strong>Markdown for the AI Era. Develop, test, and evalaute your AI Agents.</strong>
 </p>
 
 <p align="center">
