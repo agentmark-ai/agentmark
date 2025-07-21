@@ -40,6 +40,16 @@ type ImagePromptFrontmatterV1_0 = {
   input_schema?: any;
 };
 
+type SpeechPromptFrontmatterV1_0 = {
+  path: string;
+  version: "1.0";
+  speech_config: {
+    model_name: string;
+    tools?: Record<string, any>;
+  };
+  input_schema?: any;
+};
+
 type PromptFrontmatterV0 = {
   path: string;
   metadata: {
@@ -58,7 +68,8 @@ type PromptFrontmatter =
   | PromptFrontmatterV0
   | TextPromptFrontmatterV1_0
   | ObjectPromptFrontmatterV1_0
-  | ImagePromptFrontmatterV1_0;
+  | ImagePromptFrontmatterV1_0
+  | SpeechPromptFrontmatterV1_0;
 
 function getInterfaceName(filePath: string): string {
   return filePath
@@ -105,6 +116,7 @@ async function generateTypeDefinitionsV1_0(
     | TextPromptFrontmatterV1_0[]
     | ObjectPromptFrontmatterV1_0[]
     | ImagePromptFrontmatterV1_0[]
+    | SpeechPromptFrontmatterV1_0[]
 ): Promise<string> {
   let interfaces: string[] = [];
   const headerComment = `// Auto-generated types from AgentMark
@@ -113,6 +125,7 @@ async function generateTypeDefinitionsV1_0(
 `;
   let output = "";
   let typeMapping: string[] = [];
+  const modelNames = new Set<string>(); // Collect all unique model names
 
   for (const prompt of prompts) {
     const { path: promptPath, input_schema } = prompt;
@@ -122,20 +135,34 @@ async function generateTypeDefinitionsV1_0(
       let config = {};
       let kind = "text";
       let output_schema = null;
+      let modelName: string | undefined;
 
       if ("text_config" in prompt) {
         config = prompt.text_config;
         kind = "text";
         tools = prompt.text_config.tools || {};
+        modelName = prompt.text_config.model_name;
       } else if ("object_config" in prompt) {
         config = prompt.object_config;
         kind = "object";
         tools = prompt.object_config.tools || {};
         output_schema = prompt.object_config.schema;
+        modelName = prompt.object_config.model_name;
       } else if ("image_config" in prompt) {
         config = prompt.image_config;
         kind = "image";
         tools = prompt.image_config.tools || {};
+        modelName = prompt.image_config.model_name;
+      } else if ("speech_config" in prompt) {
+        config = prompt.speech_config;
+        kind = "speech";
+        tools = prompt.speech_config.tools || {};
+        modelName = prompt.speech_config.model_name;
+      }
+
+      // Collect model name
+      if (modelName) {
+        modelNames.add(modelName);
       }
 
       const inputInterface = input_schema
@@ -182,6 +209,28 @@ type ${name}Out = string`
     }
   }
 
+  // Generate Models enum
+  if (modelNames.size > 0) {
+    output = `// Model enum - all models used in prompts
+export enum Models {
+${Array.from(modelNames).map(model => `  "${model}" = "${model}"`).join(",\n")}
+}
+
+// Type helper to ensure model registry includes all required models
+export type RequiredModels = keyof typeof Models;
+
+// Type helper for model registry validation
+export type ValidateModelRegistry<T> = T extends { 
+  registerModels(models: infer M, ...args: any[]): any 
+} ? Models extends Record<string, string> 
+  ? RequiredModels extends M extends ReadonlyArray<infer U> ? U : M extends string ? M : never
+    ? T
+    : never
+  : T : never;
+
+` + output;
+  }
+
   output += `export default interface AgentmarkTypes {
 ${typeMapping.join(",\n")}
 }\n`;
@@ -199,12 +248,16 @@ async function generateTypeDefinitionsV0(
 `;
   let output = "";
   let typeMapping: string[] = [];
+  const modelNames = new Set<string>(); // Collect all unique model names for V0 format
 
   for (const prompt of prompts) {
     const { path: promptPath, metadata, input_schema } = prompt;
     const name = getInterfaceName(promptPath);
 
     try {
+      // V0 format doesn't have model name in the same structure
+      // Skip model collection for V0 format as it uses a different structure
+
       const inputInterface = input_schema
         ? await compile(input_schema, `${name}In`, {
             bannerComment: "",
@@ -248,6 +301,28 @@ type ${name}Out = string`
 
       typeMapping.push(`  "${promptPath}": ${name}`);
     }
+  }
+
+  // Generate Models enum for V0 format
+  if (modelNames.size > 0) {
+    output = `// Model enum - all models used in prompts
+export enum Models {
+${Array.from(modelNames).map(model => `  "${model}" = "${model}"`).join(",\n")}
+}
+
+// Type helper to ensure model registry includes all required models
+export type RequiredModels = keyof typeof Models;
+
+// Type helper for model registry validation
+export type ValidateModelRegistry<T> = T extends { 
+  registerModels(models: infer M, ...args: any[]): any 
+} ? Models extends Record<string, string> 
+  ? RequiredModels extends M extends ReadonlyArray<infer U> ? U : M extends string ? M : never
+    ? T
+    : never
+  : T : never;
+
+` + output;
   }
 
   output += `export default interface AgentmarkTypes {
