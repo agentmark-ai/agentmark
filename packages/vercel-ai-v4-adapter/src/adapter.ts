@@ -97,7 +97,7 @@ const getTelemetryConfig = (
       ...telemetry?.metadata,
       prompt: promptName,
       props: JSON.stringify(props),
-      ...(agentmarkMeta && { agentmark_meta: agentmarkMeta }),
+      ...(agentmarkMeta ? { ...agentmarkMeta } : {}),
     },
   };
 };
@@ -319,7 +319,7 @@ export class VercelAIAdapter<
               options.telemetry,
               metadata.props,
               input.name,
-              (input as any).agentmark_meta
+              input.agentmark_meta
             ),
           }
         : {}),
