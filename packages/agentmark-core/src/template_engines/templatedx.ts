@@ -130,6 +130,7 @@ export async function getRawConfig({
   const objectSettings: ObjectSettings | undefined = frontMatter.object_config;
   const textSettings: TextSettings | undefined = frontMatter.text_config;
   const testSettings: TestSettings | undefined = frontMatter.test_settings;
+  const agentmarkMeta: Record<string, any> | undefined = frontMatter.agentmark_meta;
 
   let configType: PromptKind | undefined;
   if (speechSettings) configType = "speech";
@@ -152,6 +153,7 @@ export async function getRawConfig({
           instructions: instructions ?? "",
         },
         test_settings: testSettings,
+        ...(agentmarkMeta && { agentmark_meta: agentmarkMeta }),
       };
     }
     
@@ -163,6 +165,7 @@ export async function getRawConfig({
           prompt: prompt,
         },
         test_settings: testSettings,
+        ...(agentmarkMeta && { agentmark_meta: agentmarkMeta }),
       };
     }
   } else if (configType === "object" || configType === "text") {
@@ -174,6 +177,7 @@ export async function getRawConfig({
         messages,
         object_config: objectSettings,
         test_settings: testSettings,
+        ...(agentmarkMeta && { agentmark_meta: agentmarkMeta }),
       };
     }
     
@@ -183,6 +187,7 @@ export async function getRawConfig({
         messages,
         text_config: textSettings,
         test_settings: testSettings,
+        ...(agentmarkMeta && { agentmark_meta: agentmarkMeta }),
       };
     }
   }

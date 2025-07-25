@@ -88,7 +88,8 @@ export type ModelFunctionCreator = (
 const getTelemetryConfig = (
   telemetry: AdaptOptions["telemetry"],
   props: Record<string, any>,
-  promptName: string
+  promptName: string,
+  agentmarkMeta?: Record<string, any>
 ) => {
   return {
     ...telemetry,
@@ -96,6 +97,7 @@ const getTelemetryConfig = (
       ...telemetry?.metadata,
       prompt: promptName,
       props: JSON.stringify(props),
+      ...(agentmarkMeta ? { ...agentmarkMeta } : {}),
     },
   };
 };
@@ -268,7 +270,8 @@ export class VercelAIAdapter<
             experimental_telemetry: getTelemetryConfig(
               options.telemetry,
               metadata.props,
-              input.name
+              input.name,
+              input.agentmark_meta
             ),
           }
         : {}),
@@ -315,7 +318,8 @@ export class VercelAIAdapter<
             experimental_telemetry: getTelemetryConfig(
               options.telemetry,
               metadata.props,
-              input.name
+              input.name,
+              input.agentmark_meta
             ),
           }
         : {}),
