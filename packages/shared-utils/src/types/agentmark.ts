@@ -67,4 +67,5 @@ export type AgentmarkConfig = {
   modelSchemas?: AgentmarkModelSchema;
   version: string;
   builtInModels?: string[];
+  evals: string[];
 };

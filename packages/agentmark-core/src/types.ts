@@ -112,3 +112,24 @@ export interface Adapter<D extends PromptShape<D>> {
     options: AdaptOptions
   ): any;
 }
+
+export interface EvalParams {
+  input: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
+  output: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
+  expectedOutput?: string;
+}
+
+export interface EvalResult {
+  score: number; // 0-1 scale
+  label: string; // e.g., "correct", "incorrect", "partially_correct"
+  reason: string; // explanation for the score
+}
+
+export type EvalFunction = (
+  params: EvalParams
+) => Promise<EvalResult> | EvalResult;
+
+export interface IEvalRegistry {
+  register: (name: string, evalFn: EvalFunction) => void;
+  get: (name: string) => EvalFunction | undefined;
+}

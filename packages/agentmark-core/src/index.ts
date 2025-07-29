@@ -23,3 +23,5 @@ export type {
   Loader,
   PromptKind,
 } from "./types";
+
+export { EvalRegistry } from "./eval-registery";
