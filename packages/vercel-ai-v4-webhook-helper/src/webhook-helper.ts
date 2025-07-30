@@ -1,4 +1,4 @@
-import { AgentMark } from "@agentmark/agentmark-core";
+import { AgentMark, EvalRegistry } from "@agentmark/agentmark-core";
 import {
   PromptRunEventData,
   InferenceAdapter,
@@ -8,14 +8,23 @@ import {
 } from "./types";
 import { getFrontMatter } from "@agentmark/templatedx";
 import { getInferenceAdapter } from "./utils";
+import { type AgentMarkSDK } from "@agentmark/sdk";
 
 export class WebhookHelper {
   private readonly agentmarkClient: AgentMark<any, any>;
   private readonly inferenceAdapter: InferenceAdapter;
+  private readonly evalRegistry?: EvalRegistry;
+  private readonly agentmarkSDK?: AgentMarkSDK;
 
-  constructor(agentmarkClient: AgentMark<any, any>) {
+  constructor(
+    agentmarkClient: AgentMark<any, any>,
+    evalRegistry?: EvalRegistry,
+    agentmarkSDK?: AgentMarkSDK
+  ) {
     this.agentmarkClient = agentmarkClient;
     this.inferenceAdapter = getInferenceAdapter(agentmarkClient.getAdapter());
+    this.evalRegistry = evalRegistry;
+    this.agentmarkSDK = agentmarkSDK;
   }
 
   async runPrompt(event: PromptRunEventData, options?: RunPromptOptions) {
@@ -58,6 +67,8 @@ export class WebhookHelper {
     const frontmatter = getFrontMatter(event.prompt) as any;
     const runId = crypto.randomUUID();
     const inferenceAdapter = this.inferenceAdapter;
+    const evalRegistry = this.evalRegistry;
+    const agentmarkSDK = this.agentmarkSDK;
 
     if (frontmatter.text_config) {
       const prompt = await this.agentmarkClient.loadTextPrompt(event.prompt);
@@ -96,6 +107,45 @@ export class WebhookHelper {
               }
             );
 
+            let evalResults: any = [];
+
+            if (evalRegistry) {
+              const evaluators = item.evals
+                .map((evaluator: string) => {
+                  const evalFn = evalRegistry.get(evaluator);
+                  if (evalFn) {
+                    return {
+                      name: evaluator,
+                      fn: evalFn,
+                    };
+                  }
+                })
+                .filter((evaluator) => evaluator !== undefined);
+
+              evalResults = await Promise.all(
+                evaluators.map(async (evaluator) => {
+                  const evalResult = await evaluator.fn({
+                    input: item.formatted.messages,
+                    output: result.type === "text" ? result.result : "",
+                    expectedOutput: item.dataset.expected_output,
+                  });
+
+                  agentmarkSDK?.score({
+                    resourceId: traceId,
+                    label: evalResult.label,
+                    reason: evalResult.reason,
+                    score: evalResult.score,
+                    name: evaluator.name,
+                  });
+
+                  return {
+                    name: evaluator.name,
+                    ...evalResult,
+                  };
+                })
+              );
+            }
+
             if (result.type === "text") {
               const chunk =
                 JSON.stringify({
@@ -105,6 +155,7 @@ export class WebhookHelper {
                     expectedOutput: item.dataset.expected_output,
                     actualOutput: result.result,
                     tokens: result.usage?.totalTokens,
+                    evals: evalResults,
                   },
                   runId,
                   runName: event.datasetRunName,
@@ -154,6 +205,46 @@ export class WebhookHelper {
               },
             });
 
+            let evalResults: any = [];
+
+            if (evalRegistry) {
+              const evaluators = item.evals
+                .map((evaluator: string) => {
+                  const evalFn = evalRegistry.get(evaluator);
+                  if (evalFn) {
+                    return {
+                      name: evaluator,
+                      fn: evalFn,
+                    };
+                  }
+                })
+                .filter((evaluator) => evaluator !== undefined);
+
+              evalResults = await Promise.all(
+                evaluators.map(async (evaluator) => {
+                  const evalResult = await evaluator.fn({
+                    input: item.formatted.messages,
+                    output:
+                      result.type === "object" ? (result.result as any) : "",
+                    expectedOutput: item.dataset.expected_output,
+                  });
+
+                  agentmarkSDK?.score({
+                    resourceId: traceId,
+                    label: evalResult.label,
+                    reason: evalResult.reason,
+                    score: evalResult.score,
+                    name: evaluator.name,
+                  });
+
+                  return {
+                    name: evaluator,
+                    ...evalResult,
+                  };
+                })
+              );
+            }
+
             if (result.type === "object") {
               const chunk =
                 JSON.stringify({
@@ -163,6 +254,7 @@ export class WebhookHelper {
                     expectedOutput: item.dataset.expected_output,
                     actualOutput: result.result,
                     tokens: result.usage?.totalTokens,
+                    evals: evalResults,
                   },
                   runId,
                   runName: event.datasetRunName,

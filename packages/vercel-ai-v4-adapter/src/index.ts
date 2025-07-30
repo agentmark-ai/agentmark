@@ -30,6 +30,7 @@ export interface VercelAIObjectPrompt<
         input: Record<string, any>;
         expected_output?: string;
       };
+      evals: string[];
       formatted: VercelAIObjectParams<T[K]["output"]>;
     }>
   >;

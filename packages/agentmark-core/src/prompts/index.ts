@@ -67,6 +67,7 @@ export abstract class BasePrompt<
         expected_output?: string;
       };
       formatted: ReturnType<A[`adapt${Capitalize<PK>}`]>;
+      evals: string[];
     }>
   > {
     if (
@@ -94,6 +95,7 @@ export abstract class BasePrompt<
                 input: value.input,
                 expected_output: value.expected_output,
               },
+              evals: this.testSettings?.evals || [],
               formatted: formattedOutput,
             });
           }

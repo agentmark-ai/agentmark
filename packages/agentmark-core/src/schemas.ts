@@ -86,6 +86,7 @@ export type TextSettings = z.infer<typeof TextSettingsConfig>;
 export const TestSettingsSchema = z.object({
   props: z.record(z.any()).nullable().optional(),
   dataset: z.string().optional(),
+  evals: z.array(z.string()).optional(),
 });
 
 export type TestSettings = z.infer<typeof TestSettingsSchema>;
