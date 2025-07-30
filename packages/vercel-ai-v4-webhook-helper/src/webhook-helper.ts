@@ -8,7 +8,7 @@ import {
 } from "./types";
 import { getFrontMatter } from "@agentmark/templatedx";
 import { getInferenceAdapter } from "./utils";
-import { AgentMarkSDK } from "@agentmark/sdk";
+import { type AgentMarkSDK } from "@agentmark/sdk";
 
 export class WebhookHelper {
   private readonly agentmarkClient: AgentMark<any, any>;
@@ -224,7 +224,8 @@ export class WebhookHelper {
                 evaluators.map(async (evaluator) => {
                   const evalResult = await evaluator.fn({
                     input: item.formatted.messages,
-                    output: result.type === "object" ? result.result as any : "",
+                    output:
+                      result.type === "object" ? (result.result as any) : "",
                     expectedOutput: item.dataset.expected_output,
                   });
 
