@@ -9,7 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/agentmark-core@workspace:packages/agentmark-core"
   dependencies:
-    "@agentmark/templatedx": "npm:^0.8.0"
+    "@agentmark/templatedx": "npm:^0.8.1"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -120,9 +120,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/templatedx@npm:^0.8.0":
-  version: 0.8.0
-  resolution: "@agentmark/templatedx@npm:0.8.0"
+"@agentmark/templatedx@npm:^0.8.1":
+  version: 0.8.1
+  resolution: "@agentmark/templatedx@npm:0.8.1"
   dependencies:
     "@jsep-plugin/object": "npm:^1.2.1"
     js-yaml: "npm:^4.1.0"
@@ -135,7 +135,7 @@ __metadata:
     remark-stringify: "npm:^11.0.0"
     unified: "npm:^11.0.5"
     unist-util-visit: "npm:^5.0.0"
-  checksum: 10c0/16a76968600cb4003c228ceba95820fdbd1c5b1c670e882a20c8899a02b282531cf54087ea1b662ed1a97d20676498ec9c0abc60a7eb34461c614cef04726779
+  checksum: 10c0/1536db5c44e4c5a26764da85960d948bb5c790aa43f3fc5c1964fb98444808a3c6fbf12da328d653273b58b6cd264aedc395ef780e18742ee6814be09cca84cb
   languageName: node
   linkType: hard
 
