@@ -1,5 +1,13 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 3.3.4
+
+### Patch changes
+
+bump agentmark core
+
+# @agentmark/vercel-ai-v4-adapter
+
 ## 3.3.3
 
 ### Patch changes
