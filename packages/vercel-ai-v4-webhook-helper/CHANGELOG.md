@@ -1,5 +1,11 @@
 # @agentmark/vercel-ai-v4-webhook-helper
 
+## 0.1.0
+
+### Minor Changes
+
+- ba57eae: Support evals
+
 ## 0.0.4
 
 Better error handling and tool calling
