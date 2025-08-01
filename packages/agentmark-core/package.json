@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/agentmark-core",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
