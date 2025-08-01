@@ -7,7 +7,6 @@ import dev from "./commands/dev";
 import generateTypes from "./commands/generate-types";
 import pullModels from "./commands/pull-models";
 import runPrompt from "./commands/run-prompt";
-import runDataset from "./commands/run-dataset";
 
 program
   .command("init")
@@ -52,26 +51,18 @@ program
   .command("run-prompt <filepath>")
   .description('Run a prompt with test props or dataset')
   .option('-i, --input <type>', 'Input type: "props" or "dataset"', 'props')
-  .action(async (filepath: string, options: { input: string }) => {
+  .option('--eval', 'Run evaluations and include eval results in output columns (only applies when input is "dataset")')
+  .action(async (filepath: string, options: { input: string, eval?: boolean }) => {
     try {
       // Validate input option
       if (options.input !== 'props' && options.input !== 'dataset') {
         program.error('Input type must be either "props" or "dataset"');
       }
       
-      await runPrompt(filepath, { input: options.input as "props" | "dataset" });
-    } catch (error) {
-      program.error((error as Error).message);
-    }
-  });
-
-program
-  .command("run-dataset <filepath>")
-  .description('Run a prompt with its dataset and optional evaluations')
-  .option('--eval', 'Run evaluations and include eval results in output columns')
-  .action(async (filepath: string, options: { eval?: boolean }) => {
-    try {
-      await runDataset(filepath, { eval: !!options.eval });
+      await runPrompt(filepath, { 
+        input: options.input as "props" | "dataset",
+        eval: !!options.eval
+      });
     } catch (error) {
       program.error((error as Error).message);
     }

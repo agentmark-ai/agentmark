@@ -4,7 +4,7 @@ import Table from "cli-table3";
 import { VercelAIModelRegistry, createAgentMarkClient } from "@agentmark/vercel-ai-v4-adapter";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { FileLoader, PromptKind, TemplateDXTemplateEngine } from "@agentmark/agentmark-core";
+import { FileLoader, PromptKind, TemplateDXTemplateEngine, EvalRegistry } from "@agentmark/agentmark-core";
 import {
   streamText,
   generateText,
@@ -88,7 +88,106 @@ const templateEngine = new TemplateDXTemplateEngine();
 
 interface RunPromptOptions {
   input: "props" | "dataset";
+  eval?: boolean;
 }
+
+// Define eval parameter types locally since they're not exported
+interface EvalParams {
+  input: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
+  output: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
+  expectedOutput?: string;
+}
+
+interface EvalResult {
+  score: number; // 0-1 scale
+  label: string; // e.g., "correct", "incorrect", "partially_correct"
+  reason: string; // explanation for the score
+}
+
+type EvalFunction = (params: EvalParams) => Promise<EvalResult> | EvalResult;
+
+// Create eval registry with basic evaluation functions
+const createEvalRegistry = (): EvalRegistry => {
+  const registry = new EvalRegistry();
+  
+  // Exact match evaluator
+  registry.register("exact_match", async ({ output, expectedOutput }: EvalParams) => {
+    if (!expectedOutput) {
+      return { score: 0, label: "no_expected", reason: "No expected output provided" };
+    }
+    
+    const isMatch = String(output).trim() === String(expectedOutput).trim();
+    return {
+      score: isMatch ? 1 : 0,
+      label: isMatch ? "correct" : "incorrect",
+      reason: isMatch ? "Output matches expected exactly" : "Output does not match expected"
+    };
+  });
+  
+  // Contains evaluator (checks if output contains expected text)
+  registry.register("contains", async ({ output, expectedOutput }: EvalParams) => {
+    if (!expectedOutput) {
+      return { score: 0, label: "no_expected", reason: "No expected output provided" };
+    }
+    
+    const contains = String(output).toLowerCase().includes(String(expectedOutput).toLowerCase());
+    return {
+      score: contains ? 1 : 0,
+      label: contains ? "correct" : "incorrect",
+      reason: contains ? "Output contains expected text" : "Output does not contain expected text"
+    };
+  });
+  
+  // Length evaluator (checks if output length is reasonable)
+  registry.register("length_check", async ({ output }: EvalParams) => {
+    const length = String(output).length;
+    const isReasonable = length > 0 && length < 10000;
+    return {
+      score: isReasonable ? 1 : 0,
+      label: isReasonable ? "reasonable" : "unreasonable",
+      reason: `Output length is ${length} characters`
+    };
+  });
+  
+  return registry;
+};
+
+const runEvaluations = async (evalNames: string[], evalRegistry: EvalRegistry, input: any, output: any, expectedOutput?: string): Promise<any[]> => {
+  const results = [];
+  
+  for (const evalName of evalNames) {
+    const evalFn = evalRegistry.get(evalName);
+    if (evalFn) {
+      try {
+        const result = await evalFn({
+          input,
+          output,
+          expectedOutput
+        });
+        results.push({
+          name: evalName,
+          ...result
+        });
+      } catch (error: any) {
+        results.push({
+          name: evalName,
+          score: 0,
+          label: "error",
+          reason: `Eval error: ${error.message}`
+        });
+      }
+    } else {
+      results.push({
+        name: evalName,
+        score: 0,
+        label: "not_found",
+        reason: `Eval function '${evalName}' not found`
+      });
+    }
+  }
+  
+  return results;
+};
 
 const executeTextPropsPrompt = async (input: any) => {
   console.log("\n=== Text Prompt Results ===");
@@ -167,21 +266,33 @@ const executeSpeechPropsPrompt = async (input: any) => {
   }
 };
 
-const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
+const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions) => {
   console.log("\n=== Text Dataset Results ===");
   console.log("🔄 Processing dataset entries...\n");
   
+  const evalRegistry = createEvalRegistry();
+  
+  // Determine table structure based on eval option
+  let tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
+  let colWidths = [5, 40, 30, 40];
+  
+  if (options?.eval) {
+    // We'll dynamically add eval columns as we encounter them
+    tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
+    colWidths = [5, 25, 15, 25];
+  }
+  
   // Print table header immediately
   const headerTable = new Table({
-    head: ['#', 'Input', 'Expected Output', 'AI Result'],
-    colWidths: [5, 40, 30, 40],
+    head: tableHead,
+    colWidths: colWidths,
     wordWrap: true
   });
   
-  // Print just the header by creating empty table and getting header part
   console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
 
   let index = 1;
+  let allEvalNames: string[] = [];
   const reader = inputs.getReader();
   
   try {
@@ -195,19 +306,67 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
         const input = JSON.stringify(entry.dataset.input, null, 0);
         const expectedOutput = entry.dataset.expected_output || 'N/A';
         
-        // Create a single-row table for this entry and print immediately
-        const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
-          wordWrap: true,
-          style: { head: [] } // No header for individual rows
-        });
+        // Run evaluations if enabled
+        let evalResults: any[] = [];
+        if (options?.eval && entry.evals && entry.evals.length > 0) {
+          evalResults = await runEvaluations(entry.evals, evalRegistry, entry.dataset.input, text, entry.dataset.expected_output);
+          
+          // Track all eval names we've seen
+          for (const evalName of entry.evals) {
+            if (!allEvalNames.includes(evalName)) {
+              allEvalNames.push(evalName);
+            }
+          }
+        }
         
-        rowTable.push([
+        // Create table row
+        let rowData = [
           index.toString(),
           input,
           expectedOutput,
           text
-        ]);
+        ];
+        
+        // Add eval columns if enabled
+        if (options?.eval) {
+          for (const evalName of allEvalNames) {
+            const evalResult = evalResults.find(r => r.name === evalName);
+            if (evalResult) {
+              rowData.push(`${evalResult.score.toFixed(2)} (${evalResult.label})`);
+            } else {
+              rowData.push('N/A');
+            }
+          }
+          
+          // Update table structure for new eval columns
+          if (evalResults.length > 0 && index === 1) {
+            // Update header for first row with evals
+            const newColWidths = [5, 20, 15, 20, ...allEvalNames.map(() => 12)];
+            const newHead = ['#', 'Input', 'Expected Output', 'AI Result', ...allEvalNames];
+            
+            // Print updated header
+            console.log('\n'); // Clear previous header
+            const updatedHeaderTable = new Table({
+              head: newHead,
+              colWidths: newColWidths,
+              wordWrap: true
+            });
+            console.log(updatedHeaderTable.toString().split('\n').slice(0, 3).join('\n'));
+          }
+        }
+        
+        // Create a single-row table for this entry and print immediately
+        const finalColWidths = options?.eval && allEvalNames.length > 0 ? 
+          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
+          [5, 40, 30, 40];
+          
+        const rowTable = new Table({
+          colWidths: finalColWidths,
+          wordWrap: true,
+          style: { head: [] } // No header for individual rows
+        });
+        
+        rowTable.push(rowData);
         
         // Print just the data row (skip header lines)
         const tableString = rowTable.toString();
@@ -218,8 +377,12 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
         console.error(`❌ Error generating text for entry ${index}: ${error.message}`);
         
         // Still print a table row showing the error
+        const errorColWidths = options?.eval && allEvalNames.length > 0 ? 
+          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
+          [5, 40, 30, 40];
+          
         const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
+          colWidths: errorColWidths,
           wordWrap: true,
           style: { head: [] }
         });
@@ -227,12 +390,21 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
         const input = JSON.stringify(entry.dataset.input, null, 0);
         const expectedOutput = entry.dataset.expected_output || 'N/A';
         
-        rowTable.push([
+        let errorRowData = [
           index.toString(),
           input,
           expectedOutput,
           `❌ Error: ${error.message}`
-        ]);
+        ];
+        
+        // Add empty eval columns for error rows
+        if (options?.eval) {
+          for (const evalName of allEvalNames) {
+            errorRowData.push('Error');
+          }
+        }
+        
+        rowTable.push(errorRowData);
         
         const tableString = rowTable.toString();
         const lines = tableString.split('\n');
@@ -246,24 +418,39 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>) => {
   }
   
   // Print table footer
-  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
+  const footerWidth = options?.eval && allEvalNames.length > 0 ? 
+    1 + 20 + 15 + 20 + (allEvalNames.length * 12) + (allEvalNames.length + 3) : 
+    1 + 40 + 30 + 40 + 3;
+  console.log('└' + '─'.repeat(footerWidth - 2) + '┘');
 };
 
-const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
+const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions) => {
   console.log("\n=== Object Dataset Results ===");
   console.log("🔄 Processing dataset entries...\n");
   
+  const evalRegistry = createEvalRegistry();
+  
+  // Determine table structure based on eval option
+  let tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
+  let colWidths = [5, 40, 30, 40];
+  
+  if (options?.eval) {
+    // We'll dynamically add eval columns as we encounter them
+    tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
+    colWidths = [5, 25, 15, 25];
+  }
+  
   // Print table header immediately
   const headerTable = new Table({
-    head: ['#', 'Input', 'Expected Output', 'AI Result'],
-    colWidths: [5, 40, 30, 40],
+    head: tableHead,
+    colWidths: colWidths,
     wordWrap: true
   });
   
-  // Print just the header by creating empty table and getting header part
   console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
 
   let index = 1;
+  let allEvalNames: string[] = [];
   const reader = inputs.getReader();
   
   try {
@@ -278,19 +465,67 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
         const expectedOutput = entry.dataset.expected_output || 'N/A';
         const aiResult = JSON.stringify(object, null, 0);
         
-        // Create a single-row table for this entry and print immediately
-        const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
-          wordWrap: true,
-          style: { head: [] } // No header for individual rows
-        });
+        // Run evaluations if enabled
+        let evalResults: any[] = [];
+        if (options?.eval && entry.evals && entry.evals.length > 0) {
+          evalResults = await runEvaluations(entry.evals, evalRegistry, entry.dataset.input, object, entry.dataset.expected_output);
+          
+          // Track all eval names we've seen
+          for (const evalName of entry.evals) {
+            if (!allEvalNames.includes(evalName)) {
+              allEvalNames.push(evalName);
+            }
+          }
+        }
         
-        rowTable.push([
+        // Create table row
+        let rowData = [
           index.toString(),
           input,
           expectedOutput,
           aiResult
-        ]);
+        ];
+        
+        // Add eval columns if enabled
+        if (options?.eval) {
+          for (const evalName of allEvalNames) {
+            const evalResult = evalResults.find(r => r.name === evalName);
+            if (evalResult) {
+              rowData.push(`${evalResult.score.toFixed(2)} (${evalResult.label})`);
+            } else {
+              rowData.push('N/A');
+            }
+          }
+          
+          // Update table structure for new eval columns
+          if (evalResults.length > 0 && index === 1) {
+            // Update header for first row with evals
+            const newColWidths = [5, 20, 15, 20, ...allEvalNames.map(() => 12)];
+            const newHead = ['#', 'Input', 'Expected Output', 'AI Result', ...allEvalNames];
+            
+            // Print updated header
+            console.log('\n'); // Clear previous header
+            const updatedHeaderTable = new Table({
+              head: newHead,
+              colWidths: newColWidths,
+              wordWrap: true
+            });
+            console.log(updatedHeaderTable.toString().split('\n').slice(0, 3).join('\n'));
+          }
+        }
+        
+        // Create a single-row table for this entry and print immediately
+        const finalColWidths = options?.eval && allEvalNames.length > 0 ? 
+          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
+          [5, 40, 30, 40];
+        
+        const rowTable = new Table({
+          colWidths: finalColWidths,
+          wordWrap: true,
+          style: { head: [] } // No header for individual rows
+        });
+        
+        rowTable.push(rowData);
         
         // Print just the data row (skip header lines)
         const tableString = rowTable.toString();
@@ -301,8 +536,12 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
         console.error(`❌ Error generating object for entry ${index}: ${error.message}`);
         
         // Still print a table row showing the error
+        const errorColWidths = options?.eval && allEvalNames.length > 0 ? 
+          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
+          [5, 40, 30, 40];
+        
         const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
+          colWidths: errorColWidths,
           wordWrap: true,
           style: { head: [] }
         });
@@ -310,12 +549,21 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
         const input = JSON.stringify(entry.dataset.input, null, 0);
         const expectedOutput = entry.dataset.expected_output || 'N/A';
         
-        rowTable.push([
+        let errorRowData = [
           index.toString(),
           input,
           expectedOutput,
           `❌ Error: ${error.message}`
-        ]);
+        ];
+        
+        // Add empty eval columns for error rows
+        if (options?.eval) {
+          for (const evalName of allEvalNames) {
+            errorRowData.push('Error');
+          }
+        }
+        
+        rowTable.push(errorRowData);
         
         const tableString = rowTable.toString();
         const lines = tableString.split('\n');
@@ -329,7 +577,10 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>) => {
   }
   
   // Print table footer
-  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
+  const footerWidth = options?.eval && allEvalNames.length > 0 ? 
+    1 + 20 + 15 + 20 + (allEvalNames.length * 12) + (allEvalNames.length + 3) : 
+    1 + 40 + 30 + 40 + 3;
+  console.log('└' + '─'.repeat(footerWidth - 2) + '┘');
 };
 
 const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
@@ -610,13 +861,16 @@ const runPrompt = async (filepath: string, options: RunPromptOptions) => {
   try {
     if (options.input === "dataset") {
       console.log("Running prompt with dataset...");
+      if (options.eval) {
+        console.log("🧪 Evaluations enabled");
+      }
       const resultsStream = await prompt.formatWithDataset({ apiKey });
       
       // Execute with appropriate AI function based on prompt type
       if (promptKind === "text") {
-        await executeTextDatasetPrompt(resultsStream);
+        await executeTextDatasetPrompt(resultsStream, options);
       } else if (promptKind === "object") {
-        await executeObjectDatasetPrompt(resultsStream);
+        await executeObjectDatasetPrompt(resultsStream, options);
       } else if (promptKind === "image") {
         await executeImageDatasetPrompt(resultsStream);
       } else if (promptKind === "speech") {
@@ -624,6 +878,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions) => {
       }
     } else {
       console.log("Running prompt with test props...");
+      if (options.eval) {
+        console.log("⚠️  Warning: --eval flag is ignored when not using dataset input");
+      }
       const result = await prompt.formatWithTestProps({ apiKey });
       
       // Execute with appropriate AI function based on prompt type
