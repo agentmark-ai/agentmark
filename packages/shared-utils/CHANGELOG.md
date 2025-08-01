@@ -1,5 +1,11 @@
 # @agentmark/shared-utils
 
+## 1.3.0
+
+### Minor Changes
+
+- fc522b6: Support evals
+
 ## 1.1.0
 
 ### Minor Changes
