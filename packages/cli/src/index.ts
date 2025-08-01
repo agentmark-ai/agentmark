@@ -7,6 +7,7 @@ import dev from "./commands/dev";
 import generateTypes from "./commands/generate-types";
 import pullModels from "./commands/pull-models";
 import runPrompt from "./commands/run-prompt";
+import runDataset from "./commands/run-dataset";
 
 program
   .command("init")
@@ -59,6 +60,18 @@ program
       }
       
       await runPrompt(filepath, { input: options.input as "props" | "dataset" });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("run-dataset <filepath>")
+  .description('Run a prompt with its dataset and optional evaluations')
+  .option('--eval', 'Run evaluations and include eval results in output columns')
+  .action(async (filepath: string, options: { eval?: boolean }) => {
+    try {
+      await runDataset(filepath, { eval: !!options.eval });
     } catch (error) {
       program.error((error as Error).message);
     }
