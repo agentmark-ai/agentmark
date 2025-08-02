@@ -1,0 +1,40 @@
+{
+  "name": "@agentmark/web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgentMark Web Application",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@agentmark/agentmark-core": "*",
+    "@agentmark/shared-utils": "*",
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "@headlessui/react": "^1.7.0",
+    "@heroicons/react": "^2.0.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.294.0",
+    "next-auth": "^4.24.0",
+    "prisma": "^5.0.0",
+    "@prisma/client": "^5.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "^14.0.0"
+  }
+}

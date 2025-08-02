@@ -1,26 +1,24 @@
 {
-  "name": "agentmark-monorepo",
-  "license": "MIT",
+  "name": "agentmark",
+  "private": true,
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
-  "engines": {
-    "node": ">=18"
-  },
-  "private": true,
   "scripts": {
-    "test": "turbo test",
-    "build": "turbo build",
-    "release": "changeset publish",
-    "version": "changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false && yarn && changeset tag"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "web:dev": "yarn workspace @agentmark/web dev",
+    "web:build": "yarn workspace @agentmark/web build",
+    "db:generate": "yarn workspace @agentmark/web prisma generate",
+    "db:push": "yarn workspace @agentmark/web prisma db push",
+    "db:migrate": "yarn workspace @agentmark/web prisma migrate dev"
   },
-  "packageManager": "yarn@4.5.3",
   "devDependencies": {
-    "@changesets/cli": "^2.27.9",
-    "turbo": "latest"
+    "turbo": "^1.10.12"
   },
-  "dependencies": {
-    "@isaacs/ttlcache": "^1.4.1"
-  }
+  "packageManager": "yarn@3.5.4"
 }
