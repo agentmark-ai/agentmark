@@ -1,5 +1,13 @@
 # @agentmark/cli
 
+## 1.8.1
+
+### Patch Changes
+
+- 8b77f99: Chore: Use stateful TemplateDX for prompts
+- Updated dependencies [8b77f99]
+  - @agentmark/agentmark-core@3.3.3
+
 ## 1.8.0
 
 ### Minor Changes
