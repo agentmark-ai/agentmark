@@ -1,0 +1,35 @@
+---
+name: greeting
+text_config:
+  model_name: gemini-1.5-flash
+  tools:
+    echo:
+      description: Echo a message
+      parameters:
+        type: object
+        properties:
+          message:
+            type: string
+            description: The message to echo
+        required: ["message"]
+test_settings:
+  props:
+    userType: "admin"
+    num: 3
+---
+
+<System>
+  You are a helpful assistant. When a user asks you to use a tool, you MUST use that tool. 
+  You have access to an echo tool - use it when requested. Only echo the exact thing that the user has asked
+  <If condition={props.userType == "admin"}>
+    You should provide detailed technical information when asked.
+  </If>
+  <ElseIf condition={props.userType == "developer"}>
+    You should provide code examples when asked.
+  </ElseIf>
+  <Else>
+    You should provide simple explanations.
+  </Else>
+</System>
+
+<User>Please use the echo tool to repeat: "Hello, world!".</User>
