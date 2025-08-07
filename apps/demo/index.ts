@@ -17,7 +17,7 @@ modelRegistry.registerModels(["gpt-4o", "gpt-4o-mini"], (name: string) => {
 
 const tools = new VercelAIToolRegistry<Tools>().register(
   "weather",
-  ({ location }) => ({ tempC: 22 })
+  ({ location }, ) => ({ tempC: 22 })
 );
 
 const agentMark = createAgentMarkClient<AgentmarkTypes>({
@@ -32,7 +32,7 @@ async function run() {
     userMessage: "Whats 2 + 3?",
   };
 
-  const vercelInput = await prompt.format({ props });
+  const vercelInput = await prompt.format({ props, toolContext: {} });
   const result = await generateObject(vercelInput);
   console.log(result.object.answer);
 }

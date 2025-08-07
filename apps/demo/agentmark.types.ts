@@ -9,13 +9,29 @@ export interface Tools {
   explain: { args: ExplainArgs };
 }
 
-interface ObjectEntry<I, O> { kind: 'object'; input: I; output: O }
-interface TextEntry<I, O>   { kind: 'text';   input: I; output: O }
-interface ImageEntry<I, O>  { kind: 'image';  input: I; output: O }
+interface ObjectEntry<I, O> {
+  kind: "object";
+  input: I;
+  output: O;
+}
+interface TextEntry<I, O> {
+  kind: "text";
+  input: I;
+  output: O;
+}
+interface ImageEntry<I, O> {
+  kind: "image";
+  input: I;
+  output: O;
+}
 
-interface MathIn { [key: string]: any }
+interface MathIn {
+  [key: string]: any;
+}
 
-interface MathOut { answer2: string }
+interface MathOut {
+  answer2: string;
+}
 
 interface Test$Math2In {
   /**
@@ -24,7 +40,6 @@ interface Test$Math2In {
   userMessage: string;
 }
 
-
 interface Test$Math2Out {
   /**
    * The answer to the math question
@@ -32,18 +47,17 @@ interface Test$Math2Out {
   answer: string;
 }
 
-
-type Math = { kind: 'object'; input: MathIn; output: MathOut };
+type Math = { kind: "object"; input: MathIn; output: MathOut };
 
 type Test$Math2 = {
-  kind: 'object';
-  input:  Test$Math2In;
+  kind: "text";
+  input: Test$Math2In;
   output: Test$Math2Out;
 };
 
 interface AgentmarkTypes {
-  "math.prompt.mdx": Math,
-  "test/math2.prompt.mdx": Test$Math2,
+  "math.prompt.mdx": Math;
+  "test/math2.prompt.mdx": Test$Math2;
 }
 
 export default AgentmarkTypes;

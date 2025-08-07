@@ -1,0 +1,42 @@
+{
+  "name": "@agentmark/mastra-adapter",
+  "version": "3.3.2",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup && npx cpy ../../README.md ../../logo.svg ./"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.1",
+    "cpy-cli": "^5.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@mastra/core": "^0.12.1",
+    "zod": "^3.23.8"
+  },
+  "peerDependencies": {
+    "@agentmark/agentmark-core": "^3.2.0",
+    "ai": "^4.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "author": {"name": "Abdul Rehman"}
+}
