@@ -3,6 +3,7 @@ import { AgentMark } from "@agentmark/agentmark-core";
 import { MastraAdapter, MastraAgentMark } from "./adapter";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraToolRegistry } from "./tool-registry";
+
 export function createAgentMarkClient<D extends PromptShape<D> = any>(opts: {
   loader?: Loader<D>;
   modelRegistry: MastraModelRegistry;

@@ -48,16 +48,14 @@ async function testAdapter() {
   };
 
   const agentInput = await prompt.formatAgent({
-    props: { userType: "admin", num: 3 },
+    props: { userType: "admin" },
   });
-  console.log("Agent Input is: ", agentInput);
   const agent = new Agent(agentInput);
   const messages = await agentInput.formatMessage({
-    props: {},
+    props: { num: 3 },
   });
 
-  console.log("Messages:", messages);
-
+  console.log("Messages:", messages[0].content);
   const response = await agent.generate(messages, {
     telemetry: executionOptions.experimental_telemetry,
     maxSteps: 5,

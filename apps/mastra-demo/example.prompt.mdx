@@ -1,4 +1,33 @@
 ---
+name: example
+text_config:
+  model_name: gemini-1.5-flash
+test_settings:
+  props:
+    userType: "admin"
+    num: 3
+---
+
+<System>
+  You are a Database expert
+  <If condition={props.userType == "admin"}>
+    You should provide detailed technical information when asked.
+  </If>
+  <ElseIf condition={props.userType == "developer"}>
+    You should provide code examples when asked.
+  </ElseIf>
+  <Else>
+    You should provide simple explanations.
+  </Else>
+</System>
+
+<User>What is SQL. Can you explain it to me in {props.num} lines.</User>
+
+
+
+
+
+{/* ---
 name: greeting
 text_config:
   model_name: gemini-1.5-flash
@@ -32,4 +61,4 @@ test_settings:
   </Else>
 </System>
 
-<User>Please use the echo tool to repeat: "Hello, world!".</User>
+<User>Please use the echo tool to repeat: "Hello, world!".</User> */}
