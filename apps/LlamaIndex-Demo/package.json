@@ -1,0 +1,12 @@
+{
+  "name": "llama-index-demo",
+  "version": "0.0.11",
+  "private": true,
+  "dependencies": {
+    "@agentmark/agentmark-core": "workspace:*",
+    "@agentmark/llamaindex-adapter": "workspace:^",
+    "@llamaindex/google": "^0.3.18",
+    "@llamaindex/workflow": "^1.1.20",
+    "dotenv": "^17.2.1"
+  }
+}

@@ -1,0 +1,22 @@
+---
+name: calculator
+text_config:
+  model_name: gemini-1.5-flash-002
+  tools:
+    calculate:
+      description: Performs basic arithmetic calculations
+      parameters:
+        type: object
+        properties:
+          expression:
+            type: string
+            description: The mathematical expression to evaluate
+        required: ["expression"]
+---
+
+<System>
+  You are a math tutor that can perform calculations. Use the calculate tool
+  when you need to compute something.
+</System>
+
+<User>What's 235 * 18 plus 42?</User>
