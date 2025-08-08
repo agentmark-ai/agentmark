@@ -225,11 +225,13 @@ const executeSpeechPropsPrompt = async (input: any) => {
   }
 };
 
-const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions) => {
+const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions): Promise<{ totalEvals: number; passedEvals: number; }> => {
   console.log("\n=== Text Dataset Results ===");
   console.log("🔄 Processing dataset entries...\n");
   
   const evalRegistry = createEvalRegistry();
+  let totalEvals = 0;
+  let passedEvals = 0;
   
   // Pre-compute eval columns from options (do not add later)
   const initialEvalNames: string[] = options?.eval && options?.evalNames ? options.evalNames : [];
@@ -283,6 +285,10 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
             const evalResult = evalResults.find(r => r.name === evalName);
             if (evalResult) {
               rowData.push(`${evalResult.score.toFixed(2)} (${evalResult.label})`);
+              totalEvals += 1;
+              if (evalResult.score >= 1 || ["correct", "reasonable"].includes(evalResult.label)) {
+                passedEvals += 1;
+              }
             } else {
               rowData.push('N/A');
             }
@@ -346,13 +352,16 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
   } finally {
     reader.releaseLock();
   }
+  return { totalEvals, passedEvals };
 };
 
-const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions) => {
+const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions): Promise<{ totalEvals: number; passedEvals: number; }> => {
   console.log("\n=== Object Dataset Results ===");
   console.log("🔄 Processing dataset entries...\n");
   
   const evalRegistry = createEvalRegistry();
+  let totalEvals = 0;
+  let passedEvals = 0;
   
   const initialEvalNames: string[] = options?.eval && options?.evalNames ? options.evalNames : [];
   let allEvalNames: string[] = [...initialEvalNames];
@@ -406,6 +415,10 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
             const evalResult = evalResults.find(r => r.name === evalName);
             if (evalResult) {
               rowData.push(`${evalResult.score.toFixed(2)} (${evalResult.label})`);
+              totalEvals += 1;
+              if (evalResult.score >= 1 || ["correct", "reasonable"].includes(evalResult.label)) {
+                passedEvals += 1;
+              }
             } else {
               rowData.push('N/A');
             }
@@ -469,9 +482,10 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
   } finally {
     reader.releaseLock();
   }
+  return { totalEvals, passedEvals };
 };
 
-const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
+const executeImageDatasetPrompt = async (inputs: ReadableStream<any>): Promise<{ totalEvals: number; passedEvals: number; }> => {
   console.log("\n=== Image Dataset Results ===");
   console.log("� Processing dataset entries...\n");
   
@@ -565,9 +579,10 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
   
   // Print table footer
   // Footer not required when printing rows independently
+  return { totalEvals: 0, passedEvals: 0 };
 };
 
-const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
+const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>): Promise<{ totalEvals: number; passedEvals: number; }> => {
   console.log("\n=== Speech Dataset Results ===");
   console.log("� Processing dataset entries...\n");
   
@@ -660,6 +675,7 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
   
   // Print table footer
   // Footer not required when printing rows independently
+  return { totalEvals: 0, passedEvals: 0 };
 };
 
 const runPrompt = async (filepath: string, options: RunPromptOptions) => {
@@ -790,3 +806,102 @@ const runPrompt = async (filepath: string, options: RunPromptOptions) => {
 };
 
 export default runPrompt;
+
+export const runExperiment = async (
+  filepath: string,
+  options: { skipEval?: boolean; thresholdPercent?: number }
+) => {
+  // Always run with dataset, evals enabled unless skipped
+  const evalEnabled = !options.skipEval;
+  const resolvedFilepath = path.resolve(process.cwd(), filepath);
+  if (!fs.existsSync(resolvedFilepath)) {
+    throw new Error(`File not found: ${resolvedFilepath}`);
+  }
+
+  const fileDirectory = path.dirname(resolvedFilepath);
+  const fileLoader = new FileLoader(fileDirectory);
+  const { getFrontMatter, load } = await import("@agentmark/templatedx");
+  let ast: Root = await load(resolvedFilepath);
+  const frontmatter: any = getFrontMatter(ast);
+  if (frontmatter?.metadata) {
+    console.log("Warning: Old format detected. Please consider updating to the new format.");
+  }
+
+  const compiledYaml = await templateEngine.compile({ template: ast });
+  let promptKind: PromptKind;
+  let promptConfig: any;
+  if ('image_config' in compiledYaml) {
+    promptKind = "image";
+    promptConfig = compiledYaml.image_config;
+  } else if ('object_config' in compiledYaml) {
+    promptKind = "object";
+    promptConfig = compiledYaml.object_config;
+  } else if ('text_config' in compiledYaml) {
+    promptKind = "text";
+    promptConfig = compiledYaml.text_config;
+  } else if ('speech_config' in compiledYaml) {
+    promptKind = "speech";
+    promptConfig = compiledYaml.speech_config;
+  } else {
+    throw new Error("No config (image_config, object_config, text_config, or speech_config) found in the file.");
+  }
+
+  const modelName: string = promptConfig?.model_name || "";
+  if (!modelProviderMap[modelName]) {
+    throw new Error(`Unsupported model name: ${modelName}`);
+  }
+
+  const envVarName = `${modelProviderMap[modelName].toUpperCase()}_API_KEY`;
+  let apiKey = process.env[envVarName];
+  if (!apiKey) {
+    const response = await prompts({
+      type: 'password',
+      name: 'apiKey',
+      message: `Enter your ${modelProviderMap[modelName]} API key:`,
+      validate: (value: string) => value.length > 0 ? true : 'API key cannot be empty'
+    });
+    if (!response.apiKey) {
+      throw new Error('API key is required');
+    }
+    apiKey = response.apiKey;
+  }
+
+  const agentMark = createAgentMarkClient({ modelRegistry, loader: fileLoader });
+  const loaderMap: Record<PromptKind, (ast: Root) => any> = {
+    text: (ast: Root) => agentMark.loadTextPrompt(ast),
+    object: (ast: Root) => agentMark.loadObjectPrompt(ast),
+    image: (ast: Root) => agentMark.loadImagePrompt(ast),
+    speech: (ast: Root) => agentMark.loadSpeechPrompt(ast),
+  };
+  const prompt = await loaderMap[promptKind](ast);
+
+  const resultsStream = await prompt.formatWithDataset({ apiKey });
+  const evalNames = (compiledYaml as any)?.test_settings?.evals || [];
+  const execOptions = { input: 'dataset' as const, eval: evalEnabled, evalNames };
+  let counters = { totalEvals: 0, passedEvals: 0 };
+  if (promptKind === 'text') {
+    counters = await executeTextDatasetPrompt(resultsStream, execOptions);
+  } else if (promptKind === 'object') {
+    counters = await executeObjectDatasetPrompt(resultsStream, execOptions);
+  } else if (promptKind === 'image') {
+    counters = await executeImageDatasetPrompt(resultsStream);
+  } else if (promptKind === 'speech') {
+    counters = await executeSpeechDatasetPrompt(resultsStream);
+  }
+
+  const { totalEvals, passedEvals } = counters;
+  if (options.thresholdPercent !== undefined) {
+    const t = options.thresholdPercent;
+    if (!Number.isFinite(t) || t < 0 || t > 100) {
+      throw new Error(`Invalid threshold: ${t}. Threshold must be between 0 and 100.`);
+    }
+  }
+  if (evalEnabled && totalEvals > 0 && options.thresholdPercent !== undefined) {
+    const passPct = Math.floor((passedEvals / totalEvals) * 100);
+    const threshold = options.thresholdPercent;
+    if (passPct < threshold) {
+      throw new Error(`Experiment failed: ${passPct}% < threshold ${threshold}% (${passedEvals}/${totalEvals} evals passed)`);
+    }
+    console.log(`✅ Experiment passed threshold: ${passPct}% >= ${threshold}% (${passedEvals}/${totalEvals})`);
+  }
+};

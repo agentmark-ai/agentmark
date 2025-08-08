@@ -6,7 +6,7 @@ import serve from "./commands/serve";
 import dev from "./commands/dev";
 import generateTypes from "./commands/generate-types";
 import pullModels from "./commands/pull-models";
-import runPrompt from "./commands/run-prompt";
+import runPrompt, { runExperiment } from "./commands/run-prompt";
 
 program
   .command("init")
@@ -54,11 +54,9 @@ program
   .option('--eval', 'Run evaluations and include eval results in output columns (only applies when input is "dataset")')
   .action(async (filepath: string, options: { input: string, eval?: boolean }) => {
     try {
-      // Validate input option
       if (options.input !== 'props' && options.input !== 'dataset') {
         program.error('Input type must be either "props" or "dataset"');
       }
-      
       await runPrompt(filepath, { 
         input: options.input as "props" | "dataset",
         eval: !!options.eval
@@ -70,15 +68,19 @@ program
 
 // Convenience command for running datasets directly
 program
-  .command("run-dataset <filepath>")
-  .description('Run a prompt against its dataset')
-  .option('--eval', 'Run evaluations and include eval results in output columns')
-  .action(async (filepath: string, options: { eval?: boolean }) => {
+  .command("run-experiment <filepath>")
+  .description('Run an experiment against its dataset, with evals by default')
+  .option('--skip-eval', 'Skip running evals even if they exist')
+  .option('--threshold <percent>', 'Fail if pass percentage is below threshold (0-100)', (v) => {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n)) throw new Error('Threshold must be a number');
+    if (n < 0 || n > 100) throw new Error('Threshold must be between 0 and 100');
+    return n;
+  })
+  .action(async (filepath: string, options: { skipEval?: boolean, threshold?: number }) => {
     try {
-      await runPrompt(filepath, {
-        input: "dataset",
-        eval: !!options.eval,
-      });
+      const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
+      await runExperiment(filepath, { skipEval: !!options.skipEval, thresholdPercent });
     } catch (error) {
       program.error((error as Error).message);
     }
