@@ -68,4 +68,20 @@ program
     }
   });
 
+// Convenience command for running datasets directly
+program
+  .command("run-dataset <filepath>")
+  .description('Run a prompt against its dataset')
+  .option('--eval', 'Run evaluations and include eval results in output columns')
+  .action(async (filepath: string, options: { eval?: boolean }) => {
+    try {
+      await runPrompt(filepath, {
+        input: "dataset",
+        eval: !!options.eval,
+      });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
 program.parse(process.argv);

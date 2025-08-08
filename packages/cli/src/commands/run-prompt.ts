@@ -4,7 +4,7 @@ import Table from "cli-table3";
 import { VercelAIModelRegistry, createAgentMarkClient } from "@agentmark/vercel-ai-v4-adapter";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { FileLoader, PromptKind, TemplateDXTemplateEngine, EvalRegistry } from "@agentmark/agentmark-core";
+import { FileLoader, PromptKind, TemplateDXTemplateEngine } from "@agentmark/agentmark-core";
 import {
   streamText,
   generateText,
@@ -89,104 +89,63 @@ const templateEngine = new TemplateDXTemplateEngine();
 interface RunPromptOptions {
   input: "props" | "dataset";
   eval?: boolean;
+  evalNames?: string[]; // optional, used to predefine eval columns
 }
 
-// Define eval parameter types locally since they're not exported
-interface EvalParams {
-  input: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
-  output: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
-  expectedOutput?: string;
-}
+import { createEvalRegistry, runEvaluations } from "../utils/evals";
 
-interface EvalResult {
-  score: number; // 0-1 scale
-  label: string; // e.g., "correct", "incorrect", "partially_correct"
-  reason: string; // explanation for the score
-}
-
-type EvalFunction = (params: EvalParams) => Promise<EvalResult> | EvalResult;
-
-// Create eval registry with basic evaluation functions
-const createEvalRegistry = (): EvalRegistry => {
-  const registry = new EvalRegistry();
-  
-  // Exact match evaluator
-  registry.register("exact_match", async ({ output, expectedOutput }: EvalParams) => {
-    if (!expectedOutput) {
-      return { score: 0, label: "no_expected", reason: "No expected output provided" };
-    }
-    
-    const isMatch = String(output).trim() === String(expectedOutput).trim();
-    return {
-      score: isMatch ? 1 : 0,
-      label: isMatch ? "correct" : "incorrect",
-      reason: isMatch ? "Output matches expected exactly" : "Output does not match expected"
-    };
-  });
-  
-  // Contains evaluator (checks if output contains expected text)
-  registry.register("contains", async ({ output, expectedOutput }: EvalParams) => {
-    if (!expectedOutput) {
-      return { score: 0, label: "no_expected", reason: "No expected output provided" };
-    }
-    
-    const contains = String(output).toLowerCase().includes(String(expectedOutput).toLowerCase());
-    return {
-      score: contains ? 1 : 0,
-      label: contains ? "correct" : "incorrect",
-      reason: contains ? "Output contains expected text" : "Output does not contain expected text"
-    };
-  });
-  
-  // Length evaluator (checks if output length is reasonable)
-  registry.register("length_check", async ({ output }: EvalParams) => {
-    const length = String(output).length;
-    const isReasonable = length > 0 && length < 10000;
-    return {
-      score: isReasonable ? 1 : 0,
-      label: isReasonable ? "reasonable" : "unreasonable",
-      reason: `Output length is ${length} characters`
-    };
-  });
-  
-  return registry;
+// Compute responsive table layout based on terminal width
+const getTerminalWidth = (): number => {
+  const cols = process.stdout.columns;
+  return typeof cols === 'number' && cols > 0 ? cols : 120;
 };
 
-const runEvaluations = async (evalNames: string[], evalRegistry: EvalRegistry, input: any, output: any, expectedOutput?: string): Promise<any[]> => {
-  const results = [];
-  
-  for (const evalName of evalNames) {
-    const evalFn = evalRegistry.get(evalName);
-    if (evalFn) {
-      try {
-        const result = await evalFn({
-          input,
-          output,
-          expectedOutput
-        });
-        results.push({
-          name: evalName,
-          ...result
-        });
-      } catch (error: any) {
-        results.push({
-          name: evalName,
-          score: 0,
-          label: "error",
-          reason: `Eval error: ${error.message}`
-        });
-      }
-    } else {
-      results.push({
-        name: evalName,
-        score: 0,
-        label: "not_found",
-        reason: `Eval function '${evalName}' not found`
-      });
-    }
+type LayoutResult = { head: string[]; colWidths: number[]; stacked: boolean };
+
+const computeLayout = (baseHead: string[], evalNames: string[] = []): LayoutResult => {
+  const head = [...baseHead, ...evalNames];
+  const numCols = head.length;
+  const terminalWidth = getTerminalWidth();
+
+  // Conservative overhead for borders and separators
+  const overhead = (numCols + 1) * 3; // borders/joins
+
+  // Minimal widths per column
+  const mins: number[] = head.map((h, idx) => {
+    if (idx === 0) return 3; // index
+    if (h === 'Input') return 12;
+    if (h === 'Expected Output') return 12;
+    if (h === 'AI Result') return 12;
+    // eval columns: ensure name fits within reason
+    return Math.max(Math.min(h.length + 4, 18), 10);
+  });
+
+  const available = terminalWidth - overhead;
+  const sumMins = mins.reduce((a, b) => a + b, 0);
+
+  if (available <= sumMins) {
+    // Too narrow: use stacked layout
+    return { head, colWidths: mins, stacked: true };
   }
-  
-  return results;
+
+  // Weights to distribute extra space
+  const weights: number[] = head.map((h, idx) => {
+    if (idx === 0) return 1; // index
+    if (h === 'Input') return 4;
+    if (h === 'Expected Output') return 3;
+    if (h === 'AI Result') return 4;
+    return 2; // eval columns
+  });
+
+  const extra = available - sumMins;
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  const widths = mins.map((min, i) => min + Math.floor((extra * weights[i]) / weightSum));
+
+  // Adjust rounding error on last column
+  const diff = available - widths.reduce((a, b) => a + b, 0);
+  widths[widths.length - 1] += diff;
+
+  return { head, colWidths: widths, stacked: false };
 };
 
 const executeTextPropsPrompt = async (input: any) => {
@@ -272,15 +231,14 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
   
   const evalRegistry = createEvalRegistry();
   
-  // Determine table structure based on eval option
-  let tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
-  let colWidths = [5, 40, 30, 40];
+  // Pre-compute eval columns from options (do not add later)
+  const initialEvalNames: string[] = options?.eval && options?.evalNames ? options.evalNames : [];
+  let allEvalNames: string[] = [...initialEvalNames];
   
-  if (options?.eval) {
-    // We'll dynamically add eval columns as we encounter them
-    tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
-    colWidths = [5, 25, 15, 25];
-  }
+  // Determine table structure responsive to terminal width
+  const layout = computeLayout(['#', 'Input', 'Expected Output', 'AI Result'], allEvalNames);
+  const tableHead = layout.head;
+  const colWidths = layout.colWidths;
   
   // Print table header immediately
   const headerTable = new Table({
@@ -289,10 +247,9 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
     wordWrap: true
   });
   
-  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
+  console.log(headerTable.toString());
 
   let index = 1;
-  let allEvalNames: string[] = [];
   const reader = inputs.getReader();
   
   try {
@@ -308,15 +265,8 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
         
         // Run evaluations if enabled
         let evalResults: any[] = [];
-        if (options?.eval && entry.evals && entry.evals.length > 0) {
-          evalResults = await runEvaluations(entry.evals, evalRegistry, entry.dataset.input, text, entry.dataset.expected_output);
-          
-          // Track all eval names we've seen
-          for (const evalName of entry.evals) {
-            if (!allEvalNames.includes(evalName)) {
-              allEvalNames.push(evalName);
-            }
-          }
+        if (options?.eval && allEvalNames.length > 0) {
+          evalResults = await runEvaluations(allEvalNames, evalRegistry, entry.dataset.input, text, entry.dataset.expected_output);
         }
         
         // Create table row
@@ -328,7 +278,7 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
         ];
         
         // Add eval columns if enabled
-        if (options?.eval) {
+        if (options?.eval && allEvalNames.length > 0) {
           for (const evalName of allEvalNames) {
             const evalResult = evalResults.find(r => r.name === evalName);
             if (evalResult) {
@@ -337,28 +287,10 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
               rowData.push('N/A');
             }
           }
-          
-          // Update table structure for new eval columns
-          if (evalResults.length > 0 && index === 1) {
-            // Update header for first row with evals
-            const newColWidths = [5, 20, 15, 20, ...allEvalNames.map(() => 12)];
-            const newHead = ['#', 'Input', 'Expected Output', 'AI Result', ...allEvalNames];
-            
-            // Print updated header
-            console.log('\n'); // Clear previous header
-            const updatedHeaderTable = new Table({
-              head: newHead,
-              colWidths: newColWidths,
-              wordWrap: true
-            });
-            console.log(updatedHeaderTable.toString().split('\n').slice(0, 3).join('\n'));
-          }
         }
         
         // Create a single-row table for this entry and print immediately
-        const finalColWidths = options?.eval && allEvalNames.length > 0 ? 
-          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
-          [5, 40, 30, 40];
+        const finalColWidths = colWidths;
           
         const rowTable = new Table({
           colWidths: finalColWidths,
@@ -377,9 +309,7 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
         console.error(`❌ Error generating text for entry ${index}: ${error.message}`);
         
         // Still print a table row showing the error
-        const errorColWidths = options?.eval && allEvalNames.length > 0 ? 
-          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
-          [5, 40, 30, 40];
+        const errorColWidths = colWidths;
           
         const rowTable = new Table({
           colWidths: errorColWidths,
@@ -398,7 +328,7 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
         ];
         
         // Add empty eval columns for error rows
-        if (options?.eval) {
+        if (options?.eval && allEvalNames.length > 0) {
           for (const evalName of allEvalNames) {
             errorRowData.push('Error');
           }
@@ -416,12 +346,6 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
   } finally {
     reader.releaseLock();
   }
-  
-  // Print table footer
-  const footerWidth = options?.eval && allEvalNames.length > 0 ? 
-    1 + 20 + 15 + 20 + (allEvalNames.length * 12) + (allEvalNames.length + 3) : 
-    1 + 40 + 30 + 40 + 3;
-  console.log('└' + '─'.repeat(footerWidth - 2) + '┘');
 };
 
 const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?: RunPromptOptions) => {
@@ -430,15 +354,13 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
   
   const evalRegistry = createEvalRegistry();
   
-  // Determine table structure based on eval option
-  let tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
-  let colWidths = [5, 40, 30, 40];
+  const initialEvalNames: string[] = options?.eval && options?.evalNames ? options.evalNames : [];
+  let allEvalNames: string[] = [...initialEvalNames];
   
-  if (options?.eval) {
-    // We'll dynamically add eval columns as we encounter them
-    tableHead = ['#', 'Input', 'Expected Output', 'AI Result'];
-    colWidths = [5, 25, 15, 25];
-  }
+  // Responsive columns
+  const layout = computeLayout(['#', 'Input', 'Expected Output', 'AI Result'], allEvalNames);
+  const tableHead = layout.head;
+  const colWidths = layout.colWidths;
   
   // Print table header immediately
   const headerTable = new Table({
@@ -447,10 +369,9 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
     wordWrap: true
   });
   
-  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
+  console.log(headerTable.toString());
 
   let index = 1;
-  let allEvalNames: string[] = [];
   const reader = inputs.getReader();
   
   try {
@@ -467,15 +388,8 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
         
         // Run evaluations if enabled
         let evalResults: any[] = [];
-        if (options?.eval && entry.evals && entry.evals.length > 0) {
-          evalResults = await runEvaluations(entry.evals, evalRegistry, entry.dataset.input, object, entry.dataset.expected_output);
-          
-          // Track all eval names we've seen
-          for (const evalName of entry.evals) {
-            if (!allEvalNames.includes(evalName)) {
-              allEvalNames.push(evalName);
-            }
-          }
+        if (options?.eval && allEvalNames.length > 0) {
+          evalResults = await runEvaluations(allEvalNames, evalRegistry, entry.dataset.input, object, entry.dataset.expected_output);
         }
         
         // Create table row
@@ -487,7 +401,7 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
         ];
         
         // Add eval columns if enabled
-        if (options?.eval) {
+        if (options?.eval && allEvalNames.length > 0) {
           for (const evalName of allEvalNames) {
             const evalResult = evalResults.find(r => r.name === evalName);
             if (evalResult) {
@@ -496,28 +410,10 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
               rowData.push('N/A');
             }
           }
-          
-          // Update table structure for new eval columns
-          if (evalResults.length > 0 && index === 1) {
-            // Update header for first row with evals
-            const newColWidths = [5, 20, 15, 20, ...allEvalNames.map(() => 12)];
-            const newHead = ['#', 'Input', 'Expected Output', 'AI Result', ...allEvalNames];
-            
-            // Print updated header
-            console.log('\n'); // Clear previous header
-            const updatedHeaderTable = new Table({
-              head: newHead,
-              colWidths: newColWidths,
-              wordWrap: true
-            });
-            console.log(updatedHeaderTable.toString().split('\n').slice(0, 3).join('\n'));
-          }
         }
         
         // Create a single-row table for this entry and print immediately
-        const finalColWidths = options?.eval && allEvalNames.length > 0 ? 
-          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
-          [5, 40, 30, 40];
+        const finalColWidths = colWidths;
         
         const rowTable = new Table({
           colWidths: finalColWidths,
@@ -536,9 +432,7 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
         console.error(`❌ Error generating object for entry ${index}: ${error.message}`);
         
         // Still print a table row showing the error
-        const errorColWidths = options?.eval && allEvalNames.length > 0 ? 
-          [5, 20, 15, 20, ...allEvalNames.map(() => 12)] : 
-          [5, 40, 30, 40];
+        const errorColWidths = colWidths;
         
         const rowTable = new Table({
           colWidths: errorColWidths,
@@ -557,7 +451,7 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
         ];
         
         // Add empty eval columns for error rows
-        if (options?.eval) {
+        if (options?.eval && allEvalNames.length > 0) {
           for (const evalName of allEvalNames) {
             errorRowData.push('Error');
           }
@@ -575,12 +469,6 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
   } finally {
     reader.releaseLock();
   }
-  
-  // Print table footer
-  const footerWidth = options?.eval && allEvalNames.length > 0 ? 
-    1 + 20 + 15 + 20 + (allEvalNames.length * 12) + (allEvalNames.length + 3) : 
-    1 + 40 + 30 + 40 + 3;
-  console.log('└' + '─'.repeat(footerWidth - 2) + '┘');
 };
 
 const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
@@ -588,14 +476,15 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("� Processing dataset entries...\n");
   
   // Print table header immediately
+  const imgLayout = computeLayout(['#', 'Input', 'Expected Output', 'AI Result']);
   const headerTable = new Table({
-    head: ['#', 'Input', 'Expected Output', 'AI Result'],
-    colWidths: [5, 40, 30, 40],
+    head: imgLayout.head,
+    colWidths: imgLayout.colWidths,
     wordWrap: true
   });
   
   // Print just the header by creating empty table and getting header part
-  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
+  console.log(headerTable.toString());
 
   let index = 1;
   const reader = inputs.getReader();
@@ -623,7 +512,7 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
         
         // Create a single-row table for this entry and print immediately
         const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
+          colWidths: imgLayout.colWidths,
           wordWrap: true,
           style: { head: [] } // No header for individual rows
         });
@@ -648,7 +537,7 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
         
         // Still print a table row showing the error
         const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
+          colWidths: imgLayout.colWidths,
           wordWrap: true,
           style: { head: [] }
         });
@@ -675,7 +564,7 @@ const executeImageDatasetPrompt = async (inputs: ReadableStream<any>) => {
   }
   
   // Print table footer
-  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
+  // Footer not required when printing rows independently
 };
 
 const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
@@ -683,14 +572,15 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
   console.log("� Processing dataset entries...\n");
   
   // Print table header immediately
+  const spLayout = computeLayout(['#', 'Input', 'Expected Output', 'AI Result']);
   const headerTable = new Table({
-    head: ['#', 'Input', 'Expected Output', 'AI Result'],
-    colWidths: [5, 40, 30, 40],
+    head: spLayout.head,
+    colWidths: spLayout.colWidths,
     wordWrap: true
   });
   
   // Print just the header by creating empty table and getting header part
-  console.log(headerTable.toString().split('\n').slice(0, 3).join('\n'));
+  console.log(headerTable.toString());
 
   let index = 1;
   const reader = inputs.getReader();
@@ -717,7 +607,7 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
         
         // Create a single-row table for this entry and print immediately
         const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
+          colWidths: spLayout.colWidths,
           wordWrap: true,
           style: { head: [] } // No header for individual rows
         });
@@ -742,7 +632,7 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
         
         // Still print a table row showing the error
         const rowTable = new Table({
-          colWidths: [5, 40, 30, 40],
+          colWidths: spLayout.colWidths,
           wordWrap: true,
           style: { head: [] }
         });
@@ -769,7 +659,7 @@ const executeSpeechDatasetPrompt = async (inputs: ReadableStream<any>) => {
   }
   
   // Print table footer
-  console.log('└───┴──────────────────────────────────────┴─────────────────┴──────────────────────────────────────┘');
+  // Footer not required when printing rows independently
 };
 
 const runPrompt = async (filepath: string, options: RunPromptOptions) => {
@@ -868,9 +758,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions) => {
       
       // Execute with appropriate AI function based on prompt type
       if (promptKind === "text") {
-        await executeTextDatasetPrompt(resultsStream, options);
+        await executeTextDatasetPrompt(resultsStream, { ...options, evalNames: (compiledYaml as any)?.test_settings?.evals || [] });
       } else if (promptKind === "object") {
-        await executeObjectDatasetPrompt(resultsStream, options);
+        await executeObjectDatasetPrompt(resultsStream, { ...options, evalNames: (compiledYaml as any)?.test_settings?.evals || [] });
       } else if (promptKind === "image") {
         await executeImageDatasetPrompt(resultsStream);
       } else if (promptKind === "speech") {
