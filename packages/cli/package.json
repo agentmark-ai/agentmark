@@ -8,8 +8,8 @@
     "start": "next start",
     "build:app": "next build",
     "lint": "next lint",
-    "serve": "node ./dist/src/json-server",
-    "build": "tsc"
+    "serve": "node ./dist/json-server",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc"
   },
   "author": "",
   "license": "ISC",
