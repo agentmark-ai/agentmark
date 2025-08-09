@@ -1,4 +1,4 @@
-import { EvalRegistry } from "@agentmark/agentmark-core";
+import { EvalRegistry, EvalVerdict, type EvalJudge } from "@agentmark/agentmark-core";
 
 // Define eval parameter types locally since they're not exported from CLI
 interface EvalParams {
@@ -19,6 +19,7 @@ export const createEvalRegistry = (): EvalRegistry => {
   const registry = new EvalRegistry();
   
   // Exact match evaluator (string to string)
+  const exactMatchJudge: EvalJudge = (res) => res.label === 'correct' ? EvalVerdict.PASS : EvalVerdict.FAIL;
   registry.register("exact_match", async ({ output, expectedOutput }: EvalParams) => {
     if (!expectedOutput) {
       return { score: 0, label: "no_expected", reason: "No expected output provided" };
@@ -30,9 +31,10 @@ export const createEvalRegistry = (): EvalRegistry => {
       label: isMatch ? "correct" : "incorrect",
       reason: isMatch ? "Output matches expected exactly" : "Output does not match expected"
     };
-  });
+  }, exactMatchJudge);
   
   // Exact match for JSON outputs (deep equality)
+  const exactMatchJsonJudge: EvalJudge = (res) => res.label === 'correct' ? EvalVerdict.PASS : EvalVerdict.FAIL;
   registry.register("exact_match_json", async ({ output, expectedOutput }: EvalParams) => {
     if (expectedOutput == null) {
       return { score: 0, label: "no_expected", reason: "No expected output provided" };
@@ -59,9 +61,10 @@ export const createEvalRegistry = (): EvalRegistry => {
     } catch (err: any) {
       return { score: 0, label: "error", reason: `JSON compare error: ${err.message}` };
     }
-  });
+  }, exactMatchJsonJudge);
   
   // Contains evaluator (checks if output contains expected text)
+  const containsJudge: EvalJudge = (res) => res.label === 'correct' ? EvalVerdict.PASS : EvalVerdict.FAIL;
   registry.register("contains", async ({ output, expectedOutput }: EvalParams) => {
     if (!expectedOutput) {
       return { score: 0, label: "no_expected", reason: "No expected output provided" };
@@ -73,9 +76,10 @@ export const createEvalRegistry = (): EvalRegistry => {
       label: contains ? "correct" : "incorrect",
       reason: contains ? "Output contains expected text" : "Output does not contain expected text"
     };
-  });
+  }, containsJudge);
   
   // Length evaluator (checks if output length is reasonable)
+  const lengthJudge: EvalJudge = (res) => res.label === 'reasonable' ? EvalVerdict.PASS : EvalVerdict.FAIL;
   registry.register("length_check", async ({ output }: EvalParams) => {
     const length = String(output).length;
     const isReasonable = length > 0 && length < 10000;
@@ -84,7 +88,7 @@ export const createEvalRegistry = (): EvalRegistry => {
       label: isReasonable ? "reasonable" : "unreasonable",
       reason: `Output length is ${length} characters`
     };
-  });
+  }, lengthJudge);
   
   return registry;
 };
@@ -99,10 +103,10 @@ export const runEvaluations = async (
   const results: any[] = [];
   
   for (const evalName of evalNames) {
-    const evalFn = evalRegistry.get(evalName);
-    if (evalFn) {
+    const def = evalRegistry.get(evalName);
+    if (def?.fn) {
       try {
-        const result = await evalFn({ input, output, expectedOutput });
+        const result = await def.fn({ input, output, expectedOutput });
         results.push({ name: evalName, ...result });
       } catch (error: any) {
         results.push({ name: evalName, score: 0, label: "error", reason: `Eval error: ${error.message}` });

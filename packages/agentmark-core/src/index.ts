@@ -26,3 +26,5 @@ export type {
 } from "./types";
 
 export { EvalRegistry } from "./eval-registery";
+export { EvalVerdict } from "./types";
+export type { EvalJudge } from "./types";

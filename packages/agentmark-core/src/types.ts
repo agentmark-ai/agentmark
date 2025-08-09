@@ -129,7 +129,14 @@ export type EvalFunction = (
   params: EvalParams
 ) => Promise<EvalResult> | EvalResult;
 
+export enum EvalVerdict {
+  PASS = 'pass',
+  FAIL = 'fail',
+}
+
+export type EvalJudge = (result: EvalResult) => EvalVerdict;
+
 export interface IEvalRegistry {
-  register: (name: string, evalFn: EvalFunction) => void;
-  get: (name: string) => EvalFunction | undefined;
+  register: (name: string | string[], evalFn: EvalFunction, judge?: EvalJudge) => void;
+  get: (name: string) => { fn: EvalFunction; judge?: EvalJudge } | undefined;
 }

@@ -112,11 +112,11 @@ export class WebhookHelper {
             if (evalRegistry) {
               const evaluators = item.evals
                 .map((evaluator: string) => {
-                  const evalFn = evalRegistry.get(evaluator);
-                  if (evalFn) {
+                  const def = evalRegistry.get(evaluator);
+                  if (def?.fn) {
                     return {
                       name: evaluator,
-                      fn: evalFn,
+                      fn: def.fn,
                     };
                   }
                 })
@@ -210,11 +210,11 @@ export class WebhookHelper {
             if (evalRegistry) {
               const evaluators = item.evals
                 .map((evaluator: string) => {
-                  const evalFn = evalRegistry.get(evaluator);
-                  if (evalFn) {
+                  const def = evalRegistry.get(evaluator);
+                  if (def?.fn) {
                     return {
                       name: evaluator,
-                      fn: evalFn,
+                      fn: def.fn,
                     };
                   }
                 })

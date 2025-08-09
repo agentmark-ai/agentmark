@@ -93,6 +93,7 @@ interface RunPromptOptions {
 }
 
 import { createEvalRegistry, runEvaluations } from "../utils/evals";
+import { EvalVerdict } from "@agentmark/agentmark-core";
 
 // Compute responsive table layout based on terminal width
 const getTerminalWidth = (): number => {
@@ -286,9 +287,12 @@ const executeTextDatasetPrompt = async (inputs: ReadableStream<any>, options?: R
             if (evalResult) {
               rowData.push(`${evalResult.score.toFixed(2)} (${evalResult.label})`);
               totalEvals += 1;
-              if (evalResult.score >= 1 || ["correct", "reasonable"].includes(evalResult.label)) {
-                passedEvals += 1;
+              const def = evalRegistry.get(evalName);
+              if (!def?.judge) {
+                throw new Error(`No judge registered for eval '${evalName}'`);
               }
+              const verdict = def.judge(evalResult);
+              if (verdict === EvalVerdict.PASS) passedEvals += 1;
             } else {
               rowData.push('N/A');
             }
@@ -416,9 +420,12 @@ const executeObjectDatasetPrompt = async (inputs: ReadableStream<any>, options?:
             if (evalResult) {
               rowData.push(`${evalResult.score.toFixed(2)} (${evalResult.label})`);
               totalEvals += 1;
-              if (evalResult.score >= 1 || ["correct", "reasonable"].includes(evalResult.label)) {
-                passedEvals += 1;
+              const def = evalRegistry.get(evalName);
+              if (!def?.judge) {
+                throw new Error(`No judge registered for eval '${evalName}'`);
               }
+              const verdict = def.judge(evalResult);
+              if (verdict === EvalVerdict.PASS) passedEvals += 1;
             } else {
               rowData.push('N/A');
             }
