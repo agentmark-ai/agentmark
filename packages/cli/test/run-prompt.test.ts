@@ -73,7 +73,7 @@ vi.mock('ai', () => ({
   streamText: () => ({ textStream: (async function*(){ yield 'ok'; })() })
 }));
 
-describe('run-prompt warnings', () => {
+describe('run-prompt', () => {
   const warnSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

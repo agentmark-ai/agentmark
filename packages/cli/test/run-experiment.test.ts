@@ -26,7 +26,7 @@ function makeDatasetStream(items: any[]) {
   });
 }
 
-// Mock client
+// Mock client for run-experiment
 function mockClientWithDataset(items: any[]) {
   vi.doMock('@agentmark/vercel-ai-v4-adapter', () => ({
     VercelAIModelRegistry: class { registerModels() {} },
@@ -142,6 +142,99 @@ describe('run-experiment', () => {
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     // no throw; also no pass log since evals skipped
     expect(out).not.toMatch(/Experiment failed/);
+  });
+
+  it('prints eval results correctly via run-prompt dataset mode (legacy run-dataset)', async () => {
+    // Merge of former run-dataset tests here for consolidation
+    const { writeFileSync, unlinkSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const tempPath = join(__dirname, '..', 'dummy-dataset.mdx');
+    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+
+    vi.resetModules();
+    vi.doMock('@agentmark/agentmark-core', async () => {
+      const actual = await vi.importActual<any>('@agentmark/agentmark-core');
+      return {
+        ...actual,
+        TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' }, test_settings: { evals: ['exact_match','length_check'] } }; } },
+        FileLoader: class {},
+      };
+    });
+    // Adapter returns a single dataset row
+    vi.doMock('@agentmark/vercel-ai-v4-adapter', () => ({
+      VercelAIModelRegistry: class { registerModels() {} },
+      createAgentMarkClient: () => ({
+        loadTextPrompt: async () => ({
+          formatWithDataset: async () => makeDatasetStream([
+            { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match','length_check'], formatted: {} }
+          ])
+        })
+      })
+    }));
+
+    const runPrompt = (await import('../src/commands/run-prompt')).default;
+    await runPrompt(tempPath, { input: 'dataset', eval: true } as any);
+
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
+    expect(out).toContain('exact_match');
+    expect(out).toContain('length_check');
+    expect(out).toMatch(/1\.00/);
+    unlinkSync(tempPath);
+  });
+
+  it('errors when dataset is not present', async () => {
+    // Core returns config with no dataset; client throws on formatWithDataset
+    vi.doMock('@agentmark/agentmark-core', async () => {
+      const actual = await vi.importActual<any>('@agentmark/agentmark-core');
+      return {
+        ...actual,
+        TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' }, test_settings: { evals: ['exact_match'] } }; } },
+        FileLoader: class {},
+      };
+    });
+    vi.doMock('@agentmark/vercel-ai-v4-adapter', () => ({
+      VercelAIModelRegistry: class { registerModels() {} },
+      createAgentMarkClient: () => ({
+        loadTextPrompt: async () => ({
+          formatWithDataset: async () => { throw new Error('Loader or dataset is not defined for this prompt. Please provide valid loader and dataset.'); }
+        })
+      })
+    }));
+    runExperiment = (await import('../src/commands/run-prompt')).runExperiment;
+    await expect(runExperiment(dummyPath, {})).rejects.toThrow(/Loader or dataset is not defined/);
+  });
+
+  describe('invalid threshold handling', () => {
+    it('throws for threshold > 100 and < 0', async () => {
+      // Set simple passing dataset and exact_match evals
+      vi.doMock('@agentmark/agentmark-core', async () => {
+        const actual = await vi.importActual<any>('@agentmark/agentmark-core');
+        return {
+          ...actual,
+          TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' }, test_settings: { evals: ['exact_match'] } }; } },
+          FileLoader: class {},
+        };
+      });
+      mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
+      runExperiment = (await import('../src/commands/run-prompt')).runExperiment;
+      await expect(runExperiment(dummyPath, { thresholdPercent: 101 })).rejects.toThrow(/Invalid threshold/);
+      await expect(runExperiment(dummyPath, { thresholdPercent: -1 })).rejects.toThrow(/Invalid threshold/);
+    });
+
+    it('accepts thresholds 0 and 100', async () => {
+      vi.doMock('@agentmark/agentmark-core', async () => {
+        const actual = await vi.importActual<any>('@agentmark/agentmark-core');
+        return {
+          ...actual,
+          TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' }, test_settings: { evals: ['exact_match'] } }; } },
+          FileLoader: class {},
+        };
+      });
+      mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
+      runExperiment = (await import('../src/commands/run-prompt')).runExperiment;
+      await expect(runExperiment(dummyPath, { thresholdPercent: 0 })).resolves.toBeUndefined();
+      await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).resolves.toBeUndefined();
+    });
   });
   afterEach(async () => { const { unlinkSync } = await import('node:fs'); try { unlinkSync(dummyPath); } catch {} });
 });

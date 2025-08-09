@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createExamplePrompts } from '../src/utils/examples/templates';
 
-describe('init examples include evals', () => {
+describe('init', () => {
   it('party-planner prompt includes evals list', async () => {
     const tmpDir = path.join(__dirname, '..', 'tmp-examples-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
