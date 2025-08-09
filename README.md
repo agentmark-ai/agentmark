@@ -68,7 +68,7 @@ Run `.prompt.mdx` files directly from the command line using our CLI. This is th
 npx @agentmark/cli run-prompt your-prompt.prompt.mdx
 
 # Run a prompt with a dataset
-npx @agentmark/cli run-prompt your-prompt.prompt.mdx -i dataset
+npx @agentmark/cli run-experiment your-prompt.prompt.mdx
 ```
 
 2. Run AgentMark files with your favorite SDK
@@ -77,7 +77,7 @@ AgentMark doesn't support any models or calling any LLM providers. Instead, we f
 
 | Adapter   | Description |
 |-----------|-------------|
-| [Vercel (Recommended)](https://docs.agentmark.co/agentmark/getting_started/overview) | The Vercel AI SDK. |
+| [Vercel (Recommended)](https://docs.agentmark.co/agentmark/running_prompts/vercel) | The Vercel AI SDK. |
 | [Default](https://docs.agentmark.co/agentmark/running_prompts/default)   | Turns prompts into raw JSON, adapt manually to your needs |
 | [Custom](https://docs.agentmark.co/agentmark/running_prompts/custom)    | Allows a user to create their own AgentMark adapter to custom adapter format. |
 | Mastra (Coming Soon)  | Coming soon, we'll support the Mastra SDK |
