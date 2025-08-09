@@ -1,5 +1,6 @@
 node_modules
 dist
+.specs
 .turbo
 .yarn/install-state.gz
 .yarn/releases/*
