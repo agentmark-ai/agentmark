@@ -16,6 +16,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./runner": {
+      "import": {
+        "types": "./dist/runner.d.ts",
+        "default": "./dist/runner.js"
+      },
+      "require": {
+        "types": "./dist/runner.d.cts",
+        "default": "./dist/runner.cjs"
+      }
     }
   },
   "scripts": {

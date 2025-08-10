@@ -1,0 +1,195 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { EvalRegistry, EvalVerdict, FileLoader } from "@agentmark/agentmark-core";
+import { VercelAdapterRunner } from "../src/runner";
+import type { Ast } from "@agentmark/templatedx";
+import * as ai from "ai";
+import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
+
+vi.mock("ai", async () => {
+  return {
+    jsonSchema: (s: any) => s,
+    generateText: vi.fn(async (_input: any) => ({ text: "TEXT", usage: { totalTokens: 10 }, finishReason: "stop", steps: [] })),
+    generateObject: vi.fn(async (_input: any) => ({ object: { ok: true }, usage: { totalTokens: 15 }, finishReason: "stop" })),
+    experimental_generateImage: vi.fn(async (_input: any) => ({ images: [{ mimeType: "image/png", base64: "iVBORw0KGgo=" }] })),
+    experimental_generateSpeech: vi.fn(async (_input: any) => ({ audio: { mimeType: "audio/mpeg", base64: "base64audio", format: "mp3" } })),
+    streamText: vi.fn((input: any) => ({
+      fullStream: (async function* () { yield { type: 'text-delta', textDelta: 'TEXT' }; yield { type: 'finish', finishReason: 'stop', usage: { totalTokens: 10 } }; })()
+    })),
+    streamObject: vi.fn((input: any) => ({
+      usage: Promise.resolve({ totalTokens: 15 }),
+      fullStream: (async function* () { yield { type: 'object', object: { ok: true } }; })()
+    })),
+  } as any;
+});
+
+describe("VercelAdapterRunner", () => {
+  let runner: VercelAdapterRunner;
+  let agent: any;
+  let loader: FileLoader;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+
+    const evals = new EvalRegistry();
+    // Simple eval: pass if TEXT equals expected_output when expected_output is a string
+    evals.register("exact_match", async ({ output, expectedOutput }) => {
+      const out = typeof output === 'string' ? output : JSON.stringify(output);
+      const exp = typeof expectedOutput === 'string' ? expectedOutput : JSON.stringify(expectedOutput);
+      return { score: out === exp ? 1 : 0, label: out === exp ? 'correct' : 'incorrect', reason: '' };
+    }, (result) => result.score === 1 ? EvalVerdict.PASS : EvalVerdict.FAIL);
+
+    runner = new VercelAdapterRunner({ evalRegistry: evals });
+
+    const base = new URL("./fixtures/", import.meta.url).pathname;
+    loader = new FileLoader(base);
+    const modelRegistry = new VercelAIModelRegistry();
+    modelRegistry.registerModels("test-model", () => ({}) as any);
+    agent = createAgentMarkClient({ loader, modelRegistry });
+
+    vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "mock-uuid") } as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("runs text prompt", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+    const res = await runner.runPrompt(agent, ast, { shouldStream: false });
+    expect((ai as any).generateText).toHaveBeenCalled();
+    expect(res).toMatchObject({ type: "text", result: "TEXT" });
+  });
+
+  it("runs object prompt", async () => {
+    const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
+
+    const res = await runner.runPrompt(agent, ast, { shouldStream: false });
+    expect((ai as any).generateObject).toHaveBeenCalled();
+    expect(res).toMatchObject({ type: "object", result: { ok: true } });
+  });
+
+  it("runs image prompt", async () => {
+    const ast = (await loader.load("image.prompt.mdx", "image")) as Ast;
+
+    const res = await runner.runPrompt(agent, ast);
+    expect((ai as any).experimental_generateImage).toHaveBeenCalled();
+    expect(res).toMatchObject({ type: "image" });
+  });
+
+  it("runs speech prompt", async () => {
+    const ast = (await loader.load("speech.prompt.mdx", "speech")) as Ast;
+    const res = await runner.runPrompt(agent, ast);
+    expect((ai as any).experimental_generateSpeech).toHaveBeenCalled();
+    expect(res).toMatchObject({ type: "speech" });
+  });
+
+  it("streams dataset for text prompts and verifies rows & evals", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+    const { stream } = await runner.runExperiment(agent, ast, "run-1");
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
+      const trimmed = line.trim();
+      if (trimmed) rows.push(JSON.parse(trimmed));
+    }
+
+    expect(rows.length).toBe(2);
+
+    // Row 0
+    expect(rows[0].type).toBe("dataset");
+    expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
+    expect(rows[0].result.expectedOutput).toBe("4");
+    expect(rows[0].result.actualOutput).toBe("TEXT");
+    expect(rows[0].result.tokens).toBe(10);
+    expect(rows[0].result.evals[0].name).toBeDefined();
+    expect(rows[0].result.evals[0].score).toBe(0);
+    expect(rows[0].result.evals[0].label).toBe("incorrect");
+
+    // Row 1
+    expect(rows[1].type).toBe("dataset");
+    expect(rows[1].result.input.userMessage).toBe("Say TEXT");
+    expect(rows[1].result.expectedOutput).toBe("TEXT");
+    expect(rows[1].result.actualOutput).toBe("TEXT");
+    expect(rows[1].result.tokens).toBe(10);
+    expect(rows[1].result.evals[0].name).toBeDefined();
+    expect(rows[1].result.evals[0].score).toBe(1);
+    expect(rows[1].result.evals[0].label).toBe("correct");
+  });
+
+  it("streams dataset for object prompts and verifies rows", async () => {
+    const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
+
+    // Ensure object path is exercised
+    (ai as any).generateObject = vi.fn(async () => ({ object: { ok: true }, usage: { totalTokens: 1 }, finishReason: "stop" }));
+
+    const { stream } = await runner.runExperiment(agent, ast, "run-1");
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
+      const trimmed = line.trim();
+      if (trimmed) rows.push(JSON.parse(trimmed));
+    }
+
+    expect(rows.length).toBe(1);
+    const row = rows[0];
+    expect(row.type).toBe("dataset");
+    expect(row.result.input.userMessage).toBe("Provide ok:true");
+    expect(row.result.expectedOutput).toEqual({ ok: true });
+    expect(row.result.actualOutput).toEqual({ ok: true });
+    expect(row.result.tokens).toBe(1);
+  });
+
+  it("streams dataset for image prompts and verifies rows", async () => {
+    const ast = (await loader.load("image.prompt.mdx", "image")) as Ast;
+
+    const { stream } = await runner.runExperiment(agent, ast, "run-1");
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
+      const trimmed = line.trim();
+      if (trimmed) rows.push(JSON.parse(trimmed));
+    }
+
+    expect(rows.length).toBe(1);
+    const row = rows[0];
+    expect(row.type).toBe("dataset");
+    expect(row.result.input.userMessage).toBe("Draw a triangle");
+    expect(Array.isArray(row.result.expectedOutput)).toBe(true);
+    expect(row.result.expectedOutput[0].mimeType).toBe("image/png");
+    expect(Array.isArray(row.result.actualOutput)).toBe(true);
+    expect(row.result.actualOutput[0].mimeType).toBe("image/png");
+  });
+
+  it("streams dataset for speech prompts and verifies rows", async () => {
+    const ast = (await loader.load("speech.prompt.mdx", "speech")) as Ast;
+
+    const { stream } = await runner.runExperiment(agent, ast, "run-1");
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
+      const trimmed = line.trim();
+      if (trimmed) rows.push(JSON.parse(trimmed));
+    }
+
+    expect(rows.length).toBe(1);
+    const row = rows[0];
+    expect(row.type).toBe("dataset");
+    expect(row.result.input.text).toBe("Hello");
+    expect(row.result.expectedOutput.mimeType).toBe("audio/mpeg");
+    expect(row.result.actualOutput.mimeType).toBe("audio/mpeg");
+  });
+});

@@ -28,3 +28,6 @@ export type {
 export { EvalRegistry } from "./eval-registery";
 export { EvalVerdict } from "./types";
 export type { EvalJudge } from "./types";
+export type { ResultKind, NormalizedEval, NormalizedRow } from "./normalize";
+export { attachVerdicts, normalizeTextRow, normalizeObjectRow } from "./normalize";
+export type { RunnerDatasetResponse, RunnerDatasetChunk, RunnerPromptResponse, RunnerTextResponse, RunnerObjectResponse, RunnerImageResponse, RunnerSpeechResponse } from "./runner";

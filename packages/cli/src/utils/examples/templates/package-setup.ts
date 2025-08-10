@@ -55,7 +55,7 @@ export const installDependencies = (
 
     // Add the Cloud specific packages
     if (target === "cloud") {
-      installCmd += " @agentmark/sdk @agentmark/vercel-ai-v4-webhook-helper";
+      installCmd += " @agentmark/sdk";
     }
 
     execSync(installCmd, { stdio: "inherit", cwd: targetPath });

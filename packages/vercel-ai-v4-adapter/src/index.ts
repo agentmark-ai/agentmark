@@ -36,7 +36,7 @@ export interface VercelAIObjectPrompt<
   >;
 
   formatWithTestProps(
-    options: AdaptOptions
+    options?: AdaptOptions
   ): Promise<VercelAIObjectParams<T[K]["output"]>>;
 }
 
@@ -74,3 +74,5 @@ export {
   VercelAIModelRegistry,
   VercelAIToolRegistry,
 } from "./adapter";
+
+export * as runner from "./runner";

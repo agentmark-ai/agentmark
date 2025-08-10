@@ -50,11 +50,11 @@ export abstract class BasePrompt<
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
   formatWithTestProps(
-    options: AdaptOptions
+    options?: AdaptOptions
   ): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
     return this.format({
       props: this.testSettings?.props || {},
-      ...options,
+      ...(options ?? {}),
     });
   }
 
