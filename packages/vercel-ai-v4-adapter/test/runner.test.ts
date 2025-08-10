@@ -84,6 +84,40 @@ describe("VercelAdapterRunner", () => {
     expect(res).toMatchObject({ type: "speech" });
   });
 
+  it("runs text prompt with streaming", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const res = await runner.runPrompt(agent, ast, { shouldStream: true });
+    expect(res.type).toBe("stream");
+    const reader = (res as any).stream.getReader();
+    const chunks: string[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(typeof value === "string" ? value : new TextDecoder().decode(value));
+    }
+    expect(chunks.length).toBeGreaterThan(0);
+    const first = JSON.parse(chunks[0].trim());
+    expect(first.type).toBe("text");
+    expect(typeof first.result === "string" || first.finishReason !== undefined).toBe(true);
+  });
+
+  it("runs object prompt with streaming", async () => {
+    const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
+    const res = await runner.runPrompt(agent, ast, { shouldStream: true });
+    expect(res.type).toBe("stream");
+    const reader = (res as any).stream.getReader();
+    const chunks: string[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(typeof value === "string" ? value : new TextDecoder().decode(value));
+    }
+    expect(chunks.length).toBeGreaterThan(0);
+    const first = JSON.parse(chunks[0].trim());
+    expect(first.type).toBe("object");
+    expect(first.result).toBeDefined();
+  });
+
   it("streams dataset for text prompts and verifies rows & evals", async () => {
     const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
