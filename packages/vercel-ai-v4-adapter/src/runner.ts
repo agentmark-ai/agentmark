@@ -12,29 +12,38 @@ export type AdapterRunnerDeps = {
   evalRegistry: EvalRegistry;
 };
 
+type Frontmatter = {
+  text_config?: unknown;
+  object_config?: unknown;
+  image_config?: unknown;
+  speech_config?: unknown;
+  test_settings?: { dataset?: string };
+};
+
 export class VercelAdapterRunner {
   constructor(private readonly deps: AdapterRunnerDeps) {}
 
   async runPrompt(agentmarkClient: AgentMark<any, VercelAIAdapter<any, any>>, promptAst: Ast, options?: { shouldStream?: boolean }): Promise<RunnerPromptResponse> {
-    const frontmatter = getFrontMatter(promptAst) as any;
+    const frontmatter = getFrontMatter(promptAst) as Frontmatter;
 
     if (frontmatter.object_config) {
       const prompt = await agentmarkClient.loadObjectPrompt(promptAst);
       const input = await prompt.formatWithTestProps();
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { usage, fullStream } = streamObject(input as any);
+        const { usage, fullStream } = streamObject(input);
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
-            for await (const chunk of fullStream as any) {
-              if (chunk.type === "error") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: (chunk.error as any)?.data?.error?.message ?? "Something went wrong during inference" }) + "\n"));
+            for await (const chunk of fullStream) {
+              if ((chunk as any).type === "error") {
+                const message = (chunk as any)?.error?.data?.error?.message ?? "Something went wrong during inference";
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
                 controller.close();
                 return;
               }
-              if (chunk.type === "object") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "object", result: chunk.object }) + "\n"));
+              if ((chunk as any).type === "object") {
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "object", result: (chunk as any).object }) + "\n"));
               }
             }
             const usageData = await usage;
@@ -44,7 +53,7 @@ export class VercelAdapterRunner {
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as RunnerPromptResponse;
       }
-      const { object, usage, finishReason } = await generateObject(input as any);
+      const { object, usage, finishReason } = await generateObject(input);
       return { type: "object", result: object, usage, finishReason } as RunnerPromptResponse;
     }
 
@@ -53,24 +62,25 @@ export class VercelAdapterRunner {
       const input = await prompt.formatWithTestProps();
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { fullStream } = streamText(input as any);
+        const { fullStream } = streamText(input);
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
-            for await (const chunk of fullStream as any) {
-              if (chunk.type === "error") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: (chunk.error as any)?.data?.error?.message ?? "Something went wrong during inference" }) + "\n"));
+            for await (const chunk of fullStream) {
+              if ((chunk as any).type === "error") {
+                const message = (chunk as any)?.error?.data?.error?.message ?? "Something went wrong during inference";
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
                 controller.close();
                 return;
               }
-              if (chunk.type === "text-delta") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", result: chunk.textDelta }) + "\n"));
+              if ((chunk as any).type === "text-delta") {
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", result: (chunk as any).textDelta }) + "\n"));
               }
-              if (chunk.type === "tool-call") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", toolCall: { toolCallId: chunk.toolCallId, toolName: chunk.toolName, args: chunk.args } }) + "\n"));
+              if ((chunk as any).type === "tool-call") {
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", toolCall: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, args: (chunk as any).args } }) + "\n"));
               }
-              if (chunk.type === "finish") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", finishReason: chunk.finishReason, usage: chunk.usage }) + "\n"));
+              if ((chunk as any).type === "finish") {
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", finishReason: (chunk as any).finishReason, usage: (chunk as any).usage }) + "\n"));
               }
             }
             controller.close();
@@ -78,7 +88,7 @@ export class VercelAdapterRunner {
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as RunnerPromptResponse;
       }
-      const { text, usage, finishReason, steps } = await generateText(input as any);
+      const { text, usage, finishReason, steps } = await generateText(input);
       const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
       const toolResults = steps?.flatMap((s: any) => s.toolResults) ?? [];
       return { type: "text", result: text, usage, finishReason, toolCalls, toolResults } as RunnerPromptResponse;
@@ -87,14 +97,14 @@ export class VercelAdapterRunner {
     if (frontmatter.image_config) {
       const prompt = await agentmarkClient.loadImagePrompt(promptAst);
       const input = await prompt.formatWithTestProps();
-      const { images } = await generateImage(input as any);
+      const { images } = await generateImage(input);
       return { type: "image", result: images.map(i => ({ mimeType: i.mimeType, base64: i.base64 })) } as RunnerPromptResponse;
     }
 
     if (frontmatter.speech_config) {
       const prompt = await agentmarkClient.loadSpeechPrompt(promptAst);
       const input = await prompt.formatWithTestProps();
-      const { audio } = await generateSpeech(input as any);
+      const { audio } = await generateSpeech(input);
       return { type: "speech", result: { mimeType: audio.mimeType, base64: audio.base64, format: audio.format } } as RunnerPromptResponse;
     }
 
@@ -105,7 +115,7 @@ export class VercelAdapterRunner {
     const loader = agentmarkClient.getLoader();
     if (!loader) throw new Error("Loader not found");
 
-    const frontmatter = getFrontMatter(promptAst) as any;
+    const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     const runId = crypto.randomUUID();
     const evalRegistry = this.deps.evalRegistry;
 
@@ -115,13 +125,13 @@ export class VercelAdapterRunner {
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
-          const reader = (dataset as ReadableStream<any>).getReader();
+          const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
             const traceId = crypto.randomUUID();
-            const { text, usage } = await (await import("ai")).generateText({
-              ...(item.formatted as any),
+            const { text, usage } = await generateText({
+              ...item.formatted,
               experimental_telemetry: {
                 ...(item.formatted.experimental_telemetry ?? {}),
                 metadata: {
@@ -135,10 +145,10 @@ export class VercelAdapterRunner {
                   dataset_expected_output: item.dataset.expected_output,
                 },
               },
-            } as any);
+            });
 
             let evalResults: any[] = [];
-            if (evalRegistry && Array.isArray((item as any).evals) && (item as any).evals.length > 0) {
+            if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
               const evaluators = item.evals
                 .map((name: string) => {
                   const def = evalRegistry.get(name);
@@ -159,7 +169,7 @@ export class VercelAdapterRunner {
                 input: item.dataset.input,
                 expectedOutput: item.dataset.expected_output,
                 actualOutput: text,
-                tokens: (usage as any)?.totalTokens,
+                tokens: usage?.totalTokens,
                 evals: evalResults,
               },
               runId,
@@ -180,13 +190,13 @@ export class VercelAdapterRunner {
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
-          const reader = (dataset as ReadableStream<any>).getReader();
+          const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
             const traceId = crypto.randomUUID();
             const { object, usage } = await (await import("ai")).generateObject({
-              ...(item.formatted as any),
+              ...item.formatted,
               experimental_telemetry: {
                 ...(item.formatted.experimental_telemetry ?? {}),
                 metadata: {
@@ -200,10 +210,10 @@ export class VercelAdapterRunner {
                   dataset_expected_output: item.dataset.expected_output,
                 },
               },
-            } as any);
+            });
 
             let evalResults: any[] = [];
-            if (evalRegistry) {
+            if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
               const evaluators = item.evals
                 .map((name: string) => {
                   const def = evalRegistry.get(name);
@@ -212,7 +222,7 @@ export class VercelAdapterRunner {
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.fn({ input: item.formatted.messages, output: object as any, expectedOutput: item.dataset.expected_output });
+                  const r = await e.fn({ input: item.formatted.messages, output: object, expectedOutput: item.dataset.expected_output });
                   return { name: e.name, ...r };
                 })
               );
@@ -224,7 +234,7 @@ export class VercelAdapterRunner {
                 input: item.dataset.input,
                 expectedOutput: item.dataset.expected_output,
                 actualOutput: object,
-                tokens: (usage as any)?.totalTokens,
+                tokens: usage?.totalTokens,
                 evals: evalResults,
               },
               runId,
@@ -245,27 +255,14 @@ export class VercelAdapterRunner {
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
-          const reader = (dataset as ReadableStream<any>).getReader();
+          const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
             const traceId = crypto.randomUUID();
             const { images } = await (await import("ai")).experimental_generateImage({
-              ...(item.formatted as any),
-              experimental_telemetry: {
-                ...(item.formatted.experimental_telemetry ?? {}),
-                metadata: {
-                  ...(item.formatted.experimental_telemetry?.metadata ?? {}),
-                  dataset_run_id: runId,
-                  dataset_path: frontmatter?.test_settings?.dataset,
-                  dataset_run_name: datasetRunName,
-                  dataset_item_name: index,
-                  traceName: `ds-run-${datasetRunName}-${index}`,
-                  traceId,
-                  dataset_expected_output: item.dataset.expected_output,
-                },
-              },
-            } as any);
+              ...(item.formatted as any)
+            });
 
             const chunk = JSON.stringify({
               type: "dataset",
@@ -293,27 +290,14 @@ export class VercelAdapterRunner {
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
-          const reader = (dataset as ReadableStream<any>).getReader();
+          const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
             const traceId = crypto.randomUUID();
             const { audio } = await (await import("ai")).experimental_generateSpeech({
-              ...(item.formatted as any),
-              experimental_telemetry: {
-                ...(item.formatted.experimental_telemetry ?? {}),
-                metadata: {
-                  ...(item.formatted.experimental_telemetry?.metadata ?? {}),
-                  dataset_run_id: runId,
-                  dataset_path: frontmatter?.test_settings?.dataset,
-                  dataset_run_name: datasetRunName,
-                  dataset_item_name: index,
-                  traceName: `ds-run-${datasetRunName}-${index}`,
-                  traceId,
-                  dataset_expected_output: item.dataset.expected_output,
-                },
-              },
-            } as any);
+              ...(item.formatted as any)
+            });
 
             const chunk = JSON.stringify({
               type: "dataset",
