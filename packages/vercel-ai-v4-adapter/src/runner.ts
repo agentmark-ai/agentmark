@@ -1,4 +1,3 @@
-import { EvalRegistry } from "@agentmark/agentmark-core";
 export type { ResultKind, NormalizedEval, NormalizedRow } from "@agentmark/agentmark-core";
 export { attachVerdicts, normalizeTextRow, normalizeObjectRow } from "@agentmark/agentmark-core";
 import { getFrontMatter } from "@agentmark/templatedx";
@@ -7,10 +6,6 @@ import type { AgentMark } from "@agentmark/agentmark-core";
 import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
 import type { RunnerDatasetResponse, RunnerPromptResponse } from "@agentmark/agentmark-core";
-
-export type AdapterRunnerDeps = {
-  evalRegistry: EvalRegistry;
-};
 
 type Frontmatter = {
   text_config?: unknown;
@@ -21,13 +16,13 @@ type Frontmatter = {
 };
 
 export class VercelAdapterRunner {
-  constructor(private readonly deps: AdapterRunnerDeps) {}
+  constructor(private readonly client: AgentMark<any, VercelAIAdapter<any, any>>) {}
 
-  async runPrompt(agentmarkClient: AgentMark<any, VercelAIAdapter<any, any>>, promptAst: Ast, options?: { shouldStream?: boolean }): Promise<RunnerPromptResponse> {
+  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean }): Promise<RunnerPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
 
     if (frontmatter.object_config) {
-      const prompt = await agentmarkClient.loadObjectPrompt(promptAst);
+      const prompt = await this.client.loadObjectPrompt(promptAst);
       const input = await prompt.formatWithTestProps();
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
@@ -58,7 +53,7 @@ export class VercelAdapterRunner {
     }
 
     if (frontmatter.text_config) {
-      const prompt = await agentmarkClient.loadTextPrompt(promptAst);
+      const prompt = await this.client.loadTextPrompt(promptAst);
       const input = await prompt.formatWithTestProps();
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
@@ -95,14 +90,14 @@ export class VercelAdapterRunner {
     }
 
     if (frontmatter.image_config) {
-      const prompt = await agentmarkClient.loadImagePrompt(promptAst);
+      const prompt = await this.client.loadImagePrompt(promptAst);
       const input = await prompt.formatWithTestProps();
       const { images } = await generateImage(input);
       return { type: "image", result: images.map(i => ({ mimeType: i.mimeType, base64: i.base64 })) } as RunnerPromptResponse;
     }
 
     if (frontmatter.speech_config) {
-      const prompt = await agentmarkClient.loadSpeechPrompt(promptAst);
+      const prompt = await this.client.loadSpeechPrompt(promptAst);
       const input = await prompt.formatWithTestProps();
       const { audio } = await generateSpeech(input);
       return { type: "speech", result: { mimeType: audio.mimeType, base64: audio.base64, format: audio.format } } as RunnerPromptResponse;
@@ -111,16 +106,16 @@ export class VercelAdapterRunner {
     throw new Error("Invalid prompt");
   }
 
-  async runExperiment(agentmarkClient: AgentMark<any, VercelAIAdapter<any, any>>, promptAst: Ast, datasetRunName: string): Promise<RunnerDatasetResponse> {
-    const loader = agentmarkClient.getLoader();
+  async runExperiment(promptAst: Ast, datasetRunName: string): Promise<RunnerDatasetResponse> {
+    const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
 
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     const runId = crypto.randomUUID();
-    const evalRegistry = this.deps.evalRegistry;
+    const evalRegistry = this.client.getEvalRegistry();
 
     if (frontmatter.text_config) {
-      const prompt = await agentmarkClient.loadTextPrompt(promptAst);
+      const prompt = await this.client.loadTextPrompt(promptAst);
       const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset, telemetry: { isEnabled: true } });
       const stream = new ReadableStream({
         async start(controller) {
@@ -185,7 +180,7 @@ export class VercelAdapterRunner {
     }
 
     if (frontmatter.object_config) {
-      const prompt = await agentmarkClient.loadObjectPrompt(promptAst);
+      const prompt = await this.client.loadObjectPrompt(promptAst);
       const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset });
       const stream = new ReadableStream({
         async start(controller) {
@@ -250,7 +245,7 @@ export class VercelAdapterRunner {
     }
 
     if (frontmatter.image_config) {
-      const prompt = await agentmarkClient.loadImagePrompt(promptAst);
+      const prompt = await this.client.loadImagePrompt(promptAst);
       const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset });
       const stream = new ReadableStream({
         async start(controller) {
@@ -259,7 +254,6 @@ export class VercelAdapterRunner {
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
-            const traceId = crypto.randomUUID();
             const { images } = await (await import("ai")).experimental_generateImage({
               ...(item.formatted as any)
             });
@@ -285,7 +279,7 @@ export class VercelAdapterRunner {
     }
 
     if (frontmatter.speech_config) {
-      const prompt = await agentmarkClient.loadSpeechPrompt(promptAst);
+      const prompt = await this.client.loadSpeechPrompt(promptAst);
       const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset });
       const stream = new ReadableStream({
         async start(controller) {
@@ -294,7 +288,6 @@ export class VercelAdapterRunner {
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
-            const traceId = crypto.randomUUID();
             const { audio } = await (await import("ai")).experimental_generateSpeech({
               ...(item.formatted as any)
             });

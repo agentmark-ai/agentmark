@@ -3,6 +3,7 @@ import {
   AgentMark,
   KeysWithKind,
   Loader,
+  EvalRegistry,
   ObjectPrompt,
   PromptFormatParams,
   PromptShape,
@@ -57,6 +58,7 @@ export function createAgentMarkClient<
   loader?: Loader<D>;
   modelRegistry: VercelAIModelRegistry;
   toolRegistry?: T;
+  evalRegistry?: EvalRegistry;
 }): VercelAgentMark<D, T> {
   const adapter = new VercelAIAdapter<D, T>(
     opts.modelRegistry,
@@ -66,6 +68,7 @@ export function createAgentMarkClient<
   return new AgentMark<D, VercelAIAdapter<D, T>>({
     loader: opts.loader,
     adapter,
+    evalRegistry: opts.evalRegistry,
   });
 }
 
