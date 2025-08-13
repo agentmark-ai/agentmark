@@ -76,4 +76,11 @@ describe('init', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('does not add image/speech extras for non-openai providers', async () => {
+    const { getClientConfigContent } = await import('../src/utils/examples/templates');
+    const content = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'anthropic', languageModels: ['claude-3'] });
+    expect(content).not.toContain('openai.image');
+    expect(content).not.toContain('openai.speech');
+  });
 });
