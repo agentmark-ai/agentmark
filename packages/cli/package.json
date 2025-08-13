@@ -4,11 +4,6 @@
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "next dev",
-    "start": "next start",
-    "build:app": "next build",
-    "lint": "next lint",
-    "serve": "node ./dist/src/json-server",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -16,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "bin": {
-    "agentmark": "./dist/index.js"
+    "agentmark": "dist/index.js"
   },
   "dependencies": {
     "@agentmark/agentmark-core": "*",
@@ -31,6 +26,7 @@
     "express": "^4.20.0",
     "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
+    "jiti": "^1.21.6",
     "json-schema-to-typescript": "^15.0.4",
     "prompts": "^2.4.2",
     "yaml": "^2.7.0",
@@ -44,10 +40,13 @@
     "@types/node": "^20",
     "@types/prompts": "^2",
     "typescript": "^5",
-    "vitest": "^3.0.8",
-    "yup": "1.3.2"
+    "vitest": "^3.0.8"
   },
   "files": [
     "dist"
-  ]
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "keywords": []
 }

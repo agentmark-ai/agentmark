@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import { execSync } from "child_process";
+import { Providers } from "../providers";
 import {
   setupPackageJson,
   installDependencies,
@@ -9,6 +10,8 @@ import {
   getEnvFileContent,
   createExamplePrompts,
   getTypesFileContent,
+  getClientConfigContent,
+  getRunnerFileContent,
 } from "./templates";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -55,11 +58,23 @@ export const createExampleApp = async (
     // Create example prompts
     createExamplePrompts(model, targetPath);
 
+    // Create user client config at project root
+    // Prefer TS for dev ergonomics
+    const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
+    fs.writeFileSync(`${targetPath}/agentmark.config.ts`, getClientConfigContent({ defaultRootDir: `./agentmark`, provider: modelProvider, languageModels: langModels }));
+
+    // Create a runner that imports the client and constructs adapter runner
+    fs.writeFileSync(`${targetPath}/agentmark.runner.ts`, getRunnerFileContent());
+
     // Create types file
     fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
 
     // Create .env file
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, target, apiKey, agentmarkApiKey, agentmarkAppId));
+
+    // Create .gitignore
+    const gitignore = ['node_modules', '.env', 'agentmark-output'].join('\n');
+    fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
 
     // Create the main application file
     fs.writeFileSync(

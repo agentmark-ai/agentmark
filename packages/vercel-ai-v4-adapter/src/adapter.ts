@@ -158,7 +158,7 @@ export class VercelAIModelRegistry {
   registerModels(
     modelPattern: string | RegExp | Array<string>,
     creator: ModelFunctionCreator
-  ): void {
+  ): this {
     if (typeof modelPattern === "string") {
       this.exactMatches[modelPattern] = creator;
     } else if (Array.isArray(modelPattern)) {
@@ -168,6 +168,7 @@ export class VercelAIModelRegistry {
     } else {
       this.patternMatches.push([modelPattern, creator]);
     }
+    return this;
   }
 
   getModelFunction(modelName: string): ModelFunctionCreator {
@@ -186,10 +187,6 @@ export class VercelAIModelRegistry {
     }
 
     throw new Error(`No model function found for: ${modelName}`);
-  }
-
-  setDefaultCreator(creator: ModelFunctionCreator): void {
-    this.defaultCreator = creator;
   }
 }
 
