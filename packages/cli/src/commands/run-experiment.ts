@@ -2,7 +2,8 @@ import path from "path";
 import fs from "fs";
 import type { Root } from "mdast";
 import Table from "cli-table3";
-import { resolveRunner } from "../utils/resolve-runner";
+// HTTP-only: talk to server specified by AGENTMARK_SERVER
+import { pathToFileURL } from "url";
 
 
 const getTerminalWidth = (): number => {
@@ -29,18 +30,58 @@ const computeLayout = (baseHead: string[], evalNames: string[] = []): LayoutResu
   return { head, colWidths: widths };
 };
 
+function resolveAgainstCwdOrEnv(inputPath: string): string {
+  if (path.isAbsolute(inputPath)) return inputPath;
+  let base: string | undefined;
+  try { base = process.cwd(); } catch { base = process.env.PWD; }
+  if (!base) throw new Error('Invalid working directory. Provide an absolute path or set PWD.');
+  return path.resolve(base, inputPath);
+}
+
 export default async function runExperiment(filepath: string, options: { skipEval?: boolean; thresholdPercent?: number }) {
   const evalEnabled = !options.skipEval;
-  const resolvedFilepath = path.resolve(process.cwd(), filepath);
+  const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
   if (!fs.existsSync(resolvedFilepath)) throw new Error(`File not found: ${resolvedFilepath}`);
+  // Ensure runner client resolves prompt-relative resources (datasets, etc.)
+  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
   const { load } = await import("@agentmark/templatedx");
+  // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
+  try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
   const ast: Root = await load(resolvedFilepath);
-  const runner = await resolveRunner();
+  const server = process.env.AGENTMARK_SERVER || 'http://localhost:9417';
+  if (!server || !/^https?:\/\//i.test(server)) {
+    throw new Error('AGENTMARK_SERVER is required. Run your runner (e.g., npm run serve) and set --server or AGENTMARK_SERVER.');
+  }
 
   console.log("Running prompt with dataset...");
   if (evalEnabled) console.log("🧪 Evaluations enabled");
 
-  const { stream } = await runner.runExperiment(ast as any, 'cli-experiment');
+  const url = `${server.replace(/\/$/, '')}/v1/run`;
+  if (process.env.AGENTMARK_DEBUG) {
+    console.error(`[agentmark debug] POST ${url}`);
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'dataset-run', data: { ast, experimentId: 'local-experiment' } })
+  });
+  if (!res.ok) {
+    let raw = '';
+    try { raw = await res.text(); } catch {}
+    let parsed: any = null;
+    try { parsed = JSON.parse(raw); } catch {}
+    const ct = res.headers.get('content-type') || '';
+    const statusLine = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
+    const errMsg = parsed?.error || parsed?.message || raw?.slice?.(0, 2000) || 'Unknown error';
+    const details = `HTTP ${statusLine} — Content-Type: ${ct}`;
+    const msg = `Runner request failed. ${details}\nURL: ${url}\nBody: ${errMsg}`;
+    console.error(msg);
+    if (process.env.AGENTMARK_DEBUG) {
+      console.error(`[agentmark debug] Response headers: ${JSON.stringify(Object.fromEntries(res.headers.entries()))}`);
+    }
+    throw new Error(msg);
+  }
+  const stream = res.body!;
 
   let index = 1;
   let totalEvals = 0; let passedEvals = 0;
@@ -65,7 +106,47 @@ export default async function runExperiment(filepath: string, options: { skipEva
           const r = evt.result || {};
           const input = JSON.stringify(r.input ?? {}, null, 0);
           const expected = r.expectedOutput ?? 'N/A';
-          const actual = typeof r.actualOutput === 'string' ? r.actualOutput : JSON.stringify(r.actualOutput ?? '');
+
+          // Coerce AI result column, saving media to files and printing IDE-clickable paths
+          let actual: string;
+          let extraPaths: Array<{ rel: string; kind: 'image' | 'audio' } > = [];
+          const hyperlink = (label: string, url: string) => `\u001B]8;;${url}\u0007${label}\u001B]8;;\u0007`;
+          const outDir = path.resolve(process.cwd(), 'agentmark-output');
+          const ensureOutDir = () => { try { fs.mkdirSync(outDir, { recursive: true }); } catch {} };
+          const ao = r.actualOutput;
+          if (Array.isArray(ao) && ao.length > 0 && ao.every((x: any) => x && typeof x.base64 === 'string')) {
+            // Image array output
+            ensureOutDir();
+            const timestamp = Date.now();
+            const linkLabels: string[] = [];
+            ao.forEach((img: any, idx: number) => {
+              const ext = (img.mimeType?.split?.('/')?.[1]) || 'png';
+              const filePath = path.join(outDir, `image-${index}-${idx + 1}-${timestamp}.${ext}`);
+              try { fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64')); } catch {}
+              const rel = path.relative(process.cwd(), filePath);
+              extraPaths.push({ rel: rel.startsWith('.') ? rel : `./${rel}`, kind: 'image' });
+              const url = pathToFileURL(filePath).href;
+              linkLabels.push(hyperlink(`View Image ${idx + 1}`, url));
+            });
+            if (linkLabels.length) {
+              actual = linkLabels.join(', ');
+            } else {
+              actual = '(no content)';
+            }
+          } else if (ao && typeof ao === 'object' && typeof ao.base64 === 'string') {
+            // Audio object output
+            ensureOutDir();
+            const timestamp = Date.now();
+            const ext = ao.format || (ao.mimeType?.split?.('/')?.[1] || 'mp3');
+            const filePath = path.join(outDir, `audio-${index}-${timestamp}.${ext}`);
+            try { fs.writeFileSync(filePath, Buffer.from(ao.base64, 'base64')); } catch {}
+            const url = pathToFileURL(filePath).href;
+            actual = hyperlink('Play Audio', url);
+            const rel = path.relative(process.cwd(), filePath);
+            extraPaths.push({ rel: rel.startsWith('.') ? rel : `./${rel}`, kind: 'audio' });
+          } else {
+            actual = typeof ao === 'string' ? ao : JSON.stringify(ao ?? '');
+          }
           const evals = Array.isArray(r.evals) ? r.evals : [];
 
           // Initialize header and layout on first row, including eval names when enabled
@@ -82,9 +163,14 @@ export default async function runExperiment(filepath: string, options: { skipEva
           for (const name of evalNames) {
             const e = evals.find((ev: any) => ev.name === name);
             if (e && typeof e.score === 'number') {
-              row.push(`${e.score.toFixed(2)} (${e.label ?? ''})`);
+              const hasJudge = typeof e.label === 'string' && e.label.length > 0;
+              const isPass = hasJudge ? (String(e.label).toLowerCase() === 'correct' || String(e.label).toLowerCase() === 'pass') : (e.score >= 0.5);
+              const verdictText = hasJudge ? (isPass ? 'PASS' : 'FAIL') : e.score.toFixed(2);
+              const reason = hasJudge && typeof e.reason === 'string' && e.reason ? ` - ${e.reason}` : '';
+              const suffix = hasJudge ? ` (${e.score.toFixed(2)}${reason})` : '';
+              row.push(`${verdictText}${suffix}`);
               totalEvals += 1;
-              if (e.label === 'correct' || e.score >= 0.5) passedEvals += 1;
+              if (isPass) passedEvals += 1;
             } else {
               row.push('N/A');
             }
@@ -93,6 +179,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
           const tableString = rowTable.toString();
           const lines = tableString.split('\n');
           console.log(lines.slice(1, -1).join('\n'));
+          if (extraPaths.length) {
+            // Print relative paths on separate lines so IDE terminals can Cmd+Click them
+            for (const p of extraPaths) {
+              const label = p.kind === 'image' ? 'Image path' : 'Audio path';
+              console.log(`${label}: ${p.rel}`);
+            }
+          }
           index += 1;
         } catch {}
       }
@@ -105,7 +198,10 @@ export default async function runExperiment(filepath: string, options: { skipEva
     const t = options.thresholdPercent;
     if (!Number.isFinite(t) || t < 0 || t > 100) throw new Error(`Invalid threshold: ${t}. Threshold must be between 0 and 100.`);
     const passPct = Math.floor((passedEvals / totalEvals) * 100);
-    if (passPct < t) throw new Error(`Experiment failed: ${passPct}% < threshold ${t}% (${passedEvals}/${totalEvals} evals passed)`);
+    if (passPct < t) {
+      console.error(`❌ Experiment failed: ${passPct}% < threshold ${t}% (${passedEvals}/${totalEvals} evals passed)`);
+      throw new Error(`Experiment failed: ${passPct}% < threshold ${t}% (${passedEvals}/${totalEvals} evals passed)`);
+    }
     console.log(`✅ Experiment passed threshold: ${passPct}% >= ${t}% (${passedEvals}/${totalEvals})`);
   }
 }

@@ -5,10 +5,20 @@ import * as path from 'node:path';
 let runExperiment: any;
 let currentRunner: any = null;
 
-// Mock resolve-runner to return an in-memory runner object we control per test
-vi.mock('../src/utils/resolve-runner', () => ({
-  resolveRunner: vi.fn(async () => currentRunner)
-}));
+// Mock global fetch to simulate server dataset streaming
+global.fetch = (async (url: any, init?: any) => {
+  const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
+  if (body?.type === 'dataset-run') {
+    const resp = await currentRunner.runExperiment(body.data.ast, body.data.experimentId);
+    // Expect resp.stream
+    return new Response(resp.stream as any, { status: 200 } as any) as any;
+  }
+  if (body?.type === 'prompt-run') {
+    const resp = await (currentRunner.runPrompt?.(body.data.ast, body.data.options) ?? { type: 'text', result: 'ok' });
+    return new Response(JSON.stringify(resp), { status: 200, headers: { 'Content-Type': 'application/json' } } as any) as any;
+  }
+  return new Response('Not found', { status: 500 } as any) as any;
+}) as any;
 
 vi.mock('prompts', () => ({
   default: vi.fn().mockResolvedValue({ apiKey: 'test-key' })
@@ -112,6 +122,7 @@ describe('run-experiment', () => {
     dummyPath = join(__dirname, '..', 'tmp-experiment.mdx');
     writeFileSync(dummyPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
     currentRunner = null;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
   });
 
   afterEach(() => {
@@ -121,7 +132,7 @@ describe('run-experiment', () => {
     try { const { unlinkSync } = require('node:fs'); const { join } = require('node:path'); unlinkSync(join(__dirname, '..', 'dummy-dataset.mdx')); } catch {}
   });
 
-  it('runs evals by default and respects threshold', async () => {
+  it('runs evals by default and respects threshold with PASS labels', async () => {
     // Include exact_match so all pass
     // No longer needed; CLI does not inspect config for experiments
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
@@ -132,13 +143,18 @@ describe('run-experiment', () => {
     expect(out).toMatch(/Experiment passed threshold/);
   });
 
-  it('fails when threshold not met', async () => {
+  it('fails when threshold not met and prints red X, FAIL labels', async () => {
     // Include contains that will fail
     // No longer needed; CLI does not inspect config for experiments
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
 
     await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).rejects.toThrow(/Experiment failed/);
+    const errSpy = vi.spyOn(console, 'error');
+    // simulate run again to capture stderr log
+    await runExperiment(dummyPath, { thresholdPercent: 100 }).catch(() => {});
+    const errOut = (errSpy.mock.calls.map(c => String(c[0])).join('\n'));
+    expect(errOut).toMatch(/❌ Experiment failed/);
   });
 
   it('skips evals when --skip-eval used', async () => {
@@ -152,21 +168,43 @@ describe('run-experiment', () => {
     expect(out).not.toMatch(/Experiment failed/);
   });
 
-  it('prints eval results correctly via run-prompt dataset mode (legacy run-dataset)', async () => {
+  it('prints eval results correctly with PASS and reasons where applicable', async () => {
     const { writeFileSync, unlinkSync } = await import('node:fs');
     const { join } = await import('node:path');
     const tempPath = join(__dirname, '..', 'dummy-dataset.mdx');
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
 
     // Provide runner that streams a dataset row with two evals scoring 1.0
-    mockClientWithDataset([{ dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match','length_check'], formatted: {} }]);
+    // Include reasons in evals emitted by runner
+    currentRunner = {
+      async runExperiment(){
+        const stream = new ReadableStream({
+          async start(controller){
+            const enc = new TextEncoder();
+            const evals = [
+              { name: 'exact_match', score: 1, label: 'correct', reason: 'Exact match' },
+              { name: 'length_check', score: 1, label: 'pass', reason: 'Length ok' }
+            ];
+            const chunk = JSON.stringify({ type: 'dataset', result: { input: { a:1 }, expectedOutput: 'EXPECTED', actualOutput: 'EXPECTED', evals } })+'\n';
+            controller.enqueue(enc.encode(chunk));
+            controller.close();
+          }
+        });
+        return { stream };
+      }
+    } as any;
 
     const runExperimentCmd = (await import('../src/commands/run-experiment')).default;
     await runExperimentCmd(tempPath, { skipEval: false });
 
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
-    // With fixed-width table rendering, eval names may not appear explicitly; assert scores instead
-    expect(out).toMatch(/1\.00/);
+    // Check PASS labels and reasons rendered (table may wrap across lines)
+    expect(out).toMatch(/PASS\s*\(1\.00/);
+    expect(out).toMatch(/Exact match\)/);
+    expect(out).toMatch(/PASS\s*\(1\.00/);
+    // length ok text may be split; assert pieces exist
+    expect(out).toMatch(/Length/);
+    expect(out).toMatch(/ok\)/);
     unlinkSync(tempPath);
   });
 

@@ -1,7 +1,16 @@
 import * as fs from "fs-extra";
 import path from "path";
 import fm from "front-matter";
-import { compile } from "json-schema-to-typescript";
+// Lazily load json-schema-to-typescript to avoid cwd access at startup
+let _compile: ((schema: any, name: string, opts: any) => Promise<string>) | null = null;
+async function getCompile() {
+  if (_compile) return _compile;
+  const mod = await import("json-schema-to-typescript");
+  // Support both ESM/CJS interop shapes
+  const c = (mod as any).compile || (mod as any).default?.compile;
+  _compile = c.bind(mod);
+  return _compile!;
+}
 
 type Options = {
   language: "typescript";
@@ -138,6 +147,7 @@ async function generateTypeDefinitionsV1_0(
         tools = prompt.image_config.tools || {};
       }
 
+      const compile = await getCompile();
       const inputInterface = input_schema
         ? await compile(input_schema, `${name}In`, {
             bannerComment: "",
@@ -205,6 +215,7 @@ async function generateTypeDefinitionsV0(
     const name = getInterfaceName(promptPath);
 
     try {
+      const compile = await getCompile();
       const inputInterface = input_schema
         ? await compile(input_schema, `${name}In`, {
             bannerComment: "",
@@ -373,6 +384,7 @@ async function generateToolTypes(tools: Record<string, any>) {
     const typeName = `${getToolInterfaceName(toolName)}Args`;
 
     try {
+      const compile = await getCompile();
       const argInterface = schema.parameters
         ? await compile(schema.parameters, typeName, {
             bannerComment: "",

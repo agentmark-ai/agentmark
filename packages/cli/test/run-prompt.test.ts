@@ -4,6 +4,21 @@ import path from 'node:path';
 
 // We will import the command handler function and call it with props input
 let runPrompt: any;
+let currentRunner: any = null;
+
+// Mock global fetch to simulate server responses
+// We respond to prompt-run with text/image/speech depending on currentRunner behavior
+global.fetch = (async (url: any, init?: any) => {
+  const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
+  if (body?.type === 'prompt-run') {
+    const resp = await currentRunner.runPrompt(body.data.ast, body.data.options);
+    if (resp?.type === 'stream') {
+      return new Response(resp.stream as any, { headers: { 'AgentMark-Streaming': 'true' } } as any) as any;
+    }
+    return new Response(JSON.stringify(resp), { status: 200, headers: { 'Content-Type': 'application/json' } } as any) as any;
+  }
+  return new Response('Not found', { status: 500 } as any) as any;
+}) as any;
 
 vi.mock('prompts', () => ({
   default: vi.fn().mockResolvedValue({ apiKey: 'test-key' })
@@ -53,41 +68,7 @@ vi.mock('@agentmark/agentmark-core', async () => {
   };
 });
 
-// Mock adapter: ensure runner uses the initialized client
-vi.mock('@agentmark/vercel-ai-v4-adapter', async () => {
-  class VercelAIModelRegistry { registerModels() {} }
-  const createAgentMarkClient = ({ loader }: any) => ({
-    loadTextPrompt: async () => ({
-      formatWithTestProps: async () => ({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: 'hello' }],
-      })
-    })
-  });
-  class VercelAdapterRunner {
-    constructor(private client: any) {}
-    async runPrompt(_: any, opts?: { shouldStream?: boolean }) {
-      const p = await this.client.loadTextPrompt({});
-      await p.formatWithTestProps();
-      if (opts?.shouldStream) {
-        // Simulate provider sending control chunk first, which should not break CLI
-        const stream = new ReadableStream({
-          async start(controller) {
-            const enc = new TextEncoder();
-            controller.enqueue(enc.encode(JSON.stringify({ type: 'stream-start' }) + '\n'));
-            controller.enqueue(enc.encode(JSON.stringify({ type: 'text', result: 'hello ' }) + '\n'));
-            controller.enqueue(enc.encode(JSON.stringify({ type: 'text', result: 'world' }) + '\n'));
-            controller.close();
-          }
-        });
-        return { type: 'stream', stream } as any;
-      }
-      // Non-stream path should return text to avoid control-chunk issues
-      return { type: 'text', result: 'ok', usage: { totalTokens: 1 } } as any;
-    }
-  }
-  return { VercelAIModelRegistry, createAgentMarkClient, runner: { VercelAdapterRunner } };
-});
+// Adapter mocks not needed with HTTP-only runner stub
 
 // Mock ai generateText to avoid network in non-stream fallback path
 vi.mock('ai', () => ({
@@ -103,6 +84,7 @@ describe('run-prompt', () => {
     vi.resetModules();
     warnSpy.mockClear();
     errorSpy.mockClear();
+    currentRunner = null;
   });
 
   afterEach(() => {
@@ -131,19 +113,8 @@ describe('run-prompt', () => {
   it('uses a project runner and prints final text', async () => {
     const tempPath = path.join(__dirname, '..', 'dummy.mdx');
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
-    // point AGENTMARK_CLIENT to a dummy module exporting createClient
-    const clientPath = path.join(__dirname, '..', 'tmp-client.ts');
-    writeFileSync(clientPath, 'export async function createClient(){ return { loadTextPrompt: async ()=>({ formatWithTestProps: async ()=>({ model: "gpt-4o", messages: [{ role: "user", content: "hi"}] }) }) }; }');
-    process.env.AGENTMARK_CLIENT = clientPath;
-    // also point to a runner file that exports a simple runner without importing external adapter
-    const runnerPath = path.join(__dirname, '..', `tmp-runner-${Date.now()}-text.mjs`);
-    writeFileSync(runnerPath, `export const runner = {
-      async runPrompt(){
-        // return text result; CLI will print header then this content
-        return { type: 'text', result: 'hello world' };
-      }
-    };`);
-    process.env.AGENTMARK_RUNNER = runnerPath;
+    currentRunner = { async runPrompt(){ return { type: 'text', result: 'hello world' }; } } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
     // Import after mocks are in place
     if (!runPrompt) {
       runPrompt = (await import('../src/commands/run-prompt')).default;
@@ -160,13 +131,8 @@ describe('run-prompt', () => {
   it('saves image outputs to files', async () => {
     const tempPath = path.join(__dirname, '..', 'dummy.mdx');
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
-    const runnerPath = path.join(__dirname, '..', `tmp-runner-${Date.now()}-image.mjs`);
-    writeFileSync(runnerPath, `export const runner = {
-      async runPrompt(){
-        return { type: 'image', result: [{ mimeType: 'image/png', base64: Buffer.from('png').toString('base64') }] };
-      }
-    };`);
-    process.env.AGENTMARK_RUNNER = runnerPath;
+    currentRunner = { async runPrompt(){ return { type: 'image', result: [{ mimeType: 'image/png', base64: Buffer.from('png').toString('base64') }] }; } } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
     runPrompt = (await import('../src/commands/run-prompt')).default;
     await runPrompt(tempPath as any);
     const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
@@ -176,13 +142,8 @@ describe('run-prompt', () => {
   it('saves speech outputs to files', async () => {
     const tempPath = path.join(__dirname, '..', 'dummy.mdx');
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
-    const runnerPath = path.join(__dirname, '..', `tmp-runner-${Date.now()}-speech.mjs`);
-    writeFileSync(runnerPath, `export const runner = {
-      async runPrompt(){
-        return { type: 'speech', result: { mimeType: 'audio/mpeg', base64: Buffer.from('mp3').toString('base64'), format: 'mp3' } };
-      }
-    };`);
-    process.env.AGENTMARK_RUNNER = runnerPath;
+    currentRunner = { async runPrompt(){ return { type: 'speech', result: { mimeType: 'audio/mpeg', base64: Buffer.from('mp3').toString('base64'), format: 'mp3' } }; } } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
     runPrompt = (await import('../src/commands/run-prompt')).default;
     await runPrompt(tempPath as any);
     const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');

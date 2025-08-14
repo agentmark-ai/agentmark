@@ -24,36 +24,25 @@ const init = async (options: { target: string }) => {
   const targetPath = `./${folderName}`;
   fs.ensureDirSync(targetPath);
 
-  const { provider } = await prompts({
-    name: "provider",
-    type: "select",
-    message: "Select a model provider you want to start with",
-    choices: Object.entries(Providers).map(([key, provider]) => {
-      return {
-        title: provider.label,
-        value: key,
-      };
-    }),
-  });
+  // Force OpenAI provider for initial setup to streamline onboarding
+  const provider = 'openai';
 
   // Default to the first language model of the chosen provider
   const model = Providers[provider as keyof typeof Providers].languageModels[0];
   
-  console.log(`Using model: ${model}`);
+  // Model is selected implicitly for setup; no need to log
 
   config.builtInModels = [model];
 
-  // Prompt for API key if not Ollama (which doesn't need one for local usage)
+  // Prompt only for the OpenAI API key
   let apiKey = "";
-  if (provider !== "ollama") {
-    const { providedApiKey } = await prompts({
-      name: "providedApiKey",
-      type: "password",
-      message: `Enter your ${Providers[provider as keyof typeof Providers].label} API key (or press Enter to skip):`,
-      initial: "",
-    });
-    apiKey = providedApiKey || "";
-  }
+  const { providedApiKey } = await prompts({
+    name: "providedApiKey",
+    type: "password",
+    message: `Enter your OpenAI API key (or press Enter to skip):`,
+    initial: "",
+  });
+  apiKey = providedApiKey || "";
 
   let deployTarget = options.target;
   if (!deployTarget) {
@@ -113,6 +102,23 @@ const init = async (options: { target: string }) => {
       "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/configuration/test-webhook"
     );
   }
+
+  // Auto-start local HTTP runner after init (background), except during tests
+  try {
+    if (process.env.NODE_ENV !== 'test') {
+      const { spawn } = await import('node:child_process');
+      const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'serve'], {
+        cwd: targetPath,
+        stdio: 'ignore',
+        detached: true,
+        env: { ...process.env },
+      });
+      child.unref();
+      console.log(`\n▶️  Starting AgentMark runner in background on http://localhost:9417`);
+      console.log(`   You can stop it by killing the process, or run it manually with: cd ${targetPath} && npm run serve`);
+      console.log(`   The CLI will default to this server. Override with --server if needed.`);
+    }
+  } catch {}
 };
 
 export default init;

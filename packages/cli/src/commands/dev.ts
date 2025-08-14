@@ -1,5 +1,4 @@
 import { execSync } from "child_process";
-import dotenv from "dotenv";
 
 type Options = {
   port: number
@@ -8,7 +7,7 @@ type Options = {
 const dev = ({port}: Options) => {
   const currentProjectPath = process.cwd();
   console.log("Starting agentmark development server...");
-
+  const dotenv = require('dotenv');
   dotenv.config({
     path: `${currentProjectPath}/.env`,
   });

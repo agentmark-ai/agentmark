@@ -23,11 +23,13 @@ export const setupPackageJson = (targetPath: string = ".", target?: string) => {
     pkgJson.scripts = {
       ...pkgJson.scripts,
       "agentmark:example-trace": "ts-node index.ts",
+      "serve": "ts-node agentmark.runner.ts",
     };
   } else {
     pkgJson.scripts = {
       ...pkgJson.scripts,
       start: "ts-node index.ts",
+      serve: "ts-node agentmark.runner.ts",
     };
   }
   fs.writeJSONSync(packageJsonPath, pkgJson, { spaces: 2 });
@@ -42,8 +44,8 @@ export const installDependencies = (
   console.log("This might take a moment...");
 
   try {
-    // Install TypeScript and ts-node for development
-    execSync("npm install --save-dev typescript ts-node @types/node", {
+    // Install TypeScript, ts-node, express (and types) for development
+    execSync("npm install --save-dev typescript ts-node @types/node express @types/express", {
       stdio: "inherit",
       cwd: targetPath,
     });
