@@ -63,7 +63,7 @@ export abstract class BasePrompt<
   ): Promise<
     ReadableStream<{
       dataset: {
-        input: Record<string, any>;
+        input: Record<string, unknown>;
         expected_output?: string;
       };
       formatted: ReturnType<A[`adapt${Capitalize<PK>}`]>;
@@ -212,3 +212,6 @@ export class SpeechPrompt<
     return this.adapter.adaptSpeech(compiled, options);
   }
 }
+
+// Expose helper generic for external adapters to infer input props type
+export type InferTextPromptInput<T extends PromptShape<T>, K extends KeysWithKind<T, "text"> & string> = T[K]["input"];
