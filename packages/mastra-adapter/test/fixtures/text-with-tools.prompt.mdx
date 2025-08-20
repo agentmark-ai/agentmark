@@ -1,0 +1,29 @@
+---
+name: text-with-tools
+text_config:
+  model_name: test-model
+  tools:
+    sum:
+      description: Add two numbers
+      parameters:
+        type: object
+        properties:
+          a:
+            type: number
+          b:
+            type: number
+        required: ["a", "b"]
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<User>
+{props.userMessage}
+</User>
+
+

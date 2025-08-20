@@ -1,0 +1,26 @@
+---
+name: math
+text_config:
+  model_name: test-model
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful math tutor.
+</System>
+
+<User>
+{props.userMessage}
+</User>
+
+<Assistant>
+Here's your answer!
+</Assistant>
+
+

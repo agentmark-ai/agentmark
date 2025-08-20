@@ -3,13 +3,10 @@ import { openai } from "@ai-sdk/openai";
 import {
   createAgentMarkClient,
   MastraModelRegistry,
-  MastraToolRegistry,
 } from "@agentmark/mastra-adapter";
 import { FileLoader } from "@agentmark/agentmark-core";
 import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import AgentmarkTypes, { Tools } from "./agentmark.types";
+import AgentmarkTypes from "./agentmark.types";
 
 // Create a model registry for AgentMark
 const modelRegistry = new MastraModelRegistry();
@@ -20,46 +17,16 @@ modelRegistry.registerModels(
   }
 );
 
-const explainTool = createTool({
-  id: "explain",
-  description: "Explain the weather",
-  inputSchema: z.object({loc: z.string()}) as unknown as z.ZodType<{loc: string}>,
-  outputSchema: z.object({r: z.string()}),
-  execute: (args) => {
-    const c = args
-    return Promise.resolve({
-      r: "asd"
-    });
-  },
-});   
-
-
-
-
-// Create a tool registry for AgentMark
-const toolRegistry = new MastraToolRegistry<Tools>()
-  .register("weather", () => {
-    return {
-      id: "weather",
-    };
-  })
-  .register("explain", () => {
-    return {
-      id: "explain",
-    };
-  });
-
 // Create the AgentMark client with Mastra adapter
-const mastraAgentMark = createAgentMarkClient<AgentmarkTypes, typeof toolRegistry>({
+const mastraAgentMark = createAgentMarkClient<AgentmarkTypes>({
   loader: new FileLoader("./fixtures"),
   modelRegistry,
-  toolRegistry,
 });
 
 async function runMastraExample() {
   try {
-    const textPrompt = await mastraAgentMark.loadTextPrompt(
-      "test/math2.prompt.mdx"
+    const textPrompt = await mastraAgentMark.loadObjectPrompt(
+      "math.prompt.mdx"
     );
 
     const props = {
@@ -80,15 +47,7 @@ async function runMastraExample() {
 
     const response = await weatherAgent.generate(generatedMessages, options);
 
-    console.log(response.toolResults.map((i) => {
-      if(i.toolName === "weather") {
-        return i.args;
-      }
-      if(i.toolName === "explain") {
-        return i.args;
-      }
-      return i;
-    }));
+    console.log(response);
   } catch (error) {
     console.error("❌ Error in Mastra example:", error);
     console.error("Stack:", error.stack);
