@@ -78,19 +78,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/sdk@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "@agentmark/sdk@npm:4.1.1"
-  dependencies:
-    "@isaacs/ttlcache": "npm:^1.4.1"
-    "@opentelemetry/api": "npm:^1.9.0"
-    "@opentelemetry/sdk-node": "npm:^0.55.0"
-    "@opentelemetry/sdk-trace-base": "npm:^1.28.0"
-  checksum: 10c0/2293d20dd689dbfe77d32e950f88be010aeb72905dfa595ccf6e5087ccf6bca9877991f8d851eda2ea36e47bd02d8914dd7bcfdf2d1a3b6b8b3bcdb3c18bc73d
-  languageName: node
-  linkType: hard
-
-"@agentmark/sdk@workspace:packages/sdk":
+"@agentmark/sdk@npm:^4.1.2, @agentmark/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"
   dependencies:
@@ -178,7 +166,7 @@ __metadata:
   resolution: "@agentmark/vercel-ai-v4-webhook-helper@workspace:packages/vercel-ai-v4-webhook-helper"
   dependencies:
     "@agentmark/agentmark-core": "npm:^3.3.1"
-    "@agentmark/sdk": "npm:^4.1.1"
+    "@agentmark/sdk": "npm:^4.1.2"
     "@agentmark/templatedx": "npm:^0.6.3"
     "@types/node": "npm:^22.8.1"
     ai: "npm:^4.3.16"
