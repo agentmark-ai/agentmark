@@ -90,6 +90,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@agentmark/sdk@workspace:packages/sdk":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/sdk@workspace:packages/sdk"
+  dependencies:
+    "@agentmark/agentmark-core": "npm:^3.3.3"
+    "@isaacs/ttlcache": "npm:^1.4.1"
+    "@opentelemetry/api": "npm:^1.9.0"
+    "@opentelemetry/sdk-node": "npm:^0.55.0"
+    "@opentelemetry/sdk-trace-base": "npm:^1.28.0"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
   resolution: "@agentmark/shared-utils@workspace:packages/shared-utils"
