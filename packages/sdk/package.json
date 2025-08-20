@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/sdk",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "description": "SDK for communicating with the Agentmark hosted platform",

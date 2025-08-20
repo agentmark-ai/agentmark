@@ -1,5 +1,11 @@
 # @puzzlet/sdk
 
+## 4.1.2
+
+### Patch Changes
+
+- 5112b84: File loader handles dataset differently
+
 ## 4.1.1
 
 ### Patch Changes
