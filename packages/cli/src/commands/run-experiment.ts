@@ -1,7 +1,14 @@
 import path from "path";
 import fs from "fs";
 import type { Root } from "mdast";
-import Table from "cli-table3";
+// Lazy-load cli-table3 so other commands (e.g., serve) don't pull ESM deps
+let _Table: any;
+async function getTable() {
+  if (_Table) return _Table;
+  const mod = await import('cli-table3');
+  _Table = (mod as any).default || (mod as any);
+  return _Table;
+}
 // HTTP-only: talk to server specified by AGENTMARK_SERVER
 import { pathToFileURL } from "url";
 
@@ -48,6 +55,14 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
   const ast: Root = await load(resolvedFilepath);
+  // Extract dataset path and prompt relative path for runner consumption (helps cloud loader resolve URLs)
+  let datasetPath: string | undefined;
+  const promptPath = path.basename(resolvedFilepath);
+  try {
+    const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
+    datasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
+  } catch {}
+  // No debug logging by default
   const server = process.env.AGENTMARK_SERVER || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error('AGENTMARK_SERVER is required. Run your runner (e.g., npm run serve) and set --server or AGENTMARK_SERVER.');
@@ -57,14 +72,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
   if (evalEnabled) console.log("🧪 Evaluations enabled");
 
   const url = `${server.replace(/\/$/, '')}/v1/run`;
-  if (process.env.AGENTMARK_DEBUG) {
-    console.error(`[agentmark debug] POST ${url}`);
-  }
+  // No debug logging by default
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'dataset-run', data: { ast, experimentId: 'local-experiment' } })
+    body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
   });
+  // No debug logging by default
   if (!res.ok) {
     let raw = '';
     try { raw = await res.text(); } catch {}
@@ -76,9 +90,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     const details = `HTTP ${statusLine} — Content-Type: ${ct}`;
     const msg = `Runner request failed. ${details}\nURL: ${url}\nBody: ${errMsg}`;
     console.error(msg);
-    if (process.env.AGENTMARK_DEBUG) {
-      console.error(`[agentmark debug] Response headers: ${JSON.stringify(Object.fromEntries(res.headers.entries()))}`);
-    }
+    // No debug logging by default
     throw new Error(msg);
   }
   const stream = res.body!;
@@ -153,11 +165,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
           if (!headerPrinted) {
             evalNames = evalEnabled ? evals.map((e: any) => e.name).filter(Boolean) : [];
             layout = computeLayout(['#', 'Input', 'AI Result', 'Expected Output'], evalNames);
+            const Table = await getTable();
             const headerTable = new Table({ head: layout.head, colWidths: layout.colWidths, wordWrap: true });
             console.log(headerTable.toString());
             headerPrinted = true;
           }
 
+          const Table = await getTable();
           const rowTable = new Table({ colWidths: (layout as LayoutResult).colWidths, wordWrap: true, style: { head: [] } });
           const row: string[] = [String(index), input, actual, expected];
           for (const name of evalNames) {

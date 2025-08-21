@@ -9,7 +9,7 @@ const init = async (options: { target: string }) => {
       "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
     version: "2.0.0",
     mdxVersion: "1.0",
-    agentmarkPath: "/",
+    agentmarkPath: ".",
   };
   console.log("Initializing project.");
 
@@ -91,10 +91,11 @@ const init = async (options: { target: string }) => {
     ],
   });
 
-  createExampleApp(provider, model, deployTarget, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
+  createExampleApp(provider, model, (deployTarget as 'cloud' | 'local'), client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
 
+  // Always generate agentmark.json so config is consistent across local and cloud
+  fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
   if (deployTarget === "cloud") {
-    fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
     console.log(
       "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
     );
@@ -103,20 +104,34 @@ const init = async (options: { target: string }) => {
     );
   }
 
-  // Auto-start local HTTP runner after init (background), except during tests
+  // Auto-start local services after init (background), except during tests
+  // For cloud: start both local cloud (CDN) and runner. For local: start runner only.
   try {
     if (process.env.NODE_ENV !== 'test') {
       const { spawn } = await import('node:child_process');
-      const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'serve'], {
+      const isCloud = deployTarget === 'cloud';
+      if (isCloud) {
+        const cloud = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['@agentmark/cli', 'serve'], {
+          cwd: targetPath,
+          stdio: 'ignore',
+          detached: true,
+          env: { ...process.env, PORT: '9418' },
+        });
+        cloud.unref();
+      }
+      const runner = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['ts-node', 'agentmark.runner.ts'], {
         cwd: targetPath,
         stdio: 'ignore',
         detached: true,
         env: { ...process.env },
       });
-      child.unref();
-      console.log(`\n▶️  Starting AgentMark runner in background on http://localhost:9417`);
-      console.log(`   You can stop it by killing the process, or run it manually with: cd ${targetPath} && npm run serve`);
-      console.log(`   The CLI will default to this server. Override with --server if needed.`);
+      runner.unref();
+      console.log(`\n▶️  Services started:`);
+      if (isCloud) console.log(`✅   • Local AgentMark Cloud: http://localhost:9418`);
+      console.log(`✅   • Runner: http://localhost:9417`);
+      console.log(`   You can stop them by killing the processes, or run manually with:`);
+      if (isCloud) console.log(`     - cd ${targetPath} && npm run agentmark:serve-cloud`);
+      console.log(`     - cd ${targetPath} && npm run agentmark:serve-runner`);
     }
   } catch {}
 };

@@ -39,6 +39,7 @@
     "@types/mdast": "^4.0.0",
     "@types/node": "^20",
     "@types/prompts": "^2",
+    "tsup": "^8",
     "typescript": "^5",
     "vitest": "^3.0.8"
   },

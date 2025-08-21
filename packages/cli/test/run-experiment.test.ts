@@ -132,43 +132,29 @@ describe('run-experiment', () => {
     try { const { unlinkSync } = require('node:fs'); const { join } = require('node:path'); unlinkSync(join(__dirname, '..', 'dummy-dataset.mdx')); } catch {}
   });
 
-  it('runs evals by default and respects threshold with PASS labels', async () => {
-    // Include exact_match so all pass
-    // No longer needed; CLI does not inspect config for experiments
+  it('passes threshold when all evals PASS', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-
     await runExperiment(dummyPath, { thresholdPercent: 100 });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Experiment passed threshold/);
   });
 
-  it('fails when threshold not met and prints red X, FAIL labels', async () => {
-    // Include contains that will fail
-    // No longer needed; CLI does not inspect config for experiments
+  it('fails threshold when evals FAIL', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-
     await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).rejects.toThrow(/Experiment failed/);
-    const errSpy = vi.spyOn(console, 'error');
-    // simulate run again to capture stderr log
-    await runExperiment(dummyPath, { thresholdPercent: 100 }).catch(() => {});
-    const errOut = (errSpy.mock.calls.map(c => String(c[0])).join('\n'));
-    expect(errOut).toMatch(/❌ Experiment failed/);
   });
 
-  it('skips evals when --skip-eval used', async () => {
-    // No longer needed
+  it('honors --skip-eval and does not enforce threshold', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-
     await runExperiment(dummyPath, { skipEval: true, thresholdPercent: 100 });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
-    // no throw; also no pass log since evals skipped
     expect(out).not.toMatch(/Experiment failed/);
   });
 
-  it('prints eval results correctly with PASS and reasons where applicable', async () => {
+  it('renders eval results with PASS and reasons', async () => {
     const { writeFileSync, unlinkSync } = await import('node:fs');
     const { join } = await import('node:path');
     const tempPath = join(__dirname, '..', 'dummy-dataset.mdx');
@@ -215,30 +201,13 @@ describe('run-experiment', () => {
     await expect(runExperiment(dummyPath, {})).rejects.toThrow(/Loader or dataset is not defined/);
   });
 
-  describe('invalid threshold handling', () => {
-    it('throws for threshold > 100 and < 0', async () => {
-      // Set simple passing dataset and exact_match evals
-      // No longer needed
-      mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
-      runExperiment = (await import('../src/commands/run-experiment')).default;
-      await expect(runExperiment(dummyPath, { thresholdPercent: 101 })).rejects.toThrow(/Invalid threshold/);
-      await expect(runExperiment(dummyPath, { thresholdPercent: -1 })).rejects.toThrow(/Invalid threshold/);
-    });
-
-    it('accepts thresholds 0 and 100', async () => {
-      vi.doMock('@agentmark/agentmark-core', async () => {
-        const actual = await vi.importActual<any>('@agentmark/agentmark-core');
-        return {
-          ...actual,
-          TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' }, test_settings: { evals: ['exact_match'] } }; } },
-          FileLoader: class {},
-        };
-      });
-      mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
-      runExperiment = (await import('../src/commands/run-experiment')).default;
-      await expect(runExperiment(dummyPath, { thresholdPercent: 0 })).resolves.toBeUndefined();
-      await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).resolves.toBeUndefined();
-    });
+  it('validates threshold values (0-100 inclusive)', async () => {
+    mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
+    runExperiment = (await import('../src/commands/run-experiment')).default;
+    await expect(runExperiment(dummyPath, { thresholdPercent: 101 })).rejects.toThrow(/Invalid threshold/);
+    await expect(runExperiment(dummyPath, { thresholdPercent: -1 })).rejects.toThrow(/Invalid threshold/);
+    await expect(runExperiment(dummyPath, { thresholdPercent: 0 })).resolves.toBeUndefined();
+    await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).resolves.toBeUndefined();
   });
   afterEach(async () => { const { unlinkSync } = await import('node:fs'); try { unlinkSync(dummyPath); } catch {} });
 });

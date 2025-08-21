@@ -59,7 +59,7 @@ export abstract class BasePrompt<
   }
 
   async formatWithDataset(
-    options?: AdaptOptions & { datasetPath?: string }
+    options?: AdaptOptions & { datasetPath?: string; format?: 'ndjson' | 'json' }
   ): Promise<
     ReadableStream<{
       dataset: {
@@ -82,6 +82,27 @@ export abstract class BasePrompt<
     const dsPath = options?.datasetPath || this.testSettings?.dataset;
 
     const datasetStream = await this.loader?.loadDataset(dsPath!);
+    if (options?.format === 'json') {
+      const buffered: Array<{ input: Record<string, any>; expected_output?: string }> = [];
+      for await (const value of datasetStream) buffered.push(value);
+      return new ReadableStream({
+        start: async (controller) => {
+          try {
+            for (const value of buffered) {
+              const formattedOutput = await this.format({ props: value.input, ...options });
+              controller.enqueue({
+                dataset: { input: value.input, expected_output: value.expected_output },
+                evals: this.testSettings?.evals || [],
+                formatted: formattedOutput,
+              });
+            }
+            controller.close();
+          } catch (error) {
+            console.error("Error processing buffered dataset:", error);
+          }
+        },
+      });
+    }
     return new ReadableStream({
       start: async (controller) => {
         try {

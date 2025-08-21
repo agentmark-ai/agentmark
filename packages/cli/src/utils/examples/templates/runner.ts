@@ -1,5 +1,7 @@
 export const getRunnerFileContent = () => `// agentmark.runner.ts
-import 'dotenv/config';
+import path from 'node:path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 import express, { type Request, type Response } from 'express';
 import { createServer } from 'node:http';
 import type { AgentMark } from '@agentmark/agentmark-core';
@@ -14,18 +16,14 @@ export function createRunner(): InstanceType<typeof VercelAdapterRunner> {
 export async function serve({ port = 9417 }: { port?: number } = {}){
   const app = express();
   app.use(express.json({ limit: '10mb' }));
-  app.use((req, _res, next) => {
-    if (process.env.AGENTMARK_DEBUG) {
-      console.log('[runner] ' + req.method + ' ' + req.url);
-    }
-    next();
-  });
+  app.use((_req, _res, next) => { next(); });
 
   const runner = createRunner();
 
   app.post('/v1/run', async (req: Request, res: Response) => {
     try {
       const event = req.body || {};
+      
       if (event?.type === 'prompt-run') {
         if (!event.data?.ast) {
           return res.status(400).json({ error: 'Missing data.ast in prompt-run event' });
@@ -47,7 +45,12 @@ export async function serve({ port = 9417 }: { port?: number } = {}){
           return res.status(400).json({ error: 'Missing data.ast in dataset-run event' });
         }
         const experimentId = event.data.experimentId ?? 'local-experiment';
-        const response = await runner.runExperiment(event.data.ast, experimentId);
+        let response;
+        try {
+          response = await runner.runExperiment(event.data.ast, experimentId);
+        } catch (e: any) {
+          return res.status(500).json({ error: e?.message || String(e), stack: process.env.AGENTMARK_DEBUG ? (e?.stack || String(e)) : undefined });
+        }
         if (response?.stream) {
           if (response.streamHeaders) for (const [k, v] of Object.entries(response.streamHeaders)) res.setHeader(k, String(v));
           const reader = response.stream.getReader();
@@ -60,7 +63,7 @@ export async function serve({ port = 9417 }: { port?: number } = {}){
       }
       return res.status(400).json({ error: 'Unknown event type' });
     } catch (e: any) {
-      return res.status(500).json({ error: e?.message || String(e) });
+      return res.status(500).json({ error: e?.message || String(e), stack: process.env.AGENTMARK_DEBUG ? (e?.stack || String(e)) : undefined });
     }
   });
 

@@ -30,6 +30,19 @@ const runPrompt = async (filepath: string) => {
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
   
   let ast: Root = await load(resolvedFilepath);
+  // Determine prompt kind from frontmatter for better headers (Text/Object/Image/Speech)
+  let promptHeader: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
+  try {
+    const yamlNode = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
+    if (yamlNode && typeof yamlNode.value === 'string') {
+      const { parse: parseYaml } = await import('yaml');
+      const fm = parseYaml(yamlNode.value) || {};
+      if (fm.object_config) promptHeader = 'Object';
+      else if (fm.image_config) promptHeader = 'Image';
+      else if (fm.speech_config) promptHeader = 'Speech';
+      else promptHeader = 'Text';
+    }
+  } catch {}
   // Ensure server resolves resources relative to the prompt file if it needs it in the AST
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
   const server = process.env.AGENTMARK_SERVER || 'http://localhost:9417';
@@ -64,9 +77,10 @@ const runPrompt = async (filepath: string) => {
       }
       const isStreaming = !!res.headers.get('AgentMark-Streaming');
       const resp = isStreaming ? { type: 'stream', stream: res.body! } : await res.json();
-      // Ensure a visible header precedes results; determine by response type
+      // Ensure a visible header precedes results; for streams use prompt frontmatter, else fallback to response type
       const respType = (resp as any)?.type;
-      const header = respType === 'object' ? 'Object' : respType === 'image' ? 'Image' : respType === 'speech' ? 'Speech' : 'Text';
+      const nonStreamHeader = respType === 'object' ? 'Object' : respType === 'image' ? 'Image' : respType === 'speech' ? 'Speech' : 'Text';
+      const header = isStreaming ? promptHeader : nonStreamHeader;
       console.log(`\n=== ${header} Prompt Results ===`);
       if ((resp as any).type === 'stream') {
         const reader = (resp as any).stream.getReader();

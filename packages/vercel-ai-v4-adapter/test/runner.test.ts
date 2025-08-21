@@ -161,6 +161,50 @@ describe("VercelAdapterRunner", () => {
     }
   });
 
+  it("streams all JSONL rows when using SDK loader (dataset over HTTP)", async () => {
+    // Simulate SDK loader behavior by returning a ReadableStream-like object whose getReader yields parsed objects per line
+    const lines = [
+      { input: { q: "A" } },
+      { input: { q: "B" } },
+      { input: { q: "C" } },
+    ];
+    const fakeStream: any = {
+      getReader() {
+        let i = 0;
+        return {
+          async read() {
+            if (i >= lines.length) return { done: true, value: undefined };
+            const v = lines[i++];
+            return { done: false, value: v };
+          }
+        };
+      }
+    };
+    (loader as any).loadDataset = vi.fn(async () => fakeStream);
+
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const { stream } = await runner.runExperiment(ast, "run-sdk");
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    const decoder = new TextDecoder();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = typeof value === 'string' ? value : decoder.decode(value);
+      for (const line of chunk.split('\n')) {
+        if (!line.trim()) continue;
+        rows.push(JSON.parse(line));
+      }
+    }
+
+    // Expect three dataset rows
+    const dsRows = rows.filter(r => r.type === 'dataset');
+    expect(dsRows.length).toBe(3);
+    expect(dsRows[0].result.input.q).toBe('A');
+    expect(dsRows[1].result.input.q).toBe('B');
+    expect(dsRows[2].result.input.q).toBe('C');
+  });
+
   it("streams dataset for object prompts and verifies rows", async () => {
     const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
 

@@ -34,6 +34,15 @@ describe('init', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('cloud target uses SDK file loader in generated agentmark.config.ts', async () => {
+    const { getClientConfigContent } = await import('../src/utils/examples/templates');
+    const content = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'openai', languageModels: ['gpt-4o'], target: 'cloud' });
+    expect(content).toContain("from \"@agentmark/sdk\"");
+    expect(content).toContain("new AgentMarkSDK");
+    expect(content).toContain("sdk.getFileLoader()");
+    expect(content).not.toContain("new FileLoader(");
+  });
   it('party-planner prompt includes evals list', async () => {
     const { createExamplePrompts } = await import('../src/utils/examples/templates');
     const tmpDir = path.join(__dirname, '..', 'tmp-examples-' + Date.now());

@@ -26,7 +26,8 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
   private basePath: string;
 
   constructor(private rootDir: string) {
-    this.basePath = path.resolve(process.cwd(), rootDir);
+    const cwd = (() => { try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; } })();
+    this.basePath = path.resolve(cwd, rootDir);
   }
 
   async load(templatePath: string, promptType: PromptKind, options?: any): Promise<Ast> {
@@ -52,7 +53,18 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     if (!datasetPath.endsWith(".jsonl"))
       throw new Error("Dataset must be a JSON Lines file (.jsonl)");
 
-    const fullPath = path.join(this.basePath, datasetPath);
+    let fullPath = path.join(this.basePath, datasetPath);
+    if (!fs.existsSync(fullPath)) {
+      const basename = path.basename(datasetPath);
+      const alt = path.join(this.basePath, 'templates', basename);
+      if (fs.existsSync(alt)) fullPath = alt;
+    }
+    if (!fs.existsSync(fullPath)) {
+      throw new Error(`Dataset not found: ${datasetPath}`);
+    }
+    if (process.env.AGENTMARK_DEBUG) {
+      console.error(`[loader debug] loadDataset: basePath=${this.basePath}, datasetPath=${datasetPath}, fullPath=${fullPath}`);
+    }
     const fileStream = fs.createReadStream(fullPath, { encoding: "utf8" });
     const lines = readline.createInterface({
       input: fileStream,
@@ -66,7 +78,10 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
             const jsonData = JSON.parse(line);
             controller.enqueue(jsonData);
           } catch (error) {
-            console.error("Error parsing JSON line:", error);
+            const msg = (error as any)?.message || String(error);
+            if (process.env.AGENTMARK_DEBUG) {
+              console.error(`[loader debug] Error parsing JSON line: ${msg} | line=${JSON.stringify(line)}`);
+            }
           }
         }
         controller.close();

@@ -106,7 +106,10 @@ export class VercelAdapterRunner {
     throw new Error("Invalid prompt");
   }
 
-  async runExperiment(promptAst: Ast, datasetRunName: string): Promise<RunnerDatasetResponse> {
+  async runExperiment(
+    promptAst: Ast,
+    datasetRunName: string,
+  ): Promise<RunnerDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
 
@@ -114,9 +117,11 @@ export class VercelAdapterRunner {
     const runId = crypto.randomUUID();
     const evalRegistry = this.client.getEvalRegistry();
 
+    const resolvedDatasetPath = frontmatter?.test_settings?.dataset;
+
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset, telemetry: { isEnabled: true } });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, telemetry: { isEnabled: true } });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
@@ -128,23 +133,24 @@ export class VercelAdapterRunner {
             const { text, usage } = await generateText({
               ...item.formatted,
               experimental_telemetry: {
-                ...(item.formatted.experimental_telemetry ?? {}),
+                ...(item.formatted?.experimental_telemetry ?? {}),
                 metadata: {
-                  ...(item.formatted.experimental_telemetry?.metadata ?? {}),
+                  ...((item.formatted?.experimental_telemetry?.metadata) ?? {}),
                   dataset_run_id: runId,
-                  dataset_path: frontmatter?.test_settings?.dataset,
+                  dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
                   traceName: `ds-run-${datasetRunName}-${index}`,
                   traceId,
-                  dataset_expected_output: item.dataset.expected_output,
+                  dataset_expected_output: item.dataset?.expected_output,
                 },
               },
-            });
+            } as any);
 
             let evalResults: any[] = [];
             if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
-              const evaluators = item.evals
+              const evalNames = item.evals;
+              const evaluators = evalNames
                 .map((name: string) => {
                   const def = evalRegistry.get(name);
                   return def?.fn ? { name, fn: def.fn } : undefined;
@@ -152,7 +158,7 @@ export class VercelAdapterRunner {
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.fn({ input: item.formatted.messages, output: text, expectedOutput: item.dataset.expected_output });
+                  const r = await e.fn({ input: item.formatted?.messages, output: text, expectedOutput: item.dataset?.expected_output });
                   return { name: e.name, ...r };
                 })
               );
@@ -161,8 +167,8 @@ export class VercelAdapterRunner {
             const chunk = JSON.stringify({
               type: "dataset",
               result: {
-                input: item.dataset.input,
-                expectedOutput: item.dataset.expected_output,
+                input: item.dataset?.input,
+                expectedOutput: item.dataset?.expected_output,
                 actualOutput: text,
                 tokens: usage?.totalTokens,
                 evals: evalResults,
@@ -181,7 +187,7 @@ export class VercelAdapterRunner {
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
@@ -197,7 +203,7 @@ export class VercelAdapterRunner {
                 metadata: {
                   ...(item.formatted.experimental_telemetry?.metadata ?? {}),
                   dataset_run_id: runId,
-                  dataset_path: frontmatter?.test_settings?.dataset,
+                  dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
                   traceName: `ds-run-${datasetRunName}-${index}`,
@@ -246,7 +252,7 @@ export class VercelAdapterRunner {
 
     if (frontmatter.image_config) {
       const prompt = await this.client.loadImagePrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
@@ -280,7 +286,7 @@ export class VercelAdapterRunner {
 
     if (frontmatter.speech_config) {
       const prompt = await this.client.loadSpeechPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: frontmatter?.test_settings?.dataset });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;

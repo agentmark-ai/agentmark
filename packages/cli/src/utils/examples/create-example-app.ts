@@ -40,7 +40,7 @@ const setupMCPServer = (client: string, targetPath: string) => {
 export const createExampleApp = async (
   modelProvider: string,
   model: string,
-  target: string = "cloud",
+  target: 'cloud' | 'local' = "cloud",
   client: string,
   targetPath: string = ".",
   apiKey: string = "",
@@ -61,7 +61,10 @@ export const createExampleApp = async (
     // Create user client config at project root
     // Prefer TS for dev ergonomics
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
-    fs.writeFileSync(`${targetPath}/agentmark.config.ts`, getClientConfigContent({ defaultRootDir: `./agentmark`, provider: modelProvider, languageModels: langModels }));
+    fs.writeFileSync(
+      `${targetPath}/agentmark.config.ts`,
+      getClientConfigContent({ defaultRootDir: `./agentmark`, provider: modelProvider, languageModels: langModels, target })
+    );
 
     // Create a runner that imports the client and constructs adapter runner
     fs.writeFileSync(`${targetPath}/agentmark.runner.ts`, getRunnerFileContent());

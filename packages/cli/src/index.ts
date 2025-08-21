@@ -16,10 +16,10 @@ program
 
 program
   .command("serve")
-  .option("-p, --port <number>", "Port to run on (default: 9002)")
+  .option("-p, --port <number>", "Port to run on (default: 9418)")
   .description("Serve the agentmark templates")
   .action((options) => {
-    (serve as any)({ port: parseInt(options.port || "9002", 10) });
+    (serve as any)({ port: parseInt(options.port || "9418", 10) });
   });
 
 program

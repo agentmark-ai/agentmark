@@ -51,11 +51,17 @@ export interface VercelAgentMark<
   ): Promise<VercelAIObjectPrompt<T, K, Tools>>;
 }
 
+// Accept a wider loader shape for compatibility across versions
+export type LoaderLike<D> = {
+  load: (...args: any[]) => Promise<unknown>;
+  loadDataset: (datasetPath: string) => Promise<ReadableStream<{ input: Record<string, unknown>; expected_output?: string }>>;
+};
+
 export function createAgentMarkClient<
-  D extends PromptShape<D> = any,
+  D extends PromptShape<D> = PromptShape<any>,
   T extends VercelAIToolRegistry<any, any> = VercelAIToolRegistry<any, any>
 >(opts: {
-  loader?: Loader<D>;
+  loader?: LoaderLike<D>;
   modelRegistry: VercelAIModelRegistry;
   toolRegistry?: T;
   evalRegistry?: EvalRegistry;
@@ -66,7 +72,8 @@ export function createAgentMarkClient<
   );
 
   return new AgentMark<D, VercelAIAdapter<D, T>>({
-    loader: opts.loader,
+    // Cast internally to the precise Loader shape used by AgentMark
+    loader: opts.loader as unknown as Loader<D>,
     adapter,
     evalRegistry: opts.evalRegistry,
   });

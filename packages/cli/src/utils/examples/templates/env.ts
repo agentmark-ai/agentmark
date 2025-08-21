@@ -25,19 +25,19 @@ export const getEnvFileContent = (
     let content = `# Agentmark API credentials
 AGENTMARK_API_KEY=${agentmarkApiKey || 'your_api_key_here'}
 AGENTMARK_APP_ID=${agentmarkAppId || 'your_app_id_here'}
+AGENTMARK_BASE_URL=http://localhost:9418
 `;
     if (needsApiKey) {
       content += `${envVarName}=${apiKeyValue}\n`;
     }
     return content;
   } else {
+    let content = `AGENTMARK_BASE_URL=http://localhost:9418\n`;
     if (needsApiKey) {
-      return `# API keys for the model provider
-${envVarName}=${apiKeyValue}
-`;
+      content += `# API keys for the model provider\n${envVarName}=${apiKeyValue}\n`;
     } else {
-      return `# No API key needed for ${modelProvider}
-`;
+      content += `# No API key needed for ${modelProvider}\n`;
     }
+    return content;
   }
 }; 

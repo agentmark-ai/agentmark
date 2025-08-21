@@ -10,7 +10,7 @@
     "@babel/preset-typescript": "^7.24.1",
     "@types/jest": "^29.5.12",
     "tsup": "^8.3.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5"
   },
   "license": "MIT"
 }
