@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "experimentalDecorators": true,
+    "target": "es2017",
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "inlineSources": true,
+    "module": "commonjs",
+    "noEmitOnError": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": false,
+    "strictNullChecks": true,
+    "useUnknownInCatchVariables": false,
+    "resolveJsonModule": true,
+    "types": [],
+    "typeRoots": []
+  },
+  "include": ["src/**/*.ts"],
+  "references": [],
+  "exclude": ["node_modules"]
+}
