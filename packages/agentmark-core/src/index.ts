@@ -26,3 +26,19 @@ export type {
 } from "./types";
 
 export { EvalRegistry } from "./eval-registery";
+
+// MCP helpers and types
+export {
+  parseMcpUri,
+  interpolateEnvInObject,
+  normalizeToolsMap,
+} from "./mcp";
+export type {
+  ToolJsonSchema,
+  InlineToolDefinition,
+  NormalizedTool,
+  McpUrlServerConfig,
+  McpStdioServerConfig,
+  McpServerConfig,
+  McpServers,
+} from "./mcp";
