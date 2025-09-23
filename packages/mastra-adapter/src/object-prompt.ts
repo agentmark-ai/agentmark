@@ -33,8 +33,10 @@ export class MastraObjectPrompt<
     super(tpl, eng, ad, path, testSettings, loader);
   }
 
-  async formatAgent<UsedProps extends Partial<T[K]["input"]>>(params: {
-    props: FormatAgentProps<T, UsedProps, K>;
+  async formatAgent<
+    UsedProps extends Partial<T[K]["input"]> = {}
+  >(params?: {
+    props?: FormatAgentProps<T, UsedProps, K>;
     options?: AdaptOptions;
   }) {
     const { props, options } = params || {};
@@ -42,8 +44,8 @@ export class MastraObjectPrompt<
 
     const adaptedAgent = this.adapter.adaptObject(input, options ?? {});
 
-    const formatMessages = async <M extends Partial<T[K]["input"]>>(msgParams: {
-      props: FormatMessagesProps<T, UsedProps, M, K>;
+    const formatMessages = async <M extends Partial<T[K]["input"]>>(msgParams?: {
+      props?: FormatMessagesProps<T, UsedProps, M, K>;
     }): Promise<
       [
         RichChatMessage[],
@@ -52,13 +54,13 @@ export class MastraObjectPrompt<
         }
       ]
     > => {
-      const messageInput = await this.compile(msgParams.props);
+      const messageInput = await this.compile(msgParams?.props as any);
       const messageAdapted = adaptedAgent.adaptMessages({
         input: messageInput,
         options: options ?? {},
         metadata: this.metadata({
           ...(props || {}),
-          ...(msgParams.props || {}),
+          ...((msgParams && msgParams.props) || {}),
         }),
       });
 
@@ -74,7 +76,7 @@ export class MastraObjectPrompt<
   formatAgentWithTestProps(options: AdaptOptions) {
     return this.formatAgent({
       props: (this.testSettings?.props as any) || ({} as any),
-      ...options,
+      options,
     });
   }
 
@@ -110,7 +112,7 @@ export class MastraObjectPrompt<
           for await (const value of datasetStream) {
             const formattedOutput = await this.formatAgent({
               props: value.input as any,
-              ...options,
+              options,
             });
             controller.enqueue({
               dataset: {

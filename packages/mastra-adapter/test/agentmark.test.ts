@@ -37,9 +37,7 @@ describe("Mastra Adapter Integration", () => {
     });
 
     const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
-    const agent = await mathPrompt.formatAgent({
-      props: {},
-    });
+    const agent = await mathPrompt.formatAgent();
 
     // Model function should be resolved with model name and options
     expect(mockModelFn).toHaveBeenCalledWith("test-model", expect.any(Object));
@@ -78,9 +76,7 @@ describe("Mastra Adapter Integration", () => {
     });
 
     const textPrompt = await agentMark.loadTextPrompt("text.prompt.mdx");
-    const agent = await textPrompt.formatAgent({
-      props: {},
-    });
+    const agent = await textPrompt.formatAgent();
 
     expect(mockModelFn).toHaveBeenCalledWith("test-model", expect.any(Object));
 
@@ -123,7 +119,6 @@ describe("Mastra Adapter Integration", () => {
     } as const;
 
     const agent = await mathPrompt.formatAgent({
-      props: {},
       options: runtimeConfig,
     });
 

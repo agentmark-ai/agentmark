@@ -35,7 +35,7 @@ async function runMastraExample() {
       location: "New York",
     };
 
-    const agentResult = await textPrompt.formatAgent({ props: {} });
+    const agentResult = await textPrompt.formatAgent();
 
     const [generatedMessages, options] = await agentResult.formatMessages({
       props,

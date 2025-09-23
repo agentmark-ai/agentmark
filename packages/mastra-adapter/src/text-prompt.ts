@@ -44,8 +44,10 @@ export class MastraTextPrompt<
     super(tpl, eng, ad, path, testSettings, loader);
   }
 
-  async formatAgent<UsedProps extends Partial<T[K]["input"]>>(params: {
-    props: FormatAgentProps<T, UsedProps, K>;
+  async formatAgent<
+    UsedProps extends Partial<T[K]["input"]> = {}
+  >(params?: {
+    props?: FormatAgentProps<T, UsedProps, K>;
     options?: AdaptOptions;
   }): Promise<
     AgentConfig<
@@ -57,8 +59,8 @@ export class MastraTextPrompt<
         >;
       }
     > & {
-      formatMessages: <M extends Partial<T[K]["input"]>>(msgParams: {
-        props: FormatMessagesProps<T, UsedProps, M, K>;
+      formatMessages: <M extends Partial<T[K]["input"]>>(msgParams?: {
+        props?: FormatMessagesProps<T, UsedProps, M, K>;
       }) => Promise<
         [
           RichChatMessage[],
@@ -78,8 +80,10 @@ export class MastraTextPrompt<
       options ?? {}
     );
 
-    const formatMessages = async <M extends Partial<T[K]["input"]>>(msgParams: {
-      props: FormatMessagesProps<T, UsedProps, M, K>;
+    const formatMessages = async <
+      M extends Partial<T[K]["input"]>
+    >(msgParams?: {
+      props?: FormatMessagesProps<T, UsedProps, M, K>;
     }): Promise<
       [
         RichChatMessage[],
@@ -89,13 +93,13 @@ export class MastraTextPrompt<
         }
       ]
     > => {
-      const messageInput = await this.compile(msgParams.props);
+      const messageInput = await this.compile(msgParams?.props as any);
       const messageAdapted = adaptMessages({
         input: messageInput,
         options: options ?? {},
         metadata: this.metadata({
           ...(props || {}),
-          ...(msgParams.props || {}),
+          ...((msgParams && msgParams.props) || {}),
         }),
       });
 
@@ -111,7 +115,7 @@ export class MastraTextPrompt<
   formatAgentWithTestProps(options: AdaptOptions) {
     return this.formatAgent({
       props: (this.testSettings?.props as any) || ({} as any),
-      ...options,
+      ...(options || {}),
     });
   }
 
@@ -147,7 +151,7 @@ export class MastraTextPrompt<
           for await (const value of datasetStream) {
             const formattedOutput = await this.formatAgent({
               props: value.input as any,
-              ...options,
+              ...(options || {}),
             });
             controller.enqueue({
               dataset: {
@@ -167,15 +171,4 @@ export class MastraTextPrompt<
     });
   }
 
-  // private format(args: any) {
-  //   return {} as any;
-  // }
-
-  // private formatWithTestProps(args: any) {
-  //   return {} as any;
-  // }
-
-  // private formatWithDataset(args: any) {
-  //   return {} as any;
-  // }
 }
