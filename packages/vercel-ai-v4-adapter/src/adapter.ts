@@ -240,6 +240,13 @@ export class VercelAIAdapter<
         if (typeof defAny === "string") {
           if (defAny.startsWith("mcp://")) {
             const { server, tool } = parseMcpUri(defAny);
+            if (tool === "*") {
+              const allTools = await this.mcpManager.getAllTools(server);
+              for (const [toolName, toolImpl] of Object.entries(allTools)) {
+                (toolsObj as any)[toolName] = toolImpl as any;
+              }
+              continue;
+            }
             const resolvedTool = await this.mcpManager.getTool(server, tool);
             (toolsObj as any)[key] = resolvedTool as any;
             continue;

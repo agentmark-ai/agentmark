@@ -14,6 +14,9 @@ import { resolveSerializedZodOutput } from "@mastra/core/utils";
 import { parseSchema } from "json-schema-to-zod";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { parseMcpUri } from "@agentmark/agentmark-core";
+import type { McpServers } from "@agentmark/agentmark-core";
+import { MCPClientManager } from "./mcp/mcp-client-manager";
 
 function getTelemetryConfig(
   telemetry: AdaptOptions["telemetry"],
@@ -49,14 +52,24 @@ export class MastraAdapter<
 {
   declare readonly __dict: T;
   readonly __name = "mastra";
+  private _mcp?: MCPClientManager;
 
   constructor(
     private modelRegistry: MastraModelRegistry,
-    private toolRegistry?: TR
+    private toolRegistry?: TR,
+    private mcpServers?: McpServers
   ) {}
 
-  adaptText(input: TextConfig, options: AdaptOptions) {
-    const agent = this.adaptTextAgent(input, options);
+  private getMcpManager(): MCPClientManager | undefined {
+    if (!this.mcpServers) return undefined;
+    if (!this._mcp) {
+      this._mcp = new MCPClientManager(this.mcpServers);
+    }
+    return this._mcp;
+  }
+
+  async adaptText(input: TextConfig, options: AdaptOptions) {
+    const agent = await this.adaptTextAgent(input, options);
 
     return {
       ...agent,
@@ -89,7 +102,7 @@ export class MastraAdapter<
     throw new Error("Not implemented");
   }
 
-  private adaptTextAgent(input: TextConfig, options?: AdaptOptions) {
+  private async adaptTextAgent(input: TextConfig, options?: AdaptOptions) {
     const { model_name, tools } = input.text_config;
     const modelCreator = this.modelRegistry?.getModelFunction(model_name);
     const model = modelCreator(model_name, options ?? {});
@@ -97,7 +110,37 @@ export class MastraAdapter<
     let toolsObj = {} as any;
 
     if (tools) {
-      for (const [name, { description, parameters }] of Object.entries(tools)) {
+      for (const [name, value] of Object.entries(tools)) {
+        if (typeof value === "string") {
+          if (value.startsWith("mcp://")) {
+            const { server, tool } = parseMcpUri(value);
+            const mcp = this.getMcpManager();
+            if (!mcp) {
+              throw new Error(
+                `MCP server '${server}' not configured`
+              );
+            }
+            const namespacedTools = await mcp.getNamespacedTools();
+            const keyUnderscore = `${server}_${tool}`;
+            const keyDot = `${server}.${tool}`;
+            const resolved =
+              (namespacedTools as any)[keyUnderscore] ??
+              (namespacedTools as any)[keyDot];
+            if (!resolved) {
+              throw new Error(
+                `MCP tool not found: ${server}/${tool}`
+              );
+            }
+            toolsObj[name] = resolved as any;
+            continue;
+          }
+          throw new Error(
+            `Invalid tool entry for '${String(
+              name
+            )}': expected MCP URI string or inline tool definition`
+          );
+        }
+        const { description, parameters } = value;
         if (!this.toolRegistry?.has(name)) {
           throw new Error(`Tool ${name} not registered`);
         }

@@ -96,4 +96,17 @@ export class McpClientManager {
     }
     return tool;
   }
+
+  async getAllTools(server: string): Promise<Record<string, Tool<any, any>>> {
+    const cacheKey = server;
+    const existingTools = this.toolsCache.get(cacheKey);
+    if (existingTools) {
+      return existingTools;
+    }
+
+    const client = await this.getClient(server);
+    const allTools = await client.tools();
+    this.toolsCache.set(cacheKey, allTools);
+    return allTools;
+  }
 }
