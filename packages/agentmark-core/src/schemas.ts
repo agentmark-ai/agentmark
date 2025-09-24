@@ -73,10 +73,13 @@ export const TextSettingsConfig = z.object({
     .optional(),
   tools: z
     .record(
-      z.object({
-        description: z.string(),
-        parameters: z.record(z.any()),
-      })
+      z.union([
+        z.string(),
+        z.object({
+          description: z.string(),
+          parameters: z.record(z.any()),
+        }),
+      ])
     )
     .optional(),
 });
