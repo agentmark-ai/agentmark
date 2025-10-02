@@ -1,0 +1,36 @@
+---
+name: mcp-text
+text_config:
+  model_name: gpt-4o
+  tools:
+    search: mcp://test/mastraBlog
+    sum:
+      description: Add two numbers
+      parameters:
+        type: object
+        properties:
+          a: { type: number }
+          b: { type: number }
+        required: [a, b]
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful assistant.
+</System>
+
+<User>
+{props.userMessage}
+</User>
+
+<Assistant>
+Working on it.
+</Assistant>
+
+

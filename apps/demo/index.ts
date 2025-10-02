@@ -7,7 +7,7 @@ import {
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { FileLoader } from "@agentmark/agentmark-core";
-import AgentmarkTypes, { Tools } from "./agentmark.types";
+import { Tools } from "./agentmark.types";
 
 const modelRegistry = new VercelAIModelRegistry();
 const loader = new FileLoader("./fixtures");
@@ -20,21 +20,28 @@ const tools = new VercelAIToolRegistry<Tools>().register(
   ({ location }) => ({ tempC: 22 })
 );
 
-const agentMark = createAgentMarkClient<AgentmarkTypes>({
+const agentMark = createAgentMarkClient({
   loader,
   modelRegistry,
   toolRegistry: tools,
+  mcpServers: {
+    test: {
+      command: "npx",
+      args: ["-y", "@mastra/mcp-docs-server"],
+    },
+  },
 });
 
 async function run() {
-  const prompt = await agentMark.loadObjectPrompt("test/math2.prompt.mdx");
+  const prompt = await agentMark.loadTextPrompt("./mcp-text.prompt.mdx");
   const props = {
     userMessage: "Whats 2 + 3?",
   };
 
   const vercelInput = await prompt.format({ props });
-  const result = await generateObject(vercelInput);
-  console.log(result.object.answer);
+  console.log(vercelInput);
+  // const result = await generateObject(vercelInput);
+  // console.log(result.object.answer);
 }
 
 run();

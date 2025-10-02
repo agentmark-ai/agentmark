@@ -36,7 +36,7 @@ interface Test$Math2Out {
 type Math = { kind: 'object'; input: MathIn; output: MathOut };
 
 type Test$Math2 = {
-  kind: 'object';
+  kind: 'text';
   input:  Test$Math2In;
   output: Test$Math2Out;
 };

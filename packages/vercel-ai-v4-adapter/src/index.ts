@@ -12,7 +12,8 @@ import {
   VercelAIModelRegistry,
   VercelAIObjectParams,
   VercelAIToolRegistry,
-} from "./adapter";
+} from "./adapter.js";
+import type { McpServers } from "@agentmark/agentmark-core";
 import type { Root } from "mdast";
 
 export interface VercelAIObjectPrompt<
@@ -57,10 +58,12 @@ export function createAgentMarkClient<
   loader?: Loader<D>;
   modelRegistry: VercelAIModelRegistry;
   toolRegistry?: T;
+  mcpServers?: McpServers;
 }): VercelAgentMark<D, T> {
   const adapter = new VercelAIAdapter<D, T>(
     opts.modelRegistry,
-    opts.toolRegistry
+    opts.toolRegistry,
+    opts.mcpServers
   );
 
   return new AgentMark<D, VercelAIAdapter<D, T>>({
@@ -73,4 +76,4 @@ export {
   VercelAIAdapter,
   VercelAIModelRegistry,
   VercelAIToolRegistry,
-} from "./adapter";
+} from "./adapter.js";
