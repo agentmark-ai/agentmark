@@ -70,7 +70,7 @@ export type SpeechResponse = {
 export type StreamResponse = {
   type: "stream";
   stream: ReadableStream<any>;
-  streamHeader: { "AgentMark-Streaming": "true" };
+  streamHeaders: { "AgentMark-Streaming": "true" };
 };
 
 export type WebhookResponse =
