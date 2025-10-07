@@ -203,7 +203,7 @@ export class WebhookHelper {
                   dataset_expected_output: item.dataset.expected_output,
                 },
               },
-            });
+            }, {shouldStream: false});
 
             let evalResults: any = [];
 

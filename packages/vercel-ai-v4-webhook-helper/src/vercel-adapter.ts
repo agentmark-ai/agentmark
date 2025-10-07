@@ -59,12 +59,16 @@ async function vercelTextPromptRun(
         const encoder = new TextEncoder();
         for await (const chunk of fullStream) {
           if (chunk.type === "error") {
+            const err = chunk.error as any;
+            let message =
+              err?.message ??
+              err?.data?.error?.message ??
+              err?.lastError?.data?.error?.message ??
+              "Something went wrong during inference";
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
-                  error:
-                    (chunk.error as any).data.error.message ||
-                    "Something went wrong during inference",
+                  error: message,
                   type: "error",
                 }) + "\n"
               )

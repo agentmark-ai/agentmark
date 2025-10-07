@@ -101,7 +101,7 @@ export abstract class BasePrompt<
           }
           controller.close();
         } catch (error) {
-          console.error("Error processing dataset stream:", error);
+          controller.error(error);
         }
       },
       cancel: (reason) => datasetStream.cancel(reason),
