@@ -191,6 +191,9 @@ export class WebhookHelper {
 
       const dataset = await prompt.formatWithDataset({
         datasetPath: frontmatter?.test_settings?.dataset,
+        telemetry: {
+          isEnabled: true,
+        },
       });
 
       const stream = new ReadableStream({

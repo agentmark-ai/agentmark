@@ -367,6 +367,7 @@ describe("WebhookHelper", () => {
         );
         expect(mockPrompt.formatWithDataset).toHaveBeenCalledWith({
           datasetPath: frontmatter.test_settings.dataset,
+          telemetry: { isEnabled: true },
         });
 
         expect(response.stream).toBeInstanceOf(ReadableStream);
