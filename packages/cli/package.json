@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "postbuild": "node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
     "test": "vitest run",
     "test:watch": "vitest"
   },
