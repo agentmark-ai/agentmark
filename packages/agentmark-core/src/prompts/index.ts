@@ -82,9 +82,41 @@ export abstract class BasePrompt<
     const dsPath = options?.datasetPath || this.testSettings?.dataset;
 
     const datasetStream = await this.loader?.loadDataset(dsPath!);
+
+    // Helper function to convert ReadableStream to async iterable if needed
+    const makeAsyncIterable = (stream: any): AsyncIterable<any> => {
+      // If already async iterable, return as-is
+      if (stream && typeof stream[Symbol.asyncIterator] === 'function') {
+        return stream;
+      }
+      // If it's a ReadableStream-like object with getReader, convert it
+      if (stream && typeof stream.getReader === 'function') {
+        return {
+          async *[Symbol.asyncIterator]() {
+            const reader = stream.getReader();
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                yield value;
+              }
+            } finally {
+              if (typeof reader.releaseLock === 'function') {
+                reader.releaseLock();
+              }
+            }
+          }
+        };
+      }
+      // Fallback: return as-is and hope for the best
+      return stream;
+    };
+
+    const asyncDataset = makeAsyncIterable(datasetStream);
+
     if (options?.format === 'json') {
       const buffered: Array<{ input: Record<string, any>; expected_output?: string }> = [];
-      for await (const value of datasetStream) buffered.push(value);
+      for await (const value of asyncDataset) buffered.push(value);
       return new ReadableStream({
         start: async (controller) => {
           try {
@@ -106,7 +138,7 @@ export abstract class BasePrompt<
     return new ReadableStream({
       start: async (controller) => {
         try {
-          for await (const value of datasetStream) {
+          for await (const value of asyncDataset) {
             const formattedOutput = await this.format({
               props: value.input,
               ...options,
@@ -125,7 +157,11 @@ export abstract class BasePrompt<
           console.error("Error processing dataset stream:", error);
         }
       },
-      cancel: (reason) => datasetStream.cancel(reason),
+      cancel: (reason) => {
+        if (datasetStream && typeof datasetStream.cancel === 'function') {
+          datasetStream.cancel(reason);
+        }
+      },
     });
   }
 }
