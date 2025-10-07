@@ -1,5 +1,11 @@
 # @agentmark/vercel-ai-v4-webhook-helper
 
+## 0.1.1
+
+### Patch Changes
+
+- d3a13a5: stream header typo
+
 ## 0.1.0
 
 ### Minor Changes
