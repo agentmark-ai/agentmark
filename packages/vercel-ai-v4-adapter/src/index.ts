@@ -13,7 +13,11 @@ import {
   VercelAIObjectParams,
   VercelAIToolRegistry,
 } from "./adapter.js";
-import type { McpServers } from "@agentmark/agentmark-core";
+import type {
+  DatasetErrorChunk,
+  DatasetStreamChunk,
+  McpServers,
+} from "@agentmark/agentmark-core";
 import type { Root } from "mdast";
 
 export interface VercelAIObjectPrompt<
@@ -25,15 +29,13 @@ export interface VercelAIObjectPrompt<
     params: PromptFormatParams<T[K]["input"]>
   ): Promise<VercelAIObjectParams<T[K]["output"]>>;
 
-  formatWithDataset(options?: AdaptOptions): Promise<
-    ReadableStream<{
-      dataset: {
-        input: Record<string, any>;
-        expected_output?: string;
-      };
-      evals: string[];
-      formatted: VercelAIObjectParams<T[K]["output"]>;
-    }>
+  formatWithDataset(
+    options?: AdaptOptions
+  ): Promise<
+    ReadableStream<
+      | DatasetStreamChunk<VercelAIObjectParams<T[K]["output"]>>
+      | DatasetErrorChunk
+    >
   >;
 
   formatWithTestProps(

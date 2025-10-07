@@ -26,6 +26,8 @@ export type {
   Loader,
   PromptKind,
   TestSettings,
+  DatasetStreamChunk,
+  DatasetErrorChunk,
 } from "./types";
 
 export { EvalRegistry } from "./eval-registery";
