@@ -94,7 +94,7 @@ describe("VercelAdapter", () => {
       expect(result.type).toBe("stream");
       if (result.type === "stream") {
         expect(result.stream).toBeInstanceOf(ReadableStream);
-        expect(result.streamHeader).toEqual({ "AgentMark-Streaming": "true" });
+        expect(result.streamHeaders).toEqual({ "AgentMark-Streaming": "true" });
       }
     });
 
@@ -225,7 +225,7 @@ describe("VercelAdapter", () => {
       expect(result.type).toBe("stream");
       if (result.type === "stream") {
         expect(result.stream).toBeInstanceOf(ReadableStream);
-        expect(result.streamHeader).toEqual({ "AgentMark-Streaming": "true" });
+        expect(result.streamHeaders).toEqual({ "AgentMark-Streaming": "true" });
       }
     });
 

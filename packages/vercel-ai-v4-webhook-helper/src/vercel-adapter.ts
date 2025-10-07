@@ -128,7 +128,7 @@ async function vercelTextPromptRun(
     return {
       type: "stream",
       stream,
-      streamHeader: { "AgentMark-Streaming": "true" },
+      streamHeaders: { "AgentMark-Streaming": "true" },
     };
   }
 
@@ -160,12 +160,16 @@ async function vercelObjectPromptRun(
         const encoder = new TextEncoder();
         for await (const chunk of fullStream) {
           if (chunk.type === "error") {
+            const err = chunk.error as any;
+            let message =
+              err?.message ??
+              err?.data?.error?.message ??
+              err?.lastError?.data?.error?.message ??
+              "Something went wrong during inference";
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
-                  error:
-                    (chunk.error as any).data.error.message ||
-                    "Something went wrong during inference",
+                  error: message,
                   type: "error",
                 }) + "\n"
               )
@@ -197,7 +201,7 @@ async function vercelObjectPromptRun(
     return {
       type: "stream",
       stream,
-      streamHeader: { "AgentMark-Streaming": "true" },
+      streamHeaders: { "AgentMark-Streaming": "true" },
     };
   }
 
