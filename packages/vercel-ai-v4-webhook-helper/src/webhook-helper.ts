@@ -84,6 +84,16 @@ export class WebhookHelper {
         async start(controller) {
           let index = 0;
           for await (const item of dataset) {
+            if (item.type === "error") {
+              controller.enqueue(
+                JSON.stringify({
+                  error: item.error,
+                  type: "error",
+                }) + "\n"
+              );
+              controller.close();
+              return;
+            }
             const traceId = crypto.randomUUID();
             const result = await inferenceAdapter.runTextPrompt(
               {
@@ -187,23 +197,36 @@ export class WebhookHelper {
         async start(controller) {
           let index = 0;
           for await (const item of dataset) {
+            if (item.type === "error") {
+              controller.enqueue(
+                JSON.stringify({
+                  error: item.error,
+                  type: "error",
+                }) + "\n"
+              );
+              controller.close();
+              return;
+            }
             const traceId = crypto.randomUUID();
-            const result = await inferenceAdapter.runObjectPrompt({
-              ...item.formatted,
-              experimental_telemetry: {
-                ...item.formatted.experimental_telemetry,
-                metadata: {
-                  ...item.formatted.experimental_telemetry?.metadata,
-                  dataset_run_id: runId,
-                  dataset_path: frontmatter?.test_settings?.dataset,
-                  dataset_run_name: event.datasetRunName,
-                  dataset_item_name: index,
-                  traceName: `ds-run-${event.datasetRunName}-${index}`,
-                  traceId,
-                  dataset_expected_output: item.dataset.expected_output,
+            const result = await inferenceAdapter.runObjectPrompt(
+              {
+                ...item.formatted,
+                experimental_telemetry: {
+                  ...item.formatted.experimental_telemetry,
+                  metadata: {
+                    ...item.formatted.experimental_telemetry?.metadata,
+                    dataset_run_id: runId,
+                    dataset_path: frontmatter?.test_settings?.dataset,
+                    dataset_run_name: event.datasetRunName,
+                    dataset_item_name: index,
+                    traceName: `ds-run-${event.datasetRunName}-${index}`,
+                    traceId,
+                    dataset_expected_output: item.dataset.expected_output,
+                  },
                 },
               },
-            }, {shouldStream: false});
+              { shouldStream: false }
+            );
 
             let evalResults: any = [];
 

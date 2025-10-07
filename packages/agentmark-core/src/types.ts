@@ -133,3 +133,18 @@ export interface IEvalRegistry {
   register: (name: string, evalFn: EvalFunction) => void;
   get: (name: string) => EvalFunction | undefined;
 }
+
+export type DatasetStreamChunk<T> = {
+  dataset: {
+    input: Record<string, unknown>;
+    expected_output?: string;
+  };
+  formatted: T;
+  evals: string[];
+  type: "dataset";
+}
+
+export type DatasetErrorChunk = {
+  error: string;
+  type: "error";
+}
