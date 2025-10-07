@@ -1,5 +1,13 @@
 # @agentmark/vercel-ai-v4-webhook-helper
 
+## 0.1.2
+
+### Patch Changes
+
+- d6873b4: error handling in dataset stream processing and improve error message clarity in Vercel AI adapter
+- Updated dependencies [d6873b4]
+  - @agentmark/agentmark-core@3.3.4
+
 ## 0.1.1
 
 ### Patch Changes
