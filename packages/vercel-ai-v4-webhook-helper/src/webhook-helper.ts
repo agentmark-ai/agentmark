@@ -264,7 +264,7 @@ export class WebhookHelper {
                   });
 
                   return {
-                    name: evaluator,
+                    name: evaluator.name,
                     ...evalResult,
                   };
                 })
