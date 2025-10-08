@@ -1,5 +1,11 @@
 # @puzzlet/sdk
 
+## 4.1.3
+
+### Patch Changes
+
+- d6873b4: patches
+
 ## 4.1.2
 
 ### Patch Changes

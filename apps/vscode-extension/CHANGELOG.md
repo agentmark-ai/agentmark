@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.5.2
+
+### Patch Changes
+
+- Updated dependencies [d6873b4]
+- Updated dependencies [d6873b4]
+  - @agentmark/agentmark-core@3.3.4
+  - @agentmark/vercel-ai-v4-adapter@3.3.5
+
 ## 1.5.1
 
 ### Patch Changes
