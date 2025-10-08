@@ -44,40 +44,25 @@ const init = async (options: { target: string }) => {
   });
   apiKey = providedApiKey || "";
 
-  let deployTarget = options.target;
-  if (!deployTarget) {
-    const { target } = await prompts({
-      name: "target",
-      message:
-        "Are you planning to integrate with AgentMark Cloud or just use local development?",
-      type: "select",
-      choices: [
-        { title: "AgentMark Cloud", value: "cloud" },
-        { title: "Local Development", value: "local" },
-      ],
-    });
-    deployTarget = target;
-  }
+  // Always force cloud deployment
+  const deployTarget = "cloud";
 
-  // Prompt for AgentMark credentials if using cloud
-  let agentmarkApiKey = "";
-  let agentmarkAppId = "";
-  if (deployTarget === "cloud") {
-    const { providedAgentmarkAppId } = await prompts({
-      name: "providedAgentmarkAppId",
-      type: "text",
-      message: "Enter your AgentMark App ID (or press Enter to skip):",
-      initial: "",
-    });
-    agentmarkAppId = providedAgentmarkAppId || "";
-    const { providedAgentmarkApiKey } = await prompts({
-      name: "providedAgentmarkApiKey",
-      type: "password",
-      message: "Enter your AgentMark API key (or press Enter to skip):",
-      initial: "",
-    });
-    agentmarkApiKey = providedAgentmarkApiKey || "";
-  }
+  // Prompt for AgentMark credentials
+  const { providedAgentmarkAppId } = await prompts({
+    name: "providedAgentmarkAppId",
+    type: "text",
+    message: "Enter your AgentMark App ID (or press Enter to skip):",
+    initial: "",
+  });
+  const agentmarkAppId = providedAgentmarkAppId || "";
+
+  const { providedAgentmarkApiKey } = await prompts({
+    name: "providedAgentmarkApiKey",
+    type: "password",
+    message: "Enter your AgentMark API key (or press Enter to skip):",
+    initial: "",
+  });
+  const agentmarkApiKey = providedAgentmarkApiKey || "";
 
   const { client } = await prompts({
     name: "client",
@@ -91,18 +76,16 @@ const init = async (options: { target: string }) => {
     ],
   });
 
-  createExampleApp(provider, model, (deployTarget as 'cloud' | 'local'), client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
+  createExampleApp(provider, model, deployTarget, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
 
-  // Always generate agentmark.json so config is consistent across local and cloud
+  // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
-  if (deployTarget === "cloud") {
-    console.log(
-      "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
-    );
-    console.log(
-      "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/configuration/test-webhook"
-    );
-  }
+  console.log(
+    "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
+  );
+  console.log(
+    "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/configuration/test-webhook"
+  );
 
 };
 
