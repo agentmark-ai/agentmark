@@ -104,36 +104,6 @@ const init = async (options: { target: string }) => {
     );
   }
 
-  // Auto-start local services after init (background), except during tests
-  // For cloud: start both local cloud (CDN) and runner. For local: start runner only.
-  try {
-    if (process.env.NODE_ENV !== 'test') {
-      const { spawn } = await import('node:child_process');
-      const isCloud = deployTarget === 'cloud';
-      if (isCloud) {
-        const cloud = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['@agentmark/cli', 'serve'], {
-          cwd: targetPath,
-          stdio: 'ignore',
-          detached: true,
-          env: { ...process.env, PORT: '9418' },
-        });
-        cloud.unref();
-      }
-      const runner = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['ts-node', 'agentmark.runner.ts'], {
-        cwd: targetPath,
-        stdio: 'ignore',
-        detached: true,
-        env: { ...process.env },
-      });
-      runner.unref();
-      console.log(`\n▶️  Services started:`);
-      if (isCloud) console.log(`✅   • Local AgentMark Cloud: http://localhost:9418`);
-      console.log(`✅   • Runner: http://localhost:9417`);
-      console.log(`   You can stop them by killing the processes, or run manually with:`);
-      if (isCloud) console.log(`     - cd ${targetPath} && npm run agentmark:serve-cloud`);
-      console.log(`     - cd ${targetPath} && npm run agentmark:serve-runner`);
-    }
-  } catch {}
 };
 
 export default init;

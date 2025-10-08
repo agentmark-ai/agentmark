@@ -105,12 +105,14 @@ export const createExampleApp = async (
       console.log(
         `${folderName !== "." ? "2" : "1"}. Update the .env file with your AgentMark Cloud and API credentials`
       );
-      console.log(`${folderName !== "." ? "3" : "2"}. Run "npm run agentmark:example-trace" to execute an example`);
-      console.log(`${folderName !== "." ? "4" : "3"}. View your traces in the AgentMark Cloud dashboard`);
+      console.log(`${folderName !== "." ? "3" : "2"}. Run "npm run dev" to start the local cloud server and runner`);
+      console.log(`${folderName !== "." ? "4" : "3"}. Run "npm run agentmark:example-trace" to execute an example`);
+      console.log(`${folderName !== "." ? "5" : "4"}. View your traces in the AgentMark Cloud dashboard`);
     } else {
       console.log(`${folderName !== "." ? "2" : "1"}. Update the .env file with your API credentials`);
+      console.log(`${folderName !== "." ? "3" : "2"}. Run "npm run dev" to start the runner server`);
       console.log(
-        `${folderName !== "." ? "3" : "2"}. Run "npm start" to execute the example and see the results locally`
+        `${folderName !== "." ? "4" : "3"}. Run "npm start" to execute the example and see the results locally`
       );
     }
 
