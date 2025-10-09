@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 3.3.4
+
+### Patch Changes
+
+- d6873b4: error handling in dataset stream processing and improve error message clarity in Vercel AI adapter
+
 ## 3.3.3
 
 ### Patch Changes

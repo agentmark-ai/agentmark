@@ -90,6 +90,46 @@
                     }
                 }
             }
+        },
+        "mcpServers": {
+            "type": "object",
+            "description": "Configuration for MCP servers by name",
+            "patternProperties": {
+                "^[a-zA-Z0-9_-]+$": {
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "required": ["url"],
+                            "properties": {
+                                "url": { "type": "string" },
+                                "headers": {
+                                    "type": "object",
+                                    "additionalProperties": { "type": "string" }
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        {
+                            "type": "object",
+                            "required": ["command"],
+                            "properties": {
+                                "command": { "type": "string" },
+                                "args": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                },
+                                "cwd": { "type": "string" },
+                                "env": {
+                                    "type": "object",
+                                    "additionalProperties": { "type": "string" }
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
         }
     },
     "required": [

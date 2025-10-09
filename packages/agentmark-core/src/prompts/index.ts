@@ -14,6 +14,8 @@ import type {
   TestSettings,
   Loader,
   PromptKind,
+  DatasetStreamChunk,
+  DatasetErrorChunk,
 } from "../types";
 
 export abstract class BasePrompt<
@@ -61,14 +63,7 @@ export abstract class BasePrompt<
   async formatWithDataset(
     options?: AdaptOptions & { datasetPath?: string; format?: 'ndjson' | 'json' }
   ): Promise<
-    ReadableStream<{
-      dataset: {
-        input: Record<string, any>;
-        expected_output?: string;
-      };
-      formatted: ReturnType<A[`adapt${Capitalize<PK>}`]>;
-      evals: string[];
-    }>
+    ReadableStream<DatasetStreamChunk<ReturnType<A[`adapt${Capitalize<PK>}`]>> | DatasetErrorChunk>
   > {
     if (
       !this.loader ||
@@ -123,6 +118,7 @@ export abstract class BasePrompt<
             for (const value of buffered) {
               const formattedOutput = await this.format({ props: value.input, ...options });
               controller.enqueue({
+                type: "dataset",
                 dataset: { input: value.input, expected_output: value.expected_output },
                 evals: this.testSettings?.evals || [],
                 formatted: formattedOutput,
@@ -150,11 +146,16 @@ export abstract class BasePrompt<
               },
               evals: this.testSettings?.evals || [],
               formatted: formattedOutput,
+              type: "dataset",
             });
           }
           controller.close();
-        } catch (error) {
-          console.error("Error processing dataset stream:", error);
+        } catch (error: any) {
+          controller.enqueue({
+            error: error.message,
+            type: "error",
+          });
+          controller.close();
         }
       },
       cancel: (reason) => {
@@ -269,3 +270,6 @@ export class SpeechPrompt<
     return this.adapter.adaptSpeech(compiled, options);
   }
 }
+
+// Expose helper generic for external adapters to infer input props type
+export type InferTextPromptInput<T extends PromptShape<T>, K extends KeysWithKind<T, "text"> & string> = T[K]["input"];

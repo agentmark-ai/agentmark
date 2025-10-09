@@ -1,0 +1,120 @@
+{
+  "name": "agentmark",
+  "displayName": "AgentMark",
+  "publisher": "agentmark",
+  "description": "A declarative, extensible, and composable approach for developing LLM prompts using Markdown and JSX.",
+  "version": "1.5.2",
+  "repository": "https://github.com/agentmark-ai/agentmark",
+  "license": "MIT",
+  "icon": "static/agentmark-logo.png",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "private": true,
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:mdx"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "keybindings": [
+      {
+        "command": "agentmark-extension.runInference",
+        "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+        "key": "f5"
+      },
+      {
+        "command": "agentmark-extension.runInferenceWithDataset",
+        "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+        "key": "shift+f5"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInference",
+          "alt": "agentmark-extension.runInferenceWithDataset",
+          "group": "navigation"
+        },
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInferenceWithDataset",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInference",
+          "group": "agentmark@1"
+        },
+        {
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/",
+          "command": "agentmark-extension.runInferenceWithDataset",
+          "group": "agentmark@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "agentmark-extension.runInference",
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/"
+        },
+        {
+          "command": "agentmark-extension.runInferenceWithDataset",
+          "when": "resourceLangId == mdx && resourceFilename =~ /\\.prompt\\.mdx$/"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "agentmark-extension.runInference",
+        "title": "AgentMark: Run Prompt",
+        "icon": "$(play)"
+      },
+      {
+        "command": "agentmark-extension.runInferenceWithDataset",
+        "title": "AgentMark: Run Prompt with Dataset",
+        "icon": "$(run-all)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "vscode:login": "vsce login agentmark",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "vscode:publish": "vsce publish --no-yarn",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4",
+    "@types/mocha": "^10.0.8",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.93.0",
+    "@typescript-eslint/eslint-plugin": "^8.7.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.1",
+    "eslint": "^9.11.1",
+    "js-yaml": "^4.1.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.2",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@agentmark/agentmark-core": "^3.3.4",
+    "@agentmark/vercel-ai-v4-adapter": "workspace:*",
+    "@ai-sdk/anthropic": "^1.2.10",
+    "@ai-sdk/openai": "^1.3.13",
+    "ai": "^4.0.0"
+  }
+}

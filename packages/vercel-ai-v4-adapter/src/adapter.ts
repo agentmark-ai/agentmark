@@ -8,6 +8,7 @@ import type {
   PromptShape,
   KeysWithKind,
   SpeechConfig,
+  McpServers,
 } from "@agentmark/agentmark-core";
 import type {
   LanguageModel,
@@ -18,6 +19,8 @@ import type {
   SpeechModel,
 } from "ai";
 import { jsonSchema } from "ai";
+import { parseMcpUri } from "@agentmark/agentmark-core";
+import { McpClientManager } from "./mcp/mcp-client-manager";
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
 
@@ -198,17 +201,25 @@ export class VercelAIAdapter<
   readonly __name = "vercel-ai-v4";
 
   private readonly toolsRegistry: R | undefined;
+  private readonly mcpServers: McpServers | undefined;
+  private readonly mcpManager: McpClientManager;
 
-  constructor(private modelRegistry: VercelAIModelRegistry, toolRegistry?: R) {
+  constructor(
+    private modelRegistry: VercelAIModelRegistry,
+    toolRegistry?: R,
+    mcpServers?: McpServers
+  ) {
     this.modelRegistry = modelRegistry;
     this.toolsRegistry = toolRegistry;
+    this.mcpServers = mcpServers;
+    this.mcpManager = new McpClientManager(mcpServers);
   }
 
-  adaptText<K extends KeysWithKind<T, "text"> & string>(
+  async adaptText<K extends KeysWithKind<T, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): VercelAITextParams<ToolSetMap<ToolRet<R>>> {
+  ): Promise<VercelAITextParams<ToolSetMap<ToolRet<R>>>> {
     const { model_name: name, ...settings } = input.text_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
@@ -220,8 +231,31 @@ export class VercelAIAdapter<
     if (input.text_config.tools) {
       toolsObj = {} as ToolSetMap<Ret>;
 
-      for (const [keyAny, def] of Object.entries(input.text_config.tools)) {
+      for (const [keyAny, defAny] of Object.entries(input.text_config.tools)) {
         const key = keyAny as keyof Ret;
+
+        if (typeof defAny === "string") {
+          if (defAny.startsWith("mcp://")) {
+            const { server, tool } = parseMcpUri(defAny);
+            if (tool === "*") {
+              const allTools = await this.mcpManager.getAllTools(server);
+              for (const [toolName, toolImpl] of Object.entries(allTools)) {
+                (toolsObj as any)[toolName] = toolImpl as any;
+              }
+              continue;
+            }
+            const resolvedTool = await this.mcpManager.getTool(server, tool);
+            (toolsObj as any)[key] = resolvedTool as any;
+            continue;
+          }
+          throw new Error(
+            `Invalid tool entry for '${String(
+              key
+            )}': expected MCP URI string or inline tool definition`
+          );
+        }
+
+        const def = defAny as { description?: string; parameters: Record<string, any> };
 
         const impl = this.toolsRegistry?.has(key)
           ? this.toolsRegistry.get(key)

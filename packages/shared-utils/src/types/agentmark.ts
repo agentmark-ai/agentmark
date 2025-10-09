@@ -60,6 +60,21 @@ export type AgentmarkModelSchema = {
   [key: string]: AgentmarkModelConfig;
 };
 
+export type McpUrlServerConfig = {
+  url: string;
+  headers?: Record<string, string>;
+};
+
+export type McpStdioServerConfig = {
+  command: string;
+  args?: string[];
+  cwd?: string;
+  env?: Record<string, string>;
+};
+
+export type McpServerConfig = McpUrlServerConfig | McpStdioServerConfig;
+export type McpServers = Record<string, McpServerConfig>;
+
 export type AgentmarkConfig = {
   $schema?: string;
   mdxVersion?: "1.0" | "0.0";
@@ -67,5 +82,6 @@ export type AgentmarkConfig = {
   modelSchemas?: AgentmarkModelSchema;
   version: string;
   builtInModels?: string[];
+  mcpServers?: McpServers;
   evals: string[];
 };

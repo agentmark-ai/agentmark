@@ -1,0 +1,36 @@
+---
+name: mcp-text
+text_config:
+  model_name: test-model
+  tools:
+    search: mcp://server-1/web-search
+    sum:
+      description: Add two numbers
+      parameters:
+        type: object
+        properties:
+          a: { type: number }
+          b: { type: number }
+        required: [a, b]
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful assistant.
+</System>
+
+<User>
+{props.userMessage}
+</User>
+
+<Assistant>
+Working on it.
+</Assistant>
+
+

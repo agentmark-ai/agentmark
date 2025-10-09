@@ -4,7 +4,12 @@
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "dev": "next dev",
+    "start": "next start",
+    "build:app": "next build",
+    "lint": "next lint",
+    "serve": "node ./dist/json-server",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc",
     "postbuild": "node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
     "test": "vitest run",
     "test:watch": "vitest"

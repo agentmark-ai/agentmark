@@ -129,13 +129,15 @@ export class VercelAdapterRunner {
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
+            if (item.type === "error") continue;
             const traceId = crypto.randomUUID();
+            const formatted = item.formatted as any;
             const { text, usage } = await generateText({
-              ...item.formatted,
+              ...formatted,
               experimental_telemetry: {
-                ...(item.formatted?.experimental_telemetry ?? {}),
+                ...(formatted?.experimental_telemetry ?? {}),
                 metadata: {
-                  ...((item.formatted?.experimental_telemetry?.metadata) ?? {}),
+                  ...((formatted?.experimental_telemetry?.metadata) ?? {}),
                   dataset_run_id: runId,
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
@@ -145,7 +147,7 @@ export class VercelAdapterRunner {
                   dataset_expected_output: item.dataset?.expected_output,
                 },
               },
-            } as any);
+            });
 
             let evalResults: any[] = [];
             if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
@@ -158,7 +160,7 @@ export class VercelAdapterRunner {
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.fn({ input: item.formatted?.messages, output: text, expectedOutput: item.dataset?.expected_output });
+                  const r = await e.fn({ input: formatted?.messages, output: text, expectedOutput: item.dataset?.expected_output });
                   return { name: e.name, ...r };
                 })
               );
@@ -195,6 +197,7 @@ export class VercelAdapterRunner {
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
+            if (item.type === "error") continue;
             const traceId = crypto.randomUUID();
             const { object, usage } = await (await import("ai")).generateObject({
               ...item.formatted,
@@ -260,6 +263,7 @@ export class VercelAdapterRunner {
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
+            if (item.type === "error") continue;
             const { images } = await (await import("ai")).experimental_generateImage({
               ...(item.formatted as any)
             });
@@ -294,6 +298,7 @@ export class VercelAdapterRunner {
           for (;;) {
             const { value: item, done } = await reader.read();
             if (done) break;
+            if (item.type === "error") continue;
             const { audio } = await (await import("ai")).experimental_generateSpeech({
               ...(item.formatted as any)
             });

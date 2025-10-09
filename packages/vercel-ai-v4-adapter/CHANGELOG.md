@@ -1,5 +1,13 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 3.3.5
+
+### Patch Changes
+
+- d6873b4: type changes
+- Updated dependencies [d6873b4]
+  - @agentmark/agentmark-core@3.3.4
+
 ## 3.3.4
 
 ### Patch changes

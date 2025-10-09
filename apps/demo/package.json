@@ -1,9 +1,18 @@
 {
   "name": "agentmark-demo",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "private": true,
+  "scripts": {
+    "mastra-example": "tsx --tsconfig ../../packages/mastra-adapter/tsconfig.json mastra-example.ts"
+  },
   "dependencies": {
     "@agentmark/agentmark-core": "workspace:*",
-    "@agentmark/vercel-ai-v4-adapter": "workspace:*"
+    "@agentmark/mastra-adapter": "workspace:*",
+    "@agentmark/vercel-ai-v4-adapter": "workspace:*",
+    "@ai-sdk/openai": "^1.0.15",
+    "@mastra/core": "^0.13.2",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.2",
+    "zod": "^3.23.8"
   }
 }

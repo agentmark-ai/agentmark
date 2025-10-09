@@ -13,7 +13,12 @@ import {
   VercelAIModelRegistry,
   VercelAIObjectParams,
   VercelAIToolRegistry,
-} from "./adapter";
+} from "./adapter.js";
+import type {
+  DatasetErrorChunk,
+  DatasetStreamChunk,
+  McpServers,
+} from "@agentmark/agentmark-core";
 import type { Root } from "mdast";
 
 export interface VercelAIObjectPrompt<
@@ -25,15 +30,13 @@ export interface VercelAIObjectPrompt<
     params: PromptFormatParams<T[K]["input"]>
   ): Promise<VercelAIObjectParams<T[K]["output"]>>;
 
-  formatWithDataset(options?: AdaptOptions): Promise<
-    ReadableStream<{
-      dataset: {
-        input: Record<string, any>;
-        expected_output?: string;
-      };
-      evals: string[];
-      formatted: VercelAIObjectParams<T[K]["output"]>;
-    }>
+  formatWithDataset(
+    options?: AdaptOptions
+  ): Promise<
+    ReadableStream<
+      | DatasetStreamChunk<VercelAIObjectParams<T[K]["output"]>>
+      | DatasetErrorChunk
+    >
   >;
 
   formatWithTestProps(
@@ -65,10 +68,12 @@ export function createAgentMarkClient<
   modelRegistry: VercelAIModelRegistry;
   toolRegistry?: T;
   evalRegistry?: EvalRegistry;
+  mcpServers?: McpServers;
 }): VercelAgentMark<D, T> {
   const adapter = new VercelAIAdapter<D, T>(
     opts.modelRegistry,
-    opts.toolRegistry
+    opts.toolRegistry,
+    opts.mcpServers
   );
 
   return new AgentMark<D, VercelAIAdapter<D, T>>({
@@ -83,7 +88,7 @@ export {
   VercelAIAdapter,
   VercelAIModelRegistry,
   VercelAIToolRegistry,
-} from "./adapter";
+} from "./adapter.js";
 
-export * as runner from "./runner";
-export { createRunnerServer } from "./server";
+export * as runner from "./runner.js";
+export { createRunnerServer } from "./server.js";

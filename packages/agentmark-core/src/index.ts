@@ -3,9 +3,11 @@ export { DefaultAdapter } from "./adapters/default";
 export { FileLoader } from "./loaders/file";
 export { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 export { getTemplateDXInstance } from "./template_engines/templatedx-instances";
-export { ObjectPrompt } from "./prompts";
+export { ObjectPrompt, TextPrompt } from "./prompts";
 export type { PromptFormatParams } from "./prompts";
 export type { AgentMarkOptions } from "./agentmark";
+
+export { TextConfigSchema, ObjectConfigSchema } from "./schemas";
 
 export type {
   TextConfig,
@@ -23,6 +25,9 @@ export type {
   TemplateEngine,
   Loader,
   PromptKind,
+  TestSettings,
+  DatasetStreamChunk,
+  DatasetErrorChunk,
 } from "./types";
 
 export { EvalRegistry } from "./eval-registery";
@@ -31,3 +36,19 @@ export type { EvalJudge } from "./types";
 export type { ResultKind, NormalizedEval, NormalizedRow } from "./normalize";
 export { attachVerdicts, normalizeTextRow, normalizeObjectRow } from "./normalize";
 export type { RunnerDatasetResponse, RunnerDatasetChunk, RunnerPromptResponse, RunnerTextResponse, RunnerObjectResponse, RunnerImageResponse, RunnerSpeechResponse } from "./runner";
+
+// MCP helpers and types
+export {
+  parseMcpUri,
+  interpolateEnvInObject,
+  normalizeToolsMap,
+} from "./mcp";
+export type {
+  ToolJsonSchema,
+  InlineToolDefinition,
+  NormalizedTool,
+  McpUrlServerConfig,
+  McpStdioServerConfig,
+  McpServerConfig,
+  McpServers,
+} from "./mcp";
