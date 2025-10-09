@@ -28,7 +28,9 @@ app.get('/v1/templates', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Path query parameter is required' });
     }
 
-    let fullPath = path.join(agentmarkTemplatesBase, filePath);
+    // Normalize path by removing leading ./ if present
+    const normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+    let fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
     if (!fs.existsSync(fullPath) && filePath.endsWith('.jsonl')) {
       const alt = path.join(agentmarkTemplatesBase, 'templates', path.basename(filePath));
       if (fs.existsSync(alt)) fullPath = alt;

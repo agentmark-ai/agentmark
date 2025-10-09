@@ -44,25 +44,12 @@ const init = async (options: { target: string }) => {
   });
   apiKey = providedApiKey || "";
 
-  // Always force cloud deployment
-  const deployTarget = "cloud";
+  // Default to local for better development experience
+  const deployTarget = "local";
 
-  // Prompt for AgentMark credentials
-  const { providedAgentmarkAppId } = await prompts({
-    name: "providedAgentmarkAppId",
-    type: "text",
-    message: "Enter your AgentMark App ID (or press Enter to skip):",
-    initial: "",
-  });
-  const agentmarkAppId = providedAgentmarkAppId || "";
-
-  const { providedAgentmarkApiKey } = await prompts({
-    name: "providedAgentmarkApiKey",
-    type: "password",
-    message: "Enter your AgentMark API key (or press Enter to skip):",
-    initial: "",
-  });
-  const agentmarkApiKey = providedAgentmarkApiKey || "";
+  // No cloud credentials needed for local mode
+  const agentmarkApiKey = "";
+  const agentmarkAppId = "";
 
   const { client } = await prompts({
     name: "client",
@@ -80,12 +67,6 @@ const init = async (options: { target: string }) => {
 
   // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
-  console.log(
-    "🚀 Deploy your AgentMark app: https://docs.agentmark.co/platform/getting_started/quickstart"
-  );
-  console.log(
-    "🪝 Setup your AgentMark webhook: https://docs.agentmark.co/platform/configuration/test-webhook"
-  );
 
 };
 

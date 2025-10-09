@@ -11,7 +11,6 @@ import {
   createExamplePrompts,
   getTypesFileContent,
   getClientConfigContent,
-  getRunnerFileContent,
 } from "./templates";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -65,9 +64,6 @@ export const createExampleApp = async (
       `${targetPath}/agentmark.config.ts`,
       getClientConfigContent({ defaultRootDir: `./agentmark`, provider: modelProvider, languageModels: langModels, target })
     );
-
-    // Create a runner that imports the client and constructs adapter runner
-    fs.writeFileSync(`${targetPath}/agentmark.runner.ts`, getRunnerFileContent());
 
     // Create types file
     fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());

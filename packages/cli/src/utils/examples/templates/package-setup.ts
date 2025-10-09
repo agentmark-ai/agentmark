@@ -24,15 +24,13 @@ export const setupPackageJson = (targetPath: string = ".", target?: string) => {
       ...pkgJson.scripts,
       "agentmark:example-trace": "ts-node index.ts",
       "agentmark:serve-cloud": "agentmark serve",
-      "agentmark:serve-runner": "npx ts-node agentmark.runner.ts",
-      "dev": "PORT=9418 agentmark serve & npx ts-node agentmark.runner.ts",
+      "dev": "PORT=9418 agentmark serve & npx ts-node agentmark.config.ts",
     };
   } else {
     pkgJson.scripts = {
       ...pkgJson.scripts,
       start: "ts-node index.ts",
-      "agentmark:serve-runner": "npx ts-node agentmark.runner.ts",
-      "dev": "npx ts-node agentmark.runner.ts",
+      "dev": "npx ts-node agentmark.config.ts",
     };
   }
   fs.writeJSONSync(packageJsonPath, pkgJson, { spaces: 2 });

@@ -9,8 +9,11 @@ export const getClientConfigContent = (options: { defaultRootDir: string; provid
     : '';
   if (target === 'cloud') {
     return `// agentmark.config.ts (cloud)
+import path from 'node:path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { EvalRegistry } from "@agentmark/agentmark-core";
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/vercel-ai-v4-adapter";
+import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, createRunnerServer } from "@agentmark/vercel-ai-v4-adapter";
 import { AgentMarkSDK } from "@agentmark/sdk";
 ${providerImport}
 
@@ -31,8 +34,15 @@ function createToolRegistry() {
 function createEvalRegistry() {
   const evalRegistry = new EvalRegistry()
     .register('exact_match_json', ({ output, expectedOutput }) => {
-      const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput!));
-      return { score: ok ? 1 : 0, label: ok ? 'correct' : 'incorrect', reason: ok ? 'Exact match' : 'Mismatch' };
+      if (!expectedOutput) {
+        return { score: 0, label: 'error', reason: 'No expected output provided' };
+      }
+      try {
+        const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
+        return { score: ok ? 1 : 0, label: ok ? 'correct' : 'incorrect', reason: ok ? 'Exact match' : 'Mismatch' };
+      } catch (e) {
+        return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON' };
+      }
     });
   return evalRegistry;
 }
@@ -41,7 +51,7 @@ export function createClient(ctx: { env?: Record<string,string|undefined> } = { 
   const env = (ctx.env ?? process.env) as Record<string, string | undefined>;
   const apiKey = env.AGENTMARK_API_KEY!;
   const appId = env.AGENTMARK_APP_ID!;
-  const baseUrl = env.AGENTMARK_BASE_URL;
+  const baseUrl = env.AGENTMARK_BASE_URL || 'http://localhost:9418';
   const sdk = new AgentMarkSDK({ apiKey, appId, baseUrl });
   const fileLoader = sdk.getFileLoader();
   const modelRegistry = createModelRegistry();
@@ -51,6 +61,14 @@ export function createClient(ctx: { env?: Record<string,string|undefined> } = { 
 }
 
 export const client = createClient();
+
+// Start runner server when executed directly
+if (require.main === module) {
+  createRunnerServer({ client, port: 9417 }).catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}
 `;
   }
   // local default
@@ -76,8 +94,15 @@ function createToolRegistry() {
 function createEvalRegistry() {
   const evalRegistry = new EvalRegistry()
     .register('exact_match_json', ({ output, expectedOutput }) => {
-      const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput!));
-      return { score: ok ? 1 : 0, label: ok ? 'correct' : 'incorrect', reason: ok ? 'Exact match' : 'Mismatch' };
+      if (!expectedOutput) {
+        return { score: 0, label: 'error', reason: 'No expected output provided' };
+      }
+      try {
+        const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
+        return { score: ok ? 1 : 0, label: ok ? 'correct' : 'incorrect', reason: ok ? 'Exact match' : 'Mismatch' };
+      } catch (e) {
+        return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON' };
+      }
     });
   return evalRegistry;
 }
