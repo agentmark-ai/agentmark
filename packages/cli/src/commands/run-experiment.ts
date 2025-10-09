@@ -176,15 +176,25 @@ export default async function runExperiment(filepath: string, options: { skipEva
           const row: string[] = [String(index), input, actual, expected];
           for (const name of evalNames) {
             const e = evals.find((ev: any) => ev.name === name);
-            if (e && typeof e.score === 'number') {
-              const hasJudge = typeof e.label === 'string' && e.label.length > 0;
-              const isPass = hasJudge ? (String(e.label).toLowerCase() === 'correct' || String(e.label).toLowerCase() === 'pass') : (e.score >= 0.5);
-              const verdictText = hasJudge ? (isPass ? 'PASS' : 'FAIL') : e.score.toFixed(2);
-              const reason = hasJudge && typeof e.reason === 'string' && e.reason ? ` - ${e.reason}` : '';
-              const suffix = hasJudge ? ` (${e.score.toFixed(2)}${reason})` : '';
-              row.push(`${verdictText}${suffix}`);
-              totalEvals += 1;
-              if (isPass) passedEvals += 1;
+            if (e) {
+              // Only display verdict if it's present, otherwise show score/label/reason directly
+              if (typeof e.verdict === 'string' && (e.verdict === 'pass' || e.verdict === 'fail')) {
+                const isPass = e.verdict === 'pass';
+                const verdictText = isPass ? 'PASS' : 'FAIL';
+                const scorePart = typeof e.score === 'number' ? e.score.toFixed(2) : '';
+                const reasonPart = typeof e.reason === 'string' && e.reason ? ` - ${e.reason}` : '';
+                const suffix = scorePart || reasonPart ? ` (${scorePart}${reasonPart})` : '';
+                row.push(`${verdictText}${suffix}`);
+                totalEvals += 1;
+                if (isPass) passedEvals += 1;
+              } else {
+                // No verdict - just show the raw eval properties
+                const parts: string[] = [];
+                if (typeof e.score === 'number') parts.push(`score: ${e.score.toFixed(2)}`);
+                if (typeof e.label === 'string' && e.label) parts.push(`label: ${e.label}`);
+                if (typeof e.reason === 'string' && e.reason) parts.push(`reason: ${e.reason}`);
+                row.push(parts.length > 0 ? parts.join(', ') : 'N/A');
+              }
             } else {
               row.push('N/A');
             }
