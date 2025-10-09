@@ -112,6 +112,11 @@ export class FileLoader<T extends PromptShape<T>> implements Loader<T> {
       Authorization: `${this.apiKey}`,
     });
 
+    // Request NDJSON format for streaming datasets
+    if (options.stream) {
+      headers.set("Accept", "application/x-ndjson");
+    }
+
     const response = await fetch(
       `${this.baseUrl}/${AGENTMARK_TEMPLATE_ENDPOINT}?${new URLSearchParams(queryParams).toString()}`,
       {
