@@ -17,7 +17,7 @@ export const createExamplePrompts = (model: string, targetPath: string = ".") =>
   
   // Create customer support prompt and dataset
   const customerSupportPrompt = getCustomerSupportPrompt(model);
-  fs.writeFileSync(`${targetPath}/agentmark/customer-support.prompt.mdx`, customerSupportPrompt);
+  fs.writeFileSync(`${targetPath}/agentmark/customer-support-agent.prompt.mdx`, customerSupportPrompt);
   const customerQueryDataset = getCustomerQueryDataset();
   fs.writeFileSync(`${targetPath}/agentmark/customer-query.jsonl`, customerQueryDataset);
   

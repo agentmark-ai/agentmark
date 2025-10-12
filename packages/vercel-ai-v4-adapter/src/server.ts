@@ -17,7 +17,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
 
   const runner = new VercelAdapterRunner(client);
 
-  app.post('/v1/run', async (req: Request, res: Response) => {
+  app.post('/', async (req: Request, res: Response) => {
     try {
       const event = req.body || {};
 
@@ -56,8 +56,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
           response = await runner.runExperiment(event.data.ast, experimentId);
         } catch (e: any) {
           return res.status(500).json({
-            error: e?.message || String(e),
-            stack: process.env.AGENTMARK_DEBUG ? (e?.stack || String(e)) : undefined
+            error: e?.message || String(e)
           });
         }
         if (response?.stream) {
@@ -82,8 +81,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
       return res.status(400).json({ error: 'Unknown event type' });
     } catch (e: any) {
       return res.status(500).json({
-        error: e?.message || String(e),
-        stack: process.env.AGENTMARK_DEBUG ? (e?.stack || String(e)) : undefined
+        error: e?.message || String(e)
       });
     }
   });

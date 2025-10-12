@@ -71,9 +71,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   console.log("Running prompt with dataset...");
   if (evalEnabled) console.log("🧪 Evaluations enabled");
 
-  const url = `${server.replace(/\/$/, '')}/v1/run`;
-  // No debug logging by default
-  const res = await fetch(url, {
+  const res = await fetch(server, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
@@ -88,7 +86,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     const statusLine = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
     const errMsg = parsed?.error || parsed?.message || raw?.slice?.(0, 2000) || 'Unknown error';
     const details = `HTTP ${statusLine} — Content-Type: ${ct}`;
-    const msg = `Runner request failed. ${details}\nURL: ${url}\nBody: ${errMsg}`;
+    const msg = `Runner request failed. ${details}\nURL: ${server}\nBody: ${errMsg}`;
     console.error(msg);
     // No debug logging by default
     throw new Error(msg);

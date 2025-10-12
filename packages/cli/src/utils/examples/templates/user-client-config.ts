@@ -26,8 +26,20 @@ function createModelRegistry() {
 
 function createToolRegistry() {
   const toolRegistry = new VercelAIToolRegistry<any>()
-    .register('weather', ({ location }) => ({ tempC: 22, location }))
-    .register('explain', ({ topic }) => ({ summary: 'About ' + topic }));
+    .register('search_knowledgebase', async ({ query }) => {
+      // Simulate search delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Return all three knowledge base articles
+      // The LLM will select the relevant one based on the query
+      return {
+        articles: [
+          { topic: 'shipping', content: 'Standard shipping takes 3–5 business days.' },
+          { topic: 'warranty', content: 'All products include a 1-year limited warranty.' },
+          { topic: 'returns', content: 'You can return items within 30 days of delivery.' }
+        ]
+      };
+    });
   return toolRegistry;
 }
 
@@ -56,7 +68,7 @@ export function createClient(ctx: { env?: Record<string,string|undefined> } = { 
   const env = (ctx.env ?? process.env) as Record<string, string | undefined>;
   const apiKey = env.AGENTMARK_API_KEY!;
   const appId = env.AGENTMARK_APP_ID!;
-  const baseUrl = env.AGENTMARK_BASE_URL || 'http://localhost:9418';
+  const baseUrl = env.AGENTMARK_BASE_URL!;
   const sdk = new AgentMarkSDK({ apiKey, appId, baseUrl });
   const fileLoader = sdk.getFileLoader();
   const modelRegistry = createModelRegistry();
@@ -78,8 +90,11 @@ if (require.main === module) {
   }
   // local default
   return `// agentmark.config.ts (local)
+import path from 'node:path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { FileLoader, EvalRegistry } from "@agentmark/agentmark-core";
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/vercel-ai-v4-adapter";
+import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, createRunnerServer } from "@agentmark/vercel-ai-v4-adapter";
 ${providerImport}
 
 function createModelRegistry() {
@@ -91,8 +106,20 @@ function createModelRegistry() {
 
 function createToolRegistry() {
   const toolRegistry = new VercelAIToolRegistry<any>()
-    .register('weather', ({ location }) => ({ tempC: 22, location }))
-    .register('explain', ({ topic }) => ({ summary: 'About ' + topic }));
+    .register('search_knowledgebase', async ({ query }) => {
+      // Simulate search delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Return all three knowledge base articles
+      // The LLM will select the relevant one based on the query
+      return {
+        articles: [
+          { topic: 'shipping', content: 'Standard shipping takes 3–5 business days.' },
+          { topic: 'warranty', content: 'All products include a 1-year limited warranty.' },
+          { topic: 'returns', content: 'You can return items within 30 days of delivery.' }
+        ]
+      };
+    });
   return toolRegistry;
 }
 
@@ -127,5 +154,13 @@ export function createClient(ctx: { env?: Record<string,string|undefined>, rootD
 }
 
 export const client = createClient();
+
+// Start runner server when executed directly
+if (require.main === module) {
+  createRunnerServer({ client, port: 9417 }).catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}
 `;
 };

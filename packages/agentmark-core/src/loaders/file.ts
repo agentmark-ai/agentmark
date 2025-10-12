@@ -62,9 +62,6 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     if (!fs.existsSync(fullPath)) {
       throw new Error(`Dataset not found: ${datasetPath}`);
     }
-    if (process.env.AGENTMARK_DEBUG) {
-      console.error(`[loader debug] loadDataset: basePath=${this.basePath}, datasetPath=${datasetPath}, fullPath=${fullPath}`);
-    }
     const fileStream = fs.createReadStream(fullPath, { encoding: "utf8" });
     const lines = readline.createInterface({
       input: fileStream,
@@ -78,10 +75,7 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
             const jsonData = JSON.parse(line);
             controller.enqueue(jsonData);
           } catch (error) {
-            const msg = (error as any)?.message || String(error);
-            if (process.env.AGENTMARK_DEBUG) {
-              console.error(`[loader debug] Error parsing JSON line: ${msg} | line=${JSON.stringify(line)}`);
-            }
+            // Skip lines that fail to parse
           }
         }
         controller.close();

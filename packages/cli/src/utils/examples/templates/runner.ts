@@ -20,7 +20,7 @@ export async function serve({ port = 9417 }: { port?: number } = {}){
 
   const runner = createRunner();
 
-  app.post('/v1/run', async (req: Request, res: Response) => {
+  app.post('/', async (req: Request, res: Response) => {
     try {
       const event = req.body || {};
       
@@ -49,7 +49,7 @@ export async function serve({ port = 9417 }: { port?: number } = {}){
         try {
           response = await runner.runExperiment(event.data.ast, experimentId);
         } catch (e: any) {
-          return res.status(500).json({ error: e?.message || String(e), stack: process.env.AGENTMARK_DEBUG ? (e?.stack || String(e)) : undefined });
+          return res.status(500).json({ error: e?.message || String(e) });
         }
         if (response?.stream) {
           if (response.streamHeaders) for (const [k, v] of Object.entries(response.streamHeaders)) res.setHeader(k, String(v));
@@ -63,7 +63,7 @@ export async function serve({ port = 9417 }: { port?: number } = {}){
       }
       return res.status(400).json({ error: 'Unknown event type' });
     } catch (e: any) {
-      return res.status(500).json({ error: e?.message || String(e), stack: process.env.AGENTMARK_DEBUG ? (e?.stack || String(e)) : undefined });
+      return res.status(500).json({ error: e?.message || String(e) });
     }
   });
 

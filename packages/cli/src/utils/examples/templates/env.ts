@@ -22,9 +22,9 @@ export const getEnvFileContent = (
   const needsApiKey = modelProvider !== 'ollama';
   
   if (target === 'cloud') {
-    let content = `# Agentmark API credentials
-AGENTMARK_API_KEY=${agentmarkApiKey || 'your_api_key_here'}
-AGENTMARK_APP_ID=${agentmarkAppId || 'your_app_id_here'}
+    let content = `# Add these to your deployed environments. Read: https://docs.agentmark.co/platform/getting_started/quickstart to learn more
+AGENTMARK_API_KEY=
+AGENTMARK_APP_ID=
 AGENTMARK_BASE_URL=http://localhost:9418
 `;
     if (needsApiKey) {
@@ -32,9 +32,9 @@ AGENTMARK_BASE_URL=http://localhost:9418
     }
     return content;
   } else {
-    let content = `AGENTMARK_BASE_URL=http://localhost:9418\n`;
+    let content = `# API keys for the model provider\n`;
     if (needsApiKey) {
-      content += `# API keys for the model provider\n${envVarName}=${apiKeyValue}\n`;
+      content += `${envVarName}=${apiKeyValue}\n`;
     } else {
       content += `# No API key needed for ${modelProvider}\n`;
     }

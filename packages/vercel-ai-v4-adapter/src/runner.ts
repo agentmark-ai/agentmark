@@ -32,7 +32,9 @@ export class VercelAdapterRunner {
             const encoder = new TextEncoder();
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const message = (chunk as any)?.error?.data?.error?.message ?? "Something went wrong during inference";
+                const error = (chunk as any)?.error;
+                const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
+                console.error("[Runner] Error during streaming:", error);
                 controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
                 controller.close();
                 return;
@@ -63,7 +65,9 @@ export class VercelAdapterRunner {
             const encoder = new TextEncoder();
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const message = (chunk as any)?.error?.data?.error?.message ?? "Something went wrong during inference";
+                const error = (chunk as any)?.error;
+                const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
+                console.error("[Runner] Error during streaming:", error);
                 controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
                 controller.close();
                 return;
@@ -73,6 +77,9 @@ export class VercelAdapterRunner {
               }
               if ((chunk as any).type === "tool-call") {
                 controller.enqueue(encoder.encode(JSON.stringify({ type: "text", toolCall: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, args: (chunk as any).args } }) + "\n"));
+              }
+              if ((chunk as any).type === "tool-result") {
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", toolResult: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, result: (chunk as any).result } }) + "\n"));
               }
               if ((chunk as any).type === "finish") {
                 controller.enqueue(encoder.encode(JSON.stringify({ type: "text", finishReason: (chunk as any).finishReason, usage: (chunk as any).usage }) + "\n"));

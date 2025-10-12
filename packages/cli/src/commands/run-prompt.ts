@@ -54,11 +54,7 @@ const runPrompt = async (filepath: string) => {
       console.log("Running prompt with test props...");
       // Prefer streaming when available for better UX
       const body = JSON.stringify({ type: 'prompt-run', data: { ast, options: { shouldStream: true } } });
-      const url = `${server.replace(/\/$/, '')}/v1/run`;
-      if (process.env.AGENTMARK_DEBUG) {
-        console.error(`[agentmark debug] POST ${url}`);
-      }
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      const res = await fetch(server, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
       if (!res.ok) {
         let raw = '';
         try { raw = await res.text(); } catch {}
@@ -68,11 +64,8 @@ const runPrompt = async (filepath: string) => {
         const statusLine = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
         const errMsg = parsed?.error || parsed?.message || raw?.slice?.(0, 2000) || 'Unknown error';
         const details = `HTTP ${statusLine} — Content-Type: ${ct}`;
-        const msg = `Runner request failed. ${details}\nURL: ${url}\nBody: ${errMsg}`;
+        const msg = `Runner request failed. ${details}\nURL: ${server}\nBody: ${errMsg}`;
         console.error(msg);
-        if (process.env.AGENTMARK_DEBUG) {
-          console.error(`[agentmark debug] Response headers: ${JSON.stringify(Object.fromEntries(res.headers.entries()))}`);
-        }
         throw new Error(msg);
       }
       const isStreaming = !!res.headers.get('AgentMark-Streaming');
@@ -100,6 +93,14 @@ const runPrompt = async (filepath: string) => {
             try {
               const evt = JSON.parse(line);
               if (evt.type === 'text' && typeof evt.result === 'string') process.stdout.write(evt.result);
+              if (evt.type === 'text' && evt.toolCall) {
+                const tc = evt.toolCall;
+                process.stdout.write(`\n[Tool Call: ${tc.toolName}(${JSON.stringify(tc.args)})]\n`);
+              }
+              if (evt.type === 'text' && evt.toolResult) {
+                const tr = evt.toolResult;
+                process.stdout.write(`[Tool Result: ${JSON.stringify(tr.result)}]\n`);
+              }
               if (evt.type === 'object' && evt.result) {
                 const next = JSON.stringify(evt.result, null, 2);
                 // Clear previously rendered object lines (if any), move cursor up, then render new object

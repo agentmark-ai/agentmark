@@ -19,8 +19,62 @@ const setupMCPServer = (client: string, targetPath: string) => {
     return;
   }
 
+  const folderName = targetPath.replace("./", "");
+
+  // Handle VS Code separately since mint-mcp doesn't support it
+  if (client === "vscode") {
+    try {
+      console.log(`Setting up MCP server for VS Code in ${folderName}...`);
+      const vscodeDir = path.join(targetPath, ".vscode");
+      fs.ensureDirSync(vscodeDir);
+
+      const mcpConfig = {
+        servers: {
+          "agentmark-docs": {
+            command: "npx",
+            args: ["-y", "@mintlify/mcp", "docs.agentmark.co"]
+          }
+        }
+      };
+
+      fs.writeJsonSync(path.join(vscodeDir, "mcp.json"), mcpConfig, { spaces: 2 });
+      console.log(`✅ MCP server configured for VS Code in ${folderName}/.vscode/mcp.json`);
+    } catch (error) {
+      console.warn(`Warning: Could not set up MCP server for VS Code:`, error);
+      console.log("You can manually create .vscode/mcp.json with the AgentMark docs MCP server configuration.");
+    }
+    return;
+  }
+
+  // Handle Zed separately since mint-mcp doesn't support it
+  if (client === "zed") {
+    try {
+      console.log(`Setting up MCP server for Zed in ${folderName}...`);
+      const zedDir = path.join(targetPath, ".zed");
+      fs.ensureDirSync(zedDir);
+
+      const zedConfig = {
+        context_servers: {
+          "agentmark-docs": {
+            source: "custom",
+            command: "npx",
+            args: ["-y", "@mintlify/mcp", "docs.agentmark.co"],
+            env: {}
+          }
+        }
+      };
+
+      fs.writeJsonSync(path.join(zedDir, "settings.json"), zedConfig, { spaces: 2 });
+      console.log(`✅ MCP server configured for Zed in ${folderName}/.zed/settings.json`);
+    } catch (error) {
+      console.warn(`Warning: Could not set up MCP server for Zed:`, error);
+      console.log("You can manually create .zed/settings.json with the AgentMark docs MCP server configuration.");
+    }
+    return;
+  }
+
+  // Handle other clients via mint-mcp
   try {
-    const folderName = targetPath.replace("./", "");
     console.log(`Setting up MCP server for ${client} in ${folderName}...`);
     execSync(`npx mint-mcp add docs.agentmark.co --client ${client}`, {
       stdio: "inherit",
@@ -29,7 +83,6 @@ const setupMCPServer = (client: string, targetPath: string) => {
     console.log(`✅ MCP server configured for ${client} in ${folderName}`);
   } catch (error) {
     console.warn(`Warning: Could not set up MCP server for ${client}:`, error);
-    const folderName = targetPath.replace("./", "");
     console.log("You can manually set it up later by running this command in your project folder:");
     console.log(`cd ${folderName}`);
     console.log(`npx mint-mcp add docs.agentmark.co --client ${client}`);

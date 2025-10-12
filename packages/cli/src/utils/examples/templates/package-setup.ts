@@ -22,15 +22,15 @@ export const setupPackageJson = (targetPath: string = ".", target?: string) => {
   if (target === "cloud") {
     pkgJson.scripts = {
       ...pkgJson.scripts,
-      "agentmark:example-trace": "ts-node index.ts",
+      "demo": "npx tsx index.ts",
       "agentmark:serve-cloud": "agentmark serve",
-      "dev": "PORT=9418 agentmark serve & npx ts-node agentmark.config.ts",
+      "dev": "PORT=9418 agentmark serve & npx tsx --watch agentmark.config.ts",
     };
   } else {
     pkgJson.scripts = {
       ...pkgJson.scripts,
-      start: "ts-node index.ts",
-      "dev": "npx ts-node agentmark.config.ts",
+      "demo": "npx tsx index.ts",
+      "dev": "npx tsx --watch agentmark.config.ts",
     };
   }
   fs.writeJSONSync(packageJsonPath, pkgJson, { spaces: 2 });
