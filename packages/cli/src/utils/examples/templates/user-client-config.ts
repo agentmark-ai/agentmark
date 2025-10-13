@@ -15,6 +15,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { EvalRegistry } from "@agentmark/agentmark-core";
 import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, createRunnerServer } from "@agentmark/vercel-ai-v4-adapter";
 import { AgentMarkSDK } from "@agentmark/sdk";
+import AgentMarkTypes from './agentmark.types';
 ${providerImport}
 
 function createModelRegistry() {
@@ -74,14 +75,14 @@ export function createClient(ctx: { env?: Record<string,string|undefined> } = { 
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();
   const evalRegistry = createEvalRegistry();
-  return createAgentMarkClient({ loader: fileLoader, modelRegistry, toolRegistry, evalRegistry });
+  return createAgentMarkClient<AgentMarkTypes>({ loader: fileLoader, modelRegistry, toolRegistry, evalRegistry });
 }
 
 export const client = createClient();
 
 // Start runner server when executed directly
 if (require.main === module) {
-  createRunnerServer({ client, port: 9417 }).catch(err => {
+  createRunnerServer({ client: client as any, port: 9417 }).catch(err => {
     console.error(err);
     process.exit(1);
   });
@@ -89,12 +90,13 @@ if (require.main === module) {
 `;
   }
   // local default
-  return `// agentmark.config.ts (local)
+  return `// agentmark.config.ts
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { FileLoader, EvalRegistry } from "@agentmark/agentmark-core";
 import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, createRunnerServer } from "@agentmark/vercel-ai-v4-adapter";
+import AgentMarkTypes from './agentmark.types';
 ${providerImport}
 
 function createModelRegistry() {
@@ -150,14 +152,14 @@ export function createClient(ctx: { env?: Record<string,string|undefined>, rootD
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();
   const evalRegistry = createEvalRegistry();
-  return createAgentMarkClient({ loader, modelRegistry, toolRegistry, evalRegistry });
+  return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, toolRegistry, evalRegistry });
 }
 
 export const client = createClient();
 
 // Start runner server when executed directly
 if (require.main === module) {
-  createRunnerServer({ client, port: 9417 }).catch(err => {
+  createRunnerServer({ client: client as any, port: 9417 }).catch(err => {
     console.error(err);
     process.exit(1);
   });

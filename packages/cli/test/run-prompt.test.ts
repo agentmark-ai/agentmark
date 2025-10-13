@@ -11,7 +11,8 @@ let currentRunner: any = null;
 global.fetch = (async (url: any, init?: any) => {
   const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
   if (body?.type === 'prompt-run') {
-    const resp = await currentRunner.runPrompt(body.data.ast, body.data.options);
+    const options = { ...body.data.options, customProps: body.data.customProps };
+    const resp = await currentRunner.runPrompt(body.data.ast, options);
     if (resp?.type === 'stream') {
       return new Response(resp.stream as any, { headers: { 'AgentMark-Streaming': 'true' } } as any) as any;
     }
@@ -148,5 +149,70 @@ describe('run-prompt', () => {
     await runPrompt(tempPath as any);
     const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Saved audio to:/);
+  });
+
+  it('accepts custom props via --props JSON string', async () => {
+    const tempPath = path.join(__dirname, '..', 'dummy.mdx');
+    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+    let receivedCustomProps: any = null;
+    currentRunner = {
+      async runPrompt(ast: any, options: any) {
+        receivedCustomProps = options?.customProps;
+        return { type: 'text', result: 'custom props test' };
+      }
+    } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
+    runPrompt = (await import('../src/commands/run-prompt')).default;
+    await runPrompt(tempPath, { props: '{"name": "test", "value": 123}' });
+    expect(receivedCustomProps).toEqual({ name: 'test', value: 123 });
+    const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+    expect(out).toMatch(/Running prompt with custom props/);
+  });
+
+  it('accepts custom props via --props-file JSON', async () => {
+    const tempPath = path.join(__dirname, '..', 'dummy.mdx');
+    const propsPath = path.join(__dirname, '..', 'test-props.json');
+    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+    writeFileSync(propsPath, JSON.stringify({ foo: 'bar', num: 42 }));
+    let receivedCustomProps: any = null;
+    currentRunner = {
+      async runPrompt(ast: any, options: any) {
+        receivedCustomProps = options?.customProps;
+        return { type: 'text', result: 'props file test' };
+      }
+    } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
+    runPrompt = (await import('../src/commands/run-prompt')).default;
+    await runPrompt(tempPath, { propsFile: propsPath });
+    expect(receivedCustomProps).toEqual({ foo: 'bar', num: 42 });
+    try { unlinkSync(propsPath); } catch {}
+  });
+
+  it('accepts custom props via --props-file YAML', async () => {
+    const tempPath = path.join(__dirname, '..', 'dummy.mdx');
+    const propsPath = path.join(__dirname, '..', 'test-props.yaml');
+    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+    writeFileSync(propsPath, 'key: value\ncount: 10\n');
+    let receivedCustomProps: any = null;
+    currentRunner = {
+      async runPrompt(ast: any, options: any) {
+        receivedCustomProps = options?.customProps;
+        return { type: 'text', result: 'yaml props test' };
+      }
+    } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
+    runPrompt = (await import('../src/commands/run-prompt')).default;
+    await runPrompt(tempPath, { propsFile: propsPath });
+    expect(receivedCustomProps).toEqual({ key: 'value', count: 10 });
+    try { unlinkSync(propsPath); } catch {}
+  });
+
+  it('throws error for invalid --props JSON', async () => {
+    const tempPath = path.join(__dirname, '..', 'dummy.mdx');
+    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+    currentRunner = { async runPrompt(){ return { type: 'text', result: 'ok' }; } } as any;
+    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
+    runPrompt = (await import('../src/commands/run-prompt')).default;
+    await expect(runPrompt(tempPath, { props: '{invalid json}' })).rejects.toThrow('Invalid JSON');
   });
 });

@@ -28,7 +28,8 @@ export async function serve({ port = 9417 }: { port?: number } = {}){
         if (!event.data?.ast) {
           return res.status(400).json({ error: 'Missing data.ast in prompt-run event' });
         }
-        const response = await runner.runPrompt(event.data.ast, event.data.options);
+        const options = { ...event.data.options, customProps: event.data.customProps };
+        const response = await runner.runPrompt(event.data.ast, options);
         if (response?.type === 'stream' && response.stream) {
           res.setHeader('AgentMark-Streaming', 'true');
           if (response.streamHeader) for (const [k, v] of Object.entries(response.streamHeader)) res.setHeader(k, String(v));

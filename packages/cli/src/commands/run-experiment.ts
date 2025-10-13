@@ -208,6 +208,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
               console.log(`${label}: ${p.rel}`);
             }
           }
+          // Add separator line between rows
+          const totalWidth = (layout as LayoutResult).colWidths.reduce((a, b) => a + b, 0) + ((layout as LayoutResult).colWidths.length + 1) * 3;
+          console.log('─'.repeat(totalWidth));
           index += 1;
         } catch {}
       }

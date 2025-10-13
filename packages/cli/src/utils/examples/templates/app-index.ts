@@ -2,10 +2,7 @@ export const getIndexFileContent = (modelProvider: string, modelName: string, ta
   if (target === 'cloud') {
     return `import "dotenv/config";
 import { generateText } from "ai";
-import { createClient } from "./agentmark.config";
-import AgentMarkTypes from "./agentmark.types";
-
-const agentmark = createClient();
+import { client } from "./agentmark.config";
 
 const telemetry = {
   isEnabled: true,
@@ -19,7 +16,7 @@ const telemetry = {
 };
 
 const runCustomerSupport = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt("customer-support-agent.prompt.mdx");
+  const prompt = await client.loadTextPrompt("customer-support-agent.prompt.mdx");
   const vercelInput = await prompt.format({
     props: {
       customer_question: customer_message,
@@ -27,10 +24,7 @@ const runCustomerSupport = async (customer_message: string) => {
     telemetry,
   });
 
-  const resp = await generateText({
-    ...vercelInput,
-    maxSteps: 5,  // Allow multiple rounds of tool calls
-  });
+  const resp = await generateText(vercelInput);
 
   return resp.text;
 };
@@ -50,24 +44,18 @@ main();
   } else {
     return `import "dotenv/config";
 import { generateText } from "ai";
-import { createClient } from "./agentmark.config";
-import AgentMarkTypes from "./agentmark.types";
-
-const agentmark = createClient();
+import { client } from "./agentmark.config";
 
 // Function to run the customer support prompt
 const runCustomerSupport = async (customer_message: string) => {
-  const prompt = await agentmark.loadTextPrompt('customer-support-agent.prompt.mdx');
+  const prompt = await client.loadTextPrompt('customer-support-agent.prompt.mdx');
   const vercelInput = await prompt.format({
     props: {
       customer_question: customer_message,
     },
   });
 
-  const result = await generateText({
-    ...vercelInput,
-    maxSteps: 5,  // Allow multiple rounds of tool calls
-  });
+  const result = await generateText(vercelInput);
   return result.text;
 };
 

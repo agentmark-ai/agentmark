@@ -18,12 +18,12 @@ type Frontmatter = {
 export class VercelAdapterRunner {
   constructor(private readonly client: AgentMark<any, VercelAIAdapter<any, any>>) {}
 
-  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean }): Promise<RunnerPromptResponse> {
+  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<RunnerPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
-      const input = await prompt.formatWithTestProps();
+      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
         const { usage, fullStream } = streamObject(input);
@@ -56,7 +56,7 @@ export class VercelAdapterRunner {
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
-      const input = await prompt.formatWithTestProps();
+      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
         const { fullStream } = streamText(input);
@@ -98,16 +98,22 @@ export class VercelAdapterRunner {
 
     if (frontmatter.image_config) {
       const prompt = await this.client.loadImagePrompt(promptAst);
-      const input = await prompt.formatWithTestProps();
-      const { images } = await generateImage(input);
-      return { type: "image", result: images.map(i => ({ mimeType: i.mimeType, base64: i.base64 })) } as RunnerPromptResponse;
+      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
+      const result = await generateImage(input);
+      return {
+        type: "image",
+        result: result.images.map(i => ({ mimeType: i.mimeType, base64: i.base64 }))
+      } as RunnerPromptResponse;
     }
 
     if (frontmatter.speech_config) {
       const prompt = await this.client.loadSpeechPrompt(promptAst);
-      const input = await prompt.formatWithTestProps();
-      const { audio } = await generateSpeech(input);
-      return { type: "speech", result: { mimeType: audio.mimeType, base64: audio.base64, format: audio.format } } as RunnerPromptResponse;
+      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
+      const result = await generateSpeech(input);
+      return {
+        type: "speech",
+        result: { mimeType: result.audio.mimeType, base64: result.audio.base64, format: result.audio.format }
+      } as RunnerPromptResponse;
     }
 
     throw new Error("Invalid prompt");

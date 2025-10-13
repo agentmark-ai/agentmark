@@ -444,4 +444,7 @@ const generateTypes = async ({ language, local, rootDir }: Options) => {
   }
 };
 
+// Export functions for reuse
+export { generateTypeDefinitions, fetchPromptsFrontmatter };
+
 export default generateTypes;

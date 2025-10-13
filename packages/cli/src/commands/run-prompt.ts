@@ -14,15 +14,44 @@ function resolveAgainstCwdOrEnv(inputPath: string): string {
   return path.resolve(base, inputPath);
 }
 
-const runPrompt = async (filepath: string) => {
+interface RunPromptOptions {
+  props?: string;
+  propsFile?: string;
+}
+
+const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
-  
+
   if (!fs.existsSync(resolvedFilepath)) {
     throw new Error(`File not found: ${resolvedFilepath}`);
   }
-  
+
   if (!resolvedFilepath.endsWith('.mdx')) {
     throw new Error('File must be an .mdx file');
+  }
+
+  // Parse props from CLI or file
+  let customProps: Record<string, any> | undefined;
+  if (options.propsFile) {
+    const propsFilePath = resolveAgainstCwdOrEnv(options.propsFile);
+    if (!fs.existsSync(propsFilePath)) {
+      throw new Error(`Props file not found: ${propsFilePath}`);
+    }
+    const content = fs.readFileSync(propsFilePath, 'utf-8');
+    if (propsFilePath.endsWith('.json')) {
+      customProps = JSON.parse(content);
+    } else if (propsFilePath.endsWith('.yaml') || propsFilePath.endsWith('.yml')) {
+      const { parse: parseYaml } = await import('yaml');
+      customProps = parseYaml(content);
+    } else {
+      throw new Error('Props file must be .json, .yaml, or .yml');
+    }
+  } else if (options.props) {
+    try {
+      customProps = JSON.parse(options.props);
+    } catch (e) {
+      throw new Error('Invalid JSON in --props argument');
+    }
   }
 
   const { load } = await import("@agentmark/templatedx");
@@ -51,9 +80,9 @@ const runPrompt = async (filepath: string) => {
   }
 
   try {
-      console.log("Running prompt with test props...");
+      console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      const body = JSON.stringify({ type: 'prompt-run', data: { ast, options: { shouldStream: true } } });
+      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, options: { shouldStream: true } } });
       const res = await fetch(server, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
       if (!res.ok) {
         let raw = '';
@@ -82,6 +111,9 @@ const runPrompt = async (filepath: string) => {
         // Object streaming rendering state
         let lastObjectRenderLineCount = 0;
         let finalObjectString: string | undefined;
+        let hasSeenToolResult = false;
+        let hasPrintedFinalHeader = false;
+        let usageInfo: any = null;
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -92,14 +124,30 @@ const runPrompt = async (filepath: string) => {
             buffered = buffered.slice(idx + 1);
             try {
               const evt = JSON.parse(line);
-              if (evt.type === 'text' && typeof evt.result === 'string') process.stdout.write(evt.result);
+              if (evt.type === 'text' && typeof evt.result === 'string') {
+                // Print separator before the first text after tool results
+                if (hasSeenToolResult && !hasPrintedFinalHeader) {
+                  process.stdout.write('\n');
+                  hasPrintedFinalHeader = true;
+                }
+                process.stdout.write(evt.result);
+              }
               if (evt.type === 'text' && evt.toolCall) {
                 const tc = evt.toolCall;
-                process.stdout.write(`\n[Tool Call: ${tc.toolName}(${JSON.stringify(tc.args)})]\n`);
+                const argsStr = JSON.stringify(tc.args);
+                process.stdout.write(`\n\n→ ${tc.toolName}(${argsStr})\n`);
               }
               if (evt.type === 'text' && evt.toolResult) {
                 const tr = evt.toolResult;
-                process.stdout.write(`[Tool Result: ${JSON.stringify(tr.result)}]\n`);
+                const resultStr = JSON.stringify(tr.result);
+                process.stdout.write(`← ${resultStr}\n`);
+                hasSeenToolResult = true;
+              }
+              if (evt.type === 'text' && evt.usage) {
+                usageInfo = evt.usage;
+              }
+              if (evt.type === 'object' && evt.usage) {
+                usageInfo = evt.usage;
               }
               if (evt.type === 'object' && evt.result) {
                 const next = JSON.stringify(evt.result, null, 2);
@@ -126,35 +174,60 @@ const runPrompt = async (filepath: string) => {
           }
           console.log(finalObjectString);
         }
-        console.log('\n');
-      } else if ((resp as any).type === 'text') {
-        console.log(String((resp as any).result ?? '(no content)'));
-      } else if ((resp as any).type === 'object') {
-        console.log(JSON.stringify((resp as any).result, null, 2));
-      } else if ((resp as any).type === 'image') {
-        const outputs = (resp as any).result as Array<{ mimeType: string; base64: string }>;
-        const outDir = path.resolve(path.dirname(resolvedFilepath), 'agentmark-output');
-        try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
-        const saved: string[] = [];
-        const timestamp = Date.now();
-        outputs.forEach((img, idx) => {
-          const ext = img.mimeType?.split('/')[1] || 'png';
-          const filePath = path.join(outDir, `image-${idx + 1}-${timestamp}.${ext}`);
-          fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64'));
-          saved.push(filePath);
-        });
-        console.log(saved.length ? `Saved ${saved.length} image(s) to:\n- ${saved.join('\n- ')}` : '(no content)');
-      } else if ((resp as any).type === 'speech') {
-        const audio = (resp as any).result as { mimeType?: string; base64: string; format?: string };
-        const outDir = path.resolve(path.dirname(resolvedFilepath), 'agentmark-output');
-        try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
-        const timestamp = Date.now();
-        const ext = audio.format || (audio.mimeType?.split('/')[1] || 'mp3');
-        const filePath = path.join(outDir, `audio-${timestamp}.${ext}`);
-        fs.writeFileSync(filePath, Buffer.from(audio.base64, 'base64'));
-        console.log(`Saved audio to: ${filePath}`);
+
+        // Display token usage if available
+        if (usageInfo) {
+          const promptTokens = usageInfo.promptTokens || 0;
+          const completionTokens = usageInfo.completionTokens || 0;
+          const totalTokens = usageInfo.totalTokens || (promptTokens + completionTokens);
+          console.log('\n' + '─'.repeat(60));
+          console.log(`Tokens: ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
+          console.log('─'.repeat(60));
+        }
+        console.log('');
       } else {
-        console.log('(no content)');
+        // Non-streaming responses
+        if ((resp as any).type === 'text') {
+          console.log(String((resp as any).result ?? '(no content)'));
+        } else if ((resp as any).type === 'object') {
+          console.log(JSON.stringify((resp as any).result, null, 2));
+        } else if ((resp as any).type === 'image') {
+          const outputs = (resp as any).result as Array<{ mimeType: string; base64: string }>;
+          const outDir = path.resolve(path.dirname(resolvedFilepath), 'agentmark-output');
+          try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
+          const saved: string[] = [];
+          const timestamp = Date.now();
+          outputs.forEach((img, idx) => {
+            const ext = img.mimeType?.split('/')[1] || 'png';
+            const filePath = path.join(outDir, `image-${idx + 1}-${timestamp}.${ext}`);
+            fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64'));
+            saved.push(filePath);
+          });
+          console.log(saved.length ? `Saved ${saved.length} image(s) to:\n- ${saved.join('\n- ')}` : '(no content)');
+        } else if ((resp as any).type === 'speech') {
+          const audio = (resp as any).result as { mimeType?: string; base64: string; format?: string };
+          const outDir = path.resolve(path.dirname(resolvedFilepath), 'agentmark-output');
+          try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
+          const timestamp = Date.now();
+          const ext = audio.format || (audio.mimeType?.split('/')[1] || 'mp3');
+          const filePath = path.join(outDir, `audio-${timestamp}.${ext}`);
+          fs.writeFileSync(filePath, Buffer.from(audio.base64, 'base64'));
+          console.log(`Saved audio to: ${filePath}`);
+        } else {
+          console.log('(no content)');
+        }
+
+        // Display token usage for non-streaming responses
+        const usage = (resp as any).usage;
+        if (usage) {
+          const promptTokens = usage.promptTokens || 0;
+          const completionTokens = usage.completionTokens || 0;
+          const totalTokens = usage.totalTokens || (promptTokens + completionTokens);
+          console.log('\n' + '─'.repeat(60));
+          console.log(`Tokens: ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
+          console.log('─'.repeat(60));
+        }
+        console.log('');
       }
   } catch (error: any) {
     throw new Error(`Error running prompt: ${error.message}`);

@@ -51,10 +51,12 @@ program
   .command("run-prompt <filepath>")
   .description('Run a prompt with test props')
   .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
-  .action(async (filepath: string, options: { server?: string }) => {
+  .option('--props <json>', 'Props as JSON string (e.g., \'{"key": "value"}\')')
+  .option('--props-file <path>', 'Path to JSON or YAML file containing props')
+  .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string }) => {
     try {
       if (options.server) process.env.AGENTMARK_SERVER = options.server;
-      await (runPrompt as any)(filepath);
+      await (runPrompt as any)(filepath, options);
     } catch (error) {
       program.error((error as Error).message);
     }

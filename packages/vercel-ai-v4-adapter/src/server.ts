@@ -25,7 +25,8 @@ export async function createRunnerServer(options: RunnerServerOptions) {
         if (!event.data?.ast) {
           return res.status(400).json({ error: 'Missing data.ast in prompt-run event' });
         }
-        const response = await runner.runPrompt(event.data.ast, event.data.options);
+        const options = { ...event.data.options, customProps: event.data.customProps };
+        const response = await runner.runPrompt(event.data.ast, options);
         if (response?.type === 'stream' && response.stream) {
           res.setHeader('AgentMark-Streaming', 'true');
           if (response.streamHeader) {
@@ -90,6 +91,13 @@ export async function createRunnerServer(options: RunnerServerOptions) {
   await new Promise<void>(resolve => server.listen(port, resolve));
   const addr = server.address();
   const actualPort = typeof addr === 'object' && addr ? addr.port : port;
-  console.log('[agentmark runner] listening on http://localhost:' + actualPort);
+
+  console.log('\n' + '─'.repeat(60));
+  console.log('AgentMark Development Servers');
+  console.log('─'.repeat(60));
+  console.log('  Runner API:    http://localhost:' + actualPort);
+  console.log('  File Watcher:  Active');
+  console.log('─'.repeat(60) + '\n');
+
   return server;
 }

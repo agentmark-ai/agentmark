@@ -118,8 +118,19 @@ export const createExampleApp = async (
       getClientConfigContent({ defaultRootDir: `./agentmark`, provider: modelProvider, languageModels: langModels, target })
     );
 
-    // Create types file
-    fs.writeFileSync(`${targetPath}/agentmark.types.ts`, getTypesFileContent());
+    // Generate types file automatically from the created prompts
+    console.log("Generating types from prompts...");
+    const { fetchPromptsFrontmatter, generateTypeDefinitions } = await import('../../commands/generate-types.js');
+
+    try {
+      const prompts = await fetchPromptsFrontmatter({ rootDir: path.join(targetPath, 'agentmark') });
+      const typesContent = await generateTypeDefinitions(prompts);
+      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, typesContent);
+    } catch (error) {
+      console.error("Error generating types:", error);
+      // Fallback if generation fails
+      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\nexport default interface AgentmarkTypes {}\n`);
+    }
 
     // Create .env file
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, target, apiKey, agentmarkApiKey, agentmarkAppId));
@@ -156,12 +167,20 @@ export const createExampleApp = async (
     `
     );
 
-    console.log("To get started:");
     const folderName = targetPath.replace("./", "");
+
+    console.log('\n' + '═'.repeat(60));
+    console.log('🚀 Get Started');
+    console.log('═'.repeat(60));
     if (folderName !== ".") {
-      console.log(`  cd ${folderName}`);
+      console.log(`\n  $ cd ${folderName}`);
     }
-    console.log(`  npm run dev`);
+    console.log(`  $ npm run dev\n`);
+    console.log('─'.repeat(60));
+    console.log('📚 Deploy to Production');
+    console.log('─'.repeat(60));
+    console.log('  https://docs.agentmark.co/platform/getting_started/quickstart');
+    console.log('═'.repeat(60) + '\n');
   } catch (error) {
     console.error("Error creating example app:", error);
     throw error;
