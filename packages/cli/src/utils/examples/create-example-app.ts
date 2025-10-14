@@ -92,12 +92,9 @@ const setupMCPServer = (client: string, targetPath: string) => {
 export const createExampleApp = async (
   modelProvider: string,
   model: string,
-  target: 'cloud' | 'local' = "cloud",
   client: string,
   targetPath: string = ".",
-  apiKey: string = "",
-  agentmarkApiKey: string = "",
-  agentmarkAppId: string = ""
+  apiKey: string = ""
 ) => {
   try {
     console.log("Creating Agent Mark example app...");
@@ -115,7 +112,7 @@ export const createExampleApp = async (
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
       `${targetPath}/agentmark.config.ts`,
-      getClientConfigContent({ defaultRootDir: `./agentmark`, provider: modelProvider, languageModels: langModels, target })
+      getClientConfigContent({ provider: modelProvider, languageModels: langModels })
     );
 
     // Generate types file automatically from the created prompts
@@ -133,7 +130,7 @@ export const createExampleApp = async (
     }
 
     // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, target, apiKey, agentmarkApiKey, agentmarkAppId));
+    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
 
     // Create .gitignore
     const gitignore = ['node_modules', '.env', 'agentmark-output'].join('\n');
@@ -142,15 +139,15 @@ export const createExampleApp = async (
     // Create the main application file
     fs.writeFileSync(
       `${targetPath}/index.ts`,
-      getIndexFileContent(modelProvider, model, target)
+      getIndexFileContent()
     );
 
     // Create tsconfig.json
     fs.writeJSONSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
     // Setup package.json and install dependencies
-    setupPackageJson(targetPath, target);
-    installDependencies(modelProvider, target, targetPath);
+    setupPackageJson(targetPath);
+    installDependencies(modelProvider, targetPath);
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
@@ -174,7 +171,7 @@ export const createExampleApp = async (
     console.log('═'.repeat(70));
     console.log('\n Initialize Server:');
     if (folderName !== ".") {
-      console.log(`$ cd ${folderName}`);
+      console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
     console.log('  Run with CLI:');

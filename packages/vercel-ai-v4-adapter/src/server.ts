@@ -92,11 +92,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
   const addr = server.address();
   const actualPort = typeof addr === 'object' && addr ? addr.port : port;
 
-  console.log('\n' + '─'.repeat(60));
-  console.log('AgentMark Runner');
-  console.log('─'.repeat(60));
-  console.log('  API Server:  http://localhost:' + actualPort);
-  console.log('─'.repeat(60) + '\n');
+  console.log(`AgentMark Runner listening on http://localhost:${actualPort}`);
 
   return server;
 }

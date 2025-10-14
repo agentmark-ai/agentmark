@@ -1,12 +1,23 @@
 #!/usr/bin/env node
 
 import { program } from "commander";
+import { readFileSync } from "fs";
+import { join } from "path";
 import init from './commands/init';
 import serve from './commands/serve';
+import dev from './commands/dev';
 import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
+
+// Read version from package.json
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
+
+program
+  .version(packageJson.version, '-v, --version', 'Output the current version')
+  .name('agentmark')
+  .description('AgentMark CLI - Build, test, and deploy AI agents');
 
 program
   .command("init")
@@ -20,6 +31,18 @@ program
   .description("Serve the agentmark templates")
   .action((options) => {
     (serve as any)({ port: parseInt(options.port || "9418", 10) });
+  });
+
+program
+  .command("dev")
+  .option("-p, --port <number>", "File server port (default: 9418)")
+  .option("-r, --runner-port <number>", "Runner server port (default: 9417)")
+  .description("Start development servers (file server + runner)")
+  .action(async (options) => {
+    await (dev as any)({
+      port: options.port ? parseInt(options.port, 10) : undefined,
+      runnerPort: options.runnerPort ? parseInt(options.runnerPort, 10) : undefined
+    });
   });
 
 program

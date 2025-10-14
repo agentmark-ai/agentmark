@@ -1,6 +1,5 @@
-export const getIndexFileContent = (modelProvider: string, modelName: string, target: string = 'cloud'): string => {
-  if (target === 'cloud') {
-    return `import "dotenv/config";
+export const getIndexFileContent = (): string => {
+  return `import "dotenv/config";
 import { generateText } from "ai";
 import { client } from "./agentmark.config";
 
@@ -41,36 +40,4 @@ const main = async () => {
 
 main();
 `;
-  } else {
-    return `import "dotenv/config";
-import { generateText } from "ai";
-import { client } from "./agentmark.config";
-
-// Function to run the customer support prompt
-const runCustomerSupport = async (customer_message: string) => {
-  const prompt = await client.loadTextPrompt('customer-support-agent.prompt.mdx');
-  const vercelInput = await prompt.format({
-    props: {
-      customer_question: customer_message,
-    },
-  });
-
-  const result = await generateText(vercelInput);
-  return result.text;
-};
-
-// Main function to execute the example
-const main = async () => {
-  try {
-    const user_message = "How long does shipping take?";
-    const assistant = await runCustomerSupport(user_message);
-    console.log("Customer support response:", assistant);
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-main();
-`;
-  }
 }; 

@@ -9,35 +9,28 @@ const providerApiKeyMap: Record<string, string> = {
 };
 
 export const getEnvFileContent = (
-  modelProvider: string, 
-  target: string = 'cloud', 
-  apiKey: string = '',
-  agentmarkApiKey: string = '',
-  agentmarkAppId: string = ''
+  modelProvider: string,
+  apiKey: string = ''
 ): string => {
   const envVarName = providerApiKeyMap[modelProvider] || `${modelProvider.toUpperCase()}_API_KEY`;
   const apiKeyValue = apiKey || 'your_api_key_here';
-  
+
   // Ollama doesn't need an API key for local usage
   const needsApiKey = modelProvider !== 'ollama';
-  
-  if (target === 'cloud') {
-    let content = `# Add these to your deployed environments. Read: https://docs.agentmark.co/platform/getting_started/quickstart to learn more
-AGENTMARK_API_KEY=
-AGENTMARK_APP_ID=
-AGENTMARK_BASE_URL=http://localhost:9418
+
+  let content = `# Cloud deployment: Set these environment variables
+# AGENTMARK_BASE_URL=https://api.agentmark.co
+# AGENTMARK_API_KEY=your_agentmark_api_key
+# AGENTMARK_APP_ID=your_agentmark_app_id
+# Learn more: https://docs.agentmark.co/platform/getting_started/quickstart
+
 `;
-    if (needsApiKey) {
-      content += `${envVarName}=${apiKeyValue}\n`;
-    }
-    return content;
+
+  if (needsApiKey) {
+    content += `${envVarName}=${apiKeyValue}\n`;
   } else {
-    let content = `# API keys for the model provider\n`;
-    if (needsApiKey) {
-      content += `${envVarName}=${apiKeyValue}\n`;
-    } else {
-      content += `# No API key needed for ${modelProvider}\n`;
-    }
-    return content;
+    content += `# No API key needed for ${modelProvider}\n`;
   }
+
+  return content;
 }; 

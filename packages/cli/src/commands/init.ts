@@ -44,13 +44,6 @@ const init = async (options: { target: string }) => {
   });
   apiKey = providedApiKey || "";
 
-  // Default to local for better development experience
-  const deployTarget = "local";
-
-  // No cloud credentials needed for local mode
-  const agentmarkApiKey = "";
-  const agentmarkAppId = "";
-
   const { client } = await prompts({
     name: "client",
     type: "select",
@@ -65,7 +58,7 @@ const init = async (options: { target: string }) => {
     ],
   });
 
-  createExampleApp(provider, model, deployTarget, client, targetPath, apiKey, agentmarkApiKey, agentmarkAppId);
+  createExampleApp(provider, model, client, targetPath, apiKey);
 
   // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
