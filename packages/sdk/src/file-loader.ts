@@ -63,6 +63,7 @@ export class FileLoader<T extends PromptShape<T>> implements Loader<T> {
 
     const decoder = new TextDecoder();
     let buffer = "";
+    let rowCount = 0;
 
     return new ReadableStream({
       async pull(controller) {
@@ -71,11 +72,26 @@ export class FileLoader<T extends PromptShape<T>> implements Loader<T> {
         if (done) {
           if (buffer.trim()) {
             try {
-              const lastItem = JSON.parse(buffer);
-              controller.enqueue(lastItem);
+              const parsed = JSON.parse(buffer);
+              // Handle case where server returns JSON array instead of NDJSON
+              const items = Array.isArray(parsed) ? parsed : [parsed];
+              for (const item of items) {
+                // Validate that the row has an input field
+                if (!item.input || typeof item.input !== 'object') {
+                  throw new Error(`Invalid dataset row: missing or invalid 'input' field. Each row must have an 'input' object.`);
+                }
+                controller.enqueue(item);
+                rowCount++;
+              }
             } catch (e) {
-              // Ignore parsing errors for incomplete last line
+              if (e instanceof SyntaxError) {
+                throw new Error(`Failed to parse JSON in dataset ${datasetPath}: ${e.message}`);
+              }
+              throw e;
             }
+          }
+          if (rowCount === 0) {
+            throw new Error(`Dataset ${datasetPath} is empty or contains no valid rows`);
           }
           controller.close();
           return;
@@ -88,10 +104,22 @@ export class FileLoader<T extends PromptShape<T>> implements Loader<T> {
         for (const line of lines) {
           if (line.trim()) {
             try {
-              const item = JSON.parse(line);
-              controller.enqueue(item);
+              const parsed = JSON.parse(line);
+              // Handle case where server returns JSON array instead of NDJSON
+              const items = Array.isArray(parsed) ? parsed : [parsed];
+              for (const item of items) {
+                // Validate that the row has an input field
+                if (!item.input || typeof item.input !== 'object') {
+                  throw new Error(`Invalid dataset row: missing or invalid 'input' field. Each row must have an 'input' object.`);
+                }
+                controller.enqueue(item);
+                rowCount++;
+              }
             } catch (e) {
-              console.warn("Failed to parse JSON line:", line);
+              if (e instanceof SyntaxError) {
+                throw new Error(`Failed to parse JSON in dataset ${datasetPath}: ${e.message}`);
+              }
+              throw e;
             }
           }
         }

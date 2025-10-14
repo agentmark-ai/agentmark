@@ -1,0 +1,31 @@
+{
+  "name": "create-agentmark",
+  "version": "1.8.1",
+  "description": "Create AgentMark projects with npm create agentmark",
+  "main": "dist/index.js",
+  "bin": "dist/index.js",
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
+    "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\""
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "agentmark",
+    "ai",
+    "agents",
+    "create-agentmark",
+    "scaffolding"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@agentmark/cli": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

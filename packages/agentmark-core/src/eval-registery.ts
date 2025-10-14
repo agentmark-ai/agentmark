@@ -1,18 +1,18 @@
-import { IEvalRegistry, EvalFunction, EvalJudge } from "./types";
+import { IEvalRegistry, EvalFunction } from "./types";
 
 export class EvalRegistry implements IEvalRegistry {
-  private evals: Map<string, { fn: EvalFunction; judge?: EvalJudge }> = new Map();
+  private evals: Map<string, EvalFunction> = new Map();
 
-  register(name: string | string[], evalFn: EvalFunction, judge?: EvalJudge): this {
+  register(name: string | string[], evalFn: EvalFunction): this {
     if (typeof name === "string") {
-      this.evals.set(name, { fn: evalFn, judge });
+      this.evals.set(name, evalFn);
     } else {
-      name.forEach((n) => this.evals.set(n, { fn: evalFn, judge }));
+      name.forEach((n) => this.evals.set(n, evalFn));
     }
     return this;
   }
 
-  get(name: string): { fn: EvalFunction; judge?: EvalJudge } | undefined {
+  get(name: string): EvalFunction | undefined {
     return this.evals.get(name);
   }
 }

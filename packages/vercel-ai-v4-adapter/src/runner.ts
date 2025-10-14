@@ -167,8 +167,8 @@ export class VercelAdapterRunner {
               const evalNames = item.evals;
               const evaluators = evalNames
                 .map((name: string) => {
-                  const def = evalRegistry.get(name);
-                  return def?.fn ? { name, fn: def.fn } : undefined;
+                  const fn = evalRegistry.get(name);
+                  return fn ? { name, fn } : undefined;
                 })
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(
@@ -233,8 +233,8 @@ export class VercelAdapterRunner {
             if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
               const evaluators = item.evals
                 .map((name: string) => {
-                  const def = evalRegistry.get(name);
-                  return def?.fn ? { name, fn: def.fn } : undefined;
+                  const fn = evalRegistry.get(name);
+                  return fn ? { name, fn } : undefined;
                 })
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(

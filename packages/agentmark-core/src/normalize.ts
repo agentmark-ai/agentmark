@@ -1,5 +1,4 @@
 import { EvalRegistry } from "./eval-registery";
-import { EvalVerdict } from "./types";
 
 export type ResultKind = "text" | "object" | "image" | "speech";
 
@@ -23,20 +22,15 @@ export type NormalizedRow = {
 
 export function attachVerdicts(
   evalRegistry: EvalRegistry,
-  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string }>
+  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; verdict: "pass" | "fail" }>
 ): NormalizedEval[] {
   return evalResults.map((r) => {
-    const def = evalRegistry.get(r.name);
-    if (!def?.judge) {
-      throw new Error(`No judge registered for eval '${r.name}'`);
-    }
-    const verdict = def.judge({ score: r.score ?? 0, label: r.label ?? "", reason: r.reason ?? "" });
     return {
       name: r.name,
       score: r.score,
       label: r.label,
       reason: r.reason,
-      verdict: verdict === EvalVerdict.PASS ? "pass" : "fail",
+      verdict: r.verdict,
     } satisfies NormalizedEval;
   });
 }
@@ -47,7 +41,7 @@ export function normalizeTextRow(params: {
   expected?: unknown;
   text: string;
   evalRegistry: EvalRegistry;
-  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string }>;
+  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; verdict: "pass" | "fail" }>;
   meta?: Record<string, unknown>;
 }): NormalizedRow {
   const evals = attachVerdicts(params.evalRegistry, params.evalResults);
@@ -68,7 +62,7 @@ export function normalizeObjectRow(params: {
   expected?: unknown;
   object: Record<string, unknown>;
   evalRegistry: EvalRegistry;
-  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string }>;
+  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; verdict: "pass" | "fail" }>;
   meta?: Record<string, unknown>;
 }): NormalizedRow {
   const evals = attachVerdicts(params.evalRegistry, params.evalResults);

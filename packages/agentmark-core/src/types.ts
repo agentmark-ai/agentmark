@@ -120,25 +120,19 @@ export interface EvalParams {
 }
 
 export interface EvalResult {
-  score: number; // 0-1 scale
-  label: string; // e.g., "correct", "incorrect", "partially_correct"
-  reason: string; // explanation for the score
+  score?: number; // 0-1 scale
+  label?: string; // e.g., "correct", "incorrect", "partially_correct"
+  reason?: string; // explanation for the score
+  verdict: 'pass' | 'fail'; // pass or fail verdict (required)
 }
 
 export type EvalFunction = (
   params: EvalParams
 ) => Promise<EvalResult> | EvalResult;
 
-export enum EvalVerdict {
-  PASS = 'pass',
-  FAIL = 'fail',
-}
-
-export type EvalJudge = (result: EvalResult) => EvalVerdict;
-
 export interface IEvalRegistry {
-  register: (name: string | string[], evalFn: EvalFunction, judge?: EvalJudge) => void;
-  get: (name: string) => { fn: EvalFunction; judge?: EvalJudge } | undefined;
+  register: (name: string | string[], evalFn: EvalFunction) => void;
+  get: (name: string) => EvalFunction | undefined;
 }
 
 export type DatasetStreamChunk<T> = {

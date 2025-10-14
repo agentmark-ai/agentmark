@@ -174,8 +174,9 @@ export const createExampleApp = async (
       console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
-    console.log('  Run with CLI:');
-    console.log('  $ agentmark run-prompt agentmark/customer-support-agent.prompt.mdx');
+    console.log('  Run Prompts:');
+    console.log('  $ agentmark run-prompt agentmark/customer-support-agent.prompt.mdx\n');
+    console.log('  Run Experiments:');
     console.log('  $ agentmark run-experiment agentmark/customer-support-agent.prompt.mdx');
     console.log('');
     console.log('  Run app demo:');

@@ -54,11 +54,8 @@ _AgentMark prompt file example for generating text_
 
 Get started by first initializing your AgentMark app.
 
-Install the CLI:
-`npm install -g @agentmark/cli@latest`
-
-Init:
-`agentmark init`
+Install:
+`npm create agentmark@latest`
 
 ### Run Prompts
 

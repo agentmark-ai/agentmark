@@ -68,15 +68,28 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
       crlfDelay: Infinity,
     });
 
+    let rowCount = 0;
     return new ReadableStream({
       async start(controller) {
         for await (const line of lines) {
+          if (!line.trim()) continue; // Skip empty lines
           try {
             const jsonData = JSON.parse(line);
+            // Validate that the row has an input field
+            if (!jsonData.input || typeof jsonData.input !== 'object') {
+              throw new Error(`Invalid dataset row at line ${rowCount + 1}: missing or invalid 'input' field. Each row must have an 'input' object.`);
+            }
             controller.enqueue(jsonData);
+            rowCount++;
           } catch (error) {
-            // Skip lines that fail to parse
+            if (error instanceof SyntaxError) {
+              throw new Error(`Failed to parse JSON at line ${rowCount + 1} in dataset ${datasetPath}: ${error.message}`);
+            }
+            throw error;
           }
+        }
+        if (rowCount === 0) {
+          throw new Error(`Dataset ${datasetPath} is empty or contains no valid rows`);
         }
         controller.close();
       },

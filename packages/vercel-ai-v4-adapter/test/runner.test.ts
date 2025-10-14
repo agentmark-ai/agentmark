@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { EvalRegistry, EvalVerdict, FileLoader } from "@agentmark/agentmark-core";
+import { EvalRegistry, FileLoader } from "@agentmark/agentmark-core";
 import { VercelAdapterRunner } from "../src/runner";
 import type { Ast } from "@agentmark/templatedx";
 import type { AgentMark } from "@agentmark/agentmark-core";
@@ -37,8 +37,14 @@ describe("VercelAdapterRunner", () => {
     evals.register("exact_match", async ({ output, expectedOutput }) => {
       const out = typeof output === 'string' ? output : JSON.stringify(output);
       const exp = typeof expectedOutput === 'string' ? expectedOutput : JSON.stringify(expectedOutput);
-      return { score: out === exp ? 1 : 0, label: out === exp ? 'correct' : 'incorrect', reason: '' };
-    }, (result) => result.score === 1 ? EvalVerdict.PASS : EvalVerdict.FAIL);
+      const isMatch = out === exp;
+      return {
+        score: isMatch ? 1 : 0,
+        label: isMatch ? 'correct' : 'incorrect',
+        reason: isMatch ? 'Output matches expected' : 'Output does not match expected',
+        verdict: isMatch ? 'pass' : 'fail'
+      };
+    });
 
     const base = new URL("./fixtures/", import.meta.url).pathname;
     loader = new FileLoader(base);
