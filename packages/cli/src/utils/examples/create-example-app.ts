@@ -169,18 +169,26 @@ export const createExampleApp = async (
 
     const folderName = targetPath.replace("./", "");
 
-    console.log('\n' + '═'.repeat(60));
-    console.log('🚀 Get Started');
-    console.log('═'.repeat(60));
+    console.log('\n' + '═'.repeat(70));
+    console.log('Next Steps');
+    console.log('═'.repeat(70));
+    console.log('\n Initialize Server:');
     if (folderName !== ".") {
-      console.log(`\n  $ cd ${folderName}`);
+      console.log(`$ cd ${folderName}`);
     }
-    console.log(`  $ npm run dev\n`);
-    console.log('─'.repeat(60));
-    console.log('📚 Deploy to Production');
-    console.log('─'.repeat(60));
-    console.log('  https://docs.agentmark.co/platform/getting_started/quickstart');
-    console.log('═'.repeat(60) + '\n');
+    console.log('  $ npm run dev\n');
+    console.log('  Run with CLI:');
+    console.log('  $ agentmark run-prompt agentmark/customer-support-agent.prompt.mdx');
+    console.log('  $ agentmark run-experiment agentmark/customer-support-agent.prompt.mdx');
+    console.log('');
+    console.log('  Run app demo:');
+    console.log('  $ npm run demo');
+    console.log('');
+    console.log('─'.repeat(70));
+    console.log('Resources');
+    console.log('─'.repeat(70));
+    console.log('  Deploy to Production: https://docs.agentmark.co/platform/getting_started/quickstart');
+    console.log('═'.repeat(70) + '\n');
   } catch (error) {
     console.error("Error creating example app:", error);
     throw error;
