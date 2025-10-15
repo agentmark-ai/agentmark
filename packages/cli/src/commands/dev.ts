@@ -46,10 +46,13 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   console.log(`Running with ${adapterName}`);
   console.log('─'.repeat(60));
 
-  // Start file server (agentmark serve)
-  const fileServer = spawn('agentmark', ['serve', '--port', fileServerPort.toString()], {
+  // Start file server directly (json-server)
+  const fileServer = spawn('node', [path.join(__dirname, '../json-server.js')], {
     stdio: 'pipe',
-    env: { ...process.env }
+    env: {
+      ...process.env,
+      PORT: fileServerPort.toString()
+    }
   });
 
   let fileServerStarted = false;

@@ -65,7 +65,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // No debug logging by default
   const server = process.env.AGENTMARK_SERVER || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
-    throw new Error('AGENTMARK_SERVER is required. Run your runner (e.g., npm run serve) and set --server or AGENTMARK_SERVER.');
+    throw new Error('AGENTMARK_SERVER is required. Make sure the dev server is running.');
   }
 
   console.log("Running prompt with dataset...");

@@ -22,7 +22,7 @@ describe('init', () => {
     const tmpDir = path.join(__dirname, '..', 'tmp-gitignore-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      await createExampleApp('openai', 'gpt-4o', 'local', 'skip', tmpDir, '', '', '');
+      await createExampleApp('openai', 'gpt-4o', 'skip', tmpDir, '');
       const gi = fs.readFileSync(path.join(tmpDir, '.gitignore'), 'utf8');
       expect(gi).toContain('node_modules');
       expect(gi).toContain('.env');

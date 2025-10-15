@@ -4,7 +4,6 @@ import { program } from "commander";
 import { readFileSync } from "fs";
 import { join } from "path";
 import init from './commands/init';
-import serve from './commands/serve';
 import dev from './commands/dev';
 import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
@@ -24,14 +23,6 @@ program
   .description("Intialize the agentmark project")
   .option("-t, --target <target>", "Target to initialize the project for")
   .action(init as any);
-
-program
-  .command("serve")
-  .option("-p, --port <number>", "Port to run on (default: 9418)")
-  .description("Serve the agentmark templates")
-  .action((options) => {
-    (serve as any)({ port: parseInt(options.port || "9418", 10) });
-  });
 
 program
   .command("dev")

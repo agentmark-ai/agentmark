@@ -9,7 +9,6 @@ import {
   getTsConfigContent,
   getEnvFileContent,
   createExamplePrompts,
-  getTypesFileContent,
   getClientConfigContent,
 } from "./templates";
 

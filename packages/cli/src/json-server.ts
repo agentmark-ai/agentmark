@@ -6,7 +6,7 @@ import { findPromptFiles } from './commands/generate-types';
 const app = express();
 const PORT = parseInt(process.env.PORT || '9418', 10);
 function safePath(): string {
-  try { return process.env.ROOT_AGENTMARK_PROJECT_PATH || process.cwd(); } catch { return process.env.ROOT_AGENTMARK_PROJECT_PATH || process.env.PWD || process.env.INIT_CWD || '.'; }
+  try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
 }
 const currentPath = safePath();
 const basePath = path.join(currentPath);
