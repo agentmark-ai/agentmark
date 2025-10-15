@@ -3,7 +3,6 @@
 import { program } from "commander";
 import { readFileSync } from "fs";
 import { join } from "path";
-import init from './commands/init';
 import dev from './commands/dev';
 import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
@@ -17,12 +16,6 @@ program
   .version(packageJson.version, '-v, --version', 'Output the current version')
   .name('agentmark')
   .description('AgentMark CLI - Build, test, and deploy AI agents');
-
-program
-  .command("init")
-  .description("Intialize the agentmark project")
-  .option("-t, --target <target>", "Target to initialize the project for")
-  .action(init as any);
 
 program
   .command("dev")
