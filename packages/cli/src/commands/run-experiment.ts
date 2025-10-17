@@ -135,8 +135,11 @@ export default async function runExperiment(filepath: string, options: { skipEva
     throw new Error('AGENTMARK_SERVER is required. Make sure the dev server is running.');
   }
 
-  console.log("Running prompt with dataset...");
-  if (evalEnabled) console.log("🧪 Evaluations enabled");
+  // Only show status messages for table format
+  if (format === 'table') {
+    console.log("Running prompt with dataset...");
+    if (evalEnabled) console.log("🧪 Evaluations enabled");
+  }
 
   const res = await fetch(server, {
     method: 'POST',

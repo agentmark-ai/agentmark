@@ -220,6 +220,9 @@ describe('run-experiment', () => {
     await runExperiment(dummyPath, { format: 'csv' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
+    // Should not contain status messages
+    expect(out).not.toContain('Running prompt with dataset');
+    expect(out).not.toContain('Evaluations enabled');
     // Check CSV header
     expect(out).toMatch(/#,Input,AI Result,Expected Output,exact_match/);
     // Check CSV rows with escaped quotes
@@ -236,6 +239,9 @@ describe('run-experiment', () => {
     await runExperiment(dummyPath, { format: 'json' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
+    // Should not contain status messages
+    expect(out).not.toContain('Running prompt with dataset');
+    expect(out).not.toContain('Evaluations enabled');
     // Parse JSON output
     const jsonMatch = out.match(/^\[[\s\S]*\]$/m);
     expect(jsonMatch).toBeTruthy();
@@ -257,6 +263,9 @@ describe('run-experiment', () => {
     await runExperiment(dummyPath, {});
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
+    // Table format should contain status messages
+    expect(out).toContain('Running prompt with dataset');
+    expect(out).toContain('Evaluations enabled');
     // Table format contains box-drawing characters
     expect(out).toMatch(/[┌│└]/);
   });
