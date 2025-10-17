@@ -11,6 +11,14 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   const runnerPort = options.runnerPort || 9417;
   const cwd = getSafeCwd();
 
+  // Check if dev-server.ts exists
+  const devServerPath = path.join(cwd, 'dev-server.ts');
+  if (!fs.existsSync(devServerPath)) {
+    console.error('Error: dev-server.ts not found in current directory');
+    console.error('Run this command from your AgentMark project root');
+    process.exit(1);
+  }
+
   // Check if agentmark.config.ts exists
   const configPath = path.join(cwd, 'agentmark.config.ts');
   if (!fs.existsSync(configPath)) {
@@ -46,94 +54,32 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   console.log(`Running with ${adapterName}`);
   console.log('─'.repeat(60));
 
-  // Start file server directly (json-server)
-  const fileServer = spawn('node', [path.join(__dirname, '../json-server.js')], {
-    stdio: 'pipe',
-    env: {
-      ...process.env,
-      PORT: fileServerPort.toString()
-    }
+  // Start dev server
+  const devServer = spawn('npx', ['tsx', '--watch', 'dev-server.ts', `--runner-port=${runnerPort}`, `--file-port=${fileServerPort}`], {
+    stdio: 'inherit',
+    cwd
   });
 
-  let fileServerStarted = false;
-
-  fileServer.stdout.on('data', (data) => {
-    const output = data.toString();
-    if (output.includes('Running on port') && !fileServerStarted) {
-      fileServerStarted = true;
-      console.log(`  Files served on:  http://localhost:${fileServerPort}`);
-    }
-  });
-
-  fileServer.stderr.on('data', (data) => {
-    console.error(`[File Server Error] ${data}`);
-  });
-
-  fileServer.on('error', (error) => {
-    console.error('Failed to start file server:', error.message);
+  devServer.on('error', (error) => {
+    console.error('Failed to start dev server:', error.message);
     process.exit(1);
   });
 
-  // Wait a bit for file server to start, then start runner
-  setTimeout(() => {
-    const runner = spawn('npx', ['tsx', '--watch', 'agentmark.config.ts'], {
-      stdio: 'pipe',
-      env: { ...process.env },
-      cwd
-    });
-
-    let runnerStarted = false;
-
-    runner.stdout.on('data', (data) => {
-      const output = data.toString();
-      if (output.includes('listening on') && !runnerStarted) {
-        runnerStarted = true;
-        console.log(`  CLI served on:    http://localhost:${runnerPort}`);
-        console.log('─'.repeat(60) + '\n');
-        console.log('Ready! Use these CLI commands:');
-        console.log('  $ agentmark run-prompt agentmark/<your-prompt>.prompt.mdx');
-        console.log('  $ agentmark run-experiment agentmark/<your-prompt>.prompt.mdx');
-        console.log('\nPress Ctrl+C to stop all servers\n');
-      } else {
-        // Pass through other output
-        process.stdout.write(output);
-      }
-    });
-
-    runner.stderr.on('data', (data) => {
-      process.stderr.write(data);
-    });
-
-    runner.on('error', (error) => {
-      console.error('Failed to start runner:', error.message);
-      fileServer.kill();
-      process.exit(1);
-    });
-
-    runner.on('exit', (code) => {
-      console.log(`\nRunner exited with code ${code}`);
-      fileServer.kill();
-      process.exit(code || 0);
-    });
-
-    // Handle process termination
-    process.on('SIGINT', () => {
-      console.log('\nShutting down servers...');
-      runner.kill();
-      fileServer.kill();
-      process.exit(0);
-    });
-
-    process.on('SIGTERM', () => {
-      runner.kill();
-      fileServer.kill();
-      process.exit(0);
-    });
-  }, 1000);
-
-  fileServer.on('exit', (code) => {
-    console.log(`\nFile server exited with code ${code}`);
+  devServer.on('exit', (code) => {
+    console.log(`\nDev server exited with code ${code}`);
     process.exit(code || 0);
+  });
+
+  // Handle process termination
+  process.on('SIGINT', () => {
+    console.log('\nShutting down servers...');
+    devServer.kill();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', () => {
+    devServer.kill();
+    process.exit(0);
   });
 };
 

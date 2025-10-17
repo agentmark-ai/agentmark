@@ -3,8 +3,25 @@ import { spawn, ChildProcess } from 'node:child_process';
 import net from 'node:net';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { getDevServerContent } from '../src/utils/examples/templates/dev-server';
 
 function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+function setupTestDir(tmp: string) {
+  // Create package.json for proper module resolution
+  fs.writeFileSync(path.join(tmp, 'package.json'), JSON.stringify({ name: 'test-app', type: 'module' }, null, 2));
+
+  // Symlink node_modules from monorepo root to temp dir
+  const monorepoRoot = path.resolve(__dirname, '../../..');
+  const nodeModulesSource = path.join(monorepoRoot, 'node_modules');
+  const nodeModulesTarget = path.join(tmp, 'node_modules');
+  try {
+    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, 'dir');
+  } catch (e: any) {
+    // Ignore if symlink already exists
+    if (e.code !== 'EEXIST') throw e;
+  }
+}
 
 async function getFreePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -68,6 +85,9 @@ describe('agentmark dev', () => {
     tmpDirs.push(tmp);
     fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
 
+    // Setup test directory with node_modules
+    setupTestDir(tmp);
+
     // Create required files
     fs.writeFileSync(path.join(tmp, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tmp, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo Prompt');
@@ -87,6 +107,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
+    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -101,11 +122,29 @@ export const client = new AgentMark({ prompt: {}, adapter });
 
     processes.push(child);
 
+    // Capture output for debugging
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.on('data', (data) => { stdout += data.toString(); });
+    child.stderr?.on('data', (data) => { stderr += data.toString(); });
+
     // Wait for servers to start
     await wait(3000);
 
+    // Debug: print output if servers didn't start
+    if (stderr) {
+      console.log('STDERR:', stderr);
+    }
+    if (stdout) {
+      console.log('STDOUT:', stdout);
+    }
+
     // Test file server /v1/prompts endpoint
     const listResp = await fetch(`http://localhost:${filePort}/v1/prompts`);
+    if (!listResp.ok) {
+      const errorText = await listResp.text();
+      console.log(`Response status: ${listResp.status}, body: ${errorText}`);
+    }
     expect(listResp.ok).toBe(true);
     const { paths } = await listResp.json() as any;
     expect(Array.isArray(paths)).toBe(true);
@@ -118,10 +157,25 @@ export const client = new AgentMark({ prompt: {}, adapter });
     expect(text.trim().length).toBeGreaterThan(0);
   }, 15000); // Increase timeout for this test
 
-  it('fails gracefully when agentmark.config.ts is missing', async () => {
-    const tmp = path.join(__dirname, '..', 'tmp-dev-no-config-' + Date.now());
+  it('fails gracefully when dev-server.ts is missing', async () => {
+    const tmp = path.join(__dirname, '..', 'tmp-dev-no-devserver-' + Date.now());
     tmpDirs.push(tmp);
     fs.mkdirSync(tmp, { recursive: true });
+
+    // Create agentmark.config.ts but NOT dev-server.ts
+    const configContent = `
+import { AgentMark } from '@agentmark/agentmark-core';
+import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark/vercel-ai-v4-adapter';
+import { createOpenAI } from '@ai-sdk/openai';
+
+const openai = createOpenAI({ apiKey: 'test-key' });
+const modelRegistry = new VercelAIModelRegistry();
+modelRegistry.registerModels(['gpt-4o'], (name: string) => openai(name));
+
+const adapter = new VercelAIAdapter(modelRegistry);
+export const client = new AgentMark({ prompt: {}, adapter });
+`;
+    fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -139,13 +193,16 @@ export const client = new AgentMark({ prompt: {}, adapter });
 
     await wait(1000);
 
-    expect(stderr).toContain('agentmark.config.ts not found');
+    expect(stderr).toContain('dev-server.ts not found');
   });
 
   it('detects and displays the correct adapter name', async () => {
     const tmp = path.join(__dirname, '..', 'tmp-dev-adapter-' + Date.now());
     tmpDirs.push(tmp);
     fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
+
+    // Setup test directory with node_modules
+    setupTestDir(tmp);
 
     fs.writeFileSync(path.join(tmp, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tmp, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
@@ -164,6 +221,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
+    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -190,6 +248,9 @@ export const client = new AgentMark({ prompt: {}, adapter });
     tmpDirs.push(tmp);
     fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
 
+    // Setup test directory with node_modules
+    setupTestDir(tmp);
+
     fs.writeFileSync(path.join(tmp, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tmp, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
 
@@ -206,6 +267,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
+    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const customFilePort = await getFreePort();
@@ -231,6 +293,9 @@ export const client = new AgentMark({ prompt: {}, adapter });
     tmpDirs.push(tmp);
     fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
 
+    // Setup test directory with node_modules
+    setupTestDir(tmp);
+
     fs.writeFileSync(path.join(tmp, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tmp, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
 
@@ -247,6 +312,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
+    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();

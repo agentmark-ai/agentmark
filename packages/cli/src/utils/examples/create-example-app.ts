@@ -10,6 +10,7 @@ import {
   getEnvFileContent,
   createExamplePrompts,
   getClientConfigContent,
+  getDevServerContent,
 } from "./templates";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -112,6 +113,12 @@ export const createExampleApp = async (
     fs.writeFileSync(
       `${targetPath}/agentmark.config.ts`,
       getClientConfigContent({ provider: modelProvider, languageModels: langModels })
+    );
+
+    // Create dev-server.ts for running the development server
+    fs.writeFileSync(
+      `${targetPath}/dev-server.ts`,
+      getDevServerContent()
     );
 
     // Generate types file automatically from the created prompts

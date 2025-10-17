@@ -53,15 +53,7 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     if (!datasetPath.endsWith(".jsonl"))
       throw new Error("Dataset must be a JSON Lines file (.jsonl)");
 
-    let fullPath = path.join(this.basePath, datasetPath);
-    if (!fs.existsSync(fullPath)) {
-      const basename = path.basename(datasetPath);
-      const alt = path.join(this.basePath, 'templates', basename);
-      if (fs.existsSync(alt)) fullPath = alt;
-    }
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`Dataset not found: ${datasetPath}`);
-    }
+    const fullPath = path.join(this.basePath, datasetPath);
     const fileStream = fs.createReadStream(fullPath, { encoding: "utf8" });
     const lines = readline.createInterface({
       input: fileStream,

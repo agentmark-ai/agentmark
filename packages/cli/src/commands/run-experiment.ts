@@ -20,20 +20,55 @@ const getTerminalWidth = (): number => {
 
 type LayoutResult = { head: string[]; colWidths: number[]; };
 
-const computeLayout = (baseHead: string[], evalNames: string[] = []): LayoutResult => {
+const computeLayout = (baseHead: string[], evalNames: string[] = [], sampleRows: string[][] = []): LayoutResult => {
   const head = [...baseHead, ...evalNames];
   const terminalWidth = getTerminalWidth();
   const overhead = (head.length + 1) * 3;
-  const mins = head.map((h, idx) => idx === 0 ? 3 : Math.max(Math.min(h.length + 4, 18), 10));
   const available = terminalWidth - overhead;
-  const sumMins = mins.reduce((a, b) => a + b, 0);
-  if (available <= sumMins) return { head, colWidths: mins };
-  const weights = head.map((h, idx) => idx === 0 ? 1 : (h === 'AI Result' ? 4 : 3));
-  const extra = available - sumMins;
+
+  // Set absolute minimums based on column type (bare minimum for readability)
+  const absoluteMins = head.map((h, idx) => {
+    if (idx === 0) return 3; // # column
+    if (h === 'Input' || h === 'AI Result' || h === 'Expected Output') return 20; // Data columns
+    return 15; // Eval columns
+  });
+
+  // Define weights for space distribution
+  const weights = head.map((h, idx) => {
+    if (idx === 0) return 1;
+    if (h === 'AI Result') return 8;
+    if (h === 'Input' || h === 'Expected Output') return 6;
+    return 2; // Eval columns
+  });
+
+  // Calculate total weight and minimum space needed
+  const sumAbsoluteMins = absoluteMins.reduce((a, b) => a + b, 0);
+
+  // If we don't have enough space for even the minimums, scale everything down proportionally
+  if (available <= sumAbsoluteMins) {
+    const scaleFactor = available / sumAbsoluteMins;
+    return {
+      head,
+      colWidths: absoluteMins.map((min, idx) => Math.max(
+        idx === 0 ? 3 : 10, // Never go below 3 for #, 10 for others
+        Math.floor(min * scaleFactor)
+      ))
+    };
+  }
+
+  // We have space - distribute it proportionally based on weights
   const weightSum = weights.reduce((a, b) => a + b, 0);
-  const widths = mins.map((min, i) => min + Math.floor((extra * weights[i]) / weightSum));
+  const widths = weights.map((weight, idx) => {
+    const proportionalWidth = Math.floor((available * weight) / weightSum);
+    return Math.max(absoluteMins[idx], proportionalWidth);
+  });
+
+  // Adjust for rounding errors
   const diff = available - widths.reduce((a, b) => a + b, 0);
-  widths[widths.length - 1] += diff;
+  if (diff !== 0) {
+    widths[widths.length - 1] += diff;
+  }
+
   return { head, colWidths: widths };
 };
 
@@ -45,8 +80,40 @@ function resolveAgainstCwdOrEnv(inputPath: string): string {
   return path.resolve(base, inputPath);
 }
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; thresholdPercent?: number }) {
+// Format helper functions
+function escapeCSV(value: string): string {
+  // Escape double quotes and wrap in quotes if contains comma, newline, or quote
+  if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function formatAsCSV(headers: string[], rows: string[][]): string {
+  const csvLines: string[] = [];
+  // Add header
+  csvLines.push(headers.map(h => escapeCSV(h)).join(','));
+  // Add rows
+  for (const row of rows) {
+    csvLines.push(row.map(cell => escapeCSV(cell)).join(','));
+  }
+  return csvLines.join('\n');
+}
+
+function formatAsJSON(headers: string[], rows: string[][]): string {
+  const jsonRows = rows.map(row => {
+    const obj: Record<string, string> = {};
+    headers.forEach((header, idx) => {
+      obj[header] = row[idx] || '';
+    });
+    return obj;
+  });
+  return JSON.stringify(jsonRows, null, 2);
+}
+
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number }) {
   const evalEnabled = !options.skipEval;
+  const format = options.format || 'table';
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
   if (!fs.existsSync(resolvedFilepath)) throw new Error(`File not found: ${resolvedFilepath}`);
   // Ensure runner client resolves prompt-relative resources (datasets, etc.)
@@ -93,14 +160,22 @@ export default async function runExperiment(filepath: string, options: { skipEva
   }
   const stream = res.body!;
 
+  // Buffer all rows first, then calculate layout and render
+  type RowData = {
+    index: number;
+    row: string[];
+    extraPaths: Array<{ rel: string; kind: 'image' | 'audio' }>;
+    evals: any[];
+  };
+  const bufferedRows: RowData[] = [];
   let index = 1;
   let totalEvals = 0; let passedEvals = 0;
-  let headerPrinted = false;
   let evalNames: string[] = [];
-  let layout: LayoutResult | null = null;
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffered = '';
+
+  // Phase 1: Buffer all data
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -159,64 +234,92 @@ export default async function runExperiment(filepath: string, options: { skipEva
           }
           const evals = Array.isArray(r.evals) ? r.evals : [];
 
-          // Initialize header and layout on first row, including eval names when enabled
-          if (!headerPrinted) {
+          // Get eval names from first row
+          if (bufferedRows.length === 0) {
             evalNames = evalEnabled ? evals.map((e: any) => e.name).filter(Boolean) : [];
-            layout = computeLayout(['#', 'Input', 'AI Result', 'Expected Output'], evalNames);
-            const Table = await getTable();
-            const headerTable = new Table({ head: layout.head, colWidths: layout.colWidths, wordWrap: true });
-            console.log(headerTable.toString());
-            headerPrinted = true;
           }
 
-          const Table = await getTable();
-          const rowTable = new Table({ colWidths: (layout as LayoutResult).colWidths, wordWrap: true, style: { head: [] } });
+          // Build row data
           const row: string[] = [String(index), input, actual, expected];
-          for (const name of evalNames) {
-            const e = evals.find((ev: any) => ev.name === name);
-            if (e) {
-              // Only display verdict if it's present, otherwise show score/label/reason directly
-              if (typeof e.verdict === 'string' && (e.verdict === 'pass' || e.verdict === 'fail')) {
-                const isPass = e.verdict === 'pass';
-                const verdictText = isPass ? 'PASS' : 'FAIL';
-                const scorePart = typeof e.score === 'number' ? e.score.toFixed(2) : '';
-                const reasonPart = typeof e.reason === 'string' && e.reason ? ` - ${e.reason}` : '';
-                const suffix = scorePart || reasonPart ? ` (${scorePart}${reasonPart})` : '';
-                row.push(`${verdictText}${suffix}`);
-                totalEvals += 1;
-                if (isPass) passedEvals += 1;
-              } else {
-                // No verdict - just show the raw eval properties
-                const parts: string[] = [];
-                if (typeof e.score === 'number') parts.push(`score: ${e.score.toFixed(2)}`);
-                if (typeof e.label === 'string' && e.label) parts.push(`label: ${e.label}`);
-                if (typeof e.reason === 'string' && e.reason) parts.push(`reason: ${e.reason}`);
-                row.push(parts.length > 0 ? parts.join(', ') : 'N/A');
-              }
-            } else {
-              row.push('N/A');
-            }
-          }
-          rowTable.push(row);
-          const tableString = rowTable.toString();
-          const lines = tableString.split('\n');
-          console.log(lines.slice(1, -1).join('\n'));
-          if (extraPaths.length) {
-            // Print relative paths on separate lines so IDE terminals can Cmd+Click them
-            for (const p of extraPaths) {
-              const label = p.kind === 'image' ? 'Image path' : 'Audio path';
-              console.log(`${label}: ${p.rel}`);
-            }
-          }
-          // Add separator line between rows
-          const totalWidth = (layout as LayoutResult).colWidths.reduce((a, b) => a + b, 0) + ((layout as LayoutResult).colWidths.length + 1) * 3;
-          console.log('─'.repeat(totalWidth));
+          bufferedRows.push({ index, row, extraPaths, evals });
           index += 1;
         } catch {}
       }
     }
   } finally {
     reader.releaseLock();
+  }
+
+  // Phase 2: Build full rows with eval data
+  const headers = ['#', 'Input', 'AI Result', 'Expected Output', ...evalNames];
+  const fullRows: string[][] = [];
+
+  for (const { row, extraPaths, evals } of bufferedRows) {
+    const fullRow = [...row];
+
+    for (const name of evalNames) {
+      const e = evals.find((ev: any) => ev.name === name);
+      if (e) {
+        // Only display verdict if it's present, otherwise show score/label/reason directly
+        if (typeof e.verdict === 'string' && (e.verdict === 'pass' || e.verdict === 'fail')) {
+          const isPass = e.verdict === 'pass';
+          const verdictText = isPass ? 'PASS' : 'FAIL';
+          const scorePart = typeof e.score === 'number' ? e.score.toFixed(2) : '';
+          const reasonPart = typeof e.reason === 'string' && e.reason ? ` - ${e.reason}` : '';
+          const suffix = scorePart || reasonPart ? ` (${scorePart}${reasonPart})` : '';
+          fullRow.push(`${verdictText}${suffix}`);
+          totalEvals += 1;
+          if (isPass) passedEvals += 1;
+        } else {
+          // No verdict - just show the raw eval properties
+          const parts: string[] = [];
+          if (typeof e.score === 'number') parts.push(`score: ${e.score.toFixed(2)}`);
+          if (typeof e.label === 'string' && e.label) parts.push(`label: ${e.label}`);
+          if (typeof e.reason === 'string' && e.reason) parts.push(`reason: ${e.reason}`);
+          fullRow.push(parts.length > 0 ? parts.join(', ') : 'N/A');
+        }
+      } else {
+        fullRow.push('N/A');
+      }
+    }
+
+    fullRows.push(fullRow);
+  }
+
+  // Phase 3: Render based on format
+  if (format === 'csv') {
+    console.log(formatAsCSV(headers, fullRows));
+  } else if (format === 'json') {
+    console.log(formatAsJSON(headers, fullRows));
+  } else {
+    // Table format (default)
+    const sampleRows = bufferedRows.map(r => r.row);
+    const layout = computeLayout(['#', 'Input', 'AI Result', 'Expected Output'], evalNames, sampleRows);
+
+    const Table = await getTable();
+    const table = new Table({
+      head: layout.head,
+      colWidths: layout.colWidths,
+      wordWrap: true
+    });
+
+    // Add all rows to the table
+    for (const fullRow of fullRows) {
+      table.push(fullRow);
+    }
+
+    // Print the complete table
+    console.log(table.toString());
+
+    // Print media file paths after the table
+    for (const { extraPaths } of bufferedRows) {
+      if (extraPaths.length) {
+        for (const p of extraPaths) {
+          const label = p.kind === 'image' ? 'Image path' : 'Audio path';
+          console.log(`${label}: ${p.rel}`);
+        }
+      }
+    }
   }
 
   if (evalEnabled && totalEvals > 0 && options.thresholdPercent !== undefined) {

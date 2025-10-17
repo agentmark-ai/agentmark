@@ -74,17 +74,22 @@ program
   .description('Run an experiment against its dataset, with evals by default')
   .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
   .option('--skip-eval', 'Skip running evals even if they exist')
+  .option('--format <format>', 'Output format: table, csv, or json (default: table)')
   .option('--threshold <percent>', 'Fail if pass percentage is below threshold (0-100)', (v) => {
     const n = parseInt(v, 10);
     if (!Number.isFinite(n)) throw new Error('Threshold must be a number');
     if (n < 0 || n > 100) throw new Error('Threshold must be between 0 and 100');
     return n;
   })
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, threshold?: number }) => {
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number }) => {
     try {
       if (options.server) process.env.AGENTMARK_SERVER = options.server;
+      const format = options.format || 'table';
+      if (!['table', 'csv', 'json'].includes(format)) {
+        throw new Error('Format must be one of: table, csv, json');
+      }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
-      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, thresholdPercent });
+      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent });
     } catch (error) {
       program.error((error as Error).message);
     }

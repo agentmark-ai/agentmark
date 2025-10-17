@@ -10,6 +10,7 @@ import {
   getEnvFileContent,
   createExamplePrompts,
   getClientConfigContent,
+  getDevServerContent,
 } from "./templates";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -139,6 +140,12 @@ export const createExampleApp = async (
     fs.writeFileSync(
       `${targetPath}/index.ts`,
       getIndexFileContent()
+    );
+
+    // Create dev-server.ts for development
+    fs.writeFileSync(
+      `${targetPath}/dev-server.ts`,
+      getDevServerContent()
     );
 
     // Create tsconfig.json

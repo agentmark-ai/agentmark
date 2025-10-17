@@ -13,7 +13,7 @@ import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { EvalRegistry } from "@agentmark/agentmark-core";
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, createRunnerServer } from "@agentmark/vercel-ai-v4-adapter";
+import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/vercel-ai-v4-adapter";
 import { AgentMarkSDK } from "@agentmark/sdk";
 import AgentMarkTypes from './agentmark.types';
 ${providerImport}
@@ -81,13 +81,5 @@ export function createClient(ctx: { env?: Record<string,string|undefined> } = { 
 }
 
 export const client = createClient();
-
-// Start runner server when executed directly
-if (require.main === module) {
-  createRunnerServer({ client: client as any, port: 9417 }).catch(err => {
-    console.error(err);
-    process.exit(1);
-  });
-}
 `;
 };

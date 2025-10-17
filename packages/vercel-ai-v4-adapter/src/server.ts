@@ -2,9 +2,17 @@ import express, { type Request, type Response } from 'express';
 import { createServer } from 'node:http';
 import type { AgentMark } from '@agentmark/agentmark-core';
 import { VercelAdapterRunner } from './runner';
+import fs from 'node:fs';
+import path from 'node:path';
 
 export interface RunnerServerOptions {
   port?: number;
+  client: AgentMark<any, any>;
+}
+
+export interface DevServerOptions {
+  runnerPort?: number;
+  fileServerPort?: number;
   client: AgentMark<any, any>;
 }
 
@@ -92,4 +100,128 @@ export async function createRunnerServer(options: RunnerServerOptions) {
   console.log(`AgentMark Runner listening on http://localhost:${actualPort}`);
 
   return server;
+}
+
+async function createFileServer(port: number) {
+  const app = express();
+
+  function safePath(): string {
+    try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
+  }
+
+  const currentPath = safePath();
+  const basePath = path.join(currentPath);
+  let agentmarkTemplatesBase = path.join(basePath, 'agentmark');
+
+  try {
+    const jsonPath = path.join(currentPath, 'agentmark.json');
+    if (fs.existsSync(jsonPath)) {
+      const agentmarkJson = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      if (agentmarkJson?.agentmarkPath) {
+        agentmarkTemplatesBase = path.join(basePath, agentmarkJson.agentmarkPath, 'agentmark');
+      }
+    }
+  } catch {}
+
+  app.get('/v1/templates', async (req: any, res: any) => {
+    const filePath = req.query.path as string;
+    if (!filePath) {
+      return res.status(400).json({ error: 'Path query parameter is required' });
+    }
+
+    const normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+    let fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
+    if (!fs.existsSync(fullPath) && filePath.endsWith('.jsonl')) {
+      const alt = path.join(agentmarkTemplatesBase, 'templates', path.basename(filePath));
+      if (fs.existsSync(alt)) fullPath = alt;
+    }
+
+    try {
+      if (fullPath.endsWith('.jsonl')) {
+        if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Dataset not found' });
+        const accept = (req.get('accept') || '').toLowerCase();
+        const explicitlyNdjson = accept.includes('application/x-ndjson');
+        const wantsJsonArray = req.query.format === 'json' || !explicitlyNdjson;
+        if (wantsJsonArray) {
+          try {
+            const lines = fs.readFileSync(fullPath, 'utf-8').split(/\r?\n/).filter(Boolean);
+            const arr = lines.map((l: string) => JSON.parse(l));
+            return res.json(arr);
+          } catch (e) {
+            return res.status(500).json({ error: 'Failed to read dataset' });
+          }
+        }
+        res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+        return fs.createReadStream(fullPath).pipe(res);
+      }
+
+      const { parse } = await import('@agentmark/templatedx');
+      const fileContent = fs.readFileSync(fullPath, 'utf-8');
+      const data = await parse(fileContent, path.dirname(fullPath), async (p: string) => {
+        const resolved = path.isAbsolute(p) ? p : path.join(path.dirname(fullPath), p);
+        return fs.readFileSync(resolved, 'utf-8');
+      });
+      return res.json({ data });
+    } catch (error) {
+      return res.status(404).json({ error: 'File not found or invalid' });
+    }
+  });
+
+  app.post('/v1/export-traces', (req: any, res: any) => {
+    return res.json({ success: true });
+  });
+
+  app.get('/v1/prompts', async (req: any, res: any) => {
+    try {
+      // Try to dynamically import CLI's findPromptFiles function
+      // This may fail if @agentmark/cli is not available (e.g., in tests or other packages)
+      let findPromptFiles;
+      try {
+        const cliModule = await import('@agentmark/cli/dist/commands/generate-types.js');
+        findPromptFiles = cliModule.findPromptFiles;
+      } catch (importError) {
+        // Fallback: manually find .prompt.mdx files if CLI isn't available
+        const glob = await import('glob');
+        const pattern = '**/*.prompt.mdx';
+        const files = glob.sync(pattern, { cwd: agentmarkTemplatesBase, absolute: true });
+        return res.json({ paths: files.map((file: string) => path.relative(agentmarkTemplatesBase, file)) });
+      }
+
+      const promptFiles = await findPromptFiles(agentmarkTemplatesBase);
+      const paths = promptFiles.map((file: string) => path.relative(agentmarkTemplatesBase, file));
+      res.json({ paths });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to list prompts' });
+    }
+  });
+
+  return new Promise((resolve) => {
+    const server = app.listen(port, () => {
+      console.log(`File server running on port ${port}...`);
+      resolve(server);
+    });
+  });
+}
+
+export async function createDevServers(options: DevServerOptions) {
+  const { runnerPort = 9417, fileServerPort = 9418, client } = options;
+
+  // Start file server
+  const fileServer = await createFileServer(fileServerPort);
+
+  // Start runner server
+  const runnerServer = await createRunnerServer({ port: runnerPort, client });
+
+  console.log('\n' + '─'.repeat(60));
+  console.log('AgentMark Development Servers Started');
+  console.log('─'.repeat(60));
+  console.log(`  Files served on:  http://localhost:${fileServerPort}`);
+  console.log(`  CLI served on:    http://localhost:${runnerPort}`);
+  console.log('─'.repeat(60) + '\n');
+  console.log('Ready! Use these CLI commands:');
+  console.log('  $ agentmark run-prompt agentmark/<your-prompt>.prompt.mdx');
+  console.log('  $ agentmark run-experiment agentmark/<your-prompt>.prompt.mdx');
+  console.log('\nPress Ctrl+C to stop all servers\n');
+
+  return { fileServer, runnerServer };
 }
