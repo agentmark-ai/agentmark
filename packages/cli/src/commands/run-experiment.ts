@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs";
 import type { Root } from "mdast";
+import { pathToFileURL } from "url";
+
 // Lazy-load cli-table3 so other commands (e.g., serve) don't pull ESM deps
 let _Table: any;
 async function getTable() {
@@ -9,8 +11,6 @@ async function getTable() {
   _Table = (mod as any).default || (mod as any);
   return _Table;
 }
-// HTTP-only: talk to server specified by AGENTMARK_SERVER
-import { pathToFileURL } from "url";
 
 
 const getTerminalWidth = (): number => {
@@ -111,7 +111,7 @@ function formatAsJSON(headers: string[], rows: string[][]): string {
   return JSON.stringify(jsonRows, null, 2);
 }
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number }) {
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
@@ -129,10 +129,10 @@ export default async function runExperiment(filepath: string, options: { skipEva
     const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
     datasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
   } catch {}
-  // No debug logging by default
-  const server = process.env.AGENTMARK_SERVER || 'http://localhost:9417';
+
+  const server = options.server || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
-    throw new Error('AGENTMARK_SERVER is required. Make sure the dev server is running.');
+    throw new Error('Server URL is required. Make sure the dev server is running.');
   }
 
   // Only show status messages for table format

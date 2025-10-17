@@ -62,7 +62,6 @@ program
   .option('--props-file <path>', 'Path to JSON or YAML file containing props')
   .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string }) => {
     try {
-      if (options.server) process.env.AGENTMARK_SERVER = options.server;
       await (runPrompt as any)(filepath, options);
     } catch (error) {
       program.error((error as Error).message);
@@ -83,13 +82,12 @@ program
   })
   .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number }) => {
     try {
-      if (options.server) process.env.AGENTMARK_SERVER = options.server;
       const format = options.format || 'table';
       if (!['table', 'csv', 'json'].includes(format)) {
         throw new Error('Format must be one of: table, csv, json');
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
-      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent });
+      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
     } catch (error) {
       program.error((error as Error).message);
     }

@@ -123,7 +123,6 @@ describe('run-experiment', () => {
     dummyPath = join(__dirname, '..', 'tmp-experiment.mdx');
     writeFileSync(dummyPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
     currentRunner = null;
-    process.env.AGENTMARK_SERVER = 'http://localhost:9417';
   });
 
   afterEach(() => {
@@ -136,7 +135,7 @@ describe('run-experiment', () => {
   it('passes threshold when all evals PASS', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-    await runExperiment(dummyPath, { thresholdPercent: 100 });
+    await runExperiment(dummyPath, { thresholdPercent: 100, server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Experiment passed threshold/);
   });
@@ -150,7 +149,7 @@ describe('run-experiment', () => {
   it('honors --skip-eval and does not enforce threshold', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-    await runExperiment(dummyPath, { skipEval: true, thresholdPercent: 100 });
+    await runExperiment(dummyPath, { skipEval: true, thresholdPercent: 100, server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).not.toMatch(/Experiment failed/);
   });
@@ -182,7 +181,7 @@ describe('run-experiment', () => {
     } as any;
 
     const runExperimentCmd = (await import('../src/commands/run-experiment')).default;
-    await runExperimentCmd(tempPath, { skipEval: false });
+    await runExperimentCmd(tempPath, { skipEval: false, server: 'http://localhost:9417' });
 
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     // Verify we have a table with two eval columns
@@ -217,7 +216,7 @@ describe('run-experiment', () => {
       { dataset: { input: { b: 2 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }
     ]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-    await runExperiment(dummyPath, { format: 'csv' });
+    await runExperiment(dummyPath, { format: 'csv', server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
     // Should not contain status messages
@@ -236,7 +235,7 @@ describe('run-experiment', () => {
       { dataset: { input: { b: 2 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }
     ]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-    await runExperiment(dummyPath, { format: 'json' });
+    await runExperiment(dummyPath, { format: 'json', server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
     // Should not contain status messages
@@ -260,7 +259,7 @@ describe('run-experiment', () => {
   it('defaults to table format when no format is specified', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
     runExperiment = (await import('../src/commands/run-experiment')).default;
-    await runExperiment(dummyPath, {});
+    await runExperiment(dummyPath, { server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
     // Table format should contain status messages

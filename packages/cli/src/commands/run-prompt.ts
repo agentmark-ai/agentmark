@@ -1,10 +1,6 @@
 import path from "path";
 import fs from "fs";
 import type { Root } from "mdast";
-// HTTP-only: talk to server specified by AGENTMARK_SERVER
-
-// For non-text/object types, print JSON result
-
 
 function resolveAgainstCwdOrEnv(inputPath: string): string {
   if (path.isAbsolute(inputPath)) return inputPath;
@@ -17,6 +13,7 @@ function resolveAgainstCwdOrEnv(inputPath: string): string {
 interface RunPromptOptions {
   props?: string;
   propsFile?: string;
+  server?: string;
 }
 
 const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
@@ -74,9 +71,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   } catch {}
   // Ensure server resolves resources relative to the prompt file if it needs it in the AST
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
-  const server = process.env.AGENTMARK_SERVER || 'http://localhost:9417';
+  const server = options.server || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
-    throw new Error('AGENTMARK_SERVER is required. Run your runner (e.g., npm run serve) and set --server or AGENTMARK_SERVER.');
+    throw new Error('Server URL is required. Run your runner (e.g., npm run dev) and set --server if needed.');
   }
 
   try {

@@ -267,11 +267,19 @@ export const client = new AgentMark({ prompt: {}, adapter });
     processes.push(child);
 
     let stdout = '';
+    let stderr = '';
     child.stdout?.on('data', (data) => { stdout += data.toString(); });
+    child.stderr?.on('data', (data) => { stderr += data.toString(); });
 
-    await wait(3000);
+    // Wait for server to be ready
+    const serverReady = await waitForServer(`http://localhost:${filePort}/v1/prompts`);
+    expect(serverReady).toBe(true);
 
-    expect(stdout).toContain('Vercel AI SDK v4');
+    // Give it a bit more time for the adapter message to be printed
+    await wait(500);
+
+    const output = stdout + stderr;
+    expect(output).toContain('vercel-ai-v4');
   }, 15000);
 
   it('allows custom port configuration', async () => {
