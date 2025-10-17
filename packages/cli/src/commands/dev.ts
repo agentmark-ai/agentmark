@@ -27,10 +27,8 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     process.exit(1);
   }
 
-  // Try to extract adapter name from the client's adapter
   let adapterName = 'Unknown SDK';
   try {
-    // Dynamically import the config to read the adapter name
     const jiti = require('jiti')(cwd, { interopDefault: true });
     const configModule = jiti(configPath);
     const client = configModule.client || configModule.default?.client;
@@ -38,16 +36,9 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     if (client?.getAdapter) {
       const adapter = client.getAdapter();
       const name = adapter?.__name;
-      // Convert adapter name to friendly display name
-      if (name === 'vercel-ai-v4') {
-        adapterName = 'Vercel AI SDK v4';
-      } else if (name) {
-        adapterName = name;
-      }
+      if (name) adapterName = name;
     }
-  } catch (e) {
-    // Fallback to unknown if can't read adapter
-  }
+  } catch (e) {}
 
   console.log('\n' + '─'.repeat(60));
   console.log('Starting AgentMark Development Servers');
