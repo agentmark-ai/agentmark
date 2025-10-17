@@ -127,7 +127,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
               if (evt.type === 'text' && typeof evt.result === 'string') {
                 // Print separator before the first text after tool results
                 if (hasSeenToolResult && !hasPrintedFinalHeader) {
-                  process.stdout.write('\n');
+                  process.stdout.write('\n📝 ');
                   hasPrintedFinalHeader = true;
                 }
                 process.stdout.write(evt.result);
@@ -135,12 +135,12 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
               if (evt.type === 'text' && evt.toolCall) {
                 const tc = evt.toolCall;
                 const argsStr = JSON.stringify(tc.args);
-                process.stdout.write(`\n\n→ ${tc.toolName}(${argsStr})\n`);
+                process.stdout.write(`\n\n🔧→ ${tc.toolName}(${argsStr})\n`);
               }
               if (evt.type === 'text' && evt.toolResult) {
                 const tr = evt.toolResult;
                 const resultStr = JSON.stringify(tr.result);
-                process.stdout.write(`← ${resultStr}\n`);
+                process.stdout.write(`🔧← ${resultStr}\n`);
                 hasSeenToolResult = true;
               }
               if (evt.type === 'text' && evt.usage) {
