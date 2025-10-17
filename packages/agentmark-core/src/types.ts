@@ -123,7 +123,7 @@ export interface EvalResult {
   score?: number; // 0-1 scale
   label?: string; // e.g., "correct", "incorrect", "partially_correct"
   reason?: string; // explanation for the score
-  verdict: 'pass' | 'fail'; // pass or fail verdict (required)
+  verdict?: 'pass' | 'fail'; // pass or fail verdict (required)
 }
 
 export type EvalFunction = (

@@ -3,9 +3,40 @@ import { spawn, ChildProcess } from 'node:child_process';
 import net from 'node:net';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import { getDevServerContent } from '../src/utils/examples/templates/dev-server';
 
 function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+function getDevServerContent() {
+  return `// dev-server.ts
+// This file starts the AgentMark development servers
+// Run with: npm run dev (or agentmark dev)
+
+import { client } from './agentmark.config';
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+const filePortArg = args.find(arg => arg.startsWith('--file-port='));
+
+const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
+const fileServerPort = filePortArg ? parseInt(filePortArg.split('=')[1]) : 9418;
+
+async function main() {
+  const { createDevServers } = await import("@agentmark/vercel-ai-v4-adapter/dev");
+
+  await createDevServers({
+    client: client as any,
+    runnerPort,
+    fileServerPort
+  });
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
+`;
+}
 
 function setupTestDir(tmp: string) {
   // Create package.json for proper module resolution
