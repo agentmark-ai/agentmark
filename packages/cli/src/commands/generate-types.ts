@@ -128,21 +128,17 @@ async function generateTypeDefinitionsV1_0(
     const name = getInterfaceName(promptPath);
     let tools: any = {};
     try {
-      let config = {};
       let kind = "text";
       let output_schema = null;
 
       if ("text_config" in prompt) {
-        config = prompt.text_config;
         kind = "text";
         tools = prompt.text_config.tools || {};
       } else if ("object_config" in prompt) {
-        config = prompt.object_config;
         kind = "object";
         tools = prompt.object_config.tools || {};
         output_schema = prompt.object_config.schema;
       } else if ("image_config" in prompt) {
-        config = prompt.image_config;
         kind = "image";
         tools = prompt.image_config.tools || {};
       }
@@ -391,7 +387,7 @@ async function generateToolTypes(tools: Record<string, any>) {
             additionalProperties: false,
           })
         : `type ${typeName} = { ${Object.entries(schema.parameters || {})
-            .map(([key, value]) => `${key}: any`)
+            .map(([key]) => `${key}: any`)
             .join("; ")} };`;
 
       toolArgTypes.push(

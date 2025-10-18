@@ -48,7 +48,7 @@ function createEvalRegistry() {
   const evalRegistry = new EvalRegistry()
     .register('exact_match_json', ({ output, expectedOutput }) => {
       if (!expectedOutput) {
-        return { score: 0, label: 'error', reason: 'No expected output provided', verdict: 'fail' };
+        return { score: 0, label: 'error', reason: 'No expected output provided', passed: false };
       }
       try {
         const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
@@ -56,10 +56,10 @@ function createEvalRegistry() {
           score: ok ? 1 : 0,
           label: ok ? 'correct' : 'incorrect',
           reason: ok ? 'Exact match' : 'Mismatch',
-          verdict: ok ? 'pass' : 'fail'
+          passed: ok
         };
       } catch (e) {
-        return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON', verdict: 'fail' };
+        return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON', passed: false };
       }
     });
   return evalRegistry;

@@ -178,7 +178,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           const completionTokens = usageInfo.completionTokens || 0;
           const totalTokens = usageInfo.totalTokens || (promptTokens + completionTokens);
           console.log('\n' + '─'.repeat(60));
-          console.log(`Tokens: ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
+          console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
         }
         console.log('');
@@ -221,7 +221,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           const completionTokens = usage.completionTokens || 0;
           const totalTokens = usage.totalTokens || (promptTokens + completionTokens);
           console.log('\n' + '─'.repeat(60));
-          console.log(`Tokens: ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
+          console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
         }
         console.log('');

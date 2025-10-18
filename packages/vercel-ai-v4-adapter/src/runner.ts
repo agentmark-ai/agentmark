@@ -202,7 +202,7 @@ export class VercelAdapterRunner {
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, telemetry: { isEnabled: true } });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;

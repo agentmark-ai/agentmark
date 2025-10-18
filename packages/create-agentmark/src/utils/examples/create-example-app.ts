@@ -115,20 +115,6 @@ export const createExampleApp = async (
       getClientConfigContent({ provider: modelProvider, languageModels: langModels })
     );
 
-    // Generate types file automatically from the created prompts
-    console.log("Generating types from prompts...");
-    const { fetchPromptsFrontmatter, generateTypeDefinitions } = await import('../generate-types.js');
-
-    try {
-      const prompts = await fetchPromptsFrontmatter({ rootDir: path.join(targetPath, 'agentmark') });
-      const typesContent = await generateTypeDefinitions(prompts);
-      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, typesContent);
-    } catch (error) {
-      console.error("Error generating types:", error);
-      // Fallback if generation fails
-      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\nexport default interface AgentmarkTypes {}\n`);
-    }
-
     // Create .env file
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
 
@@ -155,6 +141,21 @@ export const createExampleApp = async (
     setupPackageJson(targetPath);
     installDependencies(modelProvider, targetPath);
 
+    // Generate types file using the installed CLI
+    console.log("Generating types from prompts...");
+    try {
+      const typesOutput = execSync('npx agentmark generate-types --root-dir agentmark', {
+        cwd: targetPath,
+        encoding: 'utf-8'
+      });
+      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, typesOutput);
+    } catch (error) {
+      console.warn("Warning: Could not generate types automatically:", error);
+      console.log("You can generate types later by running: npx agentmark generate-types --root-dir agentmark");
+      // Create a placeholder types file
+      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
+    }
+
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
 
@@ -180,11 +181,6 @@ export const createExampleApp = async (
       console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
-    console.log('  Run Prompts:');
-    console.log('  $ agentmark run-prompt agentmark/customer-support-agent.prompt.mdx\n');
-    console.log('  Run Experiments:');
-    console.log('  $ agentmark run-experiment agentmark/customer-support-agent.prompt.mdx');
-    console.log('');
     console.log('  Run app demo:');
     console.log('  $ npm run demo');
     console.log('');

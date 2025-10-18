@@ -42,7 +42,7 @@ describe("VercelAdapterRunner", () => {
         score: isMatch ? 1 : 0,
         label: isMatch ? 'correct' : 'incorrect',
         reason: isMatch ? 'Output matches expected' : 'Output does not match expected',
-        verdict: isMatch ? 'pass' : 'fail'
+        passed: isMatch
       };
     });
 

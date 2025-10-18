@@ -68,14 +68,14 @@ app.get('/v1/templates', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/v1/export-traces', (req, res) => {
+app.post('/v1/export-traces', (_req, res) => {
     return res.json({ success: true });
 });
 
 // Note: /v1/templates is the single endpoint; prompt vs dataset is inferred by extension
 
 // Re-add prompts listing for type generation
-app.get('/v1/prompts', async (req: Request, res: Response) => {
+app.get('/v1/prompts', async (_req: Request, res: Response) => {
   try {
     const promptFiles = await findPromptFiles(agentmarkTemplatesBase);
     const paths = promptFiles.map((file) => path.relative(agentmarkTemplatesBase, file));

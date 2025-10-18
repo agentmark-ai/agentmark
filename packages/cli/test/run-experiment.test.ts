@@ -58,7 +58,7 @@ function mockClientWithDataset(items: any[]) {
               name,
               score: String(expected) === String(actual) ? 1 : 0,
               label: String(expected) === String(actual) ? 'correct' : 'incorrect',
-              verdict: String(expected) === String(actual) ? 'pass' : 'fail'
+              passed: String(expected) === String(actual)
             }));
             const chunk = JSON.stringify({ type: 'dataset', result: { input: it.dataset?.input ?? {}, expectedOutput: expected, actualOutput: actual, evals } }) + '\n';
             controller.enqueue(encoder.encode(chunk));
@@ -168,8 +168,8 @@ describe('run-experiment', () => {
           async start(controller){
             const enc = new TextEncoder();
             const evals = [
-              { name: 'exact_match', score: 1, label: 'correct', reason: 'Exact match', verdict: 'pass' },
-              { name: 'length_check', score: 1, label: 'pass', reason: 'Length ok', verdict: 'pass' }
+              { name: 'exact_match', score: 1, label: 'correct', reason: 'Exact match', passed: true },
+              { name: 'length_check', score: 1, label: 'pass', reason: 'Length ok', passed: true }
             ];
             const chunk = JSON.stringify({ type: 'dataset', result: { input: { a:1 }, expectedOutput: 'EXPECTED', actualOutput: 'EXPECTED', evals } })+'\n';
             controller.enqueue(enc.encode(chunk));

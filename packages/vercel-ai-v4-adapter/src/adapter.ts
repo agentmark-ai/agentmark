@@ -50,6 +50,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
 };
 
 export interface VercelAIObjectParams<T> {
+  output?: 'object';
   model: LanguageModel;
   messages: RichChatMessage[];
   schema: Schema<T>;
@@ -320,6 +321,7 @@ export class VercelAIAdapter<
     const model = modelCreator(name, options) as LanguageModel;
 
     return {
+      output: 'object' as const,
       model,
       messages: input.messages,
       schema: jsonSchema(input.object_config.schema),

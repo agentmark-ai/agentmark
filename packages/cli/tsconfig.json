@@ -8,7 +8,11 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "esModuleInterop": true,
-    "moduleResolution": "node16"
+    "moduleResolution": "node16",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["test", "**/*.test.ts", "**/*.test.tsx"]

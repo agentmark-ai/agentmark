@@ -4,7 +4,7 @@ export type ResultKind = "text" | "object" | "image" | "speech";
 
 export type NormalizedEval = {
   name: string;
-  verdict: "pass" | "fail";
+  passed: boolean;
   score?: number;
   label?: string;
   reason?: string;
@@ -22,7 +22,7 @@ export type NormalizedRow = {
 
 export function attachVerdicts(
   evalRegistry: EvalRegistry,
-  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; verdict: "pass" | "fail" }>
+  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; passed: boolean }>
 ): NormalizedEval[] {
   return evalResults.map((r) => {
     return {
@@ -30,7 +30,7 @@ export function attachVerdicts(
       score: r.score,
       label: r.label,
       reason: r.reason,
-      verdict: r.verdict,
+      passed: r.passed,
     } satisfies NormalizedEval;
   });
 }
@@ -41,7 +41,7 @@ export function normalizeTextRow(params: {
   expected?: unknown;
   text: string;
   evalRegistry: EvalRegistry;
-  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; verdict: "pass" | "fail" }>;
+  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; passed: boolean }>;
   meta?: Record<string, unknown>;
 }): NormalizedRow {
   const evals = attachVerdicts(params.evalRegistry, params.evalResults);
@@ -62,7 +62,7 @@ export function normalizeObjectRow(params: {
   expected?: unknown;
   object: Record<string, unknown>;
   evalRegistry: EvalRegistry;
-  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; verdict: "pass" | "fail" }>;
+  evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; passed: boolean }>;
   meta?: Record<string, unknown>;
 }): NormalizedRow {
   const evals = attachVerdicts(params.evalRegistry, params.evalResults);
