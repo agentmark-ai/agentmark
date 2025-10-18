@@ -167,11 +167,11 @@ async function createFileServer(port: number) {
     }
   });
 
-  app.post('/v1/export-traces', (req: any, res: any) => {
+  app.post('/v1/export-traces', (_req: any, res: any) => {
     return res.json({ success: true });
   });
 
-  app.get('/v1/prompts', async (req: any, res: any) => {
+  app.get('/v1/prompts', async (_req: any, res: any) => {
     try {
       // Try to dynamically import CLI's findPromptFiles function
       // This may fail if @agentmark/cli is not available (e.g., in tests or other packages)

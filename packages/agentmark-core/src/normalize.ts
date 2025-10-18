@@ -21,7 +21,7 @@ export type NormalizedRow = {
 };
 
 export function attachVerdicts(
-  evalRegistry: EvalRegistry,
+  _evalRegistry: EvalRegistry,
   evalResults: Array<{ name: string; score?: number; label?: string; reason?: string; passed: boolean }>
 ): NormalizedEval[] {
   return evalResults.map((r) => {

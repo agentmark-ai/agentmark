@@ -55,7 +55,7 @@ export interface VercelAgentMark<
 }
 
 // Accept a wider loader shape for compatibility across versions
-export type LoaderLike<D> = {
+export type LoaderLike<_D> = {
   load: (...args: any[]) => Promise<unknown>;
   loadDataset: (datasetPath: string) => Promise<ReadableStream<{ input: Record<string, unknown>; expected_output?: string }>>;
 };

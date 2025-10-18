@@ -90,24 +90,24 @@ export interface Adapter<D extends PromptShape<D>> {
   readonly __dict: D;
   readonly __name: string;
 
-  adaptText<K extends KeysWithKind<D, "text"> & string>(
+  adaptText<_K extends KeysWithKind<D, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
   ): any;
 
-  adaptObject<K extends KeysWithKind<D, "object"> & string>(
+  adaptObject<_K extends KeysWithKind<D, "object"> & string>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
   ): any;
 
-  adaptImage<K extends KeysWithKind<D, "image"> & string>(
+  adaptImage<_K extends KeysWithKind<D, "image"> & string>(
     input: ImageConfig,
     options: AdaptOptions
   ): any;
 
-  adaptSpeech<K extends KeysWithKind<D, "speech"> & string>(
+  adaptSpeech<_K extends KeysWithKind<D, "speech"> & string>(
     input: SpeechConfig,
     options: AdaptOptions
   ): any;

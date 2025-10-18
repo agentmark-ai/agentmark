@@ -202,7 +202,6 @@ export class VercelAIAdapter<
   readonly __name = "vercel-ai-v4";
 
   private readonly toolsRegistry: R | undefined;
-  private readonly mcpServers: McpServers | undefined;
   private readonly mcpManager: McpClientManager;
 
   constructor(
@@ -212,11 +211,10 @@ export class VercelAIAdapter<
   ) {
     this.modelRegistry = modelRegistry;
     this.toolsRegistry = toolRegistry;
-    this.mcpServers = mcpServers;
     this.mcpManager = new McpClientManager(mcpServers);
   }
 
-  async adaptText<K extends KeysWithKind<T, "text"> & string>(
+  async adaptText<_K extends KeysWithKind<T, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -359,7 +357,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptImage<K extends KeysWithKind<T, "image"> & string>(
+  adaptImage<_K extends KeysWithKind<T, "image"> & string>(
     input: ImageConfig,
     options: AdaptOptions
   ): VercelAIImageParams {
@@ -381,7 +379,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptSpeech<K extends KeysWithKind<T, "speech"> & string>(
+  adaptSpeech<_K extends KeysWithKind<T, "speech"> & string>(
     input: SpeechConfig,
     options: AdaptOptions
   ): VercelAISpeechParams {

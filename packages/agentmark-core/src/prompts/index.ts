@@ -1,4 +1,3 @@
-import { FileLoader } from "../loaders/file";
 import type {
   Adapter,
   AdaptOptions,

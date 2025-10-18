@@ -25,12 +25,12 @@ function mapPromptKindToInstanceType(promptKind: PromptKind): TemplatedXInstance
 export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
   private basePath: string;
 
-  constructor(private rootDir: string) {
+  constructor(rootDir: string) {
     const cwd = (() => { try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; } })();
     this.basePath = path.resolve(cwd, rootDir);
   }
 
-  async load(templatePath: string, promptType: PromptKind, options?: any): Promise<Ast> {
+  async load(templatePath: string, promptType: PromptKind, _options?: any): Promise<Ast> {
     const fullPath = path.join(this.basePath, templatePath);
     const content = fs.readFileSync(fullPath, 'utf-8');
     
