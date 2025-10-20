@@ -28,6 +28,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@agentmark/shared-utils": "*",
     "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
     "json-schema-to-typescript": "^15.0.3",

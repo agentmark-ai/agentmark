@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { findPromptFiles } from './commands/generate-types';
+import { findPromptFiles } from '@agentmark/shared-utils';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '9418', 10);

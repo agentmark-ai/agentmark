@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'fs-extra';
-import generateTypes, { findPromptFiles, generateTypeDefinitions, fetchPromptsFrontmatter } from '../src/commands/generate-types';
+import generateTypes from '../src/commands/generate-types';
+import { findPromptFiles, generateTypeDefinitions, fetchPromptsFrontmatter } from '@agentmark/shared-utils';
 
 describe('generate-types', () => {
   const testDir = path.join(__dirname, '..', 'tmp-generate-types-test');

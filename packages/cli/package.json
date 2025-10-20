@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@agentmark/agentmark-core": "*",
+    "@agentmark/shared-utils": "*",
     "@agentmark/templatedx": "^0.6.3",
     "@agentmark/vercel-ai-v4-adapter": "*",
     "@ai-sdk/anthropic": "^1.2.10",

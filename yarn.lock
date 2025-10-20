@@ -44,6 +44,7 @@ __metadata:
   resolution: "@agentmark/cli@workspace:packages/cli"
   dependencies:
     "@agentmark/agentmark-core": "npm:*"
+    "@agentmark/shared-utils": "npm:*"
     "@agentmark/templatedx": "npm:^0.6.3"
     "@agentmark/vercel-ai-v4-adapter": "npm:*"
     "@ai-sdk/anthropic": "npm:^1.2.10"
@@ -128,14 +129,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/shared-utils@workspace:packages/shared-utils":
+"@agentmark/shared-utils@npm:*, @agentmark/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
   resolution: "@agentmark/shared-utils@workspace:packages/shared-utils"
   dependencies:
     "@babel/preset-typescript": "npm:^7.24.1"
+    "@types/fs-extra": "npm:^11.0.4"
     "@types/jest": "npm:^29.5.12"
+    front-matter: "npm:^4.0.2"
+    fs-extra: "npm:^11.2.0"
+    json-schema-to-typescript: "npm:^15.0.4"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5"
+    yaml: "npm:^2.7.0"
   languageName: unknown
   linkType: soft
 
@@ -6112,6 +6118,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-agentmark@workspace:packages/create-agentmark"
   dependencies:
+    "@agentmark/shared-utils": "npm:*"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/node": "npm:^20"
     "@types/prompts": "npm:^2.4.9"

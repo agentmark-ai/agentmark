@@ -183,12 +183,12 @@ async function createFileServer(port: number) {
 
   app.get('/v1/prompts', async (_req: any, res: any) => {
     try {
-      // Try to dynamically import CLI's findPromptFiles function
-      // This may fail if @agentmark/cli is not available (e.g., in tests or other packages)
+      // Try to dynamically import shared-utils findPromptFiles function
+      // This may fail if @agentmark/shared-utils is not available (e.g., in tests or other packages)
       let findPromptFiles;
       try {
-        const cliModule = await import('@agentmark/cli/dist/commands/generate-types.js');
-        findPromptFiles = cliModule.findPromptFiles;
+        const utilsModule = await import('@agentmark/shared-utils');
+        findPromptFiles = utilsModule.findPromptFiles;
       } catch (importError) {
         // Fallback: manually find .prompt.mdx files if CLI isn't available
         const glob = await import('glob');

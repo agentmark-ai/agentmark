@@ -12,6 +12,7 @@ import {
   getClientConfigContent,
   getDevServerContent,
 } from "./templates";
+import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -141,14 +142,13 @@ export const createExampleApp = async (
     setupPackageJson(targetPath);
     installDependencies(modelProvider, targetPath);
 
-    // Generate types file using the installed CLI
+    // Generate types file using the type generation library
     console.log("Generating types from prompts...");
     try {
-      const typesOutput = execSync('npx agentmark generate-types --root-dir agentmark', {
-        cwd: targetPath,
-        encoding: 'utf-8'
-      });
-      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, typesOutput);
+      const agentmarkDir = path.join(targetPath, 'agentmark');
+      const prompts = await fetchPromptsFrontmatter({ rootDir: agentmarkDir });
+      const typeDefinitions = await generateTypeDefinitions(prompts);
+      fs.writeFileSync(`${targetPath}/agentmark.types.ts`, typeDefinitions);
     } catch (error) {
       console.warn("Warning: Could not generate types automatically:", error);
       console.log("You can generate types later by running: npx agentmark generate-types --root-dir agentmark");
