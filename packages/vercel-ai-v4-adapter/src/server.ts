@@ -59,7 +59,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
         const experimentId = event.data.experimentId ?? 'local-experiment';
         let response;
         try {
-          response = await runner.runExperiment(event.data.ast, experimentId);
+          response = await runner.runExperiment(event.data.ast, experimentId, event.data.datasetPath);
         } catch (e: any) {
           return res.status(500).json({
             error: e?.message || String(e)
@@ -129,9 +129,17 @@ async function createFileServer(port: number) {
       return res.status(400).json({ error: 'Path query parameter is required' });
     }
 
-    const normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
-    let fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
-    if (!fs.existsSync(fullPath) && filePath.endsWith('.jsonl')) {
+    // If path is absolute, use it directly; otherwise resolve relative to agentmarkTemplatesBase
+    let fullPath: string;
+    if (path.isAbsolute(filePath)) {
+      fullPath = filePath;
+    } else {
+      const normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+      fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
+    }
+
+    // Fallback: if not found and it's a .jsonl file, try templates directory
+    if (!fs.existsSync(fullPath) && filePath.endsWith('.jsonl') && !path.isAbsolute(filePath)) {
       const alt = path.join(agentmarkTemplatesBase, 'templates', path.basename(filePath));
       if (fs.existsSync(alt)) fullPath = alt;
     }
@@ -141,7 +149,7 @@ async function createFileServer(port: number) {
         if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Dataset not found' });
         const accept = (req.get('accept') || '').toLowerCase();
         const explicitlyNdjson = accept.includes('application/x-ndjson');
-        const wantsJsonArray = req.query.format === 'json' || !explicitlyNdjson;
+        const wantsJsonArray = req.query.format === 'json' && !explicitlyNdjson;
         if (wantsJsonArray) {
           try {
             const lines = fs.readFileSync(fullPath, 'utf-8').split(/\r?\n/).filter(Boolean);

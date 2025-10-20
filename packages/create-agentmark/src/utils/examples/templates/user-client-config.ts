@@ -15,7 +15,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { EvalRegistry } from "@agentmark/agentmark-core";
 import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/vercel-ai-v4-adapter";
 import { AgentMarkSDK } from "@agentmark/sdk";
-import AgentMarkTypes from './agentmark.types';
+import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}
 
 function createModelRegistry() {
@@ -26,7 +26,7 @@ function createModelRegistry() {
 }
 
 function createToolRegistry() {
-  const toolRegistry = new VercelAIToolRegistry<any>()
+  const toolRegistry = new VercelAIToolRegistry<Tools>()
     .register('search_knowledgebase', async ({ query }) => {
       // Simulate search delay
       await new Promise(resolve => setTimeout(resolve, 500));

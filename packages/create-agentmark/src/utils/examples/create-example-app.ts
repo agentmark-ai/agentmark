@@ -119,7 +119,7 @@ export const createExampleApp = async (
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
 
     // Create .gitignore
-    const gitignore = ['node_modules', '.env', 'agentmark-output'].join('\n');
+    const gitignore = ['node_modules', '.env', '.agentmark-output'].join('\n');
     fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
 
     // Create the main application file

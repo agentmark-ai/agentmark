@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import os from "os";
 import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 
@@ -90,16 +91,11 @@ function escapeCSV(value: string): string {
 }
 
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string }) {
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
   if (!fs.existsSync(resolvedFilepath)) throw new Error(`File not found: ${resolvedFilepath}`);
-
-  // Store original working directory before changing directories
-  const originalCwd = (() => {
-    try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
-  })();
 
   // Ensure runner client resolves prompt-relative resources (datasets, etc.)
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
@@ -112,7 +108,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
   const promptPath = path.basename(resolvedFilepath);
   try {
     const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
-    datasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
+    const rawDatasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
+    // Resolve dataset path relative to the prompt file's directory
+    if (rawDatasetPath) {
+      const promptDir = path.dirname(resolvedFilepath);
+      datasetPath = path.isAbsolute(rawDatasetPath) ? rawDatasetPath : path.resolve(promptDir, rawDatasetPath);
+    }
   } catch {}
 
   const server = options.server || 'http://localhost:9417';
@@ -181,7 +182,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
           let actual: string;
           let extraPaths: Array<{ rel: string; kind: 'image' | 'audio' } > = [];
           const hyperlink = (label: string, url: string) => `\u001B]8;;${url}\u0007${label}\u001B]8;;\u0007`;
-          const outDir = path.resolve(originalCwd, '.agentmark-output');
+          const outDir = options.saveOutput ? path.resolve(options.saveOutput) : path.join(os.tmpdir(), 'agentmark-outputs');
           const ensureOutDir = () => { try { fs.mkdirSync(outDir, { recursive: true }); } catch {} };
           const ao = r.actualOutput;
           if (Array.isArray(ao) && ao.length > 0 && ao.every((x: any) => x && typeof x.base64 === 'string')) {
@@ -193,8 +194,8 @@ export default async function runExperiment(filepath: string, options: { skipEva
               const ext = (img.mimeType?.split?.('/')?.[1]) || 'png';
               const filePath = path.join(outDir, `image-${index}-${idx + 1}-${timestamp}.${ext}`);
               try { fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64')); } catch {}
-              const rel = path.relative(originalCwd, filePath);
-              extraPaths.push({ rel: rel.startsWith('.') ? rel : `./${rel}`, kind: 'image' });
+              const rel = filePath;
+              extraPaths.push({ rel, kind: 'image' });
               const url = pathToFileURL(filePath).href;
               linkLabels.push(hyperlink(`View Image ${idx + 1}`, url));
             });
@@ -212,8 +213,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
             try { fs.writeFileSync(filePath, Buffer.from(ao.base64, 'base64')); } catch {}
             const url = pathToFileURL(filePath).href;
             actual = hyperlink('Play Audio', url);
-            const rel = path.relative(originalCwd, filePath);
-            extraPaths.push({ rel: rel.startsWith('.') ? rel : `./${rel}`, kind: 'audio' });
+            extraPaths.push({ rel: filePath, kind: 'audio' });
           } else {
             actual = typeof ao === 'string' ? ao : JSON.stringify(ao ?? '');
           }
@@ -293,6 +293,14 @@ export default async function runExperiment(filepath: string, options: { skipEva
               obj[header] = row[idx] || '';
             });
             jsonRows.push(obj);
+          } else if (format === 'jsonl') {
+            // Output each row as a JSON line immediately
+            const headers = ['#', 'Input', 'AI Result', 'Expected Output', ...evalNames];
+            const obj: Record<string, string> = {};
+            headers.forEach((header, idx) => {
+              obj[header] = row[idx] || '';
+            });
+            console.log(JSON.stringify(obj));
           }
 
           // Print media paths immediately

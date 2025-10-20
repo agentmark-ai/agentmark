@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import os from "os";
 import type { Root } from "mdast";
 
 function resolveAgainstCwdOrEnv(inputPath: string): string {
@@ -14,6 +15,7 @@ interface RunPromptOptions {
   props?: string;
   propsFile?: string;
   server?: string;
+  saveOutput?: string;
 }
 
 const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
@@ -190,7 +192,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log(JSON.stringify((resp as any).result, null, 2));
         } else if ((resp as any).type === 'image') {
           const outputs = (resp as any).result as Array<{ mimeType: string; base64: string }>;
-          const outDir = path.resolve(process.cwd(), 'agentmark-output');
+          const outDir = options.saveOutput ? path.resolve(options.saveOutput) : path.join(os.tmpdir(), 'agentmark-outputs');
           try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
           const saved: string[] = [];
           const timestamp = Date.now();
@@ -203,7 +205,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log(saved.length ? `Saved ${saved.length} image(s) to:\n- ${saved.join('\n- ')}` : '(no content)');
         } else if ((resp as any).type === 'speech') {
           const audio = (resp as any).result as { mimeType?: string; base64: string; format?: string };
-          const outDir = path.resolve(process.cwd(), 'agentmark-output');
+          const outDir = options.saveOutput ? path.resolve(options.saveOutput) : path.join(os.tmpdir(), 'agentmark-outputs');
           try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
           const timestamp = Date.now();
           const ext = audio.format || (audio.mimeType?.split('/')[1] || 'mp3');

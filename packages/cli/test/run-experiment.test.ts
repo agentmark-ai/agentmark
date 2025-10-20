@@ -269,5 +269,98 @@ describe('run-experiment', () => {
     expect(out).toMatch(/[┌│└]/);
   });
 
+  it('resolves dataset path relative to prompt file location', async () => {
+    const actualPath = await vi.importActual<any>('node:path');
+    const { writeFileSync, mkdirSync, unlinkSync, rmdirSync } = await import('node:fs');
+
+    // Use actual path functions for test setup
+    const subdir = actualPath.join(__dirname, '..', 'test-prompts');
+    try { mkdirSync(subdir, { recursive: true }); } catch {}
+
+    const promptPath = actualPath.join(subdir, 'test-prompt.mdx');
+    const datasetRelativePath = 'test-dataset.jsonl';
+
+    // Write prompt with relative dataset path
+    const yamlContent = `text_config:
+  model_name: gpt-4o
+test_settings:
+  dataset: ${datasetRelativePath}`;
+    writeFileSync(promptPath, `---
+${yamlContent}
+---`);
+
+    // Track what dataset path was captured from fetch body
+    let capturedDatasetPath: string | undefined;
+
+    // Mock templatedx to return the YAML content for this specific prompt
+    const { load: originalLoad } = await import('@agentmark/templatedx');
+    const templatedx = await import('@agentmark/templatedx');
+    vi.mocked(templatedx.load).mockImplementation(async (filepath: string) => {
+      if (filepath === promptPath) {
+        return { children: [{ type: 'yaml', value: yamlContent }] } as any;
+      }
+      return { children: [{ type: 'yaml', value: '' }] } as any;
+    });
+
+    // Temporarily override the path mock to use actual implementations
+    const pathMod = await import('path');
+    const originalResolve = pathMod.resolve;
+    const originalDirname = pathMod.dirname;
+    vi.mocked(pathMod.resolve).mockImplementation((...args: any[]) => actualPath.resolve(...args));
+    vi.mocked(pathMod.dirname).mockImplementation((p: string) => actualPath.dirname(p));
+
+    // Override global fetch to capture datasetPath from body BEFORE vi.resetModules
+    const originalFetch = global.fetch;
+    global.fetch = (async (url: any, init?: any) => {
+      const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
+      if (body?.type === 'dataset-run') {
+        // Capture the datasetPath from the request body
+        capturedDatasetPath = body.data.datasetPath;
+
+        // Return mock response
+        const stream = new ReadableStream({
+          async start(controller) {
+            const encoder = new TextEncoder();
+            const chunk = JSON.stringify({
+              type: 'dataset',
+              result: {
+                input: {},
+                expectedOutput: 'EXPECTED',
+                actualOutput: 'EXPECTED',
+                evals: []
+              }
+            }) + '\n';
+            controller.enqueue(encoder.encode(chunk));
+            controller.close();
+          }
+        });
+        return new Response(stream as any, { status: 200 } as any) as any;
+      }
+      return new Response('Not found', { status: 500 } as any) as any;
+    }) as any;
+
+    // Force module reload to get the updated implementation
+    vi.resetModules();
+    runExperiment = (await import('../src/commands/run-experiment')).default;
+
+    try {
+      await runExperiment(promptPath, { server: 'http://localhost:9417', skipEval: true });
+
+      // Verify dataset path was resolved to absolute path
+      expect(capturedDatasetPath).toBeDefined();
+      expect(capturedDatasetPath).toContain('test-prompts');
+      expect(capturedDatasetPath).toContain(datasetRelativePath);
+      // Should be an absolute path
+      expect(actualPath.isAbsolute(capturedDatasetPath!)).toBe(true);
+    } finally {
+      // Cleanup
+      global.fetch = originalFetch;
+      vi.mocked(pathMod.resolve).mockImplementation(originalResolve as any);
+      vi.mocked(pathMod.dirname).mockImplementation(originalDirname as any);
+      try { unlinkSync(promptPath); } catch {}
+      try { rmdirSync(subdir); } catch {}
+    }
+  });
+
   afterEach(async () => { const { unlinkSync } = await import('node:fs'); try { unlinkSync(dummyPath); } catch {} });
 });

@@ -12,7 +12,7 @@ type Frontmatter = {
   object_config?: unknown;
   image_config?: unknown;
   speech_config?: unknown;
-  test_settings?: { dataset?: string };
+  test_settings?: { dataset?: string; evals?: string[] };
 };
 
 export class VercelAdapterRunner {
@@ -122,6 +122,7 @@ export class VercelAdapterRunner {
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
+    datasetPath?: string
   ): Promise<RunnerDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
@@ -130,7 +131,7 @@ export class VercelAdapterRunner {
     const runId = crypto.randomUUID();
     const evalRegistry = this.client.getEvalRegistry();
 
-    const resolvedDatasetPath = frontmatter?.test_settings?.dataset;
+    const resolvedDatasetPath = datasetPath ?? frontmatter?.test_settings?.dataset;
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);

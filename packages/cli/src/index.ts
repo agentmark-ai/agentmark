@@ -60,7 +60,8 @@ program
   .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
   .option('--props <json>', 'Props as JSON string (e.g., \'{"key": "value"}\')')
   .option('--props-file <path>', 'Path to JSON or YAML file containing props')
-  .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string }) => {
+  .option('--save-output <folder>', 'Save image/audio outputs to specified folder (default: temp directory)')
+  .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string; saveOutput?: string }) => {
     try {
       await (runPrompt as any)(filepath, options);
     } catch (error) {
@@ -73,21 +74,22 @@ program
   .description('Run an experiment against its dataset, with evals by default')
   .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
   .option('--skip-eval', 'Skip running evals even if they exist')
-  .option('--format <format>', 'Output format: table, csv, or json (default: table)')
+  .option('--format <format>', 'Output format: table, csv, json, or jsonl (default: table)')
   .option('--threshold <percent>', 'Fail if pass percentage is below threshold (0-100)', (v) => {
     const n = parseInt(v, 10);
     if (!Number.isFinite(n)) throw new Error('Threshold must be a number');
     if (n < 0 || n > 100) throw new Error('Threshold must be between 0 and 100');
     return n;
   })
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number }) => {
+  .option('--save-output <folder>', 'Save image/audio outputs to specified folder (default: temp directory)')
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, saveOutput?: string }) => {
     try {
       const format = options.format || 'table';
-      if (!['table', 'csv', 'json'].includes(format)) {
-        throw new Error('Format must be one of: table, csv, json');
+      if (!['table', 'csv', 'json', 'jsonl'].includes(format)) {
+        throw new Error('Format must be one of: table, csv, json, jsonl');
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
-      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
+      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server, saveOutput: options.saveOutput });
     } catch (error) {
       program.error((error as Error).message);
     }
