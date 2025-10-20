@@ -130,12 +130,14 @@ async function createFileServer(port: number) {
     }
 
     // If path is absolute, use it directly; otherwise resolve relative to agentmarkTemplatesBase
-    let fullPath: string;
-    if (path.isAbsolute(filePath)) {
-      fullPath = filePath;
-    } else {
-      const normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
-      fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
+    // Always resolve filePath relative to agentmarkTemplatesBase
+    const normalizedInput = filePath.replace(/^(\.*[\/\\])+/g, ''); // Remove leading dots/slashes
+    const fullPath = path.resolve(agentmarkTemplatesBase, normalizedInput);
+
+    // Prevent path traversal: Ensure fullPath is contained within agentmarkTemplatesBase
+    const basePathResolved = path.resolve(agentmarkTemplatesBase);
+    if (!fullPath.startsWith(basePathResolved + path.sep)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     // Fallback: if not found and it's a .jsonl file, try templates directory
