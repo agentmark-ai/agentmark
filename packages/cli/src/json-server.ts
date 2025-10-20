@@ -22,10 +22,10 @@ try {
 } catch {}
 
 app.get('/v1/templates', async (req: Request, res: Response) => {
-    const filePath = req.query.path as string;
+    const filePath = req.query.path;
 
-    if (!filePath) {
-        return res.status(400).json({ error: 'Path query parameter is required' });
+    if (!filePath || typeof filePath !== 'string') {
+        return res.status(400).json({ error: 'Path query parameter must be a single string value' });
     }
 
     // Normalize path by removing leading ./ if present
