@@ -132,7 +132,6 @@ export default async function runExperiment(filepath: string, options: { skipEva
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
   });
-  // No debug logging by default
   if (!res.ok) {
     let raw = '';
     try { raw = await res.text(); } catch {}
@@ -144,7 +143,6 @@ export default async function runExperiment(filepath: string, options: { skipEva
     const details = `HTTP ${statusLine} — Content-Type: ${ct}`;
     const msg = `Runner request failed. ${details}\nURL: ${server}\nBody: ${errMsg}`;
     console.error(msg);
-    // No debug logging by default
     throw new Error(msg);
   }
   const stream = res.body!;
@@ -194,8 +192,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
               const ext = (img.mimeType?.split?.('/')?.[1]) || 'png';
               const filePath = path.join(outDir, `image-${index}-${idx + 1}-${timestamp}.${ext}`);
               try { fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64')); } catch {}
-              const rel = filePath;
-              extraPaths.push({ rel, kind: 'image' });
+              extraPaths.push({ rel: filePath, kind: 'image' });
               const url = pathToFileURL(filePath).href;
               linkLabels.push(hyperlink(`View Image ${idx + 1}`, url));
             });
