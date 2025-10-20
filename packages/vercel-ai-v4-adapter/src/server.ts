@@ -132,7 +132,7 @@ async function createFileServer(port: number) {
     // If path is absolute, use it directly; otherwise resolve relative to agentmarkTemplatesBase
     // Always resolve filePath relative to agentmarkTemplatesBase
     const normalizedInput = filePath.replace(/^(\.*[\/\\])+/g, ''); // Remove leading dots/slashes
-    const fullPath = path.resolve(agentmarkTemplatesBase, normalizedInput);
+    let fullPath = path.resolve(agentmarkTemplatesBase, normalizedInput);
 
     // Prevent path traversal: Ensure fullPath is contained within agentmarkTemplatesBase
     const basePathResolved = path.resolve(agentmarkTemplatesBase);
