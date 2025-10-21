@@ -2,6 +2,7 @@ node_modules
 dist
 .specs
 .turbo
+.claude
 .yarn/install-state.gz
 .yarn/releases/*
 .yalc

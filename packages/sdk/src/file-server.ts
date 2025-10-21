@@ -31,23 +31,36 @@ export async function createFileServer(port: number) {
         return res.status(400).json({ error: 'Path query parameter must be a single string value' });
     }
 
-    // Normalize path
-    let normalizedPath: string;
-    let fullPath: string;
-
+    // Reject absolute paths
     if (path.isAbsolute(filePath)) {
-      // If the path is already absolute, use it as-is
-      fullPath = filePath;
-      normalizedPath = filePath;
-    } else {
-      // For relative paths, remove leading ./ if present and join with base
-      normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
-      fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
+      return res.status(400).json({ error: 'Absolute paths are not allowed' });
     }
 
+    // Normalize the path and remove leading ./
+    const normalizedPath = path.normalize(filePath.startsWith('./') ? filePath.slice(2) : filePath);
+
+    // Prevent path traversal with .. sequences
+    if (normalizedPath.includes('..') || normalizedPath.startsWith('/')) {
+      return res.status(400).json({ error: 'Invalid path: path traversal detected' });
+    }
+
+    // Join with base path
+    let fullPath = path.join(agentmarkTemplatesBase, normalizedPath);
+
+    // Verify the resolved path is still within the base directory
+    const resolvedPath = path.resolve(fullPath);
+    const resolvedBase = path.resolve(agentmarkTemplatesBase);
+    if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
+      return res.status(403).json({ error: 'Access denied: path outside allowed directory' });
+    }
+
+    // Try alternative path for .jsonl files in templates directory
     if (!fs.existsSync(fullPath) && filePath.endsWith('.jsonl')) {
-      const alt = path.join(agentmarkTemplatesBase, 'templates', path.basename(filePath));
-      if (fs.existsSync(alt)) fullPath = alt;
+      const altPath = path.join(agentmarkTemplatesBase, 'templates', path.basename(filePath));
+      const resolvedAltPath = path.resolve(altPath);
+      if (resolvedAltPath.startsWith(resolvedBase + path.sep) && fs.existsSync(altPath)) {
+        fullPath = altPath;
+      }
     }
 
     try {
