@@ -195,7 +195,6 @@ __metadata:
   resolution: "@agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
   dependencies:
     "@agentmark/agentmark-core": "npm:^3.3.4"
-    "@agentmark/sdk": "npm:*"
     "@types/express": "npm:^4"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"

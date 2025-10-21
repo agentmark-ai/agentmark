@@ -200,11 +200,11 @@ export const client = new AgentMark({ prompt: {}, adapter });
 
     await wait(3000);
 
-    // Verify auto-generated message appears
-    expect(stdout).toContain('Using auto-generated dev server');
-
-    // Verify .agentmark/dev-entry.ts was created
+    // Verify .agentmark/dev-entry.ts was created (auto-generated)
     expect(fs.existsSync(path.join(tmp, '.agentmark', 'dev-entry.ts'))).toBe(true);
+
+    // Verify the output doesn't contain custom dev-server message
+    expect(stdout).not.toContain('Using custom dev-server.ts');
 
     // Verify server started
     const serverReady = await waitForServer(`http://localhost:${filePort}/v1/prompts`);
@@ -356,7 +356,7 @@ export const client = new AgentMark({ prompt: {}, adapter });
 
     // File server should always start
     expect(stdout).toContain(`http://localhost:${filePort}`);
-    expect(stdout).toContain('File server running on');
+    expect(stdout).toContain('File Server:');
 
     // Runner may or may not start successfully in test environment, so we don't strictly require it
   }, 15000);
