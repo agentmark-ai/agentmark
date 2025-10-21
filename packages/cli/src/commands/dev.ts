@@ -52,37 +52,16 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     const entryCode = `// Auto-generated runner server entry point
 // To customize, create a dev-server.ts file in your project root
 
+import { createRunnerServer } from '@agentmark/${adapterName}-adapter/dev';
+
 async function main() {
   const { client } = await import('../agentmark.config.js');
 
-  // Get the adapter name to determine which dev module to import
-  const adapter = client.getAdapter();
-  const adapterName = adapter?.__name || 'unknown';
-
-  // Dynamically import the adapter's runner server module
-  // Try both with and without -adapter suffix for compatibility
-  let createRunnerServer;
-  try {
-    const devModule = await import(\`@agentmark/\${adapterName}-adapter/dev\`);
-    createRunnerServer = devModule.createRunnerServer;
-  } catch (err1) {
-    try {
-      const devModule = await import(\`@agentmark/\${adapterName}/dev\`);
-      createRunnerServer = devModule.createRunnerServer;
-    } catch (err2) {
-      console.error(\`Error: Could not load runner server from @agentmark/\${adapterName}-adapter/dev\`);
-      console.error('Make sure your adapter supports dev mode');
-      console.error(err2);
-      process.exit(1);
-    }
-  }
-
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
-
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
 
-  await createRunnerServer({ port: runnerPort, client });
+  await createRunnerServer({ port: runnerPort, client: client as any });
 }
 
 main().catch((err) => {
