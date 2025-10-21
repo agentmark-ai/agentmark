@@ -22,6 +22,10 @@ export async function createRunnerServer(options: RunnerServerOptions) {
       const event = req.body || {};
 
       if (event?.type === 'prompt-run') {
+        // Validate that ast is an object (Root AST), not a string path
+        if (!event.data?.ast || typeof event.data.ast !== 'object') {
+          return res.status(400).json({ error: 'Invalid or missing AST object' });
+        }
         const options = { ...event.data.options, customProps: event.data.customProps };
         const response = await runner.runPrompt(event.data.ast, options);
         if (response?.type === 'stream' && response.stream) {
@@ -45,8 +49,9 @@ export async function createRunnerServer(options: RunnerServerOptions) {
       }
 
       if (event?.type === 'dataset-run') {
-        if (!event.data?.ast) {
-          return res.status(400).json({ error: 'Missing data.ast in dataset-run event' });
+        // Validate that ast is an object (Root AST), not a string path
+        if (!event.data?.ast || typeof event.data.ast !== 'object') {
+          return res.status(400).json({ error: 'Invalid or missing AST object in dataset-run event' });
         }
         const experimentId = event.data.experimentId ?? 'local-experiment';
         let response;
