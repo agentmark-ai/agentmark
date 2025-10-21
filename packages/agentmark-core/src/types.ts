@@ -111,6 +111,9 @@ export interface Adapter<D extends PromptShape<D>> {
     input: SpeechConfig,
     options: AdaptOptions
   ): any;
+
+  // Optional: Adapters that support dev mode provide this
+  getDevServerFactory?(): (options: { port: number; client: any }) => Promise<any>;
 }
 
 export interface EvalParams {

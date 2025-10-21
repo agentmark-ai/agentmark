@@ -9,9 +9,16 @@ describe('init', () => {
       const actual = await vi.importActual<any>('fs-extra');
       return {
         ...actual,
+        default: {
+          ...actual,
+          existsSync: vi.fn().mockReturnValue(true),
+          readJsonSync: vi.fn().mockReturnValue({ name: 'tmp-app', version: '1.0.0', scripts: {} }),
+          writeJsonSync: vi.fn(),
+          writeFileSync: actual.writeFileSync,
+        },
         existsSync: vi.fn().mockReturnValue(true),
-        readJSONSync: vi.fn().mockReturnValue({ name: 'tmp-app', version: '1.0.0', scripts: {} }),
-        writeJSONSync: vi.fn(),
+        readJsonSync: vi.fn().mockReturnValue({ name: 'tmp-app', version: '1.0.0', scripts: {} }),
+        writeJsonSync: vi.fn(),
         writeFileSync: actual.writeFileSync,
       };
     });

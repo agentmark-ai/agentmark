@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs";
-import os from "os";
 import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 
@@ -180,7 +179,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
           let actual: string;
           let extraPaths: Array<{ rel: string; kind: 'image' | 'audio' } > = [];
           const hyperlink = (label: string, url: string) => `\u001B]8;;${url}\u0007${label}\u001B]8;;\u0007`;
-          const outDir = options.saveOutput ? path.resolve(options.saveOutput) : path.join(os.tmpdir(), 'agentmark-outputs');
+          const outDir = path.join(process.cwd(), '.agentmark-outputs');
           const ensureOutDir = () => { try { fs.mkdirSync(outDir, { recursive: true }); } catch {} };
           const ao = r.actualOutput;
           if (Array.isArray(ao) && ao.length > 0 && ao.every((x: any) => x && typeof x.base64 === 'string')) {

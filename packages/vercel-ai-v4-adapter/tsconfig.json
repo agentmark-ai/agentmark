@@ -4,7 +4,7 @@
     "declaration": true,
     "declarationDir": "./dist/types",
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "module": "ESNext",
     "target": "ES2019",
     "lib": ["ESNext"],

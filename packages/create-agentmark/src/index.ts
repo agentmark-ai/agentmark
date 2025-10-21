@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import * as fs from "fs-extra";
+import fs from "fs-extra";
 import prompts from "prompts";
-import { Providers } from "./utils/providers";
-import { createExampleApp } from "./utils/examples/create-example-app";
+import { Providers } from "./utils/providers.js";
+import { createExampleApp } from "./utils/examples/create-example-app.js";
 
 const main = async () => {
   const config: any = {

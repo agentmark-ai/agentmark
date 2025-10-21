@@ -4,6 +4,7 @@ import { program } from "commander";
 import { readFileSync } from "fs";
 import { join } from "path";
 import dev from './commands/dev';
+import serveFiles from './commands/serve-files';
 import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
@@ -26,6 +27,16 @@ program
     await (dev as any)({
       port: options.port ? parseInt(options.port, 10) : undefined,
       runnerPort: options.runnerPort ? parseInt(options.runnerPort, 10) : undefined
+    });
+  });
+
+program
+  .command("serve-files")
+  .option("-p, --port <number>", "Port to serve files on (default: 9418)")
+  .description("Start file server to serve agentmark templates and datasets")
+  .action(async (options) => {
+    await (serveFiles as any)({
+      port: options.port ? parseInt(options.port, 10) : undefined
     });
   });
 
@@ -60,8 +71,7 @@ program
   .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
   .option('--props <json>', 'Props as JSON string (e.g., \'{"key": "value"}\')')
   .option('--props-file <path>', 'Path to JSON or YAML file containing props')
-  .option('--save-output <folder>', 'Save image/audio outputs to specified folder (default: temp directory)')
-  .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string; saveOutput?: string }) => {
+  .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string }) => {
     try {
       await (runPrompt as any)(filepath, options);
     } catch (error) {
@@ -81,15 +91,14 @@ program
     if (n < 0 || n > 100) throw new Error('Threshold must be between 0 and 100');
     return n;
   })
-  .option('--save-output <folder>', 'Save image/audio outputs to specified folder (default: temp directory)')
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, saveOutput?: string }) => {
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number }) => {
     try {
       const format = options.format || 'table';
       if (!['table', 'csv', 'json', 'jsonl'].includes(format)) {
         throw new Error('Format must be one of: table, csv, json, jsonl');
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
-      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server, saveOutput: options.saveOutput });
+      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
     } catch (error) {
       program.error((error as Error).message);
     }

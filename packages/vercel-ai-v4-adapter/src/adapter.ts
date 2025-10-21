@@ -400,4 +400,11 @@ export class VercelAIAdapter<
       ...(settings?.speed !== undefined ? { speed: settings.speed } : {}),
     };
   }
+
+  getDevServerFactory() {
+    return async (options: { port: number; client: any }) => {
+      const { createRunnerServer } = await import('./server.js');
+      return createRunnerServer(options);
+    };
+  }
 }

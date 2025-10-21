@@ -6,37 +6,7 @@ import * as fs from 'node:fs';
 
 function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
-function getDevServerContent() {
-  return `// dev-server.ts
-// This file starts the AgentMark development servers
-// Run with: npm run dev (or agentmark dev)
-
-import { client } from './agentmark.config';
-
-// Parse command line arguments
-const args = process.argv.slice(2);
-const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
-const filePortArg = args.find(arg => arg.startsWith('--file-port='));
-
-const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
-const fileServerPort = filePortArg ? parseInt(filePortArg.split('=')[1]) : 9418;
-
-async function main() {
-  const { createDevServers } = await import("@agentmark/vercel-ai-v4-adapter/dev");
-
-  await createDevServers({
-    client: client as any,
-    runnerPort,
-    fileServerPort
-  });
-}
-
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
-`;
-}
+// No longer needed - dev server auto-generates
 
 function setupTestDir(tmp: string) {
   // Create package.json for proper module resolution
@@ -138,7 +108,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
+    // No dev-server.ts - let CLI auto-generate it
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -188,10 +158,13 @@ export const client = new AgentMark({ prompt: {}, adapter });
     expect(text.trim().length).toBeGreaterThan(0);
   }, 15000); // Increase timeout for this test
 
-  it('fails gracefully when dev-server.ts is missing', async () => {
-    const tmp = path.join(__dirname, '..', 'tmp-dev-no-devserver-' + Date.now());
+  it('auto-generates dev server when dev-server.ts is missing', async () => {
+    const tmp = path.join(__dirname, '..', 'tmp-dev-autogen-' + Date.now());
     tmpDirs.push(tmp);
-    fs.mkdirSync(tmp, { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
+
+    // Setup test directory
+    setupTestDir(tmp);
 
     // Create agentmark.config.ts but NOT dev-server.ts
     const configContent = `
@@ -207,25 +180,36 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
+    fs.writeFileSync(path.join(tmp, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
+    fs.writeFileSync(path.join(tmp, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
+    const runnerPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
       cwd: tmp,
-      env: { ...process.env },
+      env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
     });
 
     processes.push(child);
 
-    let stderr = '';
-    child.stderr?.on('data', (data) => { stderr += data.toString(); });
+    let stdout = '';
+    child.stdout?.on('data', (data) => { stdout += data.toString(); });
 
-    await wait(1000);
+    await wait(3000);
 
-    expect(stderr).toContain('dev-server.ts not found');
-  });
+    // Verify auto-generated message appears
+    expect(stdout).toContain('Using auto-generated dev server');
+
+    // Verify .agentmark/dev-entry.ts was created
+    expect(fs.existsSync(path.join(tmp, '.agentmark', 'dev-entry.ts'))).toBe(true);
+
+    // Verify server started
+    const serverReady = await waitForServer(`http://localhost:${filePort}/v1/prompts`);
+    expect(serverReady).toBe(true);
+  }, 15000);
 
   it('detects and displays the correct adapter name', async () => {
     const tmp = path.join(__dirname, '..', 'tmp-dev-adapter-' + Date.now());
@@ -252,7 +236,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
+    // No dev-server.ts - let CLI auto-generate it
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -306,7 +290,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
+    // No dev-server.ts - let CLI auto-generate it
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const customFilePort = await getFreePort();
@@ -351,7 +335,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    fs.writeFileSync(path.join(tmp, 'dev-server.ts'), getDevServerContent());
+    // No dev-server.ts - let CLI auto-generate it
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -372,7 +356,7 @@ export const client = new AgentMark({ prompt: {}, adapter });
 
     // File server should always start
     expect(stdout).toContain(`http://localhost:${filePort}`);
-    expect(stdout).toContain('Files served on:');
+    expect(stdout).toContain('File server running on');
 
     // Runner may or may not start successfully in test environment, so we don't strictly require it
   }, 15000);

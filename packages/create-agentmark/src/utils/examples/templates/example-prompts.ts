@@ -1,9 +1,9 @@
-import * as fs from 'fs-extra';
-import { getAnimalDrawingPrompt } from './animal-drawing-prompt';
-import { getCustomerSupportPrompt } from './customer-support-prompt';
-import { getPartyPlannerPrompt } from './party-planner-prompt';
-import { getStoryTellerPrompt } from './story-teller-prompt';
-import { getAnimalDataset, getCustomerQueryDataset, getPartyDataset, getStoryDataset } from './datasets';
+import fs from 'fs-extra';
+import { getAnimalDrawingPrompt } from './animal-drawing-prompt.js';
+import { getCustomerSupportPrompt } from './customer-support-prompt.js';
+import { getPartyPlannerPrompt } from './party-planner-prompt.js';
+import { getStoryTellerPrompt } from './story-teller-prompt.js';
+import { getAnimalDataset, getCustomerQueryDataset, getPartyDataset, getStoryDataset } from './datasets.js';
 
 export const createExamplePrompts = (model: string, targetPath: string = ".") => {
   // Ensure the templates directory exists

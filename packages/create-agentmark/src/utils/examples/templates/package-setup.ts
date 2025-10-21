@@ -1,4 +1,4 @@
-import * as fs from "fs-extra";
+import fs from "fs-extra";
 import { execSync } from "child_process";
 
 export const setupPackageJson = (targetPath: string = ".") => {
@@ -10,7 +10,7 @@ export const setupPackageJson = (targetPath: string = ".") => {
   }
 
   // Update the created package.json with additional information
-  const pkgJson = fs.readJSONSync(packageJsonPath);
+  const pkgJson = fs.readJsonSync(packageJsonPath);
   pkgJson.name =
     pkgJson.name === "test" || !pkgJson.name
       ? "agentmark-example-app"
@@ -23,7 +23,7 @@ export const setupPackageJson = (targetPath: string = ".") => {
     "demo": "npx tsx index.ts",
     "dev": "agentmark dev",
   };
-  fs.writeJSONSync(packageJsonPath, pkgJson, { spaces: 2 });
+  fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 
 export const installDependencies = (

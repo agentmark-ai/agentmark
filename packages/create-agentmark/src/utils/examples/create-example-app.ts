@@ -1,7 +1,7 @@
-import * as fs from "fs-extra";
+import fs from "fs-extra";
 import * as path from "path";
 import { execSync } from "child_process";
-import { Providers } from "../providers";
+import { Providers } from "../providers.js";
 import {
   setupPackageJson,
   installDependencies,
@@ -10,8 +10,7 @@ import {
   getEnvFileContent,
   createExamplePrompts,
   getClientConfigContent,
-  getDevServerContent,
-} from "./templates";
+} from "./templates/index.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -120,7 +119,7 @@ export const createExampleApp = async (
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
 
     // Create .gitignore
-    const gitignore = ['node_modules', '.env', '.agentmark-output'].join('\n');
+    const gitignore = ['node_modules', '.env', '.agentmark-output', '*.agentmark-outputs/', '.agentmark'].join('\n');
     fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
 
     // Create the main application file
@@ -129,14 +128,8 @@ export const createExampleApp = async (
       getIndexFileContent()
     );
 
-    // Create dev-server.ts for development
-    fs.writeFileSync(
-      `${targetPath}/dev-server.ts`,
-      getDevServerContent()
-    );
-
     // Create tsconfig.json
-    fs.writeJSONSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
+    fs.writeJsonSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
     // Setup package.json and install dependencies
     setupPackageJson(targetPath);

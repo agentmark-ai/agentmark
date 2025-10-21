@@ -44,9 +44,9 @@ __metadata:
   resolution: "@agentmark/cli@workspace:packages/cli"
   dependencies:
     "@agentmark/agentmark-core": "npm:*"
+    "@agentmark/sdk": "npm:*"
     "@agentmark/shared-utils": "npm:*"
     "@agentmark/templatedx": "npm:^0.6.3"
-    "@agentmark/vercel-ai-v4-adapter": "npm:*"
     "@ai-sdk/anthropic": "npm:^1.2.10"
     "@ai-sdk/openai": "npm:^1.3.13"
     "@types/express": "npm:^4"
@@ -115,15 +115,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/sdk@workspace:packages/sdk":
+"@agentmark/sdk@npm:*, @agentmark/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"
   dependencies:
     "@agentmark/agentmark-core": "npm:^3.3.4"
+    "@agentmark/shared-utils": "npm:*"
+    "@agentmark/templatedx": "npm:^0.6.3"
     "@isaacs/ttlcache": "npm:^1.4.1"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/sdk-node": "npm:^0.205.0"
     "@opentelemetry/sdk-trace-base": "npm:^2.1.0"
+    "@types/express": "npm:^4"
+    express: "npm:^4.20.0"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.3"
   languageName: unknown
@@ -133,9 +137,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/shared-utils@workspace:packages/shared-utils"
   dependencies:
+    "@agentmark/templatedx": "npm:^0.6.3"
     "@babel/preset-typescript": "npm:^7.24.1"
+    "@types/express": "npm:^4"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/jest": "npm:^29.5.12"
+    express: "npm:^4.20.0"
     front-matter: "npm:^4.0.2"
     fs-extra: "npm:^11.2.0"
     json-schema-to-typescript: "npm:^15.0.4"
@@ -183,11 +190,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/vercel-ai-v4-adapter@npm:*, @agentmark/vercel-ai-v4-adapter@workspace:*, @agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
+"@agentmark/vercel-ai-v4-adapter@workspace:*, @agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark/vercel-ai-v4-adapter@workspace:packages/vercel-ai-v4-adapter"
   dependencies:
     "@agentmark/agentmark-core": "npm:^3.3.4"
+    "@agentmark/sdk": "npm:*"
     "@types/express": "npm:^4"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"

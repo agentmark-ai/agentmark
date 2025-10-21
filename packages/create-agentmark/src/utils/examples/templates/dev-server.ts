@@ -4,6 +4,8 @@ export const getDevServerContent = () => {
 // Run with: npm run dev (or agentmark dev)
 
 import { client } from './agentmark.config';
+import { createDevServers } from '@agentmark/cli/dev-servers';
+import { createRunnerServer } from '@agentmark/vercel-ai-v4-adapter/dev';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -14,12 +16,11 @@ const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
 const fileServerPort = filePortArg ? parseInt(filePortArg.split('=')[1]) : 9418;
 
 async function main() {
-  const { createDevServers } = await import("@agentmark/vercel-ai-v4-adapter/dev");
-
   await createDevServers({
     client: client as any,
     runnerPort,
-    fileServerPort
+    fileServerPort,
+    createRunnerServerFn: createRunnerServer
   });
 }
 
