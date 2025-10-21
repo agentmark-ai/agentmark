@@ -128,8 +128,16 @@ describe('run-experiment', () => {
   afterEach(() => {
     logSpy.mockReset();
     // Cleanup temp files created in tests
-    try { const { unlinkSync } = require('node:fs'); const { join } = require('node:path'); unlinkSync(join(__dirname, '..', 'tmp-experiment.mdx')); } catch {}
-    try { const { unlinkSync } = require('node:fs'); const { join } = require('node:path'); unlinkSync(join(__dirname, '..', 'dummy-dataset.mdx')); } catch {}
+    const { unlinkSync, rmSync } = require('node:fs');
+    const { join } = require('node:path');
+    const base = join(__dirname, '..');
+    try { unlinkSync(join(base, 'tmp-experiment.mdx')); } catch {}
+    try { unlinkSync(join(base, 'dummy-dataset.mdx')); } catch {}
+    // Remove generated output directories
+    try { rmSync(join(process.cwd(), '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
+    try { rmSync(join(process.cwd(), 'agentmark-output'), { recursive: true, force: true }); } catch {}
+    try { rmSync(join(base, '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
+    try { rmSync(join(base, 'agentmark-output'), { recursive: true, force: true }); } catch {}
   });
 
   it('passes threshold when all evals PASS', async () => {

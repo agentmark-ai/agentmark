@@ -107,8 +107,11 @@ describe('run-prompt', () => {
         }
       }
     } catch {}
-    // Remove generated output directory
+    // Remove generated output directories from both cwd and base test directory
+    try { require('node:fs').rmSync(path.join(process.cwd(), '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
     try { require('node:fs').rmSync(path.join(process.cwd(), 'agentmark-output'), { recursive: true, force: true }); } catch {}
+    try { require('node:fs').rmSync(path.join(base, '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
+    try { require('node:fs').rmSync(path.join(base, 'agentmark-output'), { recursive: true, force: true }); } catch {}
   });
 
   it('uses a project runner and prints final text', async () => {
