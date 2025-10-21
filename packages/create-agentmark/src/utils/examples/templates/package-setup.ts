@@ -55,9 +55,17 @@ export const installDependencies = (
     // Pin required major versions: ai@v4, @ai-sdk/<provider>@v1
     const providerPackage = modelProvider === "ollama" ? "ollama-ai-provider" : `@ai-sdk/${modelProvider}@^1`;
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
-    const installCmd = `npm install dotenv @agentmark/agentmark-core @agentmark/vercel-ai-v4-adapter @agentmark/sdk ${providerPackage} ai@^4`;
+    const installArgs = [
+      "install",
+      "dotenv",
+      "@agentmark/agentmark-core",
+      "@agentmark/vercel-ai-v4-adapter",
+      "@agentmark/sdk",
+      providerPackage,
+      "ai@^4",
+    ];
 
-    execSync(installCmd, { stdio: "inherit", cwd: targetPath });
+    execSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
 
     console.log("Packages installed successfully!");
   } catch (error) {
