@@ -30,19 +30,27 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     this.basePath = path.resolve(cwd, rootDir);
   }
 
-  async load(templatePath: string, promptType: PromptKind, _options?: any): Promise<Ast> {
-    // Validate and sanitize the template path to prevent path traversal
-    if (path.isAbsolute(templatePath)) {
+  /**
+   * Validates a user-provided path and returns a safe absolute path within the base directory.
+   * Throws an error if the path attempts to escape the base directory.
+   * @param userPath - The user-provided path to validate
+   * @returns A validated absolute path within the base directory
+   */
+  private validateAndResolvePath(userPath: string): string {
+    // Reject absolute paths
+    if (path.isAbsolute(userPath)) {
       throw new Error('Absolute paths are not allowed');
     }
 
-    const normalizedPath = path.normalize(templatePath);
+    // Normalize the path to resolve . and .. sequences
+    const normalizedPath = path.normalize(userPath);
 
     // Check if normalized path tries to escape by starting with /
     if (normalizedPath.startsWith('/')) {
       throw new Error('Invalid path: path traversal detected');
     }
 
+    // Join with base path to create full path
     const fullPath = path.join(this.basePath, normalizedPath);
 
     // Verify the resolved path is still within the base directory
@@ -52,7 +60,15 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
       throw new Error('Access denied: path outside allowed directory');
     }
 
-    const content = fs.readFileSync(fullPath, 'utf-8');
+    // Return the validated path
+    return resolvedPath;
+  }
+
+  async load(templatePath: string, promptType: PromptKind, _options?: any): Promise<Ast> {
+    // Validate the path and get a safe absolute path
+    const safePath = this.validateAndResolvePath(templatePath);
+
+    const content = fs.readFileSync(safePath, 'utf-8');
 
     // Create a contentLoader function for reading additional files
     const contentLoader = async (filePath: string) => {
@@ -73,27 +89,10 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
     if (!datasetPath.endsWith(".jsonl"))
       throw new Error("Dataset must be a JSON Lines file (.jsonl)");
 
-    // Validate and sanitize the dataset path to prevent path traversal
-    if (path.isAbsolute(datasetPath)) {
-      throw new Error('Absolute paths are not allowed');
-    }
+    // Validate the path and get a safe absolute path
+    const safePath = this.validateAndResolvePath(datasetPath);
 
-    const normalizedPath = path.normalize(datasetPath);
-
-    // Check if normalized path tries to escape by starting with /
-    if (normalizedPath.startsWith('/')) {
-      throw new Error('Invalid path: path traversal detected');
-    }
-
-    const fullPath = path.join(this.basePath, normalizedPath);
-
-    // Verify the resolved path is still within the base directory
-    const resolvedPath = path.resolve(fullPath);
-    const resolvedBase = path.resolve(this.basePath);
-    if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
-      throw new Error('Access denied: path outside allowed directory');
-    }
-    const fileStream = fs.createReadStream(fullPath, { encoding: "utf8" });
+    const fileStream = fs.createReadStream(safePath, { encoding: "utf8" });
     const lines = readline.createInterface({
       input: fileStream,
       crlfDelay: Infinity,

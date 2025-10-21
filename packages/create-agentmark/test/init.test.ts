@@ -23,7 +23,8 @@ describe('init', () => {
       };
     });
     vi.doMock('child_process', () => ({
-      execSync: (cmd: string) => { calls.push(cmd); }
+      execSync: (cmd: string) => { calls.push(cmd); },
+      execFileSync: (file: string, args: string[]) => { calls.push(`${file} ${args.join(' ')}`); }
     }));
     const { createExampleApp } = await import('../src/utils/examples/create-example-app');
     const tmpDir = path.join(__dirname, '..', 'tmp-gitignore-' + Date.now());
