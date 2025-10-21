@@ -96,7 +96,13 @@ export async function createFileServer(port: number) {
         const fileContent = fs.readFileSync(fullPath, 'utf-8');
         const data = await parse(fileContent, path.dirname(fullPath), async (p) => {
             const resolved = path.isAbsolute(p) ? p : path.join(path.dirname(fullPath), p);
-            return fs.readFileSync(resolved, 'utf-8');
+            // Validate that the resolved path is within the base directory
+            const resolvedImportPath = path.resolve(resolved);
+            const resolvedBase = path.resolve(agentmarkTemplatesBase);
+            if (!resolvedImportPath.startsWith(resolvedBase + path.sep) && resolvedImportPath !== resolvedBase) {
+              throw new Error('Access denied: import path outside allowed directory');
+            }
+            return fs.readFileSync(resolvedImportPath, 'utf-8');
         });
         return res.json({ data });
     } catch (error) {

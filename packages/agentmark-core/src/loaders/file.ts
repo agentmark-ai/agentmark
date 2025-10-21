@@ -72,7 +72,13 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
 
     // Create a contentLoader function for reading additional files
     const contentLoader = async (filePath: string) => {
-      return fs.readFileSync(filePath, 'utf-8');
+      // Validate that the file path is within the base directory
+      const resolvedPath = path.resolve(filePath);
+      const resolvedBase = path.resolve(this.basePath);
+      if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
+        throw new Error('Access denied: path outside allowed directory');
+      }
+      return fs.readFileSync(resolvedPath, 'utf-8');
     };
 
     const instanceType = mapPromptKindToInstanceType(promptType);
