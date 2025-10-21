@@ -1,5 +1,5 @@
 import fs from "fs-extra";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 
 export const setupPackageJson = (targetPath: string = ".") => {
   const packageJsonPath = `${targetPath}/package.json`;
@@ -65,8 +65,8 @@ export const installDependencies = (
       "ai@^4",
     ];
 
-    execSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
-
+    execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
+    
     console.log("Packages installed successfully!");
   } catch (error) {
     console.error("Error installing packages:", error);
