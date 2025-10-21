@@ -1,5 +1,3 @@
-export type { ResultKind, NormalizedEval, NormalizedRow } from "@agentmark/agentmark-core";
-export { attachVerdicts, normalizeTextRow, normalizeObjectRow } from "@agentmark/agentmark-core";
 import { getFrontMatter } from "@agentmark/templatedx";
 import type { Ast } from "@agentmark/templatedx";
 import type { AgentMark } from "@agentmark/agentmark-core";
