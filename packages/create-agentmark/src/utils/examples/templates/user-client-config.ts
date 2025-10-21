@@ -65,8 +65,8 @@ function createEvalRegistry() {
   return evalRegistry;
 }
 
-function createClient(ctx: { env?: Record<string,string|undefined> } = { env: process.env }) {
-  const env = (ctx.env ?? process.env) as Record<string, string | undefined>;
+function createClient(ctx?: { env?: Record<string,string|undefined> }) {
+  const env = (ctx?.env ?? process.env) as Record<string, string | undefined>;
   // For local development, connect to the local agentmark serve instance (default: http://localhost:9418)
   // For cloud deployment, set AGENTMARK_BASE_URL, AGENTMARK_API_KEY, and AGENTMARK_APP_ID
   const baseUrl = env.AGENTMARK_BASE_URL || 'http://localhost:9418';

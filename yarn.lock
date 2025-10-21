@@ -58,7 +58,6 @@ __metadata:
     ai: "npm:^4.0.0"
     cli-table3: "npm:^0.6.5"
     commander: "npm:^12.1.0"
-    create-agentmark: "npm:*"
     dotenv: "npm:^16.4.5"
     express: "npm:^4.20.0"
     front-matter: "npm:^4.0.2"
@@ -6122,7 +6121,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"create-agentmark@npm:*, create-agentmark@workspace:packages/create-agentmark":
+"create-agentmark@workspace:packages/create-agentmark":
   version: 0.0.0-use.local
   resolution: "create-agentmark@workspace:packages/create-agentmark"
   dependencies:
