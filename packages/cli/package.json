@@ -5,7 +5,6 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./json-server": "./dist/json-server.js",
     "./dev-servers": "./dist/dev-servers.js",
     "./file-server": "./dist/file-server.js",
     "./runner-server": "./dist/runner-server.js"
@@ -15,7 +14,6 @@
     "start": "next start",
     "build:app": "next build",
     "lint": "next lint",
-    "serve": "node ./dist/json-server",
     "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
     "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
     "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",

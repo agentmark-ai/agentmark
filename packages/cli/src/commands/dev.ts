@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
+import { createFileServer } from "../file-server";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -41,12 +42,14 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     process.exit(1);
   }
 
-  // Start file server as separate process
-  const cliPath = path.join(__dirname, '../index.js');
-  const fileServer = spawn('node', [cliPath, 'serve-files', '--port', fileServerPort.toString()], {
-    stdio: 'inherit',
-    cwd
-  });
+  // Start file server directly
+  let fileServerInstance: any;
+  try {
+    fileServerInstance = await createFileServer(fileServerPort);
+  } catch (error: any) {
+    console.error('Failed to start file server:', error.message);
+    process.exit(1);
+  }
 
   const killProcessTree = (pid: number) => {
     try {
@@ -61,11 +64,6 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     }
   };
 
-  fileServer.on('error', (error) => {
-    console.error('Failed to start file server:', error.message);
-    process.exit(1);
-  });
-
   // Start runner server
   const runnerServer = spawn('npx', ['tsx', '--watch', devServerFile, 'agentmark.config.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`], {
     stdio: 'inherit',
@@ -74,13 +72,17 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
 
   runnerServer.on('error', (error) => {
     console.error('Failed to start runner server:', error.message);
-    if (fileServer.pid) killProcessTree(fileServer.pid);
+    if (fileServerInstance) {
+      try { fileServerInstance.close(); } catch {}
+    }
     process.exit(1);
   });
 
   runnerServer.on('exit', (code) => {
     console.log(`\nRunner server exited with code ${code}`);
-    if (fileServer.pid) killProcessTree(fileServer.pid);
+    if (fileServerInstance) {
+      try { fileServerInstance.close(); } catch {}
+    }
     process.exit(code || 0);
   });
 
@@ -106,7 +108,9 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
 
     console.log('\nShutting down servers...');
 
-    if (fileServer.pid) killProcessTree(fileServer.pid);
+    if (fileServerInstance) {
+      try { fileServerInstance.close(); } catch {}
+    }
     if (runnerServer.pid) killProcessTree(runnerServer.pid);
 
     setTimeout(() => process.exit(0), 500);

@@ -4,7 +4,6 @@ import { program } from "commander";
 import { readFileSync } from "fs";
 import { join } from "path";
 import dev from './commands/dev';
-import serveFiles from './commands/serve-files';
 import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
@@ -27,16 +26,6 @@ program
     await (dev as any)({
       port: options.port ? parseInt(options.port, 10) : undefined,
       runnerPort: options.runnerPort ? parseInt(options.runnerPort, 10) : undefined
-    });
-  });
-
-program
-  .command("serve-files")
-  .option("-p, --port <number>", "Port to serve files on (default: 9418)")
-  .description("Start file server to serve agentmark templates and datasets")
-  .action(async (options) => {
-    await (serveFiles as any)({
-      port: options.port ? parseInt(options.port, 10) : undefined
     });
   });
 
