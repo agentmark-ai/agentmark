@@ -34,7 +34,6 @@ describe('init', () => {
       const gi = fs.readFileSync(path.join(tmpDir, '.gitignore'), 'utf8');
       expect(gi).toContain('node_modules');
       expect(gi).toContain('.env');
-      expect(gi).toContain('agentmark-output');
 
       // Verify CLI is installed as devDependency
       const devDepsCmd = calls.find(c => c.includes('--save-dev') && c.includes('@agentmark/cli')) || '';
@@ -123,8 +122,11 @@ describe('init', () => {
       const content = fs.readFileSync(devEntryPath, 'utf8');
       expect(content).toContain("import { createRunnerServer } from '@agentmark/cli/runner-server'");
       expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/vercel-ai-v4-adapter/runner'");
+      expect(content).toContain("import path from 'path'");
       expect(content).toContain('new VercelAdapterRunner(client)');
-      expect(content).toContain('createRunnerServer({ port: runnerPort, runner })');
+      expect(content).toContain('fileServerUrl');
+      expect(content).toContain('templatesDirectory');
+      expect(content).toContain('createRunnerServer({');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

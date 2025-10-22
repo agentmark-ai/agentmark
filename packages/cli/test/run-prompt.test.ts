@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import path from 'node:path';
+import path from 'path';
 
-// We will import the command handler function and call it with props input
+// Test constants
+const TEST_API_KEY = 'test-key';
+const MOCK_MODEL_NAME = 'gpt-4o';
+const MOCK_TEXT_RESULT = 'hello world';
+
+// Test state
 let runPrompt: any;
 let currentRunner: any = null;
+const originalEnv = { ...process.env };
 
 // Mock global fetch to simulate server responses
 // We respond to prompt-run with text/image/speech depending on currentRunner behavior
@@ -22,11 +28,11 @@ global.fetch = (async (url: any, init?: any) => {
 }) as any;
 
 vi.mock('prompts', () => ({
-  default: vi.fn().mockResolvedValue({ apiKey: 'test-key' })
+  default: vi.fn().mockResolvedValue({ apiKey: TEST_API_KEY })
 }));
 
 // Mock model provider env var mapping by setting OPENAI key; the adapter will not actually be invoked
-process.env.OPENAI_API_KEY = 'test-key';
+process.env.OPENAI_API_KEY = TEST_API_KEY;
 
 // Mock filesystem existence checks
 vi.mock('node:fs', async () => {
@@ -64,7 +70,11 @@ vi.mock('@agentmark/agentmark-core', async () => {
   const actual = await vi.importActual<any>('@agentmark/agentmark-core');
   return {
     ...actual,
-    TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' } }; } },
+    TemplateDXTemplateEngine: class {
+      async compile() {
+        return { text_config: { model_name: MOCK_MODEL_NAME } };
+      }
+    },
     FileLoader: class {},
   };
 });
@@ -78,19 +88,21 @@ vi.mock('ai', () => ({
 }));
 
 describe('run-prompt', () => {
-  const warnSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
   beforeEach(() => {
     vi.resetModules();
-    warnSpy.mockClear();
+    logSpy.mockClear();
     errorSpy.mockClear();
     currentRunner = null;
   });
 
   afterEach(() => {
-    warnSpy.mockReset();
+    logSpy.mockReset();
     errorSpy.mockReset();
+    // Restore environment variables
+    process.env = { ...originalEnv };
     delete process.env.AGENTMARK_RUNNER;
     delete process.env.AGENTMARK_CLIENT;
     // Cleanup temp artifacts if they exist
@@ -109,22 +121,20 @@ describe('run-prompt', () => {
     } catch {}
     // Remove generated output directories from both cwd and base test directory
     try { require('node:fs').rmSync(path.join(process.cwd(), '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
-    try { require('node:fs').rmSync(path.join(process.cwd(), 'agentmark-output'), { recursive: true, force: true }); } catch {}
     try { require('node:fs').rmSync(path.join(base, '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
-    try { require('node:fs').rmSync(path.join(base, 'agentmark-output'), { recursive: true, force: true }); } catch {}
   });
 
   it('uses a project runner and prints final text', async () => {
     const tempPath = path.join(__dirname, '..', 'dummy.mdx');
-    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
-    currentRunner = { async runPrompt(){ return { type: 'text', result: 'hello world' }; } } as any;
+    writeFileSync(tempPath, `---\ntext_config:\n  model_name: ${MOCK_MODEL_NAME}\n---`);
+    currentRunner = { async runPrompt(){ return { type: 'text', result: MOCK_TEXT_RESULT }; } } as any;
     // Import after mocks are in place
     if (!runPrompt) {
       runPrompt = (await import('../src/commands/run-prompt')).default;
     }
     await runPrompt(tempPath as any, { server: 'http://localhost:9417' });
     // Ensure the header printed
-    const headerPrinted = warnSpy.mock.calls.some(c => String(c[0]).includes('=== Text Prompt Results ==='));
+    const headerPrinted = logSpy.mock.calls.some(c => String(c[0]).includes('=== Text Prompt Results ==='));
     expect(headerPrinted).toBe(true);
     // Ensure streamed tokens were printed to stdout
     // We can't capture stdout easily via spy here, but absence of errors and presence of header proves path
@@ -137,7 +147,7 @@ describe('run-prompt', () => {
     currentRunner = { async runPrompt(){ return { type: 'image', result: [{ mimeType: 'image/png', base64: Buffer.from('png').toString('base64') }] }; } } as any;
     runPrompt = (await import('../src/commands/run-prompt')).default;
     await runPrompt(tempPath as any, { server: 'http://localhost:9417' });
-    const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Saved 1 image/);
   });
 
@@ -147,7 +157,7 @@ describe('run-prompt', () => {
     currentRunner = { async runPrompt(){ return { type: 'speech', result: { mimeType: 'audio/mpeg', base64: Buffer.from('mp3').toString('base64'), format: 'mp3' } }; } } as any;
     runPrompt = (await import('../src/commands/run-prompt')).default;
     await runPrompt(tempPath as any, { server: 'http://localhost:9417' });
-    const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Saved audio to:/);
   });
 
@@ -164,7 +174,7 @@ describe('run-prompt', () => {
     runPrompt = (await import('../src/commands/run-prompt')).default;
     await runPrompt(tempPath, { props: '{"name": "test", "value": 123}', server: 'http://localhost:9417' });
     expect(receivedCustomProps).toEqual({ name: 'test', value: 123 });
-    const out = warnSpy.mock.calls.map(c => String(c[0])).join('\n');
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Running prompt with custom props/);
   });
 

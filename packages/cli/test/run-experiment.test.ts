@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+// Test constants
+const MOCK_TEXT_TOKENS = 10;
+const MOCK_OBJECT_TOKENS = 15;
+const TEST_API_KEY = 'test-key';
+const MOCK_EXPECTED_OUTPUT = 'EXPECTED';
+const MOCK_MODEL_NAME = 'gpt-4o';
+
+// Test state
 let runExperiment: any;
 let currentRunner: any = null;
 
@@ -21,10 +29,10 @@ global.fetch = (async (url: any, init?: any) => {
 }) as any;
 
 vi.mock('prompts', () => ({
-  default: vi.fn().mockResolvedValue({ apiKey: 'test-key' })
+  default: vi.fn().mockResolvedValue({ apiKey: TEST_API_KEY })
 }));
 
-process.env.OPENAI_API_KEY = 'test-key';
+process.env.OPENAI_API_KEY = TEST_API_KEY;
 
 // Mock templatedx
 vi.mock('@agentmark/templatedx', () => ({
@@ -44,7 +52,10 @@ function makeDatasetStream(items: any[]) {
   });
 }
 
-// Mock client for run-experiment via runner using initialized client
+/**
+ * Creates a mock client that streams dataset results for testing.
+ * Each item is processed and compared against expected output using eval functions.
+ */
 function mockClientWithDataset(items: any[]) {
   currentRunner = {
     async runExperiment() {
@@ -53,14 +64,22 @@ function mockClientWithDataset(items: any[]) {
           const encoder = new TextEncoder();
           for (const it of items) {
             const expected = it.dataset?.expected_output ?? '';
-            const actual = 'EXPECTED';
+            const actual = MOCK_EXPECTED_OUTPUT;
             const evals = (it.evals ?? []).map((name: string) => ({
               name,
               score: String(expected) === String(actual) ? 1 : 0,
               label: String(expected) === String(actual) ? 'correct' : 'incorrect',
               passed: String(expected) === String(actual)
             }));
-            const chunk = JSON.stringify({ type: 'dataset', result: { input: it.dataset?.input ?? {}, expectedOutput: expected, actualOutput: actual, evals } }) + '\n';
+            const chunk = JSON.stringify({
+              type: 'dataset',
+              result: {
+                input: it.dataset?.input ?? {},
+                expectedOutput: expected,
+                actualOutput: actual,
+                evals
+              }
+            }) + '\n';
             controller.enqueue(encoder.encode(chunk));
           }
           controller.close();
@@ -72,9 +91,9 @@ function mockClientWithDataset(items: any[]) {
   };
 }
 
-// Mock AI to return predictable text
+// Mock AI SDK to return predictable responses
 vi.mock('ai', () => ({
-  generateText: vi.fn(async ({}) => ({ text: 'EXPECTED' })),
+  generateText: vi.fn(async () => ({ text: MOCK_EXPECTED_OUTPUT })),
   streamText: vi.fn(),
   generateObject: vi.fn(),
   experimental_generateImage: vi.fn(),
@@ -106,7 +125,11 @@ vi.mock('@agentmark/agentmark-core', async () => {
   const actual = await vi.importActual<any>('@agentmark/agentmark-core');
   return {
     ...actual,
-    TemplateDXTemplateEngine: class { async compile() { return { text_config: { model_name: 'gpt-4o' } }; } },
+    TemplateDXTemplateEngine: class {
+      async compile() {
+        return { text_config: { model_name: MOCK_MODEL_NAME } };
+      }
+    },
     FileLoader: class {},
   };
 });
@@ -121,7 +144,7 @@ describe('run-experiment', () => {
     const { writeFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     dummyPath = join(__dirname, '..', 'tmp-experiment.mdx');
-    writeFileSync(dummyPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+    writeFileSync(dummyPath, `---\ntext_config:\n  model_name: ${MOCK_MODEL_NAME}\n---`);
     currentRunner = null;
   });
 
@@ -135,9 +158,7 @@ describe('run-experiment', () => {
     try { unlinkSync(join(base, 'dummy-dataset.mdx')); } catch {}
     // Remove generated output directories
     try { rmSync(join(process.cwd(), '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
-    try { rmSync(join(process.cwd(), 'agentmark-output'), { recursive: true, force: true }); } catch {}
     try { rmSync(join(base, '.agentmark-outputs'), { recursive: true, force: true }); } catch {}
-    try { rmSync(join(base, 'agentmark-output'), { recursive: true, force: true }); } catch {}
   });
 
   it('passes threshold when all evals PASS', async () => {

@@ -3,6 +3,11 @@ import { createFileServer } from '../src/file-server';
 import { createRunnerServer } from '../src/runner-server';
 import type { Server } from 'http';
 
+// Test constants
+const MIN_TEST_PORT_FILE = 40000; // Minimum port for file server tests
+const MIN_TEST_PORT_RUNNER = 50000; // Minimum port for runner server tests
+const PORT_RANGE = 10000; // Range of ports to randomize within
+
 describe('Server Landing Pages', () => {
   let fileServer: Server;
   let runnerServer: Server;
@@ -11,8 +16,8 @@ describe('Server Landing Pages', () => {
 
   beforeAll(async () => {
     // Use random ports to avoid conflicts
-    fileServerPort = 40000 + Math.floor(Math.random() * 10000);
-    runnerServerPort = 50000 + Math.floor(Math.random() * 10000);
+    fileServerPort = MIN_TEST_PORT_FILE + Math.floor(Math.random() * PORT_RANGE);
+    runnerServerPort = MIN_TEST_PORT_RUNNER + Math.floor(Math.random() * PORT_RANGE);
 
     // Create mock runner for testing
     const mockRunner = {
@@ -64,8 +69,8 @@ describe('Server Landing Pages', () => {
     expect(html).toContain('Local development server for executing prompts and experiments');
     expect(html).toContain('prompt-run');
     expect(html).toContain('dataset-run');
-    expect(html).toContain('agentmark run-prompt');
-    expect(html).toContain('agentmark run-experiment');
+    expect(html).toContain('npm run prompt');
+    expect(html).toContain('npm run experiment');
     expect(html).toContain('docs.agentmark.co');
   });
 
