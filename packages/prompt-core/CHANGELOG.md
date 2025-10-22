@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 0.0.1
+
+### Patch Changes
+
+- aa89924: Feat: local CLI, evals, mastra package, and more.
+
 ## 3.3.4
 
 ### Patch Changes

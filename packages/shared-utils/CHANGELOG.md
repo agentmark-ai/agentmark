@@ -1,5 +1,11 @@
 # @agentmark/shared-utils
 
+## 1.3.1
+
+### Patch Changes
+
+- aa89924: Feat: local CLI, evals, mastra package, and more.
+
 ## 1.3.0
 
 ### Minor Changes
