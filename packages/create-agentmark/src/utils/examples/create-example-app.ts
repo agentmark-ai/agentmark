@@ -154,8 +154,8 @@ export const createExampleApp = async (
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
 
-    // For now, hardcode to vercel-ai-v4 adapter (will be configurable in future)
-    const adapterName = 'vercel-ai-v4';
+    // For now, hardcode to ai-sdk-v4 adapter (will be configurable in future)
+    const adapterName = 'ai-sdk-v4';
     const runnerClassName = 'VercelAdapterRunner';
 
     const devEntryContent = `// Auto-generated runner server entry point
