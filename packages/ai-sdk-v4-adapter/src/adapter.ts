@@ -9,7 +9,7 @@ import type {
   KeysWithKind,
   SpeechConfig,
   McpServers,
-} from "../../prompt-core/dist";
+} from "@agentmark/prompt-core";
 import type {
   LanguageModel,
   ImageModel,
@@ -19,7 +19,7 @@ import type {
   SpeechModel,
 } from "ai";
 import { jsonSchema } from "ai";
-import { parseMcpUri } from "../../prompt-core/dist";
+import { parseMcpUri } from "@agentmark/prompt-core";
 import { McpClientManager } from "./mcp/mcp-client-manager";
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;

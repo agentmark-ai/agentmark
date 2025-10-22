@@ -6,8 +6,8 @@ import type {
   Loader,
   TestSettings,
   RichChatMessage,
-} from "../../prompt-core/dist";
-import { TextPrompt } from "../../prompt-core/dist";
+} from "@agentmark/prompt-core";
+import { TextPrompt } from "@agentmark/prompt-core";
 import type { MastraAdapter } from "./adapter";
 import {
   FormatAgentProps,

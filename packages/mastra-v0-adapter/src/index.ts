@@ -1,8 +1,8 @@
-import type { Loader, PromptShape } from "../../prompt-core/dist";
+import type { Loader, PromptShape } from "@agentmark/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraToolRegistry } from "./tool-registry";
 import { MastraAdapter } from "./adapter";
-import type { McpServers } from "../../prompt-core/dist";
+import type { McpServers } from "@agentmark/prompt-core";
 import { MastraAgentMark } from "./mastra-agentmark";
 
 export function createAgentMarkClient<

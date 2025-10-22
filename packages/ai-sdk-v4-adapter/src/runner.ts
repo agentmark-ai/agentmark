@@ -1,9 +1,9 @@
 import { getFrontMatter } from "@agentmark/templatedx";
 import type { Ast } from "@agentmark/templatedx";
-import type { AgentMark } from "../../prompt-core/dist";
+import type { AgentMark } from "@agentmark/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
-import type { RunnerDatasetResponse, RunnerPromptResponse } from "../../prompt-core/dist";
+import type { RunnerDatasetResponse, RunnerPromptResponse } from "@agentmark/prompt-core";
 
 type Frontmatter = {
   text_config?: unknown;

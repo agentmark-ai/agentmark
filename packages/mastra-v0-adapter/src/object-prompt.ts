@@ -7,7 +7,7 @@ import {
   type TestSettings,
   type AdaptOptions,
   type RichChatMessage,
-} from "../../prompt-core/dist";
+} from "@agentmark/prompt-core";
 import { MastraAdapter } from "./adapter";
 import { AgentGenerateOptions } from "@mastra/core/agent";
 import {

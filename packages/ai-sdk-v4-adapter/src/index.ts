@@ -7,7 +7,7 @@ import {
   ObjectPrompt,
   PromptFormatParams,
   PromptShape,
-} from "../../prompt-core/dist/index.js";
+} from "@agentmark/prompt-core";
 import {
   VercelAIAdapter,
   VercelAIModelRegistry,
@@ -18,7 +18,7 @@ import type {
   DatasetErrorChunk,
   DatasetStreamChunk,
   McpServers,
-} from "../../prompt-core/dist/index.js";
+} from "@agentmark/prompt-core";
 import type { Root } from "mdast";
 
 export interface VercelAIObjectPrompt<

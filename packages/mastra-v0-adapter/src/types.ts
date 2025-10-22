@@ -1,4 +1,4 @@
-import { KeysWithKind, PromptShape } from "../../prompt-core/dist";
+import { KeysWithKind, PromptShape } from "@agentmark/prompt-core";
 
 export type StrictPick<T, K extends keyof T> = [K] extends [never]
   ? {} & Record<Exclude<keyof any, K>, never>

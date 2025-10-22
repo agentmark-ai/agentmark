@@ -6,7 +6,7 @@ import type {
   PromptMetadata,
   AdaptOptions,
   RichChatMessage,
-} from "../../prompt-core/dist";
+} from "@agentmark/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraToolRegistry } from "./tool-registry";
 import { AgentConfig, AgentGenerateOptions } from "@mastra/core/agent";
@@ -14,8 +14,8 @@ import { resolveSerializedZodOutput } from "@mastra/core/utils";
 import { parseSchema } from "json-schema-to-zod";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { parseMcpUri } from "../../prompt-core/dist";
-import type { McpServers } from "../../prompt-core/dist";
+import { parseMcpUri } from "@agentmark/prompt-core";
+import type { McpServers } from "@agentmark/prompt-core";
 import { MCPClientManager } from "./mcp/mcp-client-manager";
 
 function getTelemetryConfig(

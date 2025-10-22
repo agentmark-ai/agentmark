@@ -3,8 +3,8 @@ import type {
   McpServerConfig,
   McpUrlServerConfig,
   McpStdioServerConfig,
-} from "../../../prompt-core/dist";
-import { interpolateEnvInObject } from "../../../prompt-core/dist";
+} from "@agentmark/prompt-core";
+import { interpolateEnvInObject } from "@agentmark/prompt-core";
 import type { Tool } from "ai";
 import { experimental_createMCPClient } from "ai";
 // @ts-expect-error no types
