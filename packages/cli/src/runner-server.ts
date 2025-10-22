@@ -216,12 +216,10 @@ ${promptsList}
 
   <h3>Run a Single Prompt</h3>
   <div class="command">$ npm run prompt agentmark/&lt;file&gt;.prompt.mdx [options]</div>
-  <div class="endpoint-desc">Or directly: <code>agentmark run-prompt &lt;filepath&gt; [options]</code></div>
 ${runPromptOptions}
 
   <h3>Run Experiments with Datasets</h3>
   <div class="command">$ npm run experiment agentmark/&lt;file&gt;.prompt.mdx [options]</div>
-  <div class="endpoint-desc">Or directly: <code>agentmark run-experiment &lt;filepath&gt; [options]</code></div>
 ${runExperimentOptions}
 
   <h2>API Endpoints</h2>
