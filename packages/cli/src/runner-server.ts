@@ -1,21 +1,31 @@
 import express, { type Request, type Response } from 'express';
 import { createServer } from 'node:http';
-import type { AgentMark } from '@agentmark/agentmark-core';
-import { VercelAdapterRunner } from './runner';
+import { type RunnerPromptResponse, type RunnerDatasetResponse } from '@agentmark/agentmark-core';
+
+/**
+ * Generic runner interface that any adapter can implement
+ */
+export interface Runner {
+  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<RunnerPromptResponse>;
+  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string): Promise<RunnerDatasetResponse>;
+}
 
 export interface RunnerServerOptions {
   port?: number;
-  client: AgentMark<any, any>;
+  runner: Runner;
 }
 
+/**
+ * Creates an HTTP server that wraps a runner instance.
+ * This server provides endpoints for executing prompts and experiments via HTTP.
+ * Used by the CLI and local development workflows.
+ */
 export async function createRunnerServer(options: RunnerServerOptions) {
-  const { port = 9417, client } = options;
+  const { port = 9417, runner } = options;
 
   const app = express();
   app.use(express.json({ limit: '10mb' }));
   app.use((_req, _res, next) => { next(); });
-
-  const runner = new VercelAdapterRunner(client);
 
   app.post('/', async (req: Request, res: Response) => {
     try {
@@ -28,6 +38,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
         }
         const options = { ...event.data.options, customProps: event.data.customProps };
         const response = await runner.runPrompt(event.data.ast, options);
+
         if (response?.type === 'stream' && response.stream) {
           res.setHeader('AgentMark-Streaming', 'true');
           if (response.streamHeader) {

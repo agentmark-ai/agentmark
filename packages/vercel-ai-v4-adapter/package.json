@@ -17,16 +17,6 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./dev": {
-      "import": {
-        "types": "./dist/dev.d.ts",
-        "default": "./dist/dev.js"
-      },
-      "require": {
-        "types": "./dist/dev.d.cts",
-        "default": "./dist/dev.cjs"
-      }
-    },
     "./runner": {
       "import": {
         "types": "./dist/runner.d.ts",

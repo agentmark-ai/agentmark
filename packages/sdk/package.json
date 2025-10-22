@@ -7,10 +7,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./file-server": {
-      "types": "./dist/file-server.d.ts",
-      "default": "./dist/file-server.js"
     }
   },
   "description": "SDK for communicating with the Agentmark hosted platform",

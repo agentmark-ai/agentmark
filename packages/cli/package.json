@@ -6,7 +6,9 @@
   "exports": {
     ".": "./dist/index.js",
     "./json-server": "./dist/json-server.js",
-    "./dev-servers": "./dist/dev-servers.js"
+    "./dev-servers": "./dist/dev-servers.js",
+    "./file-server": "./dist/file-server.js",
+    "./runner-server": "./dist/runner-server.js"
   },
   "scripts": {
     "dev": "next dev",

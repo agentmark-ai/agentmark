@@ -8,11 +8,10 @@ export interface DevServerOptions {
   createRunnerServerFn: (options: { port: number; client: any }) => Promise<any>;
 }
 
+import { createFileServer } from './file-server';
+
 export async function createDevServers(options: DevServerOptions) {
   const { runnerPort = 9417, fileServerPort = 9418, client, createRunnerServerFn } = options;
-
-  // Import file server from SDK
-  const { createFileServer } = await import('@agentmark/sdk/file-server');
 
   // Start file server
   const fileServer = await createFileServer(fileServerPort);

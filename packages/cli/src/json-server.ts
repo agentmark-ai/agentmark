@@ -1,12 +1,13 @@
 // Re-export for backward compatibility
-export { createFileServer } from '@agentmark/sdk/file-server';
+export { createFileServer } from './file-server';
 
 // When run directly as a script
 if (require.main === module) {
-  const { createFileServer } = require('@agentmark/sdk/file-server');
-  const PORT = parseInt(process.env.PORT || '9418', 10);
-  createFileServer(PORT).catch((error: Error) => {
-    console.error('Failed to start file server:', error);
-    process.exit(1);
+  import('./file-server.js').then(({ createFileServer }) => {
+    const PORT = parseInt(process.env.PORT || '9418', 10);
+    createFileServer(PORT).catch((error: Error) => {
+      console.error('Failed to start file server:', error);
+      process.exit(1);
+    });
   });
 }
