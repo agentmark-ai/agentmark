@@ -3,8 +3,8 @@ import { openai } from "@ai-sdk/openai";
 import {
   createAgentMarkClient,
   MastraModelRegistry,
-} from "@agentmark/mastra-adapter";
-import { FileLoader } from "@agentmark/agentmark-core";
+} from "@agentmark/mastra-v0-adapter";
+import { FileLoader } from "@agentmark/prompt-core";
 import { Agent } from "@mastra/core/agent";
 import AgentmarkTypes from "./agentmark.types";
 

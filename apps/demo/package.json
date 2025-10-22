@@ -6,9 +6,9 @@
     "mastra-example": "tsx --tsconfig ../../packages/mastra-adapter/tsconfig.json mastra-example.ts"
   },
   "dependencies": {
-    "@agentmark/agentmark-core": "workspace:*",
-    "@agentmark/mastra-adapter": "workspace:*",
-    "@agentmark/vercel-ai-v4-adapter": "workspace:*",
+    "@agentmark/ai-sdk-v4-adapter": "workspace:*",
+    "@agentmark/mastra-v0-adapter": "workspace:*",
+    "@agentmark/prompt-core": "workspace:*",
     "@ai-sdk/openai": "^1.0.15",
     "@mastra/core": "^0.13.2",
     "dotenv": "^16.4.7",

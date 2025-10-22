@@ -1,6 +1,6 @@
 {
   "name": "create-agentmark",
-  "version": "1.8.1",
+  "version": "0.0.0",
   "type": "module",
   "description": "Create AgentMark projects with npm create agentmark",
   "main": "dist/index.js",

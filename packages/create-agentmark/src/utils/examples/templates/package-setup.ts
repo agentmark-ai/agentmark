@@ -51,7 +51,7 @@ export const installDependencies = (
     const installArgs = [
       "install",
       "dotenv",
-      "@agentmark/agentmark-core",
+      "@agentmark/prompt-core",
       "@agentmark/vercel-ai-v4-adapter",
       "@agentmark/sdk",
       providerPackage,

@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import { createServer } from 'node:http';
-import { type RunnerPromptResponse, type RunnerDatasetResponse } from '@agentmark/agentmark-core';
+import { type RunnerPromptResponse, type RunnerDatasetResponse } from '@agentmark/prompt-core';
 import { getCliMetadata, formatOptionsAsHtml } from './cli-metadata';
 
 /**

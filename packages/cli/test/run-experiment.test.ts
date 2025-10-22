@@ -121,8 +121,8 @@ vi.mock('fs', async () => {
 });
 
 // Base core mock; per test we override compile outputs
-vi.mock('@agentmark/agentmark-core', async () => {
-  const actual = await vi.importActual<any>('@agentmark/agentmark-core');
+vi.mock('@agentmark/prompt-core', async () => {
+  const actual = await vi.importActual<any>('@agentmark/prompt-core');
   return {
     ...actual,
     TemplateDXTemplateEngine: class {

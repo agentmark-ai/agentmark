@@ -3,10 +3,10 @@ import {
   createAgentMarkClient,
   VercelAIModelRegistry,
   VercelAIToolRegistry,
-} from "@agentmark/vercel-ai-v4-adapter";
+} from "@agentmark/ai-sdk-v4-adapter";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
-import { FileLoader } from "@agentmark/agentmark-core";
+import { FileLoader } from "@agentmark/prompt-core";
 import { Tools } from "./agentmark.types";
 
 const modelRegistry = new VercelAIModelRegistry();
