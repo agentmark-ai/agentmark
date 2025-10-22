@@ -34,18 +34,9 @@ export const installDependencies = (
   console.log("This might take a moment...");
 
   try {
-    // Install AgentMark CLI globally if not already installed
-    try {
-      execSync("agentmark --version", { stdio: "ignore" });
-      console.log("AgentMark CLI already installed globally");
-    } catch {
-      console.log("Installing AgentMark CLI globally...");
-      execSync("npm install -g @agentmark/cli", { stdio: "inherit" });
-      console.log("AgentMark CLI installed successfully!");
-    }
-
-    // Install TypeScript, ts-node, express (and types) for development
-    execSync("npm install --save-dev typescript ts-node @types/node express @types/express", {
+    // Install TypeScript, ts-node, CLI, and other dev dependencies
+    // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
+    execSync("npm install --save-dev typescript ts-node @types/node @agentmark/cli", {
       stdio: "inherit",
       cwd: targetPath,
     });

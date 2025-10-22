@@ -35,6 +35,12 @@ describe('init', () => {
       expect(gi).toContain('node_modules');
       expect(gi).toContain('.env');
       expect(gi).toContain('agentmark-output');
+
+      // Verify CLI is installed as devDependency
+      const devDepsCmd = calls.find(c => c.includes('--save-dev') && c.includes('@agentmark/cli')) || '';
+      expect(devDepsCmd).toContain('@agentmark/cli');
+      expect(devDepsCmd).toContain('typescript');
+
       const appInstallCmd = calls.find(c => c.startsWith('npm install ') && c.includes('@agentmark/vercel-ai-v4-adapter')) || '';
       expect(appInstallCmd).toContain(' ai@^4');
       expect(appInstallCmd).toMatch(/@ai-sdk\/openai@\^1/);
@@ -99,5 +105,28 @@ describe('init', () => {
     const content = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'anthropic', languageModels: ['claude-3'] });
     expect(content).not.toContain('openai.image');
     expect(content).not.toContain('openai.speech');
+  });
+
+  it('creates .agentmark/dev-entry.ts during initialization', async () => {
+    vi.doMock('child_process', () => ({
+      execSync: () => {},
+      execFileSync: () => {}
+    }));
+    const { createExampleApp } = await import('../src/utils/examples/create-example-app');
+    const tmpDir = path.join(__dirname, '..', 'tmp-dev-entry-' + Date.now());
+    fs.mkdirSync(tmpDir, { recursive: true });
+    try {
+      await createExampleApp('openai', 'gpt-4o', 'skip', tmpDir, '');
+      const devEntryPath = path.join(tmpDir, '.agentmark', 'dev-entry.ts');
+      expect(fs.existsSync(devEntryPath)).toBe(true);
+
+      const content = fs.readFileSync(devEntryPath, 'utf8');
+      expect(content).toContain("import { createRunnerServer } from '@agentmark/cli/runner-server'");
+      expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/vercel-ai-v4-adapter/runner'");
+      expect(content).toContain('new VercelAdapterRunner(client)');
+      expect(content).toContain('createRunnerServer({ port: runnerPort, runner })');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

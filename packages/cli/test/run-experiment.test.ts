@@ -354,12 +354,11 @@ ${yamlContent}
     try {
       await runExperiment(promptPath, { server: 'http://localhost:9417', skipEval: true });
 
-      // Verify dataset path was resolved to absolute path
+      // Verify dataset path remains relative (not resolved to absolute)
       expect(capturedDatasetPath).toBeDefined();
-      expect(capturedDatasetPath).toContain('test-prompts');
-      expect(capturedDatasetPath).toContain(datasetRelativePath);
-      // Should be an absolute path
-      expect(actualPath.isAbsolute(capturedDatasetPath!)).toBe(true);
+      expect(capturedDatasetPath).toBe(datasetRelativePath);
+      // Should be a relative path
+      expect(actualPath.isAbsolute(capturedDatasetPath!)).toBe(false);
     } finally {
       // Cleanup
       global.fetch = originalFetch;

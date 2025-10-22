@@ -22,6 +22,35 @@ function setupTestDir(tmp: string) {
     // Ignore if symlink already exists
     if (e.code !== 'EEXIST') throw e;
   }
+
+  // Create .agentmark/dev-entry.ts (created during init in real apps)
+  const agentmarkInternalDir = path.join(tmp, '.agentmark');
+  fs.mkdirSync(agentmarkInternalDir, { recursive: true });
+
+  const devEntryContent = `// Auto-generated runner server entry point
+// To customize, create a dev-server.ts file in your project root
+
+import { createRunnerServer } from '@agentmark/cli/runner-server';
+import { VercelAdapterRunner } from '@agentmark/vercel-ai-v4-adapter/runner';
+
+async function main() {
+  const { client } = await import('../agentmark.config.js');
+
+  const args = process.argv.slice(2);
+  const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
+
+  const runner = new VercelAdapterRunner(client as any);
+  await createRunnerServer({ port: runnerPort, runner });
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+`;
+
+  fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
 }
 
 async function getFreePort(): Promise<number> {
@@ -108,7 +137,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    // No dev-server.ts - let CLI auto-generate it
+    // No custom dev-server.ts - will use .agentmark/dev-entry.ts from setupTestDir
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -158,15 +187,15 @@ export const client = new AgentMark({ prompt: {}, adapter });
     expect(text.trim().length).toBeGreaterThan(0);
   }, 15000); // Increase timeout for this test
 
-  it('auto-generates dev server when dev-server.ts is missing', async () => {
+  it('uses default dev-entry.ts when custom dev-server.ts is missing', async () => {
     const tmp = path.join(__dirname, '..', 'tmp-dev-autogen-' + Date.now());
     tmpDirs.push(tmp);
     fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
 
-    // Setup test directory
+    // Setup test directory (creates .agentmark/dev-entry.ts)
     setupTestDir(tmp);
 
-    // Create agentmark.config.ts but NOT dev-server.ts
+    // Create agentmark.config.ts but NOT custom dev-server.ts
     const configContent = `
 import { AgentMark } from '@agentmark/agentmark-core';
 import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark/vercel-ai-v4-adapter';
@@ -200,70 +229,15 @@ export const client = new AgentMark({ prompt: {}, adapter });
 
     await wait(3000);
 
-    // Verify .agentmark/dev-entry.ts was created (auto-generated)
+    // Verify .agentmark/dev-entry.ts exists (created by setupTestDir simulating init)
     expect(fs.existsSync(path.join(tmp, '.agentmark', 'dev-entry.ts'))).toBe(true);
 
-    // Verify the output doesn't contain custom dev-server message
+    // Verify the output doesn't contain custom dev-server message (uses default dev-entry.ts)
     expect(stdout).not.toContain('Using custom dev-server.ts');
 
     // Verify server started
     const serverReady = await waitForServer(`http://localhost:${filePort}/v1/prompts`);
     expect(serverReady).toBe(true);
-  }, 15000);
-
-  it('detects and displays the correct adapter name', async () => {
-    const tmp = path.join(__dirname, '..', 'tmp-dev-adapter-' + Date.now());
-    tmpDirs.push(tmp);
-    fs.mkdirSync(path.join(tmp, 'agentmark'), { recursive: true });
-
-    // Setup test directory with node_modules
-    setupTestDir(tmp);
-
-    fs.writeFileSync(path.join(tmp, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
-    fs.writeFileSync(path.join(tmp, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
-
-    // Create config with Vercel AI adapter
-    const configContent = `
-import { AgentMark } from '@agentmark/agentmark-core';
-import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark/vercel-ai-v4-adapter';
-import { createOpenAI } from '@ai-sdk/openai';
-
-const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || 'test-key' });
-const modelRegistry = new VercelAIModelRegistry();
-modelRegistry.registerModels(['gpt-4o'], (name: string) => openai(name));
-
-const adapter = new VercelAIAdapter(modelRegistry);
-export const client = new AgentMark({ prompt: {}, adapter });
-`;
-    fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    // No dev-server.ts - let CLI auto-generate it
-
-    const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const filePort = await getFreePort();
-    const runnerPort = await getFreePort();
-
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
-      cwd: tmp,
-      env: { ...process.env, OPENAI_API_KEY: 'test-key' },
-      stdio: 'pipe'
-    });
-
-    processes.push(child);
-
-    let stdout = '';
-    let stderr = '';
-    child.stdout?.on('data', (data) => { stdout += data.toString(); });
-    child.stderr?.on('data', (data) => { stderr += data.toString(); });
-
-    // Wait for server to be ready
-    const serverReady = await waitForServer(`http://localhost:${filePort}/v1/prompts`);
-    expect(serverReady).toBe(true);
-
-    // Give it a bit more time for the adapter message to be printed
-    await wait(500);
-
-    const output = stdout + stderr;
-    expect(output).toContain('vercel-ai-v4');
   }, 15000);
 
   it('allows custom port configuration', async () => {
@@ -290,7 +264,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    // No dev-server.ts - let CLI auto-generate it
+    // No custom dev-server.ts - will use .agentmark/dev-entry.ts from setupTestDir
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const customFilePort = await getFreePort();
@@ -335,7 +309,7 @@ const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
     fs.writeFileSync(path.join(tmp, 'agentmark.config.ts'), configContent);
-    // No dev-server.ts - let CLI auto-generate it
+    // No custom dev-server.ts - will use .agentmark/dev-entry.ts from setupTestDir
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();

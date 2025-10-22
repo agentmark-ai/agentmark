@@ -149,6 +149,40 @@ export const createExampleApp = async (
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
     }
 
+    // Create .agentmark directory and dev-entry.ts
+    console.log("Creating development server entry point...");
+    const agentmarkInternalDir = path.join(targetPath, '.agentmark');
+    fs.ensureDirSync(agentmarkInternalDir);
+
+    // For now, hardcode to vercel-ai-v4 adapter (will be configurable in future)
+    const adapterName = 'vercel-ai-v4';
+    const runnerClassName = 'VercelAdapterRunner';
+
+    const devEntryContent = `// Auto-generated runner server entry point
+// To customize, create a dev-server.ts file in your project root
+
+import { createRunnerServer } from '@agentmark/cli/runner-server';
+import { ${runnerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+
+async function main() {
+  const { client } = await import('../agentmark.config.js');
+
+  const args = process.argv.slice(2);
+  const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
+
+  const runner = new ${runnerClassName}(client);
+  await createRunnerServer({ port: runnerPort, runner });
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+`;
+
+    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
+
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
 

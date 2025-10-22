@@ -108,10 +108,11 @@ export default async function runExperiment(filepath: string, options: { skipEva
   try {
     const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
     const rawDatasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
-    // Resolve dataset path relative to the prompt file's directory
+    // Keep dataset path relative to the prompt file's directory
+    // The file loader expects relative paths, not absolute paths
     if (rawDatasetPath) {
-      const promptDir = path.dirname(resolvedFilepath);
-      datasetPath = path.isAbsolute(rawDatasetPath) ? rawDatasetPath : path.resolve(promptDir, rawDatasetPath);
+      // If already relative (starts with ./), use as-is; otherwise just use the raw path
+      datasetPath = rawDatasetPath;
     }
   } catch {}
 

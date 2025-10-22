@@ -14,7 +14,7 @@ const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
 const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
 
 async function main() {
-  const runner = new VercelAdapterRunner(client);
+  const runner = new VercelAdapterRunner(client as any);
   await createRunnerServer({ port: runnerPort, runner });
 }
 
