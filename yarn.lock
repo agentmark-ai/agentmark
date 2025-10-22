@@ -44,7 +44,6 @@ __metadata:
   resolution: "@agentmark/cli@workspace:packages/cli"
   dependencies:
     "@agentmark/agentmark-core": "npm:*"
-    "@agentmark/sdk": "npm:*"
     "@agentmark/shared-utils": "npm:*"
     "@agentmark/templatedx": "npm:^0.6.3"
     "@types/express": "npm:^4"
@@ -106,7 +105,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/sdk@npm:*, @agentmark/sdk@workspace:packages/sdk":
+"@agentmark/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"
   dependencies:

@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "@agentmark/agentmark-core": "*",
-    "@agentmark/sdk": "*",
     "@agentmark/shared-utils": "*",
     "@agentmark/templatedx": "^0.6.3",
     "cli-table3": "^0.6.5",

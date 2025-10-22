@@ -29,11 +29,8 @@
   "license": "MIT",
   "dependencies": {
     "@agentmark/shared-utils": "*",
-    "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
-    "json-schema-to-typescript": "^15.0.3",
-    "prompts": "^2.4.2",
-    "yaml": "^2.6.1"
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
