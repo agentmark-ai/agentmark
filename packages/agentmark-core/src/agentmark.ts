@@ -65,10 +65,6 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, "text", options);
     } else {
-      // AST object provided directly - validate it's an object, not a string
-      if (typeof pathOrPreloaded === "string") {
-        throw new Error("Invalid input: expected AST object but received string");
-      }
       content = pathOrPreloaded;
     }
 
@@ -96,10 +92,6 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, "object", options);
     } else {
-      // AST object provided directly - validate it's an object, not a string
-      if (typeof pathOrPreloaded === "string") {
-        throw new Error("Invalid input: expected AST object but received string");
-      }
       content = pathOrPreloaded;
     }
 
@@ -127,10 +119,6 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, "image", options);
     } else {
-      // AST object provided directly - validate it's an object, not a string
-      if (typeof pathOrPreloaded === "string") {
-        throw new Error("Invalid input: expected AST object but received string");
-      }
       content = pathOrPreloaded;
     }
 
@@ -158,10 +146,6 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     if (pathProvided && this.loader) {
       content = await this.loader.load(pathOrPreloaded, "speech", options);
     } else {
-      // AST object provided directly - validate it's an object, not a string
-      if (typeof pathOrPreloaded === "string") {
-        throw new Error("Invalid input: expected AST object but received string");
-      }
       content = pathOrPreloaded;
     }
 
