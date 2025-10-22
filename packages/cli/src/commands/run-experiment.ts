@@ -72,11 +72,22 @@ const computeLayout = (baseHead: string[], evalNames: string[] = [], _sampleRows
   return { head, colWidths: widths };
 };
 
+/**
+ * Resolves a path against the current working directory or PWD environment variable.
+ * @param inputPath - The path to resolve
+ * @returns Resolved absolute path
+ * @throws Error if the working directory is invalid and the path is relative
+ */
 function resolveAgainstCwdOrEnv(inputPath: string): string {
   if (path.isAbsolute(inputPath)) return inputPath;
   let base: string | undefined;
   try { base = process.cwd(); } catch { base = process.env.PWD; }
-  if (!base) throw new Error('Invalid working directory. Provide an absolute path or set PWD.');
+  if (!base) {
+    throw new Error(
+      'Invalid working directory. Unable to resolve relative path.\n' +
+      'Please provide an absolute path or ensure PWD environment variable is set.'
+    );
+  }
   return path.resolve(base, inputPath);
 }
 
@@ -90,11 +101,28 @@ function escapeCSV(value: string): string {
 }
 
 
+interface ExperimentConfig {
+  outputDir: string;
+}
+
+function getExperimentConfig(): ExperimentConfig {
+  return {
+    outputDir: '.agentmark-outputs',
+  };
+}
+
 export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
+  const config = getExperimentConfig();
+
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
-  if (!fs.existsSync(resolvedFilepath)) throw new Error(`File not found: ${resolvedFilepath}`);
+  if (!fs.existsSync(resolvedFilepath)) {
+    throw new Error(
+      `Prompt file not found: ${resolvedFilepath}\n` +
+      `Please check that the file exists and the path is correct.`
+    );
+  }
 
   // Ensure runner client resolves prompt-relative resources (datasets, etc.)
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
@@ -118,7 +146,11 @@ export default async function runExperiment(filepath: string, options: { skipEva
 
   const server = options.server || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
-    throw new Error('Server URL is required. Make sure the dev server is running.');
+    throw new Error(
+      'Invalid or missing server URL.\n' +
+      'Please ensure the AgentMark dev server is running with: agentmark dev\n' +
+      `Expected format: http://localhost:9417 (got: ${server || 'undefined'})`
+    );
   }
 
   // Only show status messages for table format
@@ -140,8 +172,21 @@ export default async function runExperiment(filepath: string, options: { skipEva
     const ct = res.headers.get('content-type') || '';
     const statusLine = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
     const errMsg = parsed?.error || parsed?.message || raw?.slice?.(0, 2000) || 'Unknown error';
+
+    // Provide more helpful error messages based on status code
+    let helpText = '';
+    if (res.status === 404) {
+      helpText = '\n\nTip: The dev server endpoint was not found. Make sure you are running the latest version.';
+    } else if (res.status === 400) {
+      helpText = '\n\nTip: The request was malformed. Check that your prompt file and dataset are valid.';
+    } else if (res.status === 500) {
+      helpText = '\n\nTip: The server encountered an error. Check the dev server logs for more details.';
+    } else if (res.status === 503 || res.status === 502) {
+      helpText = '\n\nTip: The server is unavailable. Make sure the dev server is running with: agentmark dev';
+    }
+
     const details = `HTTP ${statusLine} — Content-Type: ${ct}`;
-    const msg = `Runner request failed. ${details}\nURL: ${server}\nBody: ${errMsg}`;
+    const msg = `Runner request failed. ${details}\nURL: ${server}\nError: ${errMsg}${helpText}`;
     console.error(msg);
     throw new Error(msg);
   }
@@ -180,7 +225,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
           let actual: string;
           let extraPaths: Array<{ rel: string; kind: 'image' | 'audio' } > = [];
           const hyperlink = (label: string, url: string) => `\u001B]8;;${url}\u0007${label}\u001B]8;;\u0007`;
-          const outDir = path.join(process.cwd(), '.agentmark-outputs');
+          const outDir = path.join(process.cwd(), config.outputDir);
           const ensureOutDir = () => { try { fs.mkdirSync(outDir, { recursive: true }); } catch {} };
           const ao = r.actualOutput;
           if (Array.isArray(ao) && ao.length > 0 && ao.every((x: any) => x && typeof x.base64 === 'string')) {
@@ -323,12 +368,26 @@ export default async function runExperiment(filepath: string, options: { skipEva
 
   if (evalEnabled && totalEvals > 0 && options.thresholdPercent !== undefined) {
     const t = options.thresholdPercent;
-    if (!Number.isFinite(t) || t < 0 || t > 100) throw new Error(`Invalid threshold: ${t}. Threshold must be between 0 and 100.`);
+    if (!Number.isFinite(t) || t < 0 || t > 100) {
+      throw new Error(
+        `Invalid threshold value: ${t}\n` +
+        'Threshold must be a number between 0 and 100 (representing percentage).'
+      );
+    }
     const passPct = Math.floor((passedEvals / totalEvals) * 100);
     if (passPct < t) {
-      console.error(`❌ Experiment failed: ${passPct}% < threshold ${t}% (${passedEvals}/${totalEvals} evals passed)`);
-      throw new Error(`Experiment failed: ${passPct}% < threshold ${t}% (${passedEvals}/${totalEvals} evals passed)`);
+      console.error(
+        `❌ Experiment failed threshold check\n` +
+        `   Pass rate: ${passPct}% (${passedEvals}/${totalEvals} evaluations passed)\n` +
+        `   Threshold: ${t}%\n` +
+        `   Difference: ${passPct - t}%`
+      );
+      throw new Error(`Experiment failed: pass rate ${passPct}% is below threshold ${t}%`);
     }
-    console.log(`✅ Experiment passed threshold: ${passPct}% >= ${t}% (${passedEvals}/${totalEvals})`);
+    console.log(
+      `✅ Experiment passed threshold check\n` +
+      `   Pass rate: ${passPct}% (${passedEvals}/${totalEvals} evaluations passed)\n` +
+      `   Threshold: ${t}%`
+    );
   }
 }

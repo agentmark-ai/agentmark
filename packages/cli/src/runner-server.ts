@@ -34,7 +34,10 @@ export async function createRunnerServer(options: RunnerServerOptions) {
       if (event?.type === 'prompt-run') {
         // Validate that ast is an object (Root AST), not a string path
         if (!event.data?.ast || typeof event.data.ast !== 'object') {
-          return res.status(400).json({ error: 'Invalid or missing AST object' });
+          return res.status(400).json({
+            error: 'Invalid or missing AST object',
+            details: 'The request must include a valid AST (Abstract Syntax Tree) object in event.data.ast'
+          });
         }
         const options = { ...event.data.options, customProps: event.data.customProps };
         const response = await runner.runPrompt(event.data.ast, options);
@@ -62,15 +65,23 @@ export async function createRunnerServer(options: RunnerServerOptions) {
       if (event?.type === 'dataset-run') {
         // Validate that ast is an object (Root AST), not a string path
         if (!event.data?.ast || typeof event.data.ast !== 'object') {
-          return res.status(400).json({ error: 'Invalid or missing AST object in dataset-run event' });
+          return res.status(400).json({
+            error: 'Invalid or missing AST object in dataset-run event',
+            details: 'The request must include a valid AST (Abstract Syntax Tree) object in event.data.ast'
+          });
         }
         const experimentId = event.data.experimentId ?? 'local-experiment';
         let response;
         try {
           response = await runner.runExperiment(event.data.ast, experimentId, event.data.datasetPath);
         } catch (e: any) {
+          // Provide more context about the error
+          const errorMessage = e?.message || String(e);
+          const errorStack = e?.stack;
           return res.status(500).json({
-            error: e?.message || String(e)
+            error: errorMessage,
+            details: 'An error occurred while running the experiment. Check that your prompt and dataset are valid.',
+            stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
           });
         }
         if (response?.stream) {
@@ -92,10 +103,18 @@ export async function createRunnerServer(options: RunnerServerOptions) {
         return res.status(500).json({ error: 'Expected stream from dataset-run' });
       }
 
-      return res.status(400).json({ error: 'Unknown event type' });
+      return res.status(400).json({
+        error: 'Unknown event type',
+        details: `Expected event.type to be 'prompt-run' or 'dataset-run', got: ${event?.type || 'undefined'}`,
+        validTypes: ['prompt-run', 'dataset-run']
+      });
     } catch (e: any) {
+      const errorMessage = e?.message || String(e);
+      const errorStack = e?.stack;
       return res.status(500).json({
-        error: e?.message || String(e)
+        error: errorMessage,
+        details: 'An unexpected error occurred in the runner server',
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
       });
     }
   });
