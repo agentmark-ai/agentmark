@@ -1,5 +1,11 @@
 # create-agentmark
 
+## 0.0.4
+
+### Patch Changes
+
+- 57b3b02: Cleanup dev-server, unused file
+
 ## 0.0.3
 
 ### Patch Changes
