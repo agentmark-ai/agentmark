@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { findPromptFiles } from '@agentmark/shared-utils';
-import rateLimit from 'express-rate-limit';
 
 function safePath(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -10,14 +9,6 @@ function safePath(): string {
 
 export async function createFileServer(port: number) {
   const app = express();
-
-  // Set up rate limiter: 100 requests per 15 minutes per IP for heavy endpoints
-  const templatesLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    standardHeaders: true, // Return rate limit info in the headers
-    legacyHeaders: false, // Disable the X-RateLimit headers
-  });
 
   const currentPath = safePath();
   const basePath = path.join(currentPath);
@@ -33,7 +24,7 @@ export async function createFileServer(port: number) {
     }
   } catch {}
 
-  app.get('/v1/templates', templatesLimiter, async (req: Request, res: Response) => {
+  app.get('/v1/templates', async (req: Request, res: Response) => {
     const filePath = req.query.path;
 
     if (!filePath || typeof filePath !== 'string') {
