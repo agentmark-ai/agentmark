@@ -175,7 +175,7 @@ async function main() {
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
   const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
 
-  const runner = new ${runnerClassName}(client);
+  const runner = new ${runnerClassName}(client as any);
   const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
   const templatesDirectory = path.join(process.cwd(), 'agentmark');
 
