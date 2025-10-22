@@ -27,8 +27,4 @@ export class MastraModelRegistry {
 		if (this.defaultCreator) return this.defaultCreator;
 		throw new Error(`No model function found for: ${modelName}`);
 	}
-
-	setDefaultCreator(creator: ModelFunctionCreator) {
-		this.defaultCreator = creator;
-	}
 } 

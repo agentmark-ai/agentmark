@@ -1,0 +1,42 @@
+{
+  "name": "create-agentmark",
+  "version": "1.8.1",
+  "type": "module",
+  "description": "Create AgentMark projects with npm create agentmark",
+  "main": "dist/index.js",
+  "bin": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./templates": "./dist/utils/examples/templates/index.js"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "test": "vitest run",
+    "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
+    "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\""
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "agentmark",
+    "ai",
+    "agents",
+    "create-agentmark",
+    "scaffolding"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@agentmark/shared-utils": "*",
+    "fs-extra": "^11.2.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5",
+    "vitest": "^3.1.4"
+  }
+}

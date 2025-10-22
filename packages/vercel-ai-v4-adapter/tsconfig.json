@@ -4,7 +4,7 @@
     "declaration": true,
     "declarationDir": "./dist/types",
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "module": "ESNext",
     "target": "ES2019",
     "lib": ["ESNext"],
@@ -15,7 +15,11 @@
     "allowJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "**/__tests__/*"]

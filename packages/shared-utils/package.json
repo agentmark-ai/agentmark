@@ -6,11 +6,18 @@
   "scripts": {
     "build": "tsup"
   },
+  "dependencies": {
+    "front-matter": "^4.0.2",
+    "fs-extra": "^11.2.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "yaml": "^2.7.0"
+  },
   "devDependencies": {
     "@babel/preset-typescript": "^7.24.1",
+    "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.12",
     "tsup": "^8.3.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5"
   },
   "license": "MIT"
 }

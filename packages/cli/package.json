@@ -3,36 +3,38 @@
   "version": "1.8.1",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./dev-servers": "./dist/dev-servers.js",
+    "./file-server": "./dist/file-server.js",
+    "./runner-server": "./dist/runner-server.js"
+  },
   "scripts": {
     "dev": "next dev",
     "start": "next start",
     "build:app": "next build",
     "lint": "next lint",
-    "serve": "node ./dist/json-server",
-    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc"
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
+    "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "ISC",
   "bin": {
-    "agentmark": "./dist/index.js"
+    "agentmark": "dist/index.js"
   },
   "dependencies": {
     "@agentmark/agentmark-core": "*",
+    "@agentmark/shared-utils": "*",
     "@agentmark/templatedx": "^0.6.3",
-    "@agentmark/vercel-ai-v4-adapter": "*",
-    "@ai-sdk/anthropic": "^1.2.10",
-    "@ai-sdk/openai": "^1.3.13",
-    "ai": "^4.0.0",
     "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
-    "dotenv": "^16.4.5",
     "express": "^4.20.0",
-    "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
-    "json-schema-to-typescript": "^15.0.4",
     "prompts": "^2.4.2",
-    "yaml": "^2.7.0",
-    "zod": "^3.23.8"
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@types/express": "^4",
@@ -41,10 +43,15 @@
     "@types/mdast": "^4.0.0",
     "@types/node": "^20",
     "@types/prompts": "^2",
+    "tsup": "^8",
     "typescript": "^5",
-    "yup": "1.3.2"
+    "vitest": "^3.0.8"
   },
   "files": [
     "dist"
-  ]
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "keywords": []
 }

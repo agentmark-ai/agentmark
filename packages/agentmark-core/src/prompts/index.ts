@@ -1,4 +1,3 @@
-import { FileLoader } from "../loaders/file";
 import type {
   Adapter,
   AdaptOptions,
@@ -52,16 +51,16 @@ export abstract class BasePrompt<
   abstract format(params: PromptFormatParams<T[K]["input"]>): Promise<any>;
 
   formatWithTestProps(
-    options: AdaptOptions
+    options?: AdaptOptions
   ): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
     return this.format({
       props: this.testSettings?.props || {},
-      ...options,
+      ...(options ?? {}),
     });
   }
 
   async formatWithDataset(
-    options?: AdaptOptions & { datasetPath?: string }
+    options?: AdaptOptions & { datasetPath?: string; format?: 'ndjson' | 'json' }
   ): Promise<
     ReadableStream<DatasetStreamChunk<ReturnType<A[`adapt${Capitalize<PK>}`]>> | DatasetErrorChunk>
   > {
@@ -77,10 +76,64 @@ export abstract class BasePrompt<
     const dsPath = options?.datasetPath || this.testSettings?.dataset;
 
     const datasetStream = await this.loader?.loadDataset(dsPath!);
+
+    // Helper function to convert ReadableStream to async iterable if needed
+    const makeAsyncIterable = (stream: any): AsyncIterable<any> => {
+      // If already async iterable, return as-is
+      if (stream && typeof stream[Symbol.asyncIterator] === 'function') {
+        return stream;
+      }
+      // If it's a ReadableStream-like object with getReader, convert it
+      if (stream && typeof stream.getReader === 'function') {
+        return {
+          async *[Symbol.asyncIterator]() {
+            const reader = stream.getReader();
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                yield value;
+              }
+            } finally {
+              if (typeof reader.releaseLock === 'function') {
+                reader.releaseLock();
+              }
+            }
+          }
+        };
+      }
+      // Fallback: return as-is and hope for the best
+      return stream;
+    };
+
+    const asyncDataset = makeAsyncIterable(datasetStream);
+
+    if (options?.format === 'json') {
+      const buffered: Array<{ input: Record<string, any>; expected_output?: string }> = [];
+      for await (const value of asyncDataset) buffered.push(value);
+      return new ReadableStream({
+        start: async (controller) => {
+          try {
+            for (const value of buffered) {
+              const formattedOutput = await this.format({ props: value.input, ...options });
+              controller.enqueue({
+                type: "dataset",
+                dataset: { input: value.input, expected_output: value.expected_output },
+                evals: this.testSettings?.evals || [],
+                formatted: formattedOutput,
+              });
+            }
+            controller.close();
+          } catch (error) {
+            console.error("Error processing buffered dataset:", error);
+          }
+        },
+      });
+    }
     return new ReadableStream({
       start: async (controller) => {
         try {
-          for await (const value of datasetStream) {
+          for await (const value of asyncDataset) {
             const formattedOutput = await this.format({
               props: value.input,
               ...options,
@@ -104,7 +157,11 @@ export abstract class BasePrompt<
           controller.close();
         }
       },
-      cancel: (reason) => datasetStream.cancel(reason),
+      cancel: (reason) => {
+        if (datasetStream && typeof datasetStream.cancel === 'function') {
+          datasetStream.cancel(reason);
+        }
+      },
     });
   }
 }

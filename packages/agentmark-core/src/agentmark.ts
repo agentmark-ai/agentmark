@@ -18,6 +18,7 @@ import type {
   TextConfig,
 } from "./types";
 import type { Root } from "mdast";
+import { EvalRegistry } from "./eval-registery";
 
 export interface AgentMarkOptions<
   T extends PromptShape<T>,
@@ -26,17 +27,20 @@ export interface AgentMarkOptions<
   loader?: Loader<T>;
   adapter: A;
   templateEngine?: TemplateEngine;
+  evalRegistry?: EvalRegistry;
 }
 
 export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
   protected loader?: Loader<T>;
   protected adapter: A;
   protected templateEngine: TemplateEngine;
+  protected evalRegistry?: EvalRegistry;
 
-  constructor({ loader, adapter, templateEngine }: AgentMarkOptions<T, A>) {
+  constructor({ loader, adapter, templateEngine, evalRegistry }: AgentMarkOptions<T, A>) {
     this.loader = loader;
     this.adapter = adapter;
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
+    this.evalRegistry = evalRegistry;
   }
 
   getLoader() {
@@ -45,6 +49,10 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
 
   getAdapter() {
     return this.adapter;
+  }
+
+  getEvalRegistry() {
+    return this.evalRegistry;
   }
 
   async loadTextPrompt<K extends KeysWithKind<T, "text"> & string>(
@@ -162,6 +170,7 @@ export function createAgentMark<A extends Adapter<any>>(opts: {
   adapter: A;
   loader?: Loader<DictOf<A>>;
   templateEngine?: TemplateEngine;
+  evalRegistry?: EvalRegistry;
 }): AgentMark<DictOf<A>, A> {
   return new AgentMark(opts);
 }

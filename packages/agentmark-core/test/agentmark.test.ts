@@ -4,37 +4,37 @@ import { createAgentMarkClient } from "@agentmark/default-adapter";
 import { FileLoader } from "../src/loaders/file";
 
 type TestPromptTypes = {
-  "math.prompt.mdx": {
+  "fixtures/math.prompt.mdx": {
     kind: "object";
     input: { userMessage: string };
     output: { answer: string };
   };
-  "image.prompt.mdx": {
+  "fixtures/image.prompt.mdx": {
     kind: "image";
     input: { userMessage: string };
     output: { answer: string };
   };
-  "attachments.prompt.mdx": {
+  "fixtures/attachments.prompt.mdx": {
     kind: "object";
     input: { userMessage: string; fileMimeType: string; imageLink: string };
     output: { answer: string };
   };
-  "incorrectAttachments.prompt.mdx": {
+  "fixtures/incorrectAttachments.prompt.mdx": {
     kind: "object";
     input: {};
     output: { answer: string };
   };
-  "incorrectImage.prompt.mdx": {
+  "fixtures/incorrectImage.prompt.mdx": {
     kind: "image";
     input: { userMessage: string };
     output: never;
   };
-  "speech.prompt.mdx": {
+  "fixtures/speech.prompt.mdx": {
     kind: "speech";
     input: { userMessage: string };
     output: { answer: string };
   };
-  "mathDataset.prompt.mdx": {
+  "fixtures/mathDataset.prompt.mdx": {
     kind: "object";
     input: { userMessage: string };
     output: { answer: string };
@@ -42,14 +42,15 @@ type TestPromptTypes = {
 };
 
 describe("AgentMark Integration", () => {
-  const fixturesDir = path.resolve(__dirname, "./fixtures");
-  const fileLoader = new FileLoader(fixturesDir);
+  // Use the test directory as base to allow access to both fixtures and datasets
+  const testDir = path.resolve(__dirname);
+  const fileLoader = new FileLoader(testDir);
   const agentMark = createAgentMarkClient<TestPromptTypes>({
     loader: fileLoader,
   });
 
   it("should load and compile prompts with type safety", async () => {
-    const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
+    const mathPrompt = await agentMark.loadObjectPrompt("fixtures/math.prompt.mdx");
     const result = await mathPrompt.format({
       props: {
         userMessage: "What is the sum of 5 and 3?",
@@ -68,7 +69,7 @@ describe("AgentMark Integration", () => {
   });
 
   it("should load and compile object prompt with type safety", async () => {
-    const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
+    const mathPrompt = await agentMark.loadObjectPrompt("fixtures/math.prompt.mdx");
     const result = await mathPrompt.format({
       userMessage: "What is the sum of 5 and 3?",
     });
@@ -78,7 +79,7 @@ describe("AgentMark Integration", () => {
   });
 
   it("should load and compile image prompt with type safety", async () => {
-    const imagePrompt = await agentMark.loadImagePrompt("image.prompt.mdx");
+    const imagePrompt = await agentMark.loadImagePrompt("fixtures/image.prompt.mdx");
     const result = await imagePrompt.format({
       props: {
         userMessage: "Design an image showing a triangle and a circle.",
@@ -95,7 +96,7 @@ describe("AgentMark Integration", () => {
   });
 
   it("should load and compile speech prompt with type safety", async () => {
-    const speechPrompt = await agentMark.loadSpeechPrompt("speech.prompt.mdx");
+    const speechPrompt = await agentMark.loadSpeechPrompt("fixtures/speech.prompt.mdx");
     const result = await speechPrompt.format({
       userMessage: "Generate a speech for the given text.",
     });
@@ -113,18 +114,18 @@ describe("AgentMark Integration", () => {
 
   it("should throw an error for invalid prompt tags", async () => {
     await expect(
-      agentMark.loadImagePrompt("incorrectImage.prompt.mdx")
+      agentMark.loadImagePrompt("fixtures/incorrectImage.prompt.mdx")
     ).rejects.toThrowError();
   });
 
   it("should enforce type safety on prompt paths", () => {
     expect(async () => {
-      await agentMark.loadObjectPrompt("math.prompt.mdx");
+      await agentMark.loadObjectPrompt("fixtures/math.prompt.mdx");
     }).not.toThrow();
   });
 
   it("should enforce type safety on input props", async () => {
-    const mathPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
+    const mathPrompt = await agentMark.loadObjectPrompt("fixtures/math.prompt.mdx");
     const result = await mathPrompt.format({
       props: { userMessage: "What is 2+2?" },
     });
@@ -132,7 +133,7 @@ describe("AgentMark Integration", () => {
   });
 
   it("should work with preloaded prompt objects", async () => {
-    const originalPrompt = await agentMark.loadObjectPrompt("math.prompt.mdx");
+    const originalPrompt = await agentMark.loadObjectPrompt("fixtures/math.prompt.mdx");
     const preloadedTemplate = originalPrompt.template;
     const preloadedPrompt = await agentMark.loadObjectPrompt(
       preloadedTemplate as any
@@ -157,7 +158,7 @@ describe("AgentMark Integration", () => {
   });
 
   it("should extract rich content from <User> including images, files, and text (with looped mimeTypes)", async () => {
-    const prompt = await agentMark.loadObjectPrompt("attachments.prompt.mdx");
+    const prompt = await agentMark.loadObjectPrompt("fixtures/attachments.prompt.mdx");
     const result = await prompt.format({
       props: {
         userMessage: "Take a look at those attachments.",
@@ -198,14 +199,14 @@ describe("AgentMark Integration", () => {
 
   it("should throw an error if the attachments are not inside User tag only", async () => {
     await expect(
-      agentMark.loadObjectPrompt("incorrectAttachments.prompt.mdx")
+      agentMark.loadObjectPrompt("fixtures/incorrectAttachments.prompt.mdx")
     ).rejects.toThrowError(
       "Error processing MDX JSX Element: ImageAttachment and FileAttachment tags must be inside User tag."
     );
   });
 
   it("should handle formatting with data sets", async () => {
-    const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
+    const prompt = await agentMark.loadObjectPrompt("fixtures/mathDataset.prompt.mdx");
     const vercelInputs = await prompt.formatWithDataset({});
 
     let entryIndex = 1;
@@ -230,7 +231,7 @@ describe("AgentMark Integration", () => {
   });
 
   it("should handle formatting with test props", async () => {
-    const prompt = await agentMark.loadObjectPrompt("mathDataset.prompt.mdx");
+    const prompt = await agentMark.loadObjectPrompt("fixtures/mathDataset.prompt.mdx");
     const vercelInput = await prompt.formatWithTestProps({});
 
     expect(vercelInput).toBeDefined();

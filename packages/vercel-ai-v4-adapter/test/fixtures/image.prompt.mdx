@@ -3,6 +3,8 @@ name: image
 image_config:
   model_name: test-model
   num_images: 1
+test_settings:
+  dataset: image.dataset.jsonl
 input_schema:
   type: image
   properties:
@@ -11,14 +13,6 @@ input_schema:
   required:
     - userMessage
 ---
-<System>
-You are a graphic designer designing math problems.
-</System>
-
-<User>
-{props.userMessage}
-</User>
-
-<Assistant>
-Here's your image!
-</Assistant> 
+<ImagePrompt>
+Create a diagram of a right triangle labeled A, B, C.
+</ImagePrompt>

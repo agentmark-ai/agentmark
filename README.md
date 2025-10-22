@@ -40,12 +40,13 @@ _AgentMark prompt file example for generating text_
 | Feature | Description |
 |---------|-------------|
 | [Multimodal Generation](https://docs.agentmark.co/agentmark/generation_types/overview) | Generate text, objects, images, and speech from a single prompt file, supporting a wide range of model capabilities. |
-| [Tools and Agents](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Extend prompts with custom tools and agentic workflows, enabling API calls, calculations, and multi-step reasoning. |
+| [Datasets](https://docs.agentmark.co/agentmark/datasets/overview) | Create a collection of inputs and expected outputs to test your prompts and agents in readable JSONL format. |
+| [CLI for running & testing agents](https://docs.agentmark.co/agentmark/running_prompts/cli) | Run, test, and debug prompts directly from the command line or your editor for rapid iteration. |
+| [Tools and Agents](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Extend prompts with custom tools and agentic workflows. |
 | [File Attachments](https://docs.agentmark.co/agentmark/prompt_basics/file-attachments) | Attach images and files to prompts for tasks like image analysis, document processing, and more. |
 | [Type Safety](https://docs.agentmark.co/agentmark/running_prompts/type-safety) | Ensure reliable, type-checked inputs and outputs for prompts using JSON Schema and auto-generated TypeScript types. |
+| [Reusable Components](https://docs.agentmark.co/agentmark/prompt_basics/reusable-components) | Import and reuse components across your prompts.|
 | [Conditionals](https://docs.agentmark.co/agentmark/prompt_basics/conditionals), [Loops](https://docs.agentmark.co/agentmark/prompt_basics/loops), [Props](https://docs.agentmark.co/agentmark/prompt_basics/props), [Filter Functions](https://docs.agentmark.co/agentmark/prompt_basics/filter_functions) | Add logic, dynamic data, and transformations to your prompts with powerful JSX-like syntax. |
-| [CLI for running/testing](https://docs.agentmark.co/agentmark/running_prompts/cli) | Run, test, and debug prompts directly from the command line or your editor for rapid iteration. |
-
 
 ## Quick Start
 
@@ -53,7 +54,8 @@ _AgentMark prompt file example for generating text_
 
 Get started by first initializing your AgentMark app.
 
-`npx @agentmark/cli init`
+Install:
+`npm create agentmark@latest`
 
 ### Run Prompts
 
@@ -65,10 +67,10 @@ Run `.prompt.mdx` files directly from the command line using our CLI. This is th
 
 ```bash
 # Run a prompt with test props (default)
-npx @agentmark/cli run-prompt your-prompt.prompt.mdx
+agentmark run-prompt your-prompt.prompt.mdx
 
 # Run a prompt with a dataset
-npx @agentmark/cli run-prompt your-prompt.prompt.mdx -i dataset
+agentmark run-experiment your-prompt.prompt.mdx
 ```
 
 2. Run AgentMark files with your favorite SDK
@@ -77,13 +79,12 @@ AgentMark doesn't support any models or calling any LLM providers. Instead, we f
 
 | Adapter   | Description |
 |-----------|-------------|
-| [Vercel (Recommended)](https://docs.agentmark.co/agentmark/getting_started/overview) | The Vercel AI SDK. |
+| [Vercel](https://docs.agentmark.co/agentmark/running_prompts/vercel) | The Vercel AI SDK. |
+| [Mastra](https://docs.agentmark.co/agentmark/running_prompts/mastra) | The Mastra SDK |
+| [LlamaIndex](https://docs.agentmark.co/agentmark/running_prompts/llamaindex) | The LLamaIndex SDK |
 | [Default](https://docs.agentmark.co/agentmark/running_prompts/default)   | Turns prompts into raw JSON, adapt manually to your needs |
-| [Custom](https://docs.agentmark.co/agentmark/running_prompts/custom)    | Allows a user to create their own AgentMark adapter to custom adapter format. |
-| Mastra (Coming Soon)  | Coming soon, we'll support the Mastra SDK |
 
 Want to add support for another adapter? Open an [issue](https://github.com/agentmark-ai/agentmark/issues).
-
 
 ## Language Support
 

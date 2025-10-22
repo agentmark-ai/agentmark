@@ -50,6 +50,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
 };
 
 export interface VercelAIObjectParams<T> {
+  output?: 'object';
   model: LanguageModel;
   messages: RichChatMessage[];
   schema: Schema<T>;
@@ -161,7 +162,7 @@ export class VercelAIModelRegistry {
   registerModels(
     modelPattern: string | RegExp | Array<string>,
     creator: ModelFunctionCreator
-  ): void {
+  ): this {
     if (typeof modelPattern === "string") {
       this.exactMatches[modelPattern] = creator;
     } else if (Array.isArray(modelPattern)) {
@@ -171,6 +172,7 @@ export class VercelAIModelRegistry {
     } else {
       this.patternMatches.push([modelPattern, creator]);
     }
+    return this;
   }
 
   getModelFunction(modelName: string): ModelFunctionCreator {
@@ -190,10 +192,6 @@ export class VercelAIModelRegistry {
 
     throw new Error(`No model function found for: ${modelName}`);
   }
-
-  setDefaultCreator(creator: ModelFunctionCreator): void {
-    this.defaultCreator = creator;
-  }
 }
 
 export class VercelAIAdapter<
@@ -204,7 +202,6 @@ export class VercelAIAdapter<
   readonly __name = "vercel-ai-v4";
 
   private readonly toolsRegistry: R | undefined;
-  private readonly mcpServers: McpServers | undefined;
   private readonly mcpManager: McpClientManager;
 
   constructor(
@@ -214,11 +211,10 @@ export class VercelAIAdapter<
   ) {
     this.modelRegistry = modelRegistry;
     this.toolsRegistry = toolRegistry;
-    this.mcpServers = mcpServers;
     this.mcpManager = new McpClientManager(mcpServers);
   }
 
-  async adaptText<K extends KeysWithKind<T, "text"> & string>(
+  async adaptText<_K extends KeysWithKind<T, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -323,6 +319,7 @@ export class VercelAIAdapter<
     const model = modelCreator(name, options) as LanguageModel;
 
     return {
+      output: 'object' as const,
       model,
       messages: input.messages,
       schema: jsonSchema(input.object_config.schema),
@@ -360,7 +357,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptImage<K extends KeysWithKind<T, "image"> & string>(
+  adaptImage<_K extends KeysWithKind<T, "image"> & string>(
     input: ImageConfig,
     options: AdaptOptions
   ): VercelAIImageParams {
@@ -382,7 +379,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptSpeech<K extends KeysWithKind<T, "speech"> & string>(
+  adaptSpeech<_K extends KeysWithKind<T, "speech"> & string>(
     input: SpeechConfig,
     options: AdaptOptions
   ): VercelAISpeechParams {
