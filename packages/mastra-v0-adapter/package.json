@@ -35,7 +35,7 @@
     "zod": "^4.0.17"
   },
   "peerDependencies": {
-    "@agentmark/prompt-core": "workspace:*",
+    "@agentmark/prompt-core": "*",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "*"
   }
