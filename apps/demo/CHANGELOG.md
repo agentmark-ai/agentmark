@@ -1,5 +1,13 @@
 # agentmark-demo
 
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies [00f684f]
+  - @agentmark/ai-sdk-v4-adapter@0.0.2
+  - @agentmark/mastra-v0-adapter@0.0.2
+
 ## 0.0.13
 
 ### Patch Changes

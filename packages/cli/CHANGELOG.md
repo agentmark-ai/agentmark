@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 2.0.1
+
+### Patch Changes
+
+- 00f684f: Fix: peer dep
+
 ## 2.0.0
 
 ### Major Changes

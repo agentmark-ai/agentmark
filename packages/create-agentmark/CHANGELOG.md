@@ -1,5 +1,11 @@
 # create-agentmark
 
+## 0.0.3
+
+### Patch Changes
+
+- 00f684f: Fix: peer dep
+
 ## 0.0.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 0.0.2
+
+### Patch Changes
+
+- 00f684f: Fix: peer dep
+
 ## 0.0.1
 
 ### Patch Changes
