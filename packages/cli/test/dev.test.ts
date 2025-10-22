@@ -15,7 +15,7 @@ function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 function createMinimalAgentMarkConfig(): string {
   return `
-import { AgentMark } from '@agentmark/agentmark-core';
+import { AgentMark } from '@agentmark/prompt-core';
 import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark/vercel-ai-v4-adapter';
 import { createOpenAI } from '@ai-sdk/openai';
 

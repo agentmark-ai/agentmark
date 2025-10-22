@@ -66,8 +66,8 @@ vi.mock('@agentmark/templatedx', () => ({
 }));
 
 // Mock Template engine compile to return a text_config
-vi.mock('@agentmark/agentmark-core', async () => {
-  const actual = await vi.importActual<any>('@agentmark/agentmark-core');
+vi.mock('@agentmark/prompt-core', async () => {
+  const actual = await vi.importActual<any>('@agentmark/prompt-core');
   return {
     ...actual,
     TemplateDXTemplateEngine: class {

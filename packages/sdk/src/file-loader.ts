@@ -1,4 +1,4 @@
-import { Loader, PromptKind, PromptShape } from "@agentmark/agentmark-core";
+import { Loader, PromptKind, PromptShape } from "@agentmark/prompt-core";
 import { AGENTMARK_TEMPLATE_ENDPOINT } from "./config";
 import cache from "./cache";
 
