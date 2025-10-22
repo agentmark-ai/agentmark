@@ -44,7 +44,6 @@
     "typescript": "^5.6.2",
     "vitest": "^3.0.8"
   },
-  "dependencies": {},
   "peerDependencies": {
     "@agentmark/agentmark-core": "^3.3.4",
     "ai": "^4.0.0"
