@@ -14,7 +14,7 @@ object_config:
     required:
       - names
 test_settings:
-  dataset: ./party.jsonl
+  dataset: party.jsonl
   evals:
     - exact_match_json
   props:

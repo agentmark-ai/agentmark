@@ -24,6 +24,193 @@ export async function createFileServer(port: number) {
     }
   } catch {}
 
+  // Landing page for browser access
+  app.get('/', async (_req: Request, res: Response) => {
+    let promptsList = '';
+    try {
+      const promptFiles = await findPromptFiles(agentmarkTemplatesBase);
+      if (promptFiles.length > 0) {
+        const relativePaths = promptFiles.map((file) => path.relative(agentmarkTemplatesBase, file));
+        promptsList = relativePaths.map(p => `      <li><code>${p}</code></li>`).join('\n');
+      } else {
+        promptsList = '      <li style="color: #64748b;">No prompts found</li>';
+      }
+    } catch {
+      promptsList = '      <li style="color: #ef4444;">Error listing prompts</li>';
+    }
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentMark File Server</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1 { color: #2563eb; margin-bottom: 10px; }
+    .subtitle { color: #64748b; margin-bottom: 30px; }
+    .status {
+      background: #dcfce7;
+      border-left: 4px solid #22c55e;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-box {
+      background: #f0f9ff;
+      border-left: 4px solid #2563eb;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .endpoint {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    .endpoint-title {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    .endpoint-method {
+      display: inline-block;
+      background: #22c55e;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    .endpoint-method.post {
+      background: #3b82f6;
+    }
+    .endpoint-desc {
+      color: #64748b;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    code {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+    ul {
+      margin: 10px 0;
+    }
+    li {
+      margin: 5px 0;
+    }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      color: #64748b;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>AgentMark File Server</h1>
+  <div class="subtitle">Local development server for serving prompts and datasets</div>
+
+  <div class="status">
+    <strong>✓ Server Status:</strong> Running on port ${port}
+  </div>
+
+  <div class="info-box">
+    <strong>📁 Templates Directory:</strong><br>
+    <code>${agentmarkTemplatesBase}</code>
+  </div>
+
+  <h2>What is this?</h2>
+  <p>
+    This is the <strong>AgentMark File Server</strong>, an internal development server that provides
+    HTTP access to your local prompt files and datasets. It's automatically started when you run
+    <code>agentmark dev</code> and enables your development runner to load templates and data.
+  </p>
+
+  <h2>Available Endpoints</h2>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/templates?path=your-prompt.prompt.mdx
+    </div>
+    <div class="endpoint-desc">
+      Fetch and parse a prompt file, returning the AST (Abstract Syntax Tree)
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/templates?path=your-dataset.jsonl
+    </div>
+    <div class="endpoint-desc">
+      Fetch a dataset file in JSONL format (supports both array and streaming responses)
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/prompts
+    </div>
+    <div class="endpoint-desc">
+      List all available prompt files in the templates directory
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method post">POST</span>
+      /v1/export-traces
+    </div>
+    <div class="endpoint-desc">
+      Accept telemetry traces (no-op in local development)
+    </div>
+  </div>
+
+  <h2>Your Prompts</h2>
+  <ul>
+${promptsList}
+  </ul>
+
+  <h2>Usage</h2>
+  <p>
+    This server is accessed automatically by your development runner. You don't need to make
+    HTTP requests directly. Just run your prompts using CLI commands:
+  </p>
+  <p>
+    <code>agentmark run-prompt &lt;file&gt;</code> or <code>agentmark run-experiment &lt;file&gt;</code>
+  </p>
+
+  <footer>
+    <div><strong>AgentMark Development Server</strong></div>
+    <div>Learn more: <a href="https://docs.agentmark.co" target="_blank">docs.agentmark.co</a></div>
+  </footer>
+</body>
+</html>
+    `.trim());
+  });
+
   app.get('/v1/templates', async (req: Request, res: Response) => {
     const filePath = req.query.path;
 

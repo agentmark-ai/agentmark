@@ -65,7 +65,7 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   };
 
   // Start runner server
-  const runnerServer = spawn('npx', ['tsx', '--watch', devServerFile, 'agentmark.config.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`], {
+  const runnerServer = spawn('npx', ['tsx', '--watch', devServerFile, 'agentmark.config.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${fileServerPort}`], {
     stdio: 'inherit',
     cwd
   });
@@ -95,8 +95,8 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     console.log(`  CLI Runner:   http://localhost:${runnerPort}`);
     console.log('─'.repeat(60) + '\n');
     console.log('Commands:');
-    console.log('  $ agentmark run-prompt agentmark/<file>.prompt.mdx');
-    console.log('  $ agentmark run-experiment agentmark/<file>.prompt.mdx');
+    console.log('  $ npm run prompt agentmark/<file>.prompt.mdx');
+    console.log('  $ npm run experiment agentmark/<file>.prompt.mdx');
     console.log('\nPress Ctrl+C to stop\n');
   }, 2000);
 

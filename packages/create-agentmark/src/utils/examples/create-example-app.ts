@@ -163,16 +163,28 @@ export const createExampleApp = async (
 
 import { createRunnerServer } from '@agentmark/cli/runner-server';
 import { ${runnerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import path from 'path';
 
 async function main() {
   const { client } = await import('../agentmark.config.js');
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
+
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
+  const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
 
   const runner = new ${runnerClassName}(client);
-  await createRunnerServer({ port: runnerPort, runner });
+  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+  const templatesDirectory = path.join(process.cwd(), 'agentmark');
+
+  await createRunnerServer({
+    port: runnerPort,
+    runner,
+    fileServerUrl,
+    templatesDirectory
+  });
 }
 
 main().catch((err) => {

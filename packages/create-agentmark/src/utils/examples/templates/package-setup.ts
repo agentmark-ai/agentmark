@@ -22,6 +22,8 @@ export const setupPackageJson = (targetPath: string = ".") => {
     ...pkgJson.scripts,
     "demo": "npx tsx index.ts",
     "dev": "agentmark dev",
+    "prompt": "agentmark run-prompt",
+    "experiment": "agentmark run-experiment",
   };
   fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
 };

@@ -15,7 +15,7 @@ text_config:
             description: The search query to find relevant information
         required: [query]
 test_settings:
-  dataset: ./customer-query.jsonl
+  dataset: customer-query.jsonl
   props:
     customer_question: "I'm having trouble with my order. How long does shipping take?"
 input_schema:

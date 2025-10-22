@@ -7,7 +7,7 @@ speech_config:
   speed: 1.0
   output_format: "mp3"
 test_settings:
-  dataset: ./story.jsonl
+  dataset: story.jsonl
   props:
     story: "Once upon a time, there was a cat who loved to play with a ball."
 ---

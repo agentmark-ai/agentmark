@@ -7,7 +7,7 @@ image_config:
   size: 1024x1024
   aspect_ratio: 1:1
 test_settings:
-  dataset: ./animal.jsonl
+  dataset: animal.jsonl
   props:
     animal: "cat"
 ---
