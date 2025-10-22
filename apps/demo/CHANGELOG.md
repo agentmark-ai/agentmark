@@ -1,5 +1,14 @@
 # agentmark-demo
 
+## 0.0.13
+
+### Patch Changes
+
+- Updated dependencies [aa89924]
+  - @agentmark/ai-sdk-v4-adapter@0.0.1
+  - @agentmark/mastra-v0-adapter@0.0.1
+  - @agentmark/prompt-core@0.0.1
+
 ## 0.0.12
 
 ### Patch Changes

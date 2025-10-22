@@ -1,5 +1,11 @@
 # @puzzlet/sdk
 
+## 4.2.0
+
+### Minor Changes
+
+- aa89924: Feat: local CLI, evals, mastra package, and more.
+
 ## 4.1.3
 
 ### Patch Changes

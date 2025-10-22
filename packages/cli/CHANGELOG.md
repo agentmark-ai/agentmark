@@ -1,5 +1,17 @@
 # @agentmark/cli
 
+## 2.0.0
+
+### Major Changes
+
+- aa89924: Feat: local CLI, evals, mastra package, and more.
+
+### Patch Changes
+
+- Updated dependencies [aa89924]
+  - @agentmark/prompt-core@0.0.1
+  - @agentmark/shared-utils@1.3.1
+
 ## 1.8.1
 
 ### Patch Changes
