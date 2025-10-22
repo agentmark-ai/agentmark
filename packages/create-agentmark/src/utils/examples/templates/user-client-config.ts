@@ -13,7 +13,7 @@ import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { EvalRegistry } from "@agentmark/prompt-core";
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/vercel-ai-v4-adapter";
+import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/ai-sdk-v4-adapter";
 import { AgentMarkSDK } from "@agentmark/sdk";
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}

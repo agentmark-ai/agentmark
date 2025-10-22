@@ -5,7 +5,7 @@ export const getDevServerContent = () => {
 
 import { client } from './agentmark.config';
 import { createRunnerServer } from '@agentmark/cli/runner-server';
-import { VercelAdapterRunner } from '@agentmark/vercel-ai-v4-adapter/runner';
+import { VercelAdapterRunner } from '@agentmark/ai-sdk-v4-adapter/runner';
 import path from 'path';
 
 // Parse command line arguments

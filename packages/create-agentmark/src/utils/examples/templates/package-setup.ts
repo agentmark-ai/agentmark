@@ -52,7 +52,7 @@ export const installDependencies = (
       "install",
       "dotenv",
       "@agentmark/prompt-core",
-      "@agentmark/vercel-ai-v4-adapter",
+      "@agentmark/ai-sdk-v4-adapter",
       "@agentmark/sdk",
       providerPackage,
       "ai@^4",
