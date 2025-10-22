@@ -39,6 +39,7 @@
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.20.0",
+    "express-rate-limit": "^8.1.0",
     "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
     "jiti": "^1.21.6",
