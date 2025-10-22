@@ -1,5 +1,11 @@
 # create-agentmark
 
+## 0.0.2
+
+### Patch Changes
+
+- d740081: Fix: use ai-sdk-v4 on create
+
 ## 0.0.1
 
 ### Patch Changes
