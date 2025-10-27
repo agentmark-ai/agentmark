@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { findPromptFiles } from '@agentmark/shared-utils';
+import cors from 'cors';
+import { exportTraces, getRequests } from './server/routes/traces';
 
 function safePath(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -9,7 +11,8 @@ function safePath(): string {
 
 export async function createFileServer(port: number) {
   const app = express();
-
+  app.use(express.json());
+  app.use(cors())
   const currentPath = safePath();
   const basePath = path.join(currentPath);
   let agentmarkTemplatesBase = path.join(basePath, 'agentmark');
@@ -288,9 +291,26 @@ ${promptsList}
     }
 });
 
-  app.post('/v1/export-traces', (_req, res) => {
+app.post("/v1/export-traces", async (req: Request, res: Response) => {
+  try {
+    console.log("Exporting traces:", req.body);
+    await exportTraces(req.body);
     return res.json({ success: true });
-  });
+  } catch (error) {
+    console.error("Error exporting traces:", error);
+    return res.status(500).json({ error: "Failed to export traces" });
+  }
+});
+
+app.get("/v1/get-requests", async (_req: Request, res: Response) => {
+  try {
+    const requests = await getRequests();
+    return res.json({ requests });
+  } catch (error) {
+    console.error("Error getting requests:", error);
+    return res.status(500).json({ error: "Failed to get requests" });
+  }
+});
 
   app.get('/v1/prompts', async (_req: Request, res: Response) => {
     try {

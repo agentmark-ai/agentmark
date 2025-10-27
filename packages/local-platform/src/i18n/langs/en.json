@@ -1,0 +1,28 @@
+{
+  "requests": {
+    "title": "Requests",
+    "columnHeader": {
+      "cost": "Cost",
+      "promptTokens": "Prompt Tokens",
+      "promptName": "Prompt Name",
+      "traceId": "Trace ID",
+      "variables": "Props",
+      "completionTokens": "Completion Tokens",
+      "user": "User",
+      "latency": "Latency",
+      "modelUsed": "Model Used",
+      "status": "Status",
+      "input": "Input",
+      "output": "Output",
+      "date": "Date",
+      "id": "ID"
+    },
+    "user": "User",
+    "loadInEditor": "Load in Editor",
+    "assistant": "Assistant",
+    "system": "System",
+    "noResults": "No Logs",
+    "success": "Success",
+    "fail": "Fail"
+  }
+}
