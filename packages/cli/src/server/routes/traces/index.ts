@@ -1,3 +1,7 @@
+import {
+  getCostFormula,
+  modelsCostMapping,
+} from "../../../cost-mapping/cost-mapping";
 import db from "../../database";
 
 export const exportTraces = async (traces: any[]) => {
@@ -10,23 +14,46 @@ export const exportTraces = async (traces: any[]) => {
   );
   const insertMany = db.transaction((traces: any[]) => {
     for (const trace of traces) {
+      const isSuccess = trace.StatusCode !== 2;
+      const spanAttributes = { ...trace.SpanAttributes };
+      if (spanAttributes["gen_ai.request.model"]) {
+        let getCost = (_a: number, _b: number) => {
+          return 0;
+        };
+
+        const priceMap = isSuccess
+          ? modelsCostMapping[spanAttributes["gen_ai.request.model"]]
+          : null;
+        getCost = getCostFormula(
+          Number(priceMap?.promptPrice || 0),
+          Number(priceMap?.completionPrice || 0),
+          1000
+        );
+        const cost = getCost(
+          Number(spanAttributes["gen_ai.usage.input_tokens"] || 0),
+          Number(spanAttributes["gen_ai.usage.output_tokens"] || 0)
+        );
+
+        spanAttributes["gen_ai.usage.cost"] = cost;
+      }
+
       insert.run(
         trace.Timestamp,
-        trace.TraceId,
-        trace.SpanId,
-        trace.ParentSpanId,
-        trace.TraceState,
-        trace.SpanName,
-        trace.SpanKind,
-        trace.ServiceName,
+        `${trace.TraceId}`,
+        `${trace.SpanId}`,
+        `${trace.ParentSpanId}`,
+        `${trace.TraceState}`,
+        `${trace.SpanName}`,
+        `${trace.SpanKind}`,
+        `${trace.ServiceName}`,
         typeof trace.ResourceAttributes === "object"
           ? JSON.stringify(trace.ResourceAttributes)
           : trace.ResourceAttributes,
-        typeof trace.SpanAttributes === "object"
-          ? JSON.stringify(trace.SpanAttributes)
-          : trace.SpanAttributes,
-        trace.Duration,
-        trace.StatusCode,
+        typeof spanAttributes === "object"
+          ? JSON.stringify(spanAttributes)
+          : spanAttributes,
+        `${trace.Duration}`,
+        `${trace.StatusCode}`,
         trace.StatusMessage,
         typeof trace.Events_Timestamp === "object"
           ? JSON.stringify(trace.Events_Timestamp)
@@ -65,7 +92,7 @@ export const getRequests = async () => {
       SpanName AS span_name,
       TenantId AS tenant_id,
       AppId AS app_id,
-      Timestamp AS ts,
+      cast(Timestamp as Real) / 1000000 AS ts,
       json_extract(json(SpanAttributes), '$."gen_ai.system_prompt"') AS system_prompt,
       json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.templateName"') AS template_name,
       json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.prompt"') AS prompt_name,
@@ -97,6 +124,7 @@ export const getRequests = async () => {
       'ai.generateObject.doGenerate',
       'ai.streamObject.doStream'
     )
+    ORDER BY ts DESC
   `;
 
   const rows = db.prepare(sql).all();

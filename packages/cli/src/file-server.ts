@@ -1,49 +1,63 @@
-import express, { Request, Response } from 'express';
-import fs from 'fs';
-import path from 'path';
-import { findPromptFiles } from '@agentmark/shared-utils';
-import cors from 'cors';
-import { exportTraces, getRequests } from './server/routes/traces';
+import express, { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
+import { findPromptFiles } from "@agentmark/shared-utils";
+import cors from "cors";
+import { exportTraces, getRequests } from "./server/routes/traces";
 
 function safePath(): string {
-  try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
+  try {
+    return process.cwd();
+  } catch {
+    return process.env.PWD || process.env.INIT_CWD || ".";
+  }
 }
 
 export async function createFileServer(port: number) {
   const app = express();
   app.use(express.json());
-  app.use(cors())
+  app.use(cors());
   const currentPath = safePath();
   const basePath = path.join(currentPath);
-  let agentmarkTemplatesBase = path.join(basePath, 'agentmark');
+  let agentmarkTemplatesBase = path.join(basePath, "agentmark");
 
   try {
-    const jsonPath = path.join(currentPath, 'agentmark.json');
+    const jsonPath = path.join(currentPath, "agentmark.json");
     if (fs.existsSync(jsonPath)) {
-      const agentmarkJson = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      const agentmarkJson = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
       if (agentmarkJson?.agentmarkPath) {
-        agentmarkTemplatesBase = path.join(basePath, agentmarkJson.agentmarkPath, 'agentmark');
+        agentmarkTemplatesBase = path.join(
+          basePath,
+          agentmarkJson.agentmarkPath,
+          "agentmark"
+        );
       }
     }
   } catch {}
 
   // Landing page for browser access
-  app.get('/', async (_req: Request, res: Response) => {
-    let promptsList = '';
+  app.get("/", async (_req: Request, res: Response) => {
+    let promptsList = "";
     try {
       const promptFiles = await findPromptFiles(agentmarkTemplatesBase);
       if (promptFiles.length > 0) {
-        const relativePaths = promptFiles.map((file) => path.relative(agentmarkTemplatesBase, file));
-        promptsList = relativePaths.map(p => `      <li><code>${p}</code></li>`).join('\n');
+        const relativePaths = promptFiles.map((file) =>
+          path.relative(agentmarkTemplatesBase, file)
+        );
+        promptsList = relativePaths
+          .map((p) => `      <li><code>${p}</code></li>`)
+          .join("\n");
       } else {
         promptsList = '      <li style="color: #64748b;">No prompts found</li>';
       }
     } catch {
-      promptsList = '      <li style="color: #ef4444;">Error listing prompts</li>';
+      promptsList =
+        '      <li style="color: #ef4444;">Error listing prompts</li>';
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(`
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(
+      `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -211,27 +225,34 @@ ${promptsList}
   </footer>
 </body>
 </html>
-    `.trim());
+    `.trim()
+    );
   });
 
-  app.get('/v1/templates', async (req: Request, res: Response) => {
+  app.get("/v1/templates", async (req: Request, res: Response) => {
     const filePath = req.query.path;
 
-    if (!filePath || typeof filePath !== 'string') {
-        return res.status(400).json({ error: 'Path query parameter must be a single string value' });
+    if (!filePath || typeof filePath !== "string") {
+      return res
+        .status(400)
+        .json({ error: "Path query parameter must be a single string value" });
     }
 
     // Reject absolute paths
     if (path.isAbsolute(filePath)) {
-      return res.status(400).json({ error: 'Absolute paths are not allowed' });
+      return res.status(400).json({ error: "Absolute paths are not allowed" });
     }
 
     // Normalize the path and remove leading ./
-    const normalizedPath = path.normalize(filePath.startsWith('./') ? filePath.slice(2) : filePath);
+    const normalizedPath = path.normalize(
+      filePath.startsWith("./") ? filePath.slice(2) : filePath
+    );
 
     // Prevent path traversal with .. sequences
-    if (normalizedPath.includes('..') || normalizedPath.startsWith('/')) {
-      return res.status(400).json({ error: 'Invalid path: path traversal detected' });
+    if (normalizedPath.includes("..") || normalizedPath.startsWith("/")) {
+      return res
+        .status(400)
+        .json({ error: "Invalid path: path traversal detected" });
     }
 
     // Join with base path
@@ -240,85 +261,112 @@ ${promptsList}
     // Verify the resolved path is still within the base directory
     const resolvedPath = path.resolve(fullPath);
     const resolvedBase = path.resolve(agentmarkTemplatesBase);
-    if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
-      return res.status(403).json({ error: 'Access denied: path outside allowed directory' });
+    if (
+      !resolvedPath.startsWith(resolvedBase + path.sep) &&
+      resolvedPath !== resolvedBase
+    ) {
+      return res
+        .status(403)
+        .json({ error: "Access denied: path outside allowed directory" });
     }
 
     // Try alternative path for .jsonl files in templates directory
-    if (!fs.existsSync(fullPath) && filePath.endsWith('.jsonl')) {
-      const altPath = path.join(agentmarkTemplatesBase, 'templates', path.basename(filePath));
+    if (!fs.existsSync(fullPath) && filePath.endsWith(".jsonl")) {
+      const altPath = path.join(
+        agentmarkTemplatesBase,
+        "templates",
+        path.basename(filePath)
+      );
       const resolvedAltPath = path.resolve(altPath);
-      if (resolvedAltPath.startsWith(resolvedBase + path.sep) && fs.existsSync(altPath)) {
+      if (
+        resolvedAltPath.startsWith(resolvedBase + path.sep) &&
+        fs.existsSync(altPath)
+      ) {
         fullPath = altPath;
       }
     }
 
     try {
-        if (fullPath.endsWith('.jsonl')) {
-            // Dataset: default to JSON array unless client explicitly requests NDJSON
-            if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Dataset not found' });
-            const accept = (req.get('accept') || '').toLowerCase();
-            const explicitlyNdjson = accept.includes('application/x-ndjson');
-            const wantsJsonArray = req.query.format === 'json' || !explicitlyNdjson;
-            if (wantsJsonArray) {
-              try {
-                const lines = fs.readFileSync(fullPath, 'utf-8').split(/\r?\n/).filter(Boolean);
-                const arr = lines.map(l => JSON.parse(l));
-                return res.json(arr);
-              } catch (e) {
-                return res.status(500).json({ error: 'Failed to read dataset' });
-              }
-            }
-            res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
-            return fs.createReadStream(fullPath).pipe(res);
+      if (fullPath.endsWith(".jsonl")) {
+        // Dataset: default to JSON array unless client explicitly requests NDJSON
+        if (!fs.existsSync(fullPath))
+          return res.status(404).json({ error: "Dataset not found" });
+        const accept = (req.get("accept") || "").toLowerCase();
+        const explicitlyNdjson = accept.includes("application/x-ndjson");
+        const wantsJsonArray = req.query.format === "json" || !explicitlyNdjson;
+        if (wantsJsonArray) {
+          try {
+            const lines = fs
+              .readFileSync(fullPath, "utf-8")
+              .split(/\r?\n/)
+              .filter(Boolean);
+            const arr = lines.map((l) => JSON.parse(l));
+            return res.json(arr);
+          } catch (e) {
+            return res.status(500).json({ error: "Failed to read dataset" });
+          }
         }
-        // Prompt: parse and return AST (no datasetUrl coupling)
-        const { parse } = await import('@agentmark/templatedx');
-        const fileContent = fs.readFileSync(fullPath, 'utf-8');
-        const data = await parse(fileContent, path.dirname(fullPath), async (p) => {
-            const resolved = path.isAbsolute(p) ? p : path.join(path.dirname(fullPath), p);
-            // Validate that the resolved path is within the base directory
-            const resolvedImportPath = path.resolve(resolved);
-            const resolvedBase = path.resolve(agentmarkTemplatesBase);
-            if (!resolvedImportPath.startsWith(resolvedBase + path.sep) && resolvedImportPath !== resolvedBase) {
-              throw new Error('Access denied: import path outside allowed directory');
-            }
-            return fs.readFileSync(resolvedImportPath, 'utf-8');
-        });
-        return res.json({ data });
+        res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+        return fs.createReadStream(fullPath).pipe(res);
+      }
+      // Prompt: parse and return AST (no datasetUrl coupling)
+      const { parse } = await import("@agentmark/templatedx");
+      const fileContent = fs.readFileSync(fullPath, "utf-8");
+      const data = await parse(
+        fileContent,
+        path.dirname(fullPath),
+        async (p) => {
+          const resolved = path.isAbsolute(p)
+            ? p
+            : path.join(path.dirname(fullPath), p);
+          // Validate that the resolved path is within the base directory
+          const resolvedImportPath = path.resolve(resolved);
+          const resolvedBase = path.resolve(agentmarkTemplatesBase);
+          if (
+            !resolvedImportPath.startsWith(resolvedBase + path.sep) &&
+            resolvedImportPath !== resolvedBase
+          ) {
+            throw new Error(
+              "Access denied: import path outside allowed directory"
+            );
+          }
+          return fs.readFileSync(resolvedImportPath, "utf-8");
+        }
+      );
+      return res.json({ data });
     } catch (error) {
-        return res.status(404).json({ error: 'File not found or invalid' });
+      return res.status(404).json({ error: "File not found or invalid" });
     }
-});
+  });
 
-app.post("/v1/export-traces", async (req: Request, res: Response) => {
-  try {
-    console.log("Exporting traces:", req.body);
-    await exportTraces(req.body);
-    return res.json({ success: true });
-  } catch (error) {
-    console.error("Error exporting traces:", error);
-    return res.status(500).json({ error: "Failed to export traces" });
-  }
-});
+  app.post("/v1/export-traces", async (req: Request, res: Response) => {
+    try {
+      await exportTraces(req.body);
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to export traces" });
+    }
+  });
 
-app.get("/v1/get-requests", async (_req: Request, res: Response) => {
-  try {
-    const requests = await getRequests();
-    return res.json({ requests });
-  } catch (error) {
-    console.error("Error getting requests:", error);
-    return res.status(500).json({ error: "Failed to get requests" });
-  }
-});
+  app.get("/v1/get-requests", async (_req: Request, res: Response) => {
+    try {
+      const requests = await getRequests();
+      return res.json({ requests });
+    } catch (error) {
+      console.error("Error getting requests:", error);
+      return res.status(500).json({ error: "Failed to get requests" });
+    }
+  });
 
-  app.get('/v1/prompts', async (_req: Request, res: Response) => {
+  app.get("/v1/prompts", async (_req: Request, res: Response) => {
     try {
       const promptFiles = await findPromptFiles(agentmarkTemplatesBase);
-      const paths = promptFiles.map((file) => path.relative(agentmarkTemplatesBase, file));
+      const paths = promptFiles.map((file) =>
+        path.relative(agentmarkTemplatesBase, file)
+      );
       res.json({ paths });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to list prompts' });
+      res.status(500).json({ error: "Failed to list prompts" });
     }
   });
 

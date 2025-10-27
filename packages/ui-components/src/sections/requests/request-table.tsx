@@ -13,29 +13,35 @@ import { fCurrency } from "@/utils";
 
 export type RequestTableProps = {
   loading: boolean;
-  handleFilterChange: (model: GridFilterModel) => void;
-  handleSortChange: (model: GridSortModel) => void;
+  onFilterChange?: (model: GridFilterModel) => void;
+  onSortChange?: (model: GridSortModel) => void;
   requests: Request[];
-  onPaginationChange: (page: number, pageSize: number) => void;
-  rowsPerPage: number;
-  page: number;
-  totalRows: number;
-  onRowClick: (row: Request) => void;
-  filterModel: GridFilterModel;
+  onPaginationChange?: (page: number, pageSize: number) => void;
+  rowsPerPage?: number;
+  page?: number;
+  totalRows?: number;
+  onRowClick?: (row: Request) => void;
+  filterModel?: GridFilterModel;
+  filterMode?: "server" | "client";
+  paginationMode?: "server" | "client";
+  sortingMode?: "server" | "client";
   t: any;
 };
 
 export const RequestTable = ({
   loading,
   requests,
-  handleFilterChange,
-  handleSortChange,
+  onFilterChange,
+  onSortChange,
   onPaginationChange,
   rowsPerPage,
   page,
   totalRows,
   onRowClick,
   filterModel,
+  filterMode,
+  paginationMode,
+  sortingMode,
   t,
 }: RequestTableProps) => {
   const tableData = useMemo(() => {
@@ -90,8 +96,8 @@ export const RequestTable = ({
         width: 110,
         headerAlign: "left",
         align: "left",
-        valueFormatter: (params: any) => {
-          return fCurrency(params.value, 6);
+        valueFormatter: (value: any) => {
+          return fCurrency(value, 6);
         },
       },
       {
@@ -125,8 +131,8 @@ export const RequestTable = ({
         width: 100,
         headerAlign: "left",
         align: "left",
-        valueFormatter: ({ value }) => {
-          return value === "2" ? t("fail") : t("success");
+        valueFormatter: (value) => {
+          return Number(value) === 2 ? t("fail") : t("success");
         },
       },
       {
@@ -160,8 +166,8 @@ export const RequestTable = ({
         width: 200,
         headerAlign: "left",
         align: "left",
-        valueFormatter: (params: any) => {
-          return new Date(params.value).toLocaleString();
+        valueFormatter: (value: any) => {
+          return new Date(value).toLocaleString();
         },
       },
     ] as GridColDef<Request>[];
@@ -183,24 +189,38 @@ export const RequestTable = ({
   return (
     <DataGrid
       t={t}
-      onRowClick={(params) => onRowClick(params.row)}
+      onRowClick={(params) => onRowClick?.(params.row)}
       rows={tableData}
       loading={loading}
       columns={columns}
-      paginationMode="server"
-      onFilterModelChange={handleFilterChange}
+      paginationMode={paginationMode}
+      onFilterModelChange={onFilterChange}
       filterModel={filterModel}
-      filterMode="server"
-      rowCount={totalRows}
+      filterMode={filterMode}
+      rowCount={onPaginationChange ? totalRows : undefined}
       showToolbar
-      paginationModel={{
-        page,
-        pageSize: rowsPerPage,
-      }}
-      onSortModelChange={handleSortChange}
+      paginationModel={
+        paginationMode === "server"
+          ? { page: page || 0, pageSize: rowsPerPage || 10 }
+          : undefined
+      }
+      onSortModelChange={onSortChange}
+      sortingMode={sortingMode}
       pageSizeOptions={[5, 10, 25]}
+      initialState={{
+        pagination:
+          paginationMode !== "server"
+            ? {
+                paginationModel: {
+                  page: 0,
+                  pageSize: 10,
+                },
+              }
+            : undefined,
+      }}
+      rowSelection={false}
       onPaginationModelChange={(model) => {
-        onPaginationChange(model.page, model.pageSize);
+        onPaginationChange?.(model.page, model.pageSize);
       }}
     />
   );
