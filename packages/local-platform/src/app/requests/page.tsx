@@ -2,10 +2,11 @@
 import { Request, Requests } from "@agentmark/ui-components";
 import { useTranslations } from "next-intl";
 import { use } from "react";
+import { FILE_SERVER_URL } from "../../config/api";
 
 const getRequests = async () => {
   try {
-    const response = await fetch("http://localhost:9002/v1/get-requests");
+    const response = await fetch(`${FILE_SERVER_URL}/v1/requests`);
     const data = await response.json();
     return data.requests as Request[];
   } catch (error) {

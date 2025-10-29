@@ -96,6 +96,7 @@
     "noSessions": "No Sessions",
     "noDataAvailable": "No data available",
     "name": "Name",
-    "timestamp": "Timestamp"
+    "timestamp": "Timestamp",
+    "loading": "Loading traces..."
   }
 }

@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { findPromptFiles } from "@agentmark/shared-utils";
 import cors from "cors";
-import { exportTraces, getRequests } from "./server/routes/traces";
+import { exportTraces, getRequests, getTraces, getTraceById } from "./server/routes/traces";
 
 function safePath(): string {
   try {
@@ -205,6 +205,26 @@ export async function createFileServer(port: number) {
     </div>
   </div>
 
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/traces
+    </div>
+    <div class="endpoint-desc">
+      Get list of all traces with aggregated metadata (name, status, latency, cost, tokens, start, end)
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/traces/:traceId
+    </div>
+    <div class="endpoint-desc">
+      Get a single trace with all its spans in TraceData format
+    </div>
+  </div>
+
   <h2>Your Prompts</h2>
   <ul>
 ${promptsList}
@@ -348,7 +368,7 @@ ${promptsList}
     }
   });
 
-  app.get("/v1/get-requests", async (_req: Request, res: Response) => {
+  app.get("/v1/requests", async (_req: Request, res: Response) => {
     try {
       const requests = await getRequests();
       return res.json({ requests });
@@ -367,6 +387,33 @@ ${promptsList}
       res.json({ paths });
     } catch (error) {
       res.status(500).json({ error: "Failed to list prompts" });
+    }
+  });
+
+  app.get("/v1/traces", async (_req: Request, res: Response) => {
+    try {
+      const traces = await getTraces();
+      return res.json({ traces });
+    } catch (error) {
+      console.error("Error getting traces:", error);
+      return res.status(500).json({ error: "Failed to get traces" });
+    }
+  });
+
+  app.get("/v1/traces/:traceId", async (req: Request, res: Response) => {
+    try {
+      const { traceId } = req.params;
+      if (!traceId) {
+        return res.status(400).json({ error: "traceId parameter is required" });
+      }
+      const trace = await getTraceById(traceId);
+      if (!trace) {
+        return res.status(404).json({ error: "Trace not found" });
+      }
+      return res.json({ trace });
+    } catch (error) {
+      console.error("Error getting trace:", error);
+      return res.status(500).json({ error: "Failed to get trace" });
     }
   });
 

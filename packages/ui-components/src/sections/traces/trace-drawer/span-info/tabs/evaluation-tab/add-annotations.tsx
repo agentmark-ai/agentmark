@@ -18,7 +18,7 @@ export const AddAnnotations = () => {
   return (
     <>
       <Button size="small" variant="outlined" onClick={handleAddAnnotation}>
-        {t("dashboard.traces.addAnnotation")}
+        {t("addAnnotation")}
       </Button>
     </>
   );

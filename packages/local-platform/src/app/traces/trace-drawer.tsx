@@ -24,50 +24,52 @@ import {
   AddAnnotationDialog,
   EvaluationList,
   TraceDrawer as TraceDrawerComponent,
-  SpanData,
+  TraceData,
   TraceInfoSkeleton,
 } from "@agentmark/ui-components";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const getSpan = async (traceId: string): Promise<SpanData> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: "1",
-        name: "Span 1",
-        duration: 1000,
-        timestamp: 1000,
-        data: {
-          model_name: "Model 1",
-          attributes: "Attributes 1",
-          status_message: "Status Message 1",
-        },
-      });
-    }, 1000);
-  });
-};
+import { getTraceById } from "../../lib/api/traces";
 
 export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
-  const [loading, setLoading] = useState(true);
-  const [span, setSpan] = useState<SpanData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [trace, setTrace] = useState<TraceData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const traceId = searchParams.get("traceId");
   const router = useRouter();
 
   useEffect(() => {
-    getSpan(traceId ?? "").then((span) => {
-      setSpan(span);
+    if (!traceId) {
+      setTrace(null);
       setLoading(false);
-    });
+      setError(null);
+      return;
+    }
+
+    const fetchTrace = async () => {
+      setLoading(true);
+      setError(null);
+      const fetchedTrace = await getTraceById(traceId);
+      if (!fetchedTrace) {
+        setError("Trace not found");
+        setTrace(null);
+      } else {
+        setTrace(fetchedTrace);
+      }
+      setLoading(false);
+    };
+    fetchTrace();
   }, [traceId]);
 
-  console.log(span);
-
   return (
-    <TraceDrawerProvider traces={[]} traceId="1" sessionId="1" t={t}>
+    <TraceDrawerProvider
+      traces={trace ? [trace] : []}
+      traceId={traceId || undefined}
+      t={t}
+    >
       <TraceDrawerComponent
         open={!!traceId}
         onClose={() => {
@@ -75,7 +77,12 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
         }}
       >
         {loading && <TraceInfoSkeleton />}
-        {!loading && (
+        {error && (
+          <Box sx={{ p: 4, textAlign: "center" }}>
+            <Typography color="error">{error}</Typography>
+          </Box>
+        )}
+        {!loading && !error && trace && (
           <TraceDrawerContainer>
             <TraceDrawerHeader>
               <Stack direction="row" justifyContent="space-between">
@@ -105,7 +112,7 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                 <TraceDrawerSidebar>
                   <TraceTree />
                   <TraceDrawerSidebarSectionResizer />
-                  <TraceGraphCanvas graphData={[]} isLoading={false} />
+                  <TraceGraphCanvas graphData={[]} isLoading={false} /> {/* Graph data API to be implemented later */}
                 </TraceDrawerSidebar>
                 <TraceDrawerContent>
                   <SpanInfoProvider>
