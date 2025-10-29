@@ -24,7 +24,6 @@ export default function RequestsPage() {
     <Requests
       loading={false}
       requests={requests}
-      onRowClick={() => {}}
       t={t}
     />
   );

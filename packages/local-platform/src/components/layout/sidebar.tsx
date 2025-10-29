@@ -19,12 +19,14 @@ import { useTranslations } from "next-intl";
 const paths = {
   home: "/",
   requests: "/requests",
+  traces: "/traces",
 };
 
 const iconfiy = (name: string) => <Iconify icon={name} />;
 
 const navIcons = {
   requests: iconfiy("gravity-ui:list-check"),
+  traces: iconfiy("oui:apm-trace"),
 };
 
 const drawerWidth = 240;
@@ -40,16 +42,21 @@ const Drawer = styled(MuiDrawer)({
 });
 
 export const Sidebar = () => {
-  const t = useTranslations("requests");
+  const t = useTranslations();
 
   const pathname = usePathname();
   const isSelected = (href: string) => pathname === href;
 
   const navItems = {
     requests: {
-      label: t("title"),
+      label: t("requests.title"),
       icon: navIcons.requests,
       href: paths.requests,
+    },
+    traces: {
+      label: t("traces.title"),
+      icon: navIcons.traces,
+      href: paths.traces,
     },
   };
 
