@@ -112,7 +112,8 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                 <TraceDrawerSidebar>
                   <TraceTree />
                   <TraceDrawerSidebarSectionResizer />
-                  <TraceGraphCanvas graphData={[]} isLoading={false} /> {/* Graph data API to be implemented later */}
+                  <TraceGraphCanvas graphData={[]} isLoading={false} />{" "}
+                  {/* Graph data API to be implemented later */}
                 </TraceDrawerSidebar>
                 <TraceDrawerContent>
                   <SpanInfoProvider>
@@ -122,7 +123,7 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                         <AttributesTab />
                         <InputOutputTab />
                         <EvaluationProvider
-                          canAddAnnotation={true}
+                          canAddAnnotation={false}
                           fetchEvaluations={(spanId) => {
                             return new Promise((resolve) => {
                               setTimeout(() => {
@@ -141,14 +142,6 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                         >
                           <EvaluationTab>
                             <Stack spacing={2}>
-                              <Stack direction="row" justifyContent="flex-end">
-                                <AddAnnotations />
-                                <AddAnnotationDialog
-                                  saveAnnotation={() =>
-                                    Promise.resolve({ hasError: false })
-                                  }
-                                />
-                              </Stack>
                               <EvaluationList />
                             </Stack>
                           </EvaluationTab>
