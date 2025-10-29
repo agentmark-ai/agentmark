@@ -3,8 +3,6 @@ import {
   TraceDrawerContainer,
   TraceDrawerHeader,
   TraceDrawerTitle,
-  TraceDrawerAddToDatasetButton,
-  TraceDrawerTestPromptButton,
   TraceDrawerSubtitle,
   TraceDrawerMain,
   TraceDrawerSidebar,
@@ -20,8 +18,6 @@ import {
   InputOutputTab,
   EvaluationProvider,
   EvaluationTab,
-  AddAnnotations,
-  AddAnnotationDialog,
   EvaluationList,
   TraceDrawer as TraceDrawerComponent,
   TraceData,
@@ -87,14 +83,6 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
             <TraceDrawerHeader>
               <Stack direction="row" justifyContent="space-between">
                 <TraceDrawerTitle>{t("title")}</TraceDrawerTitle>
-                <Stack direction="row" spacing={2}>
-                  <TraceDrawerAddToDatasetButton>
-                    {t("addToDataset")}
-                  </TraceDrawerAddToDatasetButton>
-                  <TraceDrawerTestPromptButton>
-                    {t("testPrompt")}
-                  </TraceDrawerTestPromptButton>
-                </Stack>
               </Stack>
               <TraceDrawerSubtitle />
             </TraceDrawerHeader>
