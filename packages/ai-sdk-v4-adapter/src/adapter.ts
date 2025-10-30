@@ -8,7 +8,6 @@ import type {
   PromptShape,
   KeysWithKind,
   SpeechConfig,
-  McpServers,
 } from "@agentmark/prompt-core";
 import type {
   LanguageModel,
@@ -20,7 +19,7 @@ import type {
 } from "ai";
 import { jsonSchema } from "ai";
 import { parseMcpUri } from "@agentmark/prompt-core";
-import { McpClientManager } from "./mcp/mcp-client-manager";
+import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
 
@@ -202,16 +201,16 @@ export class VercelAIAdapter<
   readonly __name = "vercel-ai-v4";
 
   private readonly toolsRegistry: R | undefined;
-  private readonly mcpManager: McpClientManager;
+  private readonly mcpRegistry: McpServerRegistry;
 
   constructor(
     private modelRegistry: VercelAIModelRegistry,
     toolRegistry?: R,
-    mcpServers?: McpServers
+    mcpRegistry?: McpServerRegistry
   ) {
     this.modelRegistry = modelRegistry;
     this.toolsRegistry = toolRegistry;
-    this.mcpManager = new McpClientManager(mcpServers);
+    this.mcpRegistry = mcpRegistry ?? new McpServerRegistry();
   }
 
   async adaptText<_K extends KeysWithKind<T, "text"> & string>(
@@ -237,13 +236,13 @@ export class VercelAIAdapter<
           if (defAny.startsWith("mcp://")) {
             const { server, tool } = parseMcpUri(defAny);
             if (tool === "*") {
-              const allTools = await this.mcpManager.getAllTools(server);
+              const allTools = await this.mcpRegistry.getAllTools(server);
               for (const [toolName, toolImpl] of Object.entries(allTools)) {
                 (toolsObj as any)[toolName] = toolImpl as any;
               }
               continue;
             }
-            const resolvedTool = await this.mcpManager.getTool(server, tool);
+            const resolvedTool = await this.mcpRegistry.getTool(server, tool);
             (toolsObj as any)[key] = resolvedTool as any;
             continue;
           }

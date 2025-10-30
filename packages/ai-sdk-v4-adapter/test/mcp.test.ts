@@ -1,22 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark/prompt-core";
-import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
+import { createAgentMarkClient, VercelAIModelRegistry, McpServerRegistry } from "../src";
 
-vi.mock("../src/mcp/mcp-client-manager", () => {
+vi.mock("../src/mcp/mcp-server-registry", () => {
   class MockTool {
     parameters = {} as any;
     description = "mock tool";
     execute = vi.fn(async () => ({ ok: true }));
   }
 
-  class McpClientManager {
+  class McpServerRegistry {
+    private servers = new Map();
+
+    register(name: string, config: any) {
+      this.servers.set(name, config);
+      return this;
+    }
+
+    registerServers(servers: Record<string, any>) {
+      for (const [name, config] of Object.entries(servers)) {
+        this.register(name, config);
+      }
+      return this;
+    }
+
+    has(name: string) {
+      return this.servers.has(name);
+    }
+
     async getTool(server: string, toolName: string) {
       return new MockTool();
     }
   }
 
-  return { McpClientManager };
+  return { McpServerRegistry };
 });
 
 type TestPromptTypes = {
@@ -41,12 +59,14 @@ describe("Vercel adapter MCP integration", () => {
   });
 
   it("resolves MCP tools from URIs and returns them in tools map", async () => {
+    const mcpRegistry = new McpServerRegistry().register("server-1", {
+      url: "https://example.com/sse",
+    });
+
     const agentMark = createAgentMarkClient<TestPromptTypes>({
       loader: fileLoader,
       modelRegistry,
-      mcpServers: {
-        "server-1": { url: "https://example.com/sse" },
-      },
+      mcpRegistry,
     });
 
     const prompt = await agentMark.loadTextPrompt("mcp-text.prompt.mdx");

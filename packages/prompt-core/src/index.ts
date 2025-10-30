@@ -28,6 +28,7 @@ export type {
   TestSettings,
   DatasetStreamChunk,
   DatasetErrorChunk,
+  FormatWithDatasetOptions,
 } from "./types";
 
 export { EvalRegistry } from "./eval-registery";

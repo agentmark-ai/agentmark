@@ -39,3 +39,5 @@ export function createAgentMarkClient<D extends PromptShape<D>>(opts: {
 }
 
 export { DefaultAdapter } from "./adapter";
+
+export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";

@@ -1,6 +1,6 @@
 export const getCustomerSupportPrompt = (model: string): string => {
   return `---
-name: customer-reply
+name: customer-support-agent
 text_config:
   model_name: ${model}
   max_calls: 2

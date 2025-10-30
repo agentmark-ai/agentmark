@@ -7,6 +7,7 @@ import {
   ObjectPrompt,
   PromptFormatParams,
   PromptShape,
+  FormatWithDatasetOptions,
 } from "@agentmark/prompt-core";
 import {
   VercelAIAdapter,
@@ -17,9 +18,9 @@ import {
 import type {
   DatasetErrorChunk,
   DatasetStreamChunk,
-  McpServers,
 } from "@agentmark/prompt-core";
 import type { Root } from "mdast";
+import { McpServerRegistry } from "./mcp/mcp-server-registry.js";
 
 export interface VercelAIObjectPrompt<
   T extends PromptShape<T>,
@@ -31,7 +32,7 @@ export interface VercelAIObjectPrompt<
   ): Promise<VercelAIObjectParams<T[K]["output"]>>;
 
   formatWithDataset(
-    options?: AdaptOptions
+    options?: FormatWithDatasetOptions
   ): Promise<
     ReadableStream<
       | DatasetStreamChunk<VercelAIObjectParams<T[K]["output"]>>
@@ -68,12 +69,12 @@ export function createAgentMarkClient<
   modelRegistry: VercelAIModelRegistry;
   toolRegistry?: T;
   evalRegistry?: EvalRegistry;
-  mcpServers?: McpServers;
+  mcpRegistry?: McpServerRegistry;
 }): VercelAgentMark<D, T> {
   const adapter = new VercelAIAdapter<D, T>(
     opts.modelRegistry,
     opts.toolRegistry,
-    opts.mcpServers
+    opts.mcpRegistry
   );
 
   return new AgentMark<D, VercelAIAdapter<D, T>>({
@@ -89,3 +90,7 @@ export {
   VercelAIModelRegistry,
   VercelAIToolRegistry,
 } from "./adapter.js";
+
+export { McpServerRegistry } from "./mcp/mcp-server-registry.js";
+
+export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
