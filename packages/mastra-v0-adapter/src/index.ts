@@ -28,3 +28,5 @@ export function createAgentMarkClient<
 export { MastraModelRegistry } from "./model-registry";
 export { MastraToolRegistry } from "./tool-registry";
 
+export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
+

@@ -15,6 +15,7 @@ import type {
   PromptKind,
   DatasetStreamChunk,
   DatasetErrorChunk,
+  FormatWithDatasetOptions,
 } from "../types";
 
 export abstract class BasePrompt<
@@ -60,7 +61,7 @@ export abstract class BasePrompt<
   }
 
   async formatWithDataset(
-    options?: AdaptOptions & { datasetPath?: string; format?: 'ndjson' | 'json' }
+    options?: FormatWithDatasetOptions
   ): Promise<
     ReadableStream<DatasetStreamChunk<ReturnType<A[`adapt${Capitalize<PK>}`]>> | DatasetErrorChunk>
   > {
