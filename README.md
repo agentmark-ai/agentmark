@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://agentmark.co">Homepage</a> |
+  <a href="https://www.agentmark.co">Homepage</a> |
   <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://docs.agentmark.co/agentmark/">Docs</a>
 </p>
@@ -24,16 +24,7 @@
 
 **AgentMark makes it easy for developers to develop, test, and evaluate Agents**.
 
-AgentMark makes prompt engineering intuitive by combining familiar Markdown syntax with JSX components, allowing developers to focus on creating reliable Agents. AgentMark seamlessly integrates with your favorite SDK's using our adapters, and currently works in TypeScript and JavaScript, with Python support coming soon.
-
-AgentMark comes with comprehensive tooling included—featuring full type safety, unified prompt configuration, syntax highlighting, loops and conditionals, custom SDK adapters, and support for text, object, image, and speech generation across multiple model providers, even when they don't support native structured output APIs.
-
-
-## Example Prompt
-
-![AgentMark MDX Example](/assets/agentmark-mdx.png)
-
-_AgentMark prompt file example for generating text_
+![AgentMark MDX Example](/assets/agentmark.png)
 
 ## Features
 
@@ -41,12 +32,15 @@ _AgentMark prompt file example for generating text_
 |---------|-------------|
 | [Multimodal Generation](https://docs.agentmark.co/agentmark/generation_types/overview) | Generate text, objects, images, and speech from a single prompt file, supporting a wide range of model capabilities. |
 | [Datasets](https://docs.agentmark.co/agentmark/datasets/overview) | Create a collection of inputs and expected outputs to test your prompts and agents in readable JSONL format. |
-| [CLI for running & testing agents](https://docs.agentmark.co/agentmark/running_prompts/cli) | Run, test, and debug prompts directly from the command line or your editor for rapid iteration. |
+| [Evals](https://docs.agentmark.co/agentmark/testing/evals) | Assess the quality/output of your prompts with our eval support |
+| [CLI](https://docs.agentmark.co/agentmark/running_prompts/cli) | Run prompts and experiments directly from the command line or your editor for rapid iteration. |
 | [Tools and Agents](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Extend prompts with custom tools and agentic workflows. |
+| [JSON Output](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | AgentMark supports structured Object/JSON output through JSON Schema definitions. |
 | [File Attachments](https://docs.agentmark.co/agentmark/prompt_basics/file-attachments) | Attach images and files to prompts for tasks like image analysis, document processing, and more. |
 | [Type Safety](https://docs.agentmark.co/agentmark/running_prompts/type-safety) | Ensure reliable, type-checked inputs and outputs for prompts using JSON Schema and auto-generated TypeScript types. |
 | [Reusable Components](https://docs.agentmark.co/agentmark/prompt_basics/reusable-components) | Import and reuse components across your prompts.|
 | [Conditionals](https://docs.agentmark.co/agentmark/prompt_basics/conditionals), [Loops](https://docs.agentmark.co/agentmark/prompt_basics/loops), [Props](https://docs.agentmark.co/agentmark/prompt_basics/props), [Filter Functions](https://docs.agentmark.co/agentmark/prompt_basics/filter_functions) | Add logic, dynamic data, and transformations to your prompts with powerful JSX-like syntax. |
+| [MCP Servers](https://docs.agentmark.co/agentmark/prompt_basics/mcp) | AgentMark supports calling Model Context Protocol (MCP) tools directly from your prompts. | 
 
 ## Quick Start
 
@@ -105,13 +99,24 @@ AgentMark Studio supports type safety out of the box. Read more about it [here](
 
 We welcome contributions! Please check out our [contribution guidelines](https://github.com/agentmark-ai/agentmark/blob/main/CONTRIBUTING.md) for more information.
 
+## Cloud Platform
+
+[AgentMark Cloud](agentmark.co) extends this OSS project, and allows you to:
+
+1. Collaborate with teammates on prompts and datasets
+2. Run experiments
+3. Persist your telemetry data
+4. Annotate and evaluate your data
+5. Setup alerts for quality, latency, cost, and more
+6. View high-level metrics for your agents
+7. Setup two-way syncing with your Git repo
+
 ## Community
 
 Join our community to collaborate, ask questions, and stay updated:
 
 - [Discord](https://discord.gg/P2NeMDtXar)
 - [Issues](https://github.com/agentmark-ai/agentmark/issues)
-- [Discussions](https://github.com/agentmark-ai/agentmark/discussions)
 
 ## License
 

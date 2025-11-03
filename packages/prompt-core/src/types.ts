@@ -152,3 +152,10 @@ export type DatasetErrorChunk = {
   error: string;
   type: "error";
 }
+
+export type FormatWithDatasetOptions = AdaptOptions & {
+  /** Override the dataset path specified in the prompt's frontmatter */
+  datasetPath?: string;
+  /** Format mode: 'ndjson' streams as data arrives (default), 'json' buffers all rows before streaming */
+  format?: 'ndjson' | 'json';
+}

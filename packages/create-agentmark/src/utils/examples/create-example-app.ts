@@ -111,7 +111,7 @@ export const createExampleApp = async (
     // Prefer TS for dev ergonomics
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
-      `${targetPath}/agentmark.config.ts`,
+      `${targetPath}/agentmark.client.ts`,
       getClientConfigContent({ provider: modelProvider, languageModels: langModels })
     );
 
@@ -166,7 +166,7 @@ import { ${runnerClassName} } from '@agentmark/${adapterName}-adapter/runner';
 import path from 'path';
 
 async function main() {
-  const { client } = await import('../agentmark.config.js');
+  const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));

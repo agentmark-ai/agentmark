@@ -48,7 +48,7 @@ describe('init', () => {
     }
   });
 
-  it('cloud target uses SDK file loader in generated agentmark.config.ts', async () => {
+  it('cloud target uses SDK file loader in generated agentmark.client.ts', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
     const content = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'openai', languageModels: ['gpt-4o'], target: 'cloud' });
     expect(content).toContain("from \"@agentmark/sdk\"");
@@ -81,14 +81,14 @@ describe('init', () => {
     try {
       const client = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'openai', languageModels: ['gpt-4o'] });
       fs.mkdirSync(path.join(tmpDir, 'agentmark'), { recursive: true });
-      fs.writeFileSync(path.join(tmpDir, 'agentmark.config.ts'), client);
+      fs.writeFileSync(path.join(tmpDir, 'agentmark.client.ts'), client);
 
-      expect(fs.existsSync(path.join(tmpDir, 'agentmark.config.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'agentmark.client.ts'))).toBe(true);
       // Tools/Evals now inline in the client
 
       // Basic validity: importable with ts-node/tsx semantics isn't trivial in Vitest.
       // Validate that provider and model array are wired in the file content.
-      const generated = fs.readFileSync(path.join(tmpDir, 'agentmark.config.ts'), 'utf8');
+      const generated = fs.readFileSync(path.join(tmpDir, 'agentmark.client.ts'), 'utf8');
       expect(generated).toContain('registerModels(["gpt-4o"]');
       expect(generated).toContain("@ai-sdk/openai");
       // openai extras

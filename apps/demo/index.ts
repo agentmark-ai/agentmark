@@ -3,6 +3,7 @@ import {
   createAgentMarkClient,
   VercelAIModelRegistry,
   VercelAIToolRegistry,
+  McpServerRegistry,
 } from "@agentmark/ai-sdk-v4-adapter";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
@@ -20,16 +21,16 @@ const tools = new VercelAIToolRegistry<Tools>().register(
   ({ location }) => ({ tempC: 22 })
 );
 
+const mcpRegistry = new McpServerRegistry().register("test", {
+  command: "npx",
+  args: ["-y", "@mastra/mcp-docs-server"],
+});
+
 const agentMark = createAgentMarkClient({
   loader,
   modelRegistry,
   toolRegistry: tools,
-  mcpServers: {
-    test: {
-      command: "npx",
-      args: ["-y", "@mastra/mcp-docs-server"],
-    },
-  },
+  mcpRegistry,
 });
 
 async function run() {
