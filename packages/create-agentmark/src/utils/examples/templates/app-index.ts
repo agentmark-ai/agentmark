@@ -1,7 +1,7 @@
 export const getIndexFileContent = (): string => {
   return `import "dotenv/config";
 import { generateText } from "ai";
-import { client } from "./agentmark.config";
+import { client } from "./agentmark.client";
 
 const telemetry = {
   isEnabled: true,

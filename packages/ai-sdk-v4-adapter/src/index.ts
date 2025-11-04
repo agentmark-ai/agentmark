@@ -93,4 +93,6 @@ export {
 
 export { McpServerRegistry } from "./mcp/mcp-server-registry.js";
 
+export { EvalRegistry } from "@agentmark/prompt-core";
+
 export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
