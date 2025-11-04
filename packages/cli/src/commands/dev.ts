@@ -12,17 +12,14 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   const runnerPort = options.runnerPort || 9417;
   const cwd = getSafeCwd();
 
-  // Check if agentmark.config.ts exists
-  const configPath = path.join(cwd, 'agentmark.config.ts');
+  // Check if agentmark.client.ts exists
+  const configPath = path.join(cwd, 'agentmark.client.ts');
   if (!fs.existsSync(configPath)) {
-    console.error('Error: agentmark.config.ts not found in current directory');
+    console.error('Error: agentmark.client.ts not found in current directory');
     console.error('Run this command from your AgentMark project root');
     process.exit(1);
   }
 
-  console.log('\n' + '─'.repeat(60));
-  console.log('Starting AgentMark Development Servers');
-  console.log('─'.repeat(60));
 
   // Determine which dev server entry point to use
   const customDevServer = path.join(cwd, 'dev-server.ts');
@@ -65,7 +62,7 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   };
 
   // Start runner server
-  const runnerServer = spawn('npx', ['tsx', '--watch', devServerFile, 'agentmark.config.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${fileServerPort}`], {
+  const runnerServer = spawn('npx', ['tsx', '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${fileServerPort}`], {
     stdio: 'inherit',
     cwd
   });
@@ -88,17 +85,23 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
 
   // Give servers time to start, then print summary
   setTimeout(() => {
-    console.log('\n' + '─'.repeat(60));
-    console.log('AgentMark Development Servers Ready');
-    console.log('─'.repeat(60));
-    console.log(`  File Server:  http://localhost:${fileServerPort}`);
-    console.log(`  CLI Runner:   http://localhost:${runnerPort}`);
-    console.log('─'.repeat(60) + '\n');
-    console.log('Commands:');
+    console.log('\n' + '═'.repeat(70));
+    console.log('🚀 AgentMark Development Servers Running');
+    console.log('═'.repeat(70));
+    console.log(`\n  File Server:   http://localhost:${fileServerPort}`);
+    console.log(`  Runner Server: http://localhost:${runnerPort}`);
+    console.log('\n' + '─'.repeat(70));
+    console.log('How to run prompts and experiments:');
+    console.log('─'.repeat(70));
+    console.log('\n  Open a new terminal window and run:');
+    console.log('\n  Run a prompt:');
     console.log('  $ npm run prompt agentmark/<file>.prompt.mdx');
+    console.log('\n  Run an experiment:');
     console.log('  $ npm run experiment agentmark/<file>.prompt.mdx');
-    console.log('\nPress Ctrl+C to stop\n');
-  }, 2000);
+    console.log('\n' + '═'.repeat(70));
+    console.log('Press Ctrl+C in this terminal to stop the servers');
+    console.log('═'.repeat(70) + '\n');
+  }, 3000);
 
   // Handle process termination
   let isShuttingDown = false;

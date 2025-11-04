@@ -4,7 +4,9 @@
   "type": "module",
   "description": "Create AgentMark projects with npm create agentmark",
   "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "bin": {
+    "create-agentmark": "dist/index.js"
+  },
   "exports": {
     ".": "./dist/index.js",
     "./templates": "./dist/utils/examples/templates/index.js"
@@ -38,5 +40,9 @@
     "@types/prompts": "^2.4.9",
     "typescript": "^5",
     "vitest": "^3.1.4"
-  }
+  },
+  "directories": {
+    "test": "test"
+  },
+  "types": "./dist/index.d.ts"
 }

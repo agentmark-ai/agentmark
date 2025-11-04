@@ -35,7 +35,7 @@ import { createRunnerServer } from '@agentmark/cli/runner-server';
 import { VercelAdapterRunner } from '@agentmark/vercel-ai-v4-adapter/runner';
 
 async function main() {
-  const { client } = await import('../agentmark.config.js');
+  const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
@@ -150,8 +150,8 @@ describe('agentmark dev', () => {
     fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo Prompt');
     fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.jsonl'), JSON.stringify({ input: {}, expected_output: 'EXPECTED' }) + '\n');
 
-    // Create minimal agentmark.config.ts
-    fs.writeFileSync(path.join(tempDir, 'agentmark.config.ts'), createMinimalAgentMarkConfig());
+    // Create minimal agentmark.client.ts
+    fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
@@ -209,8 +209,8 @@ describe('agentmark dev', () => {
     // Setup test directory (creates .agentmark/dev-entry.ts)
     setupTestDir(tempDir);
 
-    // Create agentmark.config.ts but NOT custom dev-server.ts
-    fs.writeFileSync(path.join(tempDir, 'agentmark.config.ts'), createMinimalAgentMarkConfig());
+    // Create agentmark.client.ts but NOT custom dev-server.ts
+    fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
     fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
 
@@ -252,7 +252,7 @@ describe('agentmark dev', () => {
 
     fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
-    fs.writeFileSync(path.join(tempDir, 'agentmark.config.ts'), createMinimalAgentMarkConfig());
+    fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const customFilePort = await getFreePort();
@@ -283,7 +283,7 @@ describe('agentmark dev', () => {
 
     fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
     fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
-    fs.writeFileSync(path.join(tempDir, 'agentmark.config.ts'), createMinimalAgentMarkConfig());
+    fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
