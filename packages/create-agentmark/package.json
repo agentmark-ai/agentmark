@@ -1,12 +1,10 @@
 {
   "name": "create-agentmark",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "type": "module",
   "description": "Create AgentMark projects with npm create agentmark",
   "main": "dist/index.js",
-  "bin": {
-    "create-agentmark": "dist/index.js"
-  },
+  "bin": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
     "./templates": "./dist/utils/examples/templates/index.js"

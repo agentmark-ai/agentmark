@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/prompt-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",

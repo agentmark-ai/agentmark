@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 0.1.0
+
+### Minor Changes
+
+- 7492a54: MCP registry, fix error handling.
+
 ## 0.0.1
 
 ### Patch Changes
