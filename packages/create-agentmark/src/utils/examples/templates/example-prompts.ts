@@ -32,6 +32,4 @@ export const createExamplePrompts = (model: string, targetPath: string = ".") =>
   fs.writeFileSync(`${targetPath}/agentmark/story-teller.prompt.mdx`, storyTellerPrompt);
   const storyDataset = getStoryDataset();
   fs.writeFileSync(`${targetPath}/agentmark/story.jsonl`, storyDataset);
-  
-  console.log('✅ Example prompts and datasets created in agentmark folder');
 };

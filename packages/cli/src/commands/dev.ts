@@ -61,8 +61,10 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     }
   };
 
-  // Start runner server
-  const runnerServer = spawn('npx', ['tsx', '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${fileServerPort}`], {
+  // Start runner server using local tsx installation
+  // Find tsx binary - will be in node_modules/.bin/tsx
+  const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
+  const runnerServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${fileServerPort}`], {
     stdio: 'inherit',
     cwd
   });
@@ -95,9 +97,10 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     console.log('─'.repeat(70));
     console.log('\n  Open a new terminal window and run:');
     console.log('\n  Run a prompt:');
-    console.log('  $ npm run prompt agentmark/<file>.prompt.mdx');
+    console.log('  $ npm run prompt ./agentmark/party-planner.prompt.mdx');
     console.log('\n  Run an experiment:');
-    console.log('  $ npm run experiment agentmark/<file>.prompt.mdx');
+    console.log('  $ npm run experiment ./agentmark/party-planner.prompt.mdx');
+    console.log('\n  (Replace with any prompt file in ./agentmark/)');
     console.log('\n' + '═'.repeat(70));
     console.log('Press Ctrl+C in this terminal to stop the servers');
     console.log('═'.repeat(70) + '\n');
