@@ -19,7 +19,8 @@ const setupMCPServer = (client: string, targetPath: string) => {
     return;
   }
 
-  const folderName = targetPath.replace("./", "");
+  // Keep ./ prefix for display in messages
+  const folderName = targetPath;
 
   // Handle VS Code
   if (client === "vscode") {
@@ -128,6 +129,9 @@ export const createExampleApp = async (
   try {
     console.log("Creating Agent Mark example app...");
 
+    // Keep ./ prefix for display in messages
+    const folderName = targetPath;
+
     // Create directory structure
     fs.ensureDirSync(`${targetPath}/agentmark`);
 
@@ -135,6 +139,7 @@ export const createExampleApp = async (
 
     // Create example prompts
     createExamplePrompts(model, targetPath);
+    console.log(`✅ Example prompts and datasets created in ${folderName}/agentmark/`);
 
     // Create user client config at project root
     // Prefer TS for dev ergonomics
@@ -239,13 +244,11 @@ main().catch((err) => {
     `
     );
 
-    const folderName = targetPath.replace("./", "");
-
     console.log('\n' + '═'.repeat(70));
     console.log('Next Steps');
     console.log('═'.repeat(70));
     console.log('\n Initialize Server:');
-    if (folderName !== ".") {
+    if (folderName !== "." && folderName !== "./") {
       console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
