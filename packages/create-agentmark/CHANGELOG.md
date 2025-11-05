@@ -1,5 +1,11 @@
 # create-agentmark
 
+## 0.1.1
+
+### Patch Changes
+
+- 5e02d03: Chore: Easier understanding for running prompts/datasets. Minor cleanup
+
 ## 0.1.0
 
 ### Minor Changes
