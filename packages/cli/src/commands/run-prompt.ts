@@ -72,7 +72,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   } catch {}
   // Ensure server resolves resources relative to the prompt file if it needs it in the AST
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
-  const server = options.server || 'http://localhost:9417';
+  const server = options.server || process.env.AGENTMARK_WEBHOOK_URL || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error('Server URL is required. Run your runner (e.g., npm run dev) and set --server if needed.');
   }

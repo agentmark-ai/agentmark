@@ -1,4 +1,5 @@
 import fs from "fs-extra";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
 import { Providers } from "../providers.js";
@@ -11,6 +12,10 @@ import {
   createExamplePrompts,
   getClientConfigContent,
 } from "./templates/index.js";
+import {
+  getNextJsApiRouteContent,
+  getNextJsReadmeContent,
+} from "./templates/deployment-templates.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -116,17 +121,72 @@ const setupMCPServer = (client: string, targetPath: string) => {
     }
     return;
   }
+};
 
+const createDeploymentFiles = async (
+  platform: string,
+  targetPath: string,
+  adapterName: string,
+  handlerClassName: string
+) => {
+  const folderName = targetPath.replace("./", "");
+
+  switch (platform) {
+    case 'nextjs': {
+      // Create Next.js API route only
+      console.log('Creating Next.js API route...');
+
+      // Create app/api directory structure
+      const apiDir = path.join(targetPath, 'app', 'api', 'agentmark');
+      fs.ensureDirSync(apiDir);
+
+      // Create API route
+      fs.writeFileSync(
+        path.join(apiDir, 'route.ts'),
+        getNextJsApiRouteContent(adapterName, handlerClassName)
+      );
+
+      // Create next.config.js
+      const nextConfig = `/** @type {import('next').NextConfig} */
+const nextConfig = {
+  serverExternalPackages: [
+    '@agentmark/cli',
+    '@agentmark/ai-sdk-v4-adapter',
+    '@agentmark/prompt-core',
+    '@agentmark/sdk',
+    '@agentmark/shared-utils',
+  ],
+};
+
+module.exports = nextConfig;
+`;
+      fs.writeFileSync(path.join(targetPath, 'next.config.js'), nextConfig);
+
+      // Create README
+      fs.writeFileSync(path.join(targetPath, 'README.md'), getNextJsReadmeContent(folderName));
+
+      console.log('✅ Next.js API route created');
+      break;
+    }
+
+    case 'express':
+    default: {
+      // Default: local development only (existing behavior)
+      console.log('✅ Using default development server setup');
+      break;
+    }
+  }
 };
 
 export const createExampleApp = async (
-  modelProvider: string,
-  model: string,
   client: string,
   targetPath: string = ".",
-  apiKey: string = ""
+  apiKey: string = "",
+  deploymentPlatform: string = "express"
 ) => {
   try {
+    const modelProvider = 'openai';
+    const model = 'gpt-4o';
     console.log("Creating Agent Mark example app...");
 
     // Keep ./ prefix for display in messages
@@ -166,8 +226,8 @@ export const createExampleApp = async (
     fs.writeJsonSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
     // Setup package.json and install dependencies
-    setupPackageJson(targetPath);
-    installDependencies(modelProvider, targetPath);
+    setupPackageJson(targetPath, deploymentPlatform);
+    installDependencies(modelProvider, targetPath, deploymentPlatform);
 
     // Generate types file using the type generation library
     console.log("Generating types from prompts...");
@@ -183,39 +243,43 @@ export const createExampleApp = async (
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
     }
 
-    // Create .agentmark directory and dev-entry.ts
+    // For now, hardcode to ai-sdk-v4 adapter (will be configurable in future)
+    const adapterName = 'ai-sdk-v4';
+    const handlerClassName = 'VercelAdapterWebhookHandler';
+
+    // Create .agentmark directory and dev-entry.ts for ALL platforms
     console.log("Creating development server entry point...");
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
 
-    // For now, hardcode to ai-sdk-v4 adapter (will be configurable in future)
-    const adapterName = 'ai-sdk-v4';
-    const runnerClassName = 'VercelAdapterRunner';
+    let devEntryContent = '';
 
-    const devEntryContent = `// Auto-generated runner server entry point
+    if (deploymentPlatform === 'express') {
+      // Express: Start Express webhook server directly
+      devEntryContent = `// Auto-generated webhook server entry point for Express
 // To customize, create a dev-server.ts file in your project root
 
-import { createRunnerServer } from '@agentmark/cli/runner-server';
-import { ${runnerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import { createWebhookServer } from '@agentmark/cli/runner-server';
+import { ${handlerClassName} } from '@agentmark/${adapterName}-adapter/runner';
 import path from 'path';
 
 async function main() {
   const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
-  const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const webhookPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
 
-  const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
+  const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
   const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
 
-  const runner = new ${runnerClassName}(client as any);
+  const handler = new ${handlerClassName}(client as any);
   const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
   const templatesDirectory = path.join(process.cwd(), 'agentmark');
 
-  await createRunnerServer({
-    port: runnerPort,
-    runner,
+  await createWebhookServer({
+    port: webhookPort,
+    handler,
     fileServerUrl,
     templatesDirectory
   });
@@ -226,8 +290,69 @@ main().catch((err) => {
   process.exit(1);
 });
 `;
+    } else if (deploymentPlatform === 'nextjs') {
+      // Next.js: Start Express webhook server only
+      // User can start Next.js separately if needed
+      devEntryContent = `// Auto-generated webhook server entry point for Next.js
+// To customize, create a dev-server.ts file in your project root
+
+import { createWebhookServer } from '@agentmark/cli/runner-server';
+import { ${handlerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import path from 'path';
+
+async function main() {
+  const { client } = await import('../agentmark.client.js');
+
+  const args = process.argv.slice(2);
+  const webhookPortArg = args.find(arg => arg.startsWith('--webhook-port='));
+  const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
+
+  const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
+  const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
+
+  const handler = new ${handlerClassName}(client as any);
+  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+  const templatesDirectory = path.join(process.cwd(), 'agentmark');
+
+  await createWebhookServer({
+    port: webhookPort,
+    handler,
+    fileServerUrl,
+    templatesDirectory
+  });
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+`;
+    }
 
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
+
+    // Create platform-specific deployment files
+    console.log(`Setting up deployment files for ${deploymentPlatform}...`);
+    await createDeploymentFiles(deploymentPlatform, targetPath, adapterName, handlerClassName);
+
+    // Create .env file with webhook URL configuration
+    // Always use Express webhook server (port 9417) for local development
+    // regardless of deployment platform
+    const webhookUrl = 'http://localhost:9417';
+
+    const envPath = path.join(targetPath, '.env');
+    let envContent = '';
+
+    if (existsSync(envPath)) {
+      envContent = readFileSync(envPath, 'utf8');
+      if (!envContent.includes('AGENTMARK_WEBHOOK_URL')) {
+        envContent += `\n# AgentMark webhook server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n`;
+      }
+    } else {
+      envContent = `# AgentMark webhook server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n\n# Add your API keys here\n# OPENAI_API_KEY=your-key-here\n`;
+    }
+
+    writeFileSync(envPath, envContent, 'utf8');
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
@@ -247,15 +372,18 @@ main().catch((err) => {
     console.log('\n' + '═'.repeat(70));
     console.log('Next Steps');
     console.log('═'.repeat(70));
-    console.log('\n Initialize Server:');
+
+    // Simplified instructions - always just "npm run dev"
+    console.log('\n Get Started:');
     if (folderName !== "." && folderName !== "./") {
       console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
+
     console.log('─'.repeat(70));
     console.log('Resources');
     console.log('─'.repeat(70));
-    console.log('  Deploy to Production: https://docs.agentmark.co/platform/getting_started/quickstart');
+    console.log('  Documentation: https://docs.agentmark.co');
     console.log('═'.repeat(70) + '\n');
   } catch (error) {
     console.error("Error creating example app:", error);

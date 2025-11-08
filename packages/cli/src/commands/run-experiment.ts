@@ -144,7 +144,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     }
   } catch {}
 
-  const server = options.server || 'http://localhost:9417';
+  const server = options.server || process.env.AGENTMARK_WEBHOOK_URL || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error(
       'Invalid or missing server URL.\n' +

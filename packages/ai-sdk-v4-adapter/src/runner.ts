@@ -3,7 +3,7 @@ import type { Ast } from "@agentmark/templatedx";
 import type { AgentMark } from "@agentmark/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
-import type { RunnerDatasetResponse, RunnerPromptResponse } from "@agentmark/prompt-core";
+import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
 
 type Frontmatter = {
   text_config?: unknown;
@@ -13,10 +13,10 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
-export class VercelAdapterRunner {
+export class VercelAdapterWebhookHandler {
   constructor(private readonly client: AgentMark<any, VercelAIAdapter<any, any>>) {}
 
-  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<RunnerPromptResponse> {
+  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
 
     if (frontmatter.object_config) {
@@ -32,7 +32,7 @@ export class VercelAdapterRunner {
               if ((chunk as any).type === "error") {
                 const error = (chunk as any)?.error;
                 const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
-                console.error("[Runner] Error during streaming:", error);
+                console.error("[WebhookHandler] Error during streaming:", error);
                 controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
                 controller.close();
                 return;
@@ -46,10 +46,10 @@ export class VercelAdapterRunner {
             controller.close();
           }
         });
-        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as RunnerPromptResponse;
+        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as WebhookPromptResponse;
       }
       const { object, usage, finishReason } = await generateObject(input);
-      return { type: "object", result: object, usage, finishReason } as RunnerPromptResponse;
+      return { type: "object", result: object, usage, finishReason } as WebhookPromptResponse;
     }
 
     if (frontmatter.text_config) {
@@ -65,7 +65,7 @@ export class VercelAdapterRunner {
               if ((chunk as any).type === "error") {
                 const error = (chunk as any)?.error;
                 const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
-                console.error("[Runner] Error during streaming:", error);
+                console.error("[WebhookHandler] Error during streaming:", error);
                 controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
                 controller.close();
                 return;
@@ -86,12 +86,12 @@ export class VercelAdapterRunner {
             controller.close();
           }
         });
-        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as RunnerPromptResponse;
+        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as WebhookPromptResponse;
       }
       const { text, usage, finishReason, steps } = await generateText(input);
       const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
       const toolResults = steps?.flatMap((s: any) => s.toolResults) ?? [];
-      return { type: "text", result: text, usage, finishReason, toolCalls, toolResults } as RunnerPromptResponse;
+      return { type: "text", result: text, usage, finishReason, toolCalls, toolResults } as WebhookPromptResponse;
     }
 
     if (frontmatter.image_config) {
@@ -101,7 +101,7 @@ export class VercelAdapterRunner {
       return {
         type: "image",
         result: result.images.map(i => ({ mimeType: i.mimeType, base64: i.base64 }))
-      } as RunnerPromptResponse;
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.speech_config) {
@@ -111,7 +111,7 @@ export class VercelAdapterRunner {
       return {
         type: "speech",
         result: { mimeType: result.audio.mimeType, base64: result.audio.base64, format: result.audio.format }
-      } as RunnerPromptResponse;
+      } as WebhookPromptResponse;
     }
 
     throw new Error("Invalid prompt");
@@ -121,7 +121,7 @@ export class VercelAdapterRunner {
     promptAst: Ast,
     datasetRunName: string,
     datasetPath?: string
-  ): Promise<RunnerDatasetResponse> {
+  ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
 

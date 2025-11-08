@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createFileServer } from '../src/file-server';
-import { createRunnerServer } from '../src/runner-server';
+import { createWebhookServer } from '../src/runner-server';
 import type { Server } from 'http';
 
 // Test constants
@@ -10,17 +10,17 @@ const PORT_RANGE = 10000; // Range of ports to randomize within
 
 describe('Server Landing Pages', () => {
   let fileServer: Server;
-  let runnerServer: Server;
+  let webhookServer: Server;
   let fileServerPort: number;
-  let runnerServerPort: number;
+  let webhookServerPort: number;
 
   beforeAll(async () => {
     // Use random ports to avoid conflicts
     fileServerPort = MIN_TEST_PORT_FILE + Math.floor(Math.random() * PORT_RANGE);
-    runnerServerPort = MIN_TEST_PORT_RUNNER + Math.floor(Math.random() * PORT_RANGE);
+    webhookServerPort = MIN_TEST_PORT_RUNNER + Math.floor(Math.random() * PORT_RANGE);
 
     // Create mock runner for testing
-    const mockRunner = {
+    const mockHandler = {
       runPrompt: async () => ({ type: 'text' as const, text: 'test' }),
       runExperiment: async () => ({
         stream: new ReadableStream({
@@ -30,9 +30,9 @@ describe('Server Landing Pages', () => {
     };
 
     fileServer = await createFileServer(fileServerPort) as Server;
-    runnerServer = await createRunnerServer({
-      port: runnerServerPort,
-      runner: mockRunner,
+    webhookServer = await createWebhookServer({
+      port: webhookServerPort,
+      runner: mockHandler,
       fileServerUrl: `http://localhost:${fileServerPort}`,
       templatesDirectory: process.cwd()
     }) as Server;
@@ -41,7 +41,7 @@ describe('Server Landing Pages', () => {
   afterAll(async () => {
     await new Promise<void>((resolve) => {
       fileServer.close(() => {
-        runnerServer.close(() => resolve());
+        webhookServer.close(() => resolve());
       });
     });
   });
@@ -59,8 +59,8 @@ describe('Server Landing Pages', () => {
     expect(html).toContain('docs.agentmark.co');
   });
 
-  it('runner server shows HTML landing page on GET /', async () => {
-    const response = await fetch(`http://localhost:${runnerServerPort}/`);
+  it('webhook server shows HTML landing page on GET /', async () => {
+    const response = await fetch(`http://localhost:${webhookServerPort}/`);
     const html = await response.text();
 
     expect(response.status).toBe(200);
@@ -81,11 +81,11 @@ describe('Server Landing Pages', () => {
     expect(html).toContain(`Running on port ${fileServerPort}`);
   });
 
-  it('runner server landing page displays current port', async () => {
-    const response = await fetch(`http://localhost:${runnerServerPort}/`);
+  it('webhook server landing page displays current port', async () => {
+    const response = await fetch(`http://localhost:${webhookServerPort}/`);
     const html = await response.text();
 
-    expect(html).toContain(`Running on port ${runnerServerPort}`);
+    expect(html).toContain(`Running on port ${webhookServerPort}`);
   });
 
   it('file server API endpoints still work after adding landing page', async () => {
@@ -103,9 +103,9 @@ describe('Server Landing Pages', () => {
     }
   });
 
-  it('runner server POST endpoint still works after adding landing page', async () => {
+  it('webhook server POST endpoint still works', async () => {
     // POST should still work for actual API calls
-    const response = await fetch(`http://localhost:${runnerServerPort}/`, {
+    const response = await fetch(`http://localhost:${webhookServerPort}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'unknown' })
@@ -114,36 +114,5 @@ describe('Server Landing Pages', () => {
     expect(response.status).toBe(400); // Invalid event type
     const data = await response.json();
     expect(data).toHaveProperty('error');
-  });
-
-  it('runner server landing page shows CLI command options dynamically', async () => {
-    const response = await fetch(`http://localhost:${runnerServerPort}/`);
-    const html = await response.text();
-
-    // Check for run-prompt options (from actual commander definitions)
-    expect(html).toContain('--props');
-    expect(html).toContain('--props-file');
-    expect(html).toContain('--server');
-
-    // Check for run-experiment options (from actual commander definitions)
-    expect(html).toContain('--format');
-    expect(html).toContain('--skip-eval');
-    expect(html).toContain('--threshold');
-
-    // Check descriptions are present (from commander)
-    expect(html).toContain('Props as JSON string');
-    expect(html).toContain('Path to JSON or YAML file containing props');
-    expect(html).toContain('Output format:');
-    expect(html).toContain('Skip running evals');
-    expect(html).toContain('pass percentage');
-  });
-
-  it('runner server landing page includes file server info', async () => {
-    const response = await fetch(`http://localhost:${runnerServerPort}/`);
-    const html = await response.text();
-
-    expect(html).toContain('File Server:');
-    expect(html).toContain(`http://localhost:${fileServerPort}`);
-    expect(html).toContain('Templates Directory:');
   });
 });

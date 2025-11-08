@@ -31,18 +31,18 @@ export const client = new AgentMark({ prompt: {}, adapter });
 const DEV_ENTRY_TEMPLATE = `// Auto-generated runner server entry point
 // To customize, create a dev-server.ts file in your project root
 
-import { createRunnerServer } from '@agentmark/cli/runner-server';
+import { createWebhookServer } from '@agentmark/cli/runner-server';
 import { VercelAdapterRunner } from '@agentmark/ai-sdk-v4-adapter/runner';
 
 async function main() {
   const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
-  const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const runnerPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
 
   const runner = new VercelAdapterRunner(client as any);
-  await createRunnerServer({ port: runnerPort, runner });
+  await createWebhookServer({ port: runnerPort, runner });
 }
 
 main().catch((err) => {
@@ -158,7 +158,7 @@ describe('agentmark dev', () => {
     const runnerPort = await getFreePort();
 
     // Spawn dev command
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--webhook-port', String(runnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
@@ -218,7 +218,7 @@ describe('agentmark dev', () => {
     const filePort = await getFreePort();
     const runnerPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--webhook-port', String(runnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
@@ -258,7 +258,7 @@ describe('agentmark dev', () => {
     const customFilePort = await getFreePort();
     const customRunnerPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(customFilePort), '--runner-port', String(customRunnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(customFilePort), '--webhook-port', String(customRunnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
@@ -273,7 +273,7 @@ describe('agentmark dev', () => {
     expect(resp.ok).toBe(true);
   }, 15000);
 
-  it.skip('displays correct file server URL', async () => {
+  it('displays correct file server URL', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-urls-' + Date.now());
     tmpDirs.push(tempDir);
     fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
@@ -289,7 +289,7 @@ describe('agentmark dev', () => {
     const filePort = await getFreePort();
     const runnerPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--webhook-port', String(runnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'

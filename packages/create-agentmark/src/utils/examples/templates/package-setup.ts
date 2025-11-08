@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
 
-export const setupPackageJson = (targetPath: string = ".") => {
+export const setupPackageJson = (targetPath: string = ".", deploymentPlatform: string = "express") => {
   const packageJsonPath = `${targetPath}/package.json`;
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -18,10 +18,13 @@ export const setupPackageJson = (targetPath: string = ".") => {
   pkgJson.description =
     pkgJson.description || "A simple Node.js app using the Agentmark SDK";
 
+  // All platforms use "agentmark dev" which runs their respective dev-entry.ts
+  const devScript = "agentmark dev";
+
   pkgJson.scripts = {
     ...pkgJson.scripts,
     "demo": "npx tsx index.ts",
-    "dev": "agentmark dev",
+    "dev": devScript,
     "prompt": "agentmark run-prompt",
     "experiment": "agentmark run-experiment",
   };
@@ -30,7 +33,8 @@ export const setupPackageJson = (targetPath: string = ".") => {
 
 export const installDependencies = (
   modelProvider: string,
-  targetPath: string = "."
+  targetPath: string = ".",
+  deploymentPlatform: string = "express"
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
@@ -38,7 +42,14 @@ export const installDependencies = (
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
     // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
-    execSync("npm install --save-dev typescript ts-node @types/node @agentmark/cli", {
+    let devDeps = "typescript ts-node @types/node @agentmark/cli";
+
+    // Add Next.js dependencies for Next.js platform
+    if (deploymentPlatform === "nextjs") {
+      devDeps += " next@latest react@latest react-dom@latest @types/react @types/react-dom";
+    }
+
+    execSync(`npm install --save-dev ${devDeps}`, {
       stdio: "inherit",
       cwd: targetPath,
     });
@@ -59,7 +70,7 @@ export const installDependencies = (
     ];
 
     execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
-    
+
     console.log("Packages installed successfully!");
   } catch (error) {
     console.error("Error installing packages:", error);
