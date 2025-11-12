@@ -3,6 +3,7 @@ import { useTheme } from "@mui/material/styles";
 import { Iconify } from "@/components";
 import { Label } from "@/components";
 import { fCurrency, fNumber } from "@/utils/format-number";
+import { useTraceDrawerContext } from "../trace-drawer-provider";
 
 interface TraceLabelProps {
   label: string;
@@ -10,7 +11,6 @@ interface TraceLabelProps {
   tokens: string;
   latency: string;
   cost: string;
-  t?: (key: string) => string;
 }
 
 export const TraceLabel = ({
@@ -19,9 +19,9 @@ export const TraceLabel = ({
   tokens,
   latency,
   cost,
-  t = (key: string) => key,
 }: TraceLabelProps) => {
   const theme = useTheme();
+  const { t } = useTraceDrawerContext();
 
   return (
     <Stack spacing={0.3}>
@@ -50,7 +50,7 @@ export const TraceLabel = ({
         </Box>
       </Stack>
       <Stack direction={"row"} spacing={0.5} flexWrap="wrap">
-        <Tooltip title={t("dashboard.traces.latency")}>
+        <Tooltip title={t("latency")}>
           <Label
             sx={{ textTransform: "lowercase" }}
             color="primary"
@@ -60,12 +60,12 @@ export const TraceLabel = ({
           </Label>
         </Tooltip>
         {Boolean(Number(tokens)) && (
-          <Tooltip title={t("dashboard.traces.cost")}>
+          <Tooltip title={t("cost")}>
             <Label color="info">{fCurrency(cost, 5)}</Label>
           </Tooltip>
         )}
         {Boolean(parseInt(tokens)) && (
-          <Tooltip title={t("dashboard.traces.tokens")}>
+          <Tooltip title={t("tokens")}>
             <Label
               color="default"
               startIcon={<Iconify icon="game-icons:token" />}

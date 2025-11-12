@@ -1,7 +1,7 @@
 import { TableCell, TableRow, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { Iconify, Label } from "@/components";
-import { fCurrency } from "@/utils";
+import { fCurrency, fNumber } from "@/utils";
 import type { Trace } from "../types";
 
 interface TraceListItemProps {
@@ -46,7 +46,7 @@ const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
       <TableCell>{fCurrency(trace.cost, 5)}</TableCell>
       <TableCell>
         <Label color="default" startIcon={<Iconify icon="game-icons:token" />}>
-          {trace.tokens}
+          {fNumber(trace.tokens || 0)}
         </Label>
       </TableCell>
       <TableCell>

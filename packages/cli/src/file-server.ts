@@ -3,7 +3,14 @@ import fs from "fs";
 import path from "path";
 import { findPromptFiles } from "@agentmark/shared-utils";
 import cors from "cors";
-import { exportTraces, getRequests, getTraces, getTraceById } from "./server/routes/traces";
+import {
+  exportTraces,
+  getRequests,
+  getTraces,
+  getTraceById,
+  getTraceGraph,
+} from "./server/routes/traces";
+import { createScore, getScoresByResourceId } from "./server/routes/scores";
 
 function safePath(): string {
   try {
@@ -225,6 +232,36 @@ export async function createFileServer(port: number) {
     </div>
   </div>
 
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/traces/:traceId/graph
+    </div>
+    <div class="endpoint-desc">
+      Get graph data for a trace (nodes and edges for visualization)
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method post">POST</span>
+      /v1/score
+    </div>
+    <div class="endpoint-desc">
+      Create a new evaluation score for a span or trace
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-title">
+      <span class="endpoint-method">GET</span>
+      /v1/score?resourceId=xxx
+    </div>
+    <div class="endpoint-desc">
+      Get all evaluation scores for a specific span or trace resource
+    </div>
+  </div>
+
   <h2>Your Prompts</h2>
   <ul>
 ${promptsList}
@@ -414,6 +451,52 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting trace:", error);
       return res.status(500).json({ error: "Failed to get trace" });
+    }
+  });
+
+  app.get("/v1/traces/:traceId/graph", async (req: Request, res: Response) => {
+    try {
+      const { traceId } = req.params;
+      if (!traceId) {
+        return res.status(400).json({ error: "traceId parameter is required" });
+      }
+      const graphData = await getTraceGraph(traceId);
+      return res.json({ graphData });
+    } catch (error) {
+      console.error("Error getting trace graph:", error);
+      return res.status(500).json({ error: "Failed to get trace graph" });
+    }
+  });
+
+  app.post("/v1/score", async (req: Request, res: Response) => {
+    try {
+      const body = req.body;
+      if (!body.resourceId) {
+        return res.status(400).json({ error: "resourceId is required" });
+      }
+      const result = await createScore(body);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error creating score:", error);
+      return res
+        .status(500)
+        .json({ error: error.message || "Failed to create score" });
+    }
+  });
+
+  app.get("/v1/score", async (req: Request, res: Response) => {
+    try {
+      const resourceId = req.query.resourceId as string;
+      if (!resourceId) {
+        return res
+          .status(400)
+          .json({ error: "resourceId query parameter is required" });
+      }
+      const scores = await getScoresByResourceId(resourceId);
+      return res.json({ scores });
+    } catch (error) {
+      console.error("Error getting scores:", error);
+      return res.status(500).json({ error: "Failed to get scores" });
     }
   });
 

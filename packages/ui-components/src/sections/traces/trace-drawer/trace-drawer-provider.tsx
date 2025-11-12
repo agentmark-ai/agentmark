@@ -5,6 +5,7 @@ import {
   useMemo,
   useCallback,
   useState,
+  useEffect,
 } from "react";
 import { TraceData, SpanData, ScoreData } from "../types";
 import { useTraceDrawer } from "./hooks/use-trace-drawer";
@@ -50,7 +51,18 @@ export const TraceDrawerProvider = ({
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
   const selectedSpan = useMemo(() => {
-    if (!selectedSpanId) return null;
+    if (!selectedSpanId) {
+      if (traces.length > 0) {
+        return {
+          id: traces[0]?.id!,
+          name: traces[0]?.name!,
+          data: { ...(traces[0]?.data || {}) },
+          duration: 0,
+          timestamp: 0,
+        } satisfies SpanData;
+      }
+      return null;
+    }
 
     const trace = traces.find((t) => t.id === selectedSpanId);
     if (trace) {
@@ -155,6 +167,12 @@ export const TraceDrawerProvider = ({
 
   const { treeHeight, handleMouseDown, isDragging } = useTraceDrawer();
 
+  useEffect(() => {
+    return () => {
+      setSelectedSpanId(null);
+    };
+  }, [traces]);
+
   // Cost and token calculation function
   const findCostAndTokens = useCallback((item: any) => {
     const costAndTokenCache: any = {};
@@ -162,6 +180,13 @@ export const TraceDrawerProvider = ({
     const calculate = (node: any): { cost: number; tokens: number } => {
       if (costAndTokenCache[node.id]) {
         return costAndTokenCache[node.id];
+      }
+
+      if (node.data.tokens > 0) {
+        return {
+          cost: node.data.cost || 0,
+          tokens: node.data.tokens,
+        };
       }
       if (node.children.length > 0) {
         const result = node.children.reduce(

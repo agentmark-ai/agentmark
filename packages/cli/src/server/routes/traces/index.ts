@@ -162,7 +162,9 @@ traces_cte AS (
         cast(MAX(Timestamp) as Real) / 1000000 AS end,
         MAX(CASE
             WHEN StatusCode = '2.0' THEN '2'
+            WHEN StatusCode = '2' THEN '2'
             WHEN StatusCode = '1.0' THEN '1'
+            WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
         MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
@@ -220,7 +222,9 @@ export const getSpans = async (traceId: string) => {
       TraceId AS trace_id,
       CASE
             WHEN StatusCode = '2.0' THEN '2'
+            WHEN StatusCode = '2' THEN '2'
             WHEN StatusCode = '1.0' THEN '1'
+            WHEN StatusCode = '1' THEN '1'
             ELSE '0'
       END AS status_code,
       StatusMessage AS status_message,
@@ -249,9 +253,10 @@ export const getSpans = async (traceId: string) => {
     let spanAttributes: any = {};
     try {
       if (row.attributes) {
-        spanAttributes = typeof row.attributes === 'string' 
-          ? JSON.parse(row.attributes) 
-          : row.attributes;
+        spanAttributes =
+          typeof row.attributes === "string"
+            ? JSON.parse(row.attributes)
+            : row.attributes;
       }
     } catch {
       // If parsing fails, keep empty object
@@ -295,97 +300,77 @@ export const getTraceById = async (traceId: string) => {
 
   const traceSql = `
     WITH
-    cte_traces AS (
-      SELECT
-        TraceId AS id,
-        MIN(Timestamp) AS start,
-        MAX(Timestamp) AS end,
-        MAX(
-          CASE
-            WHEN StatusCode = '2.0' THEN '2'
-            WHEN StatusCode = '1.0' THEN '1'
-            ELSE '0'
-          END
-        ) AS status,
-        COUNT(TraceId) > 1 AS has_children,
-        json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"') AS dataset_run_id,
-        json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"') AS dataset_path
-      FROM traces
-      GROUP BY id
+    trace_costs_and_tokens AS (
+        SELECT
+            TraceId AS id,
+            SUM(
+                CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
+                CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
+            ) AS tokens,
+            SUM(
+                CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
+            ) AS cost
+        FROM traces
+        WHERE SpanName IN (
+            'ai.generateText.doGenerate',
+            'ai.streamText.doStream',
+            'ai.generateObject.doGenerate',
+            'ai.streamObject.doStream'
+        )
+        GROUP BY TraceId
     ),
 
-    cte_trace_costs_and_tokens AS (
-      SELECT
-        TraceId AS id,
-        SUM(
-          CAST(COALESCE(json_extract(SpanAttributes, '$."ai.usage.promptTokens"'), 0) AS INTEGER) +
-          CAST(COALESCE(json_extract(SpanAttributes, '$."ai.usage.completionTokens"'), 0) AS INTEGER)
-        ) AS tokens,
-        SUM(
-          CAST(COALESCE(json_extract(SpanAttributes, '$."gen_ai.usage.cost"'), 0) AS REAL)
-        ) AS cost
-      FROM traces
-      WHERE SpanName IN (
-        'ai.generateText.doGenerate',
-        'ai.streamText.doStream',
-        'ai.generateObject.doGenerate',
-        'ai.streamObject.doStream'
-      )
-      GROUP BY id
+    traces_cte AS (
+        SELECT
+            TraceId AS id,
+            cast(MIN(Timestamp) as Real) / 1000000 AS start,
+            cast(MAX(Timestamp) as Real) / 1000000 AS end,
+            MAX(CASE
+                WHEN StatusCode = '2.0' THEN '2'
+                WHEN StatusCode = '2' THEN '2'
+                WHEN StatusCode = '1.0' THEN '1'
+                WHEN StatusCode = '1' THEN '1'
+                ELSE '0'
+            END) AS status,
+            MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
+            MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+        FROM traces
+        GROUP BY TraceId
     ),
 
-    cte_trace_metadata AS (
-      SELECT
-        TraceId AS id,
-        COALESCE(
-          json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"'),
-          SpanName
-        ) AS name,
-        MAX(Duration) AS latency,
-        MAX(StatusMessage) AS status_message
-      FROM traces
-      WHERE ParentSpanId NOT IN (SELECT SpanId FROM traces)
-      GROUP BY id
-    ),
-
-    cte_spans AS (
-      SELECT
-        SpanId AS id,
-        TraceId AS trace_id,
-        SpanName AS name,
-        StatusCode AS status,
-        Duration AS duration,
-        Timestamp AS timestamp,
-        ParentSpanId AS parent_id,
-        json_extract(SpanAttributes, '$."ai.telemetry.metadata.sessionId"') AS session_id,
-        COALESCE(
-          json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"'),
-          SpanName
-        ) AS trace_name,
-        CAST(COALESCE(json_extract(SpanAttributes, '$."ai.usage.promptTokens"'), 0) AS INTEGER) +
-          CAST(COALESCE(json_extract(SpanAttributes, '$."ai.usage.completionTokens"'), 0) AS INTEGER) AS tokens,
-        CAST(COALESCE(json_extract(SpanAttributes, '$."gen_ai.usage.cost"'), 0) AS REAL) AS cost,
-        StatusMessage AS status_message
-      FROM traces
+    trace_metadata AS (
+        SELECT
+            TraceId AS id,
+            COALESCE(
+                MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
+                MAX(SpanName)
+            ) AS name,
+            MAX(StatusMessage) AS status_message,
+            MAX(Duration) AS latency
+        FROM traces
+        WHERE ParentSpanId NOT IN (
+            SELECT SpanId FROM traces
+        )
+        GROUP BY TraceId
     )
 
     SELECT
-      t.id AS trace_id,
-      t.start,
-      t.end,
-      t.status,
-      t.has_children,
-      t.dataset_run_id,
-      t.dataset_path,
-      tc.tokens AS trace_tokens,
-      tc.cost AS trace_cost,
-      tm.name AS trace_name,
-      tm.latency AS trace_latency,
-      tm.status_message AS trace_status_message
-    FROM cte_traces t
-    LEFT JOIN cte_trace_costs_and_tokens tc ON t.id = tc.id
-    LEFT JOIN cte_trace_metadata tm ON t.id = tm.id
-    WHERE t.id = :traceId;
+        t.id AS trace_id,
+        t.start,
+        t.end,
+        t.status,
+        t.dataset_run_id,
+        t.dataset_path,
+        c.tokens AS trace_tokens,
+        c.cost AS trace_cost,
+        m.name AS trace_name,
+        m.latency AS trace_latency,
+        m.status_message AS trace_status_message
+    FROM traces_cte t
+    LEFT JOIN trace_costs_and_tokens c ON t.id = c.id
+    LEFT JOIN trace_metadata m ON t.id = m.id
+    WHERE t.id = :traceId
+    ORDER BY t.start DESC;
   `;
 
   const traceRow = db.prepare(traceSql).get({ traceId }) as any;
@@ -411,4 +396,91 @@ export const getTraceById = async (traceId: string) => {
       status_message: traceRow.trace_status_message,
     },
   };
+};
+
+export const getTraceGraph = async (traceId: string) => {
+  const sql = `
+    SELECT
+      SpanId AS span_id,
+      SpanName AS span_name,
+      SpanAttributes AS attributes
+    FROM traces
+    WHERE TraceId = ?
+      AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.graph.node.id"') != ''
+      AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.graph.node.id"') IS NOT NULL
+    ORDER BY CAST(Timestamp AS REAL) ASC
+  `;
+
+  const rows = db.prepare(sql).all(traceId) as any[];
+
+  const graphData: Array<{
+    parentNodeId?: string;
+    nodeId: string;
+    spanId: string;
+    nodeType: string;
+    displayName: string;
+    spanName: string;
+  }> = [];
+
+  for (const row of rows) {
+    // Parse SpanAttributes JSON
+    let spanAttributes: any = {};
+    try {
+      if (row.attributes) {
+        spanAttributes =
+          typeof row.attributes === "string"
+            ? JSON.parse(row.attributes)
+            : row.attributes;
+      }
+    } catch {
+      // If parsing fails, skip this row
+      continue;
+    }
+
+    const nodeId = spanAttributes["ai.telemetry.metadata.graph.node.id"] || "";
+    if (!nodeId) continue;
+
+    // Handle parent_id - can be single value or array
+    let parentNodeId: string | Array<string> | undefined;
+    const parentIds = JSON.parse(
+      spanAttributes["ai.telemetry.metadata.graph.node.parent_ids"] || "[]"
+    );
+    const parentId =
+      spanAttributes["ai.telemetry.metadata.graph.node.parent_id"];
+
+    if (Array.isArray(parentIds) && parentIds.length > 0) {
+      parentNodeId = parentIds;
+    } else if (parentId && parentId !== "") {
+      parentNodeId = parentId;
+    }
+
+    const displayName =
+      spanAttributes["ai.telemetry.metadata.graph.node.display_name"] || "";
+    const nodeType =
+      spanAttributes["ai.telemetry.metadata.graph.node.type"] || "";
+
+    if (Array.isArray(parentNodeId)) {
+      parentNodeId.forEach((id) => {
+        graphData.push({
+          parentNodeId: id,
+          nodeId,
+          spanId: row.span_id,
+          nodeType,
+          displayName,
+          spanName: row.span_name,
+        });
+      });
+    } else {
+      graphData.push({
+        parentNodeId,
+        nodeId,
+        spanId: row.span_id,
+        nodeType,
+        displayName,
+        spanName: row.span_name,
+      });
+    }
+  }
+
+  return graphData;
 };

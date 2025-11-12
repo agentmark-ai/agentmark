@@ -45,7 +45,6 @@ export const TraceTree = () => {
     traces,
     findCostAndTokens,
     traceId,
-    onMouseDown,
     treeHeight,
   } = useTraceDrawerContext();
 
@@ -55,25 +54,27 @@ export const TraceTree = () => {
 
   return (
     <Box sx={{ height: treeHeight, overflowY: "auto", p: 2 }}>
-      <SimpleTreeView
-        expansionTrigger="iconContainer"
-        selectedItems={selectedSpan?.id || null}
-        onItemSelectionToggle={(_, nodeId, isSelected) => {
-          if (isSelected) {
-            setSelectedSpanId(nodeId);
-          }
-        }}
-        {...(traceId
-          ? {
-              defaultExpandedItems: [
-                traces[0]?.id!,
-                ...(traces[0]?.spans.map((span) => span.id) || []),
-              ],
+      {selectedSpan?.id && (
+        <SimpleTreeView
+          expansionTrigger="iconContainer"
+          selectedItems={selectedSpan?.id || null}
+          onItemSelectionToggle={(_, nodeId, isSelected) => {
+            if (isSelected) {
+              setSelectedSpanId(nodeId);
             }
-          : {})}
-      >
-        {tree}
-      </SimpleTreeView>
+          }}
+          {...(traceId
+            ? {
+                defaultExpandedItems: [
+                  traces[0]?.id!,
+                  ...(traces[0]?.spans.map((span) => span.id) || []),
+                ],
+              }
+            : {})}
+        >
+          {tree}
+        </SimpleTreeView>
+      )}
     </Box>
   );
 };

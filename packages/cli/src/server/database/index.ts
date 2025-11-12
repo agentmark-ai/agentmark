@@ -31,4 +31,18 @@ db.exec(`
     )
 `)
 
+db.exec(`
+    CREATE TABLE IF NOT EXISTS scores (
+        id TEXT PRIMARY KEY,
+        resource_id TEXT NOT NULL,
+        score REAL NOT NULL,
+        label TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT,
+        source TEXT DEFAULT 'eval',
+        created_at TEXT DEFAULT (datetime('now'))
+    )
+`)
+
 export default db;

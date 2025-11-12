@@ -26,12 +26,15 @@ import {
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getTraceById } from "../../lib/api/traces";
+import { getTraceById, getTraceGraph, GraphData } from "../../lib/api/traces";
+import { getScoresByResourceId } from "../../lib/api/scores";
 
 export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
   const [loading, setLoading] = useState(false);
   const [trace, setTrace] = useState<TraceData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [graphData, setGraphData] = useState<GraphData[]>([]);
+  const [graphLoading, setGraphLoading] = useState(false);
 
   const searchParams = useSearchParams();
   const traceId = searchParams.get("traceId");
@@ -42,6 +45,7 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       setTrace(null);
       setLoading(false);
       setError(null);
+      setGraphData([]);
       return;
     }
 
@@ -58,6 +62,28 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       setLoading(false);
     };
     fetchTrace();
+  }, [traceId]);
+
+  useEffect(() => {
+    if (!traceId) {
+      setGraphData([]);
+      setGraphLoading(false);
+      return;
+    }
+
+    const fetchGraphData = async () => {
+      setGraphLoading(true);
+      try {
+        const data = await getTraceGraph(traceId);
+        setGraphData(data);
+      } catch (error) {
+        console.error("Error fetching graph data:", error);
+        setGraphData([]);
+      } finally {
+        setGraphLoading(false);
+      }
+    };
+    fetchGraphData();
   }, [traceId]);
 
   return (
@@ -100,8 +126,7 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                 <TraceDrawerSidebar>
                   <TraceTree />
                   <TraceDrawerSidebarSectionResizer />
-                  <TraceGraphCanvas graphData={[]} isLoading={false} />{" "}
-                  {/* Graph data API to be implemented later */}
+                  <TraceGraphCanvas graphData={graphData} isLoading={graphLoading} />
                 </TraceDrawerSidebar>
                 <TraceDrawerContent>
                   <SpanInfoProvider>
@@ -112,20 +137,8 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                         <InputOutputTab />
                         <EvaluationProvider
                           canAddAnnotation={false}
-                          fetchEvaluations={(spanId) => {
-                            return new Promise((resolve) => {
-                              setTimeout(() => {
-                                resolve([
-                                  {
-                                    id: "1",
-                                    name: "Evaluation 1",
-                                    score: 0.9,
-                                    label: "Positive",
-                                    reason: "Reason 1",
-                                  },
-                                ]);
-                              }, 1000);
-                            });
+                          fetchEvaluations={async (spanId) => {
+                            return await getScoresByResourceId(spanId);
                           }}
                         >
                           <EvaluationTab>

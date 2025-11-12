@@ -8,6 +8,7 @@ interface UseSpanInfoProps {
 
 export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
   const [activeTab, setActiveTab] = useState<string>("attributes");
+  const [tabs, setTabs] = useState<{ value: string; label: string }[]>([]);
 
   const spanAttributes = useMemo(() => {
     try {
@@ -30,11 +31,26 @@ export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
 
   useEffect(() => {
     if (span?.id) {
+      const newTabs = [];
+
       if (isLLMCall) {
+        newTabs.push({
+          value: "inputOutput",
+          label: "Input/Output",
+        });
         setActiveTab("inputOutput");
       } else {
         setActiveTab("attributes");
       }
+      newTabs.push({
+        value: "evaluation",
+        label: `Evaluations`,
+      });
+      newTabs.push({
+        value: "attributes",
+        label: "Attributes",
+      });
+      setTabs(newTabs);
     }
   }, [span?.id, isLLMCall]);
 
@@ -52,22 +68,6 @@ export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
       }
     }
   }, [activeTab, isLLMCall]);
-
-  const tabs = [];
-  if (isLLMCall) {
-    tabs.push({
-      value: "inputOutput",
-      label: "Input/Output",
-    });
-  }
-  tabs.push({
-    value: "evaluation",
-    label: `Evaluations`,
-  });
-  tabs.push({
-    value: "attributes",
-    label: "Attributes",
-  });
 
   return {
     activeTab,
