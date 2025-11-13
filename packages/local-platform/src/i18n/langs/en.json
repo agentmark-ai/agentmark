@@ -109,5 +109,20 @@
     "noSessions": "No Sessions",
     "loading": "Loading sessions...",
     "sessionDetails": "Session Details"
+  },
+  "users": {
+    "title": "Users",
+    "columnHeader": {
+      "userId": "User ID",
+      "requests": "Requests",
+      "cost": "Cost",
+      "avgTokens": "Avg Tokens",
+      "completionTokens": "Completion Tokens",
+      "promptTokens": "Prompt Tokens",
+      "avgRequestsPerDay": "Avg Requests Per Day"
+    },
+    "noUsers": "No Users",
+    "loading": "Loading users...",
+    "noResults": "No Results"
   }
 }

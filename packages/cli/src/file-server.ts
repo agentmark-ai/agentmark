@@ -11,6 +11,7 @@ import {
   getTraceGraph,
   getSessions,
   getTracesBySessionId,
+  getUsers,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
 
@@ -523,6 +524,38 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting traces for session:", error);
       return res.status(500).json({ error: "Failed to get traces for session" });
+    }
+  });
+
+  app.get("/v1/users", async (req: Request, res: Response) => {
+    try {
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 0;
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string, 10) : 10;
+      const sortBy = (req.query.sortBy as string) || "count";
+      const sortOrder = (req.query.sortOrder as "asc" | "desc") || "asc";
+
+      // Parse filter from query string if provided
+      let filter: { field: string; operator: string; value: any }[] | undefined;
+      if (req.query.filter) {
+        try {
+          filter = JSON.parse(req.query.filter as string);
+        } catch {
+          // Invalid filter JSON, ignore
+        }
+      }
+
+      const result = await getUsers({
+        page,
+        pageSize,
+        sortBy,
+        sortOrder,
+        filter,
+      });
+
+      return res.json({ users: result.users, total: result.total });
+    } catch (error) {
+      console.error("Error getting users:", error);
+      return res.status(500).json({ error: "Failed to get users" });
     }
   });
 
