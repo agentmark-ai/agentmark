@@ -9,12 +9,15 @@ import {
   ListItemText,
   ListItemButton,
   drawerClasses,
+  Stack,
+  Typography,
 } from "@mui/material";
 import { Iconify } from "@/components";
 import { Link } from "@/components";
 import { usePathname } from "next/navigation";
 import styled from "@emotion/styled";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 const paths = {
   home: "/",
@@ -77,7 +80,12 @@ export const Sidebar = () => {
   return (
     <Drawer variant="permanent">
       <Toolbar>
-        <Link href={paths.home}>Agentmark</Link>
+        <Link href={paths.home}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Image src="/logo.svg" alt="Agentmark" width={24} height={24} />
+            <Typography variant="h6">Agentmark</Typography>
+          </Stack>
+        </Link>
       </Toolbar>
       <List dense>
         {Object.values(navItems).map((item) => (
