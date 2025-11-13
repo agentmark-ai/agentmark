@@ -1,5 +1,17 @@
 # @agentmark/vercel-ai-v4-adapter
 
+## 1.0.0
+
+### Minor Changes
+
+- 7492a54: MCP registry, fix error handling.
+
+### Patch Changes
+
+- 866c455: Chore: fix MCP init, error handling, rename config -> client
+- Updated dependencies [7492a54]
+  - @agentmark/prompt-core@0.1.0
+
 ## 0.0.2
 
 ### Patch Changes

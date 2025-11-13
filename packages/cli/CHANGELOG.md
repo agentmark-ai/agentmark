@@ -1,5 +1,23 @@
 # @agentmark/cli
 
+## 2.1.1
+
+### Patch Changes
+
+- 5e02d03: Chore: Easier understanding for running prompts/datasets. Minor cleanup
+
+## 2.1.0
+
+### Minor Changes
+
+- 7492a54: MCP registry, fix error handling.
+
+### Patch Changes
+
+- 866c455: Chore: fix MCP init, error handling, rename config -> client
+- Updated dependencies [7492a54]
+  - @agentmark/prompt-core@0.1.0
+
 ## 2.0.1
 
 ### Patch Changes

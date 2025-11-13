@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/cli",
-  "version": "2.0.1",
+  "version": "2.1.1",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {
@@ -41,6 +41,7 @@
     "express": "^4.20.0",
     "fs-extra": "^11.2.0",
     "prompts": "^2.4.2",
+    "tsx": "^4.19.2",
     "yaml": "^2.7.0"
   },
   "devDependencies": {

@@ -159,11 +159,34 @@ export default async function runExperiment(filepath: string, options: { skipEva
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const res = await fetch(server, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
-  });
+  let res;
+  try {
+    res = await fetch(server, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
+    });
+  } catch (fetchError: any) {
+    // Network-level errors (server not running, connection refused, etc.)
+    const isConnectionError =
+      fetchError.message?.includes('ECONNREFUSED') ||
+      fetchError.message?.includes('fetch failed') ||
+      fetchError.cause?.code === 'ECONNREFUSED';
+
+    if (isConnectionError) {
+      throw new Error(
+        `❌ Could not connect to AgentMark server at ${server}\n\n` +
+        `The server is not running or not reachable.\n\n` +
+        `To start the server, run:\n` +
+        `  agentmark dev\n\n` +
+        `Or specify a different server URL with:\n` +
+        `  agentmark run-experiment <filepath> --server <url>`
+      );
+    }
+    // Re-throw other network errors with context
+    throw new Error(`Network error connecting to ${server}: ${fetchError.message}`);
+  }
+
   if (!res.ok) {
     let raw = '';
     try { raw = await res.text(); } catch {}

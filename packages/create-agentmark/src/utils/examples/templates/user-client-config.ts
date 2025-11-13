@@ -8,12 +8,11 @@ export const getClientConfigContent = (options: { provider: string; languageMode
     .registerModels(["tts-1-hd"], (name: string) => ${provider}.speech(name))`
     : '';
 
-  return `// agentmark.config.ts
+  return `// agentmark.client.ts
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
-import { EvalRegistry } from "@agentmark/prompt-core";
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry } from "@agentmark/ai-sdk-v4-adapter";
+import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, EvalRegistry } from "@agentmark/ai-sdk-v4-adapter";
 import { AgentMarkSDK } from "@agentmark/sdk";
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}

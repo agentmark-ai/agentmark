@@ -19,9 +19,10 @@ const setupMCPServer = (client: string, targetPath: string) => {
     return;
   }
 
-  const folderName = targetPath.replace("./", "");
+  // Keep ./ prefix for display in messages
+  const folderName = targetPath;
 
-  // Handle VS Code separately since mint-mcp doesn't support it
+  // Handle VS Code
   if (client === "vscode") {
     try {
       console.log(`Setting up MCP server for VS Code in ${folderName}...`);
@@ -31,8 +32,7 @@ const setupMCPServer = (client: string, targetPath: string) => {
       const mcpConfig = {
         servers: {
           "agentmark-docs": {
-            command: "npx",
-            args: ["-y", "@mintlify/mcp", "docs.agentmark.co"]
+            url: "https://docs.agentmark.co/mcp"
           }
         }
       };
@@ -41,12 +41,12 @@ const setupMCPServer = (client: string, targetPath: string) => {
       console.log(`✅ MCP server configured for VS Code in ${folderName}/.vscode/mcp.json`);
     } catch (error) {
       console.warn(`Warning: Could not set up MCP server for VS Code:`, error);
-      console.log("You can manually create .vscode/mcp.json with the AgentMark docs MCP server configuration.");
+      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
     }
     return;
   }
 
-  // Handle Zed separately since mint-mcp doesn't support it
+  // Handle Zed
   if (client === "zed") {
     try {
       console.log(`Setting up MCP server for Zed in ${folderName}...`);
@@ -56,10 +56,7 @@ const setupMCPServer = (client: string, targetPath: string) => {
       const zedConfig = {
         context_servers: {
           "agentmark-docs": {
-            source: "custom",
-            command: "npx",
-            args: ["-y", "@mintlify/mcp", "docs.agentmark.co"],
-            env: {}
+            url: "https://docs.agentmark.co/mcp"
           }
         }
       };
@@ -68,25 +65,58 @@ const setupMCPServer = (client: string, targetPath: string) => {
       console.log(`✅ MCP server configured for Zed in ${folderName}/.zed/settings.json`);
     } catch (error) {
       console.warn(`Warning: Could not set up MCP server for Zed:`, error);
-      console.log("You can manually create .zed/settings.json with the AgentMark docs MCP server configuration.");
+      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
     }
     return;
   }
 
-  // Handle other clients via mint-mcp
-  try {
-    console.log(`Setting up MCP server for ${client} in ${folderName}...`);
-    execSync(`npx mint-mcp add docs.agentmark.co --client ${client}`, {
-      stdio: "inherit",
-      cwd: targetPath,
-    });
-    console.log(`✅ MCP server configured for ${client} in ${folderName}`);
-  } catch (error) {
-    console.warn(`Warning: Could not set up MCP server for ${client}:`, error);
-    console.log("You can manually set it up later by running this command in your project folder:");
-    console.log(`cd ${folderName}`);
-    console.log(`npx mint-mcp add docs.agentmark.co --client ${client}`);
+  // Handle Cursor
+  if (client === "cursor") {
+    try {
+      console.log(`Setting up MCP server for Cursor in ${folderName}...`);
+      const cursorDir = path.join(targetPath, ".cursor");
+      fs.ensureDirSync(cursorDir);
+
+      const cursorConfig = {
+        mcpServers: {
+          "agentmark-docs": {
+            url: "https://docs.agentmark.co/mcp"
+          }
+        }
+      };
+
+      fs.writeJsonSync(path.join(cursorDir, "mcp.json"), cursorConfig, { spaces: 2 });
+      console.log(`✅ MCP server configured for Cursor in ${folderName}/.cursor/mcp.json`);
+    } catch (error) {
+      console.warn(`Warning: Could not set up MCP server for Cursor:`, error);
+      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
+    }
+    return;
   }
+
+  // Handle Claude Code
+  if (client === "claude-code") {
+    try {
+      console.log(`Setting up MCP server for Claude Code in ${folderName}...`);
+
+      const mcpConfig = {
+        mcpServers: {
+          "agentmark-docs": {
+            type: "http",
+            url: "https://docs.agentmark.co/mcp"
+          }
+        }
+      };
+
+      fs.writeJsonSync(path.join(targetPath, ".mcp.json"), mcpConfig, { spaces: 2 });
+      console.log(`✅ MCP server configured for Claude Code in ${folderName}/.mcp.json`);
+    } catch (error) {
+      console.warn(`Warning: Could not set up MCP server for Claude Code:`, error);
+      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
+    }
+    return;
+  }
+
 };
 
 export const createExampleApp = async (
@@ -99,6 +129,9 @@ export const createExampleApp = async (
   try {
     console.log("Creating Agent Mark example app...");
 
+    // Keep ./ prefix for display in messages
+    const folderName = targetPath;
+
     // Create directory structure
     fs.ensureDirSync(`${targetPath}/agentmark`);
 
@@ -106,12 +139,13 @@ export const createExampleApp = async (
 
     // Create example prompts
     createExamplePrompts(model, targetPath);
+    console.log(`✅ Example prompts and datasets created in ${folderName}/agentmark/`);
 
     // Create user client config at project root
     // Prefer TS for dev ergonomics
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
-      `${targetPath}/agentmark.config.ts`,
+      `${targetPath}/agentmark.client.ts`,
       getClientConfigContent({ provider: modelProvider, languageModels: langModels })
     );
 
@@ -166,7 +200,7 @@ import { ${runnerClassName} } from '@agentmark/${adapterName}-adapter/runner';
 import path from 'path';
 
 async function main() {
-  const { client } = await import('../agentmark.config.js');
+  const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
@@ -210,19 +244,14 @@ main().catch((err) => {
     `
     );
 
-    const folderName = targetPath.replace("./", "");
-
     console.log('\n' + '═'.repeat(70));
     console.log('Next Steps');
     console.log('═'.repeat(70));
     console.log('\n Initialize Server:');
-    if (folderName !== ".") {
+    if (folderName !== "." && folderName !== "./") {
       console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
-    console.log('  Run app demo:');
-    console.log('  $ npm run demo');
-    console.log('');
     console.log('─'.repeat(70));
     console.log('Resources');
     console.log('─'.repeat(70));

@@ -1,5 +1,22 @@
 # create-agentmark
 
+## 0.1.1
+
+### Patch Changes
+
+- 5e02d03: Chore: Easier understanding for running prompts/datasets. Minor cleanup
+
+## 0.1.0
+
+### Minor Changes
+
+- 7492a54: MCP registry, fix error handling.
+
+### Patch Changes
+
+- 7492a54: Fix: customer support agent name
+- 866c455: Chore: fix MCP init, error handling, rename config -> client
+
 ## 0.0.4
 
 ### Patch Changes

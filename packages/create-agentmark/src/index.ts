@@ -51,10 +51,9 @@ const main = async () => {
     type: "select",
     message: "Make your IDE an AgentMark expert",
     choices: [
-      { title: "Claude", value: "claude" },
+      { title: "Claude Code", value: "claude-code" },
       { title: "Cursor", value: "cursor" },
       { title: "VS Code", value: "vscode" },
-      { title: "Windsurf", value: "windsurf" },
       { title: "Zed", value: "zed" },
       { title: "Skip", value: "skip" },
     ],

@@ -1,5 +1,19 @@
 # agentmark-demo
 
+## 0.1.0
+
+### Minor Changes
+
+- 7492a54: MCP registry, fix error handling.
+
+### Patch Changes
+
+- Updated dependencies [866c455]
+- Updated dependencies [7492a54]
+  - @agentmark/ai-sdk-v4-adapter@1.0.0
+  - @agentmark/mastra-v0-adapter@1.0.0
+  - @agentmark/prompt-core@0.1.0
+
 ## 0.0.14
 
 ### Patch Changes
