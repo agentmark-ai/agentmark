@@ -9,6 +9,8 @@ import {
   getTraces,
   getTraceById,
   getTraceGraph,
+  getSessions,
+  getTracesBySessionId,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
 
@@ -497,6 +499,30 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting scores:", error);
       return res.status(500).json({ error: "Failed to get scores" });
+    }
+  });
+
+  app.get("/v1/sessions", async (_req: Request, res: Response) => {
+    try {
+      const sessions = await getSessions();
+      return res.json({ sessions });
+    } catch (error) {
+      console.error("Error getting sessions:", error);
+      return res.status(500).json({ error: "Failed to get sessions" });
+    }
+  });
+
+  app.get("/v1/sessions/:sessionId/traces", async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId parameter is required" });
+      }
+      const traces = await getTracesBySessionId(sessionId);
+      return res.json({ traces });
+    } catch (error) {
+      console.error("Error getting traces for session:", error);
+      return res.status(500).json({ error: "Failed to get traces for session" });
     }
   });
 

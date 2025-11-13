@@ -484,3 +484,65 @@ export const getTraceGraph = async (traceId: string) => {
 
   return graphData;
 };
+
+export const getSessions = async () => {
+  const sql = `
+    WITH session_spans AS (
+      SELECT
+        TRIM(json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"')) AS id,
+        CAST(Timestamp AS REAL) / 1000000 AS timestamp,
+        TenantId AS tenant_id,
+        AppId AS app_id,
+        json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionName"') AS session_name
+      FROM traces
+      WHERE json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') IS NOT NULL
+        AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') != ''
+        AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') != 'null'
+    )
+    SELECT
+      id,
+      MIN(timestamp) AS start,
+      MAX(timestamp) AS end,
+      MIN(tenant_id) AS tenant_id,
+      MIN(app_id) AS app_id,
+      MIN(CASE 
+        WHEN session_name IS NOT NULL AND session_name != ''
+        THEN session_name
+        ELSE NULL
+      END) AS name
+    FROM session_spans
+    WHERE id IS NOT NULL AND id != ''
+    GROUP BY id
+    ORDER BY start DESC
+  `;
+
+  const rows = db.prepare(sql).all() as any[];
+  return rows;
+};
+
+export const getTracesBySessionId = async (sessionId: string) => {
+  // First, get all unique trace IDs for this session
+  const traceIdsSql = `
+    SELECT DISTINCT TraceId
+    FROM traces
+    WHERE json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') = ?
+  `;
+
+  const traceIdRows = db.prepare(traceIdsSql).all(sessionId) as Array<{ TraceId: string }>;
+  const traceIds = traceIdRows.map((row) => row.TraceId);
+
+  if (traceIds.length === 0) {
+    return [];
+  }
+
+  // Get all traces for these trace IDs
+  const traces: any[] = [];
+  for (const traceId of traceIds) {
+    const trace = await getTraceById(traceId);
+    if (trace) {
+      traces.push(trace);
+    }
+  }
+
+  return traces;
+};

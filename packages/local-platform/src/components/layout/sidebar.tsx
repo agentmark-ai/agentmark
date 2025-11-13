@@ -20,6 +20,7 @@ const paths = {
   home: "/",
   requests: "/requests",
   traces: "/traces",
+  sessions: "/sessions",
 };
 
 const iconfiy = (name: string) => <Iconify icon={name} />;
@@ -27,6 +28,7 @@ const iconfiy = (name: string) => <Iconify icon={name} />;
 const navIcons = {
   requests: iconfiy("gravity-ui:list-check"),
   traces: iconfiy("oui:apm-trace"),
+  sessions: iconfiy("mdi:account-group"),
 };
 
 const drawerWidth = 240;
@@ -57,6 +59,11 @@ export const Sidebar = () => {
       label: t("traces.title"),
       icon: navIcons.traces,
       href: paths.traces,
+    },
+    sessions: {
+      label: t("sessions.title"),
+      icon: navIcons.sessions,
+      href: paths.sessions,
     },
   };
 

@@ -97,6 +97,17 @@
     "noDataAvailable": "No data available",
     "name": "Name",
     "timestamp": "Timestamp",
-    "loading": "Loading traces..."
+    "loading": "Loading traces...",
+    "sessionDetails": "Session Details"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "sessionId": "Session ID",
+    "name": "Name",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "noSessions": "No Sessions",
+    "loading": "Loading sessions...",
+    "sessionDetails": "Session Details"
   }
 }
