@@ -52,6 +52,7 @@ export const getScoresByResourceId = async (
     const data = await response.json();
 
     // Map the API response to ScoreData format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (data.scores || []).map((score: any) => ({
       id: score.id,
       name: score.name,

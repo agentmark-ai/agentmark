@@ -16,7 +16,7 @@ export type GetUsersOptions = {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
-  filter?: { field: string; operator: string; value: any }[];
+  filter?: { field: string; operator: string; value: any }[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 export type GetUsersResponse = {

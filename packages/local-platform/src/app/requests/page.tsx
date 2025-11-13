@@ -10,6 +10,7 @@ const getRequests = async () => {
     const data = await response.json();
     return data.requests as Request[];
   } catch (error) {
+    console.error("Error fetching requests:", error);
     return [];
   }
 };

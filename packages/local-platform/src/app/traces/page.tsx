@@ -17,7 +17,7 @@ import {
 } from "@agentmark/ui-components";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { TraceDrawer } from "./trace-drawer";
 import { getTraces } from "../../lib/api/traces";
 
@@ -87,7 +87,10 @@ export default function TracesPage() {
           </Table>
         </TableContainer>
       </Card>
-      <TraceDrawer t={t} />
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <TraceDrawer t={t} />
+      </Suspense>
     </Stack>
   );
 }

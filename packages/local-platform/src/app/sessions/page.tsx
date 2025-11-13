@@ -4,7 +4,7 @@ import { Card, Stack, Typography } from "@mui/material";
 import { SessionsList } from "@agentmark/ui-components";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { SessionDrawer } from "./session-drawer";
 import { getSessions } from "../../lib/api/sessions";
 import type { SessionData } from "@agentmark/ui-components";
@@ -64,7 +64,9 @@ export default function SessionsPage() {
           t={translationFunction}
         />
       </Card>
-      <SessionDrawer />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SessionDrawer />
+      </Suspense>
     </Stack>
   );
 }
