@@ -1,6 +1,6 @@
 import {
   getCostFormula,
-  modelsCostMapping,
+  getModelCostMappings,
 } from "../../../cost-mapping/cost-mapping";
 import db from "../../database";
 
@@ -12,7 +12,7 @@ export const exportTraces = async (traces: any[]) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
-  const insertMany = db.transaction((traces: any[]) => {
+  const insertMany = db.transaction(async (traces: any[]) => {
     for (const trace of traces) {
       const isSuccess = trace.StatusCode !== 2;
       const spanAttributes = { ...trace.SpanAttributes };
@@ -20,6 +20,8 @@ export const exportTraces = async (traces: any[]) => {
         let getCost = (_a: number, _b: number) => {
           return 0;
         };
+
+        const modelsCostMapping = await getModelCostMappings();
 
         const priceMap = isSuccess
           ? modelsCostMapping[spanAttributes["gen_ai.request.model"]]
@@ -547,18 +549,7 @@ export const getTracesBySessionId = async (sessionId: string) => {
   return traces;
 };
 
-export const getUsers = async (options?: {
-  page?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-  filter?: { field: string; operator: string; value: any }[];
-}) => {
-  const page = options?.page || 0;
-  const pageSize = options?.pageSize || 10;
-  const sortBy = options?.sortBy || "count";
-  const sortOrder = options?.sortOrder || "asc";
-
+export const getUsers = async () => {
   // Base WHERE clause
   const baseWhereClause = `
     WHERE SpanName IN (
@@ -620,8 +611,6 @@ export const getUsers = async (options?: {
       prompt_tokens,
       avg_requests_per_day
     FROM user_requests_with_avg
-    ORDER BY ${sortBy} ${sortOrder.toUpperCase()}
-    LIMIT ${pageSize} OFFSET ${page * pageSize}
   `;
 
   const countSql = `
@@ -634,38 +623,8 @@ export const getUsers = async (options?: {
   const countResult = db.prepare(countSql).get() as { total: number } | undefined;
   const total = countResult?.total || 0;
 
-  // Apply filters to results if needed (for fields that are computed in the CTE)
-  let filteredRows = rows;
-  if (options?.filter && options.filter.length > 0) {
-    filteredRows = rows.filter((row) => {
-      return options.filter!.every((f) => {
-        const field = f.field;
-        const operator = f.operator;
-        const value = f.value;
-        const rowValue = row[field];
-
-        if (field === "user_id") {
-          if (operator === "contains") {
-            return String(rowValue).toLowerCase().includes(String(value).toLowerCase());
-          } else if (operator === "equals") {
-            return String(rowValue) === String(value);
-          }
-        } else if (["count", "total_cost", "avg_tokens", "completion_tokens", "prompt_tokens", "avg_requests_per_day"].includes(field)) {
-          const numValue = Number(value);
-          const numRowValue = Number(rowValue);
-          if (operator === ">") return numRowValue > numValue;
-          if (operator === "<") return numRowValue < numValue;
-          if (operator === ">=") return numRowValue >= numValue;
-          if (operator === "<=") return numRowValue <= numValue;
-          if (operator === "=") return numRowValue === numValue;
-        }
-        return true;
-      });
-    });
-  }
-
   return {
-    users: filteredRows.map((row) => ({
+    users: rows.map((row) => ({
       id: row.user_id,
       user_id: row.user_id,
       count: row.count || 0,
@@ -675,6 +634,6 @@ export const getUsers = async (options?: {
       prompt_tokens: row.prompt_tokens || 0,
       avg_requests_per_day: row.avg_requests_per_day || 0,
     })),
-    total: filteredRows.length !== rows.length ? filteredRows.length : total,
+    total: total || 0,
   };
 };

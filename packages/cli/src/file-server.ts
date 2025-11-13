@@ -43,7 +43,7 @@ export async function createFileServer(port: number) {
         );
       }
     }
-  } catch {}
+  } catch { }
 
   // Landing page for browser access
   app.get("/", async (_req: Request, res: Response) => {
@@ -544,13 +544,7 @@ ${promptsList}
         }
       }
 
-      const result = await getUsers({
-        page,
-        pageSize,
-        sortBy,
-        sortOrder,
-        filter,
-      });
+      const result = await getUsers();
 
       return res.json({ users: result.users, total: result.total });
     } catch (error) {

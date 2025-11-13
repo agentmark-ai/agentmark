@@ -1,8 +1,17 @@
-import prices from "./pricing.json";
+let prices: Record<string, { promptPrice: number; completionPrice: number }> = {};
 
-export const modelsCostMapping: {
+const pricesUrl = ""
+export const getModelCostMappings = async (): Promise<{
   [key: string]: { promptPrice: number; completionPrice: number };
-} = prices;
+}> => {
+  if (Object.keys(prices).length > 0) {
+    return prices;
+  }
+  const res = await fetch(pricesUrl)
+  const data = await res.json()
+  prices = data
+  return prices
+}
 
 export const getCostFormula = (
   inputCost: number,
