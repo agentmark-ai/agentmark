@@ -15,6 +15,7 @@ type CustomDataGridProps = DataGridProps & {
 export const DataGrid = ({ t, ...props }: CustomDataGridProps) => {
   return (
     <MuiDataGrid
+      sx={{ '--DataGrid-overlayHeight': '530px' }}
       {...props}
       slots={{
         toolbar: () => {

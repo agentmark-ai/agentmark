@@ -21,7 +21,7 @@
     "loadInEditor": "Load in Editor",
     "assistant": "Assistant",
     "system": "System",
-    "noResults": "No Logs",
+    "noResults": "No Requests",
     "success": "Success",
     "fail": "Fail"
   },
