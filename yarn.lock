@@ -52,7 +52,7 @@ __metadata:
     "@agentmark/prompt-core": "npm:*"
     "@agentmark/shared-utils": "npm:*"
     "@agentmark/templatedx": "npm:^0.6.3"
-    "@agentmark/ui-components": "workspace:^"
+    "@agentmark/ui-components": "npm:0.0.0"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -115,36 +115,6 @@ __metadata:
   peerDependencies:
     "@agentmark/prompt-core": "*"
     ai: ^4.0.0
-  languageName: unknown
-  linkType: soft
-
-"@agentmark/local-platform@workspace:packages/local-platform":
-  version: 0.0.0-use.local
-  resolution: "@agentmark/local-platform@workspace:packages/local-platform"
-  dependencies:
-    "@agentmark/ui-components": "workspace:^"
-    "@emotion/cache": "npm:^11.14.0"
-    "@emotion/react": "npm:^11.14.0"
-    "@emotion/styled": "npm:^11.14.1"
-    "@eslint/eslintrc": "npm:^3"
-    "@iconify/react": "npm:^6.0.2"
-    "@mui/material": "npm:^7.3.4"
-    "@mui/material-nextjs": "npm:^7.3.3"
-    "@mui/x-data-grid": "npm:^8.14.1"
-    "@mui/x-date-pickers": "npm:^8.14.1"
-    "@types/lodash": "npm:^4.14.202"
-    "@types/node": "npm:^20"
-    "@types/react": "npm:^19"
-    "@types/react-dom": "npm:^19"
-    date-fns: "npm:^4.1.0"
-    eslint: "npm:^9"
-    eslint-config-next: "npm:15.5.6"
-    lodash: "npm:^4.17.21"
-    next: "npm:15.5.6"
-    next-intl: "npm:^4.4.0"
-    react: "npm:19.1.0"
-    react-dom: "npm:19.1.0"
-    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 
@@ -255,7 +225,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/ui-components@workspace:^, @agentmark/ui-components@workspace:packages/ui-components":
+"@agentmark/ui-components@npm:0.0.0, @agentmark/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark/ui-components@workspace:packages/ui-components"
   dependencies:
