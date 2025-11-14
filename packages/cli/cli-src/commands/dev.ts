@@ -129,7 +129,7 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
     console.log('═'.repeat(70));
     console.log(`\n  API Server:    http://localhost:${apiServerPort}`);
     console.log(`  Runner Server: http://localhost:${runnerPort}`);
-    console.log(`  AgentMark App: http://localhost:${agentmarkAppPort}`);
+    console.log(`  AgentMark App: http://localhost:${appPort}`);
     console.log('\n' + '─'.repeat(70));
     console.log('How to run prompts and experiments:');
     console.log('─'.repeat(70));
