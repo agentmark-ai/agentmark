@@ -1,5 +1,5 @@
 import { Trace, TraceData } from "@agentmark/ui-components";
-import { FILE_SERVER_URL } from "../../config/api";
+import { API_URL } from "../../config/api";
 
 export interface GraphData {
   parentNodeId?: string;
@@ -12,7 +12,7 @@ export interface GraphData {
 
 export const getTraces = async (): Promise<Trace[]> => {
   try {
-    const response = await fetch(`${FILE_SERVER_URL}/v1/traces`);
+    const response = await fetch(`${API_URL}/v1/traces`);
     const data = await response.json();
     return data.traces as Trace[];
   } catch (error) {
@@ -23,7 +23,7 @@ export const getTraces = async (): Promise<Trace[]> => {
 
 export const getTraceById = async (traceId: string): Promise<TraceData | null> => {
   try {
-    const response = await fetch(`${FILE_SERVER_URL}/v1/traces/${traceId}`);
+    const response = await fetch(`${API_URL}/v1/traces/${traceId}`);
     if (!response.ok) {
       if (response.status === 404) {
         return null;
@@ -40,7 +40,7 @@ export const getTraceById = async (traceId: string): Promise<TraceData | null> =
 
 export const getTraceGraph = async (traceId: string): Promise<GraphData[]> => {
   try {
-    const response = await fetch(`${FILE_SERVER_URL}/v1/traces/${traceId}/graph`);
+    const response = await fetch(`${API_URL}/v1/traces/${traceId}/graph`);
     if (!response.ok) {
       if (response.status === 404) {
         return [];

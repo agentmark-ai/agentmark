@@ -23,7 +23,7 @@ function safePath(): string {
   }
 }
 
-export async function createFileServer(port: number) {
+export async function createApiServer(port: number) {
   const app = express();
   app.use(express.json());
   app.use(cors());
@@ -73,7 +73,7 @@ export async function createFileServer(port: number) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentMark File Server</title>
+  <title>AgentMark API Server</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -154,7 +154,7 @@ export async function createFileServer(port: number) {
   </style>
 </head>
 <body>
-  <h1>AgentMark File Server</h1>
+  <h1>AgentMark API Server</h1>
   <div class="subtitle">Local development server for serving prompts and datasets</div>
 
   <div class="status">
@@ -168,7 +168,7 @@ export async function createFileServer(port: number) {
 
   <h2>What is this?</h2>
   <p>
-    This is the <strong>AgentMark File Server</strong>, an internal development server that provides
+    This is the <strong>AgentMark API Server</strong>, an internal development server that provides
     HTTP access to your local prompt files and datasets. It's automatically started when you run
     <code>agentmark dev</code> and enables your development runner to load templates and data.
   </p>
@@ -527,25 +527,9 @@ ${promptsList}
     }
   });
 
-  app.get("/v1/users", async (req: Request, res: Response) => {
+  app.get("/v1/users", async (_req: Request, res: Response) => {
     try {
-      const page = req.query.page ? parseInt(req.query.page as string, 10) : 0;
-      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string, 10) : 10;
-      const sortBy = (req.query.sortBy as string) || "count";
-      const sortOrder = (req.query.sortOrder as "asc" | "desc") || "asc";
-
-      // Parse filter from query string if provided
-      let filter: { field: string; operator: string; value: any }[] | undefined;
-      if (req.query.filter) {
-        try {
-          filter = JSON.parse(req.query.filter as string);
-        } catch {
-          // Invalid filter JSON, ignore
-        }
-      }
-
       const result = await getUsers();
-
       return res.json({ users: result.users, total: result.total });
     } catch (error) {
       console.error("Error getting users:", error);
@@ -559,3 +543,4 @@ ${promptsList}
     });
   });
 }
+

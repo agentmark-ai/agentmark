@@ -1,4 +1,4 @@
-import { FILE_SERVER_URL } from "../../config/api";
+import { API_URL } from "../../config/api";
 
 export type User = {
   id: string;
@@ -45,7 +45,7 @@ export const getUsers = async (
       params.append("filter", JSON.stringify(options.filter));
     }
 
-    const response = await fetch(`${FILE_SERVER_URL}/v1/users?${params.toString()}`);
+    const response = await fetch(`${API_URL}/v1/users?${params.toString()}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch users: ${response.statusText}`);
     }

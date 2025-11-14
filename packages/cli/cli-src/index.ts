@@ -19,13 +19,15 @@ program
 
 program
   .command("dev")
-  .option("-p, --port <number>", "File server port (default: 9418)")
+  .option("-p, --port <number>", "API server port (default: 9418)")
   .option("-r, --runner-port <number>", "Runner server port (default: 9417)")
-  .description("Start development servers (file server + runner)")
+  .option("-n, --agentmark-app-port <number>", "AgentMark app port (default: 3000)")
+  .description("Start development servers (api server + runner)")
   .action(async (options) => {
     await (dev as any)({
       port: options.port ? parseInt(options.port, 10) : undefined,
-      runnerPort: options.runnerPort ? parseInt(options.runnerPort, 10) : undefined
+      runnerPort: options.runnerPort ? parseInt(options.runnerPort, 10) : undefined,
+      agentmarkAppPort: options.agentmarkAppPort ? parseInt(options.agentmarkAppPort, 10) : undefined
     });
   });
 

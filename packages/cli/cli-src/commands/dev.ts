@@ -1,15 +1,16 @@
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
-import { createFileServer } from "../file-server";
+import { createApiServer } from "../api-server";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
 }
 
-const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
-  const fileServerPort = options.port || 9418;
+const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPort?: number } = {}) => {
+  const apiServerPort = options.port || 9418;
   const runnerPort = options.runnerPort || 9417;
+  const agentmarkAppPort = options.agentmarkAppPort || 3000;
   const cwd = getSafeCwd();
 
   // Check if agentmark.client.ts exists
@@ -39,12 +40,12 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     process.exit(1);
   }
 
-  // Start file server directly
-  let fileServerInstance: any;
+  // Start API server directly
+  let apiServerInstance: any;
   try {
-    fileServerInstance = await createFileServer(fileServerPort);
+    apiServerInstance = await createApiServer(apiServerPort);
   } catch (error: any) {
-    console.error('Failed to start file server:', error.message);
+    console.error('Failed to start API server:', error.message);
     process.exit(1);
   }
 
@@ -53,7 +54,7 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
       // Kill all children first
       try {
         spawn('pkill', ['-P', String(pid)], { stdio: 'ignore' });
-      } catch {}
+      } catch { }
       // Then kill the main process
       process.kill(pid, 'SIGKILL');
     } catch (e) {
@@ -64,23 +65,44 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
   // Start runner server using local tsx installation
   // Find tsx binary - will be in node_modules/.bin/tsx
   const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
-  const runnerServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${fileServerPort}`], {
+  const runnerServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--api-server-port=${apiServerPort}`], {
     stdio: 'inherit',
     cwd
   });
 
+  const nextCwd = path.join(__dirname, '..', '..');
+
+  const agentmarkAppServer = spawn('npm', ['start', '--', "-p", `${agentmarkAppPort}`], {
+    stdio: 'ignore',
+    cwd: nextCwd,
+    env: {
+      ...process.env,
+      NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiServerPort)
+    }
+  });
+
+  agentmarkAppServer.on('error', (error) => {
+    console.error('Failed to start AgentMark app server:', error.message);
+    process.exit(1);
+  });
+
+  agentmarkAppServer.on('exit', (code) => {
+    console.log(`\nAgentMark app server exited with code ${code}`);
+    process.exit(code || 0);
+  });
+
   runnerServer.on('error', (error) => {
     console.error('Failed to start runner server:', error.message);
-    if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {}
+    if (apiServerInstance) {
+      try { apiServerInstance.close(); } catch { }
     }
     process.exit(1);
   });
 
   runnerServer.on('exit', (code) => {
     console.log(`\nRunner server exited with code ${code}`);
-    if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {}
+    if (apiServerInstance) {
+      try { apiServerInstance.close(); } catch { }
     }
     process.exit(code || 0);
   });
@@ -90,8 +112,9 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
     console.log('\n' + '═'.repeat(70));
     console.log('🚀 AgentMark Development Servers Running');
     console.log('═'.repeat(70));
-    console.log(`\n  File Server:   http://localhost:${fileServerPort}`);
+    console.log(`\n  API Server:    http://localhost:${apiServerPort}`);
     console.log(`  Runner Server: http://localhost:${runnerPort}`);
+    console.log(`  AgentMark App: http://localhost:${agentmarkAppPort}`);
     console.log('\n' + '─'.repeat(70));
     console.log('How to run prompts and experiments:');
     console.log('─'.repeat(70));
@@ -114,8 +137,8 @@ const dev = async (options: { port?: number; runnerPort?: number } = {}) => {
 
     console.log('\nShutting down servers...');
 
-    if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {}
+    if (apiServerInstance) {
+      try { apiServerInstance.close(); } catch { }
     }
     if (runnerServer.pid) killProcessTree(runnerServer.pid);
 

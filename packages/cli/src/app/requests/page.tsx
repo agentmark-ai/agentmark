@@ -1,12 +1,12 @@
 "use client";
 import { Request, Requests } from "@agentmark/ui-components";
 import { useTranslations } from "next-intl";
-import { use } from "react";
-import { FILE_SERVER_URL } from "../../config/api";
+import { use, useEffect, useState } from "react";
+import { API_URL } from "../../config/api";
 
 const getRequests = async () => {
   try {
-    const response = await fetch(`${FILE_SERVER_URL}/v1/requests`);
+    const response = await fetch(`${API_URL}/v1/requests`);
     const data = await response.json();
     return data.requests as Request[];
   } catch (error) {
@@ -15,12 +15,17 @@ const getRequests = async () => {
   }
 };
 
-const promise = getRequests();
-
 export default function RequestsPage() {
   const t = useTranslations("requests");
+  const [requests, setRequests] = useState<Request[]>([]);
 
-  const requests = use(promise);
+  useEffect(() => {
+    const fetchRequests = async () => {
+      const requests = await getRequests();
+      setRequests(requests);
+    };
+    fetchRequests();
+  }, []);
 
   return (
     <Requests

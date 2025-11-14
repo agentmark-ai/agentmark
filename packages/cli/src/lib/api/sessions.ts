@@ -1,5 +1,5 @@
 import { TraceData } from "@agentmark/ui-components";
-import { FILE_SERVER_URL } from "../../config/api";
+import { API_URL } from "../../config/api";
 
 export interface Session {
   id: string;
@@ -15,7 +15,7 @@ export type { SessionData } from "@agentmark/ui-components";
 
 export const getSessions = async (): Promise<Session[]> => {
   try {
-    const response = await fetch(`${FILE_SERVER_URL}/v1/sessions`);
+    const response = await fetch(`${API_URL}/v1/sessions`);
     const data = await response.json();
     return data.sessions as Session[];
   } catch (error) {
@@ -29,7 +29,7 @@ export const getTracesBySessionId = async (
 ): Promise<TraceData[]> => {
   try {
     const response = await fetch(
-      `${FILE_SERVER_URL}/v1/sessions/${sessionId}/traces`
+      `${API_URL}/v1/sessions/${sessionId}/traces`
     );
     if (!response.ok) {
       if (response.status === 404) {
