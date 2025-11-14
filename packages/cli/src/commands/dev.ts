@@ -166,12 +166,13 @@ const dev = async (options: { port?: number; webhookPort?: number; tunnel?: bool
     console.log(`  Files:   http://localhost:${fileServerPort}`);
 
     if (useTunnel && tunnelInfo) {
-      console.log(`  Public:  ${tunnelInfo.url}`);
-      console.log(`\n  Secret:  ${config.webhookSecret}`);
-      console.log(`  Valid:   ${getConfigDaysRemaining(config)} days remaining`);
+      console.log('\n  Public Webhook:');
+      console.log(`    URL:    ${tunnelInfo.url}`);
+      console.log(`    Secret: ${config.webhookSecret}`);
+      console.log(`    Valid:  ${getConfigDaysRemaining(config)} days remaining`);
     }
 
-    console.log('\n  Run a prompt:     npm run prompt agentmark/<file>.prompt.mdx');
+    console.log('\n  Run a prompt:      npm run prompt agentmark/<file>.prompt.mdx');
     console.log('  Run an experiment: npm run experiment agentmark/<file>.prompt.mdx');
 
     console.log('\n' + '═'.repeat(70));

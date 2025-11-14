@@ -38,16 +38,6 @@ const main = async () => {
   });
   apiKey = providedApiKey || "";
 
-  const { deploymentPlatform } = await prompts({
-    name: "deploymentPlatform",
-    type: "select",
-    message: "Where will you deploy your AgentMark app?",
-    choices: [
-      { title: "Vercel (Next.js)", value: "nextjs", description: "Deploy to Vercel with Next.js App Router" },
-      { title: "Skip (Manual setup)", value: "express", description: "Local development server only" },
-    ],
-  });
-
   const { client } = await prompts({
     name: "client",
     type: "select",
@@ -61,7 +51,7 @@ const main = async () => {
     ],
   });
 
-  await createExampleApp(client, targetPath, apiKey, deploymentPlatform);
+  await createExampleApp(client, targetPath, apiKey);
 
   // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });

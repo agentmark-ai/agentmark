@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
 
-export const setupPackageJson = (targetPath: string = ".", deploymentPlatform: string = "express") => {
+export const setupPackageJson = (targetPath: string = ".") => {
   const packageJsonPath = `${targetPath}/package.json`;
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -33,8 +33,7 @@ export const setupPackageJson = (targetPath: string = ".", deploymentPlatform: s
 
 export const installDependencies = (
   modelProvider: string,
-  targetPath: string = ".",
-  deploymentPlatform: string = "express"
+  targetPath: string = "."
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
@@ -42,12 +41,7 @@ export const installDependencies = (
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
     // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
-    let devDeps = "typescript ts-node @types/node @agentmark/cli";
-
-    // Add Next.js dependencies for Next.js platform
-    if (deploymentPlatform === "nextjs") {
-      devDeps += " next@latest react@latest react-dom@latest @types/react @types/react-dom";
-    }
+    const devDeps = "typescript ts-node @types/node @agentmark/cli";
 
     execSync(`npm install --save-dev ${devDeps}`, {
       stdio: "inherit",

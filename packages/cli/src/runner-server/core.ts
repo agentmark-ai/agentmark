@@ -111,6 +111,7 @@ export async function handleWebhookRequest(
 
       // Handle streaming response
       if (response.type === 'stream') {
+        console.log('   ✓ Prompt executed successfully (streaming)');
         return {
           type: 'stream',
           stream: response.stream,
@@ -119,6 +120,7 @@ export async function handleWebhookRequest(
       }
 
       // Handle regular JSON response (text, object, image, speech)
+      console.log('   ✓ Prompt executed successfully');
       return {
         type: 'json',
         data: response,
@@ -147,6 +149,7 @@ export async function handleWebhookRequest(
 
       // Dataset runs always return streams
       if (response?.stream) {
+        console.log('   ✓ Experiment started successfully (streaming)');
         return {
           type: 'stream',
           stream: response.stream,
@@ -154,6 +157,7 @@ export async function handleWebhookRequest(
         };
       }
 
+      console.log('   ❌ Experiment failed: No stream returned');
       return {
         type: 'error',
         error: 'Expected stream from dataset-run',

@@ -52,10 +52,25 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
     }
   }
 
+  // Load webhook secret BEFORE changing directory
+  // (so we get it from the project root, not the prompt directory)
+  let webhookSecret = process.env.AGENTMARK_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    try {
+      const { loadLocalConfig } = await import('../config.js');
+      const config = loadLocalConfig();
+      if (config && config.webhookSecret) {
+        webhookSecret = config.webhookSecret;
+      }
+    } catch (e) {
+      // No config file, continue without signature
+    }
+  }
+
   const { load } = await import("@agentmark/templatedx");
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
-  
+
   let ast: Root = await load(resolvedFilepath);
   // Determine prompt kind from frontmatter for better headers (Text/Object/Image/Speech)
   let promptHeader: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
@@ -81,9 +96,19 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
       const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, options: { shouldStream: true } } });
+
+      // Add webhook signature if secret is available
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+      if (webhookSecret) {
+        const { createSignature } = await import('@agentmark/shared-utils');
+        const signature = await createSignature(webhookSecret, body);
+        headers['x-agentmark-signature-256'] = signature;
+      }
+
       let res;
       try {
-        res = await fetch(server, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+        res = await fetch(server, { method: 'POST', headers, body });
       } catch (fetchError: any) {
         // Network-level errors (server not running, connection refused, etc.)
         const isConnectionError =

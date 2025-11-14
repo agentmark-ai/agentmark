@@ -124,6 +124,21 @@ export default async function runExperiment(filepath: string, options: { skipEva
     );
   }
 
+  // Load webhook secret BEFORE changing directory
+  // (so we get it from the project root, not the prompt directory)
+  let webhookSecret = process.env.AGENTMARK_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    try {
+      const { loadLocalConfig } = await import('../config.js');
+      const config = loadLocalConfig();
+      if (config && config.webhookSecret) {
+        webhookSecret = config.webhookSecret;
+      }
+    } catch (e) {
+      // No config file, continue without signature
+    }
+  }
+
   // Ensure runner client resolves prompt-relative resources (datasets, etc.)
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
   const { load } = await import("@agentmark/templatedx");
@@ -159,12 +174,23 @@ export default async function runExperiment(filepath: string, options: { skipEva
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } });
+
+  // Add webhook signature if secret is available
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  if (webhookSecret) {
+    const { createSignature } = await import('@agentmark/shared-utils');
+    const signature = await createSignature(webhookSecret, body);
+    headers['x-agentmark-signature-256'] = signature;
+  }
+
   let res;
   try {
     res = await fetch(server, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
+      headers,
+      body
     });
   } catch (fetchError: any) {
     // Network-level errors (server not running, connection refused, etc.)

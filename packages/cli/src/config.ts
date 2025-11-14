@@ -142,8 +142,8 @@ export function saveLocalConfig(config: LocalConfig): void {
  * Gets the webhook secret, using local config or env var
  */
 export function getWebhookSecret(): string {
-  // First check if user has set their own secret
-  if (process.env.AGENTMARK_WEBHOOK_SECRET) {
+  // First check if user has set their own secret (not empty string)
+  if (process.env.AGENTMARK_WEBHOOK_SECRET && process.env.AGENTMARK_WEBHOOK_SECRET.trim() !== '') {
     return process.env.AGENTMARK_WEBHOOK_SECRET;
   }
 

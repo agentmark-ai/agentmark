@@ -10,9 +10,9 @@ import type { WebhookHandler } from '../types';
 import {
   verifyWebhookSignature,
   shouldSkipVerification,
-  getWebhookSecret,
   type SignatureVerificationOptions
 } from '../middleware/signature-verification';
+import { getWebhookSecret } from '../../config';
 
 export interface ExpressWebhookServerOptions {
   port?: number;
@@ -52,13 +52,6 @@ export function createExpressMiddleware(
 
       const body = req.body || {};
 
-      // Debug signature verification settings
-      console.log(`   🔍 Signature verification: ${signatureOptions ? 'configured' : 'not configured'}`);
-      if (signatureOptions) {
-        console.log(`      - Secret: ${signatureOptions.secret ? `${signatureOptions.secret.substring(0, 8)}...` : 'NOT SET'}`);
-        console.log(`      - Skip verification: ${shouldSkipVerification(signatureOptions)}`);
-      }
-
       // Verify signature if configured
       if (signatureOptions && !shouldSkipVerification(signatureOptions)) {
         const headerName = signatureOptions.headerName || 'x-agentmark-signature-256';
@@ -66,8 +59,6 @@ export function createExpressMiddleware(
 
         if (!signature) {
           console.log('   → 401 Missing signature header');
-          console.log(`      Expected header: ${headerName}`);
-          console.log(`      Available headers: ${Object.keys(req.headers).join(', ')}`);
           return res.status(401).json({
             message: `Missing signature header: Expected ${headerName} header for webhook verification`
           });
@@ -168,12 +159,8 @@ export async function createWebhookServer(options: ExpressWebhookServerOptions):
   if (!sigOptions) {
     // Check for env var
     const secret = getWebhookSecret();
-    console.log(`🔐 AGENTMARK_WEBHOOK_SECRET from env: ${secret ? `${secret.substring(0, 8)}... (${secret.length} chars)` : 'NOT SET'}`);
     if (secret) {
       sigOptions = { secret };
-      console.log('✓ Webhook signature verification enabled');
-    } else {
-      console.log('⚠️  Webhook signature verification disabled (no secret found)');
     }
   }
 
