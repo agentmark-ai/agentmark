@@ -2,9 +2,19 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { createApiServer } from "../api-server";
+import net from "net";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
+}
+
+function isPortFree(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const tester = net.createServer()
+      .once('error', () => resolve(false))
+      .once('listening', () => tester.close(() => resolve(true)))
+      .listen(port);
+  });
 }
 
 const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPort?: number } = {}) => {
@@ -72,24 +82,29 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
 
   const nextCwd = path.join(__dirname, '..', '..');
 
-  const agentmarkAppServer = spawn('npm', ['start', '--', "-p", `${agentmarkAppPort}`], {
-    stdio: 'ignore',
-    cwd: nextCwd,
-    env: {
-      ...process.env,
-      NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiServerPort)
+  let appPort = agentmarkAppPort;
+
+  async function startAgentMarkServer() {
+    while (!(await isPortFree(appPort))) {
+      console.warn(`Port ${appPort} is busy, trying ${appPort + 1}`);
+      appPort++;
     }
-  });
+  
+    const server = spawn('npm', ['start', '--', '-p', `${appPort}`], {
+      stdio: 'pipe',
+      cwd: nextCwd,
+      env: { ...process.env, NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiServerPort) },
+    });
+  
+    server.on('exit', (code) => process.exit(code || 0));
+    server.on('error', (err) => {
+      console.error('Failed to start AgentMark server:', err.message);
+      process.exit(1);
+    });
+  }
 
-  agentmarkAppServer.on('error', (error) => {
-    console.error('Failed to start AgentMark app server:', error.message);
-    process.exit(1);
-  });
-
-  agentmarkAppServer.on('exit', (code) => {
-    console.log(`\nAgentMark app server exited with code ${code}`);
-    process.exit(code || 0);
-  });
+  // Start the first server attempt
+  startAgentMarkServer();
 
   runnerServer.on('error', (error) => {
     console.error('Failed to start runner server:', error.message);
