@@ -8,3 +8,5 @@ dist
 .yalc
 yalc.lock
 .env
+*storybook.log
+storybook-static

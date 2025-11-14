@@ -137,7 +137,7 @@ describe('agentmark dev', () => {
     await wait(PROCESS_CLEANUP_WAIT_MS);
   });
 
-  it('starts file server and runner, serves templates endpoint', async () => {
+  it('starts api server and runner, serves templates endpoint', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-' + Date.now());
     tmpDirs.push(tempDir);
     fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
@@ -154,11 +154,11 @@ describe('agentmark dev', () => {
     fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const filePort = await getFreePort();
+    const apiPort = await getFreePort();
     const runnerPort = await getFreePort();
 
     // Spawn dev command
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(apiPort), '--runner-port', String(runnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
@@ -183,8 +183,8 @@ describe('agentmark dev', () => {
       console.log('STDOUT:', stdout);
     }
 
-    // Test file server /v1/prompts endpoint
-    const listResp = await fetch(`http://localhost:${filePort}/v1/prompts`);
+    // Test api server /v1/prompts endpoint
+    const listResp = await fetch(`http://localhost:${apiPort}/v1/prompts`);
     if (!listResp.ok) {
       const errorText = await listResp.text();
       console.log(`Response status: ${listResp.status}, body: ${errorText}`);
@@ -195,7 +195,7 @@ describe('agentmark dev', () => {
     expect(paths.length).toBeGreaterThan(0);
 
     // Test /v1/templates dataset endpoint
-    const dsResp = await fetch(`http://localhost:${filePort}/v1/templates?path=demo.jsonl`);
+    const dsResp = await fetch(`http://localhost:${apiPort}/v1/templates?path=demo.jsonl`);
     expect(dsResp.ok).toBe(true);
     const text = await dsResp.text();
     expect(text.trim().length).toBeGreaterThan(0);
@@ -255,25 +255,29 @@ describe('agentmark dev', () => {
     fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const customFilePort = await getFreePort();
+    const customApiPort = await getFreePort();
     const customRunnerPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(customFilePort), '--runner-port', String(customRunnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(customApiPort), '--runner-port', String(customRunnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
+    });
+
+    child.on('error', (error) => {
+      console.error('Error:', error);
     });
 
     processes.push(child);
 
     await wait(SERVER_STARTUP_WAIT_MS);
 
-    // Test that server is running on custom port
-    const resp = await fetch(`http://localhost:${customFilePort}/v1/prompts`);
+    // Test that api server is running on custom port
+    const resp = await fetch(`http://localhost:${customApiPort}/v1/prompts`);
     expect(resp.ok).toBe(true);
   }, 15000);
 
-  it.skip('displays correct file server URL', async () => {
+  it.skip('displays correct api server URL', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-urls-' + Date.now());
     tmpDirs.push(tempDir);
     fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
@@ -286,10 +290,10 @@ describe('agentmark dev', () => {
     fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const filePort = await getFreePort();
+    const apiPort = await getFreePort();
     const runnerPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--port', String(apiPort), '--runner-port', String(runnerPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe'
@@ -309,10 +313,10 @@ describe('agentmark dev', () => {
       console.log('STDERR:', stderr);
     }
 
-    // File server should always start - check both stdout and stderr
+    // Api server should always start - check both stdout and stderr
     const output = stdout + stderr;
-    expect(output).toContain(`http://localhost:${filePort}`);
-    expect(output).toContain('File Server:');
+    expect(output).toContain(`http://localhost:${apiPort}`);
+    expect(output).toContain('API Server:');
 
     // Runner may or may not start successfully in test environment, so we don't strictly require it
   }, 15000);

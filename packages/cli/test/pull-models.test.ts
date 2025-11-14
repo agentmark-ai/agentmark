@@ -35,7 +35,7 @@ describe('pull-models', () => {
     mockPrompts = (await import('prompts')).default;
 
     // Import command fresh
-    pullModels = (await import('../src/commands/pull-models')).default;
+    pullModels = (await import('../cli-src/commands/pull-models')).default;
   });
 
   afterEach(() => {
