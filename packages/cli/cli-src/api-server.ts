@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import fs from "fs";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { findPromptFiles } from "@agentmark/shared-utils";
 import cors from "cors";
@@ -289,7 +290,16 @@ ${promptsList}
     );
   });
 
-  app.get("/v1/templates", async (req: Request, res: Response) => {
+  // Rate limiter: 100 requests per 15 minutes per IP for file system endpoint
+  const templatesRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests. Please try again later." },
+  });
+
+  app.get("/v1/templates", templatesRateLimiter, async (req: Request, res: Response) => {
     const filePath = req.query.path;
 
     if (!filePath || typeof filePath !== "string") {
