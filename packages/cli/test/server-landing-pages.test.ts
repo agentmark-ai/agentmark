@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createFileServer } from '../src/file-server';
-import { createRunnerServer } from '../src/runner-server';
+import { createApiServer } from '../cli-src/api-server';
+import { createRunnerServer } from '../cli-src/runner-server';
 import type { Server } from 'http';
 
 // Test constants
@@ -9,50 +9,53 @@ const MIN_TEST_PORT_RUNNER = 50000; // Minimum port for runner server tests
 const PORT_RANGE = 10000; // Range of ports to randomize within
 
 describe('Server Landing Pages', () => {
-  let fileServer: Server;
+  let apiServer: Server;
   let runnerServer: Server;
-  let fileServerPort: number;
+  let apiServerPort: number;
   let runnerServerPort: number;
 
   beforeAll(async () => {
     // Use random ports to avoid conflicts
-    fileServerPort = MIN_TEST_PORT_FILE + Math.floor(Math.random() * PORT_RANGE);
+    apiServerPort = MIN_TEST_PORT_FILE + Math.floor(Math.random() * PORT_RANGE);
     runnerServerPort = MIN_TEST_PORT_RUNNER + Math.floor(Math.random() * PORT_RANGE);
 
     // Create mock runner for testing
     const mockRunner = {
-      runPrompt: async () => ({ type: 'text' as const, text: 'test' }),
+      runPrompt: async () => ({ type: 'text' as const, result: 'test' }),
       runExperiment: async () => ({
         stream: new ReadableStream({
           start(controller) { controller.close(); }
-        })
+        }),
+        streamHeaders: {
+          'AgentMark-Streaming': "true" as const
+        }
       })
     };
 
-    fileServer = await createFileServer(fileServerPort) as Server;
+    apiServer = await createApiServer(apiServerPort) as Server;
     runnerServer = await createRunnerServer({
       port: runnerServerPort,
       runner: mockRunner,
-      fileServerUrl: `http://localhost:${fileServerPort}`,
+      apiServerUrl: `http://localhost:${apiServerPort}`,
       templatesDirectory: process.cwd()
     }) as Server;
   });
 
   afterAll(async () => {
     await new Promise<void>((resolve) => {
-      fileServer.close(() => {
+      apiServer.close(() => {
         runnerServer.close(() => resolve());
       });
     });
   });
 
-  it('file server shows HTML landing page on GET /', async () => {
-    const response = await fetch(`http://localhost:${fileServerPort}/`);
+  it('api server shows HTML landing page on GET /', async () => {
+    const response = await fetch(`http://localhost:${apiServerPort}/`);
     const html = await response.text();
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/html');
-    expect(html).toContain('AgentMark File Server');
+    expect(html).toContain('AgentMark API Server');
     expect(html).toContain('Local development server for serving prompts and datasets');
     expect(html).toContain('/v1/templates');
     expect(html).toContain('/v1/prompts');
@@ -74,11 +77,11 @@ describe('Server Landing Pages', () => {
     expect(html).toContain('docs.agentmark.co');
   });
 
-  it('file server landing page displays current port', async () => {
-    const response = await fetch(`http://localhost:${fileServerPort}/`);
+  it('api server landing page displays current port', async () => {
+    const response = await fetch(`http://localhost:${apiServerPort}/`);
     const html = await response.text();
 
-    expect(html).toContain(`Running on port ${fileServerPort}`);
+    expect(html).toContain(`Running on port ${apiServerPort}`);
   });
 
   it('runner server landing page displays current port', async () => {
@@ -88,8 +91,8 @@ describe('Server Landing Pages', () => {
     expect(html).toContain(`Running on port ${runnerServerPort}`);
   });
 
-  it('file server API endpoints still work after adding landing page', async () => {
-    const response = await fetch(`http://localhost:${fileServerPort}/v1/prompts`);
+  it('api server API endpoints still work after adding landing page', async () => {
+    const response = await fetch(`http://localhost:${apiServerPort}/v1/prompts`);
 
     // May return 500 if no agentmark directory exists, which is fine for testing
     // The important thing is the endpoint responds and doesn't show HTML
@@ -138,12 +141,12 @@ describe('Server Landing Pages', () => {
     expect(html).toContain('pass percentage');
   });
 
-  it('runner server landing page includes file server info', async () => {
+  it('runner server landing page includes api server info', async () => {
     const response = await fetch(`http://localhost:${runnerServerPort}/`);
     const html = await response.text();
 
-    expect(html).toContain('File Server:');
-    expect(html).toContain(`http://localhost:${fileServerPort}`);
+    expect(html).toContain('API Server:');
+    expect(html).toContain(`http://localhost:${apiServerPort}`);
     expect(html).toContain('Templates Directory:');
   });
 });
