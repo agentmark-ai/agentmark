@@ -6,7 +6,6 @@ export * from "./trace-drawer-sidebar";
 export * from "./trace-info-skeleton";
 export * from "./hooks/use-trace-drawer";
 export * from "./trace-drawer-container";
-export * from "./trace-drawer-actions";
 export * from "./trace-tree";
 export * from "./trace-graph";
 export * from "./span-info";
