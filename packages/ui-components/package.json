@@ -42,7 +42,6 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
     "@eslint/eslintrc": "^3",
-    "@mui/x-tree-view": "^8.15.0",
     "@storybook/addon-a11y": "^9.1.15",
     "@storybook/addon-docs": "^9.1.15",
     "@storybook/addon-vitest": "^9.1.15",
@@ -71,6 +70,7 @@
     "@codemirror/lang-json": "^6.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@mui/lab": "^7.0.1-beta.18",
+    "@mui/x-tree-view": "^8.15.0",
     "@uiw/react-codemirror": "^4.25.2",
     "@xyflow/react": "^12.9.0",
     "dagre": "^0.8.5",
