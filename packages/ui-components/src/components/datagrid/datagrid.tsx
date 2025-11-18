@@ -10,12 +10,17 @@ import { EmptyContent } from "@/components";
 
 type CustomDataGridProps = DataGridProps & {
   t: any;
+  emptyContentImgUrl?: string;
 };
 
-export const DataGrid = ({ t, ...props }: CustomDataGridProps) => {
+export const DataGrid = ({
+  t,
+  emptyContentImgUrl,
+  ...props
+}: CustomDataGridProps) => {
   return (
     <MuiDataGrid
-      sx={{ '--DataGrid-overlayHeight': '530px' }}
+      sx={{ "--DataGrid-overlayHeight": "530px" }}
       {...props}
       slots={{
         toolbar: () => {
@@ -35,10 +40,18 @@ export const DataGrid = ({ t, ...props }: CustomDataGridProps) => {
           );
         },
         noRowsOverlay: () => (
-          <EmptyContent sx={{ margin: 2 }} title={t("noResults")} />
+          <EmptyContent
+            sx={{ margin: 2 }}
+            title={t("noResults")}
+            imgUrl={emptyContentImgUrl}
+          />
         ),
         noResultsOverlay: () => (
-          <EmptyContent title={t("noResults")} sx={{ py: 10 }} />
+          <EmptyContent
+            title={t("noResults")}
+            sx={{ py: 10 }}
+            imgUrl={emptyContentImgUrl}
+          />
         ),
       }}
       slotProps={{

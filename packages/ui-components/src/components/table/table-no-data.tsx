@@ -8,9 +8,10 @@ type Props = {
   notFound: boolean;
   sx?: SxProps<Theme>;
   title: string;
+  imgUrl?: string;
 };
 
-export default function TableNoData({ title, notFound, sx }: Props) {
+export default function TableNoData({ title, notFound, sx, imgUrl }: Props) {
   return (
     <TableRow>
       {notFound ? (
@@ -22,6 +23,7 @@ export default function TableNoData({ title, notFound, sx }: Props) {
               py: 10,
               ...sx,
             }}
+            imgUrl={imgUrl}
           />
         </TableCell>
       ) : (

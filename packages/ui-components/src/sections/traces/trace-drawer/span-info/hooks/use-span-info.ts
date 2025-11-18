@@ -40,7 +40,7 @@ export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
         });
         setActiveTab("inputOutput");
       } else {
-        setActiveTab("attributes");
+        setActiveTab("evaluation");
       }
       newTabs.push({
         value: "evaluation",

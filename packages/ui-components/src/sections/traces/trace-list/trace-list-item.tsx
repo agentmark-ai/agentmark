@@ -43,7 +43,7 @@ const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
           {(parseInt(trace.latency) / 1000).toFixed(2)}s
         </Label>
       </TableCell>
-      <TableCell>{fCurrency(trace.cost, 5)}</TableCell>
+      <TableCell>{fCurrency(`${trace.cost}` || 0, 5)}</TableCell>
       <TableCell>
         <Label color="default" startIcon={<Iconify icon="game-icons:token" />}>
           {fNumber(trace.tokens || 0)}
