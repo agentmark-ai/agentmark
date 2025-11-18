@@ -1,5 +1,11 @@
 # @puzzlet/sdk
 
+## 4.2.1
+
+### Patch Changes
+
+- 3633bd4: parent id not being saved
+
 ## 4.2.0
 
 ### Minor Changes
