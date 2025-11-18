@@ -26,6 +26,7 @@ export type RequestTableProps = {
   paginationMode?: "server" | "client";
   sortingMode?: "server" | "client";
   t: any;
+  emptyContentImgUrl?: string;
 };
 
 export const RequestTable = ({
@@ -43,6 +44,7 @@ export const RequestTable = ({
   paginationMode,
   sortingMode,
   t,
+  emptyContentImgUrl,
 }: RequestTableProps) => {
   const tableData = useMemo(() => {
     if (requests) {
@@ -189,6 +191,7 @@ export const RequestTable = ({
   return (
     <DataGrid
       t={t}
+      emptyContentImgUrl={emptyContentImgUrl}
       onRowClick={(params) => onRowClick?.(params.row)}
       rows={tableData}
       loading={loading}

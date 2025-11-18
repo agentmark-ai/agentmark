@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableContainer,
-} from "@mui/material";
+import { Table, TableBody, TableContainer } from "@mui/material";
 import {
   TableHeadCustom,
   TablePaginationCustom,
@@ -22,6 +18,8 @@ export interface TracesListProps {
   table: TableProps;
   onTraceClick: (trace: Trace) => void;
   t: (key: string) => string;
+  emptyContentImgUrl?: string;
+  emptyContentText?: string;
 }
 
 export const TracesList = ({
@@ -31,6 +29,8 @@ export const TracesList = ({
   table,
   onTraceClick,
   t,
+  emptyContentImgUrl,
+  emptyContentText,
 }: TracesListProps) => {
   return (
     <TableContainer>
@@ -55,9 +55,10 @@ export const TracesList = ({
           ))}
           {isLoading && <TableSkeleton />}
           <TableNoData
-            title={t("noTraces")}
+            title={emptyContentText || t("noTraces")}
             sx={{ p: 3 }}
             notFound={!isLoading && traces.length === 0}
+            imgUrl={emptyContentImgUrl}
           />
         </TableBody>
       </Table>
@@ -74,4 +75,3 @@ export const TracesList = ({
     </TableContainer>
   );
 };
-
