@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 2.2.0
+
+### Minor Changes
+
+- 73ff875: Local platform and ui components
+
 ## 2.1.1
 
 ### Patch Changes
