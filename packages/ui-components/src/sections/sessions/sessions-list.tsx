@@ -32,6 +32,7 @@ export interface SessionsListProps {
   table: TableProps;
   onSessionClick: (session: SessionData) => void;
   t: (key: string) => string;
+  emptyContentImgUrl?: string;
 }
 
 export const SessionsList = ({
@@ -41,6 +42,7 @@ export const SessionsList = ({
   table,
   onSessionClick,
   t,
+  emptyContentImgUrl,
 }: SessionsListProps) => {
   return (
     <TableContainer>
@@ -91,6 +93,7 @@ export const SessionsList = ({
             title={t("noSessions")}
             sx={{ p: 3 }}
             notFound={!isLoading && sessions.length === 0}
+            imgUrl={emptyContentImgUrl}
           />
         </TableBody>
       </Table>

@@ -1,12 +1,9 @@
 import { ScoreData } from "@/sections/traces/types";
 import {
   createContext,
-  useCallback,
   useContext,
-  useEffect,
   useState,
 } from "react";
-import { useTraceDrawerContext } from "../../../trace-drawer-provider";
 
 interface EvaluationContextValue {
   scores: ScoreData[];
@@ -14,7 +11,6 @@ interface EvaluationContextValue {
   openAddAnnotationDialog: boolean;
   setOpenAddAnnotationDialog: (open: boolean) => void;
   canAddAnnotation: boolean;
-  fetchEvaluationsCallback?: (spanId: string) => Promise<void>;
 }
 
 const EvaluationContext = createContext<EvaluationContextValue | undefined>(
@@ -34,35 +30,15 @@ export const useEvaluationContext = () => {
 export const EvaluationProvider = ({
   children,
   canAddAnnotation,
-  fetchEvaluations,
+  scores,
+  isLoading,
 }: {
   children: React.ReactNode;
   canAddAnnotation: boolean;
-  fetchEvaluations?: (spanId: string) => Promise<ScoreData[]>;
+  scores: ScoreData[];
+  isLoading: boolean;
 }) => {
   const [openAddAnnotationDialog, setOpenAddAnnotationDialog] = useState(false);
-  const [scores, setScores] = useState<ScoreData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { selectedSpan } = useTraceDrawerContext();
-
-  useEffect(() => {
-    if (selectedSpan?.id) {
-      fetchEvaluationsCallback(selectedSpan.id);
-    }
-  }, [selectedSpan?.id]);
-
-  const fetchEvaluationsCallback = useCallback(
-    async (spanId: string) => {
-      setIsLoading(true);
-      if (fetchEvaluations) {
-        const scores = await fetchEvaluations(spanId);
-        setScores(scores);
-      }
-      setIsLoading(false);
-    },
-    [fetchEvaluations]
-  );
 
   return (
     <EvaluationContext.Provider
@@ -72,7 +48,6 @@ export const EvaluationProvider = ({
         openAddAnnotationDialog,
         setOpenAddAnnotationDialog,
         canAddAnnotation,
-        fetchEvaluationsCallback,
       }}
     >
       {children}

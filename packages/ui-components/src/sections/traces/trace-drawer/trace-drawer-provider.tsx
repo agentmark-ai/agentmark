@@ -26,6 +26,7 @@ export interface TraceDrawerContextValue {
   onMouseDown: (e: React.MouseEvent) => void;
   isDragging: boolean;
   t: (key: string) => string;
+  onSpanChange?: (span: SpanData | null) => void;
 }
 
 export interface TraceDrawerProviderProps {
@@ -35,6 +36,7 @@ export interface TraceDrawerProviderProps {
   fetchSpanEvaluations?: (spanId: string) => Promise<ScoreData[]>;
   navigateToFile?: (filePath: string) => void;
   t: (key: string) => string;
+  onSpanChange?: (span: SpanData | null) => void;
 }
 
 const TraceDrawerContext = createContext<TraceDrawerContextValue | undefined>(
@@ -47,6 +49,7 @@ export const TraceDrawerProvider = ({
   traceId,
   fetchSpanEvaluations,
   t,
+  onSpanChange,
 }: TraceDrawerProviderProps & { children: ReactNode }) => {
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
@@ -173,6 +176,12 @@ export const TraceDrawerProvider = ({
     };
   }, [traces]);
 
+  useEffect(() => {
+    if (onSpanChange) {
+      onSpanChange(selectedSpan);
+    }
+  }, [selectedSpan, onSpanChange]);
+
   // Cost and token calculation function
   const findCostAndTokens = useCallback((item: any) => {
     const costAndTokenCache: any = {};
@@ -231,6 +240,7 @@ export const TraceDrawerProvider = ({
     onMouseDown: handleMouseDown,
     isDragging,
     t,
+    onSpanChange,
   };
 
   return (

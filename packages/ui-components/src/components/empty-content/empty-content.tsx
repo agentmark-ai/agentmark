@@ -2,6 +2,7 @@ import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import Stack, { StackProps } from "@mui/material/Stack";
 import { Iconify } from "../iconify";
+import { Box } from "@mui/material";
 
 type EmptyContentProps = StackProps & {
   title?: string;
@@ -38,7 +39,20 @@ export default function EmptyContent({
       }}
       {...other}
     >
-      <Iconify sx={{ color: "text.disabled" }} icon="fluent:collections-empty-20-filled" width={250} />
+      {imgUrl ? (
+        <Box
+          component="img"
+          alt="empty content"
+          src={imgUrl || "/assets/icons/empty/ic_content.svg"}
+          sx={{ width: 1, maxWidth: 160 }}
+        />
+      ) : (
+        <Iconify
+          sx={{ color: "text.disabled" }}
+          icon="fluent:collections-empty-20-filled"
+          width={160}
+        />
+      )}
 
       {title && (
         <Typography

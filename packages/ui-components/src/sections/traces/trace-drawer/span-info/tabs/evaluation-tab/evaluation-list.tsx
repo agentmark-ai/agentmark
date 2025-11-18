@@ -13,13 +13,19 @@ import { ScoreData } from "@/sections/traces/types";
 import { EmptyContent } from "@/components";
 import { EvaluationItem } from "./evaluation-item";
 import { useEvaluationContext } from "./evaluation-provider";
+import { EvaluationSkeleton } from "./evaluation-skeleton";
+import TableNoData from "@/components/table/table-no-data";
 
-export const EvaluationList = () => {
+export const EvaluationList = ({
+  emptyContentImgUrl,
+}: {
+  emptyContentImgUrl?: string;
+}) => {
   const { scores, isLoading } = useEvaluationContext();
   const { t } = useTraceDrawerContext();
 
-  if (!isLoading && scores.length === 0) {
-    return <EmptyContent title={t("noEvaluationData")} />;
+  if (isLoading) {
+    return <EvaluationSkeleton />;
   }
 
   return (
@@ -46,6 +52,12 @@ export const EvaluationList = () => {
                 source={scoreData.source}
               />
             ))}
+            <TableNoData
+              title={t("noEvaluationData")}
+              sx={{ p: 3 }}
+              notFound={!isLoading && scores.length === 0}
+              imgUrl={emptyContentImgUrl}
+            />
           </TableBody>
         </Table>
       </TableContainer>

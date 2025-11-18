@@ -30,7 +30,6 @@ export function AddAnnotationDialog({ saveAnnotation }: Props) {
   const {
     setOpenAddAnnotationDialog,
     openAddAnnotationDialog,
-    fetchEvaluationsCallback,
   } = useEvaluationContext();
   const { t, selectedSpan } = useTraceDrawerContext();
 
@@ -69,10 +68,6 @@ export function AddAnnotationDialog({ saveAnnotation }: Props) {
     });
     if (result?.hasError) {
       return;
-    }
-
-    if (fetchEvaluationsCallback) {
-      await fetchEvaluationsCallback(selectedSpan?.id || "");
     }
 
     reset();

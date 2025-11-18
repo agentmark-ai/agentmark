@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/cli",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {
@@ -57,7 +57,7 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@agentmark/ui-components": "0.0.0",
+    "@agentmark/ui-components": "0.1.0",
     "@eslint/eslintrc": "^3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2",

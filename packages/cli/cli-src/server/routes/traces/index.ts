@@ -565,7 +565,7 @@ export const getUsers = async () => {
   // Calculate average requests per day
   // First, get the date range of all requests
   const dateRangeSql = `
-    SELECT 
+    SELECT
       MIN(cast(Timestamp as Real) / 1000000) AS min_ts,
       MAX(cast(Timestamp as Real) / 1000000) AS max_ts
     FROM traces

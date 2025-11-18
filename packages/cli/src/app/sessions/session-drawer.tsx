@@ -21,10 +21,12 @@ import {
   TraceDrawer as TraceDrawerComponent,
   TraceData,
   TraceInfoSkeleton,
+  ScoreData,
+  SpanData,
 } from "@agentmark/ui-components";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getTracesBySessionId } from "../../lib/api/sessions";
 import { getScoresByResourceId } from "../../lib/api/scores";
 import { useTranslations } from "next-intl";
@@ -34,6 +36,8 @@ export const SessionDrawer = () => {
   const [loading, setLoading] = useState(false);
   const [traces, setTraces] = useState<TraceData[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [scores, setScores] = useState<ScoreData[]>([]);
+  const [scoresLoading, setScoresLoading] = useState(false);
 
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
@@ -68,11 +72,31 @@ export const SessionDrawer = () => {
     fetchTraces();
   }, [sessionId]);
 
+  const handleSpanChange = useCallback(async (span: SpanData | null) => {
+    if (!span?.id) {
+      setScores([]);
+      return;
+    }
+
+    setScoresLoading(true);
+    try {
+      const fetchedScores = await getScoresByResourceId(span.id);
+      setScores(fetchedScores);
+    } catch (error) {
+      console.error("Error fetching scores:", error);
+      setScores([]);
+    } finally {
+      setScoresLoading(false);
+    }
+  }, []);
+
+
   return (
     <TraceDrawerProvider
       traces={traces}
       sessionId={sessionId || undefined}
       t={t}
+      onSpanChange={handleSpanChange}
     >
       <TraceDrawerComponent
         open={!!sessionId}
@@ -118,9 +142,8 @@ export const SessionDrawer = () => {
                         <InputOutputTab />
                         <EvaluationProvider
                           canAddAnnotation={false}
-                          fetchEvaluations={async (spanId) => {
-                            return await getScoresByResourceId(spanId);
-                          }}
+                          scores={scores}
+                          isLoading={scoresLoading}
                         >
                           <EvaluationTab>
                             <Stack spacing={2}>

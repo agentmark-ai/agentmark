@@ -22,10 +22,12 @@ import {
   TraceDrawer as TraceDrawerComponent,
   TraceData,
   TraceInfoSkeleton,
+  ScoreData,
+  SpanData,
 } from "@agentmark/ui-components";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getTraceById, getTraceGraph, GraphData } from "../../lib/api/traces";
 import { getScoresByResourceId } from "../../lib/api/scores";
 
@@ -35,6 +37,8 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
   const [error, setError] = useState<string | null>(null);
   const [graphData, setGraphData] = useState<GraphData[]>([]);
   const [graphLoading, setGraphLoading] = useState(false);
+  const [scores, setScores] = useState<ScoreData[]>([]);
+  const [scoresLoading, setScoresLoading] = useState(false);
 
   const searchParams = useSearchParams();
   const traceId = searchParams.get("traceId");
@@ -86,11 +90,30 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
     fetchGraphData();
   }, [traceId]);
 
+  const handleSpanChange = useCallback(async (span: SpanData | null) => {
+    if (!span?.id) {
+      setScores([]);
+      return;
+    }
+
+    setScoresLoading(true);
+    try {
+      const fetchedScores = await getScoresByResourceId(span.id);
+      setScores(fetchedScores);
+    } catch (error) {
+      console.error("Error fetching scores:", error);
+      setScores([]);
+    } finally {
+      setScoresLoading(false);
+    }
+  }, []);
+
   return (
     <TraceDrawerProvider
       traces={trace ? [trace] : []}
       traceId={traceId || undefined}
       t={t}
+      onSpanChange={handleSpanChange}
     >
       <TraceDrawerComponent
         open={!!traceId}
@@ -137,9 +160,8 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                         <InputOutputTab />
                         <EvaluationProvider
                           canAddAnnotation={false}
-                          fetchEvaluations={async (spanId) => {
-                            return await getScoresByResourceId(spanId);
-                          }}
+                          scores={scores}
+                          isLoading={scoresLoading}
                         >
                           <EvaluationTab>
                             <Stack spacing={2}>
