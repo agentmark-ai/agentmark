@@ -16,12 +16,27 @@ type Frontmatter = {
 export class VercelAdapterWebhookHandler {
   constructor(private readonly client: AgentMark<any, VercelAIAdapter<any, any>>) {}
 
-  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<WebhookPromptResponse> {
+  async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any>; traceName?: string; sessionId?: string; sessionName?: string }): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
+
+    // Generate traceId for this run
+    const traceId = crypto.randomUUID();
+
+    const telemetry = {
+      isEnabled: true,
+      metadata: {
+        traceId,
+        ...(options?.traceName ? { traceName: options.traceName } : {}),
+        ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
+        ...(options?.sessionName ? { sessionName: options.sessionName } : {}),
+      },
+    };
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
-      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
+      const input = options?.customProps
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
         const { usage, fullStream } = streamObject(input);
@@ -54,7 +69,9 @@ export class VercelAdapterWebhookHandler {
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
-      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
+      const input = options?.customProps
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
         const { fullStream } = streamText(input);
@@ -96,7 +113,9 @@ export class VercelAdapterWebhookHandler {
 
     if (frontmatter.image_config) {
       const prompt = await this.client.loadImagePrompt(promptAst);
-      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
+      const input = options?.customProps
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const result = await generateImage(input);
       return {
         type: "image",
@@ -106,7 +125,9 @@ export class VercelAdapterWebhookHandler {
 
     if (frontmatter.speech_config) {
       const prompt = await this.client.loadSpeechPrompt(promptAst);
-      const input = options?.customProps ? await prompt.format({ props: options.customProps }) : await prompt.formatWithTestProps();
+      const input = options?.customProps
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const result = await generateSpeech(input);
       return {
         type: "speech",
