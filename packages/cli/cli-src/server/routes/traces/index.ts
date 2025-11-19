@@ -5,6 +5,9 @@ import {
 import db from "../../database";
 
 export const exportTraces = async (traces: any[]) => {
+  // Fetch cost mappings once outside the transaction
+  const modelsCostMapping = await getModelCostMappings();
+
   // Insert array of traces into sqlite3 using transaction and prepared statement
   const insert = db.prepare(
     `
@@ -12,7 +15,7 @@ export const exportTraces = async (traces: any[]) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
-  const insertMany = db.transaction(async (traces: any[]) => {
+  const insertMany = db.transaction((traces: any[]) => {
     for (const trace of traces) {
       const isSuccess = trace.StatusCode !== 2;
       const spanAttributes = { ...trace.SpanAttributes };
@@ -20,8 +23,6 @@ export const exportTraces = async (traces: any[]) => {
         let getCost = (_a: number, _b: number) => {
           return 0;
         };
-
-        const modelsCostMapping = await getModelCostMappings();
 
         const priceMap = isSuccess
           ? modelsCostMapping[spanAttributes["gen_ai.request.model"]]
@@ -298,8 +299,6 @@ export const getSpans = async (traceId: string) => {
 };
 
 export const getTraceById = async (traceId: string) => {
-  console.log("traceId", traceId);
-
   const traceSql = `
     WITH
     trace_costs_and_tokens AS (
@@ -547,93 +546,4 @@ export const getTracesBySessionId = async (sessionId: string) => {
   }
 
   return traces;
-};
-
-export const getUsers = async () => {
-  // Base WHERE clause
-  const baseWhereClause = `
-    WHERE SpanName IN (
-      'ai.generateText.doGenerate',
-      'ai.streamText.doStream',
-      'ai.generateObject.doGenerate',
-      'ai.streamObject.doStream'
-    )
-    AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"') IS NOT NULL
-    AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"') != ''
-  `;
-
-  // Calculate average requests per day
-  // First, get the date range of all requests
-  const dateRangeSql = `
-    SELECT
-      MIN(cast(Timestamp as Real) / 1000000) AS min_ts,
-      MAX(cast(Timestamp as Real) / 1000000) AS max_ts
-    FROM traces
-    ${baseWhereClause}
-  `;
-  const dateRange = db.prepare(dateRangeSql).get() as { min_ts: number; max_ts: number } | undefined;
-  const daysDiff = dateRange ? Math.max(1, (dateRange.max_ts - dateRange.min_ts) / (1000 * 60 * 60 * 24)) : 1;
-
-  // Build user aggregation query
-  const sql = `
-    WITH user_requests AS (
-      SELECT
-        json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"') AS user_id,
-        COUNT(*) AS count,
-        SUM(COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.cost"') AS REAL), 0.0)) AS total_cost,
-        AVG(
-          COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.input_tokens"') AS INTEGER), 0) +
-          COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.output_tokens"') AS INTEGER), 0)
-        ) AS avg_tokens,
-        SUM(COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.output_tokens"') AS INTEGER), 0)) AS completion_tokens,
-        SUM(COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.input_tokens"') AS INTEGER), 0)) AS prompt_tokens
-      FROM traces
-      ${baseWhereClause}
-      GROUP BY user_id
-    ),
-    user_requests_with_avg AS (
-      SELECT
-        user_id,
-        count,
-        total_cost,
-        avg_tokens,
-        completion_tokens,
-        prompt_tokens,
-        CAST(count AS REAL) / ${daysDiff} AS avg_requests_per_day
-      FROM user_requests
-    )
-    SELECT
-      user_id,
-      count,
-      total_cost,
-      avg_tokens,
-      completion_tokens,
-      prompt_tokens,
-      avg_requests_per_day
-    FROM user_requests_with_avg
-  `;
-
-  const countSql = `
-    SELECT COUNT(DISTINCT json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"')) AS total
-    FROM traces
-    ${baseWhereClause}
-  `;
-
-  const rows = db.prepare(sql).all() as any[];
-  const countResult = db.prepare(countSql).get() as { total: number } | undefined;
-  const total = countResult?.total || 0;
-
-  return {
-    users: rows.map((row) => ({
-      id: row.user_id,
-      user_id: row.user_id,
-      count: row.count || 0,
-      total_cost: row.total_cost || 0,
-      avg_tokens: row.avg_tokens || 0,
-      completion_tokens: row.completion_tokens || 0,
-      prompt_tokens: row.prompt_tokens || 0,
-      avg_requests_per_day: row.avg_requests_per_day || 0,
-    })),
-    total: total || 0,
-  };
 };

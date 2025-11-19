@@ -12,10 +12,25 @@ export const getClientConfigContent = (options: { provider: string; languageMode
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, EvalRegistry } from "@agentmark/ai-sdk-v4-adapter";
+
+// IMPORTANT: Initialize OpenTelemetry BEFORE importing the AI SDK
 import { AgentMarkSDK } from "@agentmark/sdk";
+import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, EvalRegistry } from "@agentmark/ai-sdk-v4-adapter";
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}
+
+// Lazily initialize SDK to avoid running during build time
+let sdkInstance: AgentMarkSDK | null = null;
+function getSDK() {
+  if (!sdkInstance) {
+    const baseUrl = process.env.AGENTMARK_BASE_URL || 'http://localhost:9418';
+    const apiKey = process.env.AGENTMARK_API_KEY || '';
+    const appId = process.env.AGENTMARK_APP_ID || '';
+    sdkInstance = new AgentMarkSDK({ apiKey, appId, baseUrl });
+    sdkInstance.initTracing({ disableBatch: true });
+  }
+  return sdkInstance;
+}
 
 function createModelRegistry() {
   const modelRegistry = new VercelAIModelRegistry()
@@ -64,14 +79,8 @@ function createEvalRegistry() {
   return evalRegistry;
 }
 
-function createClient(ctx?: { env?: Record<string,string|undefined> }) {
-  const env = (ctx?.env ?? process.env) as Record<string, string | undefined>;
-  // For local development, connect to the local agentmark serve instance (default: http://localhost:9418)
-  // For cloud deployment, set AGENTMARK_BASE_URL, AGENTMARK_API_KEY, and AGENTMARK_APP_ID
-  const baseUrl = env.AGENTMARK_BASE_URL || 'http://localhost:9418';
-  const apiKey = env.AGENTMARK_API_KEY || '';
-  const appId = env.AGENTMARK_APP_ID || '';
-  const sdk = new AgentMarkSDK({ apiKey, appId, baseUrl });
+function createClient() {
+  const sdk = getSDK();
   const fileLoader = sdk.getFileLoader();
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();

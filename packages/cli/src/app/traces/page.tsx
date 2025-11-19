@@ -51,7 +51,7 @@ export default function TracesPage() {
           isLoading={isLoading}
           traceCount={traces.length}
           onTraceClick={(trace) => {
-            router.push(`/traces/${trace.id}`);
+            router.push(`/traces?traceId=${trace.id}`);
           }}
           table={table}
           t={t}

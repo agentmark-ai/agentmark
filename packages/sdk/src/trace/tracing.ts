@@ -24,8 +24,8 @@ export const initialize = ({
   const spanProcessor = disableBatch
     ? new SimpleSpanProcessor(agentmarkExporter)
     : new BatchSpanProcessor(agentmarkExporter);
+
   const sdk = new NodeSDK({
-    traceExporter: agentmarkExporter,
     sampler: new AgentmarkSampler(),
     spanProcessors: [spanProcessor],
   });

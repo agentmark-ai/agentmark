@@ -54,6 +54,7 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
   let apiServerInstance: any;
   try {
     apiServerInstance = await createApiServer(apiServerPort);
+    console.log(`✓ API Server started on http://localhost:${apiServerPort}`);
   } catch (error: any) {
     console.error('Failed to start API server:', error.message);
     process.exit(1);
@@ -75,7 +76,8 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
   // Start runner server using local tsx installation
   // Find tsx binary - will be in node_modules/.bin/tsx
   const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
-  const runnerServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--api-server-port=${apiServerPort}`], {
+  console.log(`✓ Starting Runner Server on http://localhost:${runnerPort}`);
+  const runnerServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--runner-port=${runnerPort}`, `--file-server-port=${apiServerPort}`], {
     stdio: 'inherit',
     cwd
   });
@@ -89,22 +91,26 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
       console.warn(`Port ${appPort} is busy, trying ${appPort + 1}`);
       appPort++;
     }
-  
+
+    console.log(`✓ AgentMark App started on http://localhost:${appPort}`);
+
     const server = spawn('npm', ['start', '--', '-p', `${appPort}`], {
-      stdio: 'pipe',
+      stdio: 'ignore',
       cwd: nextCwd,
       env: { ...process.env, NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiServerPort) },
     });
-  
+
     server.on('exit', (code) => process.exit(code || 0));
     server.on('error', (err) => {
       console.error('Failed to start AgentMark server:', err.message);
       process.exit(1);
     });
+
+    return server;
   }
 
   // Start the first server attempt
-  startAgentMarkServer();
+  const appServer = await startAgentMarkServer();
 
   runnerServer.on('error', (error) => {
     console.error('Failed to start runner server:', error.message);
@@ -122,27 +128,25 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
     process.exit(code || 0);
   });
 
-  // Give servers time to start, then print summary
-  setTimeout(() => {
-    console.log('\n' + '═'.repeat(70));
-    console.log('🚀 AgentMark Development Servers Running');
-    console.log('═'.repeat(70));
-    console.log(`\n  API Server:    http://localhost:${apiServerPort}`);
-    console.log(`  Runner Server: http://localhost:${runnerPort}`);
-    console.log(`  AgentMark App: http://localhost:${appPort}`);
-    console.log('\n' + '─'.repeat(70));
-    console.log('How to run prompts and experiments:');
-    console.log('─'.repeat(70));
-    console.log('\n  Open a new terminal window and run:');
-    console.log('\n  Run a prompt:');
-    console.log('  $ npm run prompt ./agentmark/party-planner.prompt.mdx');
-    console.log('\n  Run an experiment:');
-    console.log('  $ npm run experiment ./agentmark/party-planner.prompt.mdx');
-    console.log('\n  (Replace with any prompt file in ./agentmark/)');
-    console.log('\n' + '═'.repeat(70));
-    console.log('Press Ctrl+C in this terminal to stop the servers');
-    console.log('═'.repeat(70) + '\n');
-  }, 3000);
+  // Print summary after servers have started
+  console.log('\n' + '═'.repeat(70));
+  console.log('🚀 AgentMark Development Servers');
+  console.log('═'.repeat(70));
+  console.log(`\n  API Server:    http://localhost:${apiServerPort}`);
+  console.log(`  Runner Server: http://localhost:${runnerPort}`);
+  console.log(`  AgentMark App: http://localhost:${appPort}`);
+  console.log('\n' + '─'.repeat(70));
+  console.log('How to run prompts and experiments:');
+  console.log('─'.repeat(70));
+  console.log('\n  Open a new terminal window and run:');
+  console.log('\n  Run a prompt:');
+  console.log('  $ npm run prompt ./agentmark/party-planner.prompt.mdx');
+  console.log('\n  Run an experiment:');
+  console.log('  $ npm run experiment ./agentmark/party-planner.prompt.mdx');
+  console.log('\n  (Replace with any prompt file in ./agentmark/)');
+  console.log('\n' + '═'.repeat(70));
+  console.log('Press Ctrl+C in this terminal to stop the servers');
+  console.log('═'.repeat(70) + '\n');
 
   // Handle process termination
   let isShuttingDown = false;
@@ -156,6 +160,7 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
       try { apiServerInstance.close(); } catch { }
     }
     if (runnerServer.pid) killProcessTree(runnerServer.pid);
+    if (appServer?.pid) killProcessTree(appServer.pid);
 
     setTimeout(() => process.exit(0), 500);
   };

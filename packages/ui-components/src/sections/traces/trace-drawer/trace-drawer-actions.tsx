@@ -14,9 +14,13 @@ export const TraceDrawerAddToDatasetButton = ({
   tooltipText,
   disabled,
 }: AddToDatasetButtonProps) => {
-  // TODO: Implement add to dataset
   const handleAddToDataset = () => {
-    console.log("add to dataset");
+    // TODO: Implement add to dataset functionality
+    // This should:
+    // 1. Extract trace data (inputs, outputs, metadata)
+    // 2. Open a modal to select target dataset
+    // 3. Save trace as a dataset entry via API
+    console.warn('Add to dataset functionality not yet implemented');
   };
 
   return (

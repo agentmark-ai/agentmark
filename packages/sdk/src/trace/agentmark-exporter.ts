@@ -73,7 +73,8 @@ export class AgentmarkExporter implements SpanExporter {
     done?: (result: ExportResult) => void
   ) {
     const spanData = spans.map((span) => this.toAgentmarkFormat(span));
-    fetch(`${this.baseUrl}/${AGENTMARK_TRACE_ENDPOINT}`, {
+    const url = `${this.baseUrl}/${AGENTMARK_TRACE_ENDPOINT}`;
+    fetch(url, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `${this.apiKey}`,
@@ -86,14 +87,17 @@ export class AgentmarkExporter implements SpanExporter {
         if (response.ok) {
           done?.({ code: ExportResultCode.SUCCESS });
         } else {
+          const errorText = await response.text();
+          console.error(`[AgentmarkExporter] Failed to send spans: ${response.status} ${response.statusText}`, errorText);
           done?.({
             code: ExportResultCode.FAILED,
             error: new Error(response.statusText),
           });
-          throw new Error(await response.text());
+          throw new Error(errorText);
         }
       })
       .catch((e) => {
+        console.error('[AgentmarkExporter] Error sending spans:', e);
         done?.({ code: ExportResultCode.FAILED, error: e });
         throw e;
       });

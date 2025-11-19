@@ -12,7 +12,6 @@ import {
   getTraceGraph,
   getSessions,
   getTracesBySessionId,
-  getUsers,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
 
@@ -534,16 +533,6 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting traces for session:", error);
       return res.status(500).json({ error: "Failed to get traces for session" });
-    }
-  });
-
-  app.get("/v1/users", async (_req: Request, res: Response) => {
-    try {
-      const result = await getUsers();
-      return res.json({ users: result.users, total: result.total });
-    } catch (error) {
-      console.error("Error getting users:", error);
-      return res.status(500).json({ error: "Failed to get users" });
     }
   });
 

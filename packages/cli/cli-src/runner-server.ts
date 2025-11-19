@@ -350,5 +350,23 @@ ${runExperimentOptions}
 
   const server = createServer(app);
   await new Promise<void>(resolve => server.listen(port, resolve));
+
+  // Graceful shutdown handlers for when tsx --watch restarts
+  const FORCE_SHUTDOWN_TIMEOUT_MS = 5000;
+  const shutdown = () => {
+    server.close(() => {
+      process.exit(0);
+    });
+
+    // Force close after timeout to prevent hanging processes
+    setTimeout(() => {
+      process.exit(1);
+    }, FORCE_SHUTDOWN_TIMEOUT_MS);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+  process.on('SIGHUP', shutdown);
+
   return server;
 }

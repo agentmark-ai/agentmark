@@ -80,7 +80,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   try {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, options: { shouldStream: true } } });
+      // Extract prompt name from filepath for traceName
+      const promptName = path.basename(resolvedFilepath, '.mdx');
+      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, options: { shouldStream: true, traceName: promptName } } });
       let res;
       try {
         res = await fetch(server, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
