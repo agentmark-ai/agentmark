@@ -52,11 +52,19 @@ function convertMessages(messages: RichChatMessage[]): ModelMessage[] {
   });
 }
 
-type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
+type ToolInputOutput<R> = R extends {
+  __tools: { output: infer O; input: infer I };
+}
+  ? { input: I; output: O }
+  : never;
 
-type ToolSetMap<O extends Record<string, any>> = {
-  [K in keyof O]: Tool<any, O[K]>;
-};
+type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};
+
+type ToolSetMap<O extends Record<string, any>> = Prettify<{
+  [K in keyof O["output"]]: Tool<O["input"][K]["args"], O["output"][K]>;
+}>;
 
 export type VercelAITextParams<TS extends Record<string, Tool>> = {
   model: LanguageModel;
@@ -75,7 +83,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
 };
 
 export interface VercelAIObjectParams<T> {
-  output?: 'object';
+  output?: "object";
   model: LanguageModel;
   messages: ModelMessage[];
   schema: Schema<T>;
@@ -243,12 +251,12 @@ export class VercelAIAdapter<
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): Promise<VercelAITextParams<ToolSetMap<ToolRet<R>>>> {
+  ): Promise<VercelAITextParams<ToolSetMap<ToolInputOutput<R>>>> {
     const { model_name: name, ...settings } = input.text_config;
     const modelCreator = this.modelRegistry.getModelFunction(name);
     const model = modelCreator(name, options) as LanguageModel;
 
-    type Ret = ToolRet<R>;
+    type Ret = ToolInputOutput<R>;
 
     let toolsObj: ToolSetMap<Ret> | undefined;
 
@@ -279,7 +287,10 @@ export class VercelAIAdapter<
           );
         }
 
-        const def = defAny as { description?: string; parameters: Record<string, any> };
+        const def = defAny as {
+          description?: string;
+          parameters: Record<string, any>;
+        };
 
         const impl = this.toolsRegistry?.has(key)
           ? this.toolsRegistry.get(key)
@@ -287,7 +298,7 @@ export class VercelAIAdapter<
               Promise.reject(new Error(`Tool ${String(key)} not registered`));
 
         (toolsObj as any)[key] = {
-          type: 'function' as const,
+          type: "function" as const,
           inputSchema: jsonSchema(def.parameters),
           description: def.description ?? "",
           execute: (input: any, toolCallOptions: ToolCallOptions) => {
@@ -295,13 +306,16 @@ export class VercelAIAdapter<
             const toolOptions: ToolCallOptions = {
               ...toolCallOptions,
               experimental_context: {
-                ...(toolCallOptions.experimental_context as Record<string, unknown> ?? {}),
-                ...(options.toolContext as Record<string, unknown> ?? {}),
+                ...((toolCallOptions.experimental_context as Record<
+                  string,
+                  unknown
+                >) ?? {}),
+                ...((options.toolContext as Record<string, unknown>) ?? {}),
               } as unknown,
             };
             return impl(input, toolOptions);
           },
-        } as Tool<any, Ret[typeof key]>;
+        } as Tool<any, any>;
       }
     }
 
@@ -353,7 +367,7 @@ export class VercelAIAdapter<
     const model = modelCreator(name, options) as LanguageModel;
 
     return {
-      output: 'object' as const,
+      output: "object" as const,
       model,
       messages: convertMessages(input.messages),
       schema: jsonSchema(input.object_config.schema),
@@ -435,4 +449,3 @@ export class VercelAIAdapter<
     };
   }
 }
-
