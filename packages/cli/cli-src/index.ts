@@ -12,7 +12,6 @@ import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
-import initDeploy from './commands/init-deploy';
 
 // Read version from package.json
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
@@ -95,17 +94,6 @@ program
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
       await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
-    } catch (error) {
-      program.error((error as Error).message);
-    }
-  });
-
-program
-  .command("init-deploy")
-  .description('Setup deployment configuration for Railway, Render, or Docker')
-  .action(async () => {
-    try {
-      await (initDeploy as any)();
     } catch (error) {
       program.error((error as Error).message);
     }
