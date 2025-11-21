@@ -7,11 +7,21 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+// Configuration constants
+const CONFIG_EXPIRATION_DAYS = 30;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const WEBHOOK_SECRET_BYTES = 32;
+const SUBDOMAIN_RANDOM_BYTES = 4;
+
 export interface LocalConfig {
   webhookSecret?: string;
   tunnelSubdomain?: string;
   createdAt?: string;
 }
+
+// Cache for loaded config to avoid repeated file I/O
+let cachedConfig: LocalConfig | null = null;
+let cachedConfigPath: string | null = null;
 
 function getConfigPath(): string {
   // Use .agentmark directory in project root for config
@@ -67,7 +77,7 @@ function ensureGitignoreEntry(projectRoot: string): void {
  * Generates a secure random webhook secret
  */
 function generateWebhookSecret(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(WEBHOOK_SECRET_BYTES).toString('hex');
 }
 
 /**
@@ -75,40 +85,54 @@ function generateWebhookSecret(): string {
  */
 function generateSubdomain(): string {
   // Use a memorable format: agentmark-{random}
-  const randomPart = crypto.randomBytes(4).toString('hex');
+  const randomPart = crypto.randomBytes(SUBDOMAIN_RANDOM_BYTES).toString('hex');
   return `agentmark-${randomPart}`;
 }
 
 /**
  * Loads the local development configuration.
  * Creates a new config with generated secrets if none exists.
+ * Results are cached to avoid repeated file I/O.
  */
 export function loadLocalConfig(): LocalConfig {
   const configPath = getConfigPath();
+
+  // Return cached config if path hasn't changed
+  if (cachedConfig && cachedConfigPath === configPath) {
+    return cachedConfig;
+  }
 
   try {
     if (fs.existsSync(configPath)) {
       const data = fs.readFileSync(configPath, 'utf-8');
       const config = JSON.parse(data) as LocalConfig;
 
-      // Check if config is older than 30 days
+      // Check if config is older than expiration period
       if (config.createdAt) {
         const createdDate = new Date(config.createdAt);
-        const daysSinceCreation = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+        const daysSinceCreation = (Date.now() - createdDate.getTime()) / MS_PER_DAY;
 
-        if (daysSinceCreation > 30) {
-          console.log('⚠️  Local config is older than 30 days, regenerating...');
-          return createNewConfig();
+        if (daysSinceCreation > CONFIG_EXPIRATION_DAYS) {
+          console.log(`⚠️  Local config is older than ${CONFIG_EXPIRATION_DAYS} days, regenerating...`);
+          const newConfig = createNewConfig();
+          cachedConfig = newConfig;
+          cachedConfigPath = configPath;
+          return newConfig;
         }
       }
 
+      cachedConfig = config;
+      cachedConfigPath = configPath;
       return config;
     }
   } catch (error) {
     console.error('Error reading local config:', error);
   }
 
-  return createNewConfig();
+  const newConfig = createNewConfig();
+  cachedConfig = newConfig;
+  cachedConfigPath = configPath;
+  return newConfig;
 }
 
 /**
@@ -166,8 +190,8 @@ export function getTunnelSubdomain(): string | undefined {
 export function displayConfigInfo(config: LocalConfig): void {
   const configPath = getConfigPath();
   const daysRemaining = config.createdAt
-    ? Math.ceil(30 - (Date.now() - new Date(config.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-    : 30;
+    ? Math.ceil(CONFIG_EXPIRATION_DAYS - (Date.now() - new Date(config.createdAt).getTime()) / MS_PER_DAY)
+    : CONFIG_EXPIRATION_DAYS;
 
   console.log('\n' + '═'.repeat(70));
   console.log('🔐 Local Development Security');
@@ -176,7 +200,7 @@ export function displayConfigInfo(config: LocalConfig): void {
   console.log(`  Config Location: ${configPath}`);
   console.log(`  Valid for: ${daysRemaining} more days`);
   console.log('\n  This secret is automatically used for webhook signature verification.');
-  console.log('  It\'s stored locally and regenerates every 30 days for security.');
+  console.log(`  It's stored locally and regenerates every ${CONFIG_EXPIRATION_DAYS} days for security.`);
 
   if (!process.env.AGENTMARK_WEBHOOK_SECRET) {
     console.log('\n  💡 To use a custom secret, set: AGENTMARK_WEBHOOK_SECRET=your-secret');
