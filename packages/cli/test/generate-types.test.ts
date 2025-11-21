@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'fs-extra';
-import generateTypes from '../src/commands/generate-types';
+import generateTypes from '../cli-src/commands/generate-types';
 import { findPromptFiles, generateTypeDefinitions, fetchPromptsFrontmatter } from '@agentmark/shared-utils';
 
 describe('generate-types', () => {

@@ -163,7 +163,7 @@ describe('run-experiment', () => {
 
   it('passes threshold when all evals PASS', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await runExperiment(dummyPath, { thresholdPercent: 100, server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Experiment passed threshold/);
@@ -171,13 +171,13 @@ describe('run-experiment', () => {
 
   it('fails threshold when evals FAIL', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).rejects.toThrow(/Experiment failed/);
   });
 
   it('honors --skip-eval and does not enforce threshold', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await runExperiment(dummyPath, { skipEval: true, thresholdPercent: 100, server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).not.toMatch(/Experiment failed/);
@@ -209,7 +209,7 @@ describe('run-experiment', () => {
       }
     } as any;
 
-    const runExperimentCmd = (await import('../src/commands/run-experiment')).default;
+    const runExperimentCmd = (await import('../cli-src/commands/run-experiment')).default;
     await runExperimentCmd(tempPath, { skipEval: false, server: 'http://localhost:9417' });
 
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
@@ -227,13 +227,13 @@ describe('run-experiment', () => {
   it('errors when dataset is not present', async () => {
     // Provide runner that throws a dataset error
     currentRunner = { async runExperiment(){ throw new Error('Loader or dataset is not defined for this prompt. Please provide valid loader and dataset.'); } } as any;
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await expect(runExperiment(dummyPath, {})).rejects.toThrow(/Loader or dataset is not defined/);
   });
 
   it('validates threshold values (0-100 inclusive)', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await expect(runExperiment(dummyPath, { thresholdPercent: 101 })).rejects.toThrow(/Invalid threshold/);
     await expect(runExperiment(dummyPath, { thresholdPercent: -1 })).rejects.toThrow(/Invalid threshold/);
     await expect(runExperiment(dummyPath, { thresholdPercent: 0 })).resolves.toBeUndefined();
@@ -244,7 +244,7 @@ describe('run-experiment', () => {
       { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
       { dataset: { input: { b: 2 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }
     ]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await runExperiment(dummyPath, { format: 'csv', server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
@@ -263,7 +263,7 @@ describe('run-experiment', () => {
       { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
       { dataset: { input: { b: 2 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }
     ]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await runExperiment(dummyPath, { format: 'json', server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
@@ -287,7 +287,7 @@ describe('run-experiment', () => {
 
   it('defaults to table format when no format is specified', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await runExperiment(dummyPath, { server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
 
@@ -370,7 +370,7 @@ ${yamlContent}
 
     // Force module reload to get the updated implementation
     vi.resetModules();
-    runExperiment = (await import('../src/commands/run-experiment')).default;
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
 
     try {
       await runExperiment(promptPath, { server: 'http://localhost:9417', skipEval: true });

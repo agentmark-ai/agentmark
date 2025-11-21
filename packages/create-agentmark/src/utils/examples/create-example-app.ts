@@ -269,6 +269,7 @@ export const createExampleApp = async (
 
 import { createWebhookServer } from '@agentmark/cli/runner-server';
 import { ${handlerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import { AgentMarkSDK } from '@agentmark/sdk';
 import path from 'path';
 
 async function main() {
@@ -281,8 +282,16 @@ async function main() {
   const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
   const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
 
-  const handler = new ${handlerClassName}(client as any);
+  // Initialize OpenTelemetry tracing to export traces to the API server
   const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+  const sdk = new AgentMarkSDK({
+    apiKey: '',
+    appId: '',
+    baseUrl: fileServerUrl,
+  });
+  sdk.initTracing({ disableBatch: true });
+
+  const handler = new ${handlerClassName}(client as any);
   const templatesDirectory = path.join(process.cwd(), 'agentmark');
 
   await createWebhookServer({
