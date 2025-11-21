@@ -1,5 +1,5 @@
 ---
-name: mcp-example
+name: mcp-text
 text_config:
   model_name: test-model
   tools:
@@ -17,15 +17,20 @@ input_schema:
   properties:
     userMessage:
       type: string
-  required: [userMessage]
+  required:
+    - userMessage
 ---
 
 <System>
-Answer succinctly.
+You are a helpful assistant.
 </System>
 
 <User>
 {props.userMessage}
 </User>
+
+<Assistant>
+Working on it.
+</Assistant>
 
 

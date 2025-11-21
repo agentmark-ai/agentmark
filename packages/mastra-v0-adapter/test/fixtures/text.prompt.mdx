@@ -2,6 +2,9 @@
 name: math
 text_config:
   model_name: test-model
+test_settings:
+  dataset: text.dataset.jsonl
+  evals: [exact_match]
 input_schema:
   type: object
   properties:
@@ -21,6 +24,4 @@ You are a helpful math tutor.
 
 <Assistant>
 Here's your answer!
-</Assistant>
-
-
+</Assistant> 
