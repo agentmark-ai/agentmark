@@ -14,13 +14,13 @@ import {
   VercelAIModelRegistry,
   VercelAIObjectParams,
   VercelAIToolRegistry,
-} from "./adapter.js";
+} from "./adapter";
 import type {
   DatasetErrorChunk,
   DatasetStreamChunk,
 } from "@agentmark/prompt-core";
 import type { Root } from "mdast";
-import { McpServerRegistry } from "./mcp/mcp-server-registry.js";
+import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
 export interface VercelAIObjectPrompt<
   T extends PromptShape<T>,
@@ -91,7 +91,7 @@ export {
   VercelAIToolRegistry,
 } from "./adapter.js";
 
-export { McpServerRegistry } from "./mcp/mcp-server-registry.js";
+export { McpServerRegistry } from "./mcp/mcp-server-registry";
 
 export { EvalRegistry } from "@agentmark/prompt-core";
 
