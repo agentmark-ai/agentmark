@@ -5,8 +5,7 @@
  * Designed for production deployments on Railway, Render, etc.
  */
 
-import { createWebhookServer } from './runner-server/adapters/express';
-import type { WebhookHandler } from './runner-server/types';
+import { createWebhookServer, type WebhookHandler } from './runner-server';
 
 async function startDeploymentServer() {
   const port = parseInt(process.env.PORT || process.env.WEBHOOK_PORT || '9417', 10);

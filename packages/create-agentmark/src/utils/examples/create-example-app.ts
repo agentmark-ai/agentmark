@@ -1,7 +1,6 @@
 import fs from "fs-extra";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import * as path from "path";
-import { execSync } from "child_process";
 import { Providers } from "../providers.js";
 import {
   setupPackageJson,
@@ -13,11 +12,6 @@ import {
   getClientConfigContent,
 } from "./templates/index.js";
 import {
-  getNextJsApiRouteContent,
-  getNextJsReadmeContent,
-  getRailwayJsonContent,
-  getRenderYamlContent,
-  getDockerfileContent,
   getDeploymentGuideContent,
 } from "./templates/deployment-templates.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
@@ -127,68 +121,16 @@ const setupMCPServer = (client: string, targetPath: string) => {
   }
 };
 
-const createDeploymentFiles = async (
-  platform: string,
-  targetPath: string,
-  adapterName: string,
-  handlerClassName: string
-) => {
-  const folderName = targetPath.replace("./", "");
+const createDeploymentGuide = (targetPath: string) => {
+  console.log('Creating deployment guide...');
 
-  switch (platform) {
-    case 'nextjs': {
-      // Create Next.js API route only
-      console.log('Creating Next.js API route...');
+  // Create DEPLOYMENT.md guide
+  fs.writeFileSync(
+    path.join(targetPath, 'DEPLOYMENT.md'),
+    getDeploymentGuideContent()
+  );
 
-      // Create app/api directory structure
-      const apiDir = path.join(targetPath, 'app', 'api', 'agentmark');
-      fs.ensureDirSync(apiDir);
-
-      // Create API route
-      fs.writeFileSync(
-        path.join(apiDir, 'route.ts'),
-        getNextJsApiRouteContent(adapterName, handlerClassName)
-      );
-
-      // Create next.config.js
-      const nextConfig = `/** @type {import('next').NextConfig} */
-const nextConfig = {
-  serverExternalPackages: [
-    '@agentmark/cli',
-    '@agentmark/ai-sdk-v4-adapter',
-    '@agentmark/prompt-core',
-    '@agentmark/sdk',
-    '@agentmark/shared-utils',
-  ],
-};
-
-module.exports = nextConfig;
-`;
-      fs.writeFileSync(path.join(targetPath, 'next.config.js'), nextConfig);
-
-      // Create README
-      fs.writeFileSync(path.join(targetPath, 'README.md'), getNextJsReadmeContent(folderName));
-
-      console.log('✅ Next.js API route created');
-      break;
-    }
-
-    case 'express':
-    default: {
-      // Express: Only create deployment guide (configs are opt-in via 'agentmark init-deploy')
-      console.log('Creating deployment guide...');
-
-      // Create DEPLOYMENT.md guide
-      fs.writeFileSync(
-        path.join(targetPath, 'DEPLOYMENT.md'),
-        getDeploymentGuideContent()
-      );
-
-      console.log('✅ Deployment guide created: DEPLOYMENT.md');
-      console.log('   To setup deployment configs, run: agentmark init-deploy');
-      break;
-    }
-  }
+  console.log('✅ Deployment guide created: DEPLOYMENT.md');
 };
 
 export const createExampleApp = async (
@@ -310,9 +252,8 @@ main().catch((err) => {
 
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
 
-    // Create deployment guide (always Express for local dev)
-    console.log('Creating deployment guide...');
-    await createDeploymentFiles('express', targetPath, adapterName, handlerClassName);
+    // Create deployment guide
+    createDeploymentGuide(targetPath);
 
     // Create .env file with webhook URL configuration
     // Always use Express webhook server (port 9417) for local development

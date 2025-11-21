@@ -1,20 +1,30 @@
 /**
- * Express adapter for AgentMark webhook server.
- * Provides both a full server (createWebhookServer) and middleware (createExpressMiddleware).
+ * AgentMark Webhook Server
+ *
+ * This file provides the webhook server for local development,
+ * used to execute prompts and experiments via Express.
  */
 
 import express, { Request, Response, RequestHandler } from 'express';
 import { createServer, Server } from 'node:http';
-import { handleWebhookRequest } from '../core';
-import type { WebhookHandler } from '../types';
+import { type WebhookPromptResponse, type WebhookDatasetResponse } from '@agentmark/prompt-core';
+import { handleWebhookRequest } from './runner-server/core';
 import {
   verifyWebhookSignature,
   shouldSkipVerification,
   type SignatureVerificationOptions
-} from '../middleware/signature-verification';
-import { getWebhookSecret } from '../../config';
+} from './runner-server/middleware/signature-verification';
+import { getWebhookSecret } from './config';
 
-export interface ExpressWebhookServerOptions {
+/**
+ * Generic webhook handler interface
+ */
+export interface WebhookHandler {
+  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<WebhookPromptResponse>;
+  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string): Promise<WebhookDatasetResponse>;
+}
+
+export interface WebhookServerOptions {
   port?: number;
   handler: WebhookHandler;
   fileServerUrl?: string;
@@ -28,19 +38,8 @@ export interface ExpressWebhookServerOptions {
 
 /**
  * Creates an Express middleware handler for AgentMark webhook requests.
- * Use this when you want to mount the webhook handler at a custom path in your existing Express app.
- *
- * @example
- * ```typescript
- * import express from 'express';
- * import { createExpressMiddleware } from '@agentmark/cli/runner-server/adapters/express';
- *
- * const app = express();
- * app.post('/api/agentmark', createExpressMiddleware(handler));
- * app.listen(3000);
- * ```
  */
-export function createExpressMiddleware(
+function createMiddleware(
   handler: WebhookHandler,
   signatureOptions?: SignatureVerificationOptions
 ): RequestHandler {
@@ -133,25 +132,14 @@ export function createExpressMiddleware(
 }
 
 /**
- * Creates a complete Express HTTP server for AgentMark webhook handler.
- * This is the full development server with landing page and health checks.
- * Use this for local development or self-hosted deployments.
+ * Creates an HTTP server that wraps a webhook handler instance.
+ * This server provides endpoints for executing prompts and experiments via HTTP.
+ * Used by the CLI and local development workflows.
  *
- * @example
- * ```typescript
- * import { createWebhookServer } from '@agentmark/cli/runner-server/adapters/express';
- *
- * const server = await createWebhookServer({
- *   port: 9417,
- *   handler: myHandler,
- *   fileServerUrl: 'http://localhost:9418',
- *   templatesDirectory: './agentmark'
- * });
- *
- * console.log('Server listening on port 9417');
- * ```
+ * @param options - Server configuration options
+ * @returns HTTP server instance
  */
-export async function createWebhookServer(options: ExpressWebhookServerOptions): Promise<Server> {
+export async function createWebhookServer(options: WebhookServerOptions): Promise<Server> {
   const { port = 9417, handler, signatureVerification } = options;
 
   // Setup signature verification options
@@ -374,7 +362,7 @@ ${promptsList}
   });
 
   // Mount the webhook handler middleware at POST /
-  app.post('/', createExpressMiddleware(handler, sigOptions));
+  app.post('/', createMiddleware(handler, sigOptions));
 
   // Create HTTP server and start listening
   const server = createServer(app);
@@ -382,3 +370,7 @@ ${promptsList}
 
   return server;
 }
+
+// Re-export core handler and types
+export { handleWebhookRequest } from './runner-server/core';
+export type { WebhookRequest, WebhookResponse } from './runner-server/types';
