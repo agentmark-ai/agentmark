@@ -1,4 +1,4 @@
-import type { Loader, PromptShape } from "@agentmark/prompt-core";
+import type { Loader, PromptShape, EvalRegistry } from "@agentmark/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraToolRegistry } from "./tool-registry";
 import { MastraAdapter } from "./adapter";
@@ -12,6 +12,7 @@ export function createAgentMarkClient<
   loader?: Loader<any>;
   modelRegistry?: MastraModelRegistry;
   toolRegistry?: TTools;
+  evalRegistry?: EvalRegistry;
   mcpServers?: McpServers;
 }): MastraAgentMark<D, TTools, MastraAdapter<D, TTools>> {
   const adapter = new MastraAdapter<D, TTools>(
@@ -22,11 +23,14 @@ export function createAgentMarkClient<
   return new MastraAgentMark<D, TTools, MastraAdapter<D, TTools>>({
     loader: opts.loader,
     adapter,
+    evalRegistry: opts.evalRegistry,
   });
 }
 
 export { MastraModelRegistry } from "./model-registry";
 export { MastraToolRegistry } from "./tool-registry";
+export { MastraAdapterRunner } from "./runner";
+export { EvalRegistry } from "@agentmark/prompt-core";
 
 export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
 

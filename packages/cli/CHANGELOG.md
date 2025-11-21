@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 2.3.0
+
+### Minor Changes
+
+- 82ca057: Add status message in trace span for failure
+
 ## 2.2.0
 
 ### Minor Changes
