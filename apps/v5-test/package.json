@@ -3,12 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "test": "tsx --tsconfig ../../packages/ai-sdk-v5-adapter/tsconfig.json index.ts",
-    "test:text": "tsx --tsconfig ../../packages/ai-sdk-v5-adapter/tsconfig.json text-example.ts",
-    "test:object": "tsx --tsconfig ../../packages/ai-sdk-v5-adapter/tsconfig.json object-example.ts",
-    "test:tools": "tsx --tsconfig ../../packages/ai-sdk-v5-adapter/tsconfig.json tools-example.ts"
-  },
+  "scripts": {},
   "dependencies": {
     "@agentmark/ai-sdk-v5-adapter": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",

@@ -15,7 +15,7 @@ vi.mock("ai", async () => {
     experimental_generateImage: vi.fn(async (_input: any) => ({ images: [{ mediaType: "image/png", base64: "iVBORw0KGgo=" }] })),
     experimental_generateSpeech: vi.fn(async (_input: any) => ({ audio: { mediaType: "audio/mpeg", base64: "base64audio", format: "mp3" } })),
     streamText: vi.fn((input: any) => ({
-      fullStream: (async function* () { yield { type: 'text-delta', textDelta: 'TEXT' }; yield { type: 'finish', finishReason: 'stop', usage: { totalTokens: 10 } }; })()
+      fullStream: (async function* () { yield { type: 'text-delta', textDelta: 'TEXT' }; yield { type: 'finish', finishReason: 'stop', totalUsage: { totalTokens: 10 } }; })()
     })),
     streamObject: vi.fn((input: any) => ({
       usage: Promise.resolve({ totalTokens: 15 }),

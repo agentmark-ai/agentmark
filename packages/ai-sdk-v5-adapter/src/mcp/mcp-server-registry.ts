@@ -6,9 +6,6 @@ import type {
 import { interpolateEnvInObject } from "@agentmark/prompt-core";
 import type { Tool } from "ai";
 
-import { experimental_createMCPClient } from "@ai-sdk/mcp";
-import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
-
 type MCPClient = {
   tools(): Promise<Record<string, Tool<any, any>>>;
 };
@@ -81,19 +78,26 @@ export class McpServerRegistry {
     const cfg = interpolateEnvInObject(rawCfg);
 
     if (isUrlConfig(cfg)) {
-      return experimental_createMCPClient({
+      const createClient = (await import("@ai-sdk/mcp"))
+        .experimental_createMCPClient;
+      return createClient({
         transport: { type: "sse", url: cfg.url, headers: cfg.headers },
       });
     }
 
     if (isStdioConfig(cfg)) {
+      const { Experimental_StdioMCPTransport } = await import(
+        "@ai-sdk/mcp/mcp-stdio"
+      );
       const transport = new Experimental_StdioMCPTransport({
         command: cfg.command,
         args: cfg.args,
         cwd: cfg.cwd,
         env: cfg.env,
       });
-      return experimental_createMCPClient({
+      const createClient = (await import("@ai-sdk/mcp"))
+        .experimental_createMCPClient;
+      return createClient({
         transport,
       });
     }

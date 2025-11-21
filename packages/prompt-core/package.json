@@ -38,9 +38,6 @@
     "@agentmark/templatedx": "^0.8.1",
     "zod": "^3.23.8"
   },
-  "peerDependencies": {
-    "ai": "^4.0.0"
-  },
   "files": [
     "dist/",
     "assets/",

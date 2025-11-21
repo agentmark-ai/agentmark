@@ -40,9 +40,9 @@ describe('init', () => {
       expect(devDepsCmd).toContain('@agentmark/cli');
       expect(devDepsCmd).toContain('typescript');
 
-      const appInstallCmd = calls.find(c => c.startsWith('npm install ') && c.includes('@agentmark/ai-sdk-v4-adapter')) || '';
-      expect(appInstallCmd).toContain(' ai@^4');
-      expect(appInstallCmd).toMatch(/@ai-sdk\/openai@\^1/);
+      const appInstallCmd = calls.find(c => c.startsWith('npm install ') && c.includes('@agentmark/ai-sdk-v5-adapter')) || '';
+      expect(appInstallCmd).toContain(' ai@^5');
+      expect(appInstallCmd).toMatch(/@ai-sdk\/openai@\^2/);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -121,7 +121,7 @@ describe('init', () => {
 
       const content = fs.readFileSync(devEntryPath, 'utf8');
       expect(content).toContain("import { createRunnerServer } from '@agentmark/cli/runner-server'");
-      expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/ai-sdk-v4-adapter/runner'");
+      expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/ai-sdk-v5-adapter/runner'");
       expect(content).toContain("import path from 'path'");
       expect(content).toContain('new VercelAdapterRunner(client');
       expect(content).toContain('fileServerUrl');

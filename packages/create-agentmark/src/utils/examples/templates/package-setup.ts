@@ -45,17 +45,17 @@ export const installDependencies = (
 
     // Install the common packages
     // Use different package names for different providers
-    // Pin required major versions: ai@v4, @ai-sdk/<provider>@v1
-    const providerPackage = modelProvider === "ollama" ? "ollama-ai-provider" : `@ai-sdk/${modelProvider}@^1`;
+    // Pin required major versions: ai@v5, @ai-sdk/<provider>@v2
+    const providerPackage = modelProvider === "ollama" ? "ollama-ai-provider" : `@ai-sdk/${modelProvider}@^2`;
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
     const installArgs = [
       "install",
       "dotenv",
       "@agentmark/prompt-core",
-      "@agentmark/ai-sdk-v4-adapter",
+      "@agentmark/ai-sdk-v5-adapter",
       "@agentmark/sdk",
       providerPackage,
-      "ai@^4",
+      "ai@^5",
     ];
 
     execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
