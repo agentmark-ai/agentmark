@@ -1,5 +1,12 @@
 # agentmark-demo
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [d8b685e]
+  - @agentmark/mastra-v0-adapter@1.1.0
+
 ## 0.1.0
 
 ### Minor Changes
