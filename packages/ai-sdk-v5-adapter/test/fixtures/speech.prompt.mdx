@@ -1,0 +1,22 @@
+---
+name: speech
+speech_config:
+  model_name: test-model
+  voice: nova
+test_settings:
+  dataset: speech.dataset.jsonl
+input_schema:
+  type: object
+  properties:
+    text:
+      type: string
+  required:
+    - text
+---
+<SpeechPrompt>
+Please say: Hello world.
+</SpeechPrompt>
+<System>
+Optional instructions.
+</System>
+
