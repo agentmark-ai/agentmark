@@ -1,5 +1,11 @@
 # @agentmark/mastra-v0-adapter
 
+## 1.1.0
+
+### Minor Changes
+
+- d8b685e: Add mastra runner
+
 ## 1.0.0
 
 ### Minor Changes
