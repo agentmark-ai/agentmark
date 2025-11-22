@@ -127,7 +127,10 @@ export async function handleWebhookRequest(
         return {
           type: 'stream',
           stream: response.stream,
-          headers: response.streamHeader || { 'AgentMark-Streaming': 'true' }
+          headers: {
+            ...(response.streamHeader || { 'AgentMark-Streaming': 'true' }),
+            'X-AgentMark-TraceId': traceId
+          }
         };
       }
 
@@ -135,7 +138,7 @@ export async function handleWebhookRequest(
       console.log('   ✓ Prompt executed successfully');
       return {
         type: 'json',
-        data: response,
+        data: { ...response, traceId },
         status: 200
       };
     }

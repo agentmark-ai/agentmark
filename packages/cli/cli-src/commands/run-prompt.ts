@@ -95,8 +95,11 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   try {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      const promptPath = path.basename(resolvedFilepath);
-      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath, options: { shouldStream: true } } });
+      // Get prompt name from frontmatter
+      const { getFrontMatter } = await import('@agentmark/templatedx');
+      const frontmatter = getFrontMatter(ast) as { name?: string };
+      const promptName = frontmatter.name;
+      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath: promptName, options: { shouldStream: true } } });
 
       // Add webhook signature if secret is available
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -145,7 +148,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         throw new Error(msg);
       }
       const isStreaming = !!res.headers.get('AgentMark-Streaming');
-      const resp = isStreaming ? { type: 'stream', stream: res.body! } : await res.json();
+      const traceId = res.headers.get('X-AgentMark-TraceId');
+      const resp = isStreaming ? { type: 'stream', stream: res.body!, traceId } : await res.json();
       // Ensure a visible header precedes results; for streams use prompt frontmatter, else fallback to response type
       const respType = (resp as any)?.type;
       const nonStreamHeader = respType === 'object' ? 'Object' : respType === 'image' ? 'Image' : respType === 'speech' ? 'Speech' : 'Text';
@@ -231,6 +235,10 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
         }
+        // Display trace link
+        if ((resp as any).traceId) {
+          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${(resp as any).traceId}`);
+        }
         console.log('');
       } else {
         // Non-streaming responses
@@ -273,6 +281,10 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log('\n' + '─'.repeat(60));
           console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
+        }
+        // Display trace link
+        if ((resp as any).traceId) {
+          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${(resp as any).traceId}`);
         }
         console.log('');
       }

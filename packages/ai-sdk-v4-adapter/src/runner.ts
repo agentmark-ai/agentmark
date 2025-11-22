@@ -162,7 +162,7 @@ export class VercelAdapterWebhookHandler {
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
-                  traceName: `ds-run-${datasetRunName}-${index}`,
+                  traceName: `experiment-${datasetRunName}-${index}`,
                   traceId,
                   dataset_expected_output: item.dataset?.expected_output,
                 },
@@ -197,6 +197,7 @@ export class VercelAdapterWebhookHandler {
               },
               runId,
               runName: datasetRunName,
+              traceId,
             }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -229,7 +230,7 @@ export class VercelAdapterWebhookHandler {
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
-                  traceName: `ds-run-${datasetRunName}-${index}`,
+                  traceName: `experiment-${datasetRunName}-${index}`,
                   traceId,
                   dataset_expected_output: item.dataset.expected_output,
                 },
@@ -263,6 +264,7 @@ export class VercelAdapterWebhookHandler {
               },
               runId,
               runName: datasetRunName,
+              traceId,
             }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -284,6 +286,7 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
+            const traceId = crypto.randomUUID();
             const { images } = await (await import("ai")).experimental_generateImage({
               ...(item.formatted as any)
             });
@@ -298,6 +301,7 @@ export class VercelAdapterWebhookHandler {
               },
               runId,
               runName: datasetRunName,
+              traceId,
             }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -319,6 +323,7 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
+            const traceId = crypto.randomUUID();
             const { audio } = await (await import("ai")).experimental_generateSpeech({
               ...(item.formatted as any)
             });
@@ -333,6 +338,7 @@ export class VercelAdapterWebhookHandler {
               },
               runId,
               runName: datasetRunName,
+              traceId,
             }) + "\n";
             controller.enqueue(chunk);
             index++;

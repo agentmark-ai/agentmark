@@ -145,9 +145,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
   const ast: Root = await load(resolvedFilepath);
-  // Extract dataset path and prompt relative path for runner consumption (helps cloud loader resolve URLs)
+  // Extract dataset path and prompt name for runner consumption (helps cloud loader resolve URLs)
   let datasetPath: string | undefined;
-  const promptPath = path.basename(resolvedFilepath);
+  // Get prompt name from frontmatter
+  const { getFrontMatter } = await import('@agentmark/templatedx');
+  const frontmatter = getFrontMatter(ast) as { name?: string };
+  const promptName = frontmatter.name;
   try {
     const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
     const rawDatasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
@@ -174,7 +177,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } });
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName } });
 
   // Add webhook signature if secret is available
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -248,6 +251,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   let Table: any;
   let table: any;
   let jsonRows: any[] = []; // For buffering JSON format output
+  let experimentRunId: string | undefined; // Capture run ID for linking to all traces
 
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -267,6 +271,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
           const evt = JSON.parse(line);
           if (evt.type !== 'dataset') continue;
           const r = evt.result || {};
+          if (evt.runId && !experimentRunId) experimentRunId = evt.runId;
           const input = JSON.stringify(r.input ?? {}, null, 0);
           const expected = r.expectedOutput ?? 'N/A';
 
@@ -413,6 +418,11 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // Output JSON format after streaming is complete
   if (format === 'json' && jsonRows.length > 0) {
     console.log(JSON.stringify(jsonRows, null, 2));
+  }
+
+  // Display link to view all experiment traces
+  if (experimentRunId && format === 'table') {
+    console.log(`\n📊 View traces: http://localhost:3000/traces?runId=${experimentRunId}`);
   }
 
   if (evalEnabled && totalEvals > 0 && options.thresholdPercent !== undefined) {
