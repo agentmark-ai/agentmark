@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import { findPromptFiles } from '@agentmark/shared-utils';
@@ -10,6 +11,14 @@ function safePath(): string {
 export async function createFileServer(port: number) {
   const app = express();
 
+  // Set up rate limiter for expensive endpoints
+  const templatesLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per window
+    standardHeaders: true, 
+    legacyHeaders: false,
+  });
+  
   const currentPath = safePath();
   const basePath = path.join(currentPath);
   let agentmarkTemplatesBase = path.join(basePath, 'agentmark');
@@ -211,7 +220,7 @@ ${promptsList}
     `.trim());
   });
 
-  app.get('/v1/templates', async (req: Request, res: Response) => {
+  app.get('/v1/templates', templatesLimiter, async (req: Request, res: Response) => {
     const filePath = req.query.path;
 
     if (!filePath || typeof filePath !== 'string') {
