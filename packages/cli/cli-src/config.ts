@@ -152,7 +152,7 @@ function createNewConfig(): LocalConfig {
 /**
  * Saves the configuration to disk
  */
-export function saveLocalConfig(config: LocalConfig): void {
+function saveLocalConfig(config: LocalConfig): void {
   const configPath = getConfigPath();
 
   try {
@@ -182,29 +182,4 @@ export function getWebhookSecret(): string {
 export function getTunnelSubdomain(): string | undefined {
   const config = loadLocalConfig();
   return config.tunnelSubdomain;
-}
-
-/**
- * Display configuration info to the user
- */
-export function displayConfigInfo(config: LocalConfig): void {
-  const configPath = getConfigPath();
-  const daysRemaining = config.createdAt
-    ? Math.ceil(CONFIG_EXPIRATION_DAYS - (Date.now() - new Date(config.createdAt).getTime()) / MS_PER_DAY)
-    : CONFIG_EXPIRATION_DAYS;
-
-  console.log('\n' + '═'.repeat(70));
-  console.log('🔐 Local Development Security');
-  console.log('═'.repeat(70));
-  console.log(`\n  Webhook Secret: ${config.webhookSecret}`);
-  console.log(`  Config Location: ${configPath}`);
-  console.log(`  Valid for: ${daysRemaining} more days`);
-  console.log('\n  This secret is automatically used for webhook signature verification.');
-  console.log(`  It's stored locally and regenerates every ${CONFIG_EXPIRATION_DAYS} days for security.`);
-
-  if (!process.env.AGENTMARK_WEBHOOK_SECRET) {
-    console.log('\n  💡 To use a custom secret, set: AGENTMARK_WEBHOOK_SECRET=your-secret');
-  }
-
-  console.log('═'.repeat(70) + '\n');
 }

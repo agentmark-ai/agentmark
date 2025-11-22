@@ -65,17 +65,3 @@ export function shouldSkipVerification(options: SignatureVerificationOptions): b
 
   return false;
 }
-
-/**
- * Gets the webhook secret from environment or options.
- *
- * @param envVarName - Environment variable name (defaults to AGENTMARK_WEBHOOK_SECRET)
- * @param fallbackSecret - Optional fallback secret
- * @returns The webhook secret or undefined
- */
-export function getWebhookSecret(
-  envVarName: string = 'AGENTMARK_WEBHOOK_SECRET',
-  fallbackSecret?: string
-): string | undefined {
-  return process.env[envVarName] || fallbackSecret;
-}

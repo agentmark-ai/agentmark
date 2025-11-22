@@ -8,15 +8,14 @@
 import express, { Request, Response, RequestHandler } from 'express';
 import rateLimit from 'express-rate-limit';
 import { createServer, Server } from 'node:http';
-import { type WebhookPromptResponse, type WebhookDatasetResponse } from '@agentmark/prompt-core';
 import { handleWebhookRequest } from './runner-server/core';
+import type { WebhookHandler } from './runner-server/types';
 import {
   verifyWebhookSignature,
   shouldSkipVerification,
   type SignatureVerificationOptions
 } from './runner-server/middleware/signature-verification';
 import { getWebhookSecret } from './config';
-
 
 // Set up rate limiter: 100 requests per 15 minutes per IP
 const limiter = rateLimit({
@@ -26,74 +25,8 @@ const limiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
-/**
- * Simple in-memory rate limiter for webhook endpoints.
- */
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
-
-class RateLimiter {
-  private store: Map<string, RateLimitEntry> = new Map();
-  private readonly maxRequests: number;
-  private readonly windowMs: number;
-
-  constructor(maxRequests: number = 100, windowMs: number = 60000) {
-    this.maxRequests = maxRequests;
-    this.windowMs = windowMs;
-  }
-
-  isRateLimited(key: string): { limited: boolean; remaining: number; resetTime: number } {
-    const now = Date.now();
-    let entry = this.store.get(key);
-
-    // Clean up expired entry
-    if (entry && now > entry.resetTime) {
-      this.store.delete(key);
-      entry = undefined;
-    }
-
-    if (!entry) {
-      entry = {
-        count: 0,
-        resetTime: now + this.windowMs
-      };
-      this.store.set(key, entry);
-    }
-
-    entry.count++;
-
-    const remaining = Math.max(0, this.maxRequests - entry.count);
-    const limited = entry.count > this.maxRequests;
-
-    return { limited, remaining, resetTime: entry.resetTime };
-  }
-
-  // Periodically clean up expired entries (call this on an interval)
-  cleanup(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.store.entries()) {
-      if (now > entry.resetTime) {
-        this.store.delete(key);
-      }
-    }
-  }
-}
-
-// Global rate limiter instance (100 requests per minute per IP)
-const rateLimiter = new RateLimiter(100, 60000);
-
-// Cleanup expired entries every 5 minutes
-setInterval(() => rateLimiter.cleanup(), 300000);
-
-/**
- * Generic webhook handler interface
- */
-export interface WebhookHandler {
-  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<WebhookPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string): Promise<WebhookDatasetResponse>;
-}
+// Re-export WebhookHandler for external use
+export type { WebhookHandler } from './runner-server/types';
 
 export interface WebhookServerOptions {
   port?: number;
@@ -120,22 +53,6 @@ function createMiddleware(
       const timestamp = new Date().toISOString();
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
       console.log(`\n[${timestamp}] ${req.method} ${req.path} - ${clientIp}`);
-
-      // Apply rate limiting
-      const { limited, remaining, resetTime } = rateLimiter.isRateLimited(clientIp);
-
-      // Set rate limit headers
-      res.setHeader('X-RateLimit-Limit', '100');
-      res.setHeader('X-RateLimit-Remaining', String(remaining));
-      res.setHeader('X-RateLimit-Reset', String(Math.ceil(resetTime / 1000)));
-
-      if (limited) {
-        console.log('   → 429 Rate limit exceeded');
-        return res.status(429).json({
-          message: 'Too many requests. Please wait before making more requests.',
-          retryAfter: Math.ceil((resetTime - Date.now()) / 1000)
-        });
-      }
 
       const body = req.body || {};
 

@@ -5,10 +5,7 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./dev-servers": "./dist/dev-servers.js",
-    "./file-server": "./dist/file-server.js",
-    "./runner-server": "./dist/runner-server.js",
-    "./runner-server/*": "./dist/runner-server/*.js"
+    "./runner-server": "./dist/runner-server.js"
   },
   "scripts": {
     "dev": "next dev",

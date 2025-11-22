@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   verifyWebhookSignature,
-  shouldSkipVerification,
-  getWebhookSecret
+  shouldSkipVerification
 } from '../cli-src/runner-server/middleware/signature-verification';
 
 // Mock the shared-utils module
@@ -84,43 +83,6 @@ describe('signature-verification', () => {
         secret: 'my-secret'
       });
       expect(result).toBe(false);
-    });
-  });
-
-  describe('getWebhookSecret', () => {
-    const originalEnv = process.env;
-
-    beforeEach(() => {
-      vi.resetModules();
-      process.env = { ...originalEnv };
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
-    });
-
-    it('returns env var value when set', () => {
-      process.env.AGENTMARK_WEBHOOK_SECRET = 'env-secret';
-      const result = getWebhookSecret();
-      expect(result).toBe('env-secret');
-    });
-
-    it('returns fallback when env var not set', () => {
-      delete process.env.AGENTMARK_WEBHOOK_SECRET;
-      const result = getWebhookSecret('AGENTMARK_WEBHOOK_SECRET', 'fallback-secret');
-      expect(result).toBe('fallback-secret');
-    });
-
-    it('returns undefined when neither env nor fallback available', () => {
-      delete process.env.AGENTMARK_WEBHOOK_SECRET;
-      const result = getWebhookSecret();
-      expect(result).toBeUndefined();
-    });
-
-    it('uses custom env var name', () => {
-      process.env.CUSTOM_SECRET = 'custom-secret';
-      const result = getWebhookSecret('CUSTOM_SECRET');
-      expect(result).toBe('custom-secret');
     });
   });
 });
