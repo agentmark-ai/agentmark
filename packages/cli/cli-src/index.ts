@@ -23,14 +23,16 @@ program
 
 program
   .command("dev")
-  .option("-p, --port <number>", "File server port (default: 9418)")
-  .option("-w, --webhook-port <number>", "Webhook server port (default: 9417)")
-  .option("-t, --tunnel", "Expose webhook server publicly via ngrok tunnel")
-  .description("Start development servers (file server + webhook)")
+  .option("--file-port <number>", "File server port (default: 9418)")
+  .option("--webhook-port <number>", "Webhook server port (default: 9417)")
+  .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
+  .option("-t, --tunnel", "Expose webhook server publicly via tunnel")
+  .description("Start development servers (file server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
-      port: options.port ? parseInt(options.port, 10) : undefined,
+      filePort: options.filePort ? parseInt(options.filePort, 10) : undefined,
       webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
+      appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
       tunnel: options.tunnel || false
     });
   });

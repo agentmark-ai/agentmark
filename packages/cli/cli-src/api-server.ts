@@ -413,7 +413,6 @@ ${promptsList}
       await exportTraces(req.body);
       return res.json({ success: true });
     } catch (error) {
-      console.error("Error exporting traces:", error);
       return res.status(500).json({ error: "Failed to export traces" });
     }
   });

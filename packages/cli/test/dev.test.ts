@@ -156,10 +156,10 @@ describe('agentmark dev', () => {
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
-    const runnerPort = await getFreePort();
+    const webhookPort = await getFreePort();
 
     // Spawn dev command in its own process group for clean cleanup
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--webhook-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(filePort), '--webhook-port', String(webhookPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe',
@@ -218,9 +218,9 @@ describe('agentmark dev', () => {
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
-    const runnerPort = await getFreePort();
+    const webhookPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--webhook-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(filePort), '--webhook-port', String(webhookPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe',
@@ -259,9 +259,9 @@ describe('agentmark dev', () => {
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const customFilePort = await getFreePort();
-    const customRunnerPort = await getFreePort();
+    const customWebhookPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(customFilePort), '--webhook-port', String(customRunnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(customFilePort), '--webhook-port', String(customWebhookPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
       stdio: 'pipe',
