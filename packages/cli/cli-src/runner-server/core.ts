@@ -102,9 +102,21 @@ export async function handleWebhookRequest(
     // Handle prompt execution
     if (type === 'prompt-run') {
       console.log('   🤖 Executing prompt...');
+
+      // Generate telemetry for this run
+      const traceId = crypto.randomUUID();
+      const telemetry = {
+        isEnabled: true,
+        metadata: {
+          traceId,
+          traceName: data.promptPath || 'cli-prompt-run',
+        }
+      };
+
       const options = {
         shouldStream: data.options?.shouldStream,
-        customProps: data.customProps
+        customProps: data.customProps,
+        telemetry
       };
 
       const response = await handler.runPrompt(data.ast, options);

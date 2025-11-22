@@ -6,11 +6,25 @@
 import type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark/prompt-core';
 
 /**
+ * Telemetry options for tracking prompt execution.
+ */
+export interface TelemetryOptions {
+  isEnabled: boolean;
+  metadata?: {
+    traceId?: string;
+    traceName?: string;
+    sessionId?: string;
+    sessionName?: string;
+    [key: string]: any;
+  };
+}
+
+/**
  * Generic webhook handler interface that any adapter can implement.
  * This is the contract that adapters (e.g., VercelAdapterWebhookHandler) must fulfill.
  */
 export interface WebhookHandler {
-  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<WebhookPromptResponse>;
+  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
   runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string): Promise<WebhookDatasetResponse>;
 }
 

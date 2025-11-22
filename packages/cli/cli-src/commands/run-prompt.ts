@@ -95,7 +95,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   try {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, options: { shouldStream: true } } });
+      const promptPath = path.basename(resolvedFilepath);
+      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath, options: { shouldStream: true } } });
 
       // Add webhook signature if secret is available
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
