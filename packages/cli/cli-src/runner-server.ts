@@ -6,6 +6,7 @@
  */
 
 import express, { Request, Response, RequestHandler } from 'express';
+import rateLimit from 'express-rate-limit';
 import { createServer, Server } from 'node:http';
 import { type WebhookPromptResponse, type WebhookDatasetResponse } from '@agentmark/prompt-core';
 import { handleWebhookRequest } from './runner-server/core';
@@ -15,6 +16,15 @@ import {
   type SignatureVerificationOptions
 } from './runner-server/middleware/signature-verification';
 import { getWebhookSecret } from './config';
+
+
+// Set up rate limiter: 100 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 /**
  * Simple in-memory rate limiter for webhook endpoints.
@@ -440,7 +450,7 @@ ${promptsList}
   });
 
   // Mount the webhook handler middleware at POST /
-  app.post('/', createMiddleware(handler, sigOptions));
+  app.post('/', limiter, createMiddleware(handler, sigOptions));
 
   // Create HTTP server and start listening
   const server = createServer(app);
