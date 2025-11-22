@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// Load .env file from current working directory
+import { config } from 'dotenv';
+config();
+
 import { program } from "commander";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -19,15 +23,17 @@ program
 
 program
   .command("dev")
-  .option("-p, --port <number>", "API server port (default: 9418)")
-  .option("-r, --runner-port <number>", "Runner server port (default: 9417)")
-  .option("-n, --agentmark-app-port <number>", "AgentMark app port (default: 3000)")
-  .description("Start development servers (api server + runner)")
+  .option("--file-port <number>", "File server port (default: 9418)")
+  .option("--webhook-port <number>", "Webhook server port (default: 9417)")
+  .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
+  .option("-t, --tunnel", "Expose webhook server publicly via tunnel")
+  .description("Start development servers (file server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
-      port: options.port ? parseInt(options.port, 10) : undefined,
-      runnerPort: options.runnerPort ? parseInt(options.runnerPort, 10) : undefined,
-      agentmarkAppPort: options.agentmarkAppPort ? parseInt(options.agentmarkAppPort, 10) : undefined
+      filePort: options.filePort ? parseInt(options.filePort, 10) : undefined,
+      webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
+      appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
+      tunnel: options.tunnel || false
     });
   });
 
@@ -59,7 +65,7 @@ program
 program
   .command("run-prompt <filepath>")
   .description('Run a prompt with test props')
-  .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
+  .option('--server <url>', 'URL of an AgentMark webhook server (e.g., http://localhost:9417)')
   .option('--props <json>', 'Props as JSON string (e.g., \'{"key": "value"}\')')
   .option('--props-file <path>', 'Path to JSON or YAML file containing props')
   .action(async (filepath: string, options: { server?: string; props?: string; propsFile?: string }) => {
@@ -73,7 +79,7 @@ program
 program
   .command("run-experiment <filepath>")
   .description('Run an experiment against its dataset, with evals by default')
-  .option('--server <url>', 'URL of an AgentMark HTTP runner (e.g., http://localhost:9417)')
+  .option('--server <url>', 'URL of an AgentMark webhook server (e.g., http://localhost:9417)')
   .option('--skip-eval', 'Skip running evals even if they exist')
   .option('--format <format>', 'Output format: table, csv, json, or jsonl (default: table)')
   .option('--threshold <percent>', 'Fail if pass percentage is below threshold (0-100)', (v) => {

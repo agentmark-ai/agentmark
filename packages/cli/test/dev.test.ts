@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { spawn, ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, ChildProcess } from 'node:child_process';
 import net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -31,18 +31,18 @@ export const client = new AgentMark({ prompt: {}, adapter });
 const DEV_ENTRY_TEMPLATE = `// Auto-generated runner server entry point
 // To customize, create a dev-server.ts file in your project root
 
-import { createRunnerServer } from '@agentmark/cli/runner-server';
-import { VercelAdapterRunner } from '@agentmark/ai-sdk-v4-adapter/runner';
+import { createWebhookServer } from '@agentmark/cli/runner-server';
+import { VercelAdapterWebhookHandler } from '@agentmark/ai-sdk-v4-adapter/runner';
 
 async function main() {
   const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
-  const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const runnerPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
 
-  const runner = new VercelAdapterRunner(client as any);
-  await createRunnerServer({ port: runnerPort, runner });
+  const handler = new VercelAdapterWebhookHandler(client as any);
+  await createWebhookServer({ port: runnerPort, handler });
 }
 
 main().catch((err) => {
@@ -103,29 +103,30 @@ async function waitForServer(
 }
 
 function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
-  // Kill all spawned processes
+  // Kill all spawned processes and their children
   for (const proc of processes) {
     try {
       if (proc.pid) {
-        process.kill(proc.pid, 'SIGKILL');
-        // Also kill any child processes
-        try { spawn('pkill', ['-P', String(proc.pid)]); } catch {}
+        // Kill the entire process group using negative PID (kills children too)
+        try { process.kill(-proc.pid, 'SIGKILL'); } catch {}
+        // Also use pkill as backup to kill any child processes
+        try { spawnSync('pkill', ['-9', '-P', String(proc.pid)]); } catch {}
+        // Finally kill the main process
+        try { process.kill(proc.pid, 'SIGKILL'); } catch {}
       }
     } catch {}
   }
   processes.length = 0;
 
-  // Clean up all temp directories after process termination
-  setTimeout(() => {
-    for (const dir of tmpDirs) {
-      try {
-        if (fs.existsSync(dir)) {
-          fs.rmSync(dir, { recursive: true, force: true });
-        }
-      } catch {}
-    }
-    tmpDirs.length = 0;
-  }, PROCESS_CLEANUP_WAIT_MS);
+  // Clean up all temp directories
+  for (const dir of tmpDirs) {
+    try {
+      if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    } catch {}
+  }
+  tmpDirs.length = 0;
 }
 
 describe('agentmark dev', () => {
@@ -137,7 +138,7 @@ describe('agentmark dev', () => {
     await wait(PROCESS_CLEANUP_WAIT_MS);
   });
 
-  it('starts api server and runner, serves templates endpoint', async () => {
+  it('starts file server and runner, serves templates endpoint', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-' + Date.now());
     tmpDirs.push(tempDir);
     fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
@@ -154,14 +155,15 @@ describe('agentmark dev', () => {
     fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const apiPort = await getFreePort();
-    const runnerPort = await getFreePort();
+    const filePort = await getFreePort();
+    const webhookPort = await getFreePort();
 
-    // Spawn dev command
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(apiPort), '--runner-port', String(runnerPort)], {
+    // Spawn dev command in its own process group for clean cleanup
+    const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(filePort), '--webhook-port', String(webhookPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
-      stdio: 'pipe'
+      stdio: 'pipe',
+      detached: true
     });
 
     processes.push(child);
@@ -183,8 +185,8 @@ describe('agentmark dev', () => {
       console.log('STDOUT:', stdout);
     }
 
-    // Test api server /v1/prompts endpoint
-    const listResp = await fetch(`http://localhost:${apiPort}/v1/prompts`);
+    // Test file server /v1/prompts endpoint
+    const listResp = await fetch(`http://localhost:${filePort}/v1/prompts`);
     if (!listResp.ok) {
       const errorText = await listResp.text();
       console.log(`Response status: ${listResp.status}, body: ${errorText}`);
@@ -195,7 +197,7 @@ describe('agentmark dev', () => {
     expect(paths.length).toBeGreaterThan(0);
 
     // Test /v1/templates dataset endpoint
-    const dsResp = await fetch(`http://localhost:${apiPort}/v1/templates?path=demo.jsonl`);
+    const dsResp = await fetch(`http://localhost:${filePort}/v1/templates?path=demo.jsonl`);
     expect(dsResp.ok).toBe(true);
     const text = await dsResp.text();
     expect(text.trim().length).toBeGreaterThan(0);
@@ -216,12 +218,13 @@ describe('agentmark dev', () => {
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
     const filePort = await getFreePort();
-    const runnerPort = await getFreePort();
+    const webhookPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(filePort), '--runner-port', String(runnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(filePort), '--webhook-port', String(webhookPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
-      stdio: 'pipe'
+      stdio: 'pipe',
+      detached: true
     });
 
     processes.push(child);
@@ -255,69 +258,22 @@ describe('agentmark dev', () => {
     fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
     const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const customApiPort = await getFreePort();
-    const customRunnerPort = await getFreePort();
+    const customFilePort = await getFreePort();
+    const customWebhookPort = await getFreePort();
 
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(customApiPort), '--runner-port', String(customRunnerPort)], {
+    const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(customFilePort), '--webhook-port', String(customWebhookPort)], {
       cwd: tempDir,
       env: { ...process.env, OPENAI_API_KEY: 'test-key' },
-      stdio: 'pipe'
-    });
-
-    child.on('error', (error) => {
-      console.error('Error:', error);
+      stdio: 'pipe',
+      detached: true
     });
 
     processes.push(child);
 
     await wait(SERVER_STARTUP_WAIT_MS);
 
-    // Test that api server is running on custom port
-    const resp = await fetch(`http://localhost:${customApiPort}/v1/prompts`);
+    // Test that server is running on custom port
+    const resp = await fetch(`http://localhost:${customFilePort}/v1/prompts`);
     expect(resp.ok).toBe(true);
-  }, 15000);
-
-  it.skip('displays correct api server URL', async () => {
-    const tempDir = path.join(__dirname, '..', 'tmp-dev-urls-' + Date.now());
-    tmpDirs.push(tempDir);
-    fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
-
-    // Setup test directory with node_modules
-    setupTestDir(tempDir);
-
-    fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
-    fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
-    fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
-
-    const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-    const apiPort = await getFreePort();
-    const runnerPort = await getFreePort();
-
-    const child = spawn(process.execPath, [cli, 'dev', '--port', String(apiPort), '--runner-port', String(runnerPort)], {
-      cwd: tempDir,
-      env: { ...process.env, OPENAI_API_KEY: 'test-key' },
-      stdio: 'pipe'
-    });
-
-    processes.push(child);
-
-    let stdout = '';
-    let stderr = '';
-    child.stdout?.on('data', (data) => { stdout += data.toString(); });
-    child.stderr?.on('data', (data) => { stderr += data.toString(); });
-
-    await wait(SERVER_STARTUP_WAIT_MS);
-
-    // Debug output if needed
-    if (stderr) {
-      console.log('STDERR:', stderr);
-    }
-
-    // Api server should always start - check both stdout and stderr
-    const output = stdout + stderr;
-    expect(output).toContain(`http://localhost:${apiPort}`);
-    expect(output).toContain('API Server:');
-
-    // Runner may or may not start successfully in test environment, so we don't strictly require it
   }, 15000);
 });

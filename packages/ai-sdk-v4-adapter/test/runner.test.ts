@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EvalRegistry, FileLoader } from "@agentmark/prompt-core";
-import { VercelAdapterRunner } from "../src/runner";
+import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark/templatedx";
 import type { AgentMark } from "@agentmark/prompt-core";
 import type { VercelAIAdapter } from "../src/adapter";
@@ -24,8 +24,8 @@ vi.mock("ai", async () => {
   } as any;
 });
 
-describe("VercelAdapterRunner", () => {
-  let runner: VercelAdapterRunner;
+describe("VercelAdapterWebhookHandler", () => {
+  let runner: VercelAdapterWebhookHandler;
   let client: AgentMark<any, VercelAIAdapter<any, any>>;
   let loader: FileLoader;
 
@@ -52,7 +52,7 @@ describe("VercelAdapterRunner", () => {
     modelRegistry.registerModels("test-model", () => ({}) as any);
     client = createAgentMarkClient({ loader, modelRegistry, evalRegistry: evals });
 
-    runner = new VercelAdapterRunner(client);
+    runner = new VercelAdapterWebhookHandler(client);
 
     vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "mock-uuid") } as any);
   });

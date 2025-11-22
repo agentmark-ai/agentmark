@@ -18,10 +18,13 @@ export const setupPackageJson = (targetPath: string = ".") => {
   pkgJson.description =
     pkgJson.description || "A simple Node.js app using the Agentmark SDK";
 
+  // All platforms use "agentmark dev" which runs their respective dev-entry.ts
+  const devScript = "agentmark dev";
+
   pkgJson.scripts = {
     ...pkgJson.scripts,
     "demo": "npx tsx index.ts",
-    "dev": "agentmark dev",
+    "dev": devScript,
     "prompt": "agentmark run-prompt",
     "experiment": "agentmark run-experiment",
   };
@@ -38,7 +41,9 @@ export const installDependencies = (
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
     // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
-    execSync("npm install --save-dev typescript ts-node @types/node @agentmark/cli", {
+    const devDeps = "typescript ts-node @types/node @agentmark/cli";
+
+    execSync(`npm install --save-dev ${devDeps}`, {
       stdio: "inherit",
       cwd: targetPath,
     });
@@ -59,7 +64,7 @@ export const installDependencies = (
     ];
 
     execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
-    
+
     console.log("Packages installed successfully!");
   } catch (error) {
     console.error("Error installing packages:", error);

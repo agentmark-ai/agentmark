@@ -12,7 +12,11 @@ export const exportTraces = async (traces: any[]) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
-  const insertMany = db.transaction(async (traces: any[]) => {
+
+  // Get model cost mappings once before the transaction
+  const modelsCostMapping = await getModelCostMappings();
+
+  const insertMany = db.transaction((traces: any[]) => {
     for (const trace of traces) {
       const isSuccess = trace.StatusCode !== 2;
       const spanAttributes = { ...trace.SpanAttributes };
@@ -20,8 +24,6 @@ export const exportTraces = async (traces: any[]) => {
         let getCost = (_a: number, _b: number) => {
           return 0;
         };
-
-        const modelsCostMapping = await getModelCostMappings();
 
         const priceMap = isSuccess
           ? modelsCostMapping[spanAttributes["gen_ai.request.model"]]
@@ -547,4 +549,85 @@ export const getTracesBySessionId = async (sessionId: string) => {
   }
 
   return traces;
+};
+
+export const getTracesByRunId = async (runId: string) => {
+  // Return traces in the same aggregated format as getTraces(), filtered by runId
+  const sql = `
+    WITH
+trace_costs_and_tokens AS (
+    SELECT
+        TraceId AS id,
+        SUM(
+            CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
+            CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
+        ) AS tokens,
+        SUM(
+            CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
+        ) AS cost
+    FROM traces
+    WHERE SpanName IN (
+        'ai.generateText.doGenerate',
+        'ai.streamText.doStream',
+        'ai.generateObject.doGenerate',
+        'ai.streamObject.doStream'
+    )
+    GROUP BY TraceId
+),
+
+traces_cte AS (
+    SELECT
+        TraceId AS id,
+        cast(MIN(Timestamp) as Real) / 1000000 AS start,
+        cast(MAX(Timestamp) as Real) / 1000000 AS end,
+        MAX(CASE
+            WHEN StatusCode = '2.0' THEN '2'
+            WHEN StatusCode = '2' THEN '2'
+            WHEN StatusCode = '1.0' THEN '1'
+            WHEN StatusCode = '1' THEN '1'
+            ELSE '0'
+        END) AS status,
+        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
+        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+    FROM traces
+    GROUP BY TraceId
+),
+
+trace_metadata AS (
+    SELECT
+        TraceId AS id,
+        COALESCE(
+            MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
+            MAX(SpanName)
+        ) AS name,
+        MAX(StatusMessage) AS status_message,
+        MAX(Duration) AS latency
+    FROM traces
+    WHERE ParentSpanId NOT IN (
+        SELECT SpanId FROM traces
+    )
+    GROUP BY TraceId
+)
+
+SELECT
+    t.id,
+    t.dataset_run_id,
+    t.dataset_path,
+    t.start,
+    t.end,
+    t.status,
+    c.cost,
+    c.tokens,
+    m.name,
+    m.latency,
+    m.status_message
+FROM traces_cte t
+LEFT JOIN trace_costs_and_tokens c ON t.id = c.id
+LEFT JOIN trace_metadata m ON t.id = m.id
+WHERE t.dataset_run_id = ?
+ORDER BY t.start DESC;
+  `;
+
+  const rows = db.prepare(sql).all(runId);
+  return rows;
 };

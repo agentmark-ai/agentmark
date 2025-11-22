@@ -1,6 +1,6 @@
 import fs from "fs-extra";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import * as path from "path";
-import { execSync } from "child_process";
 import { Providers } from "../providers.js";
 import {
   setupPackageJson,
@@ -11,6 +11,9 @@ import {
   createExamplePrompts,
   getClientConfigContent,
 } from "./templates/index.js";
+import {
+  getDeploymentGuideContent,
+} from "./templates/deployment-templates.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -116,17 +119,28 @@ const setupMCPServer = (client: string, targetPath: string) => {
     }
     return;
   }
+};
 
+const createDeploymentGuide = (targetPath: string) => {
+  console.log('Creating deployment guide...');
+
+  // Create DEPLOYMENT.md guide
+  fs.writeFileSync(
+    path.join(targetPath, 'DEPLOYMENT.md'),
+    getDeploymentGuideContent()
+  );
+
+  console.log('✅ Deployment guide created: DEPLOYMENT.md');
 };
 
 export const createExampleApp = async (
-  modelProvider: string,
-  model: string,
   client: string,
   targetPath: string = ".",
   apiKey: string = ""
 ) => {
   try {
+    const modelProvider = 'openai';
+    const model = 'gpt-4o';
     console.log("Creating Agent Mark example app...");
 
     // Keep ./ prefix for display in messages
@@ -183,39 +197,48 @@ export const createExampleApp = async (
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
     }
 
+    // For now, hardcode to ai-sdk-v4 adapter (will be configurable in future)
+    const adapterName = 'ai-sdk-v4';
+    const handlerClassName = 'VercelAdapterWebhookHandler';
+
     // Create .agentmark directory and dev-entry.ts
     console.log("Creating development server entry point...");
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
 
-    // For now, hardcode to ai-sdk-v4 adapter (will be configurable in future)
-    const adapterName = 'ai-sdk-v4';
-    const runnerClassName = 'VercelAdapterRunner';
-
-    const devEntryContent = `// Auto-generated runner server entry point
+    const devEntryContent = `// Auto-generated webhook server entry point
 // To customize, create a dev-server.ts file in your project root
 
-import { createRunnerServer } from '@agentmark/cli/runner-server';
-import { ${runnerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import { createWebhookServer } from '@agentmark/cli/runner-server';
+import { ${handlerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import { AgentMarkSDK } from '@agentmark/sdk';
 import path from 'path';
 
 async function main() {
   const { client } = await import('../agentmark.client.js');
 
   const args = process.argv.slice(2);
-  const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
+  const webhookPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
 
-  const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
+  const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
   const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
 
-  const runner = new ${runnerClassName}(client as any);
+  // Initialize OpenTelemetry tracing to export traces to the API server
   const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+  const sdk = new AgentMarkSDK({
+    apiKey: '',
+    appId: '',
+    baseUrl: fileServerUrl,
+  });
+  sdk.initTracing({ disableBatch: true });
+
+  const handler = new ${handlerClassName}(client as any);
   const templatesDirectory = path.join(process.cwd(), 'agentmark');
 
-  await createRunnerServer({
-    port: runnerPort,
-    runner,
+  await createWebhookServer({
+    port: webhookPort,
+    handler,
     fileServerUrl,
     templatesDirectory
   });
@@ -228,6 +251,28 @@ main().catch((err) => {
 `;
 
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
+
+    // Create deployment guide
+    createDeploymentGuide(targetPath);
+
+    // Create .env file with webhook URL configuration
+    // Always use Express webhook server (port 9417) for local development
+    // regardless of deployment platform
+    const webhookUrl = 'http://localhost:9417';
+
+    const envPath = path.join(targetPath, '.env');
+    let envContent = '';
+
+    if (existsSync(envPath)) {
+      envContent = readFileSync(envPath, 'utf8');
+      if (!envContent.includes('AGENTMARK_WEBHOOK_URL')) {
+        envContent += `\n# AgentMark webhook server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n`;
+      }
+    } else {
+      envContent = `# AgentMark webhook server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n\n# Add your API keys here\n# OPENAI_API_KEY=your-key-here\n`;
+    }
+
+    writeFileSync(envPath, envContent, 'utf8');
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
@@ -247,15 +292,18 @@ main().catch((err) => {
     console.log('\n' + '═'.repeat(70));
     console.log('Next Steps');
     console.log('═'.repeat(70));
-    console.log('\n Initialize Server:');
+
+    // Simplified instructions - always just "npm run dev"
+    console.log('\n Get Started:');
     if (folderName !== "." && folderName !== "./") {
       console.log(`  $ cd ${folderName}`);
     }
     console.log('  $ npm run dev\n');
+
     console.log('─'.repeat(70));
     console.log('Resources');
     console.log('─'.repeat(70));
-    console.log('  Deploy to Production: https://docs.agentmark.co/platform/getting_started/quickstart');
+    console.log('  Documentation: https://docs.agentmark.co');
     console.log('═'.repeat(70) + '\n');
   } catch (error) {
     console.error("Error creating example app:", error);

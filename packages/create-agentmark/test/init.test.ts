@@ -30,7 +30,7 @@ describe('init', () => {
     const tmpDir = path.join(__dirname, '..', 'tmp-gitignore-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      await createExampleApp('openai', 'gpt-4o', 'skip', tmpDir, '');
+      await createExampleApp('skip', tmpDir, '');
       const gi = fs.readFileSync(path.join(tmpDir, '.gitignore'), 'utf8');
       expect(gi).toContain('node_modules');
       expect(gi).toContain('.env');
@@ -106,27 +106,36 @@ describe('init', () => {
     expect(content).not.toContain('openai.speech');
   });
 
-  it('creates .agentmark/dev-entry.ts during initialization', async () => {
+  it('creates .agentmark/dev-entry.ts', async () => {
     vi.doMock('child_process', () => ({
-      execSync: () => {},
+      execSync: (cmd: string, options?: any) => {
+        // Create package.json when npm init is called
+        if (cmd === 'npm init -y' && options?.cwd) {
+          const pkgPath = path.join(options.cwd, 'package.json');
+          fs.writeFileSync(pkgPath, JSON.stringify({ name: 'test-app', version: '1.0.0', scripts: {} }, null, 2));
+        }
+      },
       execFileSync: () => {}
     }));
     const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-    const tmpDir = path.join(__dirname, '..', 'tmp-dev-entry-' + Date.now());
+    const tmpDir = path.join(__dirname, '..', 'tmp-express-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      await createExampleApp('openai', 'gpt-4o', 'skip', tmpDir, '');
+      await createExampleApp('skip', tmpDir, '');
+
+      // Should create dev-entry.ts
       const devEntryPath = path.join(tmpDir, '.agentmark', 'dev-entry.ts');
       expect(fs.existsSync(devEntryPath)).toBe(true);
 
       const content = fs.readFileSync(devEntryPath, 'utf8');
-      expect(content).toContain("import { createRunnerServer } from '@agentmark/cli/runner-server'");
-      expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/ai-sdk-v4-adapter/runner'");
-      expect(content).toContain("import path from 'path'");
-      expect(content).toContain('new VercelAdapterRunner(client');
-      expect(content).toContain('fileServerUrl');
-      expect(content).toContain('templatesDirectory');
-      expect(content).toContain('createRunnerServer({');
+      expect(content).toContain("import { createWebhookServer } from '@agentmark/cli/runner-server'");
+      expect(content).toContain("import { VercelAdapterWebhookHandler } from '@agentmark/ai-sdk-v4-adapter/runner'");
+      expect(content).toContain('new VercelAdapterWebhookHandler(client');
+      expect(content).toContain('createWebhookServer({');
+
+      // Check .env has correct webhook URL
+      const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
+      expect(envContent).toContain('AGENTMARK_WEBHOOK_URL=http://localhost:9417');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

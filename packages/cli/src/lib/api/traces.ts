@@ -10,9 +10,12 @@ export interface GraphData {
   spanName: string;
 }
 
-export const getTraces = async (): Promise<Trace[]> => {
+export const getTraces = async (runId?: string): Promise<Trace[]> => {
   try {
-    const response = await fetch(`${API_URL}/v1/traces`);
+    const url = runId
+      ? `${API_URL}/v1/runs/${runId}/traces`
+      : `${API_URL}/v1/traces`;
+    const response = await fetch(url);
     const data = await response.json();
     return data.traces as Trace[];
   } catch (error) {

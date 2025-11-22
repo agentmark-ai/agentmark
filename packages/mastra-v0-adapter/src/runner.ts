@@ -3,7 +3,7 @@ import type { Ast } from "@agentmark/templatedx";
 import type { MastraAgentMark } from "./mastra-agentmark";
 import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
-import type { RunnerDatasetResponse, RunnerPromptResponse } from "@agentmark/prompt-core";
+import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
 
 type Frontmatter = {
   text_config?: unknown;
@@ -21,7 +21,7 @@ export class MastraAdapterRunner {
   async runPrompt(
     promptAst: Ast,
     options?: { shouldStream?: boolean; customProps?: Record<string, any> }
-  ): Promise<RunnerPromptResponse> {
+  ): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
 
     if (frontmatter.object_config) {
@@ -113,7 +113,7 @@ export class MastraAdapterRunner {
               type: "stream",
               stream,
               streamHeader: { "AgentMark-Streaming": "true" },
-            } as RunnerPromptResponse;
+            } as WebhookPromptResponse;
           }
         } catch (error) {
           // If streaming fails, fall back to non-streaming
@@ -128,7 +128,7 @@ export class MastraAdapterRunner {
         result: (response as any).object || response,
         usage: (response as any).usage,
         finishReason: (response as any).finishReason,
-      } as RunnerPromptResponse;
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.text_config) {
@@ -240,7 +240,7 @@ export class MastraAdapterRunner {
               type: "stream",
               stream,
               streamHeader: { "AgentMark-Streaming": "true" },
-            } as RunnerPromptResponse;
+            } as WebhookPromptResponse;
           }
         } catch (error) {
           // If streaming fails, fall back to non-streaming
@@ -260,7 +260,7 @@ export class MastraAdapterRunner {
         finishReason: (response as any).finishReason,
         toolCalls: (response as any).toolCalls || [],
         toolResults: (response as any).toolResults || [],
-      } as RunnerPromptResponse;
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.image_config) {
@@ -278,7 +278,7 @@ export class MastraAdapterRunner {
     promptAst: Ast,
     datasetRunName: string,
     datasetPath?: string
-  ): Promise<RunnerDatasetResponse> {
+  ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
 

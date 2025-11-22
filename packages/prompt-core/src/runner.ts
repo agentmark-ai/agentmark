@@ -1,4 +1,4 @@
-export type RunnerTextResponse = {
+export type WebhookTextResponse = {
   type: "text";
   result: string;
   usage?: unknown;
@@ -7,24 +7,24 @@ export type RunnerTextResponse = {
   finishReason?: string;
 };
 
-export type RunnerObjectResponse = {
+export type WebhookObjectResponse = {
   type: "object";
   result: unknown;
   usage?: unknown;
   finishReason?: string;
 };
 
-export type RunnerImageResponse = {
+export type WebhookImageResponse = {
   type: "image";
   result: Array<{ mimeType: string; base64: string }>;
 };
 
-export type RunnerSpeechResponse = {
+export type WebhookSpeechResponse = {
   type: "speech";
   result: { mimeType: string; base64: string; format: string };
 };
 
-export type RunnerDatasetChunk = {
+export type WebhookDatasetChunk = {
   type: "dataset";
   result: {
     input: any;
@@ -37,20 +37,20 @@ export type RunnerDatasetChunk = {
   runName: string;
 };
 
-export type RunnerDatasetResponse = {
+export type WebhookDatasetResponse = {
   stream: ReadableStream<string | Uint8Array>;
   streamHeaders: { "AgentMark-Streaming": "true" };
 };
 
-export type RunnerStreamResponse = {
+export type WebhookStreamResponse = {
   type: "stream";
   stream: ReadableStream<string | Uint8Array>;
   streamHeader: { "AgentMark-Streaming": "true" };
 };
 
-export type RunnerPromptResponse =
-  | RunnerTextResponse
-  | RunnerObjectResponse
-  | RunnerImageResponse
-  | RunnerSpeechResponse
-  | RunnerStreamResponse;
+export type WebhookPromptResponse =
+  | WebhookTextResponse
+  | WebhookObjectResponse
+  | WebhookImageResponse
+  | WebhookSpeechResponse
+  | WebhookStreamResponse;

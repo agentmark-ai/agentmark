@@ -7,6 +7,10 @@ export const getModelCostMappings = async (): Promise<{
   if (Object.keys(prices).length > 0) {
     return prices;
   }
+  // If no prices URL configured, return empty mappings
+  if (!pricesUrl) {
+    return prices;
+  }
   const res = await fetch(pricesUrl)
   const data = await res.json()
   prices = data
