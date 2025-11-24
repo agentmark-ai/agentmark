@@ -3,9 +3,11 @@ import type { Ast } from "@agentmark/templatedx";
 import type { AgentMark } from "@agentmark/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
+import { createPromptTelemetry } from "@agentmark/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
 
 type Frontmatter = {
+  name?: string;
   text_config?: unknown;
   object_config?: unknown;
   image_config?: unknown;
@@ -18,12 +20,13 @@ export class VercelAdapterWebhookHandler {
 
   async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
+    const { traceId, telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps, telemetry: options.telemetry })
-        : await prompt.formatWithTestProps({ telemetry: options?.telemetry });
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
         const { usage, fullStream } = streamObject(input);
@@ -48,17 +51,17 @@ export class VercelAdapterWebhookHandler {
             controller.close();
           }
         });
-        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as WebhookPromptResponse;
+        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
       const { object, usage, finishReason } = await generateObject(input);
-      return { type: "object", result: object, usage, finishReason } as WebhookPromptResponse;
+      return { type: "object", result: object, usage, finishReason, traceId } as WebhookPromptResponse;
     }
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps, telemetry: options.telemetry })
-        : await prompt.formatWithTestProps({ telemetry: options?.telemetry });
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
         const { fullStream } = streamText(input);
@@ -90,35 +93,37 @@ export class VercelAdapterWebhookHandler {
             controller.close();
           }
         });
-        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" } } as WebhookPromptResponse;
+        return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
       const { text, usage, finishReason, steps } = await generateText(input);
       const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
       const toolResults = steps?.flatMap((s: any) => s.toolResults) ?? [];
-      return { type: "text", result: text, usage, finishReason, toolCalls, toolResults } as WebhookPromptResponse;
+      return { type: "text", result: text, usage, finishReason, toolCalls, toolResults, traceId } as WebhookPromptResponse;
     }
 
     if (frontmatter.image_config) {
       const prompt = await this.client.loadImagePrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps, telemetry: options?.telemetry })
-        : await prompt.formatWithTestProps({ telemetry: options?.telemetry });
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const result = await generateImage(input);
       return {
         type: "image",
-        result: result.images.map(i => ({ mimeType: i.mimeType, base64: i.base64 }))
+        result: result.images.map(i => ({ mimeType: i.mimeType, base64: i.base64 })),
+        traceId
       } as WebhookPromptResponse;
     }
 
     if (frontmatter.speech_config) {
       const prompt = await this.client.loadSpeechPrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps, telemetry: options?.telemetry })
-        : await prompt.formatWithTestProps({ telemetry: options?.telemetry });
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const result = await generateSpeech(input);
       return {
         type: "speech",
-        result: { mimeType: result.audio.mimeType, base64: result.audio.base64, format: result.audio.format }
+        result: { mimeType: result.audio.mimeType, base64: result.audio.base64, format: result.audio.format },
+        traceId
       } as WebhookPromptResponse;
     }
 
@@ -134,7 +139,7 @@ export class VercelAdapterWebhookHandler {
     if (!loader) throw new Error("Loader not found");
 
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
-    const runId = crypto.randomUUID();
+    const experimentRunId = crypto.randomUUID();
     const evalRegistry = this.client.getEvalRegistry();
 
     const resolvedDatasetPath = datasetPath ?? frontmatter?.test_settings?.dataset;
@@ -158,7 +163,7 @@ export class VercelAdapterWebhookHandler {
                 ...(formatted?.experimental_telemetry ?? {}),
                 metadata: {
                   ...((formatted?.experimental_telemetry?.metadata) ?? {}),
-                  dataset_run_id: runId,
+                  dataset_run_id: experimentRunId,
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
@@ -195,7 +200,7 @@ export class VercelAdapterWebhookHandler {
                 tokens: usage?.totalTokens,
                 evals: evalResults,
               },
-              runId,
+              runId: experimentRunId,
               runName: datasetRunName,
               traceId,
             }) + "\n";
@@ -226,7 +231,7 @@ export class VercelAdapterWebhookHandler {
                 ...(item.formatted.experimental_telemetry ?? {}),
                 metadata: {
                   ...(item.formatted.experimental_telemetry?.metadata ?? {}),
-                  dataset_run_id: runId,
+                  dataset_run_id: experimentRunId,
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
@@ -262,7 +267,7 @@ export class VercelAdapterWebhookHandler {
                 tokens: usage?.totalTokens,
                 evals: evalResults,
               },
-              runId,
+              runId: experimentRunId,
               runName: datasetRunName,
               traceId,
             }) + "\n";
@@ -299,7 +304,7 @@ export class VercelAdapterWebhookHandler {
                 actualOutput: images.map((image: any) => ({ mimeType: image.mimeType, base64: image.base64 })),
                 evals: [],
               },
-              runId,
+              runId: experimentRunId,
               runName: datasetRunName,
               traceId,
             }) + "\n";
@@ -336,7 +341,7 @@ export class VercelAdapterWebhookHandler {
                 actualOutput: { mimeType: audio.mimeType, base64: audio.base64, format: audio.format },
                 evals: [],
               },
-              runId,
+              runId: experimentRunId,
               runName: datasetRunName,
               traceId,
             }) + "\n";

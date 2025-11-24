@@ -32,6 +32,7 @@ export type {
 } from "./types";
 
 export { EvalRegistry } from "./eval-registery";
+export { createPromptTelemetry } from "./runner";
 export type { WebhookDatasetResponse, WebhookDatasetChunk, WebhookPromptResponse, WebhookTextResponse, WebhookObjectResponse, WebhookImageResponse, WebhookSpeechResponse } from "./runner";
 
 // MCP helpers and types

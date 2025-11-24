@@ -50,7 +50,7 @@ export interface WebhookRequest {
  */
 export type WebhookResponse =
   | { type: 'json'; data: any; status?: number }
-  | { type: 'stream'; stream: ReadableStream; headers: Record<string, string> }
+  | { type: 'stream'; stream: ReadableStream; headers: Record<string, string>; traceId?: string }
   | { type: 'error'; error: string; details?: string; status: number };
 
 // Re-export prompt-core types for convenience

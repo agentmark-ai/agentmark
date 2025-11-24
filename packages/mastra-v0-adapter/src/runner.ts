@@ -3,9 +3,11 @@ import type { Ast } from "@agentmark/templatedx";
 import type { MastraAgentMark } from "./mastra-agentmark";
 import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
+import { createPromptTelemetry } from "@agentmark/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
 
 type Frontmatter = {
+  name?: string;
   text_config?: unknown;
   object_config?: unknown;
   image_config?: unknown;
@@ -20,15 +22,16 @@ export class MastraAdapterRunner {
 
   async runPrompt(
     promptAst: Ast,
-    options?: { shouldStream?: boolean; customProps?: Record<string, any> }
+    options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }
   ): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
+    const { traceId, telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
       const agentConfig = options?.customProps
-        ? await prompt.formatAgent({ props: options.customProps as any })
-        : await prompt.formatAgentWithTestProps({});
+        ? await prompt.formatAgent({ props: options.customProps as any, options: { telemetry } })
+        : await prompt.formatAgentWithTestProps({ telemetry });
 
       const [messages, generateOptions] = options?.customProps
         ? await agentConfig.formatMessages({ props: options.customProps as any })
@@ -113,6 +116,7 @@ export class MastraAdapterRunner {
               type: "stream",
               stream,
               streamHeader: { "AgentMark-Streaming": "true" },
+              traceId,
             } as WebhookPromptResponse;
           }
         } catch (error) {
@@ -128,14 +132,15 @@ export class MastraAdapterRunner {
         result: (response as any).object || response,
         usage: (response as any).usage,
         finishReason: (response as any).finishReason,
+        traceId,
       } as WebhookPromptResponse;
     }
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
       const agentConfig = options?.customProps
-        ? await prompt.formatAgent({ props: options.customProps as any })
-        : await prompt.formatAgentWithTestProps({});
+        ? await prompt.formatAgent({ props: options.customProps as any, options: { telemetry } })
+        : await prompt.formatAgentWithTestProps({ telemetry });
 
       const [messages, generateOptions] = options?.customProps
         ? await agentConfig.formatMessages({ props: options.customProps as any })
@@ -240,6 +245,7 @@ export class MastraAdapterRunner {
               type: "stream",
               stream,
               streamHeader: { "AgentMark-Streaming": "true" },
+              traceId,
             } as WebhookPromptResponse;
           }
         } catch (error) {
@@ -260,6 +266,7 @@ export class MastraAdapterRunner {
         finishReason: (response as any).finishReason,
         toolCalls: (response as any).toolCalls || [],
         toolResults: (response as any).toolResults || [],
+        traceId,
       } as WebhookPromptResponse;
     }
 

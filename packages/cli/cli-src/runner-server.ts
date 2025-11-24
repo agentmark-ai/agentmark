@@ -109,6 +109,10 @@ function createMiddleware(
             if (done) break;
             res.write(typeof value === 'string' ? value : decoder.decode(value));
           }
+          // Send traceId as final event if available
+          if (result.traceId) {
+            res.write(JSON.stringify({ type: 'done', traceId: result.traceId }) + '\n');
+          }
           res.end();
         } catch (streamError) {
           console.error('Streaming error:', streamError);

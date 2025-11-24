@@ -11,9 +11,6 @@ import {
   createExamplePrompts,
   getClientConfigContent,
 } from "./templates/index.js";
-import {
-  getDeploymentGuideContent,
-} from "./templates/deployment-templates.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -121,17 +118,6 @@ const setupMCPServer = (client: string, targetPath: string) => {
   }
 };
 
-const createDeploymentGuide = (targetPath: string) => {
-  console.log('Creating deployment guide...');
-
-  // Create DEPLOYMENT.md guide
-  fs.writeFileSync(
-    path.join(targetPath, 'DEPLOYMENT.md'),
-    getDeploymentGuideContent()
-  );
-
-  console.log('✅ Deployment guide created: DEPLOYMENT.md');
-};
 
 export const createExampleApp = async (
   client: string,
@@ -251,9 +237,6 @@ main().catch((err) => {
 `;
 
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
-
-    // Create deployment guide
-    createDeploymentGuide(targetPath);
 
     // Create .env file with webhook URL configuration
     // Always use Express webhook server (port 9417) for local development

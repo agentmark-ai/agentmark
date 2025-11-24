@@ -148,8 +148,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         throw new Error(msg);
       }
       const isStreaming = !!res.headers.get('AgentMark-Streaming');
-      const traceId = res.headers.get('X-AgentMark-TraceId');
-      const resp = isStreaming ? { type: 'stream', stream: res.body!, traceId } : await res.json();
+      const resp = isStreaming ? { type: 'stream', stream: res.body! } : await res.json();
       // Ensure a visible header precedes results; for streams use prompt frontmatter, else fallback to response type
       const respType = (resp as any)?.type;
       const nonStreamHeader = respType === 'object' ? 'Object' : respType === 'image' ? 'Image' : respType === 'speech' ? 'Speech' : 'Text';
@@ -165,6 +164,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         let hasSeenToolResult = false;
         let hasPrintedFinalHeader = false;
         let usageInfo: any = null;
+        let streamTraceId: string | undefined;
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -214,6 +214,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
                 finalObjectString = next;
               }
               if (evt.type === 'error' && evt.error) console.error(`❌ ${evt.error}`);
+              if (evt.type === 'done' && evt.traceId) streamTraceId = evt.traceId;
             } catch {}
           }
         }
@@ -236,8 +237,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log('─'.repeat(60));
         }
         // Display trace link
-        if ((resp as any).traceId) {
-          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${(resp as any).traceId}`);
+        if (streamTraceId) {
+          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${streamTraceId}`);
         }
         console.log('');
       } else {

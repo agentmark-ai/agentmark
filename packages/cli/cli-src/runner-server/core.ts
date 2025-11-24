@@ -103,20 +103,9 @@ export async function handleWebhookRequest(
     if (type === 'prompt-run') {
       console.log('   🤖 Executing prompt...');
 
-      // Generate telemetry for this run
-      const traceId = crypto.randomUUID();
-      const telemetry = {
-        isEnabled: true,
-        metadata: {
-          traceId,
-          traceName: data.promptPath || 'cli-prompt-run',
-        }
-      };
-
       const options = {
         shouldStream: data.options?.shouldStream,
         customProps: data.customProps,
-        telemetry
       };
 
       const response = await handler.runPrompt(data.ast, options);
@@ -127,10 +116,8 @@ export async function handleWebhookRequest(
         return {
           type: 'stream',
           stream: response.stream,
-          headers: {
-            ...(response.streamHeader || { 'AgentMark-Streaming': 'true' }),
-            'X-AgentMark-TraceId': traceId
-          }
+          headers: response.streamHeader || { 'AgentMark-Streaming': 'true' },
+          traceId: response.traceId
         };
       }
 
@@ -138,7 +125,7 @@ export async function handleWebhookRequest(
       console.log('   ✓ Prompt executed successfully');
       return {
         type: 'json',
-        data: { ...response, traceId },
+        data: response,
         status: 200
       };
     }
