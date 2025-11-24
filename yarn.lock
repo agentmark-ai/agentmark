@@ -154,8 +154,8 @@ __metadata:
     zod: "npm:^4.0.17"
   peerDependencies:
     "@agentmark/prompt-core": "*"
-    "@mastra/core": ">0.0.0 <1.0.0"
-    "@mastra/mcp": "*"
+    "@mastra/core": <0.20.0
+    "@mastra/mcp": <0.13.4
   languageName: unknown
   linkType: soft
 
