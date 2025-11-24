@@ -80,7 +80,7 @@ export default function useTable(props?: UseTableProps): ReturnType {
     []
   );
 
-  const onChangePage = useCallback((event: unknown, newPage: number) => {
+  const onChangePage = useCallback((_event: unknown, newPage: number) => {
     setPage(newPage);
   }, []);
 

@@ -4,7 +4,6 @@ import Box from "@mui/material/Box";
 
 import { LabelProps } from "./types";
 import { StyledLabel } from "./styles";
-import { useTheme } from "@mui/material";
 
 const Label = forwardRef<HTMLSpanElement, LabelProps>(
   (
@@ -19,8 +18,6 @@ const Label = forwardRef<HTMLSpanElement, LabelProps>(
     },
     ref
   ) => {
-    const theme = useTheme();
-
     const iconStyles = {
       width: 16,
       height: 16,

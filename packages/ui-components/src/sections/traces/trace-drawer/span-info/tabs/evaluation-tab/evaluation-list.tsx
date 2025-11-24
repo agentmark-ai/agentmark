@@ -10,7 +10,6 @@ import {
 } from "@mui/material";
 import { useTraceDrawerContext } from "../../../trace-drawer-provider";
 import { ScoreData } from "@/sections/traces/types";
-import { EmptyContent } from "@/components";
 import { EvaluationItem } from "./evaluation-item";
 import { useEvaluationContext } from "./evaluation-provider";
 import { EvaluationSkeleton } from "./evaluation-skeleton";

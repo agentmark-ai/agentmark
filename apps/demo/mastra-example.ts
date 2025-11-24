@@ -41,8 +41,6 @@ async function runMastraExample() {
       props,
     });
 
-    const t = agentResult.tools;
-
     const weatherAgent = new Agent(agentResult);
 
     const response = await weatherAgent.generate(generatedMessages, options);

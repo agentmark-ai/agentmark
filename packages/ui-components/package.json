@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsup",
-    "lint": "eslint",
+    "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

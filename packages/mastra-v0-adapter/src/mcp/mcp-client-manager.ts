@@ -76,7 +76,7 @@ export class MCPClientManager {
     let mod: any;
     try {
       mod = await import("@mastra/mcp");
-    } catch (err) {
+    } catch (_err) {
       throw new Error(
         "@mastra/mcp is not installed. Please add it as a dependency in your app."
       );

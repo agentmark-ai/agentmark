@@ -1,12 +1,10 @@
-import { AgentmarkConfig } from "./types";
-
 export function toFrontMatter(content: { [key: string]: any }): string {
   function jsonToFrontMatter(json: { [key: string]: any }, indent = 0) {
     let frontMatter = "";
     const indentation = "  ".repeat(indent);
 
     for (const key in json) {
-      if (json.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(json, key)) {
         const value = json[key];
 
         if (typeof value === "object" && !Array.isArray(value)) {

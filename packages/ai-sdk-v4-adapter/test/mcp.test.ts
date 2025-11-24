@@ -29,7 +29,7 @@ vi.mock("../src/mcp/mcp-server-registry", () => {
       return this.servers.has(name);
     }
 
-    async getTool(server: string, toolName: string) {
+    async getTool(_server: string, _toolName: string) {
       return new MockTool();
     }
   }

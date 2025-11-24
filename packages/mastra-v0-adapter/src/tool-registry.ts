@@ -8,7 +8,7 @@ type Merge<A, B> = {
 
 export class MastraToolRegistry<
   TD extends { [K in keyof TD]: { args: any } },
-  RM extends Partial<Record<keyof TD, any>> = {}
+  RM extends Partial<Record<keyof TD, any>> = Partial<Record<keyof TD, any>>
 > {
   declare readonly __tools: { input: TD; output: RM };
 

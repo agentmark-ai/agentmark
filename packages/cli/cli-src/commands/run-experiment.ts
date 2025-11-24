@@ -125,10 +125,14 @@ export default async function runExperiment(filepath: string, options: { skipEva
   }
 
   // Ensure runner client resolves prompt-relative resources (datasets, etc.)
-  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
+  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {
+    // Ignore errors when setting environment variable
+  }
   const { load } = await import("@agentmark/templatedx");
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
-  try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
+  try { process.chdir(path.dirname(resolvedFilepath)); } catch {
+    // Ignore errors when changing directory
+  }
   const ast: Root = await load(resolvedFilepath);
   // Extract dataset path and prompt relative path for runner consumption (helps cloud loader resolve URLs)
   let datasetPath: string | undefined;
@@ -142,7 +146,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
       // If already relative (starts with ./), use as-is; otherwise just use the raw path
       datasetPath = rawDatasetPath;
     }
-  } catch {}
+  } catch {
+    // Ignore errors when parsing dataset path
+  }
 
   const server = options.server || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
@@ -189,9 +195,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
 
   if (!res.ok) {
     let raw = '';
-    try { raw = await res.text(); } catch {}
+    try { raw = await res.text(); } catch {
+      // Ignore errors when reading response text
+    }
     let parsed: any = null;
-    try { parsed = JSON.parse(raw); } catch {}
+    try { parsed = JSON.parse(raw); } catch {
+      // Ignore errors when parsing JSON
+    }
     const ct = res.headers.get('content-type') || '';
     const statusLine = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
     const errMsg = parsed?.error || parsed?.message || raw?.slice?.(0, 2000) || 'Unknown error';
@@ -221,7 +231,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   let tableInitialized = false;
   let Table: any;
   let table: any;
-  let jsonRows: any[] = []; // For buffering JSON format output
+  const jsonRows: any[] = []; // For buffering JSON format output
 
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -246,10 +256,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
 
           // Coerce AI result column, saving media to files and printing IDE-clickable paths
           let actual: string;
-          let extraPaths: Array<{ rel: string; kind: 'image' | 'audio' } > = [];
+          const extraPaths: Array<{ rel: string; kind: 'image' | 'audio' } > = [];
           const hyperlink = (label: string, url: string) => `\u001B]8;;${url}\u0007${label}\u001B]8;;\u0007`;
           const outDir = path.join(process.cwd(), config.outputDir);
-          const ensureOutDir = () => { try { fs.mkdirSync(outDir, { recursive: true }); } catch {} };
+          const ensureOutDir = () => { try { fs.mkdirSync(outDir, { recursive: true }); } catch {
+            // Ignore errors when creating output directory
+          } };
           const ao = r.actualOutput;
           if (Array.isArray(ao) && ao.length > 0 && ao.every((x: any) => x && typeof x.base64 === 'string')) {
             // Image array output
@@ -259,7 +271,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
             ao.forEach((img: any, idx: number) => {
               const ext = (img.mimeType?.split?.('/')?.[1]) || 'png';
               const filePath = path.join(outDir, `image-${index}-${idx + 1}-${timestamp}.${ext}`);
-              try { fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64')); } catch {}
+              try { fs.writeFileSync(filePath, Buffer.from(img.base64, 'base64')); } catch {
+                // Ignore errors when writing image file
+              }
               extraPaths.push({ rel: filePath, kind: 'image' });
               const url = pathToFileURL(filePath).href;
               linkLabels.push(hyperlink(`View Image ${idx + 1}`, url));
@@ -275,7 +289,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
             const timestamp = Date.now();
             const ext = ao.format || (ao.mimeType?.split?.('/')?.[1] || 'mp3');
             const filePath = path.join(outDir, `audio-${index}-${timestamp}.${ext}`);
-            try { fs.writeFileSync(filePath, Buffer.from(ao.base64, 'base64')); } catch {}
+            try { fs.writeFileSync(filePath, Buffer.from(ao.base64, 'base64')); } catch {
+              // Ignore errors when writing audio file
+            }
             const url = pathToFileURL(filePath).href;
             actual = hyperlink('Play Audio', url);
             extraPaths.push({ rel: filePath, kind: 'audio' });
@@ -377,7 +393,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
           }
 
           index += 1;
-        } catch {}
+        } catch {
+          // Ignore errors when processing dataset events
+        }
       }
     }
   } finally {

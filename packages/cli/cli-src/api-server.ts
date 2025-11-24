@@ -43,7 +43,9 @@ export async function createApiServer(port: number) {
         );
       }
     }
-  } catch { }
+  } catch {
+    // Ignore errors when reading agentmark.json
+  }
 
   // Landing page for browser access
   app.get("/", async (_req: Request, res: Response) => {
@@ -371,7 +373,7 @@ ${promptsList}
               .filter(Boolean);
             const arr = lines.map((l) => JSON.parse(l));
             return res.json(arr);
-          } catch (e) {
+          } catch (_e) {
             return res.status(500).json({ error: "Failed to read dataset" });
           }
         }
@@ -403,7 +405,7 @@ ${promptsList}
         }
       );
       return res.json({ data });
-    } catch (error) {
+    } catch (_error) {
       return res.status(404).json({ error: "File not found or invalid" });
     }
   });
@@ -412,7 +414,7 @@ ${promptsList}
     try {
       await exportTraces(req.body);
       return res.json({ success: true });
-    } catch (error) {
+    } catch (_error) {
       return res.status(500).json({ error: "Failed to export traces" });
     }
   });
@@ -434,7 +436,7 @@ ${promptsList}
         path.relative(agentmarkTemplatesBase, file)
       );
       res.json({ paths });
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({ error: "Failed to list prompts" });
     }
   });

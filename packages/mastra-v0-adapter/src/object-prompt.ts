@@ -9,7 +9,6 @@ import {
   type RichChatMessage,
 } from "@agentmark/prompt-core";
 import { MastraAdapter } from "./adapter";
-import { AgentGenerateOptions } from "@mastra/core/agent";
 import {
   FormatAgentProps,
   FormatMessagesProps,
@@ -34,7 +33,7 @@ export class MastraObjectPrompt<
   }
 
   async formatAgent<
-    UsedProps extends Partial<T[K]["input"]> = {}
+    UsedProps extends Partial<T[K]["input"]> = Record<string, never>
   >(params?: {
     props?: FormatAgentProps<T, UsedProps, K>;
     options?: AdaptOptions;

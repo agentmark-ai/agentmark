@@ -21,7 +21,7 @@ type TestPromptTypes = {
   };
   "fixtures/incorrectAttachments.prompt.mdx": {
     kind: "object";
-    input: {};
+    input: { userMessage: string };
     output: { answer: string };
   };
   "fixtures/incorrectImage.prompt.mdx": {
@@ -207,32 +207,35 @@ describe("AgentMark Integration", () => {
 
   it("should handle formatting with data sets", async () => {
     const prompt = await agentMark.loadObjectPrompt("fixtures/mathDataset.prompt.mdx");
-    const vercelInputs = await prompt.formatWithDataset({});
+    const vercelInputs = await prompt.formatWithDataset();
 
     let entryIndex = 1;
     for await (const input of vercelInputs) {
       expect(input).toBeDefined();
-      expect(input.dataset.input).toBeDefined();
-      expect(input.formatted.name).toBe("mathDatasetOps");
-      expect(input.formatted.messages).toHaveLength(3);
-      expect(input.formatted.messages[0].role).toBe("system");
-      expect(input.formatted.messages[0].content).toBe("You are a helpful math tutor.");
-      if (entryIndex === 1) {
-        expect(input.formatted.messages[1].role).toBe("user");
-        expect(input.formatted.messages[1].content).toBe("What is 5 + 7?");
-      } else if (entryIndex === 2) {
-        expect(input.formatted.messages[1].role).toBe("user");
-        expect(input.formatted.messages[1].content).toBe("Calculate 10 - 3.");
+      expect(input.type).toBe("dataset")
+      if(input.type === "dataset") {
+        expect(input.dataset.input).toBeDefined();
+        expect(input.formatted.name).toBe("mathDatasetOps");
+        expect(input.formatted.messages).toHaveLength(3);
+        expect(input.formatted.messages[0].role).toBe("system");
+        expect(input.formatted.messages[0].content).toBe("You are a helpful math tutor.");
+        if (entryIndex === 1) {
+          expect(input.formatted.messages[1].role).toBe("user");
+          expect(input.formatted.messages[1].content).toBe("What is 5 + 7?");
+        } else if (entryIndex === 2) {
+          expect(input.formatted.messages[1].role).toBe("user");
+          expect(input.formatted.messages[1].content).toBe("Calculate 10 - 3.");
+        }
+        expect(input.formatted.messages[2].role).toBe("assistant");
+        expect(input.formatted.messages[2].content).toBe("Here's your answer!");
+        entryIndex++;
       }
-      expect(input.formatted.messages[2].role).toBe("assistant");
-      expect(input.formatted.messages[2].content).toBe("Here's your answer!");
-      entryIndex++;
     }
   });
 
   it("should handle formatting with test props", async () => {
     const prompt = await agentMark.loadObjectPrompt("fixtures/mathDataset.prompt.mdx");
-    const vercelInput = await prompt.formatWithTestProps({});
+    const vercelInput = await prompt.formatWithTestProps();
 
     expect(vercelInput).toBeDefined();
     expect(vercelInput.name).toBe("mathDatasetOps");

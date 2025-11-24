@@ -64,10 +64,12 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
       // Kill all children first
       try {
         spawn('pkill', ['-P', String(pid)], { stdio: 'ignore' });
-      } catch { }
+      } catch {
+        // Ignore errors when killing children
+      }
       // Then kill the main process
       process.kill(pid, 'SIGKILL');
-    } catch (e) {
+    } catch (_e) {
       // Ignore errors (process may already be dead)
     }
   };
@@ -109,7 +111,9 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
   runnerServer.on('error', (error) => {
     console.error('Failed to start runner server:', error.message);
     if (apiServerInstance) {
-      try { apiServerInstance.close(); } catch { }
+      try { apiServerInstance.close(); } catch {
+        // Ignore errors when closing API server
+      }
     }
     process.exit(1);
   });
@@ -117,7 +121,9 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
   runnerServer.on('exit', (code) => {
     console.log(`\nRunner server exited with code ${code}`);
     if (apiServerInstance) {
-      try { apiServerInstance.close(); } catch { }
+      try { apiServerInstance.close(); } catch {
+        // Ignore errors when closing API server
+      }
     }
     process.exit(code || 0);
   });
@@ -153,7 +159,9 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
     console.log('\nShutting down servers...');
 
     if (apiServerInstance) {
-      try { apiServerInstance.close(); } catch { }
+      try { apiServerInstance.close(); } catch {
+        // Ignore errors when closing API server
+      }
     }
     if (runnerServer.pid) killProcessTree(runnerServer.pid);
 

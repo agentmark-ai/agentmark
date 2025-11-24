@@ -12,7 +12,8 @@
   },
   "scripts": {
     "build": "tsup",
-    "build:package": "yarn build"
+    "build:package": "yarn build",
+    "lint": "eslint ."
   },
   "files": [
     "dist",

@@ -55,11 +55,11 @@ export const TraceDrawerProvider = ({
 
   const selectedSpan = useMemo(() => {
     if (!selectedSpanId) {
-      if (traces.length > 0) {
+      if (traces.length > 0 && traces[0]) {
         return {
-          id: traces[0]?.id!,
-          name: traces[0]?.name!,
-          data: { ...(traces[0]?.data || {}) },
+          id: traces[0].id,
+          name: traces[0].name,
+          data: { ...(traces[0].data || {}) },
           duration: 0,
           timestamp: 0,
         } satisfies SpanData;
@@ -98,38 +98,9 @@ export const TraceDrawerProvider = ({
   }, [selectedSpanId, traces]);
 
   const spanTree = useMemo(() => {
-    const costAndTokenCache: any = {};
-
-    const findCostAndTokens = (item: any) => {
-      if (costAndTokenCache[item.id]) {
-        return costAndTokenCache[item.id];
-      }
-      if (item.children.length > 0) {
-        const result = item.children.reduce(
-          (acc: any, curr: any) => {
-            const { cost, tokens } = findCostAndTokens(curr);
-            return {
-              cost: acc.cost + cost,
-              tokens: acc.tokens + tokens,
-            };
-          },
-          {
-            cost: 0,
-            tokens: 0,
-          }
-        );
-        costAndTokenCache[item.id] = result;
-        return result;
-      }
-      return {
-        cost: Number(item.data.cost) || 0,
-        tokens: Number(item.data.tokens) || 0,
-      };
-    };
-
     const buildSpanTree = (traces: TraceData[]) => {
-      let tree: any = [];
-      let lookup: any = {};
+      const tree: any = [];
+      const lookup: any = {};
 
       traces.forEach((trace) => {
         trace.spans.forEach((span: any) => {

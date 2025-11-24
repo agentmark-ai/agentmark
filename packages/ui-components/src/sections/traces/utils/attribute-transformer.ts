@@ -134,7 +134,7 @@ export const transformAttributes = (attributes: Record<string, any>) => {
     }
 
     return transformed;
-  } catch (error) {
+  } catch (_error) {
     return attributes;
   }
 };
