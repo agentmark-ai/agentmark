@@ -45,7 +45,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/ai-sdk-v5-adapter@workspace:*, @agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter":
+"@agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
   dependencies:
@@ -154,7 +154,7 @@ __metadata:
     zod: "npm:^4.0.17"
   peerDependencies:
     "@agentmark/prompt-core": "*"
-    "@mastra/core": ^0.13.2
+    "@mastra/core": ">0.0.0 <1.0.0"
     "@mastra/mcp": "*"
   languageName: unknown
   linkType: soft
@@ -333,18 +333,6 @@ __metadata:
   peerDependencies:
     zod: ^3.0.0
   checksum: 10c0/fb8e1ca98cdba97ecb2910cb2321bd9c00564fa40eb1b68e54939bfac3e90c2c8e05f9a40110b612181438d06ee0cee6aa8c9bec74cd9b51a4bcd8e8b149f8a5
-  languageName: node
-  linkType: hard
-
-"@ai-sdk/openai@npm:^2.0.69":
-  version: 2.0.69
-  resolution: "@ai-sdk/openai@npm:2.0.69"
-  dependencies:
-    "@ai-sdk/provider": "npm:2.0.0"
-    "@ai-sdk/provider-utils": "npm:3.0.17"
-  peerDependencies:
-    zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/b39884d7360e393760a17f21da28a7c27ce628f9ffc1c4db5e4feb94b7123269f4fce4b585ec52c01912bc2e769b216f091d7158f726b13869a3fb8a7d9a9dac
   languageName: node
   linkType: hard
 
@@ -6441,21 +6429,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"agentmark-v5-test@workspace:apps/v5-test":
-  version: 0.0.0-use.local
-  resolution: "agentmark-v5-test@workspace:apps/v5-test"
-  dependencies:
-    "@agentmark/ai-sdk-v5-adapter": "workspace:*"
-    "@agentmark/prompt-core": "workspace:*"
-    "@ai-sdk/mcp": "npm:^0.0.8"
-    "@ai-sdk/openai": "npm:^2.0.69"
-    ai: "npm:^5.0.97"
-    dotenv: "npm:^16.4.7"
-    tsx: "npm:^4.19.2"
-    zod: "npm:^3.23.8"
-  languageName: unknown
-  linkType: soft
-
 "aggregate-error@npm:^4.0.0":
   version: 4.0.1
   resolution: "aggregate-error@npm:4.0.1"
@@ -6486,7 +6459,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^5.0.0, ai@npm:^5.0.97":
+"ai@npm:^5.0.0":
   version: 5.0.97
   resolution: "ai@npm:5.0.97"
   dependencies:

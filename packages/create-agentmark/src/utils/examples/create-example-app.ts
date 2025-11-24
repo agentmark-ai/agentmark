@@ -124,7 +124,8 @@ export const createExampleApp = async (
   model: string,
   client: string,
   targetPath: string = ".",
-  apiKey: string = ""
+  apiKey: string = "",
+  adapter: string = "ai-sdk"
 ) => {
   try {
     console.log("Creating Agent Mark example app...");
@@ -138,7 +139,7 @@ export const createExampleApp = async (
     setupMCPServer(client, targetPath);
 
     // Create example prompts
-    createExamplePrompts(model, targetPath);
+    createExamplePrompts(model, targetPath, adapter);
     console.log(`✅ Example prompts and datasets created in ${folderName}/agentmark/`);
 
     // Create user client config at project root
@@ -146,7 +147,7 @@ export const createExampleApp = async (
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
       `${targetPath}/agentmark.client.ts`,
-      getClientConfigContent({ provider: modelProvider, languageModels: langModels })
+      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter })
     );
 
     // Create .env file
@@ -159,7 +160,7 @@ export const createExampleApp = async (
     // Create the main application file
     fs.writeFileSync(
       `${targetPath}/index.ts`,
-      getIndexFileContent()
+      getIndexFileContent(adapter)
     );
 
     // Create tsconfig.json
@@ -167,7 +168,7 @@ export const createExampleApp = async (
 
     // Setup package.json and install dependencies
     setupPackageJson(targetPath);
-    installDependencies(modelProvider, targetPath);
+    installDependencies(modelProvider, targetPath, adapter);
 
     // Generate types file using the type generation library
     console.log("Generating types from prompts...");
@@ -188,9 +189,9 @@ export const createExampleApp = async (
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
 
-    // Default adapter is ai-sdk-v5 (will be configurable in future)
-    const adapterName = 'ai-sdk-v5';
-    const runnerClassName = 'VercelAdapterRunner';
+    // Set adapter-specific values
+    const adapterName = adapter === 'mastra' ? 'mastra-v0' : 'ai-sdk-v5';
+    const runnerClassName = adapter === 'mastra' ? 'MastraAdapterRunner' : 'VercelAdapterRunner';
 
     const devEntryContent = `// Auto-generated runner server entry point
 // To customize, create a dev-server.ts file in your project root
@@ -204,19 +205,19 @@ async function main() {
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--runner-port='));
-  const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
+  const apiServerPortArg = args.find(arg => arg.startsWith('--api-server-port='));
 
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
-  const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
+  const apiServerPort = apiServerPortArg ? parseInt(apiServerPortArg.split('=')[1]) : 9418;
 
   const runner = new ${runnerClassName}(client as any);
-  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+  const apiServerUrl = \`http://localhost:\${apiServerPort}\`;
   const templatesDirectory = path.join(process.cwd(), 'agentmark');
 
   await createRunnerServer({
     port: runnerPort,
     runner,
-    fileServerUrl,
+    apiServerUrl,
     templatesDirectory
   });
 }
