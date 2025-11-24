@@ -124,7 +124,7 @@ describe('init', () => {
       expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/ai-sdk-v5-adapter/runner'");
       expect(content).toContain("import path from 'path'");
       expect(content).toContain('new VercelAdapterRunner(client');
-      expect(content).toContain('fileServerUrl');
+      expect(content).toContain('apiServerUrl');
       expect(content).toContain('templatesDirectory');
       expect(content).toContain('createRunnerServer({');
     } finally {
