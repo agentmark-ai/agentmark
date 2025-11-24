@@ -46,6 +46,16 @@ const main = async () => {
   });
   apiKey = providedApiKey || "";
 
+  const { adapter } = await prompts({
+    name: "adapter",
+    type: "select",
+    message: "Which adapter would you like to use?",
+    choices: [
+      { title: "AI SDK (Vercel)", value: "ai-sdk" },
+      { title: "Mastra", value: "mastra" },
+    ],
+  });
+
   const { client } = await prompts({
     name: "client",
     type: "select",
@@ -59,7 +69,7 @@ const main = async () => {
     ],
   });
 
-  await createExampleApp(provider, model, client, targetPath, apiKey);
+  await createExampleApp(provider, model, client, targetPath, apiKey, adapter);
 
   // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });

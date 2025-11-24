@@ -12,8 +12,6 @@ import { MastraToolRegistry } from "./tool-registry";
 import { AgentConfig, AgentGenerateOptions } from "@mastra/core/agent";
 import { resolveSerializedZodOutput } from "@mastra/core/utils";
 import { parseSchema } from "json-schema-to-zod";
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
 import { parseMcpUri } from "@agentmark/prompt-core";
 import type { McpServers } from "@agentmark/prompt-core";
 import { MCPClientManager } from "./mcp/mcp-client-manager";

@@ -30,7 +30,8 @@ export const setupPackageJson = (targetPath: string = ".") => {
 
 export const installDependencies = (
   modelProvider: string,
-  targetPath: string = "."
+  targetPath: string = ".",
+  adapter: string = "ai-sdk"
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
@@ -44,19 +45,34 @@ export const installDependencies = (
     });
 
     // Install the common packages
-    // Use different package names for different providers
-    // Pin required major versions: ai@v4, @ai-sdk/<provider>@v1
-    const providerPackage = modelProvider === "ollama" ? "ollama-ai-provider" : `@ai-sdk/${modelProvider}@^1`;
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
     const installArgs = [
       "install",
       "dotenv",
       "@agentmark/prompt-core",
-      "@agentmark/ai-sdk-v4-adapter",
       "@agentmark/sdk",
-      providerPackage,
-      "ai@^4",
     ];
+
+    
+    // Install adapter-specific packages
+    if (adapter === "mastra") {
+      const providerPackage = `@ai-sdk/${modelProvider}`;
+      installArgs.push(
+        "@agentmark/mastra-v0-adapter",
+        "@mastra/core@<0.20.0",
+        "@mastra/mcp@<0.13.4",
+        providerPackage
+      );
+    } else {
+      // Use different package names for different providers
+      // Pin required major versions: ai@v5, @ai-sdk/<provider>@v2
+      const providerPackage = `@ai-sdk/${modelProvider}@^2`;
+      installArgs.push(
+        "@agentmark/ai-sdk-v5-adapter",
+        providerPackage,
+        "ai@^5"
+      );
+    }
 
     execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
     
