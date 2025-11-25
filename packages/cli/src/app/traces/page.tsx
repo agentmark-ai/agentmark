@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  Card,
-  Typography,
-  Stack,
-} from "@mui/material";
-import {
-  Trace,
-  TracesList,
-  useTable,
-} from "@agentmark/ui-components";
+import { Card, Typography, Stack } from "@mui/material";
+import { Trace, TracesList, useTable } from "@agentmark/ui-components";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -53,9 +45,7 @@ function TracesContent() {
         />
       </Card>
 
-      <Suspense fallback={<div>Loading...</div>}>
-        <TraceDrawer t={t} />
-      </Suspense>
+      <TraceDrawer t={t} />
     </Stack>
   );
 }

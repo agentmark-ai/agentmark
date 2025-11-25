@@ -180,7 +180,7 @@ export const TraceDrawerProvider = ({
     if (onSpanChange) {
       onSpanChange(selectedSpan);
     }
-  }, [selectedSpan, onSpanChange]);
+  }, [selectedSpan]);
 
   // Cost and token calculation function
   const findCostAndTokens = useCallback((item: any) => {
