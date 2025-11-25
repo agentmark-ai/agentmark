@@ -87,7 +87,11 @@ export class VercelAdapterWebhookHandler {
               encoder.encode(
                 JSON.stringify({
                   type: "object",
-                  usage: usageData,
+                  usage: {
+                    ...usageData,
+                    promptTokens: usageData.inputTokens,
+                    completionTokens: usageData.outputTokens,
+                  },
                 }) + "\n"
               )
             );
@@ -105,7 +109,11 @@ export class VercelAdapterWebhookHandler {
       return {
         type: "object",
         result: object,
-        usage,
+        usage: {
+          ...usage,
+          promptTokens: usage.inputTokens,
+          completionTokens: usage.outputTokens,
+        },
         finishReason,
         traceId,
       } as WebhookPromptResponse;
@@ -174,12 +182,17 @@ export class VercelAdapterWebhookHandler {
                 );
               }
               if ((chunk as any).type === "finish") {
+                const usageData = (chunk as any).usage || (chunk as any).totalUsage;
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({
                       type: "text",
                       finishReason: (chunk as any).finishReason,
-                      usage: (chunk as any).usage || (chunk as any).totalUsage,
+                      usage: usageData ? {
+                        ...usageData,
+                        promptTokens: usageData.inputTokens,
+                        completionTokens: usageData.outputTokens,
+                      } : undefined,
                     }) + "\n"
                   )
                 );
@@ -201,7 +214,11 @@ export class VercelAdapterWebhookHandler {
       return {
         type: "text",
         result: text,
-        usage,
+        usage: {
+          ...usage,
+          promptTokens: usage.inputTokens,
+          completionTokens: usage.outputTokens,
+        },
         finishReason,
         toolCalls,
         toolResults,

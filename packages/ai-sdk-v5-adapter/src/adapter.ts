@@ -15,24 +15,24 @@ import type {
   Schema,
   Tool,
   SpeechModel,
-  CoreMessage,
+  ModelMessage,
 } from "ai";
 import { jsonSchema } from "ai";
 import { parseMcpUri } from "@agentmark/prompt-core";
 import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
-// Convert RichChatMessage[] to CoreMessage[] for AI SDK v5 compatibility
-function convertMessages(messages: RichChatMessage[]): CoreMessage[] {
+// Convert RichChatMessage[] to ModelMessage[] for AI SDK v5
+function convertMessages(messages: RichChatMessage[]): ModelMessage[] {
   return messages.map((msg) => {
     if (msg.role === "system") {
-      return { role: "system", content: msg.content } as CoreMessage;
+      return { role: "system", content: msg.content } as ModelMessage;
     }
     if (msg.role === "assistant") {
-      return { role: "assistant", content: msg.content } as CoreMessage;
+      return { role: "assistant", content: msg.content } as ModelMessage;
     }
     if (msg.role === "user") {
       if (typeof msg.content === "string") {
-        return { role: "user", content: msg.content } as CoreMessage;
+        return { role: "user", content: msg.content } as ModelMessage;
       }
       // Convert array content, transforming file parts from mimeType to mediaType
       const convertedContent = msg.content.map((part) => {
@@ -45,9 +45,9 @@ function convertMessages(messages: RichChatMessage[]): CoreMessage[] {
         }
         return part;
       });
-      return { role: "user", content: convertedContent } as CoreMessage;
+      return { role: "user", content: convertedContent } as ModelMessage;
     }
-    return msg as CoreMessage;
+    return msg as ModelMessage;
   });
 }
 
@@ -67,7 +67,7 @@ type ToolSetMap<O extends Record<string, any>> = Prettify<{
 
 export type VercelAITextParams<TS extends Record<string, Tool>> = {
   model: LanguageModel;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   temperature?: number;
   maxTokens?: number;
   topP?: number;
@@ -84,7 +84,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
 export interface VercelAIObjectParams<T> {
   output?: "object";
   model: LanguageModel;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   schema: Schema<T>;
   temperature?: number;
   maxTokens?: number;

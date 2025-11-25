@@ -62,7 +62,9 @@ function createMiddleware(
         const signature = req.headers[headerName.toLowerCase()] as string;
 
         if (!signature) {
-          console.log('   → 401 Missing signature header');
+          console.error('   ❌ 401 Missing signature header');
+          console.error(`      Expected header: ${headerName}`);
+          console.error('      Ensure the client is sending a signed request with AGENTMARK_WEBHOOK_SECRET.');
           return res.status(401).json({
             message: `Missing signature header: Expected ${headerName} header for webhook verification`
           });
@@ -72,7 +74,8 @@ function createMiddleware(
         const isValid = await verifyWebhookSignature(bodyString, signature, signatureOptions.secret);
 
         if (!isValid) {
-          console.log('   → 401 Invalid signature');
+          console.error('   ❌ 401 Invalid webhook signature');
+          console.error('      The signature in the request header does not match.');
           return res.status(401).json({
             message: 'Invalid webhook signature - signature verification failed'
           });
@@ -107,7 +110,17 @@ function createMiddleware(
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-            res.write(typeof value === 'string' ? value : decoder.decode(value));
+            const chunk = typeof value === 'string' ? value : decoder.decode(value);
+            // Log errors from the stream
+            try {
+              const parsed = JSON.parse(chunk.trim());
+              if (parsed.type === 'error') {
+                console.error(`   ❌ Error: ${parsed.error || parsed.message || 'Unknown error'}`);
+              }
+            } catch {
+              // Not JSON or multi-line, ignore parsing errors
+            }
+            res.write(chunk);
           }
           // Send traceId as final event if available
           if (result.traceId) {
