@@ -1,5 +1,16 @@
 # create-agentmark
 
+## 0.3.0
+
+### Minor Changes
+
+- 7496360: Feat: webhook support
+
+### Patch Changes
+
+- Updated dependencies [7496360]
+  - @agentmark/shared-utils@1.4.0
+
 ## 0.2.0
 
 ### Minor Changes

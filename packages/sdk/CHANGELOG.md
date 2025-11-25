@@ -1,5 +1,11 @@
 # @puzzlet/sdk
 
+## 4.3.0
+
+### Minor Changes
+
+- 7496360: Feat: webhook support
+
 ## 4.2.1
 
 ### Patch Changes

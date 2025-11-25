@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 0.2.0
+
+### Minor Changes
+
+- 7496360: Feat: webhook support
+
 ## 0.1.1
 
 ### Patch Changes

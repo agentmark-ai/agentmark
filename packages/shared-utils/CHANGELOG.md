@@ -1,5 +1,11 @@
 # @agentmark/shared-utils
 
+## 1.4.0
+
+### Minor Changes
+
+- 7496360: Feat: webhook support
+
 ## 1.3.1
 
 ### Patch Changes
