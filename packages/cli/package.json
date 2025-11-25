@@ -13,7 +13,7 @@
     "dev": "next dev",
     "start": "next start",
     "build:app": "next build",
-    "lint": "eslint --config cli-src/eslint.config.js cli-src",
+    "lint": "eslint --config cli-src/eslint.config.mjs cli-src",
     "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && node -e \"require('fs').chmodSync('dist/index.js', '755')\" && yarn build:app",
     "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
     "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",

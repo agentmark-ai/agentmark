@@ -130,9 +130,6 @@ __metadata:
     eslint-plugin-import: "npm:^2.31.0"
     typescript: "npm:^5"
     typescript-eslint: "npm:^8.18.1"
-  peerDependencies:
-    eslint: ^9.0.0
-    typescript: ^5.0.0
   languageName: unknown
   linkType: soft
 
