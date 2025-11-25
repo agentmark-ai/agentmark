@@ -163,6 +163,10 @@ export async function createWebhookServer(options: WebhookServerOptions): Promis
 
   const app = express();
 
+  // Trust first proxy hop (for tunnels like ngrok, cloudflare, etc.)
+  // Using 1 instead of true limits trust to single proxy, more secure for dev
+  app.set('trust proxy', 1);
+
   // Parse JSON bodies (up to 10mb)
   app.use(express.json({ limit: '10mb' }));
 
