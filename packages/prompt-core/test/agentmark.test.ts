@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { createAgentMarkClient } from "@agentmark/fallback-adapter";
 import { FileLoader } from "../src/loaders/file";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
   "fixtures/math.prompt.mdx": {
@@ -18,16 +19,6 @@ type TestPromptTypes = {
     kind: "object";
     input: { userMessage: string; fileMimeType: string; imageLink: string };
     output: { answer: string };
-  };
-  "fixtures/incorrectAttachments.prompt.mdx": {
-    kind: "object";
-    input: { userMessage: string };
-    output: { answer: string };
-  };
-  "fixtures/incorrectImage.prompt.mdx": {
-    kind: "image";
-    input: { userMessage: string };
-    output: never;
   };
   "fixtures/speech.prompt.mdx": {
     kind: "speech";
@@ -47,6 +38,16 @@ describe("AgentMark Integration", () => {
   const fileLoader = new FileLoader(testDir);
   const agentMark = createAgentMarkClient<TestPromptTypes>({
     loader: fileLoader,
+  });
+
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
   });
 
   it("should load and compile prompts with type safety", async () => {
@@ -112,11 +113,8 @@ describe("AgentMark Integration", () => {
     expect(result.speech_config.speed).toBe(1.0);
   });
 
-  it("should throw an error for invalid prompt tags", async () => {
-    await expect(
-      agentMark.loadImagePrompt("fixtures/incorrectImage.prompt.mdx")
-    ).rejects.toThrowError();
-  });
+  // Note: Invalid prompt validation now happens at build time.
+  // Tests for invalid prompts are in the build command tests.
 
   it("should enforce type safety on prompt paths", () => {
     expect(async () => {
@@ -197,13 +195,8 @@ describe("AgentMark Integration", () => {
     ]);
   });
 
-  it("should throw an error if the attachments are not inside User tag only", async () => {
-    await expect(
-      agentMark.loadObjectPrompt("fixtures/incorrectAttachments.prompt.mdx")
-    ).rejects.toThrowError(
-      "Error processing MDX JSX Element: ImageAttachment and FileAttachment tags must be inside User tag."
-    );
-  });
+  // Note: Invalid attachment placement validation now happens at build time.
+  // Tests for invalid prompts are in the build command tests.
 
   it("should handle formatting with data sets", async () => {
     const prompt = await agentMark.loadObjectPrompt("fixtures/mathDataset.prompt.mdx");

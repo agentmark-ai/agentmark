@@ -12,6 +12,7 @@ import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
+import build from './commands/build';
 
 // Read version from package.json
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
@@ -96,6 +97,18 @@ program
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
       await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("build")
+  .description('Build prompts and datasets into pre-compiled JSON files for static loading')
+  .option('-o, --out <directory>', 'Output directory (default: dist/agentmark)')
+  .action(async (options: { out?: string }) => {
+    try {
+      await (build as any)({ outDir: options.out });
     } catch (error) {
       program.error((error as Error).message);
     }
