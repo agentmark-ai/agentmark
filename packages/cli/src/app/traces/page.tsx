@@ -1,30 +1,17 @@
 "use client";
 
-import {
-  Card,
-  TableBody,
-  TableCell,
-  TableRow,
-  Typography,
-  TableContainer,
-  Stack,
-  Table,
-} from "@mui/material";
-import {
-  TableHeadCustom,
-  TraceListItem,
-  Trace,
-  TracesList,
-  useTable,
-} from "@agentmark/ui-components";
+import { Card, Typography, Stack } from "@mui/material";
+import { Trace, TracesList, useTable } from "@agentmark/ui-components";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { TraceDrawer } from "./trace-drawer";
 import { getTraces } from "../../lib/api/traces";
 
-export default function TracesPage() {
+function TracesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const runId = searchParams.get("runId");
   const t = useTranslations("traces");
   const [traces, setTraces] = useState<Trace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,12 +20,12 @@ export default function TracesPage() {
   useEffect(() => {
     const fetchTraces = async () => {
       setIsLoading(true);
-      const fetchedTraces = await getTraces();
+      const fetchedTraces = await getTraces(runId || undefined);
       setTraces(fetchedTraces);
       setIsLoading(false);
     };
     fetchTraces();
-  }, []);
+  }, [runId]);
 
   return (
     <Stack spacing={2}>
@@ -51,16 +38,22 @@ export default function TracesPage() {
           isLoading={isLoading}
           traceCount={traces.length}
           onTraceClick={(trace) => {
-            router.push(`/traces/${trace.id}`);
+            router.push(`/traces?traceId=${trace.id}`);
           }}
           table={table}
           t={t}
         />
       </Card>
 
-      <Suspense fallback={<div>Loading...</div>}>
-        <TraceDrawer t={t} />
-      </Suspense>
+      <TraceDrawer t={t} />
     </Stack>
+  );
+}
+
+export default function TracesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TracesContent />
+    </Suspense>
   );
 }

@@ -1,8 +1,31 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterAll } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 describe('init', () => {
+  afterAll(() => {
+    // Final cleanup: find and remove any remaining tmp-* directories
+    const testDir = path.join(__dirname, '..');
+    try {
+      const files = fs.readdirSync(testDir);
+      for (const file of files) {
+        if (file.startsWith('tmp-gitignore-') || file.startsWith('tmp-examples-') ||
+            file.startsWith('tmp-client-') || file.startsWith('tmp-express-')) {
+          const fullPath = path.join(testDir, file);
+          try {
+            if (fs.existsSync(fullPath)) {
+              fs.rmSync(fullPath, { recursive: true, force: true });
+            }
+          } catch (e) {
+            console.warn(`Failed to clean up ${fullPath}:`, e);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to perform final cleanup:', e);
+    }
+  });
+
   it('pins install deps and writes .gitignore', async () => {
     const calls: string[] = [];
     vi.doMock('fs-extra', async () => {
@@ -30,17 +53,22 @@ describe('init', () => {
     const tmpDir = path.join(__dirname, '..', 'tmp-gitignore-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      await createExampleApp('openai', 'gpt-4o', 'skip', tmpDir, '');
+      await createExampleApp('skip', tmpDir, '');
       const gi = fs.readFileSync(path.join(tmpDir, '.gitignore'), 'utf8');
       expect(gi).toContain('node_modules');
       expect(gi).toContain('.env');
 
       // Verify CLI is installed as devDependency
-      const devDepsCmd = calls.find(c => c.includes('--save-dev') && c.includes('@agentmark/cli')) || '';
+      const devDepsCmd = calls.find(c => c.includes('--save-dev')) || '';
       expect(devDepsCmd).toContain('@agentmark/cli');
       expect(devDepsCmd).toContain('typescript');
 
-      const appInstallCmd = calls.find(c => c.startsWith('npm install ') && c.includes('@agentmark/ai-sdk-v5-adapter')) || '';
+      // Find the main app install command (not the devDeps one)
+      const appInstallCmd = calls.find(c =>
+        c.startsWith('npm install ') &&
+        !c.includes('--save-dev') &&
+        c.includes('@agentmark/ai-sdk-v5-adapter')
+      ) || '';
       expect(appInstallCmd).toContain(' ai@^5');
       expect(appInstallCmd).toMatch(/@ai-sdk\/openai@\^2/);
     } finally {
@@ -50,7 +78,7 @@ describe('init', () => {
 
   it('cloud target uses SDK file loader in generated agentmark.client.ts', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const content = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'openai', languageModels: ['gpt-4o'], target: 'cloud' });
+    const content = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
     expect(content).toContain("from \"@agentmark/sdk\"");
     expect(content).toContain("new AgentMarkSDK");
     expect(content).toContain("sdk.getFileLoader()");
@@ -79,7 +107,7 @@ describe('init', () => {
     const tmpDir = path.join(__dirname, '..', 'tmp-client-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      const client = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'openai', languageModels: ['gpt-4o'] });
+      const client = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
       fs.mkdirSync(path.join(tmpDir, 'agentmark'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'agentmark.client.ts'), client);
 
@@ -101,32 +129,41 @@ describe('init', () => {
 
   it('does not add image/speech extras for non-openai providers', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const content = getClientConfigContent({ defaultRootDir: './agentmark', provider: 'anthropic', languageModels: ['claude-3'] });
+    const content = getClientConfigContent({ provider: 'anthropic', languageModels: ['claude-3'], adapter: 'ai-sdk' });
     expect(content).not.toContain('openai.image');
     expect(content).not.toContain('openai.speech');
   });
 
-  it('creates .agentmark/dev-entry.ts during initialization', async () => {
+  it('creates .agentmark/dev-entry.ts', async () => {
     vi.doMock('child_process', () => ({
-      execSync: () => {},
+      execSync: (cmd: string, options?: any) => {
+        // Create package.json when npm init is called
+        if (cmd === 'npm init -y' && options?.cwd) {
+          const pkgPath = path.join(options.cwd, 'package.json');
+          fs.writeFileSync(pkgPath, JSON.stringify({ name: 'test-app', version: '1.0.0', scripts: {} }, null, 2));
+        }
+      },
       execFileSync: () => {}
     }));
     const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-    const tmpDir = path.join(__dirname, '..', 'tmp-dev-entry-' + Date.now());
+    const tmpDir = path.join(__dirname, '..', 'tmp-express-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      await createExampleApp('openai', 'gpt-4o', 'skip', tmpDir, '');
+      await createExampleApp('skip', tmpDir, '');
+
+      // Should create dev-entry.ts
       const devEntryPath = path.join(tmpDir, '.agentmark', 'dev-entry.ts');
       expect(fs.existsSync(devEntryPath)).toBe(true);
 
       const content = fs.readFileSync(devEntryPath, 'utf8');
-      expect(content).toContain("import { createRunnerServer } from '@agentmark/cli/runner-server'");
-      expect(content).toContain("import { VercelAdapterRunner } from '@agentmark/ai-sdk-v5-adapter/runner'");
-      expect(content).toContain("import path from 'path'");
-      expect(content).toContain('new VercelAdapterRunner(client');
-      expect(content).toContain('apiServerUrl');
-      expect(content).toContain('templatesDirectory');
-      expect(content).toContain('createRunnerServer({');
+      expect(content).toContain("import { createWebhookServer } from '@agentmark/cli/runner-server'");
+      expect(content).toContain("import { VercelAdapterWebhookHandler } from '@agentmark/ai-sdk-v5-adapter/runner'");
+      expect(content).toContain('new VercelAdapterWebhookHandler(client');
+      expect(content).toContain('createWebhookServer({');
+
+      // Check .env has correct webhook URL
+      const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
+      expect(envContent).toContain('AGENTMARK_WEBHOOK_URL=http://localhost:9417');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

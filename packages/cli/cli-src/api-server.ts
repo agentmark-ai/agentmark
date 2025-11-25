@@ -12,6 +12,7 @@ import {
   getTraceGraph,
   getSessions,
   getTracesBySessionId,
+  getTracesByRunId,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
 
@@ -25,6 +26,8 @@ function safePath(): string {
 
 export async function createApiServer(port: number) {
   const app = express();
+  // Trust first proxy hop (for tunnels like ngrok, cloudflare, etc.)
+  app.set('trust proxy', 1);
   app.use(express.json());
   app.use(cors());
   const currentPath = safePath();
@@ -533,6 +536,20 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting traces for session:", error);
       return res.status(500).json({ error: "Failed to get traces for session" });
+    }
+  });
+
+  app.get("/v1/runs/:runId/traces", async (req: Request, res: Response) => {
+    try {
+      const { runId } = req.params;
+      if (!runId) {
+        return res.status(400).json({ error: "runId parameter is required" });
+      }
+      const traces = await getTracesByRunId(runId);
+      return res.json({ traces });
+    } catch (error) {
+      console.error("Error getting traces for run:", error);
+      return res.status(500).json({ error: "Failed to get traces for run" });
     }
   });
 

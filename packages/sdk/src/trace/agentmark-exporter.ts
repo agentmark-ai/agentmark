@@ -153,7 +153,7 @@ export class AgentmarkExporter implements SpanExporter {
       Timestamp: startTimeInNano,
       TraceId: traceId,
       SpanId: spanId,
-      ParentSpanId: (span as any).parentSpanId || "",
+      ParentSpanId: (span as any).parentSpanId || span.parentSpanContext?.spanId || "",
       TraceState: span.spanContext().traceState || "",
       SpanName: span.name,
       SpanKind: span.kind,

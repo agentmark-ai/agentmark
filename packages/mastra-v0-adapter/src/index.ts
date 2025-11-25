@@ -29,7 +29,7 @@ export function createAgentMarkClient<
 
 export { MastraModelRegistry } from "./model-registry";
 export { MastraToolRegistry } from "./tool-registry";
-export { MastraAdapterRunner } from "./runner";
+export { MastraAdapterWebhookHandler } from "./runner";
 export { EvalRegistry } from "@agentmark/prompt-core";
 
 export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";

@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
+import { getAdapterConfig } from "./adapters.js";
 
 export const setupPackageJson = (targetPath: string = ".") => {
   const packageJsonPath = `${targetPath}/package.json`;
@@ -18,10 +19,13 @@ export const setupPackageJson = (targetPath: string = ".") => {
   pkgJson.description =
     pkgJson.description || "A simple Node.js app using the Agentmark SDK";
 
+  // All platforms use "agentmark dev" which runs their respective dev-entry.ts
+  const devScript = "agentmark dev";
+
   pkgJson.scripts = {
     ...pkgJson.scripts,
     "demo": "npx tsx index.ts",
-    "dev": "agentmark dev",
+    "dev": devScript,
     "prompt": "agentmark run-prompt",
     "experiment": "agentmark run-experiment",
   };
@@ -36,10 +40,14 @@ export const installDependencies = (
   console.log("Installing required packages...");
   console.log("This might take a moment...");
 
+  const adapterConfig = getAdapterConfig(adapter);
+
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
     // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
-    execSync("npm install --save-dev typescript ts-node @types/node @agentmark/cli", {
+    const devDepsCmd = "npm install --save-dev typescript ts-node @types/node @agentmark/cli --legacy-peer-deps";
+
+    execSync(devDepsCmd, {
       stdio: "inherit",
       cwd: targetPath,
     });
@@ -51,31 +59,14 @@ export const installDependencies = (
       "dotenv",
       "@agentmark/prompt-core",
       "@agentmark/sdk",
+      adapterConfig.package,
+      `@ai-sdk/${modelProvider}@^2`,
+      ...adapterConfig.dependencies,
+      "--legacy-peer-deps",
     ];
 
-    
-    // Install adapter-specific packages
-    if (adapter === "mastra") {
-      const providerPackage = `@ai-sdk/${modelProvider}`;
-      installArgs.push(
-        "@agentmark/mastra-v0-adapter",
-        "@mastra/core@<0.20.0",
-        "@mastra/mcp@<0.13.4",
-        providerPackage
-      );
-    } else {
-      // Use different package names for different providers
-      // Pin required major versions: ai@v5, @ai-sdk/<provider>@v2
-      const providerPackage = `@ai-sdk/${modelProvider}@^2`;
-      installArgs.push(
-        "@agentmark/ai-sdk-v5-adapter",
-        providerPackage,
-        "ai@^5"
-      );
-    }
-
     execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
-    
+
     console.log("Packages installed successfully!");
   } catch (error) {
     console.error("Error installing packages:", error);

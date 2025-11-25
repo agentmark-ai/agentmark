@@ -1,7 +1,8 @@
 import type { Ast } from "@agentmark/templatedx";
-import type { TemplateEngine, JSONObject, TestSettings } from "../types";
-import type { ImagePart, TextPart, FilePart } from "ai";
 import type {
+  TemplateEngine,
+  JSONObject,
+  TestSettings,
   PromptKind,
   ImageSettings,
   ObjectSettings,
@@ -9,6 +10,9 @@ import type {
   SpeechSettings,
   RichChatMessage,
   AgentmarkConfig,
+  ImagePart,
+  TextPart,
+  FilePart,
 } from "../types";
 import { 
   languageTemplateDX, 

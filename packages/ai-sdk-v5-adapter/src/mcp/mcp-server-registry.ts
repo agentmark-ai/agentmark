@@ -78,26 +78,22 @@ export class McpServerRegistry {
     const cfg = interpolateEnvInObject(rawCfg);
 
     if (isUrlConfig(cfg)) {
-      const createClient = (await import("@ai-sdk/mcp"))
-        .experimental_createMCPClient;
-      return createClient({
+      const { experimental_createMCPClient } = await import("@ai-sdk/mcp");
+      return experimental_createMCPClient({
         transport: { type: "sse", url: cfg.url, headers: cfg.headers },
       });
     }
 
     if (isStdioConfig(cfg)) {
-      const { Experimental_StdioMCPTransport } = await import(
-        "@ai-sdk/mcp/mcp-stdio"
-      );
+      const { Experimental_StdioMCPTransport } = await import("@ai-sdk/mcp/mcp-stdio");
+      const { experimental_createMCPClient } = await import("@ai-sdk/mcp");
       const transport = new Experimental_StdioMCPTransport({
         command: cfg.command,
         args: cfg.args,
         cwd: cfg.cwd,
         env: cfg.env,
       });
-      const createClient = (await import("@ai-sdk/mcp"))
-        .experimental_createMCPClient;
-      return createClient({
+      return experimental_createMCPClient({
         transport,
       });
     }

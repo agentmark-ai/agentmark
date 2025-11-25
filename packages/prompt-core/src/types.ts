@@ -10,6 +10,9 @@ import {
   RichChatMessage,
   SpeechSettings,
   TestSettings,
+  TextPart,
+  ImagePart,
+  FilePart,
 } from "./schemas";
 
 export type JSONPrimitive = string | number | boolean | null;
@@ -29,6 +32,9 @@ export type {
   RichChatMessage,
   SpeechSettings,
   TestSettings,
+  TextPart,
+  ImagePart,
+  FilePart,
 };
 
 export type AgentmarkConfig =
