@@ -20,5 +20,10 @@
     "tsup": "^8.5.1",
     "typescript": "^5"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ]
 }

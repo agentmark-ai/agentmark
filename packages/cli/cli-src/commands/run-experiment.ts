@@ -124,6 +124,21 @@ export default async function runExperiment(filepath: string, options: { skipEva
     );
   }
 
+  // Load webhook secret BEFORE changing directory
+  // (so we get it from the project root, not the prompt directory)
+  let webhookSecret = process.env.AGENTMARK_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    try {
+      const { loadLocalConfig } = await import('../config.js');
+      const config = loadLocalConfig();
+      if (config && config.webhookSecret) {
+        webhookSecret = config.webhookSecret;
+      }
+    } catch (e) {
+      // No config file, continue without signature
+    }
+  }
+
   // Ensure runner client resolves prompt-relative resources (datasets, etc.)
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {
     // Ignore errors when setting environment variable
@@ -134,9 +149,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
     // Ignore errors when changing directory
   }
   const ast: Root = await load(resolvedFilepath);
-  // Extract dataset path and prompt relative path for runner consumption (helps cloud loader resolve URLs)
+  // Extract dataset path and prompt name for runner consumption (helps cloud loader resolve URLs)
   let datasetPath: string | undefined;
-  const promptPath = path.basename(resolvedFilepath);
+  // Get prompt name from frontmatter
+  const { getFrontMatter } = await import('@agentmark/templatedx');
+  const frontmatter = getFrontMatter(ast) as { name?: string };
+  const promptName = frontmatter.name;
   try {
     const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
     const rawDatasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
@@ -150,7 +168,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     // Ignore errors when parsing dataset path
   }
 
-  const server = options.server || 'http://localhost:9417';
+  const server = options.server || process.env.AGENTMARK_WEBHOOK_URL || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error(
       'Invalid or missing server URL.\n' +
@@ -165,12 +183,23 @@ export default async function runExperiment(filepath: string, options: { skipEva
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName } });
+
+  // Add webhook signature if secret is available
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  if (webhookSecret) {
+    const { createSignature } = await import('@agentmark/shared-utils');
+    const signature = await createSignature(webhookSecret, body);
+    headers['x-agentmark-signature-256'] = signature;
+  }
+
   let res;
   try {
     res = await fetch(server, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'dataset-run', data: { ast, promptPath, datasetPath, experimentId: 'local-experiment' } })
+      headers,
+      body
     });
   } catch (fetchError: any) {
     // Network-level errors (server not running, connection refused, etc.)
@@ -231,7 +260,8 @@ export default async function runExperiment(filepath: string, options: { skipEva
   let tableInitialized = false;
   let Table: any;
   let table: any;
-  const jsonRows: any[] = []; // For buffering JSON format output
+  let jsonRows: any[] = []; // For buffering JSON format output
+  let experimentRunId: string | undefined; // Capture run ID for linking to all traces
 
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -249,8 +279,16 @@ export default async function runExperiment(filepath: string, options: { skipEva
         if (!line.trim()) continue;
         try {
           const evt = JSON.parse(line);
+          if (evt.type === 'error' && evt.error) {
+            const errorMsg = typeof evt.error === 'string'
+              ? evt.error
+              : (evt.error.message || JSON.stringify(evt.error, null, 2));
+            console.error(`❌ ${errorMsg}`);
+            continue;
+          }
           if (evt.type !== 'dataset') continue;
           const r = evt.result || {};
+          if (evt.runId && !experimentRunId) experimentRunId = evt.runId;
           const input = JSON.stringify(r.input ?? {}, null, 0);
           const expected = r.expectedOutput ?? 'N/A';
 
@@ -405,6 +443,11 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // Output JSON format after streaming is complete
   if (format === 'json' && jsonRows.length > 0) {
     console.log(JSON.stringify(jsonRows, null, 2));
+  }
+
+  // Display link to view all experiment traces
+  if (experimentRunId && format === 'table') {
+    console.log(`\n📊 View traces: http://localhost:3000/traces?runId=${experimentRunId}`);
   }
 
   if (evalEnabled && totalEvals > 0 && options.thresholdPercent !== undefined) {

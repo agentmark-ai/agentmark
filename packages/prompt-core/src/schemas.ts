@@ -12,17 +12,23 @@ export const textPartSchema = z.object({
   text: z.string(),
 });
 
+export type TextPart = z.infer<typeof textPartSchema>;
+
 export const imagePartSchema = z.object({
   type: z.literal("image"),
   image: z.string().url(),
   mimeType: z.string().optional(),
 });
 
+export type ImagePart = z.infer<typeof imagePartSchema>;
+
 export const filePartSchema = z.object({
   type: z.literal("file"),
   data: z.string().url(),
   mimeType: z.string(),
 });
+
+export type FilePart = z.infer<typeof filePartSchema>;
 
 export const userMessagesSchema = z.object({
   role: z.literal("user"),

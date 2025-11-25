@@ -1,43 +1,198 @@
-import express, { type Request, type Response } from 'express';
-import { createServer } from 'node:http';
-import { type RunnerPromptResponse, type RunnerDatasetResponse } from '@agentmark/prompt-core';
-import { getCliMetadata, formatOptionsAsHtml } from './cli-metadata';
-
 /**
- * Generic runner interface that any adapter can implement
+ * AgentMark Webhook Server
+ *
+ * This file provides the webhook server for local development,
+ * used to execute prompts and experiments via Express.
  */
-export interface Runner {
-  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any> }): Promise<RunnerPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string): Promise<RunnerDatasetResponse>;
-}
 
-export interface RunnerServerOptions {
+import express, { Request, Response, RequestHandler } from 'express';
+import rateLimit from 'express-rate-limit';
+import { createServer, Server } from 'node:http';
+import { handleWebhookRequest } from './runner-server/core';
+import type { WebhookHandler } from './runner-server/types';
+import {
+  verifyWebhookSignature,
+  shouldSkipVerification,
+  type SignatureVerificationOptions
+} from './runner-server/middleware/signature-verification';
+import { getWebhookSecret } from './config';
+
+// Set up rate limiter: 100 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Re-export WebhookHandler for external use
+export type { WebhookHandler } from './runner-server/types';
+
+export interface WebhookServerOptions {
   port?: number;
-  runner: Runner;
-  apiServerUrl?: string;
+  handler: WebhookHandler;
+  fileServerUrl?: string;
   templatesDirectory?: string;
+  /**
+   * Webhook signature verification options.
+   * If not provided, will check AGENTMARK_WEBHOOK_SECRET env var.
+   */
+  signatureVerification?: SignatureVerificationOptions;
 }
 
 /**
- * Creates an HTTP server that wraps a runner instance.
+ * Creates an Express middleware handler for AgentMark webhook requests.
+ */
+function createMiddleware(
+  handler: WebhookHandler,
+  signatureOptions?: SignatureVerificationOptions
+): RequestHandler {
+  return async (req: Request, res: Response) => {
+    try {
+      // Log incoming request
+      const timestamp = new Date().toISOString();
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+      console.log(`\n[${timestamp}] ${req.method} ${req.path} - ${clientIp}`);
+
+      const body = req.body || {};
+
+      // Verify signature if configured
+      if (signatureOptions && !shouldSkipVerification(signatureOptions)) {
+        const headerName = signatureOptions.headerName || 'x-agentmark-signature-256';
+        const signature = req.headers[headerName.toLowerCase()] as string;
+
+        if (!signature) {
+          console.error('   ❌ 401 Missing signature header');
+          console.error(`      Expected header: ${headerName}`);
+          console.error('      Ensure the client is sending a signed request with AGENTMARK_WEBHOOK_SECRET.');
+          return res.status(401).json({
+            message: `Missing signature header: Expected ${headerName} header for webhook verification`
+          });
+        }
+
+        const bodyString = typeof body === 'string' ? body : JSON.stringify(body);
+        const isValid = await verifyWebhookSignature(bodyString, signature, signatureOptions.secret);
+
+        if (!isValid) {
+          console.error('   ❌ 401 Invalid webhook signature');
+          console.error('      The signature in the request header does not match.');
+          return res.status(401).json({
+            message: 'Invalid webhook signature - signature verification failed'
+          });
+        }
+        console.log('   ✓ Signature verified');
+      }
+
+      // Call platform-agnostic core handler
+      const result = await handleWebhookRequest(body, handler);
+
+      // Handle error responses
+      if (result.type === 'error') {
+        const errorMessage = result.details || result.error;
+        console.log(`   → ${result.status} Error: ${errorMessage}`);
+        return res.status(result.status).json({
+          message: errorMessage
+        });
+      }
+
+      // Handle streaming responses
+      if (result.type === 'stream') {
+        // Set streaming headers
+        for (const [key, value] of Object.entries(result.headers)) {
+          res.setHeader(key, value);
+        }
+
+        // Stream the response
+        const reader = result.stream.getReader();
+        const decoder = new TextDecoder();
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunk = typeof value === 'string' ? value : decoder.decode(value);
+            // Log errors from the stream
+            try {
+              const parsed = JSON.parse(chunk.trim());
+              if (parsed.type === 'error') {
+                console.error(`   ❌ Error: ${parsed.error || parsed.message || 'Unknown error'}`);
+              }
+            } catch {
+              // Not JSON or multi-line, ignore parsing errors
+            }
+            res.write(chunk);
+          }
+          // Send traceId as final event if available
+          if (result.traceId) {
+            res.write(JSON.stringify({ type: 'done', traceId: result.traceId }) + '\n');
+          }
+          res.end();
+        } catch (streamError) {
+          console.error('Streaming error:', streamError);
+          if (!res.headersSent) {
+            res.status(500).json({
+              message: streamError instanceof Error ? streamError.message : String(streamError)
+            });
+          } else {
+            res.end();
+          }
+        }
+        return;
+      }
+
+      // Handle regular JSON responses
+      console.log(`   → ${result.status || 200} Success`);
+      return res.status(result.status || 200).json(result.data);
+
+    } catch (error) {
+      console.error('   → 500 Internal Error:', error);
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  };
+}
+
+/**
+ * Creates an HTTP server that wraps a webhook handler instance.
  * This server provides endpoints for executing prompts and experiments via HTTP.
  * Used by the CLI and local development workflows.
+ *
+ * @param options - Server configuration options
+ * @returns HTTP server instance
  */
-export async function createRunnerServer(options: RunnerServerOptions) {
-  const { port = 9417, runner, apiServerUrl, templatesDirectory } = options;
+export async function createWebhookServer(options: WebhookServerOptions): Promise<Server> {
+  const { port = 9417, handler, signatureVerification } = options;
+
+  // Setup signature verification options
+  let sigOptions = signatureVerification;
+  if (!sigOptions) {
+    // Check for env var
+    const secret = getWebhookSecret();
+    if (secret) {
+      sigOptions = { secret };
+    }
+  }
 
   const app = express();
+
+  // Trust first proxy hop (for tunnels like ngrok, cloudflare, etc.)
+  // Using 1 instead of true limits trust to single proxy, more secure for dev
+  app.set('trust proxy', 1);
+
+  // Parse JSON bodies (up to 10mb)
   app.use(express.json({ limit: '10mb' }));
-  app.use((_req, _res, next) => { next(); });
 
   // Landing page for browser access
   app.get('/', async (_req: Request, res: Response) => {
+    const { fileServerUrl, templatesDirectory } = options;
+
     // Fetch available prompts dynamically
     let promptsList = '';
 
-    if (apiServerUrl) {
+    if (fileServerUrl) {
       try {
-        const response = await fetch(`${apiServerUrl}/v1/prompts`);
+        const response = await fetch(`${fileServerUrl}/v1/prompts`);
         if (response.ok) {
           const data = await response.json();
           if (data.paths && data.paths.length > 0) {
@@ -51,25 +206,20 @@ export async function createRunnerServer(options: RunnerServerOptions) {
           promptsList = '      <li style="color: #64748b;">Unable to fetch prompts</li>';
         }
       } catch {
-        promptsList = '      <li style="color: #64748b;">API server not available</li>';
+        promptsList = '      <li style="color: #64748b;">File server not available</li>';
       }
     } else {
-      promptsList = '      <li style="color: #64748b;">API server URL not configured</li>';
+      promptsList = '      <li style="color: #64748b;">File server URL not configured</li>';
     }
 
     const templatesDir = templatesDirectory || 'agentmark/';
-    const apiServerInfo = apiServerUrl ?
+    const fileServerInfo = fileServerUrl ?
       `<div class="info-box">
         <strong>📁 Templates Directory:</strong><br>
         <code>${templatesDir}</code><br><br>
-        <strong>🔗 API Server:</strong><br>
-        <a href="${apiServerUrl}" target="_blank">${apiServerUrl}</a>
+        <strong>🔗 File Server:</strong><br>
+        <a href="${fileServerUrl}" target="_blank">${fileServerUrl}</a>
       </div>` : '';
-
-    // Get CLI metadata dynamically from commander definitions
-    const cliMetadata = getCliMetadata();
-    const runPromptOptions = formatOptionsAsHtml(cliMetadata['run-prompt'].options);
-    const runExperimentOptions = formatOptionsAsHtml(cliMetadata['run-experiment'].options);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`
@@ -138,23 +288,6 @@ export async function createRunnerServer(options: RunnerServerOptions) {
       margin: 20px 0;
       border-radius: 4px;
     }
-    .option {
-      margin: 15px 0;
-      padding: 12px;
-      background: #fafafa;
-      border-radius: 4px;
-      border-left: 3px solid #94a3b8;
-    }
-    .option-name {
-      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-      font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 4px;
-    }
-    .option-desc {
-      color: #64748b;
-      font-size: 14px;
-    }
     a { color: #2563eb; text-decoration: none; }
     a:hover { text-decoration: underline; }
     footer {
@@ -198,7 +331,7 @@ export async function createRunnerServer(options: RunnerServerOptions) {
     <strong>✓ Server Status:</strong> Running on port ${port}
   </div>
 
-  ${apiServerInfo}
+  ${fileServerInfo}
 
   <h2>What is this?</h2>
   <p>
@@ -215,12 +348,10 @@ ${promptsList}
   <h2>Available Commands</h2>
 
   <h3>Run a Single Prompt</h3>
-  <div class="command">$ npm run prompt agentmark/&lt;file&gt;.prompt.mdx [options]</div>
-${runPromptOptions}
+  <div class="command">$ npm run prompt agentmark/&lt;file&gt;.prompt.mdx</div>
 
   <h3>Run Experiments with Datasets</h3>
-  <div class="command">$ npm run experiment agentmark/&lt;file&gt;.prompt.mdx [options]</div>
-${runExperimentOptions}
+  <div class="command">$ npm run experiment agentmark/&lt;file&gt;.prompt.mdx</div>
 
   <h2>API Endpoints</h2>
 
@@ -256,99 +387,16 @@ ${runExperimentOptions}
     `.trim());
   });
 
-  app.post('/', async (req: Request, res: Response) => {
-    try {
-      const event = req.body || {};
+  // Mount the webhook handler middleware at POST /
+  app.post('/', limiter, createMiddleware(handler, sigOptions));
 
-      if (event?.type === 'prompt-run') {
-        // Validate that ast is an object (Root AST), not a string path
-        if (!event.data?.ast || typeof event.data.ast !== 'object') {
-          return res.status(400).json({
-            error: 'Invalid or missing AST object',
-            details: 'The request must include a valid AST (Abstract Syntax Tree) object in event.data.ast'
-          });
-        }
-        const options = { ...event.data.options, customProps: event.data.customProps };
-        const response = await runner.runPrompt(event.data.ast, options);
-
-        if (response?.type === 'stream' && response.stream) {
-          res.setHeader('AgentMark-Streaming', 'true');
-          if (response.streamHeader) {
-            for (const [k, v] of Object.entries(response.streamHeader)) {
-              res.setHeader(k, String(v));
-            }
-          }
-          const reader = response.stream.getReader();
-          const decoder = new TextDecoder();
-          for (;;) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            res.write(typeof value === 'string' ? value : decoder.decode(value));
-          }
-          res.end();
-          return;
-        }
-        return res.json(response);
-      }
-
-      if (event?.type === 'dataset-run') {
-        // Validate that ast is an object (Root AST), not a string path
-        if (!event.data?.ast || typeof event.data.ast !== 'object') {
-          return res.status(400).json({
-            error: 'Invalid or missing AST object in dataset-run event',
-            details: 'The request must include a valid AST (Abstract Syntax Tree) object in event.data.ast'
-          });
-        }
-        const experimentId = event.data.experimentId ?? 'local-experiment';
-        let response;
-        try {
-          response = await runner.runExperiment(event.data.ast, experimentId, event.data.datasetPath);
-        } catch (e: any) {
-          // Provide more context about the error
-          const errorMessage = e?.message || String(e);
-          const errorStack = e?.stack;
-          return res.status(500).json({
-            error: errorMessage,
-            details: 'An error occurred while running the experiment. Check that your prompt and dataset are valid.',
-            stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
-          });
-        }
-        if (response?.stream) {
-          if (response.streamHeaders) {
-            for (const [k, v] of Object.entries(response.streamHeaders)) {
-              res.setHeader(k, String(v));
-            }
-          }
-          const reader = response.stream.getReader();
-          const decoder = new TextDecoder();
-          for (;;) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            res.write(typeof value === 'string' ? value : decoder.decode(value));
-          }
-          res.end();
-          return;
-        }
-        return res.status(500).json({ error: 'Expected stream from dataset-run' });
-      }
-
-      return res.status(400).json({
-        error: 'Unknown event type',
-        details: `Expected event.type to be 'prompt-run' or 'dataset-run', got: ${event?.type || 'undefined'}`,
-        validTypes: ['prompt-run', 'dataset-run']
-      });
-    } catch (e: any) {
-      const errorMessage = e?.message || String(e);
-      const errorStack = e?.stack;
-      return res.status(500).json({
-        error: errorMessage,
-        details: 'An unexpected error occurred in the runner server',
-        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
-      });
-    }
-  });
-
+  // Create HTTP server and start listening
   const server = createServer(app);
   await new Promise<void>(resolve => server.listen(port, resolve));
+
   return server;
 }
+
+// Re-export core handler and types
+export { handleWebhookRequest } from './runner-server/core';
+export type { WebhookRequest, WebhookResponse } from './runner-server/types';

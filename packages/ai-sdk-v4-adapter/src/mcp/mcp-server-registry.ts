@@ -82,7 +82,7 @@ export class McpServerRegistry {
     if (isUrlConfig(cfg)) {
       return experimental_createMCPClient({
         transport: { type: "sse", url: cfg.url, headers: cfg.headers },
-      }) as unknown as MCPClient;
+      });
     }
 
     if (isStdioConfig(cfg)) {
@@ -94,7 +94,7 @@ export class McpServerRegistry {
       });
       return experimental_createMCPClient({
         transport,
-      }) as unknown as MCPClient;
+      });
     }
 
     throw new Error("Invalid MCP server config: expected 'url' or 'command'");

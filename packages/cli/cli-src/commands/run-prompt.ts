@@ -52,13 +52,26 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
     }
   }
 
+  // Load webhook secret BEFORE changing directory
+  // (so we get it from the project root, not the prompt directory)
+  let webhookSecret = process.env.AGENTMARK_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    try {
+      const { loadLocalConfig } = await import('../config.js');
+      const config = loadLocalConfig();
+      if (config && config.webhookSecret) {
+        webhookSecret = config.webhookSecret;
+      }
+    } catch (e) {
+      // No config file, continue without signature
+    }
+  }
+
   const { load } = await import("@agentmark/templatedx");
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
-  try { process.chdir(path.dirname(resolvedFilepath)); } catch {
-    // Ignore errors when changing directory
-  }
-  
-  const ast: Root = await load(resolvedFilepath);
+  try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
+
+  let ast: Root = await load(resolvedFilepath);
   // Determine prompt kind from frontmatter for better headers (Text/Object/Image/Speech)
   let promptHeader: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
   try {
@@ -75,10 +88,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
     // Ignore errors when parsing frontmatter
   }
   // Ensure server resolves resources relative to the prompt file if it needs it in the AST
-  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {
-    // Ignore errors when setting environment variable
-  }
-  const server = options.server || 'http://localhost:9417';
+  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
+  const server = options.server || process.env.AGENTMARK_WEBHOOK_URL || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error('Server URL is required. Run your runner (e.g., npm run dev) and set --server if needed.');
   }
@@ -86,10 +97,24 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   try {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, options: { shouldStream: true } } });
+      // Get prompt name from frontmatter
+      const { getFrontMatter } = await import('@agentmark/templatedx');
+      const frontmatter = getFrontMatter(ast) as { name?: string };
+      const promptName = frontmatter.name;
+      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath: promptName, options: { shouldStream: true } } });
+
+      // Add webhook signature if secret is available
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+      if (webhookSecret) {
+        const { createSignature } = await import('@agentmark/shared-utils');
+        const signature = await createSignature(webhookSecret, body);
+        headers['x-agentmark-signature-256'] = signature;
+      }
+
       let res;
       try {
-        res = await fetch(server, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+        res = await fetch(server, { method: 'POST', headers, body });
       } catch (fetchError: any) {
         // Network-level errors (server not running, connection refused, etc.)
         const isConnectionError =
@@ -145,6 +170,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         let hasSeenToolResult = false;
         let hasPrintedFinalHeader = false;
         let usageInfo: any = null;
+        let streamTraceId: string | undefined;
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -193,10 +219,14 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
                 lastObjectRenderLineCount = next.split('\n').length;
                 finalObjectString = next;
               }
-              if (evt.type === 'error' && evt.error) console.error(`❌ ${evt.error}`);
-            } catch {
-              // Ignore errors when processing stream events
-            }
+              if (evt.type === 'error' && evt.error) {
+                const errorMsg = typeof evt.error === 'string'
+                  ? evt.error
+                  : (evt.error.message || JSON.stringify(evt.error, null, 2));
+                console.error(`❌ ${errorMsg}`);
+              }
+              if (evt.type === 'done' && evt.traceId) streamTraceId = evt.traceId;
+            } catch {}
           }
         }
         // Ensure final object is printed once (replacing the live-updated one)
@@ -216,6 +246,10 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log('\n' + '─'.repeat(60));
           console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
+        }
+        // Display trace link
+        if (streamTraceId) {
+          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${streamTraceId}`);
         }
         console.log('');
       } else {
@@ -263,6 +297,10 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log('\n' + '─'.repeat(60));
           console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
+        }
+        // Display trace link
+        if ((resp as any).traceId) {
+          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${(resp as any).traceId}`);
         }
         console.log('');
       }

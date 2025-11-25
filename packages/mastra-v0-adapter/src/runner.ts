@@ -3,9 +3,11 @@ import type { Ast } from "@agentmark/templatedx";
 import type { MastraAgentMark } from "./mastra-agentmark";
 import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
-import type { RunnerDatasetResponse, RunnerPromptResponse } from "@agentmark/prompt-core";
+import { createPromptTelemetry } from "@agentmark/prompt-core";
+import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
 
 type Frontmatter = {
+  name?: string;
   text_config?: unknown;
   object_config?: unknown;
   image_config?: unknown;
@@ -13,22 +15,33 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
-export class MastraAdapterRunner {
+function extractErrorMessage(error: unknown): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (typeof error === "object") {
+    const e = error as Record<string, any>;
+    return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
+  }
+  return String(error);
+}
+
+export class MastraAdapterWebhookHandler {
   constructor(
     private readonly client: MastraAgentMark<any, any, MastraAdapter<any, any>>
   ) {}
 
   async runPrompt(
     promptAst: Ast,
-    options?: { shouldStream?: boolean; customProps?: Record<string, any> }
-  ): Promise<RunnerPromptResponse> {
+    options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }
+  ): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
+    const { traceId, telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
       const agentConfig = options?.customProps
-        ? await prompt.formatAgent({ props: options.customProps as any })
-        : await prompt.formatAgentWithTestProps({});
+        ? await prompt.formatAgent({ props: options.customProps as any, options: { telemetry } })
+        : await prompt.formatAgentWithTestProps({ telemetry });
 
       const [messages, generateOptions] = options?.customProps
         ? await agentConfig.formatMessages({ props: options.customProps as any })
@@ -49,13 +62,8 @@ export class MastraAdapterRunner {
                 try {
                   for await (const chunk of fullStream) {
                     if ((chunk as any).type === "error") {
-                      const error = (chunk as any)?.error;
-                      const message =
-                        error?.message ||
-                        error?.data?.error?.message ||
-                        error?.toString() ||
-                        "Something went wrong during inference";
-                      console.error("[Runner] Error during streaming:", error);
+                      const message = extractErrorMessage((chunk as any)?.error);
+                      console.error("[Runner] Error during streaming:", message);
                       controller.enqueue(
                         encoder.encode(
                           JSON.stringify({ type: "error", error: message }) + "\n"
@@ -101,7 +109,7 @@ export class MastraAdapterRunner {
                     encoder.encode(
                       JSON.stringify({
                         type: "error",
-                        error: error?.message || error?.toString() || "Unknown error",
+                        error: extractErrorMessage(error),
                       }) + "\n"
                     )
                   );
@@ -113,7 +121,8 @@ export class MastraAdapterRunner {
               type: "stream",
               stream,
               streamHeader: { "AgentMark-Streaming": "true" },
-            } as RunnerPromptResponse;
+              traceId,
+            } as WebhookPromptResponse;
           }
         } catch (error) {
           // If streaming fails, fall back to non-streaming
@@ -128,14 +137,15 @@ export class MastraAdapterRunner {
         result: (response as any).object || response,
         usage: (response as any).usage,
         finishReason: (response as any).finishReason,
-      } as RunnerPromptResponse;
+        traceId,
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
       const agentConfig = options?.customProps
-        ? await prompt.formatAgent({ props: options.customProps as any })
-        : await prompt.formatAgentWithTestProps({});
+        ? await prompt.formatAgent({ props: options.customProps as any, options: { telemetry } })
+        : await prompt.formatAgentWithTestProps({ telemetry });
 
       const [messages, generateOptions] = options?.customProps
         ? await agentConfig.formatMessages({ props: options.customProps as any })
@@ -156,13 +166,8 @@ export class MastraAdapterRunner {
                 try {
                   for await (const chunk of fullStream) {
                     if ((chunk as any).type === "error") {
-                      const error = (chunk as any)?.error;
-                      const message =
-                        error?.message ||
-                        error?.data?.error?.message ||
-                        error?.toString() ||
-                        "Something went wrong during inference";
-                      console.error("[Runner] Error during streaming:", error);
+                      const message = extractErrorMessage((chunk as any)?.error);
+                      console.error("[Runner] Error during streaming:", message);
                       controller.enqueue(
                         encoder.encode(
                           JSON.stringify({ type: "error", error: message }) + "\n"
@@ -228,7 +233,7 @@ export class MastraAdapterRunner {
                     encoder.encode(
                       JSON.stringify({
                         type: "error",
-                        error: error?.message || error?.toString() || "Unknown error",
+                        error: extractErrorMessage(error),
                       }) + "\n"
                     )
                   );
@@ -240,7 +245,8 @@ export class MastraAdapterRunner {
               type: "stream",
               stream,
               streamHeader: { "AgentMark-Streaming": "true" },
-            } as RunnerPromptResponse;
+              traceId,
+            } as WebhookPromptResponse;
           }
         } catch (error) {
           // If streaming fails, fall back to non-streaming
@@ -260,7 +266,8 @@ export class MastraAdapterRunner {
         finishReason: (response as any).finishReason,
         toolCalls: (response as any).toolCalls || [],
         toolResults: (response as any).toolResults || [],
-      } as RunnerPromptResponse;
+        traceId,
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.image_config) {
@@ -278,7 +285,7 @@ export class MastraAdapterRunner {
     promptAst: Ast,
     datasetRunName: string,
     datasetPath?: string
-  ): Promise<RunnerDatasetResponse> {
+  ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
 

@@ -27,7 +27,7 @@ import {
 } from "@agentmark/ui-components";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getTraceById, getTraceGraph, GraphData } from "../../lib/api/traces";
 import { getScoresByResourceId } from "../../lib/api/scores";
 
@@ -39,6 +39,7 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
   const [graphLoading, setGraphLoading] = useState(false);
   const [scores, setScores] = useState<ScoreData[]>([]);
   const [scoresLoading, setScoresLoading] = useState(false);
+  const [currentSpanId, setCurrentSpanId] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const traceId = searchParams.get("traceId");
@@ -90,27 +91,34 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
     fetchGraphData();
   }, [traceId]);
 
-  const handleSpanChange = useCallback(async (span: SpanData | null) => {
+  const handleSpanChange = async (span: SpanData | null) => {
     if (!span?.id) {
       setScores([]);
       return;
     }
 
-    setScoresLoading(true);
+    setCurrentSpanId(span.id);
     try {
-      const fetchedScores = await getScoresByResourceId(span.id);
-      setScores(fetchedScores);
+      if (span.id !== currentSpanId) {
+        setScoresLoading(true);
+        const fetchedScores = await getScoresByResourceId(span.id);
+        setScores(fetchedScores);
+      }
     } catch (error) {
       console.error("Error fetching scores:", error);
       setScores([]);
     } finally {
       setScoresLoading(false);
     }
-  }, []);
+  };
+
+  const traces = useMemo(() => {
+    return trace ? [trace] : [];
+  }, [trace]);
 
   return (
     <TraceDrawerProvider
-      traces={trace ? [trace] : []}
+      traces={traces}
       traceId={traceId || undefined}
       t={t}
       onSpanChange={handleSpanChange}
@@ -149,7 +157,10 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                 <TraceDrawerSidebar>
                   <TraceTree />
                   <TraceDrawerSidebarSectionResizer />
-                  <TraceGraphCanvas graphData={graphData} isLoading={graphLoading} />
+                  <TraceGraphCanvas
+                    graphData={graphData}
+                    isLoading={graphLoading}
+                  />
                 </TraceDrawerSidebar>
                 <TraceDrawerContent>
                   <SpanInfoProvider>

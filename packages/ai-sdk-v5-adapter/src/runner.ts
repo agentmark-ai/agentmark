@@ -10,12 +10,14 @@ import {
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
 } from "ai";
+import { createPromptTelemetry } from "@agentmark/prompt-core";
 import type {
-  RunnerDatasetResponse,
-  RunnerPromptResponse,
+  WebhookDatasetResponse,
+  WebhookPromptResponse,
 } from "@agentmark/prompt-core";
 
 type Frontmatter = {
+  name?: string;
   text_config?: unknown;
   object_config?: unknown;
   image_config?: unknown;
@@ -23,22 +25,33 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
-export class VercelAdapterRunner {
+function extractErrorMessage(error: unknown): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (typeof error === "object") {
+    const e = error as Record<string, any>;
+    return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
+  }
+  return String(error);
+}
+
+export class VercelAdapterWebhookHandler {
   constructor(
     private readonly client: AgentMark<any, VercelAIAdapter<any, any>>
   ) {}
 
   async runPrompt(
     promptAst: Ast,
-    options?: { shouldStream?: boolean; customProps?: Record<string, any> }
-  ): Promise<RunnerPromptResponse> {
+    options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }
+  ): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
+    const { traceId, telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps })
-        : await prompt.formatWithTestProps();
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
@@ -48,13 +61,8 @@ export class VercelAdapterRunner {
             const encoder = new TextEncoder();
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const error = (chunk as any)?.error;
-                const message =
-                  error?.message ||
-                  error?.data?.error?.message ||
-                  error?.toString() ||
-                  "Something went wrong during inference";
-                console.error("[Runner] Error during streaming:", error);
+                const message = extractErrorMessage((chunk as any)?.error);
+                console.error("[WebhookHandler] Error during streaming:", message);
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({ type: "error", error: message }) + "\n"
@@ -80,10 +88,7 @@ export class VercelAdapterRunner {
                 JSON.stringify({
                   type: "object",
                   usage: {
-                    totalTokens: usageData.totalTokens,
-                    inputTokens: usageData.inputTokens,
-                    outputTokens: usageData.outputTokens,
-                    reasoningTokens: usageData.reasoningTokens,
+                    ...usageData,
                     promptTokens: usageData.inputTokens,
                     completionTokens: usageData.outputTokens,
                   },
@@ -97,29 +102,28 @@ export class VercelAdapterRunner {
           type: "stream",
           stream,
           streamHeader: { "AgentMark-Streaming": "true" },
-        } as RunnerPromptResponse;
+          traceId,
+        } as WebhookPromptResponse;
       }
       const { object, usage, finishReason } = await generateObject(input);
       return {
         type: "object",
         result: object,
         usage: {
-          totalTokens: usage?.totalTokens,
-          inputTokens: usage?.inputTokens,
-          outputTokens: usage?.outputTokens,
-          reasoningTokens: usage?.reasoningTokens,
-          promptTokens: usage?.inputTokens,
-          completionTokens: usage?.outputTokens,
+          ...usage,
+          promptTokens: usage.inputTokens,
+          completionTokens: usage.outputTokens,
         },
         finishReason,
-      } as RunnerPromptResponse;
+        traceId,
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps })
-        : await prompt.formatWithTestProps();
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
@@ -129,13 +133,8 @@ export class VercelAdapterRunner {
             const encoder = new TextEncoder();
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const error = (chunk as any)?.error;
-                const message =
-                  error?.message ||
-                  error?.data?.error?.message ||
-                  error?.toString() ||
-                  "Something went wrong during inference";
-                console.error("[Runner] Error during streaming:", error);
+                const message = extractErrorMessage((chunk as any)?.error);
+                console.error("[WebhookHandler] Error during streaming:", message);
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({ type: "error", error: message }) + "\n"
@@ -154,46 +153,46 @@ export class VercelAdapterRunner {
                   )
                 );
               }
-              if (chunk.type === "tool-call") {
+              if ((chunk as any).type === "tool-call") {
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({
                       type: "text",
                       toolCall: {
-                        ...chunk,
-                        args: chunk.input,
+                        toolCallId: (chunk as any).toolCallId,
+                        toolName: (chunk as any).toolName,
+                        args: (chunk as any).args || (chunk as any).input,
                       },
                     }) + "\n"
                   )
                 );
               }
-              if (chunk.type === "tool-result") {
+              if ((chunk as any).type === "tool-result") {
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({
                       type: "text",
                       toolResult: {
-                        ...chunk,
-                        result: chunk.output,
+                        toolCallId: (chunk as any).toolCallId,
+                        toolName: (chunk as any).toolName,
+                        result: (chunk as any).result || (chunk as any).output,
                       },
                     }) + "\n"
                   )
                 );
               }
-              if (chunk.type === "finish") {
+              if ((chunk as any).type === "finish") {
+                const usageData = (chunk as any).usage || (chunk as any).totalUsage;
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({
                       type: "text",
-                      finishReason: chunk.finishReason,
-                      usage: {
-                        totalTokens: chunk.totalUsage.totalTokens,
-                        inputTokens: chunk.totalUsage.inputTokens,
-                        outputTokens: chunk.totalUsage.outputTokens,
-                        reasoningTokens: chunk.totalUsage.reasoningTokens,
-                        promptTokens: chunk.totalUsage.inputTokens,
-                        completionTokens: chunk.totalUsage.outputTokens,
-                      },
+                      finishReason: (chunk as any).finishReason,
+                      usage: usageData ? {
+                        ...usageData,
+                        promptTokens: usageData.inputTokens,
+                        completionTokens: usageData.outputTokens,
+                      } : undefined,
                     }) + "\n"
                   )
                 );
@@ -206,69 +205,58 @@ export class VercelAdapterRunner {
           type: "stream",
           stream,
           streamHeader: { "AgentMark-Streaming": "true" },
-        } as RunnerPromptResponse;
+          traceId,
+        } as WebhookPromptResponse;
       }
       const { text, usage, finishReason, steps } = await generateText(input);
-      const toolCalls =
-        steps
-          ?.flatMap((s) => s.toolCalls)
-          .map((t) => ({
-            ...t,
-            args: t.input,
-          })) ?? [];
-      const toolResults =
-        steps
-          ?.flatMap((s) => s.toolResults)
-          .map((t) => ({
-            ...t,
-            result: t.output,
-          })) ?? [];
+      const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
+      const toolResults = steps?.flatMap((s: any) => s.toolResults) ?? [];
       return {
         type: "text",
         result: text,
         usage: {
-          totalTokens: usage?.totalTokens,
-          inputTokens: usage?.inputTokens,
-          outputTokens: usage?.outputTokens,
-          reasoningTokens: usage?.reasoningTokens,
-          promptTokens: usage?.inputTokens,
-          completionTokens: usage?.outputTokens,
+          ...usage,
+          promptTokens: usage.inputTokens,
+          completionTokens: usage.outputTokens,
         },
         finishReason,
         toolCalls,
         toolResults,
-      } as RunnerPromptResponse;
+        traceId,
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.image_config) {
       const prompt = await this.client.loadImagePrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps })
-        : await prompt.formatWithTestProps();
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const result = await generateImage(input);
       return {
         type: "image",
-        result: result.images.map((i) => ({
-          mimeType: i.mediaType,
+        result: result.images.map((i: any) => ({
+          mimeType: i.mimeType || i.mediaType,
           base64: i.base64,
         })),
-      } as RunnerPromptResponse;
+        traceId,
+      } as WebhookPromptResponse;
     }
 
     if (frontmatter.speech_config) {
       const prompt = await this.client.loadSpeechPrompt(promptAst);
       const input = options?.customProps
-        ? await prompt.format({ props: options.customProps })
-        : await prompt.formatWithTestProps();
+        ? await prompt.format({ props: options.customProps, telemetry })
+        : await prompt.formatWithTestProps({ telemetry });
       const result = await generateSpeech(input);
       return {
         type: "speech",
         result: {
-          mimeType: result.audio.mediaType,
+          mimeType: (result.audio as any).mimeType || (result.audio as any).mediaType,
           base64: result.audio.base64,
           format: result.audio.format,
         },
-      } as RunnerPromptResponse;
+        traceId,
+      } as WebhookPromptResponse;
     }
 
     throw new Error("Invalid prompt");
@@ -278,12 +266,12 @@ export class VercelAdapterRunner {
     promptAst: Ast,
     datasetRunName: string,
     datasetPath?: string
-  ): Promise<RunnerDatasetResponse> {
+  ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
 
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
-    const runId = crypto.randomUUID();
+    const experimentRunId = crypto.randomUUID();
     const evalRegistry = this.client.getEvalRegistry();
 
     const resolvedDatasetPath =
@@ -311,11 +299,11 @@ export class VercelAdapterRunner {
                 ...(formatted?.experimental_telemetry ?? {}),
                 metadata: {
                   ...(formatted?.experimental_telemetry?.metadata ?? {}),
-                  dataset_run_id: runId,
+                  dataset_run_id: experimentRunId,
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
-                  traceName: `ds-run-${datasetRunName}-${index}`,
+                  traceName: `experiment-${datasetRunName}-${index}`,
                   traceId,
                   dataset_expected_output: item.dataset?.expected_output,
                 },
@@ -357,8 +345,9 @@ export class VercelAdapterRunner {
                   tokens: usage?.totalTokens,
                   evals: evalResults,
                 },
-                runId,
+                runId: experimentRunId,
                 runName: datasetRunName,
+                traceId,
               }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -395,11 +384,11 @@ export class VercelAdapterRunner {
                 ...(item.formatted.experimental_telemetry ?? {}),
                 metadata: {
                   ...(item.formatted.experimental_telemetry?.metadata ?? {}),
-                  dataset_run_id: runId,
+                  dataset_run_id: experimentRunId,
                   dataset_path: resolvedDatasetPath,
                   dataset_run_name: datasetRunName,
                   dataset_item_name: index,
-                  traceName: `ds-run-${datasetRunName}-${index}`,
+                  traceName: `experiment-${datasetRunName}-${index}`,
                   traceId,
                   dataset_expected_output: item.dataset.expected_output,
                 },
@@ -440,8 +429,9 @@ export class VercelAdapterRunner {
                   tokens: usage?.totalTokens,
                   evals: evalResults,
                 },
-                runId,
+                runId: experimentRunId,
                 runName: datasetRunName,
+                traceId,
               }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -467,6 +457,7 @@ export class VercelAdapterRunner {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
+            const traceId = crypto.randomUUID();
             const { images } = await (
               await import("ai")
             ).experimental_generateImage({
@@ -480,13 +471,14 @@ export class VercelAdapterRunner {
                   input: item.dataset.input,
                   expectedOutput: item.dataset.expected_output,
                   actualOutput: images.map((image: any) => ({
-                    mimeType: image.mediaType,
+                    mimeType: image.mimeType || image.mediaType,
                     base64: image.base64,
                   })),
                   evals: [],
                 },
-                runId,
+                runId: experimentRunId,
                 runName: datasetRunName,
+                traceId,
               }) + "\n";
             controller.enqueue(chunk);
           }
@@ -511,6 +503,7 @@ export class VercelAdapterRunner {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
+            const traceId = crypto.randomUUID();
             const { audio } = await (
               await import("ai")
             ).experimental_generateSpeech({
@@ -524,14 +517,15 @@ export class VercelAdapterRunner {
                   input: item.dataset.input,
                   expectedOutput: item.dataset.expected_output,
                   actualOutput: {
-                    mimeType: audio.mediaType,
+                    mimeType: (audio as any).mimeType || (audio as any).mediaType,
                     base64: audio.base64,
                     format: audio.format,
                   },
                   evals: [],
                 },
-                runId,
+                runId: experimentRunId,
                 runName: datasetRunName,
+                traceId,
               }) + "\n";
             controller.enqueue(chunk);
           }

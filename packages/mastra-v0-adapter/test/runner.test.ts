@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EvalRegistry, FileLoader } from "@agentmark/prompt-core";
-import { MastraAdapterRunner } from "../src/runner";
+import { MastraAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark/templatedx";
 import type { MastraAgentMark } from "../src/mastra-agentmark";
 import type { MastraAdapter } from "../src/adapter";
@@ -58,8 +58,8 @@ vi.mock("@mastra/core/agent", () => {
   };
 });
 
-describe("MastraAdapterRunner", () => {
-  let runner: MastraAdapterRunner;
+describe("MastraAdapterWebhookHandler", () => {
+  let runner: MastraAdapterWebhookHandler;
   let client: MastraAgentMark<any, any, MastraAdapter<any, any>>;
   let loader: FileLoader;
 
@@ -95,7 +95,7 @@ describe("MastraAdapterRunner", () => {
     }) as any);
     client = createAgentMarkClient({ loader, modelRegistry, evalRegistry: evals });
 
-    runner = new MastraAdapterRunner(client);
+    runner = new MastraAdapterWebhookHandler(client);
 
     vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "mock-uuid") } as any);
   });
