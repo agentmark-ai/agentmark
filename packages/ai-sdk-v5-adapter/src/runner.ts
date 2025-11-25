@@ -462,7 +462,6 @@ export class VercelAdapterRunner {
       });
       const stream = new ReadableStream({
         async start(controller) {
-          let index = 0;
           const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
@@ -490,7 +489,6 @@ export class VercelAdapterRunner {
                 runName: datasetRunName,
               }) + "\n";
             controller.enqueue(chunk);
-            index++;
           }
           controller.close();
         },
@@ -508,7 +506,6 @@ export class VercelAdapterRunner {
       });
       const stream = new ReadableStream({
         async start(controller) {
-          let index = 0;
           const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
@@ -537,7 +534,6 @@ export class VercelAdapterRunner {
                 runName: datasetRunName,
               }) + "\n";
             controller.enqueue(chunk);
-            index++;
           }
           controller.close();
         },
