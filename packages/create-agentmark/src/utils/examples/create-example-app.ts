@@ -10,6 +10,7 @@ import {
   getEnvFileContent,
   createExamplePrompts,
   getClientConfigContent,
+  getAdapterConfig,
 } from "./templates/index.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
 
@@ -122,7 +123,8 @@ const setupMCPServer = (client: string, targetPath: string) => {
 export const createExampleApp = async (
   client: string,
   targetPath: string = ".",
-  apiKey: string = ""
+  apiKey: string = "",
+  adapter: string = "ai-sdk"
 ) => {
   try {
     const modelProvider = 'openai';
@@ -138,7 +140,7 @@ export const createExampleApp = async (
     setupMCPServer(client, targetPath);
 
     // Create example prompts
-    createExamplePrompts(model, targetPath);
+    createExamplePrompts(model, targetPath, adapter);
     console.log(`✅ Example prompts and datasets created in ${folderName}/agentmark/`);
 
     // Create user client config at project root
@@ -146,7 +148,7 @@ export const createExampleApp = async (
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
       `${targetPath}/agentmark.client.ts`,
-      getClientConfigContent({ provider: modelProvider, languageModels: langModels })
+      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter })
     );
 
     // Create .env file
@@ -159,7 +161,7 @@ export const createExampleApp = async (
     // Create the main application file
     fs.writeFileSync(
       `${targetPath}/index.ts`,
-      getIndexFileContent()
+      getIndexFileContent(adapter)
     );
 
     // Create tsconfig.json
@@ -167,7 +169,7 @@ export const createExampleApp = async (
 
     // Setup package.json and install dependencies
     setupPackageJson(targetPath);
-    installDependencies(modelProvider, targetPath);
+    installDependencies(modelProvider, targetPath, adapter);
 
     // Generate types file using the type generation library
     console.log("Generating types from prompts...");
@@ -183,20 +185,20 @@ export const createExampleApp = async (
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
     }
 
-    // For now, hardcode to ai-sdk-v4 adapter (will be configurable in future)
-    const adapterName = 'ai-sdk-v4';
-    const handlerClassName = 'VercelAdapterWebhookHandler';
-
     // Create .agentmark directory and dev-entry.ts
     console.log("Creating development server entry point...");
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
 
+    // Get adapter-specific values from config
+    const adapterConfig = getAdapterConfig(adapter);
+    const { webhookHandler } = adapterConfig.classes;
+
     const devEntryContent = `// Auto-generated webhook server entry point
 // To customize, create a dev-server.ts file in your project root
 
 import { createWebhookServer } from '@agentmark/cli/runner-server';
-import { ${handlerClassName} } from '@agentmark/${adapterName}-adapter/runner';
+import { ${webhookHandler} } from '${adapterConfig.package}/runner';
 import { AgentMarkSDK } from '@agentmark/sdk';
 import path from 'path';
 
@@ -219,7 +221,7 @@ async function main() {
   });
   sdk.initTracing({ disableBatch: true });
 
-  const handler = new ${handlerClassName}(client as any);
+  const handler = new ${webhookHandler}(client as any);
   const templatesDirectory = path.join(process.cwd(), 'agentmark');
 
   await createWebhookServer({
@@ -239,7 +241,7 @@ main().catch((err) => {
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
 
     // Create .env file with webhook URL configuration
-    // Always use Express webhook server (port 9417) for local development
+    // Always use Express runner server (port 9417) for local development
     // regardless of deployment platform
     const webhookUrl = 'http://localhost:9417';
 
@@ -249,10 +251,10 @@ main().catch((err) => {
     if (existsSync(envPath)) {
       envContent = readFileSync(envPath, 'utf8');
       if (!envContent.includes('AGENTMARK_WEBHOOK_URL')) {
-        envContent += `\n# AgentMark webhook server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n`;
+        envContent += `\n# AgentMark runner server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n`;
       }
     } else {
-      envContent = `# AgentMark webhook server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n\n# Add your API keys here\n# OPENAI_API_KEY=your-key-here\n`;
+      envContent = `# AgentMark runner server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n\n# Add your API keys here\n# OPENAI_API_KEY=your-key-here\n`;
     }
 
     writeFileSync(envPath, envContent, 'utf8');

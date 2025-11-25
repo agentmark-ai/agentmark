@@ -213,7 +213,12 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
                 lastObjectRenderLineCount = next.split('\n').length;
                 finalObjectString = next;
               }
-              if (evt.type === 'error' && evt.error) console.error(`❌ ${evt.error}`);
+              if (evt.type === 'error' && evt.error) {
+                const errorMsg = typeof evt.error === 'string'
+                  ? evt.error
+                  : (evt.error.message || JSON.stringify(evt.error, null, 2));
+                console.error(`❌ ${errorMsg}`);
+              }
               if (evt.type === 'done' && evt.traceId) streamTraceId = evt.traceId;
             } catch {}
           }

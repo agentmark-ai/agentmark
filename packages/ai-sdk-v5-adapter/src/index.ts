@@ -1,0 +1,98 @@
+import {
+  AdaptOptions,
+  AgentMark,
+  KeysWithKind,
+  Loader,
+  EvalRegistry,
+  ObjectPrompt,
+  PromptFormatParams,
+  PromptShape,
+  FormatWithDatasetOptions,
+} from "@agentmark/prompt-core";
+import {
+  VercelAIAdapter,
+  VercelAIModelRegistry,
+  VercelAIObjectParams,
+  VercelAIToolRegistry,
+} from "./adapter";
+import type {
+  DatasetErrorChunk,
+  DatasetStreamChunk,
+} from "@agentmark/prompt-core";
+import type { Root } from "mdast";
+import { McpServerRegistry } from "./mcp/mcp-server-registry";
+
+export interface VercelAIObjectPrompt<
+  T extends PromptShape<T>,
+  K extends KeysWithKind<T, "object"> & string,
+  Tools extends VercelAIToolRegistry<any, any>
+> extends ObjectPrompt<T, VercelAIAdapter<T, Tools>, K> {
+  format(
+    params: PromptFormatParams<T[K]["input"]>
+  ): Promise<VercelAIObjectParams<T[K]["output"]>>;
+
+  formatWithDataset(
+    options?: FormatWithDatasetOptions
+  ): Promise<
+    ReadableStream<
+      | DatasetStreamChunk<VercelAIObjectParams<T[K]["output"]>>
+      | DatasetErrorChunk
+    >
+  >;
+
+  formatWithTestProps(
+    options?: AdaptOptions
+  ): Promise<VercelAIObjectParams<T[K]["output"]>>;
+}
+
+export interface VercelAgentMark<
+  T extends PromptShape<T>,
+  Tools extends VercelAIToolRegistry<any, any>
+> extends AgentMark<T, VercelAIAdapter<T, Tools>> {
+  loadObjectPrompt<K extends KeysWithKind<T, "object"> & string>(
+    pathOrPreloaded: K | Root,
+    options?: any
+  ): Promise<VercelAIObjectPrompt<T, K, Tools>>;
+}
+
+// Accept a wider loader shape for compatibility across versions
+export type LoaderLike<_D> = {
+  load: (...args: any[]) => Promise<unknown>;
+  loadDataset: (datasetPath: string) => Promise<ReadableStream<{ input: Record<string, unknown>; expected_output?: string }>>;
+};
+
+export function createAgentMarkClient<
+  D extends PromptShape<D> = PromptShape<any>,
+  T extends VercelAIToolRegistry<any, any> = VercelAIToolRegistry<any, any>
+>(opts: {
+  loader?: LoaderLike<D>;
+  modelRegistry: VercelAIModelRegistry;
+  toolRegistry?: T;
+  evalRegistry?: EvalRegistry;
+  mcpRegistry?: McpServerRegistry;
+}): VercelAgentMark<D, T> {
+  const adapter = new VercelAIAdapter<D, T>(
+    opts.modelRegistry,
+    opts.toolRegistry,
+    opts.mcpRegistry
+  );
+
+  return new AgentMark<D, VercelAIAdapter<D, T>>({
+    // Cast internally to the precise Loader shape used by AgentMark
+    loader: opts.loader as unknown as Loader<D>,
+    adapter,
+    evalRegistry: opts.evalRegistry,
+  });
+}
+
+export {
+  VercelAIAdapter,
+  VercelAIModelRegistry,
+  VercelAIToolRegistry,
+} from "./adapter.js";
+
+export { McpServerRegistry } from "./mcp/mcp-server-registry";
+
+export { EvalRegistry } from "@agentmark/prompt-core";
+
+export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";

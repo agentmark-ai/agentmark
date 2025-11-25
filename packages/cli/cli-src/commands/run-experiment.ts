@@ -269,6 +269,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
         if (!line.trim()) continue;
         try {
           const evt = JSON.parse(line);
+          if (evt.type === 'error' && evt.error) {
+            const errorMsg = typeof evt.error === 'string'
+              ? evt.error
+              : (evt.error.message || JSON.stringify(evt.error, null, 2));
+            console.error(`❌ ${errorMsg}`);
+            continue;
+          }
           if (evt.type !== 'dataset') continue;
           const r = evt.result || {};
           if (evt.runId && !experimentRunId) experimentRunId = evt.runId;

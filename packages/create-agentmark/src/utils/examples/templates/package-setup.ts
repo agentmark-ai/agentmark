@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
+import { getAdapterConfig } from "./adapters.js";
 
 export const setupPackageJson = (targetPath: string = ".") => {
   const packageJsonPath = `${targetPath}/package.json`;
@@ -33,34 +34,35 @@ export const setupPackageJson = (targetPath: string = ".") => {
 
 export const installDependencies = (
   modelProvider: string,
-  targetPath: string = "."
+  targetPath: string = ".",
+  adapter: string = "ai-sdk"
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
 
+  const adapterConfig = getAdapterConfig(adapter);
+
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
     // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
-    const devDeps = "typescript ts-node @types/node @agentmark/cli";
+    const devDepsCmd = "npm install --save-dev typescript ts-node @types/node @agentmark/cli --legacy-peer-deps";
 
-    execSync(`npm install --save-dev ${devDeps}`, {
+    execSync(devDepsCmd, {
       stdio: "inherit",
       cwd: targetPath,
     });
 
     // Install the common packages
-    // Use different package names for different providers
-    // Pin required major versions: ai@v4, @ai-sdk/<provider>@v1
-    const providerPackage = modelProvider === "ollama" ? "ollama-ai-provider" : `@ai-sdk/${modelProvider}@^1`;
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
     const installArgs = [
       "install",
       "dotenv",
       "@agentmark/prompt-core",
-      "@agentmark/ai-sdk-v4-adapter",
       "@agentmark/sdk",
-      providerPackage,
-      "ai@^4",
+      adapterConfig.package,
+      `@ai-sdk/${modelProvider}@^2`,
+      ...adapterConfig.dependencies,
+      "--legacy-peer-deps",
     ];
 
     execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });

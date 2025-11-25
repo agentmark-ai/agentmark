@@ -15,7 +15,17 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
-export class MastraAdapterRunner {
+function extractErrorMessage(error: unknown): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (typeof error === "object") {
+    const e = error as Record<string, any>;
+    return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
+  }
+  return String(error);
+}
+
+export class MastraAdapterWebhookHandler {
   constructor(
     private readonly client: MastraAgentMark<any, any, MastraAdapter<any, any>>
   ) {}
@@ -52,13 +62,8 @@ export class MastraAdapterRunner {
                 try {
                   for await (const chunk of fullStream) {
                     if ((chunk as any).type === "error") {
-                      const error = (chunk as any)?.error;
-                      const message =
-                        error?.message ||
-                        error?.data?.error?.message ||
-                        error?.toString() ||
-                        "Something went wrong during inference";
-                      console.error("[Runner] Error during streaming:", error);
+                      const message = extractErrorMessage((chunk as any)?.error);
+                      console.error("[Runner] Error during streaming:", message);
                       controller.enqueue(
                         encoder.encode(
                           JSON.stringify({ type: "error", error: message }) + "\n"
@@ -104,7 +109,7 @@ export class MastraAdapterRunner {
                     encoder.encode(
                       JSON.stringify({
                         type: "error",
-                        error: error?.message || error?.toString() || "Unknown error",
+                        error: extractErrorMessage(error),
                       }) + "\n"
                     )
                   );
@@ -161,13 +166,8 @@ export class MastraAdapterRunner {
                 try {
                   for await (const chunk of fullStream) {
                     if ((chunk as any).type === "error") {
-                      const error = (chunk as any)?.error;
-                      const message =
-                        error?.message ||
-                        error?.data?.error?.message ||
-                        error?.toString() ||
-                        "Something went wrong during inference";
-                      console.error("[Runner] Error during streaming:", error);
+                      const message = extractErrorMessage((chunk as any)?.error);
+                      console.error("[Runner] Error during streaming:", message);
                       controller.enqueue(
                         encoder.encode(
                           JSON.stringify({ type: "error", error: message }) + "\n"
@@ -233,7 +233,7 @@ export class MastraAdapterRunner {
                     encoder.encode(
                       JSON.stringify({
                         type: "error",
-                        error: error?.message || error?.toString() || "Unknown error",
+                        error: extractErrorMessage(error),
                       }) + "\n"
                     )
                   );

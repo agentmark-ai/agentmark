@@ -1,6 +1,6 @@
 import { TemplateDX, TagPlugin, PluginContext } from "@agentmark/templatedx";
 import type { Node } from "mdast";
-import type { ImagePart, TextPart, FilePart } from "ai";
+import type { ImagePart, TextPart, FilePart } from "../types";
 
 type ExtractedField = {
   name: string;

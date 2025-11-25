@@ -5,15 +5,17 @@ import { getPartyPlannerPrompt } from './party-planner-prompt.js';
 import { getStoryTellerPrompt } from './story-teller-prompt.js';
 import { getAnimalDataset, getCustomerQueryDataset, getPartyDataset, getStoryDataset } from './datasets.js';
 
-export const createExamplePrompts = (model: string, targetPath: string = ".") => {
+export const createExamplePrompts = (model: string, targetPath: string = ".", adapter: string = "ai-sdk") => {
   // Ensure the templates directory exists
   fs.ensureDirSync(`${targetPath}/agentmark`);
   
-  // Create animal drawing prompt and dataset
-  const animalDrawingPrompt = getAnimalDrawingPrompt();
-  fs.writeFileSync(`${targetPath}/agentmark/animal-drawing.prompt.mdx`, animalDrawingPrompt);
-  const animalDataset = getAnimalDataset();
-  fs.writeFileSync(`${targetPath}/agentmark/animal.jsonl`, animalDataset);
+  // Create animal drawing prompt and dataset (skip for mastra adapter)
+  if (adapter !== "mastra") {
+    const animalDrawingPrompt = getAnimalDrawingPrompt();
+    fs.writeFileSync(`${targetPath}/agentmark/animal-drawing.prompt.mdx`, animalDrawingPrompt);
+    const animalDataset = getAnimalDataset();
+    fs.writeFileSync(`${targetPath}/agentmark/animal.jsonl`, animalDataset);
+  }
   
   // Create customer support prompt and dataset
   const customerSupportPrompt = getCustomerSupportPrompt(model);
@@ -27,9 +29,11 @@ export const createExamplePrompts = (model: string, targetPath: string = ".") =>
   const partyDataset = getPartyDataset();
   fs.writeFileSync(`${targetPath}/agentmark/party.jsonl`, partyDataset);
   
-  // Create story teller prompt and dataset
-  const storyTellerPrompt = getStoryTellerPrompt();
-  fs.writeFileSync(`${targetPath}/agentmark/story-teller.prompt.mdx`, storyTellerPrompt);
-  const storyDataset = getStoryDataset();
-  fs.writeFileSync(`${targetPath}/agentmark/story.jsonl`, storyDataset);
+  // Create story teller prompt and dataset (skip for mastra adapter)
+  if (adapter !== "mastra") {
+    const storyTellerPrompt = getStoryTellerPrompt();
+    fs.writeFileSync(`${targetPath}/agentmark/story-teller.prompt.mdx`, storyTellerPrompt);
+    const storyDataset = getStoryDataset();
+    fs.writeFileSync(`${targetPath}/agentmark/story.jsonl`, storyDataset);
+  }
 };

@@ -1,28 +1,35 @@
-export const getClientConfigContent = (options: { provider: string; languageModels: string[] }) => {
-  const { provider, languageModels } = options;
-  const providerImport = provider === 'ollama'
-    ? "import { ollama } from 'ollama-ai-provider';"
-    : `import { ${provider} } from '@ai-sdk/${provider}';`;
+import { getAdapterConfig } from "./adapters.js";
+
+export const getClientConfigContent = (options: { provider: string; languageModels: string[]; adapter: string }) => {
+  const { provider, languageModels, adapter } = options;
+  const adapterConfig = getAdapterConfig(adapter);
+  const { modelRegistry, toolRegistry } = adapterConfig.classes;
+
+  const providerImport = `import { ${provider} } from '@ai-sdk/${provider}';`;
+
   const extraModelRegs = provider === 'openai'
     ? `.registerModels(["dall-e-3"], (name: string) => ${provider}.image(name))
     .registerModels(["tts-1-hd"], (name: string) => ${provider}.speech(name))`
     : '';
 
   return `// agentmark.client.ts
-import { createAgentMarkClient, VercelAIModelRegistry, VercelAIToolRegistry, EvalRegistry } from "@agentmark/ai-sdk-v4-adapter";
+import path from 'node:path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+import { createAgentMarkClient, ${modelRegistry}, ${toolRegistry}, EvalRegistry } from "${adapterConfig.package}";
 import { AgentMarkSDK } from "@agentmark/sdk";
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}
 
 function createModelRegistry() {
-  const modelRegistry = new VercelAIModelRegistry()
+  const modelRegistry = new ${modelRegistry}()
     .registerModels(${JSON.stringify(languageModels)}, (name: string) => ${provider}(name))
     ${extraModelRegs};
   return modelRegistry;
 }
 
 function createToolRegistry() {
-  const toolRegistry = new VercelAIToolRegistry<Tools>()
+  const toolRegistry = new ${toolRegistry}<Tools>()
     .register('search_knowledgebase', async ({ query }) => {
       // Simulate search delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -73,7 +80,7 @@ function createClient(ctx?: { env?: Record<string,string|undefined> }) {
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();
   const evalRegistry = createEvalRegistry();
-  return createAgentMarkClient<AgentMarkTypes>({ loader: fileLoader, modelRegistry, toolRegistry, evalRegistry });
+  return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader: fileLoader, modelRegistry, toolRegistry, evalRegistry });
 }
 
 export const client = createClient();

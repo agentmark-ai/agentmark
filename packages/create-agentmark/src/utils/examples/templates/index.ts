@@ -1,3 +1,4 @@
+export * from './adapters.js';
 export * from './app-index.js';
 export * from './env.js';
 export * from './package-setup.js';

@@ -1,0 +1,24 @@
+---
+name: mcp-text
+text_config:
+  model_name: test-model
+  tools:
+    search: mcp://server-1/search
+    sum: mcp://server-1/sum
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful assistant.
+</System>
+
+<User>
+{props.userMessage}
+</User>
+
