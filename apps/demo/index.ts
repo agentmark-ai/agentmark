@@ -6,7 +6,6 @@ import {
   McpServerRegistry,
 } from "@agentmark/ai-sdk-v4-adapter";
 import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
 import { FileLoader } from "@agentmark/prompt-core";
 import { Tools } from "./agentmark.types";
 
@@ -18,7 +17,7 @@ modelRegistry.registerModels(["gpt-4o", "gpt-4o-mini"], (name: string) => {
 
 const tools = new VercelAIToolRegistry<Tools>().register(
   "weather",
-  ({ location }) => ({ tempC: 22 })
+  ({ location: _location }) => ({ tempC: 22 })
 );
 
 const mcpRegistry = new McpServerRegistry().register("test", {

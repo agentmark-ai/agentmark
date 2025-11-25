@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark/prompt-core";
 import { createAgentMarkClient } from "../src";

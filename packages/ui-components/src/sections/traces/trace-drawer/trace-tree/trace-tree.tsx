@@ -63,11 +63,11 @@ export const TraceTree = () => {
               setSelectedSpanId(nodeId);
             }
           }}
-          {...(traceId
+          {...(traceId && traces[0]
             ? {
                 defaultExpandedItems: [
-                  traces[0]?.id!,
-                  ...(traces[0]?.spans.map((span) => span.id) || []),
+                  traces[0].id,
+                  ...(traces[0].spans.map((span) => span.id) || []),
                 ],
               }
             : {})}

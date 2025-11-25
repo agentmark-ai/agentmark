@@ -47,7 +47,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   } else if (options.props) {
     try {
       customProps = JSON.parse(options.props);
-    } catch (e) {
+    } catch (_e) {
       throw new Error('Invalid JSON in --props argument');
     }
   }
@@ -62,16 +62,18 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
       if (config && config.webhookSecret) {
         webhookSecret = config.webhookSecret;
       }
-    } catch (e) {
+    } catch {
       // No config file, continue without signature
     }
   }
 
   const { load } = await import("@agentmark/templatedx");
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
-  try { process.chdir(path.dirname(resolvedFilepath)); } catch {}
+  try { process.chdir(path.dirname(resolvedFilepath)); } catch {
+    // Ignore errors when changing directory
+  }
 
-  let ast: Root = await load(resolvedFilepath);
+  const ast: Root = await load(resolvedFilepath);
   // Determine prompt kind from frontmatter for better headers (Text/Object/Image/Speech)
   let promptHeader: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
   try {
@@ -84,9 +86,13 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
       else if (fm.speech_config) promptHeader = 'Speech';
       else promptHeader = 'Text';
     }
-  } catch {}
+  } catch {
+    // Ignore errors when parsing frontmatter
+  }
   // Ensure server resolves resources relative to the prompt file if it needs it in the AST
-  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {}
+  try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {
+    // Ignore errors when setting environment variable
+  }
   const server = options.server || process.env.AGENTMARK_WEBHOOK_URL || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error('Server URL is required. Run your runner (e.g., npm run dev) and set --server if needed.');
@@ -136,9 +142,13 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
 
       if (!res.ok) {
         let raw = '';
-        try { raw = await res.text(); } catch {}
+        try { raw = await res.text(); } catch {
+          // Ignore errors when reading response text
+        }
         let parsed: any = null;
-        try { parsed = JSON.parse(raw); } catch {}
+        try { parsed = JSON.parse(raw); } catch {
+          // Ignore errors when parsing JSON
+        }
         const ct = res.headers.get('content-type') || '';
         const statusLine = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
         const errMsg = parsed?.error || parsed?.message || raw?.slice?.(0, 2000) || 'Unknown error';
@@ -220,7 +230,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
                 console.error(`❌ ${errorMsg}`);
               }
               if (evt.type === 'done' && evt.traceId) streamTraceId = evt.traceId;
-            } catch {}
+            } catch {
+              // Ignore errors when parsing stream events
+            }
           }
         }
         // Ensure final object is printed once (replacing the live-updated one)
@@ -255,7 +267,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         } else if ((resp as any).type === 'image') {
           const outputs = (resp as any).result as Array<{ mimeType: string; base64: string }>;
           const outDir = path.join(process.cwd(), '.agentmark-outputs');
-          try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
+          try { fs.mkdirSync(outDir, { recursive: true }); } catch {
+            // Ignore errors when creating output directory
+          }
           const saved: string[] = [];
           const timestamp = Date.now();
           outputs.forEach((img, idx) => {
@@ -268,7 +282,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         } else if ((resp as any).type === 'speech') {
           const audio = (resp as any).result as { mimeType?: string; base64: string; format?: string };
           const outDir = path.join(process.cwd(), '.agentmark-outputs');
-          try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
+          try { fs.mkdirSync(outDir, { recursive: true }); } catch {
+            // Ignore errors when creating output directory
+          }
           const timestamp = Date.now();
           const ext = audio.format || (audio.mimeType?.split('/')[1] || 'mp3');
           const filePath = path.join(outDir, `audio-${timestamp}.${ext}`);

@@ -1,4 +1,4 @@
-import { Box, Drawer, Typography } from "@mui/material";
+import { Drawer } from "@mui/material";
 
 interface TraceDrawerProps {
   open: boolean;

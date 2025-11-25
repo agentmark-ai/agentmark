@@ -8,7 +8,6 @@ import {
 import { Iconify } from "@/components";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { useTraceDrawerContext } from "../../trace-drawer-provider";
-import { SpanAttributeKeys } from "../const";
 
 interface OutputAccordionProps {
   outputData: {
@@ -65,7 +64,7 @@ ${JSON.stringify(objectResponse, null, 2)}
 
 export const OutputAccordion = ({
   outputData,
-  attributes,
+  attributes: _attributes,
 }: OutputAccordionProps) => {
   const { t } = useTraceDrawerContext();
   const toolCallsText =

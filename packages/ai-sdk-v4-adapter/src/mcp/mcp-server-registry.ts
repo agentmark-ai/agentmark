@@ -6,7 +6,6 @@ import type {
 import { interpolateEnvInObject } from "@agentmark/prompt-core";
 import type { Tool } from "ai";
 import { experimental_createMCPClient } from "ai";
-// @ts-ignore no types
 import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
 
 type MCPClient = {

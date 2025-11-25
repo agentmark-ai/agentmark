@@ -95,12 +95,16 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
           // After children are killed, kill the parent
           try {
             process.kill(pid, 'SIGTERM');
-          } catch {}
+          } catch {
+            // Ignore errors (process may already be dead)
+          }
           // Force kill after delay if still alive
           setTimeout(() => {
             try {
               process.kill(pid, 'SIGKILL');
-            } catch {}
+            } catch {
+              // Ignore errors (process may already be dead)
+            }
           }, 200);
         });
       } catch {
@@ -110,11 +114,15 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
           setTimeout(() => {
             try {
               process.kill(pid, 'SIGKILL');
-            } catch {}
+            } catch {
+              // Ignore errors (process may already be dead)
+            }
           }, 200);
-        } catch {}
+        } catch {
+          // Ignore errors (process may already be dead)
+        }
       }
-    } catch (e) {
+    } catch {
       // Ignore errors (process may already be dead)
     }
   };
@@ -130,7 +138,9 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
   webhookServer.on('error', (error) => {
     console.error('Failed to start webhook server:', error.message);
     if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {}
+      try { fileServerInstance.close(); } catch {
+        // Ignore errors when closing file server
+      }
     }
     process.exit(1);
   });
@@ -143,7 +153,9 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
       console.error('Check the output above for error details');
     }
     if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {}
+      try { fileServerInstance.close(); } catch {
+        // Ignore errors when closing file server
+      }
     }
     process.exit(code || 0);
   });
@@ -207,7 +219,7 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
       try {
         const subdomain = getTunnelSubdomain();
         tunnelInfo = await createTunnel(webhookPort, subdomain);
-      } catch (error) {
+      } catch {
         console.error('Continuing without tunnel...\n');
       }
     }

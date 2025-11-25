@@ -41,7 +41,7 @@ type TraceOptions = {
 const MetadataKey = "ai.telemetry.metadata";
 
 export const trace = <
-  A extends unknown,
+  A,
   F extends (...args: A[]) => ReturnType<F>,
 >(
   options: TraceOptions,
@@ -78,7 +78,7 @@ export const trace = <
 };
 
 export const component = <
-  A extends unknown,
+  A,
   F extends (...args: A[]) => ReturnType<F>,
 >(
   options: TraceOptions,

@@ -1,4 +1,4 @@
-import { Box, Tab } from "@mui/material";
+import { Tab } from "@mui/material";
 import { useSpanInfoContext } from "./span-info-provider";
 import { TabContext, TabList } from "@mui/lab";
 

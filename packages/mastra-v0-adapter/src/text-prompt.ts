@@ -45,7 +45,7 @@ export class MastraTextPrompt<
   }
 
   async formatAgent<
-    UsedProps extends Partial<T[K]["input"]> = {}
+    UsedProps extends Partial<T[K]["input"]> = Record<string, never>
   >(params?: {
     props?: FormatAgentProps<T, UsedProps, K>;
     options?: AdaptOptions;

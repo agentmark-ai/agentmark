@@ -95,13 +95,6 @@ const CustomTreeItemGroupTransition = styled(TreeItemGroupTransition)(
   })
 );
 
-const isExpandable = (reactChildren: React.ReactNode) => {
-  if (Array.isArray(reactChildren)) {
-    return reactChildren.length > 0 && reactChildren.some(isExpandable);
-  }
-  return Boolean(reactChildren);
-};
-
 export const TraceTreeItem = React.forwardRef(function TraceTreeItem(
   { hasChildren, ...props }: StyledTreeItemProps,
   ref: React.Ref<HTMLLIElement>

@@ -452,7 +452,6 @@ export class VercelAdapterWebhookHandler {
       });
       const stream = new ReadableStream({
         async start(controller) {
-          let index = 0;
           const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
@@ -482,7 +481,6 @@ export class VercelAdapterWebhookHandler {
                 traceId,
               }) + "\n";
             controller.enqueue(chunk);
-            index++;
           }
           controller.close();
         },
@@ -500,7 +498,6 @@ export class VercelAdapterWebhookHandler {
       });
       const stream = new ReadableStream({
         async start(controller) {
-          let index = 0;
           const reader = dataset.getReader();
           for (;;) {
             const { value: item, done } = await reader.read();
@@ -531,7 +528,6 @@ export class VercelAdapterWebhookHandler {
                 traceId,
               }) + "\n";
             controller.enqueue(chunk);
-            index++;
           }
           controller.close();
         },

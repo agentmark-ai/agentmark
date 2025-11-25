@@ -105,7 +105,7 @@ export class MastraAdapter<
     const modelCreator = this.modelRegistry?.getModelFunction(model_name);
     const model = modelCreator(model_name, options ?? {});
 
-    let toolsObj = {} as any;
+    const toolsObj = {} as any;
 
     if (tools) {
       for (const [name, value] of Object.entries(tools)) {

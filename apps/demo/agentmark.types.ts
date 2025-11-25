@@ -9,10 +9,6 @@ export interface Tools {
   explain: { args: ExplainArgs };
 }
 
-interface ObjectEntry<I, O> { kind: 'object'; input: I; output: O }
-interface TextEntry<I, O>   { kind: 'text';   input: I; output: O }
-interface ImageEntry<I, O>  { kind: 'image';  input: I; output: O }
-
 interface MathIn { [key: string]: any }
 
 interface MathOut { answer2: string }

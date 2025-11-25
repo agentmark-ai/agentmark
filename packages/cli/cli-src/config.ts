@@ -68,7 +68,7 @@ function ensureGitignoreEntry(projectRoot: string): void {
 
       fs.writeFileSync(gitignorePath, newContent, 'utf-8');
     }
-  } catch (error) {
+  } catch {
     // Silently fail - not critical
   }
 }

@@ -21,7 +21,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && npx cpy ../../README.md ../../assets ./"
+    "build": "tsup && npx cpy ../../README.md ../../assets ./",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@types/node": "^22.8.1",
