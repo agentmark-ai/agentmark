@@ -92,7 +92,7 @@ const dev = async (options: { port?: number; runnerPort?: number; agentmarkAppPo
       appPort++;
     }
   
-    const server = spawn('npm', ['start', '--', '-p', `${appPort}`], {
+    const server = spawn('npm', ['start', '--', '--port', `${appPort}`], {
       stdio: 'pipe',
       cwd: nextCwd,
       env: { ...process.env, NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiServerPort) },

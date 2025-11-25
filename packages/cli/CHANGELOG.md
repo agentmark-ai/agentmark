@@ -1,5 +1,13 @@
 # @agentmark/cli
 
+## 2.3.1
+
+### Patch Changes
+
+- f268996: Minor fixes
+- Updated dependencies [f268996]
+  - @agentmark/prompt-core@0.1.1
+
 ## 2.3.0
 
 ### Minor Changes

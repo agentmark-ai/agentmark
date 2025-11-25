@@ -1,5 +1,54 @@
-export const getIndexFileContent = (): string => {
-  return `import "dotenv/config";
+export const getIndexFileContent = (adapter: string = "ai-sdk"): string => {
+  if (adapter === "mastra") {
+    return `import "dotenv/config";
+import { Agent } from "@mastra/core/agent";
+import { client } from "./agentmark.client";
+
+const telemetry = {
+  isEnabled: true,
+  metadata: {
+    traceId: "trace-123",
+    traceName: "customer-support",
+    userId: "user-123",
+    sessionId: "session-123",
+    sessionName: "my-first-session",
+  },
+};
+
+const runCustomerSupport = async (customer_message: string) => {
+  const prompt = await client.loadTextPrompt("customer-support-agent.prompt.mdx");
+  const agentConfig = await prompt.formatAgent({
+    options: {
+      telemetry,
+    },
+  });
+
+  const [messages, generateOptions] = await agentConfig.formatMessages({
+    props: {
+      customer_question: customer_message,
+    },
+  });
+
+  const agent = new Agent(agentConfig);
+  const response = await agent.generate(messages, generateOptions);
+
+  return (response as any).text || (response as any).content || String(response);
+};
+
+const main = async () => {
+  try {
+    const user_message = "How long does shipping take?";
+    const assistant = await runCustomerSupport(user_message);
+    console.log("Customer support response:", assistant);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+main();
+`;
+  } else {
+    return `import "dotenv/config";
 import { generateText } from "ai";
 import { client } from "./agentmark.client";
 
@@ -40,4 +89,5 @@ const main = async () => {
 
 main();
 `;
+  }
 }; 

@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/prompt-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -38,9 +38,6 @@
   "dependencies": {
     "@agentmark/templatedx": "^0.8.1",
     "zod": "^3.23.8"
-  },
-  "peerDependencies": {
-    "ai": "^4.0.0"
   },
   "files": [
     "dist/",
