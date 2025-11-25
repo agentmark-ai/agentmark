@@ -134,7 +134,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
       if (config && config.webhookSecret) {
         webhookSecret = config.webhookSecret;
       }
-    } catch (e) {
+    } catch {
       // No config file, continue without signature
     }
   }
@@ -260,7 +260,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   let tableInitialized = false;
   let Table: any;
   let table: any;
-  let jsonRows: any[] = []; // For buffering JSON format output
+  const jsonRows: any[] = []; // For buffering JSON format output
   let experimentRunId: string | undefined; // Capture run ID for linking to all traces
 
   const reader = stream.getReader();

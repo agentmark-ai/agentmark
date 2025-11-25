@@ -2,8 +2,7 @@
 
 import fs from "fs-extra";
 import prompts from "prompts";
-import { Providers } from "./utils/providers.js";
-import { createExampleApp } from "./utils/examples/create-example-app.js";
+import { createExampleApp } from "./utils/examples/create-example-app";
 
 const main = async () => {
   const config: any = {
