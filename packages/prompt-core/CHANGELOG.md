@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 0.1.1
+
+### Patch Changes
+
+- f268996: Add ai sdk v5 adapter and make it default in cli + remove ai as peer dependency from prompt-core
+
 ## 0.1.0
 
 ### Minor Changes
