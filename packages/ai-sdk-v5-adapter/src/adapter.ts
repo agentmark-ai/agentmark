@@ -14,6 +14,7 @@ import type {
   ImageModel,
   Schema,
   Tool,
+  ToolCallOptions,
   SpeechModel,
   ModelMessage,
 } from "ai";
@@ -21,7 +22,7 @@ import { jsonSchema } from "ai";
 import { parseMcpUri } from "@agentmark/prompt-core";
 import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
-// Convert RichChatMessage[] to ModelMessage[] for AI SDK v5
+// Convert RichChatMessage[] to ModelMessage[] for AI SDK v5 compatibility
 function convertMessages(messages: RichChatMessage[]): ModelMessage[] {
   return messages.map((msg) => {
     if (msg.role === "system") {
@@ -155,13 +156,13 @@ export class VercelAIToolRegistry<
   private map: {
     [K in keyof TD]?: (
       args: TD[K]["args"],
-      toolContext?: Record<string, any>
+      toolOptions?: ToolCallOptions
     ) => any;
   } = {};
 
   register<K extends keyof TD, R>(
     name: K,
-    fn: (args: TD[K]["args"], toolContext?: Record<string, any>) => R
+    fn: (args: TD[K]["args"], toolOptions?: ToolCallOptions) => R
   ): VercelAIToolRegistry<TD, Merge<RM, { [P in K]: R }>> {
     this.map[name] = fn;
     return this as unknown as VercelAIToolRegistry<
@@ -173,7 +174,7 @@ export class VercelAIToolRegistry<
   get<K extends keyof TD & keyof RM>(name: K) {
     return this.map[name] as (
       args: TD[K]["args"],
-      toolContext?: Record<string, any>
+      toolOptions?: ToolCallOptions
     ) => RM[K];
   }
 
@@ -297,9 +298,23 @@ export class VercelAIAdapter<
               Promise.reject(new Error(`Tool ${String(key)} not registered`));
 
         (toolsObj as any)[key] = {
+          type: "function" as const,
           inputSchema: jsonSchema(def.parameters),
           description: def.description ?? "",
-          execute: (args: any) => impl(args, options.toolContext),
+          execute: (input: any, toolCallOptions: ToolCallOptions) => {
+            // Merge original experimental_context with options.toolContext
+            const toolOptions: ToolCallOptions = {
+              ...toolCallOptions,
+              experimental_context: {
+                ...((toolCallOptions.experimental_context as Record<
+                  string,
+                  unknown
+                >) ?? {}),
+                ...((options.toolContext as Record<string, unknown>) ?? {}),
+              } as unknown,
+            };
+            return impl(input, toolOptions);
+          },
         } as Tool<any, any>;
       }
     }
