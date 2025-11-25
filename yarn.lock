@@ -63,9 +63,6 @@ __metadata:
     "@agentmark/prompt-core": "*"
     "@ai-sdk/mcp": ^0.0.8
     ai: ^5.0.0
-  peerDependenciesMeta:
-    "@ai-sdk/mcp":
-      optional: true
   languageName: unknown
   linkType: soft
 
