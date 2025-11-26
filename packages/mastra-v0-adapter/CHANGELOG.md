@@ -1,5 +1,11 @@
 # @agentmark/mastra-v0-adapter
 
+## 2.0.1
+
+### Patch Changes
+
+- cf45b66: Resolve issues
+
 ## 2.0.0
 
 ### Minor Changes
