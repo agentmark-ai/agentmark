@@ -1,5 +1,11 @@
 # @agentmark/ai-sdk-v5-adapter
 
+## 1.0.1
+
+### Patch Changes
+
+- cf45b66: Resolve issues
+
 ## 1.0.0
 
 ### Minor Changes
