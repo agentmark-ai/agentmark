@@ -126,7 +126,10 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       <TraceDrawerComponent
         open={!!traceId}
         onClose={() => {
-          router.push("/traces");
+          const params = new URLSearchParams(searchParams.toString());
+          params.delete("traceId");
+          const newUrl = params.toString() ? `/traces?${params.toString()}` : "/traces";
+          router.push(newUrl);
         }}
       >
         {loading && <TraceInfoSkeleton />}

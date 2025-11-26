@@ -253,8 +253,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
         }
-        // Display trace link
-        if (streamTraceId) {
+        // Display trace link (only for text or object prompts)
+        if (streamTraceId && (promptHeader === 'Text' || promptHeader === 'Object')) {
           console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${streamTraceId}`);
         }
         console.log('');
@@ -304,8 +304,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           console.log(`🪙 ${promptTokens.toLocaleString()} in, ${completionTokens.toLocaleString()} out, ${totalTokens.toLocaleString()} total`);
           console.log('─'.repeat(60));
         }
-        // Display trace link
-        if ((resp as any).traceId) {
+        // Display trace link (only for text or object prompts)
+        if ((resp as any).traceId && (promptHeader === 'Text' || promptHeader === 'Object')) {
           console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${(resp as any).traceId}`);
         }
         console.log('');

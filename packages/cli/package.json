@@ -77,7 +77,8 @@
   },
   "files": [
     "dist",
-    "next.config.ts"
+    "next.config.ts",
+    "public"
   ],
   "directories": {
     "test": "test"

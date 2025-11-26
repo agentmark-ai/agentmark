@@ -11,31 +11,46 @@ export interface AdapterConfig {
   };
 }
 
-export const ADAPTERS: Record<string, AdapterConfig> = {
-  'ai-sdk': {
-    package: '@agentmark/ai-sdk-v5-adapter',
-    dependencies: ['ai@^5'],
-    classes: {
-      modelRegistry: 'VercelAIModelRegistry',
-      toolRegistry: 'VercelAIToolRegistry',
-      webhookHandler: 'VercelAdapterWebhookHandler',
+export const createAdapterConfig = (
+  provider: string
+): Record<string, AdapterConfig> => {
+  return {
+    "ai-sdk": {
+      package: "@agentmark/ai-sdk-v5-adapter",
+      dependencies: ["ai@^5", `@ai-sdk/${provider}@^2`],
+      classes: {
+        modelRegistry: "VercelAIModelRegistry",
+        toolRegistry: "VercelAIToolRegistry",
+        webhookHandler: "VercelAdapterWebhookHandler",
+      },
     },
-  },
-  'mastra': {
-    package: '@agentmark/mastra-v0-adapter',
-    dependencies: ['@mastra/core@<0.20.0', '@mastra/mcp@<0.13.4'],
-    classes: {
-      modelRegistry: 'MastraModelRegistry',
-      toolRegistry: 'MastraToolRegistry',
-      webhookHandler: 'MastraAdapterWebhookHandler',
+    mastra: {
+      package: "@agentmark/mastra-v0-adapter",
+      dependencies: [
+        "@mastra/core@<0.20.0",
+        "@mastra/mcp@<0.13.4",
+        `@ai-sdk/${provider}@<2`,
+      ],
+      classes: {
+        modelRegistry: "MastraModelRegistry",
+        toolRegistry: "MastraToolRegistry",
+        webhookHandler: "MastraAdapterWebhookHandler",
+      },
     },
-  },
+  };
 };
 
-export function getAdapterConfig(adapter: string): AdapterConfig {
-  const config = ADAPTERS[adapter];
+export function getAdapterConfig(
+  adapter: string,
+  provider: string
+): AdapterConfig {
+  const config = createAdapterConfig(provider)[adapter];
   if (!config) {
-    throw new Error(`Unknown adapter: ${adapter}. Available adapters: ${Object.keys(ADAPTERS).join(', ')}`);
+    throw new Error(
+      `Unknown adapter: ${adapter}. Available adapters: ${Object.keys(
+        createAdapterConfig(provider)
+      ).join(", ")}`
+    );
   }
   return config;
 }

@@ -155,14 +155,26 @@ export default async function runExperiment(filepath: string, options: { skipEva
   const { getFrontMatter } = await import('@agentmark/templatedx');
   const frontmatter = getFrontMatter(ast) as { name?: string };
   const promptName = frontmatter.name;
+  // Determine prompt type from frontmatter (Text/Object/Image/Speech)
+  let promptType: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
   try {
     const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
-    const rawDatasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
-    // Keep dataset path relative to the prompt file's directory
-    // The file loader expects relative paths, not absolute paths
-    if (rawDatasetPath) {
-      // If already relative (starts with ./), use as-is; otherwise just use the raw path
-      datasetPath = rawDatasetPath;
+    if (yamlNode && typeof yamlNode.value === 'string') {
+      const { parse: parseYaml } = await import('yaml');
+      const fm = parseYaml(yamlNode.value) || {};
+      // Determine prompt type
+      if (fm.object_config) promptType = 'Object';
+      else if (fm.image_config) promptType = 'Image';
+      else if (fm.speech_config) promptType = 'Speech';
+      else promptType = 'Text';
+      // Extract dataset path
+      const rawDatasetPath = fm.test_settings?.dataset;
+      // Keep dataset path relative to the prompt file's directory
+      // The file loader expects relative paths, not absolute paths
+      if (rawDatasetPath) {
+        // If already relative (starts with ./), use as-is; otherwise just use the raw path
+        datasetPath = rawDatasetPath;
+      }
     }
   } catch {
     // Ignore errors when parsing dataset path
@@ -445,8 +457,8 @@ export default async function runExperiment(filepath: string, options: { skipEva
     console.log(JSON.stringify(jsonRows, null, 2));
   }
 
-  // Display link to view all experiment traces
-  if (experimentRunId && format === 'table') {
+  // Display link to view all experiment traces (only for text or object prompts)
+  if (experimentRunId && format === 'table' && (promptType === 'Text' || promptType === 'Object')) {
     console.log(`\n📊 View traces: http://localhost:3000/traces?runId=${experimentRunId}`);
   }
 

@@ -33,7 +33,7 @@ export class MastraObjectPrompt<
   }
 
   async formatAgent<
-    UsedProps extends Partial<T[K]["input"]> = Record<string, never>
+    UsedProps extends Partial<T[K]["input"]> | undefined = undefined
   >(params?: {
     props?: FormatAgentProps<T, UsedProps, K>;
     options?: AdaptOptions;
@@ -53,7 +53,7 @@ export class MastraObjectPrompt<
         }
       ]
     > => {
-      const messageInput = await this.compile(msgParams?.props as any);
+      const messageInput = await this.compile({...(props || {}), ...(msgParams?.props || {})} as any);
       const messageAdapted = adaptedAgent.adaptMessages({
         input: messageInput,
         options: options ?? {},
@@ -119,7 +119,7 @@ export class MastraObjectPrompt<
                 expected_output: value.expected_output,
               },
               evals: this.testSettings?.evals || [],
-              formatted: formattedOutput,
+              formatted: formattedOutput as any,
             });
           }
           controller.close();
