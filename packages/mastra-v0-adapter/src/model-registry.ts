@@ -11,7 +11,7 @@ export class MastraModelRegistry {
 		this.defaultCreator = defaultCreator;
 	}
 
-	registerModels(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): void {
+	registerModels(modelPattern: string | RegExp | Array<string>, creator: ModelFunctionCreator): MastraModelRegistry {
 		if (typeof modelPattern === "string") {
 			this.exactMatches[modelPattern] = creator;
 		} else if (Array.isArray(modelPattern)) {
@@ -19,6 +19,7 @@ export class MastraModelRegistry {
 		} else {
 			this.patternMatches.push([modelPattern, creator]);
 		}
+		return this;
 	}
 
 	getModelFunction(modelName: string): ModelFunctionCreator {
