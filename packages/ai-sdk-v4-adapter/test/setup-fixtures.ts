@@ -4,7 +4,7 @@
  */
 import path from "path";
 import fs from "fs";
-import { getTemplateDXInstance } from "../src/template_engines/templatedx-instances";
+import { getTemplateDXInstance } from "@agentmark/prompt-core";
 
 const fixturesDir = path.join(__dirname, "fixtures");
 

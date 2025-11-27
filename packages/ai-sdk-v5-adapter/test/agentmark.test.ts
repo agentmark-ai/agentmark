@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark/prompt-core";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
@@ -19,6 +20,16 @@ type TestPromptTypes = {
 };
 
 describe("AgentMark Integration", () => {
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
+  });
+
   describe("AIAdapter Integration", () => {
     it("should adapt object prompts for Vercel AI SDK", async () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");

@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { EvalRegistry, FileLoader } from "@agentmark/prompt-core";
 import { MastraAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark/templatedx";
 import type { MastraAgentMark } from "../src/mastra-agentmark";
 import type { MastraAdapter } from "../src/adapter";
 import { createAgentMarkClient, MastraModelRegistry } from "../src";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 // Mock Mastra Agent - must be hoisted
 vi.mock("@mastra/core/agent", () => {
@@ -62,6 +63,16 @@ describe("MastraAdapterWebhookHandler", () => {
   let runner: MastraAdapterWebhookHandler;
   let client: MastraAgentMark<any, any, MastraAdapter<any, any>>;
   let loader: FileLoader;
+
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
+  });
 
   beforeEach(async () => {
     vi.clearAllMocks();

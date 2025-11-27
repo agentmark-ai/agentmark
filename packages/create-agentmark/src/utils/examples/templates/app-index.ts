@@ -16,7 +16,7 @@ const telemetry = {
 };
 
 const runCustomerSupport = async (customer_message: string) => {
-  const prompt = await client.loadTextPrompt("customer-support-agent.prompt.mdx");
+  const prompt = await client.loadTextPrompt("customer-support-agent");
   const agentConfig = await prompt.formatAgent({
     options: {
       telemetry,
@@ -64,7 +64,7 @@ const telemetry = {
 };
 
 const runCustomerSupport = async (customer_message: string) => {
-  const prompt = await client.loadTextPrompt("customer-support-agent.prompt.mdx");
+  const prompt = await client.loadTextPrompt("customer-support-agent");
   const vercelInput = await prompt.format({
     props: {
       customer_question: customer_message,

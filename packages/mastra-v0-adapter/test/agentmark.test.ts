@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark/prompt-core";
 import { createAgentMarkClient, MastraModelRegistry } from "../src";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
@@ -19,6 +20,16 @@ type TestPromptTypes = {
 };
 
 describe("Mastra Adapter Integration", () => {
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
+  });
+
   it("should adapt object prompts for Mastra", async () => {
     const fixturesDir = path.resolve(__dirname, "./fixtures");
     const fileLoader = new FileLoader(fixturesDir);

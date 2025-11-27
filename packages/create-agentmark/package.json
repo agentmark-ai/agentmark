@@ -10,7 +10,7 @@
     "./templates": "./dist/utils/examples/templates/index.js"
   },
   "scripts": {
-    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "build": "tsup && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
     "test": "vitest run",
     "lint": "eslint .",
     "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
@@ -37,6 +37,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20",
     "@types/prompts": "^2.4.9",
+    "tsup": "^8.3.5",
     "typescript": "^5",
     "vitest": "^3.1.4"
   },

@@ -1,5 +1,4 @@
 import fs from "fs-extra";
-import { readFileSync, writeFileSync, existsSync } from "fs";
 import * as path from "path";
 import { Providers } from "../providers.js";
 import {
@@ -124,7 +123,8 @@ export const createExampleApp = async (
   client: string,
   targetPath: string = ".",
   apiKey: string = "",
-  adapter: string = "ai-sdk"
+  adapter: string = "ai-sdk",
+  deploymentMode: "cloud" | "static" = "cloud"
 ) => {
   try {
     const modelProvider = 'openai';
@@ -148,14 +148,14 @@ export const createExampleApp = async (
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
       `${targetPath}/agentmark.client.ts`,
-      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter })
+      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter, deploymentMode })
     );
 
     // Create .env file
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
 
     // Create .gitignore
-    const gitignore = ['node_modules', '.env', '*.agentmark-outputs/', '.agentmark'].join('\n');
+    const gitignore = ['node_modules', '.env', '*.agentmark-outputs/', '.agentmark', 'dist'].join('\n');
     fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
 
     // Create the main application file
@@ -168,7 +168,7 @@ export const createExampleApp = async (
     fs.writeJsonSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
     // Setup package.json and install dependencies
-    setupPackageJson(targetPath);
+    setupPackageJson(targetPath, deploymentMode);
     installDependencies(modelProvider, targetPath, adapter);
 
     // Generate types file using the type generation library
@@ -239,25 +239,6 @@ main().catch((err) => {
 `;
 
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
-
-    // Create .env file with webhook URL configuration
-    // Always use Express runner server (port 9417) for local development
-    // regardless of deployment platform
-    const webhookUrl = 'http://localhost:9417';
-
-    const envPath = path.join(targetPath, '.env');
-    let envContent = '';
-
-    if (existsSync(envPath)) {
-      envContent = readFileSync(envPath, 'utf8');
-      if (!envContent.includes('AGENTMARK_WEBHOOK_URL')) {
-        envContent += `\n# AgentMark runner server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n`;
-      }
-    } else {
-      envContent = `# AgentMark runner server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n\n# Add your API keys here\n# OPENAI_API_KEY=your-key-here\n`;
-    }
-
-    writeFileSync(envPath, envContent, 'utf8');
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");

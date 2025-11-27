@@ -104,6 +104,7 @@ const build = async (options: BuildOptions = {}) => {
 
   // Import templatedx for parsing
   const { getTemplateDXInstance } = await import("@agentmark/prompt-core");
+  const { compressAst } = await import("@agentmark/templatedx");
 
   // Find all prompt files
   const promptFilesAbsolute = await findFiles(sourceDir, /\.prompt\.mdx$/);
@@ -149,6 +150,9 @@ const build = async (options: BuildOptions = {}) => {
       // Extract frontmatter to determine prompt kind and get metadata
       const frontmatter = templateDX.getFrontMatter(ast) as Record<string, any>;
       const promptKind = determinePromptKind(frontmatter);
+
+      // Compress AST to reduce file size (modifies in place)
+      compressAst(ast);
 
       // Build output structure
       const output = {

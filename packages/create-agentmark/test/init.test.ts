@@ -76,13 +76,12 @@ describe('init', () => {
     }
   });
 
-  it('cloud target uses SDK file loader in generated agentmark.client.ts', async () => {
+  it('uses AgentMarkLoader in generated agentmark.client.ts', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
     const content = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
     expect(content).toContain("from \"@agentmark/sdk\"");
-    expect(content).toContain("new AgentMarkSDK");
-    expect(content).toContain("sdk.getFileLoader()");
-    expect(content).not.toContain("new FileLoader(");
+    expect(content).toContain("AgentMarkLoader");
+    expect(content).toContain("new AgentMarkLoader()");
   });
   it('party-planner prompt includes evals list', async () => {
     const { createExamplePrompts } = await import('../src/utils/examples/templates');

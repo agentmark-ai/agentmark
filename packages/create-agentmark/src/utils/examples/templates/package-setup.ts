@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
 import { getAdapterConfig } from "./adapters.js";
 
-export const setupPackageJson = (targetPath: string = ".") => {
+export const setupPackageJson = (targetPath: string = ".", deploymentMode: "cloud" | "static" = "cloud") => {
   const packageJsonPath = `${targetPath}/package.json`;
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -22,13 +22,21 @@ export const setupPackageJson = (targetPath: string = ".") => {
   // All platforms use "agentmark dev" which runs their respective dev-entry.ts
   const devScript = "agentmark dev";
 
-  pkgJson.scripts = {
+  // Base scripts for all modes
+  const scripts: Record<string, string> = {
     ...pkgJson.scripts,
     "demo": "npx tsx index.ts",
     "dev": devScript,
     "prompt": "agentmark run-prompt",
     "experiment": "agentmark run-experiment",
   };
+
+  // For static/self-hosted mode, add the build script
+  if (deploymentMode === "static") {
+    scripts["build"] = "agentmark build";
+  }
+
+  pkgJson.scripts = scripts;
   fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 
