@@ -162,7 +162,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/loader-file@workspace:packages/loader-file":
+"@agentmark/loader-file@npm:*, @agentmark/loader-file@workspace:packages/loader-file":
   version: 0.0.0-use.local
   resolution: "@agentmark/loader-file@workspace:packages/loader-file"
   dependencies:
@@ -195,6 +195,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/prompt-core@workspace:packages/prompt-core"
   dependencies:
+    "@agentmark/loader-file": "npm:*"
     "@agentmark/templatedx": "npm:^0.8.1"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"

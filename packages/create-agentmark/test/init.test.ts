@@ -76,12 +76,12 @@ describe('init', () => {
     }
   });
 
-  it('uses AgentMarkLoader in generated agentmark.client.ts', async () => {
+  it('uses ApiLoader in generated agentmark.client.ts', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
     const content = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
-    expect(content).toContain("from \"@agentmark/sdk\"");
-    expect(content).toContain("AgentMarkLoader");
-    expect(content).toContain("new AgentMarkLoader()");
+    expect(content).toContain("from \"@agentmark/loader-api\"");
+    expect(content).toContain("ApiLoader");
+    expect(content).toContain("ApiLoader.local");
   });
   it('party-planner prompt includes evals list', async () => {
     const { createExamplePrompts } = await import('../src/utils/examples/templates');
@@ -160,9 +160,10 @@ describe('init', () => {
       expect(content).toContain('new VercelAdapterWebhookHandler(client');
       expect(content).toContain('createWebhookServer({');
 
-      // Check .env has correct webhook URL
+      // Check .env has cloud deployment instructions and API key placeholder
       const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
-      expect(envContent).toContain('AGENTMARK_WEBHOOK_URL=http://localhost:9417');
+      expect(envContent).toContain('AGENTMARK_BASE_URL');
+      expect(envContent).toContain('OPENAI_API_KEY');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
