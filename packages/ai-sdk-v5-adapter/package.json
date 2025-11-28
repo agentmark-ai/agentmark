@@ -35,6 +35,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@agentmark/loader-file": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",
     "@ai-sdk/mcp": "^0.0.8",
     "@types/node": "^22.8.1",

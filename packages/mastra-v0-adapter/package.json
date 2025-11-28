@@ -34,6 +34,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@agentmark/loader-file": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",

@@ -30,6 +30,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -49,6 +50,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@types/node": "npm:^22.8.1"
@@ -139,6 +141,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/fallback-adapter@workspace:packages/fallback-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -162,7 +165,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/loader-file@npm:*, @agentmark/loader-file@workspace:packages/loader-file":
+"@agentmark/loader-file@npm:*, @agentmark/loader-file@workspace:*, @agentmark/loader-file@workspace:packages/loader-file":
   version: 0.0.0-use.local
   resolution: "@agentmark/loader-file@workspace:packages/loader-file"
   dependencies:
@@ -176,6 +179,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"

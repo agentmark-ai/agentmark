@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import path from "path";
-import { FileLoader } from "@agentmark/prompt-core";
+import { FileLoader } from "@agentmark/loader-file";
 import { createAgentMarkClient, MastraModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
