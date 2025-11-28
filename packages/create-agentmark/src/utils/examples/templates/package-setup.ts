@@ -33,7 +33,7 @@ export const setupPackageJson = (targetPath: string = ".", deploymentMode: "clou
 
   // For static/self-hosted mode, add the build script
   if (deploymentMode === "static") {
-    scripts["build"] = "agentmark build";
+    scripts["build"] = "agentmark build --out dist/agentmark";
   }
 
   pkgJson.scripts = scripts;
