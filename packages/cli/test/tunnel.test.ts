@@ -1,22 +1,32 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock localtunnel before importing the module
-const mockTunnel = {
-  url: 'https://test.loca.lt',
-  on: vi.fn(),
-  close: vi.fn()
-};
-
-vi.mock('localtunnel', () => ({
-  default: vi.fn()
-}));
+vi.mock('localtunnel', () => {
+  return {
+    default: vi.fn()
+  };
+});
 
 import localtunnel from 'localtunnel';
 import { createTunnel } from '../cli-src/tunnel';
 
+// Get a typed reference to the mocked localtunnel
+const mockLocaltunnel = localtunnel as unknown as ReturnType<typeof vi.fn>;
+
+// Helper to create a mock tunnel object
+function createMockTunnel(url: string | null) {
+  return {
+    url,
+    close: vi.fn(),
+    on: vi.fn() // localtunnel returns an EventEmitter-like object
+  };
+}
+
 describe('tunnel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the mock implementation - successful tunnel by default
+    mockLocaltunnel.mockResolvedValue(createMockTunnel('https://test-subdomain.loca.lt'));
   });
 
   afterEach(() => {
@@ -25,96 +35,92 @@ describe('tunnel', () => {
 
   describe('createTunnel', () => {
     it('creates tunnel successfully on first attempt', async () => {
-      (localtunnel as any).mockResolvedValueOnce(mockTunnel);
-
       const result = await createTunnel(9417, 'test-subdomain');
 
-      expect(result.url).toBe('https://test.loca.lt');
+      expect(result.url).toBe('https://test-subdomain.loca.lt');
       expect(result.provider).toBe('localtunnel');
-      expect(localtunnel).toHaveBeenCalledWith({ port: 9417, subdomain: 'test-subdomain' });
+      expect(mockLocaltunnel).toHaveBeenCalledWith({ port: 9417, subdomain: 'test-subdomain' });
     });
 
     it('creates tunnel without subdomain', async () => {
-      (localtunnel as any).mockResolvedValueOnce(mockTunnel);
+      mockLocaltunnel.mockResolvedValue(createMockTunnel('https://random-slug.loca.lt'));
 
       const result = await createTunnel(9417);
 
-      expect(result.url).toBe('https://test.loca.lt');
-      expect(localtunnel).toHaveBeenCalledWith({ port: 9417 });
+      expect(result.url).toBe('https://random-slug.loca.lt');
+      expect(mockLocaltunnel).toHaveBeenCalledWith({ port: 9417 });
     });
 
     it('retries on retryable network errors', async () => {
       const networkError = new Error('Connection refused');
       (networkError as any).code = 'ECONNREFUSED';
 
-      (localtunnel as any)
+      mockLocaltunnel
         .mockRejectedValueOnce(networkError)
         .mockRejectedValueOnce(networkError)
-        .mockResolvedValueOnce(mockTunnel);
+        .mockResolvedValueOnce(createMockTunnel('https://test-subdomain.loca.lt'));
 
-      const result = await createTunnel(9417, undefined, 3);
+      const result = await createTunnel(9417, 'test-subdomain', 3);
 
-      expect(result.url).toBe('https://test.loca.lt');
-      expect(localtunnel).toHaveBeenCalledTimes(3);
-    }, 10000);
+      expect(result.url).toBe('https://test-subdomain.loca.lt');
+      expect(mockLocaltunnel).toHaveBeenCalledTimes(3);
+    }, 15000);
 
     it('does not retry on EADDRINUSE error', async () => {
-      const portError = new Error('Port already in use');
-      (portError as any).code = 'EADDRINUSE';
+      const error = new Error('Port already in use');
+      (error as any).code = 'EADDRINUSE';
 
-      (localtunnel as any).mockRejectedValueOnce(portError);
+      mockLocaltunnel.mockRejectedValue(error);
 
       await expect(createTunnel(9417)).rejects.toThrow('Port already in use');
-      expect(localtunnel).toHaveBeenCalledTimes(1);
+      expect(mockLocaltunnel).toHaveBeenCalledTimes(1);
     });
 
     it('does not retry on EACCES error', async () => {
-      const permError = new Error('Permission denied');
-      (permError as any).code = 'EACCES';
+      const error = new Error('Permission denied');
+      (error as any).code = 'EACCES';
 
-      (localtunnel as any).mockRejectedValueOnce(permError);
+      mockLocaltunnel.mockRejectedValue(error);
 
       await expect(createTunnel(9417)).rejects.toThrow('Permission denied');
-      expect(localtunnel).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not retry on subdomain unavailable error', async () => {
-      const subdomainError = new Error('Subdomain is not available');
-
-      (localtunnel as any).mockRejectedValueOnce(subdomainError);
-
-      await expect(createTunnel(9417, 'taken-subdomain')).rejects.toThrow('Subdomain is not available');
-      expect(localtunnel).toHaveBeenCalledTimes(1);
+      expect(mockLocaltunnel).toHaveBeenCalledTimes(1);
     });
 
     it('does not retry on unauthorized error', async () => {
-      const authError = new Error('Unauthorized access');
-
-      (localtunnel as any).mockRejectedValueOnce(authError);
+      mockLocaltunnel.mockRejectedValue(new Error('Unauthorized access'));
 
       await expect(createTunnel(9417)).rejects.toThrow('Unauthorized');
-      expect(localtunnel).toHaveBeenCalledTimes(1);
+      expect(mockLocaltunnel).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry on subdomain not available error', async () => {
+      mockLocaltunnel.mockRejectedValue(new Error('subdomain is not available'));
+
+      await expect(createTunnel(9417, 'taken-subdomain')).rejects.toThrow('subdomain is not available');
+      expect(mockLocaltunnel).toHaveBeenCalledTimes(1);
     });
 
     it('throws after max retries exhausted', async () => {
-      const networkError = new Error('Connection timeout');
-
-      (localtunnel as any)
-        .mockRejectedValueOnce(networkError)
-        .mockRejectedValueOnce(networkError)
-        .mockRejectedValueOnce(networkError);
+      mockLocaltunnel.mockRejectedValue(new Error('Connection timeout'));
 
       await expect(createTunnel(9417, undefined, 3)).rejects.toThrow('Connection timeout');
-      expect(localtunnel).toHaveBeenCalledTimes(3);
+      expect(mockLocaltunnel).toHaveBeenCalledTimes(3);
     }, 15000);
 
     it('disconnect function closes the tunnel', async () => {
-      (localtunnel as any).mockResolvedValueOnce(mockTunnel);
+      const mockTunnel = createMockTunnel('https://test-subdomain.loca.lt');
+      mockLocaltunnel.mockResolvedValue(mockTunnel);
 
       const result = await createTunnel(9417);
       await result.disconnect();
 
       expect(mockTunnel.close).toHaveBeenCalled();
+    });
+
+    it('throws if localtunnel returns no URL', async () => {
+      mockLocaltunnel.mockResolvedValue(createMockTunnel(null));
+
+      await expect(createTunnel(9417, undefined, 1)).rejects.toThrow('did not return a URL');
     });
   });
 });

@@ -152,6 +152,26 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark/loader-api@npm:0.0.0, @agentmark/loader-api@workspace:packages/loader-api":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/loader-api@workspace:packages/loader-api"
+  dependencies:
+    "@isaacs/ttlcache": "npm:^1.4.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+  languageName: unknown
+  linkType: soft
+
+"@agentmark/loader-file@workspace:packages/loader-file":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/loader-file@workspace:packages/loader-file"
+  dependencies:
+    "@types/node": "npm:^22.8.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
@@ -192,13 +212,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark/prompt-core": "workspace:*"
-    "@isaacs/ttlcache": "npm:^1.4.1"
+    "@agentmark/loader-api": "npm:0.0.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/sdk-node": "npm:^0.205.0"
     "@opentelemetry/sdk-trace-base": "npm:^2.1.0"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.3"
+  peerDependencies:
+    "@agentmark/loader-api": ">=0.0.0"
   languageName: unknown
   linkType: soft
 

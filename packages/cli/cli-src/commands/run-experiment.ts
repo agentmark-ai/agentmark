@@ -3,6 +3,66 @@ import fs from "fs";
 import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 
+/**
+ * Loads an AST from either a pre-built JSON file or an MDX file.
+ * @param resolvedFilepath - Absolute path to the file
+ * @returns The AST, prompt name, and dataset path (if available)
+ */
+async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptName?: string; datasetPath?: string }> {
+  if (resolvedFilepath.endsWith('.json')) {
+    // Load pre-built AST from JSON file
+    const content = fs.readFileSync(resolvedFilepath, 'utf-8');
+    const built = JSON.parse(content);
+
+    if (!built.ast) {
+      throw new Error('Invalid pre-built prompt file: missing "ast" field');
+    }
+
+    // Extract dataset path from the AST's frontmatter
+    let datasetPath: string | undefined;
+    try {
+      const yamlNode: any = (built.ast as any)?.children?.find((n: any) => n?.type === 'yaml');
+      if (yamlNode) {
+        const { parse: parseYaml } = await import('yaml');
+        datasetPath = parseYaml(yamlNode.value)?.test_settings?.dataset;
+      }
+    } catch {
+      // Ignore errors when parsing dataset path
+    }
+
+    return {
+      ast: built.ast as Root,
+      promptName: built.metadata?.name,
+      datasetPath
+    };
+  } else if (resolvedFilepath.endsWith('.mdx')) {
+    // Parse MDX file
+    const { load, getFrontMatter } = await import("@agentmark/templatedx");
+    const ast: Root = await load(resolvedFilepath);
+    const frontmatter = getFrontMatter(ast) as { name?: string };
+
+    // Extract dataset path from frontmatter
+    let datasetPath: string | undefined;
+    try {
+      const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
+      if (yamlNode) {
+        const { parse: parseYaml } = await import('yaml');
+        datasetPath = parseYaml(yamlNode.value)?.test_settings?.dataset;
+      }
+    } catch {
+      // Ignore errors when parsing dataset path
+    }
+
+    return {
+      ast,
+      promptName: frontmatter.name,
+      datasetPath
+    };
+  } else {
+    throw new Error('File must be an .mdx or .json file');
+  }
+}
+
 // Lazy-load cli-table3 so other commands (e.g., serve) don't pull ESM deps
 let _Table: any;
 async function getTable() {
@@ -124,6 +184,10 @@ export default async function runExperiment(filepath: string, options: { skipEva
     );
   }
 
+  if (!resolvedFilepath.endsWith('.mdx') && !resolvedFilepath.endsWith('.json')) {
+    throw new Error('File must be an .mdx or .json file');
+  }
+
   // Load webhook secret BEFORE changing directory
   // (so we get it from the project root, not the prompt directory)
   let webhookSecret = process.env.AGENTMARK_WEBHOOK_SECRET;
@@ -143,30 +207,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
   try { process.env.AGENTMARK_ROOT = path.dirname(resolvedFilepath); } catch {
     // Ignore errors when setting environment variable
   }
-  const { load } = await import("@agentmark/templatedx");
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {
     // Ignore errors when changing directory
   }
-  const ast: Root = await load(resolvedFilepath);
-  // Extract dataset path and prompt name for runner consumption (helps cloud loader resolve URLs)
-  let datasetPath: string | undefined;
-  // Get prompt name from frontmatter
-  const { getFrontMatter } = await import('@agentmark/templatedx');
-  const frontmatter = getFrontMatter(ast) as { name?: string };
-  const promptName = frontmatter.name;
-  try {
-    const yamlNode: any = (ast as any)?.children?.find((n: any) => n?.type === 'yaml');
-    const rawDatasetPath = yamlNode ? (await import('yaml')).parse(yamlNode.value)?.test_settings?.dataset : undefined;
-    // Keep dataset path relative to the prompt file's directory
-    // The file loader expects relative paths, not absolute paths
-    if (rawDatasetPath) {
-      // If already relative (starts with ./), use as-is; otherwise just use the raw path
-      datasetPath = rawDatasetPath;
-    }
-  } catch {
-    // Ignore errors when parsing dataset path
-  }
+
+  // Load AST from MDX or pre-built JSON file
+  const { ast, promptName, datasetPath } = await loadAst(resolvedFilepath);
 
   const server = options.server || process.env.AGENTMARK_WEBHOOK_URL || 'http://localhost:9417';
   if (!server || !/^https?:\/\//i.test(server)) {

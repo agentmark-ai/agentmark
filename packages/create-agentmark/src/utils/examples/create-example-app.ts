@@ -169,7 +169,7 @@ export const createExampleApp = async (
 
     // Setup package.json and install dependencies
     setupPackageJson(targetPath, deploymentMode);
-    installDependencies(modelProvider, targetPath, adapter);
+    installDependencies(modelProvider, targetPath, adapter, deploymentMode);
 
     // Generate types file using the type generation library
     console.log("Generating types from prompts...");
@@ -203,17 +203,22 @@ import { AgentMarkSDK } from '@agentmark/sdk';
 import path from 'path';
 
 async function main() {
-  const { client } = await import('../agentmark.client.js');
-
   const args = process.argv.slice(2);
   const webhookPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
 
   const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
   const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
+  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+
+  // Set environment for development mode before importing client
+  process.env.NODE_ENV = 'development';
+  process.env.AGENTMARK_BASE_URL = fileServerUrl;
+
+  // Now import client - it will pick up the dev environment
+  const { client } = await import('../agentmark.client.js');
 
   // Initialize OpenTelemetry tracing to export traces to the API server
-  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
   const sdk = new AgentMarkSDK({
     apiKey: '',
     appId: '',

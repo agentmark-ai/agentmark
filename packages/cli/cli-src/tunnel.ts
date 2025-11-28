@@ -132,4 +132,3 @@ export async function createTunnel(port: number, subdomain?: string, maxRetries:
   console.error('Localtunnel connection failed. This is usually temporary - try again in a moment.\n');
   throw lastError;
 }
-

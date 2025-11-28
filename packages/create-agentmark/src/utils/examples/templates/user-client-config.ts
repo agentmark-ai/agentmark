@@ -1,7 +1,7 @@
 import { getAdapterConfig } from "./adapters.js";
 
 export const getClientConfigContent = (options: { provider: string; languageModels: string[]; adapter: string; deploymentMode?: "cloud" | "static" }) => {
-  const { provider, languageModels, adapter, deploymentMode: _deploymentMode = "cloud" } = options;
+  const { provider, languageModels, adapter, deploymentMode = "cloud" } = options;
   const adapterConfig = getAdapterConfig(adapter);
   const { modelRegistry, toolRegistry } = adapterConfig.classes;
 
@@ -12,14 +12,32 @@ export const getClientConfigContent = (options: { provider: string; languageMode
     .registerModels(["tts-1-hd"], (name: string) => ${provider}.speech(name))`
     : '';
 
-  // For cloud mode, we use AgentMarkLoader which automatically picks the right loader
-  // For static mode, we also use AgentMarkLoader - it will use FileLoader when no API key is set
+  // Import loaders from dedicated packages
+  const loaderImport = deploymentMode === "cloud"
+    ? `import { ApiLoader } from "@agentmark/loader-api";`
+    : `import { ApiLoader } from "@agentmark/loader-api";
+import { FileLoader } from "@agentmark/loader-file";`;
+
+  const loaderSetup = deploymentMode === "cloud"
+    ? `  // ApiLoader works for both development and production
+  // - Development: 'agentmark dev' sets AGENTMARK_BASE_URL to localhost
+  // - Production: Set AGENTMARK_API_KEY and AGENTMARK_APP_ID for cloud
+  const loader = process.env.NODE_ENV === 'development'
+    ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })
+    : ApiLoader.cloud({
+        apiKey: process.env.AGENTMARK_API_KEY!,
+        appId: process.env.AGENTMARK_APP_ID!,
+      });`
+    : `  const loader = process.env.NODE_ENV === 'development'
+    ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })
+    : new FileLoader('./dist/agentmark');`;
+
   return `// agentmark.client.ts
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { createAgentMarkClient, ${modelRegistry}, ${toolRegistry}, EvalRegistry } from "${adapterConfig.package}";
-import { AgentMarkLoader } from "@agentmark/sdk";
+${loaderImport}
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}
 
@@ -71,10 +89,7 @@ function createEvalRegistry() {
 }
 
 function createClient() {
-  // AgentMarkLoader automatically selects the right loading strategy:
-  // - If AGENTMARK_API_KEY is set: fetches from AgentMark Cloud (CMS mode)
-  // - If no API key: loads from pre-built files in dist/agentmark (static mode)
-  const loader = new AgentMarkLoader();
+${loaderSetup}
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();
   const evalRegistry = createEvalRegistry();

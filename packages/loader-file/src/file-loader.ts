@@ -1,14 +1,17 @@
 import path from "path";
-import type { Loader, PromptKind, PromptShape } from "../types";
-import type { Ast } from "@agentmark/templatedx";
 import fs from "fs";
 import readline from "readline";
+
+/**
+ * Prompt kind types supported by the file loader.
+ */
+export type PromptKind = "object" | "text" | "image" | "speech";
 
 /**
  * Pre-built prompt structure as output by `agentmark build`.
  */
 export interface BuiltPrompt {
-  ast: Ast;
+  ast: unknown;
   metadata: {
     path: string;
     kind: PromptKind;
@@ -26,12 +29,12 @@ export interface BuiltPrompt {
  *
  * @example
  * ```typescript
- * import { FileLoader, createAgentMark } from '@agentmark/prompt-core';
+ * import { FileLoader } from '@agentmark/loader-file';
  *
  * // Point to the build output directory
  * const loader = new FileLoader('./dist/agentmark');
  *
- * const client = createAgentMark({ adapter, loader });
+ * const client = createAgentMarkClient({ adapter, loader });
  *
  * // Load a pre-built prompt - extension is optional
  * const prompt = await client.loadTextPrompt('party-planner');
@@ -39,7 +42,7 @@ export interface BuiltPrompt {
  * const prompt2 = await client.loadTextPrompt('party-planner.prompt.mdx');
  * ```
  */
-export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
+export class FileLoader {
   private basePath: string;
 
   /**
@@ -130,8 +133,8 @@ export class FileLoader<T extends PromptShape<T> = any> implements Loader<T> {
   async load(
     templatePath: string,
     _promptType: PromptKind,
-    _options?: any
-  ): Promise<Ast> {
+    _options?: unknown
+  ): Promise<unknown> {
     const jsonPath = this.normalizeTemplatePath(templatePath);
     const safePath = this.validateAndResolvePath(jsonPath);
 

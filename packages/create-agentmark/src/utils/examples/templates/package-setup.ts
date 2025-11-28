@@ -37,13 +37,22 @@ export const setupPackageJson = (targetPath: string = ".", deploymentMode: "clou
   }
 
   pkgJson.scripts = scripts;
+
+  // Add overrides to fix vulnerabilities in transitive dependencies
+  // localtunnel (used by @agentmark/cli) depends on axios@0.21.4 which has vulnerabilities
+  pkgJson.overrides = {
+    ...pkgJson.overrides,
+    "axios": "^1.7.9"
+  };
+
   fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 
 export const installDependencies = (
   modelProvider: string,
   targetPath: string = ".",
-  adapter: string = "ai-sdk"
+  adapter: string = "ai-sdk",
+  deploymentMode: "cloud" | "static" = "cloud"
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
@@ -62,6 +71,11 @@ export const installDependencies = (
 
     // Install the common packages
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
+    // Loader packages are imported directly - ApiLoader always needed, FileLoader only for static mode
+    const loaderPackages = deploymentMode === "static"
+      ? ["@agentmark/loader-api", "@agentmark/loader-file"]
+      : ["@agentmark/loader-api"];
+
     const installArgs = [
       "install",
       "dotenv",
@@ -69,6 +83,7 @@ export const installDependencies = (
       "@agentmark/sdk",
       adapterConfig.package,
       `@ai-sdk/${modelProvider}@^2`,
+      ...loaderPackages,
       ...adapterConfig.dependencies,
       "--legacy-peer-deps",
     ];

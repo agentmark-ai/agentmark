@@ -48,12 +48,12 @@ const main = async () => {
   const { deploymentMode } = await prompts({
     name: "deploymentMode",
     type: "select",
-    message: "How will you deploy prompts in production?",
+    message: "Use AgentMark Cloud or manage yourself?",
     choices: [
       {
         title: "AgentMark Cloud (recommended)",
         value: "cloud",
-        description: "Integrate with AgentMark Cloud"
+        description: "Have AgentMark cloud manage prompts, datasets, traces, experiments, alerts & more"
       },
       {
         title: "Self-hosted",

@@ -217,7 +217,7 @@ export async function createWebhookServer(options: WebhookServerOptions): Promis
       `<div class="info-box">
         <strong>📁 Templates Directory:</strong><br>
         <code>${templatesDir}</code><br><br>
-        <strong>🔗 File Server:</strong><br>
+        <strong>🔗 API:</strong><br>
         <a href="${fileServerUrl}" target="_blank">${fileServerUrl}</a>
       </div>` : '';
 
