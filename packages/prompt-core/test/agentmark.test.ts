@@ -113,9 +113,6 @@ describe("AgentMark Integration", () => {
     expect(result.speech_config.speed).toBe(1.0);
   });
 
-  // Note: Invalid prompt validation now happens at build time.
-  // Tests for invalid prompts are in the build command tests.
-
   it("should enforce type safety on prompt paths", () => {
     expect(async () => {
       await agentMark.loadObjectPrompt("fixtures/math.prompt.mdx");
@@ -194,9 +191,6 @@ describe("AgentMark Integration", () => {
       },
     ]);
   });
-
-  // Note: Invalid attachment placement validation now happens at build time.
-  // Tests for invalid prompts are in the build command tests.
 
   it("should handle formatting with data sets", async () => {
     const prompt = await agentMark.loadObjectPrompt("fixtures/mathDataset.prompt.mdx");

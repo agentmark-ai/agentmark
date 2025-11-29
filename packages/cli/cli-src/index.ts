@@ -24,14 +24,14 @@ program
 
 program
   .command("dev")
-  .option("--file-port <number>", "File server port (default: 9418)")
+  .option("--api-port <number>", "API server port (default: 9418)")
   .option("--webhook-port <number>", "Webhook server port (default: 9417)")
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
   .option("-t, --tunnel", "Expose webhook server publicly via tunnel")
-  .description("Start development servers (file server + webhook + UI app)")
+  .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
-      filePort: options.filePort ? parseInt(options.filePort, 10) : undefined,
+      apiPort: options.apiPort ? parseInt(options.apiPort, 10) : undefined,
       webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
       tunnel: options.tunnel || false
