@@ -38,7 +38,9 @@ function TracesContent() {
           isLoading={isLoading}
           traceCount={traces.length}
           onTraceClick={(trace) => {
-            router.push(`/traces?traceId=${trace.id}`);
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("traceId", trace.id);
+            router.push(`/traces?${params.toString()}`);
           }}
           table={table}
           t={t}

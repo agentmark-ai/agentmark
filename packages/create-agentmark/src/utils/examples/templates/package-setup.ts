@@ -57,7 +57,7 @@ export const installDependencies = (
   console.log("Installing required packages...");
   console.log("This might take a moment...");
 
-  const adapterConfig = getAdapterConfig(adapter);
+  const adapterConfig = getAdapterConfig(adapter, modelProvider);
 
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
@@ -82,7 +82,6 @@ export const installDependencies = (
       "@agentmark/prompt-core",
       "@agentmark/sdk",
       adapterConfig.package,
-      `@ai-sdk/${modelProvider}@^2`,
       ...loaderPackages,
       ...adapterConfig.dependencies,
       "--legacy-peer-deps",

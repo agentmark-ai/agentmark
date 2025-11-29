@@ -18,7 +18,7 @@ import type {
   SpeechModel,
   ModelMessage,
 } from "ai";
-import { jsonSchema } from "ai";
+import { jsonSchema, stepCountIs } from "ai";
 import { parseMcpUri } from "@agentmark/prompt-core";
 import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
@@ -79,7 +79,7 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
   stopSequences?: string[];
   tools: TS;
   experimental_telemetry?: any;
-  maxSteps?: number;
+  stopWhen?: any;
 };
 
 export interface VercelAIObjectParams<T> {
@@ -341,7 +341,7 @@ export class VercelAIAdapter<
         : {}),
       ...(settings?.seed !== undefined ? { seed: settings.seed } : {}),
       ...(settings?.max_calls !== undefined
-        ? { maxSteps: settings.max_calls }
+        ? { stopWhen: stepCountIs(settings.max_calls) }
         : {}),
       ...(options.telemetry
         ? {

@@ -1,5 +1,17 @@
 # @agentmark/ai-sdk-v5-adapter
 
+## 1.0.2
+
+### Patch Changes
+
+- 85e9e02: Fix: fix stream text handling
+
+## 1.0.1
+
+### Patch Changes
+
+- cf45b66: Resolve issues
+
 ## 1.0.0
 
 ### Minor Changes

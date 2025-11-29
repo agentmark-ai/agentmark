@@ -8,6 +8,7 @@ export default defineConfig([
     clean: true,
     sourcemap: true,
     splitting: false,
+    target: "es2020",
     banner: {
       js: "#!/usr/bin/env node",
     },
@@ -19,5 +20,6 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     splitting: false,
+    target: "es2020",
   },
 ]);

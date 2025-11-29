@@ -7695,7 +7695,7 @@ __metadata:
     "@types/prompts": "npm:^2.4.9"
     fs-extra: "npm:^11.2.0"
     prompts: "npm:^2.4.2"
-    tsup: "npm:^8.3.5"
+    tsup: "npm:^8.5.1"
     typescript: "npm:^5"
     vitest: "npm:^3.1.4"
   bin:

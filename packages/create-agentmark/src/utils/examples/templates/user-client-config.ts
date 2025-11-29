@@ -2,7 +2,7 @@ import { getAdapterConfig } from "./adapters.js";
 
 export const getClientConfigContent = (options: { provider: string; languageModels: string[]; adapter: string; deploymentMode?: "cloud" | "static" }) => {
   const { provider, languageModels, adapter, deploymentMode = "cloud" } = options;
-  const adapterConfig = getAdapterConfig(adapter);
+  const adapterConfig = getAdapterConfig(adapter, provider);
   const { modelRegistry, toolRegistry } = adapterConfig.classes;
 
   const providerImport = `import { ${provider} } from '@ai-sdk/${provider}';`;

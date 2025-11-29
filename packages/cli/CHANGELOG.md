@@ -1,5 +1,11 @@
 # @agentmark/cli
 
+## 2.4.1
+
+### Patch Changes
+
+- cf45b66: Resolve issues
+
 ## 2.4.0
 
 ### Minor Changes

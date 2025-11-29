@@ -143,12 +143,12 @@ export class VercelAdapterWebhookHandler {
                 controller.close();
                 return;
               }
-              if ((chunk as any).type === "text-delta") {
+              if (chunk.type === "text-delta") {
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({
                       type: "text",
-                      result: (chunk as any).textDelta,
+                      result: chunk.text,
                     }) + "\n"
                   )
                 );

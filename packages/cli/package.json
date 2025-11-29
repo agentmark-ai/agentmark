@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/cli",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {
@@ -77,7 +77,8 @@
   },
   "files": [
     "dist",
-    "next.config.ts"
+    "next.config.ts",
+    "public"
   ],
   "directories": {
     "test": "test"
