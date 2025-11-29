@@ -1,5 +1,16 @@
 # @puzzlet/sdk
 
+## 5.0.0
+
+### Minor Changes
+
+- e362bb5: Feat: local development w/ new file/api loader.
+
+### Patch Changes
+
+- Updated dependencies [e362bb5]
+  - @agentmark/loader-api@0.1.0
+
 ## 4.3.0
 
 ### Minor Changes

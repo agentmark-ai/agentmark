@@ -1,5 +1,11 @@
 # @agentmark/shared-utils
 
+## 1.5.0
+
+### Minor Changes
+
+- e362bb5: Feat: local development w/ new file/api loader.
+
 ## 1.4.0
 
 ### Minor Changes

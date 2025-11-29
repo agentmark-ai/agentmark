@@ -155,7 +155,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/loader-api@npm:0.0.0, @agentmark/loader-api@workspace:packages/loader-api":
+"@agentmark/loader-api@npm:0.1.0, @agentmark/loader-api@workspace:packages/loader-api":
   version: 0.0.0-use.local
   resolution: "@agentmark/loader-api@workspace:packages/loader-api"
   dependencies:
@@ -217,7 +217,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark/loader-api": "npm:0.0.0"
+    "@agentmark/loader-api": "npm:0.1.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/sdk-node": "npm:^0.205.0"
     "@opentelemetry/sdk-trace-base": "npm:^2.1.0"

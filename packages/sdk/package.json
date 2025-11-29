@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/sdk",
-  "version": "4.3.0",
+  "version": "5.0.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "description": "SDK for communicating with the Agentmark hosted platform",
@@ -20,7 +20,7 @@
     "@opentelemetry/sdk-trace-base": "^2.1.0"
   },
   "devDependencies": {
-    "@agentmark/loader-api": "0.0.0",
+    "@agentmark/loader-api": "0.1.0",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3"
   },
