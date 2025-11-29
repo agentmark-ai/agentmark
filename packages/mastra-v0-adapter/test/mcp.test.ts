@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import path from "path";
-import { FileLoader } from "@agentmark/prompt-core";
+import { FileLoader } from "@agentmark/loader-file";
 import {
   createAgentMarkClient,
   MastraModelRegistry,
   MastraToolRegistry,
 } from "../src";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 vi.mock("../src/mcp/mcp-client-manager", () => {
   class MockTool {
@@ -41,6 +42,16 @@ describe("Mastra adapter MCP integration", () => {
     { sum: { args: { a: number; b: number } } },
     { sum: number }
   >;
+
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
+  });
 
   beforeEach(() => {
     fileLoader = new FileLoader(path.resolve(__dirname, "./fixtures"));

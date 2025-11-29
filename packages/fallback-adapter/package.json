@@ -25,6 +25,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@agentmark/loader-file": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",
     "@types/node": "^22.8.1",
     "@types/react": "^18",

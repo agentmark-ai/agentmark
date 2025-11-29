@@ -30,6 +30,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -49,6 +50,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@types/node": "npm:^22.8.1"
@@ -139,6 +141,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/fallback-adapter@workspace:packages/fallback-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -152,10 +155,31 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark/loader-api@npm:0.0.0, @agentmark/loader-api@workspace:packages/loader-api":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/loader-api@workspace:packages/loader-api"
+  dependencies:
+    "@isaacs/ttlcache": "npm:^1.4.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+  languageName: unknown
+  linkType: soft
+
+"@agentmark/loader-file@npm:*, @agentmark/loader-file@workspace:*, @agentmark/loader-file@workspace:packages/loader-file":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/loader-file@workspace:packages/loader-file"
+  dependencies:
+    "@types/node": "npm:^22.8.1"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
   dependencies:
+    "@agentmark/loader-file": "workspace:*"
     "@agentmark/prompt-core": "workspace:*"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"
@@ -175,6 +199,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/prompt-core@workspace:packages/prompt-core"
   dependencies:
+    "@agentmark/loader-file": "npm:*"
     "@agentmark/templatedx": "npm:^0.8.1"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -192,13 +217,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark/prompt-core": "workspace:*"
-    "@isaacs/ttlcache": "npm:^1.4.1"
+    "@agentmark/loader-api": "npm:0.0.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/sdk-node": "npm:^0.205.0"
     "@opentelemetry/sdk-trace-base": "npm:^2.1.0"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.3"
+  peerDependencies:
+    "@agentmark/loader-api": ">=0.0.0"
   languageName: unknown
   linkType: soft
 

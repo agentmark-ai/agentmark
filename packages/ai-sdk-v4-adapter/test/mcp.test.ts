@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import path from "path";
-import { FileLoader } from "@agentmark/prompt-core";
+import { FileLoader } from "@agentmark/loader-file";
 import { createAgentMarkClient, VercelAIModelRegistry, McpServerRegistry } from "../src";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 vi.mock("../src/mcp/mcp-server-registry", () => {
   class MockTool {
@@ -47,6 +48,16 @@ type TestPromptTypes = {
 describe("Vercel adapter MCP integration", () => {
   let modelRegistry: VercelAIModelRegistry;
   let fileLoader: FileLoader<any>;
+
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
+  });
 
   beforeEach(() => {
     fileLoader = new FileLoader(path.resolve(__dirname, "./fixtures"));

@@ -83,5 +83,8 @@
   "directories": {
     "test": "test"
   },
-  "keywords": []
+  "keywords": [],
+  "overrides": {
+    "axios": "^1.7.9"
+  }
 }

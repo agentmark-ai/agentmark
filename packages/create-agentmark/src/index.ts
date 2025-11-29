@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import fs from "fs-extra";
 import prompts from "prompts";
 import { createExampleApp } from "./utils/examples/create-example-app";
@@ -47,6 +45,24 @@ const main = async () => {
     ],
   });
 
+  const { deploymentMode } = await prompts({
+    name: "deploymentMode",
+    type: "select",
+    message: "Use AgentMark Cloud or manage yourself?",
+    choices: [
+      {
+        title: "AgentMark Cloud (recommended)",
+        value: "cloud",
+        description: "Have AgentMark cloud manage prompts, datasets, traces, experiments, alerts & more"
+      },
+      {
+        title: "Self-hosted",
+        value: "static",
+        description: "Self-manage your prompts, datasets, traces & experiments"
+      },
+    ],
+  });
+
   const { client } = await prompts({
     name: "client",
     type: "select",
@@ -60,7 +76,7 @@ const main = async () => {
     ],
   });
 
-  await createExampleApp(client, targetPath, apiKey, adapter);
+  await createExampleApp(client, targetPath, apiKey, adapter, deploymentMode);
 
   // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });

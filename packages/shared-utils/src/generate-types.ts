@@ -173,7 +173,19 @@ async function generateTypeDefinitionsV1_0(
       }
 };\n\n`;
 
+      // Generate all path variants for type-safe access:
+      // - "greeting.prompt.mdx" (full path)
+      // - "greeting.prompt" (without .mdx)
+      // - "greeting" (short name)
       typeMapping.push(`  "${promptPath}": ${name}`);
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath) {
+        typeMapping.push(`  "${withoutMdx}": ${name}`);
+      }
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push(`  "${shortName}": ${name}`);
+      }
     } catch (error) {
       console.error(`Error processing ${promptPath}:`, error);
       interfaces.push(
@@ -235,7 +247,19 @@ async function generateTypeDefinitionsV0(
   output: ${name}Out;
 }\n\n`;
 
+      // Generate all path variants for type-safe access:
+      // - "greeting.prompt.mdx" (full path)
+      // - "greeting.prompt" (without .mdx)
+      // - "greeting" (short name)
       typeMapping.push(`  "${promptPath}": ${name}`);
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath) {
+        typeMapping.push(`  "${withoutMdx}": ${name}`);
+      }
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push(`  "${shortName}": ${name}`);
+      }
     } catch (error: any) {
       console.error(`Error processing ${promptPath}:`, error);
       interfaces.push(
@@ -248,7 +272,16 @@ type ${name}Out = string`
   output: ${name}Out;
 }\n\n`;
 
+      // Generate all path variants for type-safe access even on error
       typeMapping.push(`  "${promptPath}": ${name}`);
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath) {
+        typeMapping.push(`  "${withoutMdx}": ${name}`);
+      }
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push(`  "${shortName}": ${name}`);
+      }
     }
   }
 

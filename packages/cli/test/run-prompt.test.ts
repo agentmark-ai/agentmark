@@ -221,4 +221,37 @@ describe('run-prompt', () => {
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
     await expect(runPrompt(tempPath, { props: '{invalid json}', server: 'http://localhost:9417' })).rejects.toThrow('Invalid JSON');
   });
+
+  it('throws error for unsupported file extension', async () => {
+    const tempPath = path.join(__dirname, '..', 'dummy.txt');
+    writeFileSync(tempPath, 'not a valid file');
+    currentRunner = { async runPrompt(){ return { type: 'text', result: 'ok' }; } } as any;
+    runPrompt = (await import('../cli-src/commands/run-prompt')).default;
+    await expect(runPrompt(tempPath, { server: 'http://localhost:9417' })).rejects.toThrow('File must be an .mdx or .json file');
+    try { unlinkSync(tempPath); } catch {}
+  });
+
+  it('loads pre-built JSON prompt file', async () => {
+    const tempPath = path.join(__dirname, '..', 'dummy.prompt.json');
+    const builtPrompt = {
+      ast: { children: [{ type: 'yaml', value: 'text_config:\n  model_name: gpt-4o' }] },
+      metadata: { name: 'test-prompt', kind: 'text', path: 'dummy.prompt.mdx', builtAt: new Date().toISOString() }
+    };
+    writeFileSync(tempPath, JSON.stringify(builtPrompt));
+    currentRunner = { async runPrompt(){ return { type: 'text', result: 'from json' }; } } as any;
+    runPrompt = (await import('../cli-src/commands/run-prompt')).default;
+    await runPrompt(tempPath, { server: 'http://localhost:9417' });
+    const headerPrinted = logSpy.mock.calls.some(c => String(c[0]).includes('=== Text Prompt Results ==='));
+    expect(headerPrinted).toBe(true);
+    try { unlinkSync(tempPath); } catch {}
+  });
+
+  it('throws error for invalid JSON prompt file (missing ast)', async () => {
+    const tempPath = path.join(__dirname, '..', 'invalid.prompt.json');
+    writeFileSync(tempPath, JSON.stringify({ metadata: { name: 'test' } }));
+    currentRunner = { async runPrompt(){ return { type: 'text', result: 'ok' }; } } as any;
+    runPrompt = (await import('../cli-src/commands/run-prompt')).default;
+    await expect(runPrompt(tempPath, { server: 'http://localhost:9417' })).rejects.toThrow('missing "ast" field');
+    try { unlinkSync(tempPath); } catch {}
+  });
 });

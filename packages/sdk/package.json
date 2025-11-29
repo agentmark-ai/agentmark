@@ -5,11 +5,6 @@
   "types": "./dist/index.d.ts",
   "description": "SDK for communicating with the Agentmark hosted platform",
   "license": "MIT",
-  "devDependencies": {
-    "@agentmark/prompt-core": "workspace:*",
-    "tsup": "^8.3.5",
-    "typescript": "^5.6.3"
-  },
   "scripts": {
     "build": "tsup",
     "build:package": "yarn build",
@@ -20,9 +15,16 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@isaacs/ttlcache": "^1.4.1",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.205.0",
     "@opentelemetry/sdk-trace-base": "^2.1.0"
+  },
+  "devDependencies": {
+    "@agentmark/loader-api": "0.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "@agentmark/loader-api": ">=0.0.0"
   }
 }
