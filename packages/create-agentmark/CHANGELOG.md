@@ -1,5 +1,16 @@
 # create-agentmark
 
+## 0.4.0
+
+### Minor Changes
+
+- e362bb5: Feat: local development w/ new file/api loader.
+
+### Patch Changes
+
+- Updated dependencies [e362bb5]
+  - @agentmark/shared-utils@1.5.0
+
 ## 0.3.1
 
 ### Patch Changes

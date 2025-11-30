@@ -1,5 +1,16 @@
 # @agentmark/ai-sdk-v5-adapter
 
+## 2.0.0
+
+### Minor Changes
+
+- e362bb5: Feat: local development w/ new file/api loader.
+
+### Patch Changes
+
+- Updated dependencies [e362bb5]
+  - @agentmark/prompt-core@0.3.0
+
 ## 1.0.2
 
 ### Patch Changes
