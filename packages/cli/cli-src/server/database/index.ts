@@ -15,7 +15,8 @@ db.exec(`
         
         -- Timing
         Timestamp TEXT NOT NULL,  -- Start time (ISO 8601)
-        Duration INTEGER,         -- Duration in nanoseconds
+        EndTime REAL,              -- End time in milliseconds (Unix timestamp)
+        Duration INTEGER,         -- Duration in milliseconds
         
         -- Span metadata
         SpanName TEXT,
@@ -30,7 +31,12 @@ db.exec(`
         InputTokens INTEGER DEFAULT 0,
         OutputTokens INTEGER DEFAULT 0,
         TotalTokens INTEGER DEFAULT 0,
+        ReasoningTokens INTEGER DEFAULT 0,
         Cost REAL DEFAULT 0.0,
+        
+        -- I/O fields
+        Input TEXT,               -- JSON array of Message objects
+        Output TEXT,              -- Plain text or JSON-stringified structured data
         
         -- Trace context fields
         SessionId TEXT DEFAULT '',
@@ -48,6 +54,7 @@ db.exec(`
         -- Prompt/template fields
         PromptName TEXT DEFAULT '',
         TemplateName TEXT DEFAULT '',
+        Props TEXT,               -- JSON or string metadata props
         
         -- Version control field
         CommitSha TEXT DEFAULT '',
@@ -55,13 +62,8 @@ db.exec(`
         -- Raw data for export/debug (JSON-encoded)
         ResourceAttributes TEXT,
         SpanAttributes TEXT,
-        Events_Timestamp TEXT,   -- JSON array of timestamps
-        Events_Name TEXT,        -- JSON array of event names
-        Events_Attributes TEXT,  -- JSON array of attribute maps
-        Links_TraceId TEXT,      -- JSON array of trace IDs
-        Links_SpanId TEXT,       -- JSON array of span IDs
-        Links_TraceState TEXT,   -- JSON array of trace states
-        Links_Attributes TEXT,   -- JSON array of attribute maps
+        Events TEXT,              -- JSON array of event objects [{timestamp, name, attributes}, ...]
+        Links TEXT,               -- JSON array of link objects [{traceId, spanId, traceState?, attributes?}, ...]
         
         -- Audit
         CreatedAt TEXT DEFAULT (datetime('now'))

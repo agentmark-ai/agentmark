@@ -35,6 +35,7 @@ export interface OtelSpan {
     traceId: string;
     spanId: string;
     parentSpanId?: string;
+    traceState?: string;
     name: string;
     kind: number;
     startTimeUnixNano: string;
@@ -53,6 +54,7 @@ export interface NormalizedSpan {
     traceId: string;
     spanId: string;
     parentSpanId?: string;
+    traceState?: string;
 
     // Core type and classification
     type: SpanType;

@@ -43,6 +43,7 @@ export function normalizeSpan(
         traceId: span.traceId,
         spanId: span.spanId,
         parentSpanId: span.parentSpanId,
+        traceState: span.traceState,
 
         // Type
         type,

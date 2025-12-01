@@ -268,6 +268,41 @@ describe('Normalizer', () => {
 
       expect(result.parentSpanId).toBeUndefined();
     });
+
+    it('should extract traceState from span when present', () => {
+      const resource: OtelResource = { attributes: {} };
+      const scope: OtelScope = { name: 'test' };
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        traceState: 'vendor1=value1,vendor2=value2',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const result = normalizeSpan(resource, scope, span);
+
+      expect(result.traceState).toBe('vendor1=value1,vendor2=value2');
+    });
+
+    it('should handle missing traceState', () => {
+      const resource: OtelResource = { attributes: {} };
+      const scope: OtelScope = { name: 'test' };
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const result = normalizeSpan(resource, scope, span);
+
+      expect(result.traceState).toBeUndefined();
+    });
   });
 
   describe('normalizeOtlpSpans', () => {
@@ -415,6 +450,7 @@ describe('Normalizer', () => {
                 {
                   traceId: 'trace-1',
                   spanId: 'span-1',
+                  traceState: 'vendor1=value1',
                   name: 'test',
                   kind: 1,
                   startTimeUnixNano: '1000000000',
@@ -452,6 +488,7 @@ describe('Normalizer', () => {
       expect(result[0].links).toHaveLength(1);
       expect(result[0].links[0].traceId).toBe('linked-trace');
       expect(result[0].links[0].attributes).toEqual({ 'link.attr': 'value' });
+      expect(result[0].traceState).toBe('vendor1=value1');
     });
 
     it('should handle empty resourceSpans array', () => {

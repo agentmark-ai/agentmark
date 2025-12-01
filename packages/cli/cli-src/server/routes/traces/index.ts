@@ -3,87 +3,161 @@ import {
   getModelCostMappings,
 } from "../../../cost-mapping/cost-mapping";
 import db from "../../database";
+import type { NormalizedSpan } from "@agentmark/shared-utils";
 
-export const exportTraces = async (traces: any[]) => {
-  // Insert array of traces into sqlite3 using transaction and prepared statement
+/**
+ * Convert NormalizedSpan to SQLite row format
+ */
+function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Record<string, { promptPrice: number; completionPrice: number }>) {
+  // Convert startTime from milliseconds to nanoseconds (as string for Timestamp)
+  const timestampNs = Math.floor(span.startTime * 1000000).toString();
+  
+  // Duration is stored in milliseconds (no conversion needed)
+  const durationMs = Math.floor(span.duration);
+
+  // Calculate cost if model and tokens are available
+  let cost = span.cost || 0;
+  const isSuccess = span.statusCode !== "2";
+  const spanAttributes = { ...span.spanAttributes };
+  
+  if (span.model && span.inputTokens !== undefined && span.outputTokens !== undefined) {
+    const priceMap = isSuccess ? modelsCostMapping[span.model] : null;
+    if (priceMap) {
+      const getCost = getCostFormula(
+        Number(priceMap.promptPrice || 0),
+        Number(priceMap.completionPrice || 0),
+        1000
+      );
+      cost = getCost(span.inputTokens || 0, span.outputTokens || 0);
+    }
+    spanAttributes["gen_ai.usage.cost"] = cost;
+  }
+
+  // Convert events to consolidated JSON array
+  const events = span.events.map(e => ({
+    timestamp: Math.floor(e.timestamp * 1000000),
+    name: e.name,
+    attributes: e.attributes || {}
+  }));
+
+  // Convert links to consolidated JSON array
+  const links = span.links.map(l => ({
+    traceId: l.traceId,
+    spanId: l.spanId,
+    traceState: l.traceState || null,
+    attributes: l.attributes || {}
+  }));
+
+  return {
+    Timestamp: timestampNs,
+    TraceId: span.traceId,
+    SpanId: span.spanId,
+    ParentSpanId: span.parentSpanId || null,
+    TraceState: span.traceState || null,
+    SpanName: span.name,
+    SpanKind: span.kind,
+    ServiceName: span.serviceName || null,
+    ResourceAttributes: JSON.stringify(span.resourceAttributes || {}),
+    SpanAttributes: JSON.stringify(spanAttributes),
+    Duration: durationMs,
+    EndTime: span.endTime || null,
+    StatusCode: span.statusCode,
+    StatusMessage: span.statusMessage || null,
+    Events: JSON.stringify(events),
+    Links: JSON.stringify(links),
+    // Normalized columns
+    Type: span.type,
+    Model: span.model || "",
+    InputTokens: span.inputTokens || 0,
+    OutputTokens: span.outputTokens || 0,
+    TotalTokens: span.totalTokens || 0,
+    ReasoningTokens: span.reasoningTokens || 0,
+    Cost: cost,
+    Input: span.input ? JSON.stringify(span.input) : null,
+    Output: span.output || null,
+    SessionId: span.sessionId || "",
+    SessionName: span.sessionName || "",
+    UserId: span.userId || "",
+    TraceName: span.traceName || "",
+    DatasetRunId: span.datasetRunId || "",
+    DatasetRunName: span.datasetRunName || "",
+    DatasetPath: span.datasetPath || "",
+    DatasetItemName: span.datasetItemName || "",
+    DatasetExpectedOutput: span.datasetExpectedOutput || "",
+    PromptName: span.promptName || "",
+    TemplateName: span.templateName || "",
+    Props: span.props || null,
+    CommitSha: span.commitSha || "",
+  };
+}
+
+export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
+  // Insert array of normalized spans into sqlite3 using transaction and prepared statement
   const insert = db.prepare(
     `
-    INSERT INTO traces (Timestamp, TraceId, SpanId, ParentSpanId, TraceState, SpanName, SpanKind, ServiceName, ResourceAttributes, SpanAttributes, Duration, StatusCode, StatusMessage, Events_Timestamp, Events_Name, Events_Attributes, Links_TraceId, Links_SpanId, Links_TraceState, Links_Attributes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO traces (
+      Timestamp, TraceId, SpanId, ParentSpanId, TraceState, SpanName, SpanKind, ServiceName, 
+      ResourceAttributes, SpanAttributes, Duration, EndTime, StatusCode, StatusMessage, 
+      Events, Links,
+      Type, Model, InputTokens, OutputTokens, TotalTokens, ReasoningTokens, Cost,
+      Input, Output,
+      SessionId, SessionName, UserId, TraceName,
+      DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput,
+      PromptName, TemplateName, Props, CommitSha
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
   // Get model cost mappings once before the transaction
   const modelsCostMapping = await getModelCostMappings();
 
-  const insertMany = db.transaction((traces: any[]) => {
-    for (const trace of traces) {
-      const isSuccess = trace.StatusCode !== 2;
-      const spanAttributes = { ...trace.SpanAttributes };
-      if (spanAttributes["gen_ai.request.model"]) {
-        let getCost = (_a: number, _b: number) => {
-          return 0;
-        };
-
-        const priceMap = isSuccess
-          ? modelsCostMapping[spanAttributes["gen_ai.request.model"]]
-          : null;
-        getCost = getCostFormula(
-          Number(priceMap?.promptPrice || 0),
-          Number(priceMap?.completionPrice || 0),
-          1000
-        );
-        const cost = getCost(
-          Number(spanAttributes["gen_ai.usage.input_tokens"] || 0),
-          Number(spanAttributes["gen_ai.usage.output_tokens"] || 0)
-        );
-
-        spanAttributes["gen_ai.usage.cost"] = cost;
-      }
-
+  const insertMany = db.transaction((spans: NormalizedSpan[]) => {
+    for (const span of spans) {
+      const row = normalizedSpanToSqliteRow(span, modelsCostMapping);
       insert.run(
-        trace.Timestamp,
-        `${trace.TraceId}`,
-        `${trace.SpanId}`,
-        `${trace.ParentSpanId}`,
-        `${trace.TraceState}`,
-        `${trace.SpanName}`,
-        `${trace.SpanKind}`,
-        `${trace.ServiceName}`,
-        typeof trace.ResourceAttributes === "object"
-          ? JSON.stringify(trace.ResourceAttributes)
-          : trace.ResourceAttributes,
-        typeof spanAttributes === "object"
-          ? JSON.stringify(spanAttributes)
-          : spanAttributes,
-        `${trace.Duration}`,
-        `${trace.StatusCode}`,
-        trace.StatusMessage,
-        typeof trace.Events_Timestamp === "object"
-          ? JSON.stringify(trace.Events_Timestamp)
-          : trace.Events_Timestamp,
-        typeof trace.Events_Name === "object"
-          ? JSON.stringify(trace.Events_Name)
-          : trace.Events_Name,
-        typeof trace.Events_Attributes === "object"
-          ? JSON.stringify(trace.Events_Attributes)
-          : trace.Events_Attributes,
-        typeof trace.Links_TraceId === "object"
-          ? JSON.stringify(trace.Links_TraceId)
-          : trace.Links_TraceId,
-        typeof trace.Links_SpanId === "object"
-          ? JSON.stringify(trace.Links_SpanId)
-          : trace.Links_SpanId,
-        typeof trace.Links_TraceState === "object"
-          ? JSON.stringify(trace.Links_TraceState)
-          : trace.Links_TraceState,
-        typeof trace.Links_Attributes === "object"
-          ? JSON.stringify(trace.Links_Attributes)
-          : trace.Links_Attributes
+        row.Timestamp,
+        row.TraceId,
+        row.SpanId,
+        row.ParentSpanId,
+        row.TraceState,
+        row.SpanName,
+        row.SpanKind,
+        row.ServiceName,
+        row.ResourceAttributes,
+        row.SpanAttributes,
+        row.Duration,
+        row.EndTime,
+        row.StatusCode,
+        row.StatusMessage,
+        row.Events,
+        row.Links,
+        row.Type,
+        row.Model,
+        row.InputTokens,
+        row.OutputTokens,
+        row.TotalTokens,
+        row.ReasoningTokens,
+        row.Cost,
+        row.Input,
+        row.Output,
+        row.SessionId,
+        row.SessionName,
+        row.UserId,
+        row.TraceName,
+        row.DatasetRunId,
+        row.DatasetRunName,
+        row.DatasetPath,
+        row.DatasetItemName,
+        row.DatasetExpectedOutput,
+        row.PromptName,
+        row.TemplateName,
+        row.Props,
+        row.CommitSha
       );
     }
   });
-  insertMany(traces);
+  insertMany(normalizedSpans);
 };
 
 export const getRequests = async () => {

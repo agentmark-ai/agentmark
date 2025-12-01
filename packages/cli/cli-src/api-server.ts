@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import fs from "fs";
 import rateLimit from "express-rate-limit";
 import path from "path";
-import { findPromptFiles } from "@agentmark/shared-utils";
+import { findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark/shared-utils";
 import cors from "cors";
 import {
   exportTraces,
@@ -213,10 +213,10 @@ export async function createApiServer(port: number) {
   <div class="endpoint">
     <div class="endpoint-title">
       <span class="endpoint-method post">POST</span>
-      /v1/export-traces
+      /v1/traces
     </div>
     <div class="endpoint-desc">
-      Accept telemetry traces (no-op in local development)
+      Accept OpenTelemetry traces in OTLP JSON format
     </div>
   </div>
 
@@ -413,12 +413,25 @@ ${promptsList}
     }
   });
 
-  app.post("/v1/export-traces", async (req: Request, res: Response) => {
+  app.post("/v1/traces", async (req: Request, res: Response) => {
     try {
-      await exportTraces(req.body);
+      // Parse OTLP ExportTraceServiceRequest
+      const body = req.body;
+      if (!body || !body.resourceSpans || !Array.isArray(body.resourceSpans)) {
+        return res.status(400).json({ 
+          error: "Invalid OTLP payload: expected ExportTraceServiceRequest with resourceSpans array" 
+        });
+      }
+
+      // Normalize OTLP spans using shared normalizer
+      const normalizedSpans = normalizeOtlpSpans(body.resourceSpans as OtlpResourceSpans[]);
+      
+      // Write normalized spans to SQLite
+      await exportTraces(normalizedSpans);
       return res.json({ success: true });
-    } catch (_error) {
-      return res.status(500).json({ error: "Failed to export traces" });
+    } catch (error: any) {
+      console.error("Error processing traces:", error);
+      return res.status(500).json({ error: error.message || "Failed to export traces" });
     }
   });
 

@@ -29,6 +29,7 @@ export interface OtlpSpan {
   traceId: string;
   spanId: string;
   parentSpanId?: string;
+  traceState?: string;
   name: string;
   kind: number;
   startTimeUnixNano: string;
@@ -184,6 +185,7 @@ export function extractResourceScopeSpan(
         traceId: otlpSpan.traceId,
         spanId: otlpSpan.spanId,
         parentSpanId: otlpSpan.parentSpanId,
+        traceState: otlpSpan.traceState,
         name: otlpSpan.name,
         kind: otlpSpan.kind,
         startTimeUnixNano: otlpSpan.startTimeUnixNano,
