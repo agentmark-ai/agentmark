@@ -1,8 +1,8 @@
 import { getAdapterConfig } from "./adapters.js";
 
-export const getClientConfigContent = (options: { provider: string; languageModels: string[]; adapter: string }) => {
-  const { provider, languageModels, adapter } = options;
-  const adapterConfig = getAdapterConfig(adapter);
+export const getClientConfigContent = (options: { provider: string; languageModels: string[]; adapter: string; deploymentMode?: "cloud" | "static" }) => {
+  const { provider, languageModels, adapter, deploymentMode = "cloud" } = options;
+  const adapterConfig = getAdapterConfig(adapter, provider);
   const { modelRegistry, toolRegistry } = adapterConfig.classes;
 
   const providerImport = `import { ${provider} } from '@ai-sdk/${provider}';`;
@@ -12,12 +12,32 @@ export const getClientConfigContent = (options: { provider: string; languageMode
     .registerModels(["tts-1-hd"], (name: string) => ${provider}.speech(name))`
     : '';
 
+  // Import loaders from dedicated packages
+  const loaderImport = deploymentMode === "cloud"
+    ? `import { ApiLoader } from "@agentmark/loader-api";`
+    : `import { ApiLoader } from "@agentmark/loader-api";
+import { FileLoader } from "@agentmark/loader-file";`;
+
+  const loaderSetup = deploymentMode === "cloud"
+    ? `  // ApiLoader works for both development and production
+  // - Development: 'agentmark dev' sets AGENTMARK_BASE_URL to localhost
+  // - Production: Set AGENTMARK_API_KEY and AGENTMARK_APP_ID for cloud
+  const loader = process.env.NODE_ENV === 'development'
+    ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })
+    : ApiLoader.cloud({
+        apiKey: process.env.AGENTMARK_API_KEY!,
+        appId: process.env.AGENTMARK_APP_ID!,
+      });`
+    : `  const loader = process.env.NODE_ENV === 'development'
+    ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })
+    : new FileLoader('./dist/agentmark');`;
+
   return `// agentmark.client.ts
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { createAgentMarkClient, ${modelRegistry}, ${toolRegistry}, EvalRegistry } from "${adapterConfig.package}";
-import { AgentMarkSDK } from "@agentmark/sdk";
+${loaderImport}
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}
 
@@ -68,19 +88,12 @@ function createEvalRegistry() {
   return evalRegistry;
 }
 
-function createClient(ctx?: { env?: Record<string,string|undefined> }) {
-  const env = (ctx?.env ?? process.env) as Record<string, string | undefined>;
-  // For local development, connect to the local agentmark serve instance (default: http://localhost:9418)
-  // For cloud deployment, set AGENTMARK_BASE_URL, AGENTMARK_API_KEY, and AGENTMARK_APP_ID
-  const baseUrl = env.AGENTMARK_BASE_URL || 'http://localhost:9418';
-  const apiKey = env.AGENTMARK_API_KEY || '';
-  const appId = env.AGENTMARK_APP_ID || '';
-  const sdk = new AgentMarkSDK({ apiKey, appId, baseUrl });
-  const fileLoader = sdk.getFileLoader();
+function createClient() {
+${loaderSetup}
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();
   const evalRegistry = createEvalRegistry();
-  return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader: fileLoader, modelRegistry, toolRegistry, evalRegistry });
+  return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader, modelRegistry, toolRegistry, evalRegistry });
 }
 
 export const client = createClient();

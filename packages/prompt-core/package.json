@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/prompt-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -16,6 +16,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./test-utils": {
+      "import": {
+        "types": "./dist/test-utils.d.ts",
+        "default": "./dist/test-utils.js"
+      },
+      "require": {
+        "types": "./dist/test-utils.d.cts",
+        "default": "./dist/test-utils.cjs"
+      }
     }
   },
   "scripts": {
@@ -25,6 +35,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@agentmark/loader-file": "*",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "cpy-cli": "^5.0.0",

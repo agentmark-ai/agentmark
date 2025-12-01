@@ -1,0 +1,30 @@
+{
+  "name": "@agentmark/loader-file",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "description": "Filesystem-based loader for pre-built AgentMark prompts",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.8.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:package": "yarn build",
+    "lint": "eslint ."
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "@agentmark/mastra-v0-adapter",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -34,6 +34,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@agentmark/loader-file": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",

@@ -1,8 +1,33 @@
-import { Loader, PromptKind, PromptShape } from "@agentmark/prompt-core";
-import { AGENTMARK_TEMPLATE_ENDPOINT } from "./config";
 import cache from "./cache";
 
-interface FileLoaderOptions {
+const AGENTMARK_TEMPLATE_ENDPOINT = `v1/templates`;
+
+/**
+ * Prompt kind types supported by the API loader.
+ */
+export type PromptKind = "object" | "text" | "image" | "speech";
+
+/**
+ * Options for cloud mode - requires authentication credentials.
+ */
+export interface CloudLoaderOptions {
+  apiKey: string;
+  appId: string;
+  baseUrl?: string;
+}
+
+/**
+ * Options for local development mode - just needs a base URL.
+ */
+export interface LocalLoaderOptions {
+  baseUrl: string;
+}
+
+/**
+ * @deprecated Use `ApiLoader.cloud()` or `ApiLoader.local()` factory methods instead.
+ * Legacy options interface for backward compatibility.
+ */
+export interface ApiLoaderOptions {
   apiKey: string;
   baseUrl: string;
   appId: string;
@@ -16,15 +41,60 @@ type FetchTemplateOptions = {
     | false;
 };
 
-export class FileLoader<T extends PromptShape<T>> implements Loader<T> {
-  private apiKey: string;
-  private appId: string;
+/**
+ * ApiLoader fetches prompts from the AgentMark API or local dev server.
+ *
+ * @example Cloud mode (production)
+ * ```ts
+ * const loader = ApiLoader.cloud({
+ *   apiKey: process.env.AGENTMARK_API_KEY!,
+ *   appId: process.env.AGENTMARK_APP_ID!,
+ * });
+ * ```
+ *
+ * @example Local mode (development)
+ * ```ts
+ * const loader = ApiLoader.local({
+ *   baseUrl: 'http://localhost:9418',
+ * });
+ * ```
+ */
+export class ApiLoader {
+  private apiKey: string | undefined;
+  private appId: string | undefined;
   private baseUrl: string;
 
-  constructor(options: FileLoaderOptions) {
-    this.apiKey = options.apiKey;
-    this.appId = options.appId;
+  /**
+   * @deprecated Use `ApiLoader.cloud()` or `ApiLoader.local()` factory methods instead.
+   */
+  constructor(options: ApiLoaderOptions) {
+    this.apiKey = options.apiKey || undefined;
+    this.appId = options.appId || undefined;
     this.baseUrl = options.baseUrl;
+  }
+
+  /**
+   * Create a loader for cloud/production use with AgentMark API.
+   * Requires API credentials.
+   */
+  static cloud(options: CloudLoaderOptions): ApiLoader {
+    const instance = Object.create(ApiLoader.prototype);
+    instance.apiKey = options.apiKey;
+    instance.appId = options.appId;
+    instance.baseUrl = options.baseUrl || 'https://api.agentmark.co';
+    return instance;
+  }
+
+  /**
+   * Create a loader for local development with the AgentMark dev server.
+   * No credentials required - just point to your local server.
+   */
+  static local(options: LocalLoaderOptions): ApiLoader {
+    const instance = Object.create(ApiLoader.prototype);
+    instance.apiKey = undefined;
+    instance.appId = undefined;
+    instance.baseUrl = options.baseUrl;
+    return instance;
   }
 
   async load(
@@ -136,9 +206,13 @@ export class FileLoader<T extends PromptShape<T>> implements Loader<T> {
   ) {
     const headers = new Headers({
       "Content-Type": "application/json",
-      "X-Agentmark-App-Id": this.appId,
-      Authorization: `${this.apiKey}`,
     });
+
+    // Only add auth headers in cloud mode (when credentials are present)
+    if (this.apiKey && this.appId) {
+      headers.set("X-Agentmark-App-Id", this.appId);
+      headers.set("Authorization", this.apiKey);
+    }
 
     // Request NDJSON format for streaming datasets
     if (options.stream) {

@@ -27,8 +27,8 @@ function getConfigDaysRemaining(config: LocalConfig): number {
   return Math.ceil(30 - daysSinceCreation);
 }
 
-const dev = async (options: { filePort?: number; webhookPort?: number; appPort?: number; tunnel?: boolean } = {}) => {
-  const filePort = options.filePort || 9418;
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; tunnel?: boolean } = {}) => {
+  const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
   const useTunnel = options.tunnel || false;
@@ -75,13 +75,13 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
     process.exit(1);
   }
 
-  // Start file server directly
-  let fileServerInstance: any;
+  // Start API server directly
+  let apiServerInstance: any;
   try {
     console.log(`Starting...`);
-    fileServerInstance = await createApiServer(filePort);
+    apiServerInstance = await createApiServer(apiPort);
   } catch (error: any) {
-    console.error('Failed to start file server:', error.message);
+    console.error('Failed to start API server:', error.message);
     console.error(error.stack);
     process.exit(1);
   }
@@ -127,42 +127,49 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
     }
   };
 
+  // Track shutdown state to suppress exit messages during intentional shutdown
+  let isShuttingDown = false;
+
   // Start webhook server using local tsx installation
   // Find tsx binary - will be in node_modules/.bin/tsx
   const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
-  const webhookServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--file-server-port=${filePort}`], {
+  const webhookServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`], {
     stdio: 'inherit',
     cwd
   });
 
   webhookServer.on('error', (error) => {
     console.error('Failed to start webhook server:', error.message);
-    if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {
-        // Ignore errors when closing file server
+    if (apiServerInstance) {
+      try { apiServerInstance.close(); } catch {
+        // Ignore errors when closing API server
       }
     }
     process.exit(1);
   });
 
   webhookServer.on('exit', (code) => {
-    if (code === 0 || code === null) {
-      console.log('\nWebhook server stopped');
-    } else {
-      console.error(`\n❌ Webhook server exited with error code ${code}`);
-      console.error('Check the output above for error details');
-    }
-    if (fileServerInstance) {
-      try { fileServerInstance.close(); } catch {
-        // Ignore errors when closing file server
+    // Only log if not shutting down intentionally
+    if (!isShuttingDown) {
+      if (code === 0 || code === null) {
+        console.log('\nWebhook server stopped');
+      } else {
+        console.error(`\n❌ Webhook server exited with error code ${code}`);
+        console.error('Check the output above for error details');
       }
+      if (apiServerInstance) {
+        try { apiServerInstance.close(); } catch {
+          // Ignore errors when closing API server
+        }
+      }
+      process.exit(code || 0);
     }
-    process.exit(code || 0);
   });
 
   // Start AgentMark UI app (Next.js production server)
   const nextCwd = path.join(__dirname, '..', '..');
   let actualAppPort = appPort;
+  let uiServer: ReturnType<typeof spawn> | null = null;
 
   async function startAgentMarkServer() {
     while (!(await isPortFree(actualAppPort))) {
@@ -170,30 +177,33 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
       actualAppPort++;
     }
 
-    const server = spawn('npm', ['start', '--', '-p', `${actualAppPort}`], {
+    uiServer = spawn('npm', ['start', '--', '-p', `${actualAppPort}`], {
       stdio: 'pipe',
       cwd: nextCwd,
       env: {
         ...process.env,
-        NEXT_PUBLIC_AGENTMARK_API_PORT: String(filePort)
+        NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiPort)
       },
     });
 
     // Capture output for debugging
-    server.stdout?.on('data', () => {
+    uiServer.stdout?.on('data', () => {
       // Silently consume stdout
     });
 
-    server.stderr?.on('data', (data) => {
+    uiServer.stderr?.on('data', (data) => {
       console.error(`AgentMark UI error: ${data.toString()}`);
     });
 
-    server.on('exit', (code) => {
-      console.log(`AgentMark UI server exited with code ${code}`);
-      process.exit(code || 0);
+    uiServer.on('exit', (code) => {
+      // Only log if not shutting down intentionally
+      if (!isShuttingDown) {
+        console.log(`AgentMark UI server exited with code ${code}`);
+        process.exit(code || 0);
+      }
     });
 
-    server.on('error', (err) => {
+    uiServer.on('error', (err) => {
       console.error('Failed to start AgentMark UI server:', err.message);
       process.exit(1);
     });
@@ -210,7 +220,7 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
     // Verify webhook server is still running before showing success message
     if (webhookServer.exitCode !== null) {
       console.error('\n❌ Webhook server failed to start');
-      console.error('The file server is running, but the webhook server did not start successfully');
+      console.error('The API server is running, but the webhook server did not start successfully');
       return;
     }
 
@@ -228,7 +238,7 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
     console.log('🚀 AgentMark Development Servers Running');
     console.log('═'.repeat(70));
 
-    console.log(`\n  File Server:   http://localhost:${filePort}`);
+    console.log(`\n  API:           http://localhost:${apiPort}`);
     console.log(`  Webhook:       http://localhost:${webhookPort}`);
     console.log(`  App:           http://localhost:${actualAppPort}`);
 
@@ -255,7 +265,6 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
   }, 3000);
 
   // Handle process termination
-  let isShuttingDown = false;
   const cleanup = async () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
@@ -265,28 +274,28 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
     // Close tunnel first
     if (tunnelInfo) {
       try {
-        console.log('  Closing tunnel...');
+        console.log('  Stopping tunnel...');
         await tunnelInfo.disconnect();
       } catch (error) {
         console.error('  Error disconnecting tunnel:', error);
       }
     }
 
-    // Close file server with force close on all connections
-    if (fileServerInstance) {
+    // Close API server with force close on all connections
+    if (apiServerInstance) {
       try {
-        console.log('  Stopping file server...');
+        console.log('  Stopping API server...');
         // Force close all connections
         await new Promise<void>((resolve) => {
-          fileServerInstance.closeAllConnections?.();
-          fileServerInstance.close(() => {
+          apiServerInstance.closeAllConnections?.();
+          apiServerInstance.close(() => {
             resolve();
           });
           // Timeout in case close hangs
           setTimeout(resolve, 1000);
         });
       } catch (error) {
-        console.error('  Error stopping file server:', error);
+        console.error('  Error stopping API server:', error);
       }
     }
 
@@ -294,6 +303,12 @@ const dev = async (options: { filePort?: number; webhookPort?: number; appPort?:
     if (webhookServer.pid) {
       console.log('  Stopping webhook server...');
       killProcessTree(webhookServer.pid);
+    }
+
+    // Kill UI server process tree
+    if (uiServer && uiServer.pid) {
+      console.log('  Stopping UI server...');
+      killProcessTree(uiServer.pid);
     }
 
     console.log('Servers stopped.');

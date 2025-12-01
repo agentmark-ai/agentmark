@@ -12,6 +12,7 @@ import generateTypes from './commands/generate-types';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
+import build from './commands/build';
 
 // Read version from package.json
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
@@ -23,14 +24,14 @@ program
 
 program
   .command("dev")
-  .option("--file-port <number>", "File server port (default: 9418)")
+  .option("--api-port <number>", "API server port (default: 9418)")
   .option("--webhook-port <number>", "Webhook server port (default: 9417)")
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
   .option("-t, --tunnel", "Expose webhook server publicly via tunnel")
-  .description("Start development servers (file server + webhook + UI app)")
+  .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
-      filePort: options.filePort ? parseInt(options.filePort, 10) : undefined,
+      apiPort: options.apiPort ? parseInt(options.apiPort, 10) : undefined,
       webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
       tunnel: options.tunnel || false
@@ -96,6 +97,18 @@ program
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
       await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("build")
+  .description('Build prompts and datasets into pre-compiled JSON files for static loading')
+  .option('-o, --out <directory>', 'Output directory (default: dist/agentmark)')
+  .action(async (options: { out?: string }) => {
+    try {
+      await (build as any)({ outDir: options.out });
     } catch (error) {
       program.error((error as Error).message);
     }

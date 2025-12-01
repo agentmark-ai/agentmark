@@ -17,6 +17,40 @@ interface RunPromptOptions {
   saveOutput?: string;
 }
 
+/**
+ * Loads an AST from either a pre-built JSON file or an MDX file.
+ * @param resolvedFilepath - Absolute path to the file
+ * @returns The AST and prompt name
+ */
+async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptName?: string }> {
+  if (resolvedFilepath.endsWith('.json')) {
+    // Load pre-built AST from JSON file
+    const content = fs.readFileSync(resolvedFilepath, 'utf-8');
+    const built = JSON.parse(content);
+
+    if (!built.ast) {
+      throw new Error('Invalid pre-built prompt file: missing "ast" field');
+    }
+
+    return {
+      ast: built.ast as Root,
+      promptName: built.metadata?.name
+    };
+  } else if (resolvedFilepath.endsWith('.mdx')) {
+    // Parse MDX file
+    const { load, getFrontMatter } = await import("@agentmark/templatedx");
+    const ast: Root = await load(resolvedFilepath);
+    const frontmatter = getFrontMatter(ast) as { name?: string };
+
+    return {
+      ast,
+      promptName: frontmatter.name
+    };
+  } else {
+    throw new Error('File must be an .mdx or .json file');
+  }
+}
+
 const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
 
@@ -24,8 +58,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
     throw new Error(`File not found: ${resolvedFilepath}`);
   }
 
-  if (!resolvedFilepath.endsWith('.mdx')) {
-    throw new Error('File must be an .mdx file');
+  if (!resolvedFilepath.endsWith('.mdx') && !resolvedFilepath.endsWith('.json')) {
+    throw new Error('File must be an .mdx or .json file');
   }
 
   // Parse props from CLI or file
@@ -67,13 +101,14 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
     }
   }
 
-  const { load } = await import("@agentmark/templatedx");
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {
     // Ignore errors when changing directory
   }
 
-  const ast: Root = await load(resolvedFilepath);
+  // Load AST from MDX or pre-built JSON file
+  const { ast, promptName } = await loadAst(resolvedFilepath);
+
   // Determine prompt kind from frontmatter for better headers (Text/Object/Image/Speech)
   let promptHeader: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
   try {
@@ -101,10 +136,6 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   try {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      // Get prompt name from frontmatter
-      const { getFrontMatter } = await import('@agentmark/templatedx');
-      const frontmatter = getFrontMatter(ast) as { name?: string };
-      const promptName = frontmatter.name;
       const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath: promptName, options: { shouldStream: true } } });
 
       // Add webhook signature if secret is available

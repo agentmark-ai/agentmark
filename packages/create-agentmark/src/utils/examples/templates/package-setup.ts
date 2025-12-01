@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
 import { getAdapterConfig } from "./adapters.js";
 
-export const setupPackageJson = (targetPath: string = ".") => {
+export const setupPackageJson = (targetPath: string = ".", deploymentMode: "cloud" | "static" = "cloud") => {
   const packageJsonPath = `${targetPath}/package.json`;
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -22,20 +22,37 @@ export const setupPackageJson = (targetPath: string = ".") => {
   // All platforms use "agentmark dev" which runs their respective dev-entry.ts
   const devScript = "agentmark dev";
 
-  pkgJson.scripts = {
+  // Base scripts for all modes
+  const scripts: Record<string, string> = {
     ...pkgJson.scripts,
     "demo": "npx tsx index.ts",
     "dev": devScript,
     "prompt": "agentmark run-prompt",
     "experiment": "agentmark run-experiment",
   };
+
+  // For static/self-hosted mode, add the build script
+  if (deploymentMode === "static") {
+    scripts["build"] = "agentmark build --out dist/agentmark";
+  }
+
+  pkgJson.scripts = scripts;
+
+  // Add overrides to fix vulnerabilities in transitive dependencies
+  // localtunnel (used by @agentmark/cli) depends on axios@0.21.4 which has vulnerabilities
+  pkgJson.overrides = {
+    ...pkgJson.overrides,
+    "axios": "^1.7.9"
+  };
+
   fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 
 export const installDependencies = (
   modelProvider: string,
   targetPath: string = ".",
-  adapter: string = "ai-sdk"
+  adapter: string = "ai-sdk",
+  deploymentMode: "cloud" | "static" = "cloud"
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
@@ -54,12 +71,18 @@ export const installDependencies = (
 
     // Install the common packages
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
+    // Loader packages are imported directly - ApiLoader always needed, FileLoader only for static mode
+    const loaderPackages = deploymentMode === "static"
+      ? ["@agentmark/loader-api", "@agentmark/loader-file"]
+      : ["@agentmark/loader-api"];
+
     const installArgs = [
       "install",
       "dotenv",
       "@agentmark/prompt-core",
       "@agentmark/sdk",
       adapterConfig.package,
+      ...loaderPackages,
       ...adapterConfig.dependencies,
       "--legacy-peer-deps",
     ];

@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { EvalRegistry, FileLoader } from "@agentmark/prompt-core";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
+import { EvalRegistry } from "@agentmark/prompt-core";
+import { FileLoader } from "@agentmark/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark/templatedx";
 import type { AgentMark } from "@agentmark/prompt-core";
 import type { VercelAIAdapter } from "../src/adapter";
 import * as ai from "ai";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 vi.mock("ai", async () => {
   return {
@@ -28,6 +30,16 @@ describe("VercelAdapterWebhookHandler", () => {
   let runner: VercelAdapterWebhookHandler;
   let client: AgentMark<any, VercelAIAdapter<any, any>>;
   let loader: FileLoader;
+
+  // Build pre-compiled fixtures before tests run
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+
+  // Clean up generated fixtures after tests
+  afterAll(() => {
+    cleanupFixtures();
+  });
 
   beforeEach(async () => {
     vi.clearAllMocks();

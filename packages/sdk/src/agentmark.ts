@@ -1,6 +1,6 @@
 import { AGENTMARK_SCORE_ENDPOINT } from "./config";
 import { initialize } from "./trace";
-import { FileLoader } from "./file-loader";
+import { ApiLoader } from "@agentmark/loader-api";
 
 type AgentmarkProps = {
   apiKey: string;
@@ -48,8 +48,8 @@ export class AgentMarkSDK<
     });
   }
 
-  getFileLoader() {
-    return new FileLoader({
+  getApiLoader() {
+    return ApiLoader.cloud({
       apiKey: this.apiKey,
       appId: this.appId,
       baseUrl: this.baseUrl,

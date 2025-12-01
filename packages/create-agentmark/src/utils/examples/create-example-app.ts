@@ -1,5 +1,4 @@
 import fs from "fs-extra";
-import { readFileSync, writeFileSync, existsSync } from "fs";
 import * as path from "path";
 import { Providers } from "../providers.js";
 import {
@@ -124,7 +123,8 @@ export const createExampleApp = async (
   client: string,
   targetPath: string = ".",
   apiKey: string = "",
-  adapter: string = "ai-sdk"
+  adapter: string = "ai-sdk",
+  deploymentMode: "cloud" | "static" = "cloud"
 ) => {
   try {
     const modelProvider = 'openai';
@@ -148,14 +148,14 @@ export const createExampleApp = async (
     const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
       `${targetPath}/agentmark.client.ts`,
-      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter })
+      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter, deploymentMode })
     );
 
     // Create .env file
     fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
 
     // Create .gitignore
-    const gitignore = ['node_modules', '.env', '*.agentmark-outputs/', '.agentmark'].join('\n');
+    const gitignore = ['node_modules', '.env', '*.agentmark-outputs/', '.agentmark', 'dist'].join('\n');
     fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
 
     // Create the main application file
@@ -168,8 +168,8 @@ export const createExampleApp = async (
     fs.writeJsonSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
 
     // Setup package.json and install dependencies
-    setupPackageJson(targetPath);
-    installDependencies(modelProvider, targetPath, adapter);
+    setupPackageJson(targetPath, deploymentMode);
+    installDependencies(modelProvider, targetPath, adapter, deploymentMode);
 
     // Generate types file using the type generation library
     console.log("Generating types from prompts...");
@@ -203,17 +203,22 @@ import { AgentMarkSDK } from '@agentmark/sdk';
 import path from 'path';
 
 async function main() {
-  const { client } = await import('../agentmark.client.js');
-
   const args = process.argv.slice(2);
   const webhookPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
 
   const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
   const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
+  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+
+  // Set environment for development mode before importing client
+  process.env.NODE_ENV = 'development';
+  process.env.AGENTMARK_BASE_URL = fileServerUrl;
+
+  // Now import client - it will pick up the dev environment
+  const { client } = await import('../agentmark.client.js');
 
   // Initialize OpenTelemetry tracing to export traces to the API server
-  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
   const sdk = new AgentMarkSDK({
     apiKey: '',
     appId: '',
@@ -239,25 +244,6 @@ main().catch((err) => {
 `;
 
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
-
-    // Create .env file with webhook URL configuration
-    // Always use Express runner server (port 9417) for local development
-    // regardless of deployment platform
-    const webhookUrl = 'http://localhost:9417';
-
-    const envPath = path.join(targetPath, '.env');
-    let envContent = '';
-
-    if (existsSync(envPath)) {
-      envContent = readFileSync(envPath, 'utf8');
-      if (!envContent.includes('AGENTMARK_WEBHOOK_URL')) {
-        envContent += `\n# AgentMark runner server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n`;
-      }
-    } else {
-      envContent = `# AgentMark runner server URL\nAGENTMARK_WEBHOOK_URL=${webhookUrl}\n\n# Add your API keys here\n# OPENAI_API_KEY=your-key-here\n`;
-    }
-
-    writeFileSync(envPath, envContent, 'utf8');
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");

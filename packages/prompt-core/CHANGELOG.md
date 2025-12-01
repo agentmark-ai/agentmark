@@ -1,5 +1,11 @@
 # @agentmark/agentmark-core
 
+## 0.3.0
+
+### Minor Changes
+
+- e362bb5: Feat: local development w/ new file/api loader.
+
 ## 0.2.0
 
 ### Minor Changes

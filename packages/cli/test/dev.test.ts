@@ -179,11 +179,11 @@ describe('agentmark dev', () => {
       fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
       const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-      const filePort = await getFreePort();
+      const apiPort = await getFreePort();
       const webhookPort = await getFreePort();
 
       // Spawn dev command in its own process group for clean cleanup
-      const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(filePort), '--webhook-port', String(webhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -210,8 +210,8 @@ describe('agentmark dev', () => {
           console.log('STDOUT:', stdout);
         }
 
-        // Test file server /v1/prompts endpoint
-        const listResp = await fetch(`http://localhost:${filePort}/v1/prompts`);
+        // Test API server /v1/prompts endpoint
+        const listResp = await fetch(`http://localhost:${apiPort}/v1/prompts`);
         if (!listResp.ok) {
           const errorText = await listResp.text();
           console.log(`Response status: ${listResp.status}, body: ${errorText}`);
@@ -222,7 +222,7 @@ describe('agentmark dev', () => {
         expect(paths.length).toBeGreaterThan(0);
 
         // Test /v1/templates dataset endpoint
-        const dsResp = await fetch(`http://localhost:${filePort}/v1/templates?path=demo.jsonl`);
+        const dsResp = await fetch(`http://localhost:${apiPort}/v1/templates?path=demo.jsonl`);
         expect(dsResp.ok).toBe(true);
         const text = await dsResp.text();
         expect(text.trim().length).toBeGreaterThan(0);
@@ -258,10 +258,10 @@ describe('agentmark dev', () => {
       fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
 
       const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-      const filePort = await getFreePort();
+      const apiPort = await getFreePort();
       const webhookPort = await getFreePort();
 
-      const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(filePort), '--webhook-port', String(webhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -283,7 +283,7 @@ describe('agentmark dev', () => {
         expect(stdout).not.toContain('Using custom dev-server.ts');
 
         // Verify server started
-        const serverReady = await waitForServer(`http://localhost:${filePort}/v1/prompts`);
+        const serverReady = await waitForServer(`http://localhost:${apiPort}/v1/prompts`);
         expect(serverReady).toBe(true);
       } finally {
         // Ensure process is cleaned up even if test fails
@@ -316,10 +316,10 @@ describe('agentmark dev', () => {
       fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
       const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
-      const customFilePort = await getFreePort();
+      const customApiPort = await getFreePort();
       const customWebhookPort = await getFreePort();
 
-      const child = spawn(process.execPath, [cli, 'dev', '--file-port', String(customFilePort), '--webhook-port', String(customWebhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(customApiPort), '--webhook-port', String(customWebhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -332,7 +332,7 @@ describe('agentmark dev', () => {
         await wait(SERVER_STARTUP_WAIT_MS);
 
         // Test that server is running on custom port
-        const resp = await fetch(`http://localhost:${customFilePort}/v1/prompts`);
+        const resp = await fetch(`http://localhost:${customApiPort}/v1/prompts`);
         expect(resp.ok).toBe(true);
       } finally {
         // Ensure process is cleaned up even if test fails

@@ -31,7 +31,7 @@ export type { WebhookHandler } from './runner-server/types';
 export interface WebhookServerOptions {
   port?: number;
   handler: WebhookHandler;
-  fileServerUrl?: string;
+  apiServerUrl?: string;
   templatesDirectory?: string;
   /**
    * Webhook signature verification options.
@@ -185,14 +185,14 @@ export async function createWebhookServer(options: WebhookServerOptions): Promis
 
   // Landing page for browser access
   app.get('/', async (_req: Request, res: Response) => {
-    const { fileServerUrl, templatesDirectory } = options;
+    const { apiServerUrl, templatesDirectory } = options;
 
     // Fetch available prompts dynamically
     let promptsList = '';
 
-    if (fileServerUrl) {
+    if (apiServerUrl) {
       try {
-        const response = await fetch(`${fileServerUrl}/v1/prompts`);
+        const response = await fetch(`${apiServerUrl}/v1/prompts`);
         if (response.ok) {
           const data = await response.json();
           if (data.paths && data.paths.length > 0) {
@@ -206,19 +206,19 @@ export async function createWebhookServer(options: WebhookServerOptions): Promis
           promptsList = '      <li style="color: #64748b;">Unable to fetch prompts</li>';
         }
       } catch {
-        promptsList = '      <li style="color: #64748b;">File server not available</li>';
+        promptsList = '      <li style="color: #64748b;">API server not available</li>';
       }
     } else {
-      promptsList = '      <li style="color: #64748b;">File server URL not configured</li>';
+      promptsList = '      <li style="color: #64748b;">API server URL not configured</li>';
     }
 
     const templatesDir = templatesDirectory || 'agentmark/';
-    const fileServerInfo = fileServerUrl ?
+    const apiServerInfo = apiServerUrl ?
       `<div class="info-box">
         <strong>📁 Templates Directory:</strong><br>
         <code>${templatesDir}</code><br><br>
-        <strong>🔗 File Server:</strong><br>
-        <a href="${fileServerUrl}" target="_blank">${fileServerUrl}</a>
+        <strong>🔗 API:</strong><br>
+        <a href="${apiServerUrl}" target="_blank">${apiServerUrl}</a>
       </div>` : '';
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -331,7 +331,7 @@ export async function createWebhookServer(options: WebhookServerOptions): Promis
     <strong>✓ Server Status:</strong> Running on port ${port}
   </div>
 
-  ${fileServerInfo}
+  ${apiServerInfo}
 
   <h2>What is this?</h2>
   <p>
