@@ -5,10 +5,10 @@ describe('Metadata Parser', () => {
   describe('parseMetadata', () => {
     it('should extract session context fields', () => {
       const attributes = {
-        'agentmark.metadata.sessionId': 'session-123',
-        'agentmark.metadata.sessionName': 'test-session',
-        'agentmark.metadata.userId': 'user-456',
-        'agentmark.metadata.traceName': 'test-trace',
+        'agentmark.metadata.session_id': 'session-123',
+        'agentmark.metadata.session_name': 'test-session',
+        'agentmark.metadata.user_id': 'user-456',
+        'agentmark.metadata.trace_name': 'test-trace',
       };
 
       const result = parseMetadata(attributes);
@@ -39,15 +39,13 @@ describe('Metadata Parser', () => {
 
     it('should extract prompt/template fields', () => {
       const attributes = {
-        'agentmark.metadata.prompt': 'test-prompt',
-        'agentmark.metadata.templateName': 'test-template',
+        'agentmark.metadata.prompt_name': 'test-prompt',
         'agentmark.metadata.props': '{"key":"value"}',
       };
 
       const result = parseMetadata(attributes);
 
       expect(result.promptName).toBe('test-prompt');
-      expect(result.templateName).toBe('test-template');
       expect(result.props).toBe('{"key":"value"}');
     });
 
@@ -63,8 +61,8 @@ describe('Metadata Parser', () => {
 
     it('should handle custom prefix', () => {
       const attributes = {
-        'custom.prefix.sessionId': 'session-123',
-        'custom.prefix.traceName': 'test-trace',
+        'custom.prefix.session_id': 'session-123',
+        'custom.prefix.trace_name': 'test-trace',
       };
 
       const result = parseMetadata(attributes, 'custom.prefix.');
@@ -75,9 +73,9 @@ describe('Metadata Parser', () => {
 
     it('should convert non-string values to strings', () => {
       const attributes = {
-        'agentmark.metadata.sessionId': 123,
-        'agentmark.metadata.userId': true,
-        'agentmark.metadata.traceName': null,
+        'agentmark.metadata.session_id': 123,
+        'agentmark.metadata.user_id': true,
+        'agentmark.metadata.trace_name': null,
       };
 
       const result = parseMetadata(attributes);
@@ -99,9 +97,9 @@ describe('Metadata Parser', () => {
 
     it('should only extract fields with correct prefix', () => {
       const attributes = {
-        'agentmark.metadata.sessionId': 'session-123',
-        'other.prefix.sessionId': 'other-session',
-        'sessionId': 'no-prefix',
+        'agentmark.metadata.session_id': 'session-123',
+        'other.prefix.session_id': 'other-session',
+        'session_id': 'no-prefix',
       };
 
       const result = parseMetadata(attributes);
@@ -111,13 +109,12 @@ describe('Metadata Parser', () => {
 
     it('should extract all metadata fields together', () => {
       const attributes = {
-        'agentmark.metadata.sessionId': 'session-123',
-        'agentmark.metadata.sessionName': 'test-session',
-        'agentmark.metadata.userId': 'user-456',
-        'agentmark.metadata.traceName': 'test-trace',
+        'agentmark.metadata.session_id': 'session-123',
+        'agentmark.metadata.session_name': 'test-session',
+        'agentmark.metadata.user_id': 'user-456',
+        'agentmark.metadata.trace_name': 'test-trace',
         'agentmark.metadata.dataset_run_id': 'run-123',
-        'agentmark.metadata.prompt': 'test-prompt',
-        'agentmark.metadata.templateName': 'test-template',
+        'agentmark.metadata.prompt_name': 'test-prompt',
         'agentmark.metadata.props': '{"key":"value"}',
         'agentmark.metadata.commit_sha': 'abc123',
       };
@@ -130,15 +127,14 @@ describe('Metadata Parser', () => {
       expect(result.traceName).toBe('test-trace');
       expect(result.datasetRunId).toBe('run-123');
       expect(result.promptName).toBe('test-prompt');
-      expect(result.templateName).toBe('test-template');
       expect(result.props).toBe('{"key":"value"}');
       expect(result.commitSha).toBe('abc123');
     });
 
     it('should handle empty string values', () => {
       const attributes = {
-        'agentmark.metadata.sessionId': '',
-        'agentmark.metadata.traceName': 'test-trace',
+        'agentmark.metadata.session_id': '',
+        'agentmark.metadata.trace_name': 'test-trace',
       };
 
       const result = parseMetadata(attributes);
@@ -149,7 +145,7 @@ describe('Metadata Parser', () => {
 
     it('should use default prefix when not specified', () => {
       const attributes = {
-        'agentmark.metadata.sessionId': 'session-123',
+        'agentmark.metadata.session_id': 'session-123',
       };
 
       const result = parseMetadata(attributes);

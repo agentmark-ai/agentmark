@@ -320,8 +320,8 @@ export class MastraAdapterWebhookHandler {
                 dataset_path: resolvedDatasetPath || "",
                 dataset_run_name: datasetRunName,
                 dataset_item_name: String(index),
-                traceName: `ds-run-${datasetRunName}-${index}`,
-                traceId,
+                trace_name: `ds-run-${datasetRunName}-${index}`,
+                trace_id: traceId,
               };
               if (item.dataset?.expected_output !== undefined) {
                 telemetryMetadata.dataset_expected_output = item.dataset.expected_output;
@@ -426,8 +426,8 @@ export class MastraAdapterWebhookHandler {
                 dataset_path: resolvedDatasetPath || "",
                 dataset_run_name: datasetRunName,
                 dataset_item_name: String(index),
-                traceName: `ds-run-${datasetRunName}-${index}`,
-                traceId,
+                trace_name: `ds-run-${datasetRunName}-${index}`,
+                trace_id: traceId,
               };
               if (item.dataset.expected_output !== undefined) {
                 telemetryMetadata.dataset_expected_output = item.dataset.expected_output;

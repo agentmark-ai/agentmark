@@ -68,7 +68,7 @@ export type WebhookPromptResponse =
  */
 export function createPromptTelemetry(promptName?: string, baseTelemetry?: { isEnabled: boolean; metadata?: Record<string, any> }) {
   const traceId = crypto.randomUUID();
-  const traceName = baseTelemetry?.metadata?.traceName || promptName || 'prompt-run';
+  const traceName = baseTelemetry?.metadata?.trace_name || promptName || 'prompt-run';
 
   return {
     traceId,
@@ -76,9 +76,9 @@ export function createPromptTelemetry(promptName?: string, baseTelemetry?: { isE
       ...baseTelemetry,
       metadata: {
         ...baseTelemetry.metadata,
-        traceId,
-        traceName
+        trace_id: traceId,
+        trace_name: traceName
       }
-    } : { isEnabled: true, metadata: { traceId, traceName } }
+    } : { isEnabled: true, metadata: { trace_id: traceId, trace_name: traceName } }
   };
 }

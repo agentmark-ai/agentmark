@@ -53,7 +53,6 @@ db.exec(`
         
         -- Prompt/template fields
         PromptName TEXT DEFAULT '',
-        TemplateName TEXT DEFAULT '',
         Props TEXT,               -- JSON or string metadata props
         
         -- Version control field

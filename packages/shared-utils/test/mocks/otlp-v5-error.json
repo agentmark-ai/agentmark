@@ -125,17 +125,17 @@
                   "value": { "intValue": 2 }
                 },
                 {
-                  "key": "ai.telemetry.metadata.traceId",
+                  "key": "ai.telemetry.metadata.trace_id",
                   "value": {
                     "stringValue": "b1b09535-86fe-4b23-a34e-cc3f8cdfad30"
                   }
                 },
                 {
-                  "key": "ai.telemetry.metadata.traceName",
+                  "key": "ai.telemetry.metadata.trace_name",
                   "value": { "stringValue": "customer-support-agent" }
                 },
                 {
-                  "key": "ai.telemetry.metadata.prompt",
+                  "key": "ai.telemetry.metadata.prompt_name",
                   "value": { "stringValue": "customer-support-agent" }
                 },
                 {

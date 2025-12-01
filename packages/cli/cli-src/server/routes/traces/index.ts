@@ -85,7 +85,6 @@ function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Reco
     DatasetItemName: span.datasetItemName || "",
     DatasetExpectedOutput: span.datasetExpectedOutput || "",
     PromptName: span.promptName || "",
-    TemplateName: span.templateName || "",
     Props: span.props || null,
     CommitSha: span.commitSha || "",
   };
@@ -103,9 +102,9 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
       Input, Output,
       SessionId, SessionName, UserId, TraceName,
       DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput,
-      PromptName, TemplateName, Props, CommitSha
+      PromptName, Props, CommitSha
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
@@ -151,7 +150,6 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.DatasetItemName,
         row.DatasetExpectedOutput,
         row.PromptName,
-        row.TemplateName,
         row.Props,
         row.CommitSha
       );
@@ -172,7 +170,6 @@ export const getRequests = async () => {
       AppId AS app_id,
       cast(Timestamp as Real) / 1000000 AS ts,
       json_extract(json(SpanAttributes), '$."gen_ai.system_prompt"') AS system_prompt,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.templateName"') AS template_name,
       json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.prompt"') AS prompt_name,
       json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"') AS user_id,
       json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.props"') AS props,

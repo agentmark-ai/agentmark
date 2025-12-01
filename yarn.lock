@@ -6624,7 +6624,6 @@ __metadata:
   resolution: "agentmark-monorepo@workspace:."
   dependencies:
     "@changesets/cli": "npm:^2.27.9"
-    "@isaacs/ttlcache": "npm:^1.4.1"
     eslint: "npm:^9.39.1"
     tsup: "npm:^8"
     turbo: "npm:latest"

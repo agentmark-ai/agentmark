@@ -96,9 +96,8 @@ export interface NormalizedSpan {
     datasetItemName?: string;
     datasetExpectedOutput?: string;
 
-    // Prompt/template fields
+    // Prompt fields
     promptName?: string;
-    templateName?: string;  // Template name from ai.telemetry.metadata.templateName
     props?: string;         // Props/metadata from ai.telemetry.metadata.props
 
     // Version control field

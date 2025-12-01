@@ -122,27 +122,27 @@
                     "value": { "intValue": 2 }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceId",
+                    "key": "ai.telemetry.metadata.trace_id",
                     "value": { "stringValue": "trace-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceName",
+                    "key": "ai.telemetry.metadata.trace_name",
                     "value": { "stringValue": "customer-support" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.userId",
+                    "key": "ai.telemetry.metadata.user_id",
                     "value": { "stringValue": "user-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionId",
+                    "key": "ai.telemetry.metadata.session_id",
                     "value": { "stringValue": "session-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionName",
+                    "key": "ai.telemetry.metadata.session_name",
                     "value": { "stringValue": "my-first-session" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.prompt",
+                    "key": "ai.telemetry.metadata.prompt_name",
                     "value": { "stringValue": "customer-support-agent" }
                   },
                   {
@@ -349,27 +349,27 @@
                     "value": { "intValue": 2 }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceId",
+                    "key": "ai.telemetry.metadata.trace_id",
                     "value": { "stringValue": "trace-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceName",
+                    "key": "ai.telemetry.metadata.trace_name",
                     "value": { "stringValue": "customer-support" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.userId",
+                    "key": "ai.telemetry.metadata.user_id",
                     "value": { "stringValue": "user-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionId",
+                    "key": "ai.telemetry.metadata.session_id",
                     "value": { "stringValue": "session-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionName",
+                    "key": "ai.telemetry.metadata.session_name",
                     "value": { "stringValue": "my-first-session" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.prompt",
+                    "key": "ai.telemetry.metadata.prompt_name",
                     "value": { "stringValue": "customer-support-agent" }
                   },
                   {
@@ -576,27 +576,27 @@
                     "value": { "intValue": 2 }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceId",
+                    "key": "ai.telemetry.metadata.trace_id",
                     "value": { "stringValue": "trace-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceName",
+                    "key": "ai.telemetry.metadata.trace_name",
                     "value": { "stringValue": "customer-support" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.userId",
+                    "key": "ai.telemetry.metadata.user_id",
                     "value": { "stringValue": "user-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionId",
+                    "key": "ai.telemetry.metadata.session_id",
                     "value": { "stringValue": "session-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionName",
+                    "key": "ai.telemetry.metadata.session_name",
                     "value": { "stringValue": "my-first-session" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.prompt",
+                    "key": "ai.telemetry.metadata.prompt_name",
                     "value": { "stringValue": "customer-support-agent" }
                   },
                   {
@@ -802,27 +802,27 @@
                     "value": { "intValue": 2 }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceId",
+                    "key": "ai.telemetry.metadata.trace_id",
                     "value": { "stringValue": "trace-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.traceName",
+                    "key": "ai.telemetry.metadata.trace_name",
                     "value": { "stringValue": "customer-support" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.userId",
+                    "key": "ai.telemetry.metadata.user_id",
                     "value": { "stringValue": "user-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionId",
+                    "key": "ai.telemetry.metadata.session_id",
                     "value": { "stringValue": "session-123" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.sessionName",
+                    "key": "ai.telemetry.metadata.session_name",
                     "value": { "stringValue": "my-first-session" }
                   },
                   {
-                    "key": "ai.telemetry.metadata.prompt",
+                    "key": "ai.telemetry.metadata.prompt_name",
                     "value": { "stringValue": "customer-support-agent" }
                   },
                   {

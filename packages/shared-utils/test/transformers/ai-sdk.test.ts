@@ -371,8 +371,8 @@ describe('AiSdkTransformer', () => {
 
       const attributes = {
         'ai.response.text': '', // v5 indicator
-        'ai.telemetry.metadata.traceName': 'test-trace',
-        'ai.telemetry.metadata.prompt': 'test-prompt',
+        'ai.telemetry.metadata.trace_name': 'test-trace',
+        'ai.telemetry.metadata.prompt_name': 'test-prompt',
         'ai.telemetry.metadata.props': '{"key":"value"}',
       };
 

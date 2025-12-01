@@ -23,8 +23,5 @@
     "tsup": "^8",
     "turbo": "latest",
     "typescript": "^5"
-  },
-  "dependencies": {
-    "@isaacs/ttlcache": "^1.4.1"
   }
 }

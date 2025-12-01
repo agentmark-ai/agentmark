@@ -162,13 +162,13 @@ describe('Transformer Registry', () => {
   describe('integration', () => {
     it('should work with real transformer implementation', () => {
       const transformer: ScopeTransformer = {
-        classify: (span: OtelSpan, attributes: Record<string, any>) => {
+        classify: (_span: OtelSpan, attributes: Record<string, any>) => {
           if (attributes['model']) {
             return SpanType.GENERATION;
           }
           return SpanType.SPAN;
         },
-        transform: (span: OtelSpan, attributes: Record<string, any>) => {
+        transform: (_span: OtelSpan, attributes: Record<string, any>) => {
           return {
             model: attributes['model'],
           };
