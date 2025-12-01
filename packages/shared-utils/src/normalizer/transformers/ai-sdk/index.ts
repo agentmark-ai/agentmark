@@ -16,45 +16,19 @@ export class AiSdkTransformer implements ScopeTransformer {
         };
     }
 
-    classify(span: OtelSpan, attributes: Record<string, any>): SpanType {
-        // Check for model-request (GENERATION) - must have model attribute
-        const hasModel = attributes['gen_ai.request.model'] || 
-                        attributes['ai.model.id'] || 
-                        attributes['gen_ai.system'];
+    classify(span: OtelSpan, _attributes: Record<string, any>): SpanType {
+        // Only specific generation spans are GENERATION:
+        // - ai.generateText.doGenerate
+        // - ai.streamText.doStream
+        // - ai.generateObject.doGenerate
+        // - ai.streamObject.doStream
+        const isGenerationSpan = 
+            span.name === 'ai.generateText.doGenerate' ||
+            span.name === 'ai.streamText.doStream' ||
+            span.name === 'ai.generateObject.doGenerate' ||
+            span.name === 'ai.streamObject.doStream';
         
-        if (hasModel) {
-            return SpanType.GENERATION;
-        }
-
-        // Check for GenAI operation without model
-        if (attributes['gen_ai.operation.name']) {
-            return SpanType.SPAN;
-        }
-
-        // Check for AI SDK specific patterns (fallback)
-        if (
-            attributes['ai.response.text'] ||
-            attributes['ai.result.text'] ||
-            attributes['ai.response.toolCalls'] ||
-            attributes['ai.result.toolCalls']
-        ) {
-            // Only classify as GENERATION if model exists
-            if (hasModel) {
-                return SpanType.GENERATION;
-            }
-            return SpanType.SPAN;
-        }
-
-        // Check span name for common patterns
-        if (span.name.startsWith('ai.generate') || span.name.startsWith('ai.stream')) {
-            // Only if model exists
-            if (hasModel) {
-                return SpanType.GENERATION;
-            }
-            return SpanType.SPAN;
-        }
-
-        return SpanType.SPAN;
+        return isGenerationSpan ? SpanType.GENERATION : SpanType.SPAN;
     }
 
     transform(_span: OtelSpan, attributes: Record<string, any>): Partial<NormalizedSpan> {

@@ -1,4 +1,4 @@
-import { AttributeExtractor, NormalizedSpan } from '../../../types';
+import { AttributeExtractor, NormalizedSpan, Message } from '../../../types';
 import { parseTokens } from '../../../extractors/token-parser';
 import { parseMetadata } from '../../../extractors/metadata-parser';
 
@@ -7,17 +7,53 @@ export class AiSdkV4Strategy implements AttributeExtractor {
         return attributes['gen_ai.request.model'] || attributes['ai.model.id'];
     }
 
-    extractInput(attributes: Record<string, any>): string | undefined {
-        // V4 often puts input in prompt messages
-        return attributes['ai.prompt.messages']
-            ? JSON.stringify(attributes['ai.prompt.messages'])
-            : undefined;
+    extractInput(attributes: Record<string, any>): Message[] | undefined {
+        // V4 can have input in ai.prompt.messages or ai.prompt
+        let messagesValue: any;
+        
+        if (attributes['ai.prompt.messages'] !== undefined) {
+            messagesValue = attributes['ai.prompt.messages'];
+        } else if (attributes['ai.prompt'] !== undefined) {
+            const promptValue = attributes['ai.prompt'];
+            // ai.prompt might be a JSON string with a messages property
+            if (typeof promptValue === 'string') {
+                try {
+                    const parsed = JSON.parse(promptValue);
+                    messagesValue = parsed.messages || parsed;
+                } catch {
+                    return undefined;
+                }
+            } else {
+                messagesValue = promptValue.messages || promptValue;
+            }
+        } else {
+            return undefined;
+        }
+        
+        // Parse if it's a string, otherwise use as-is
+        let messages: any;
+        if (typeof messagesValue === 'string') {
+            try {
+                messages = JSON.parse(messagesValue);
+            } catch {
+                return undefined;
+            }
+        } else {
+            messages = messagesValue;
+        }
+        
+        // Ensure it's an array
+        if (Array.isArray(messages)) {
+            return messages as Message[];
+        }
+        
+        return undefined;
     }
 
     extractOutput(attributes: Record<string, any>): string | undefined {
         // V4 uses 'ai.result.*'
-        if (attributes['ai.result.text']) return attributes['ai.result.text'];
-        if (attributes['ai.result.object']) return JSON.stringify(attributes['ai.result.object']);
+        if (attributes['ai.result.text'] !== undefined) return attributes['ai.result.text'];
+        if (attributes['ai.result.object'] !== undefined) return JSON.stringify(attributes['ai.result.object']);
         return undefined;
     }
 
@@ -39,6 +75,16 @@ export class AiSdkV4Strategy implements AttributeExtractor {
     }
 
     extractMetadata(attributes: Record<string, any>): Partial<NormalizedSpan> {
-        return parseMetadata(attributes);
+        // First try agentmark.metadata.* prefix
+        const result = parseMetadata(attributes);
+        
+        // Also check for ai.telemetry.metadata.* attributes
+        const aiTelemetryResult = parseMetadata(attributes, 'ai.telemetry.metadata.');
+        
+        // Merge results (ai.telemetry.metadata takes precedence if both exist)
+        return {
+            ...result,
+            ...aiTelemetryResult,
+        };
     }
 }

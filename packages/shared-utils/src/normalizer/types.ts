@@ -4,6 +4,11 @@ export enum SpanType {
     EVENT = 'EVENT',
 }
 
+export interface Message {
+    role: string;
+    content: string | Array<{ type: string; text: string }>;
+}
+
 export interface OtelScope {
     name?: string;
     version?: string;
@@ -72,9 +77,9 @@ export interface NormalizedSpan {
     reasoningTokens?: number;  // Add reasoning tokens
     cost?: number;
 
-    // I/O fields - Add these
-    input?: string;   // Plain text or JSON-stringified structured data
-    output?: string;  // Plain text or JSON-stringified structured data
+    // I/O fields
+    input?: Message[];  // Array of messages passed to the model
+    output?: string;     // Plain text or JSON-stringified structured data
 
     // Trace context fields
     sessionId?: string;
@@ -106,9 +111,9 @@ export interface NormalizedSpan {
 
 export interface AttributeExtractor {
     extractModel(attributes: Record<string, any>): string | undefined;
-    extractInput(attributes: Record<string, any>): string | undefined;
+    extractInput(attributes: Record<string, any>): Message[] | undefined;
     extractOutput(attributes: Record<string, any>): string | undefined;
-    extractTokens(attributes: Record<string, any>): { input?: number; output?: number; total?: number; reasoning?: number };  // Add reasoning
+    extractTokens(attributes: Record<string, any>): { input?: number; output?: number; total?: number; reasoning?: number };
     extractMetadata(attributes: Record<string, any>): Partial<NormalizedSpan>;
 }
 
