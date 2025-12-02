@@ -25,6 +25,10 @@ const otlpV4StreamObjectData = JSON.parse(
   readFileSync(join(__dirname, 'mocks', 'ai-sdk', 'otlp-v4-stream-object.json'), 'utf-8')
 );
 
+const otlpV5StreamObjectData = JSON.parse(
+  readFileSync(join(__dirname, 'mocks', 'ai-sdk', 'otlp-v5-stream-object.json'), 'utf-8')
+);
+
 describe('Integration Tests', () => {
   describe('OTLP v5 Error Data', () => {
     it('should normalize the provided OTLP v5 error span', () => {
@@ -743,6 +747,152 @@ describe('Integration Tests', () => {
         const inputText = JSON.stringify(parentSpan.input);
         expect(inputText).toContain('Extract the names');
       }
+    });
+  });
+
+  describe('OTLP v5 StreamObject Data', () => {
+    it('should normalize all v5 streamObject spans', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      // Should have 2 spans: ai.streamObject.doStream and ai.streamObject
+      expect(result).toHaveLength(2);
+
+      // All spans should have same traceId
+      const traceIds = new Set(result.map((s) => s.traceId));
+      expect(traceIds.size).toBe(1);
+      expect(traceIds.has('test-trace-id-v5-stream-object-abcdef123456')).toBe(true);
+
+      // Check service name
+      result.forEach((span) => {
+        expect(span.serviceName).toBe('agentmark-client');
+      });
+    });
+
+    it('should classify streamObject.doStream spans as GENERATION', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan).toBeDefined();
+      expect(doStreamSpan?.type).toBe(SpanType.GENERATION);
+    });
+
+    it('should classify parent streamObject span as SPAN', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const parentSpan = result.find((s) => s.name === 'ai.streamObject');
+      expect(parentSpan).toBeDefined();
+      expect(parentSpan?.type).toBe(SpanType.SPAN);
+    });
+
+    it('should extract model correctly from streamObject spans', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.model).toBe('gpt-4o');
+    });
+
+    it('should extract object output correctly', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // v5 ai.response.object should be extracted as a string
+      expect(doStreamSpan?.output).toBeDefined();
+      expect(typeof doStreamSpan?.output).toBe('string');
+      expect(doStreamSpan?.output).toContain('names');
+      expect(doStreamSpan?.output).toContain('Alice');
+      
+      // Verify raw attribute is preserved
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.object', '{"names":["Alice","Bob","Carol"]}');
+    });
+
+    it('should extract metadata correctly from streamObject spans', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.traceName).toBe('party-planner');
+      // Note: v5 uses ai.telemetry.metadata.prompt instead of prompt_name
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.telemetry.metadata.prompt', 'party-planner');
+      expect(doStreamSpan?.props).toBe('{"party_text":"We\'re having a party with Alice, Bob, and Carol."}');
+    });
+
+    it('should extract input from prompt messages', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.input).toBeDefined();
+      expect(Array.isArray(doStreamSpan?.input)).toBe(true);
+      const inputText = JSON.stringify(doStreamSpan?.input);
+      expect(inputText).toContain('Extract the names');
+      expect(inputText).toContain('Alice, Bob, and Carol');
+    });
+
+    it('should extract tokens correctly', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // Check normalized token fields
+      expect(doStreamSpan?.inputTokens).toBe(86);
+      expect(doStreamSpan?.outputTokens).toBe(11);
+      expect(doStreamSpan?.totalTokens).toBe(97);
+      // Check raw attributes are preserved
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.inputTokens', 86);
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.outputTokens', 11);
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.totalTokens', 97);
+    });
+
+    it('should extract reasoning tokens correctly', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // Reasoning tokens should be extracted from ai.usage.reasoningTokens (0 in this case)
+      expect(doStreamSpan?.reasoningTokens).toBe(0);
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.reasoningTokens', 0);
+    });
+
+    it('should extract cached input tokens', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // Cached input tokens should be preserved in spanAttributes
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.cachedInputTokens', 0);
+    });
+
+    it('should handle events correctly', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.events.length).toBeGreaterThanOrEqual(1);
+      const firstChunkEvent = doStreamSpan?.events.find((e) => e.name === 'ai.stream.firstChunk');
+      expect(firstChunkEvent).toBeDefined();
+      expect(firstChunkEvent?.attributes).toHaveProperty('ai.stream.msToFirstChunk', 1132.0327189999998);
+    });
+
+    it('should extract finishReason correctly', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.finishReason', 'stop');
+    });
+
+    it('should extract response ID correctly', () => {
+      const resourceSpans = otlpV5StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.id', 'resp_test-id-123456');
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('gen_ai.response.id', 'resp_test-id-123456');
     });
   });
 
