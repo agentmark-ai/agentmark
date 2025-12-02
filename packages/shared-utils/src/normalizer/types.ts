@@ -9,6 +9,14 @@ export interface Message {
     content: string | Array<{ type: string; text: string }>;
 }
 
+export interface ToolCall {
+    type: string;  // e.g., "tool-call"
+    toolCallId: string;
+    toolName: string;
+    args: Record<string, any>;  // Unified: v4 uses 'args', v5 uses 'input' (normalized to 'args')
+    providerMetadata?: Record<string, any>;  // v5 specific: provider-specific metadata
+}
+
 export interface OtelScope {
     name?: string;
     version?: string;
@@ -82,6 +90,16 @@ export interface NormalizedSpan {
     // I/O fields
     input?: Message[];  // Array of messages passed to the model
     output?: string;     // Plain text or JSON-stringified structured data
+    outputObject?: Record<string, any>;  // Structured object output (separate from text)
+    toolCalls?: ToolCall[];  // Tool calls from the response
+    finishReason?: string;  // Unified finish reason (stop, tool-calls, length, etc.)
+    settings?: {  // Model generation settings
+        temperature?: number;
+        maxTokens?: number;
+        topP?: number;
+        presencePenalty?: number;
+        frequencyPenalty?: number;
+    };
 
     // Trace context fields
     sessionId?: string;
@@ -116,6 +134,10 @@ export interface AttributeExtractor {
     extractOutput(attributes: Record<string, any>): string | undefined;
     extractTokens(attributes: Record<string, any>): { input?: number; output?: number; total?: number; reasoning?: number };
     extractMetadata(attributes: Record<string, any>): Partial<NormalizedSpan>;
+    extractToolCalls(attributes: Record<string, any>): ToolCall[] | undefined;
+    extractOutputObject(attributes: Record<string, any>): Record<string, any> | undefined;
+    extractFinishReason(attributes: Record<string, any>): string | undefined;
+    extractSettings(attributes: Record<string, any>): NormalizedSpan['settings'];
 }
 
 export interface ScopeTransformer {

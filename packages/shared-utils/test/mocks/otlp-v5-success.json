@@ -1,0 +1,585 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "host.name", "value": { "stringValue": "test-host" } },
+          { "key": "host.arch", "value": { "stringValue": "amd64" } },
+          {
+            "key": "host.id",
+            "value": { "stringValue": "test-host-id-12345" }
+          },
+          { "key": "process.pid", "value": { "intValue": 15257 } },
+          {
+            "key": "process.executable.name",
+            "value": {
+              "stringValue": "test/bin/node"
+            }
+          },
+          {
+            "key": "process.executable.path",
+            "value": {
+              "stringValue": "test/bin/node"
+            }
+          },
+          {
+            "key": "process.command_args",
+            "value": {
+              "arrayValue": {
+                "values": [
+                  {
+                    "stringValue": "test/bin/node"
+                  },
+                  { "stringValue": "--require" },
+                  {
+                    "stringValue": "test/node_modules/tsx/dist/preflight.cjs"
+                  },
+                  { "stringValue": "--import" },
+                  {
+                    "stringValue": "file://test/node_modules/tsx/dist/loader.mjs"
+                  },
+                  {
+                    "stringValue": "test/.agentmark/dev-entry.ts"
+                  },
+                  { "stringValue": "agentmark.client.ts" },
+                  { "stringValue": "agentmark/**/*" },
+                  { "stringValue": "--webhook-port=9417" },
+                  { "stringValue": "--api-server-port=9418" }
+                ]
+              }
+            }
+          },
+          {
+            "key": "process.runtime.version",
+            "value": { "stringValue": "22.21.1" }
+          },
+          {
+            "key": "process.runtime.name",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "process.runtime.description",
+            "value": { "stringValue": "Node.js" }
+          },
+          {
+            "key": "process.command",
+            "value": {
+              "stringValue": "test/.agentmark/dev-entry.ts"
+            }
+          },
+          { "key": "process.owner", "value": { "stringValue": "user" } },
+          {
+            "key": "service.name",
+            "value": { "stringValue": "agentmark-client" }
+          },
+          { "key": "agentmark.app_id", "value": { "stringValue": "" } },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": { "stringValue": "2.1.0" }
+          }
+        ],
+        "droppedAttributesCount": 0
+      },
+      "scopeSpans": [
+        {
+          "scope": { "name": "ai" },
+          "spans": [
+            {
+              "traceId": "test-trace-id-v5-success-abcdef123456",
+              "spanId": "c904889ecc8e9c13",
+              "parentSpanId": "20d3a08904cdb273",
+              "name": "ai.toolCall",
+              "kind": 1,
+              "startTimeUnixNano": "1764612532725000000",
+              "endTimeUnixNano": "1764612533228550389",
+              "attributes": [
+                {
+                  "key": "operation.name",
+                  "value": { "stringValue": "ai.toolCall" }
+                },
+                {
+                  "key": "ai.operationId",
+                  "value": { "stringValue": "ai.toolCall" }
+                },
+                {
+                  "key": "ai.toolCall.name",
+                  "value": { "stringValue": "search_knowledgebase" }
+                },
+                {
+                  "key": "ai.toolCall.id",
+                  "value": { "stringValue": "test-tool-call-id-1234567890" }
+                },
+                {
+                  "key": "ai.toolCall.args",
+                  "value": {
+                    "stringValue": "{\"query\":\"shipping duration\"}"
+                  }
+                },
+                {
+                  "key": "ai.toolCall.result",
+                  "value": {
+                    "stringValue": "{\"articles\":[{\"topic\":\"shipping\",\"content\":\"Standard shipping takes 3–5 business days.\"},{\"topic\":\"warranty\",\"content\":\"All products include a 1-year limited warranty.\"},{\"topic\":\"returns\",\"content\":\"You can return items within 30 days of delivery.\"}]}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "test-trace-id-v5-success-abcdef123456",
+              "spanId": "c6cc6f15b00ff2be",
+              "parentSpanId": "20d3a08904cdb273",
+              "name": "ai.streamText.doStream",
+              "kind": 1,
+              "startTimeUnixNano": "1764612529980000000",
+              "endTimeUnixNano": "1764612533232185773",
+              "attributes": [
+                {
+                  "key": "operation.name",
+                  "value": { "stringValue": "ai.streamText.doStream" }
+                },
+                {
+                  "key": "ai.operationId",
+                  "value": { "stringValue": "ai.streamText.doStream" }
+                },
+                {
+                  "key": "ai.model.provider",
+                  "value": { "stringValue": "openai.responses" }
+                },
+                { "key": "ai.model.id", "value": { "stringValue": "gpt-4o" } },
+                { "key": "ai.settings.maxRetries", "value": { "intValue": 2 } },
+                {
+                  "key": "ai.telemetry.metadata.trace_id",
+                  "value": {
+                    "stringValue": "test-trace-uuid-v5-success-12345"
+                  }
+                },
+                {
+                  "key": "ai.telemetry.metadata.trace_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.prompt_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.props",
+                  "value": {
+                    "stringValue": "{\"customer_question\":\"I'm having trouble with my order. How long does shipping take?\"}"
+                  }
+                },
+                {
+                  "key": "ai.prompt.messages",
+                  "value": {
+                    "stringValue": "[{\"role\":\"system\",\"content\":\"You are a customer service agent for a company that sells products online. You are given a customer's question and you need to respond to the customer. You need to be friendly, professional, and helpful.\\n\\nYou have access to the following tool:\\n\\n* search\\\\_knowledgebase: Search the company knowledgebase for information about shipping, warranty, and returns. Use this when customers ask about these topics.\"},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"I'm having trouble with my order. How long does shipping take?\"}]}]"
+                  }
+                },
+                {
+                  "key": "ai.prompt.tools",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "{\"type\":\"function\",\"name\":\"search_knowledgebase\",\"description\":\"Search the company knowledgebase for information about shipping, warranty, and returns policies.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to find relevant information\"}},\"required\":[\"query\"]}}"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "ai.prompt.toolChoice",
+                  "value": { "stringValue": "{\"type\":\"auto\"}" }
+                },
+                {
+                  "key": "gen_ai.system",
+                  "value": { "stringValue": "openai.responses" }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": { "stringValue": "gpt-4o" }
+                },
+                {
+                  "key": "ai.response.msToFirstChunk",
+                  "value": { "doubleValue": 743.0454309999996 }
+                },
+                {
+                  "key": "ai.response.msToFinish",
+                  "value": { "doubleValue": 3249.5000720000007 }
+                },
+                {
+                  "key": "ai.response.avgOutputTokensPerSecond",
+                  "value": { "doubleValue": 5.539313617839488 }
+                },
+                {
+                  "key": "ai.response.finishReason",
+                  "value": { "stringValue": "tool-calls" }
+                },
+                { "key": "ai.response.text", "value": { "stringValue": "" } },
+                {
+                  "key": "ai.response.toolCalls",
+                  "value": {
+                    "stringValue": "[{\"type\":\"tool-call\",\"toolCallId\":\"test-tool-call-id-1234567890\",\"toolName\":\"search_knowledgebase\",\"input\":{\"query\":\"shipping duration\"},\"providerMetadata\":{\"openai\":{\"itemId\":\"test-item-id-v5-success-1234567890\"}}}]"
+                  }
+                },
+                {
+                  "key": "ai.response.id",
+                  "value": {
+                    "stringValue": "test-resp-id-v5-success-1-1234567890"
+                  }
+                },
+                {
+                  "key": "ai.response.model",
+                  "value": { "stringValue": "gpt-4o-2024-08-06" }
+                },
+                {
+                  "key": "ai.response.timestamp",
+                  "value": { "stringValue": "2025-12-01T18:08:50.000Z" }
+                },
+                {
+                  "key": "ai.response.providerMetadata",
+                  "value": {
+                    "stringValue": "{\"openai\":{\"responseId\":\"test-resp-id-v5-success-1-1234567890\",\"serviceTier\":\"default\"}}"
+                  }
+                },
+                { "key": "ai.usage.inputTokens", "value": { "intValue": 154 } },
+                { "key": "ai.usage.outputTokens", "value": { "intValue": 18 } },
+                { "key": "ai.usage.totalTokens", "value": { "intValue": 172 } },
+                {
+                  "key": "ai.usage.reasoningTokens",
+                  "value": { "intValue": 0 }
+                },
+                {
+                  "key": "ai.usage.cachedInputTokens",
+                  "value": { "intValue": 0 }
+                },
+                {
+                  "key": "gen_ai.response.finish_reasons",
+                  "value": {
+                    "arrayValue": {
+                      "values": [{ "stringValue": "tool-calls" }]
+                    }
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "test-resp-id-v5-success-1-1234567890"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": { "stringValue": "gpt-4o-2024-08-06" }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": { "intValue": 154 }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": { "intValue": 18 }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [
+                {
+                  "attributes": [
+                    {
+                      "key": "ai.response.msToFirstChunk",
+                      "value": { "doubleValue": 743.0454309999996 }
+                    }
+                  ],
+                  "name": "ai.stream.firstChunk",
+                  "timeUnixNano": "1764612530723433231",
+                  "droppedAttributesCount": 0
+                },
+                {
+                  "attributes": [],
+                  "name": "ai.stream.finish",
+                  "timeUnixNano": "1764612533229729372",
+                  "droppedAttributesCount": 0
+                }
+              ],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "test-trace-id-v5-success-abcdef123456",
+              "spanId": "82ddb30e5135f03e",
+              "parentSpanId": "20d3a08904cdb273",
+              "name": "ai.streamText.doStream",
+              "kind": 1,
+              "startTimeUnixNano": "1764612533238000000",
+              "endTimeUnixNano": "1764612535855012410",
+              "attributes": [
+                {
+                  "key": "operation.name",
+                  "value": { "stringValue": "ai.streamText.doStream" }
+                },
+                {
+                  "key": "ai.operationId",
+                  "value": { "stringValue": "ai.streamText.doStream" }
+                },
+                {
+                  "key": "ai.model.provider",
+                  "value": { "stringValue": "openai.responses" }
+                },
+                { "key": "ai.model.id", "value": { "stringValue": "gpt-4o" } },
+                { "key": "ai.settings.maxRetries", "value": { "intValue": 2 } },
+                {
+                  "key": "ai.telemetry.metadata.trace_id",
+                  "value": {
+                    "stringValue": "test-trace-uuid-v5-success-12345"
+                  }
+                },
+                {
+                  "key": "ai.telemetry.metadata.trace_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.prompt_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.props",
+                  "value": {
+                    "stringValue": "{\"customer_question\":\"I'm having trouble with my order. How long does shipping take?\"}"
+                  }
+                },
+                {
+                  "key": "ai.prompt.messages",
+                  "value": {
+                    "stringValue": "[{\"role\":\"system\",\"content\":\"You are a customer service agent for a company that sells products online. You are given a customer's question and you need to respond to the customer. You need to be friendly, professional, and helpful.\\n\\nYou have access to the following tool:\\n\\n* search\\\\_knowledgebase: Search the company knowledgebase for information about shipping, warranty, and returns. Use this when customers ask about these topics.\"},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"I'm having trouble with my order. How long does shipping take?\"}]},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool-call\",\"toolCallId\":\"test-tool-call-id-1234567890\",\"toolName\":\"search_knowledgebase\",\"input\":{\"query\":\"shipping duration\"},\"providerOptions\":{\"openai\":{\"itemId\":\"test-item-id-v5-success-1234567890\"}}}]},{\"role\":\"tool\",\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"test-tool-call-id-1234567890\",\"toolName\":\"search_knowledgebase\",\"output\":{\"type\":\"json\",\"value\":{\"articles\":[{\"topic\":\"shipping\",\"content\":\"Standard shipping takes 3–5 business days.\"},{\"topic\":\"warranty\",\"content\":\"All products include a 1-year limited warranty.\"},{\"topic\":\"returns\",\"content\":\"You can return items within 30 days of delivery.\"}]}},\"providerOptions\":{\"openai\":{\"itemId\":\"test-item-id-v5-success-1234567890\"}}}]}]"
+                  }
+                },
+                {
+                  "key": "ai.prompt.tools",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "{\"type\":\"function\",\"name\":\"search_knowledgebase\",\"description\":\"Search the company knowledgebase for information about shipping, warranty, and returns policies.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to find relevant information\"}},\"required\":[\"query\"]}}"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "ai.prompt.toolChoice",
+                  "value": { "stringValue": "{\"type\":\"auto\"}" }
+                },
+                {
+                  "key": "gen_ai.system",
+                  "value": { "stringValue": "openai.responses" }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": { "stringValue": "gpt-4o" }
+                },
+                {
+                  "key": "ai.response.msToFirstChunk",
+                  "value": { "doubleValue": 486.2779849999988 }
+                },
+                {
+                  "key": "ai.response.msToFinish",
+                  "value": { "doubleValue": 2616.348609999999 }
+                },
+                {
+                  "key": "ai.response.avgOutputTokensPerSecond",
+                  "value": { "doubleValue": 12.230786018993092 }
+                },
+                {
+                  "key": "ai.response.finishReason",
+                  "value": { "stringValue": "stop" }
+                },
+                {
+                  "key": "ai.response.text",
+                  "value": {
+                    "stringValue": "Shipping usually takes 3–5 business days with our standard option. If you have any more questions or need further assistance, feel free to ask!"
+                  }
+                },
+                {
+                  "key": "ai.response.id",
+                  "value": {
+                    "stringValue": "test-resp-id-v5-success-2-1234567890"
+                  }
+                },
+                {
+                  "key": "ai.response.model",
+                  "value": { "stringValue": "gpt-4o-2024-08-06" }
+                },
+                {
+                  "key": "ai.response.timestamp",
+                  "value": { "stringValue": "2025-12-01T18:08:53.000Z" }
+                },
+                {
+                  "key": "ai.response.providerMetadata",
+                  "value": {
+                    "stringValue": "{\"openai\":{\"responseId\":\"test-resp-id-v5-success-2-1234567890\",\"serviceTier\":\"default\"}}"
+                  }
+                },
+                { "key": "ai.usage.inputTokens", "value": { "intValue": 240 } },
+                { "key": "ai.usage.outputTokens", "value": { "intValue": 32 } },
+                { "key": "ai.usage.totalTokens", "value": { "intValue": 272 } },
+                {
+                  "key": "ai.usage.reasoningTokens",
+                  "value": { "intValue": 0 }
+                },
+                {
+                  "key": "ai.usage.cachedInputTokens",
+                  "value": { "intValue": 0 }
+                },
+                {
+                  "key": "gen_ai.response.finish_reasons",
+                  "value": {
+                    "arrayValue": { "values": [{ "stringValue": "stop" }] }
+                  }
+                },
+                {
+                  "key": "gen_ai.response.id",
+                  "value": {
+                    "stringValue": "test-resp-id-v5-success-2-1234567890"
+                  }
+                },
+                {
+                  "key": "gen_ai.response.model",
+                  "value": { "stringValue": "gpt-4o-2024-08-06" }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": { "intValue": 240 }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": { "intValue": 32 }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [
+                {
+                  "attributes": [
+                    {
+                      "key": "ai.response.msToFirstChunk",
+                      "value": { "doubleValue": 486.2779849999988 }
+                    }
+                  ],
+                  "name": "ai.stream.firstChunk",
+                  "timeUnixNano": "1764612533724465685",
+                  "droppedAttributesCount": 0
+                },
+                {
+                  "attributes": [],
+                  "name": "ai.stream.finish",
+                  "timeUnixNano": "1764612535854549610",
+                  "droppedAttributesCount": 0
+                }
+              ],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "test-trace-id-v5-success-abcdef123456",
+              "spanId": "20d3a08904cdb273",
+              "name": "ai.streamText",
+              "kind": 1,
+              "startTimeUnixNano": "1764612529972000000",
+              "endTimeUnixNano": "1764612535856171485",
+              "attributes": [
+                {
+                  "key": "operation.name",
+                  "value": { "stringValue": "ai.streamText" }
+                },
+                {
+                  "key": "ai.operationId",
+                  "value": { "stringValue": "ai.streamText" }
+                },
+                {
+                  "key": "ai.model.provider",
+                  "value": { "stringValue": "openai.responses" }
+                },
+                { "key": "ai.model.id", "value": { "stringValue": "gpt-4o" } },
+                { "key": "ai.settings.maxRetries", "value": { "intValue": 2 } },
+                {
+                  "key": "ai.telemetry.metadata.trace_id",
+                  "value": {
+                    "stringValue": "test-trace-uuid-v5-success-12345"
+                  }
+                },
+                {
+                  "key": "ai.telemetry.metadata.trace_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.prompt_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.props",
+                  "value": {
+                    "stringValue": "{\"customer_question\":\"I'm having trouble with my order. How long does shipping take?\"}"
+                  }
+                },
+                {
+                  "key": "ai.prompt",
+                  "value": {
+                    "stringValue": "{\"messages\":[{\"role\":\"system\",\"content\":\"You are a customer service agent for a company that sells products online. You are given a customer's question and you need to respond to the customer. You need to be friendly, professional, and helpful.\\n\\nYou have access to the following tool:\\n\\n* search\\\\_knowledgebase: Search the company knowledgebase for information about shipping, warranty, and returns. Use this when customers ask about these topics.\"},{\"role\":\"user\",\"content\":\"I'm having trouble with my order. How long does shipping take?\"}]}"
+                  }
+                },
+                {
+                  "key": "ai.response.finishReason",
+                  "value": { "stringValue": "stop" }
+                },
+                {
+                  "key": "ai.response.text",
+                  "value": {
+                    "stringValue": "Shipping usually takes 3–5 business days with our standard option. If you have any more questions or need further assistance, feel free to ask!"
+                  }
+                },
+                {
+                  "key": "ai.response.providerMetadata",
+                  "value": {
+                    "stringValue": "{\"openai\":{\"responseId\":\"test-resp-id-v5-success-2-1234567890\",\"serviceTier\":\"default\"}}"
+                  }
+                },
+                { "key": "ai.usage.inputTokens", "value": { "intValue": 394 } },
+                { "key": "ai.usage.outputTokens", "value": { "intValue": 50 } },
+                { "key": "ai.usage.totalTokens", "value": { "intValue": 444 } },
+                {
+                  "key": "ai.usage.reasoningTokens",
+                  "value": { "intValue": 0 }
+                },
+                {
+                  "key": "ai.usage.cachedInputTokens",
+                  "value": { "intValue": 0 }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+

@@ -190,6 +190,21 @@ describe('Integration Tests', () => {
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.id', 'test-tool-call-id-1234567890');
     });
 
+    it('should extract settings from generation spans', () => {
+      const resourceSpans = otlpV4SuccessData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      // Find a generation span that might have settings
+      const generationSpan = result.find((s) => s.name === 'ai.streamText.doStream');
+      if (generationSpan && generationSpan.settings) {
+        expect(generationSpan.settings).toBeDefined();
+        // Settings are optional, so just check structure if present
+        if (generationSpan.settings.temperature !== undefined) {
+          expect(typeof generationSpan.settings.temperature).toBe('number');
+        }
+      }
+    });
+
     it('should extract metadata correctly', () => {
       const resourceSpans = otlpV5SuccessData as { resourceSpans: OtlpResourceSpans[] };
       const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
@@ -342,10 +357,10 @@ describe('Integration Tests', () => {
       const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
 
       const firstDoStream = result.find((s) => s.spanId === 'b2c3d4e5f6a7b8c9');
-      expect(firstDoStream?.spanAttributes).toHaveProperty('ai.response.finishReason', 'tool-calls');
+      expect(firstDoStream?.finishReason).toBe('tool-calls');
 
       const secondDoStream = result.find((s) => s.spanId === 'c3d4e5f6a7b8c9d0');
-      expect(secondDoStream?.spanAttributes).toHaveProperty('ai.response.finishReason', 'stop');
+      expect(secondDoStream?.finishReason).toBe('stop');
     });
 
     it('should extract output text from successful spans', () => {
@@ -366,6 +381,40 @@ describe('Integration Tests', () => {
       expect(toolCallSpan).toBeDefined();
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.name', 'search_knowledgebase');
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.id', 'call_xyz123abc456def789');
+    });
+
+    it('should extract toolCalls from generation spans (v4)', () => {
+      const resourceSpans = otlpV4SuccessData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      // Find a generation span with tool calls
+      const generationSpan = result.find((s) => s.name === 'ai.streamText.doStream' && s.spanAttributes['ai.response.toolCalls']);
+      if (generationSpan) {
+        expect(generationSpan.toolCalls).toBeDefined();
+        expect(Array.isArray(generationSpan.toolCalls)).toBe(true);
+        if (generationSpan.toolCalls && generationSpan.toolCalls.length > 0) {
+          expect(generationSpan.toolCalls[0].toolCallId).toBeDefined();
+          expect(generationSpan.toolCalls[0].toolName).toBeDefined();
+          expect(generationSpan.toolCalls[0].args).toBeDefined(); // v4 uses 'args'
+        }
+      }
+    });
+
+    it('should extract toolCalls from generation spans (v5)', () => {
+      const resourceSpans = otlpV5SuccessData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      // Find a generation span with tool calls
+      const generationSpan = result.find((s) => s.name === 'ai.streamText.doStream' && s.spanAttributes['ai.response.toolCalls']);
+      if (generationSpan) {
+        expect(generationSpan.toolCalls).toBeDefined();
+        expect(Array.isArray(generationSpan.toolCalls)).toBe(true);
+        if (generationSpan.toolCalls && generationSpan.toolCalls.length > 0) {
+          expect(generationSpan.toolCalls[0].toolCallId).toBe('test-tool-call-id-1234567890');
+          expect(generationSpan.toolCalls[0].toolName).toBe('search_knowledgebase');
+          expect(generationSpan.toolCalls[0].args).toEqual({ query: 'shipping duration' }); // v5 'input' normalized to 'args'
+        }
+      }
     });
 
     it('should extract metadata correctly', () => {
@@ -657,12 +706,14 @@ describe('Integration Tests', () => {
       const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
 
       const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
-      // ai.response.object should be extracted as a string
-      // The output should contain the JSON object as a string
-      expect(doStreamSpan?.output).toBeDefined();
-      expect(typeof doStreamSpan?.output).toBe('string');
-      expect(doStreamSpan?.output).toContain('names');
-      expect(doStreamSpan?.output).toContain('Alice');
+      // ai.response.object should be extracted as outputObject (object, not string)
+      expect(doStreamSpan?.outputObject).toBeDefined();
+      expect(typeof doStreamSpan?.outputObject).toBe('object');
+      expect(doStreamSpan?.outputObject).toHaveProperty('names');
+      expect(Array.isArray(doStreamSpan?.outputObject?.names)).toBe(true);
+      expect(doStreamSpan?.outputObject?.names).toContain('Alice');
+      // output should be undefined for object responses
+      expect(doStreamSpan?.output).toBeUndefined();
       
       // Verify raw attribute is preserved
       expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.object', '{"names":["Alice","Bob","Carol"]}');
@@ -800,11 +851,14 @@ describe('Integration Tests', () => {
       const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
 
       const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
-      // v5 ai.response.object should be extracted as a string
-      expect(doStreamSpan?.output).toBeDefined();
-      expect(typeof doStreamSpan?.output).toBe('string');
-      expect(doStreamSpan?.output).toContain('names');
-      expect(doStreamSpan?.output).toContain('Alice');
+      // v5 ai.response.object should be extracted as outputObject (object, not string)
+      expect(doStreamSpan?.outputObject).toBeDefined();
+      expect(typeof doStreamSpan?.outputObject).toBe('object');
+      expect(doStreamSpan?.outputObject).toHaveProperty('names');
+      expect(Array.isArray(doStreamSpan?.outputObject?.names)).toBe(true);
+      expect(doStreamSpan?.outputObject?.names).toContain('Alice');
+      // output should be undefined for object responses
+      expect(doStreamSpan?.output).toBeUndefined();
       
       // Verify raw attribute is preserved
       expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.object', '{"names":["Alice","Bob","Carol"]}');

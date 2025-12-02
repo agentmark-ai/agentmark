@@ -27,3 +27,4 @@ export function extractReasoningFromProviderMetadata(attributes: Record<string, 
 
     return undefined;
 }
+

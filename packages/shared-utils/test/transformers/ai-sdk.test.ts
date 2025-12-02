@@ -260,7 +260,7 @@ describe('AiSdkTransformer', () => {
       expect(result.output).toBe('Hello, world!');
     });
 
-    it('should extract output from ai.response.object (v5)', () => {
+    it('should extract outputObject from ai.response.object (v5)', () => {
       const span: OtelSpan = {
         traceId: 'trace-1',
         spanId: 'span-1',
@@ -276,7 +276,8 @@ describe('AiSdkTransformer', () => {
       };
 
       const result = transformer.transform(span, attributes);
-      expect(result.output).toBe(JSON.stringify(obj));
+      expect(result.outputObject).toEqual(obj);
+      expect(result.output).toBeUndefined();
     });
 
     it('should extract output from ai.result.text (v4)', () => {
@@ -420,6 +421,216 @@ describe('AiSdkTransformer', () => {
       const result = transformer.transform(span, attributes);
       expect(result.output).toBe('v5 response');
       expect(result.model).toBe('gpt-4o');
+    });
+
+    it('should extract toolCalls from ai.response.toolCalls (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const toolCalls = [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-123',
+          toolName: 'search',
+          input: { query: 'test' },
+          providerMetadata: { openai: { itemId: 'item-1' } },
+        },
+      ];
+      const attributes = {
+        'ai.response.text': '', // v5 indicator
+        'ai.response.toolCalls': JSON.stringify(toolCalls),
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.toolCalls).toBeDefined();
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolCalls![0].toolCallId).toBe('call-123');
+      expect(result.toolCalls![0].toolName).toBe('search');
+      expect(result.toolCalls![0].args).toEqual({ query: 'test' }); // v5 'input' normalized to 'args'
+      expect(result.toolCalls![0].providerMetadata).toEqual({ openai: { itemId: 'item-1' } });
+    });
+
+    it('should extract toolCalls from ai.result.toolCalls (v4)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const toolCalls = [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-456',
+          toolName: 'search',
+          args: { query: 'test' },
+        },
+      ];
+      const attributes = {
+        'ai.result.toolCalls': JSON.stringify(toolCalls),
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.toolCalls).toBeDefined();
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolCalls![0].toolCallId).toBe('call-456');
+      expect(result.toolCalls![0].toolName).toBe('search');
+      expect(result.toolCalls![0].args).toEqual({ query: 'test' }); // v4 'args' stays as 'args'
+    });
+
+    it('should extract outputObject from ai.result.object (v4)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const obj = { type: 'object', data: 'test' };
+      const attributes = {
+        'ai.result.object': JSON.stringify(obj),
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.outputObject).toEqual(obj);
+      expect(result.output).toBeUndefined();
+    });
+
+    it('should extract finishReason from ai.response.finishReason (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.response.text': '', // v5 indicator
+        'ai.response.finishReason': 'tool-calls',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.finishReason).toBe('tool-calls');
+    });
+
+    it('should extract finishReason from ai.result.finishReason (v4)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.result.finishReason': 'stop',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.finishReason).toBe('stop');
+    });
+
+    it('should extract finishReason from gen_ai.response.finish_reasons (OTel)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'gen_ai.response.finish_reasons': ['length'],
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.finishReason).toBe('length');
+    });
+
+    it('should extract settings from gen_ai.request keys (OTel)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.response.text': '', // v5 indicator
+        'gen_ai.request.temperature': 0.7,
+        'gen_ai.request.max_tokens': 1000,
+        'gen_ai.request.top_p': 0.9,
+        'gen_ai.request.presence_penalty': 0.1,
+        'gen_ai.request.frequency_penalty': 0.2,
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.settings).toBeDefined();
+      expect(result.settings?.temperature).toBe(0.7);
+      expect(result.settings?.maxTokens).toBe(1000);
+      expect(result.settings?.topP).toBe(0.9);
+      expect(result.settings?.presencePenalty).toBe(0.1);
+      expect(result.settings?.frequencyPenalty).toBe(0.2);
+    });
+
+    it('should extract settings from ai.settings keys (AI SDK fallback)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.response.text': '', // v5 indicator
+        'ai.settings.temperature': 0.8,
+        'ai.settings.maxTokens': 2000,
+        'ai.settings.topP': 0.95,
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.settings).toBeDefined();
+      expect(result.settings?.temperature).toBe(0.8);
+      expect(result.settings?.maxTokens).toBe(2000);
+      expect(result.settings?.topP).toBe(0.95);
+    });
+
+    it('should prefer OTel settings over AI SDK settings', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.response.text': '', // v5 indicator
+        'gen_ai.request.temperature': 0.7,
+        'ai.settings.temperature': 0.8, // Should be ignored
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.settings?.temperature).toBe(0.7);
     });
   });
 });
