@@ -54,9 +54,14 @@ export class AiSdkV5Strategy implements AttributeExtractor {
             reasoningKey: 'ai.usage.reasoningTokens'     // AI SDK v5 uses this
         });
 
-        // Fallback to providerMetadata for reasoning tokens
-        if (!tokens.reasoningTokens) {
+        // Fallback to providerMetadata for reasoning tokens only if not already set
+        // Note: We check for undefined explicitly to preserve 0 values
+        if (tokens.reasoningTokens === undefined) {
             tokens.reasoningTokens = extractReasoningFromProviderMetadata(attributes);
+        }
+        
+        if (!tokens.reasoningTokens) {
+            tokens.reasoningTokens = 0;
         }
 
         return {

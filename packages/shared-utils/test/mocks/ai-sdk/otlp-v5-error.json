@@ -5,24 +5,24 @@
         "attributes": [
           {
             "key": "host.name",
-            "value": { "stringValue": "DESKTOP-1JSMBH6" }
+            "value": { "stringValue": "test-host" }
           },
           { "key": "host.arch", "value": { "stringValue": "amd64" } },
           {
             "key": "host.id",
-            "value": { "stringValue": "d13a9072a963413199bcacf05abef844" }
+            "value": { "stringValue": "test-host-id-12345" }
           },
           { "key": "process.pid", "value": { "intValue": 9224 } },
           {
             "key": "process.executable.name",
             "value": {
-              "stringValue": "/home/dock/.nvm/versions/node/v22.21.1/bin/node"
+              "stringValue": "test/bin/node"
             }
           },
           {
             "key": "process.executable.path",
             "value": {
-              "stringValue": "/home/dock/.nvm/versions/node/v22.21.1/bin/node"
+              "stringValue": "test/bin/node"
             }
           },
           {
@@ -31,18 +31,18 @@
               "arrayValue": {
                 "values": [
                   {
-                    "stringValue": "/home/dock/.nvm/versions/node/v22.21.1/bin/node"
+                    "stringValue": "test/bin/node"
                   },
                   { "stringValue": "--require" },
                   {
-                    "stringValue": "/home/dock/manage-ai/test-am-4/test-am-4/node_modules/tsx/dist/preflight.cjs"
+                    "stringValue": "test/node_modules/tsx/dist/preflight.cjs"
                   },
                   { "stringValue": "--import" },
                   {
-                    "stringValue": "file:///home/dock/manage-ai/test-am-4/test-am-4/node_modules/tsx/dist/loader.mjs"
+                    "stringValue": "file://test/node_modules/tsx/dist/loader.mjs"
                   },
                   {
-                    "stringValue": "/home/dock/manage-ai/test-am-4/test-am-4/.agentmark/dev-entry.ts"
+                    "stringValue": "test/.agentmark/dev-entry.ts"
                   },
                   { "stringValue": "agentmark.client.ts" },
                   { "stringValue": "agentmark/**/*" },
@@ -67,10 +67,10 @@
           {
             "key": "process.command",
             "value": {
-              "stringValue": "/home/dock/manage-ai/test-am-4/test-am-4/.agentmark/dev-entry.ts"
+              "stringValue": "test/.agentmark/dev-entry.ts"
             }
           },
-          { "key": "process.owner", "value": { "stringValue": "dock" } },
+          { "key": "process.owner", "value": { "stringValue": "user" } },
           {
             "key": "service.name",
             "value": { "stringValue": "agentmark-client" }
@@ -96,7 +96,7 @@
           "scope": { "name": "ai" },
           "spans": [
             {
-              "traceId": "364805df879e583b1971a351fe6efec1",
+              "traceId": "test-trace-id-v5-error-abcdef123456",
               "spanId": "41a8554de0e6d0be",
               "parentSpanId": "75b45f37ac65cedb",
               "name": "ai.streamText.doStream",
@@ -127,7 +127,7 @@
                 {
                   "key": "ai.telemetry.metadata.trace_id",
                   "value": {
-                    "stringValue": "b1b09535-86fe-4b23-a34e-cc3f8cdfad30"
+                    "stringValue": "test-trace-uuid-v5-error-12345"
                   }
                 },
                 {
@@ -194,7 +194,7 @@
                 {
                   "key": "ai.response.id",
                   "value": {
-                    "stringValue": "resp_0b8f032e9d70c5a400692d77ba41c88194b3b142ba21108862"
+                    "stringValue": "test-resp-id-v5-error-1234567890"
                   }
                 },
                 {
@@ -208,7 +208,7 @@
                 {
                   "key": "ai.response.providerMetadata",
                   "value": {
-                    "stringValue": "{\"openai\":{\"responseId\":\"resp_0b8f032e9d70c5a400692d77ba41c88194b3b142ba21108862\"}}"
+                    "stringValue": "{\"openai\":{\"responseId\":\"test-resp-id-v5-error-1234567890\"}}"
                   }
                 },
                 {
@@ -220,7 +220,7 @@
                 {
                   "key": "gen_ai.response.id",
                   "value": {
-                    "stringValue": "resp_0b8f032e9d70c5a400692d77ba41c88194b3b142ba21108862"
+                    "stringValue": "test-resp-id-v5-error-1234567890"
                   }
                 },
                 {

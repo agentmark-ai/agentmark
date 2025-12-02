@@ -55,9 +55,6 @@ db.exec(`
         PromptName TEXT DEFAULT '',
         Props TEXT,               -- JSON or string metadata props
         
-        -- Version control field
-        CommitSha TEXT DEFAULT '',
-        
         -- Raw data for export/debug (JSON-encoded)
         ResourceAttributes TEXT,
         SpanAttributes TEXT,

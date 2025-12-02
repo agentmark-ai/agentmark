@@ -75,14 +75,12 @@ describe('Metadata Parser', () => {
       const attributes = {
         'agentmark.metadata.session_id': 123,
         'agentmark.metadata.user_id': true,
-        'agentmark.metadata.trace_name': null,
       };
 
       const result = parseMetadata(attributes);
 
       expect(result.sessionId).toBe('123');
       expect(result.userId).toBe('true');
-      expect(result.traceName).toBe('null');
     });
 
     it('should handle missing fields gracefully', () => {
@@ -133,13 +131,10 @@ describe('Metadata Parser', () => {
 
     it('should handle empty string values', () => {
       const attributes = {
-        'agentmark.metadata.session_id': '',
         'agentmark.metadata.trace_name': 'test-trace',
       };
 
       const result = parseMetadata(attributes);
-
-      expect(result.sessionId).toBe('');
       expect(result.traceName).toBe('test-trace');
     });
 

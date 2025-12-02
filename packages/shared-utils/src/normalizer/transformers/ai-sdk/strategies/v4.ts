@@ -1,6 +1,7 @@
 import { AttributeExtractor, NormalizedSpan, Message } from '../../../types';
 import { parseTokens } from '../../../extractors/token-parser';
 import { parseMetadata } from '../../../extractors/metadata-parser';
+import { extractReasoningFromProviderMetadata } from '../token-helpers';
 
 export class AiSdkV4Strategy implements AttributeExtractor {
     extractModel(attributes: Record<string, any>): string | undefined {
@@ -57,7 +58,7 @@ export class AiSdkV4Strategy implements AttributeExtractor {
         return undefined;
     }
 
-    extractTokens(attributes: Record<string, any>): { input?: number; output?: number; total?: number } {
+    extractTokens(attributes: Record<string, any>): { input?: number; output?: number; total?: number; reasoning?: number } {
         // V4 often uses legacy token keys
         const tokens = parseTokens(attributes, {
             inputKey: 'gen_ai.usage.prompt_tokens',
@@ -67,10 +68,18 @@ export class AiSdkV4Strategy implements AttributeExtractor {
             completionKey: 'ai.usage.completionTokens' // SDK specific fallback
         });
 
+        // V4 reasoning tokens come from providerMetadata
+        tokens.reasoningTokens = extractReasoningFromProviderMetadata(attributes);
+        
+        if (!tokens.reasoningTokens) {
+            tokens.reasoningTokens = 0;
+        }
+
         return {
             input: tokens.inputTokens,
             output: tokens.outputTokens,
-            total: tokens.totalTokens
+            total: tokens.totalTokens,
+            reasoning: tokens.reasoningTokens
         };
     }
 

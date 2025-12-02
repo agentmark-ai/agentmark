@@ -86,7 +86,6 @@ function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Reco
     DatasetExpectedOutput: span.datasetExpectedOutput || "",
     PromptName: span.promptName || "",
     Props: span.props || null,
-    CommitSha: span.commitSha || "",
   };
 }
 
@@ -102,7 +101,7 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
       Input, Output,
       SessionId, SessionName, UserId, TraceName,
       DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput,
-      PromptName, Props, CommitSha
+      PromptName, Props
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
@@ -150,8 +149,7 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.DatasetItemName,
         row.DatasetExpectedOutput,
         row.PromptName,
-        row.Props,
-        row.CommitSha
+        row.Props
       );
     }
   });
