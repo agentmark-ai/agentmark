@@ -52,9 +52,18 @@ export class AiSdkV4Strategy implements AttributeExtractor {
     }
 
     extractOutput(attributes: Record<string, any>): string | undefined {
-        // V4 uses 'ai.result.*'
+        // V4 uses 'ai.result.*' but may also have 'ai.response.*' in some cases
         if (attributes['ai.result.text'] !== undefined) return attributes['ai.result.text'];
-        if (attributes['ai.result.object'] !== undefined) return JSON.stringify(attributes['ai.result.object']);
+        if (attributes['ai.result.object'] !== undefined) {
+            const objValue = attributes['ai.result.object'];
+            return typeof objValue === 'string' ? objValue : JSON.stringify(objValue);
+        }
+        // Fallback to ai.response.* for compatibility
+        if (attributes['ai.response.text'] !== undefined) return attributes['ai.response.text'];
+        if (attributes['ai.response.object'] !== undefined) {
+            const objValue = attributes['ai.response.object'];
+            return typeof objValue === 'string' ? objValue : JSON.stringify(objValue);
+        }
         return undefined;
     }
 

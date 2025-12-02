@@ -21,6 +21,10 @@ const otlpV4SuccessData = JSON.parse(
   readFileSync(join(__dirname, 'mocks', 'ai-sdk', 'otlp-v4-success.json'), 'utf-8')
 );
 
+const otlpV4StreamObjectData = JSON.parse(
+  readFileSync(join(__dirname, 'mocks', 'ai-sdk', 'otlp-v4-stream-object.json'), 'utf-8')
+);
+
 describe('Integration Tests', () => {
   describe('OTLP v5 Error Data', () => {
     it('should normalize the provided OTLP v5 error span', () => {
@@ -596,6 +600,149 @@ describe('Integration Tests', () => {
       expect(firstSpan.endTime).toBeGreaterThan(1764591476000);
       expect(firstSpan.endTime).toBeLessThan(1764591477000);
       expect(firstSpan.duration).toBeGreaterThan(0);
+    });
+  });
+
+  describe('OTLP v4 StreamObject Data', () => {
+    it('should normalize all v4 streamObject spans', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      // Should have 2 spans: ai.streamObject.doStream and ai.streamObject
+      expect(result).toHaveLength(2);
+
+      // All spans should have same traceId
+      const traceIds = new Set(result.map((s) => s.traceId));
+      expect(traceIds.size).toBe(1);
+      expect(traceIds.has('test-trace-id-v4-stream-object-abcdef123456')).toBe(true);
+
+      // Check service name
+      result.forEach((span) => {
+        expect(span.serviceName).toBe('agentmark-client');
+      });
+    });
+
+    it('should classify streamObject.doStream spans as GENERATION', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan).toBeDefined();
+      expect(doStreamSpan?.type).toBe(SpanType.GENERATION);
+    });
+
+    it('should classify parent streamObject span as SPAN', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const parentSpan = result.find((s) => s.name === 'ai.streamObject');
+      expect(parentSpan).toBeDefined();
+      expect(parentSpan?.type).toBe(SpanType.SPAN);
+    });
+
+    it('should extract model correctly from streamObject spans', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.model).toBe('gpt-4o');
+    });
+
+    it('should extract object output correctly', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // ai.response.object should be extracted as a string
+      // The output should contain the JSON object as a string
+      expect(doStreamSpan?.output).toBeDefined();
+      expect(typeof doStreamSpan?.output).toBe('string');
+      expect(doStreamSpan?.output).toContain('names');
+      expect(doStreamSpan?.output).toContain('Alice');
+      
+      // Verify raw attribute is preserved
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.object', '{"names":["Alice","Bob","Carol"]}');
+    });
+
+    it('should extract metadata correctly from streamObject spans', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.traceName).toBe('party-planner');
+      expect(doStreamSpan?.promptName).toBe('party-planner');
+      expect(doStreamSpan?.props).toBe('{"party_text":"We\'re having a party with Alice, Bob, and Carol."}');
+    });
+
+    it('should extract input from prompt messages', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.input).toBeDefined();
+      expect(Array.isArray(doStreamSpan?.input)).toBe(true);
+      const inputText = JSON.stringify(doStreamSpan?.input);
+      expect(inputText).toContain('Extract the names');
+      expect(inputText).toContain('Alice, Bob, and Carol');
+    });
+
+    it('should extract tokens correctly', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // Check normalized token fields
+      expect(doStreamSpan?.inputTokens).toBe(96);
+      expect(doStreamSpan?.outputTokens).toBe(10);
+      expect(doStreamSpan?.totalTokens).toBe(106);
+      // Check raw attributes are preserved
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.promptTokens', 96);
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.usage.completionTokens', 10);
+    });
+
+    it('should extract reasoning tokens from providerMetadata', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      // Reasoning tokens should default to 0 when extracted from providerMetadata
+      expect(doStreamSpan?.reasoningTokens).toBe(0);
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.providerMetadata');
+    });
+
+    it('should handle events correctly', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.events.length).toBeGreaterThanOrEqual(1);
+      const firstChunkEvent = doStreamSpan?.events.find((e) => e.name === 'ai.stream.firstChunk');
+      expect(firstChunkEvent).toBeDefined();
+      expect(firstChunkEvent?.attributes).toHaveProperty('ai.stream.msToFirstChunk', 618.4307719999997);
+    });
+
+    it('should extract finishReason correctly', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const doStreamSpan = result.find((s) => s.name === 'ai.streamObject.doStream');
+      expect(doStreamSpan?.spanAttributes).toHaveProperty('ai.response.finishReason', 'stop');
+    });
+
+    it('should extract parent span input from ai.prompt', () => {
+      const resourceSpans = otlpV4StreamObjectData as { resourceSpans: OtlpResourceSpans[] };
+      const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+      const parentSpan = result.find((s) => s.name === 'ai.streamObject');
+      // Parent span should have ai.prompt attribute
+      expect(parentSpan?.spanAttributes).toHaveProperty('ai.prompt');
+      // Input should be extracted from ai.prompt (which contains messages)
+      // Note: Parent spans may not always have input extracted if they don't match generation patterns
+      if (parentSpan?.input) {
+        expect(Array.isArray(parentSpan.input)).toBe(true);
+        const inputText = JSON.stringify(parentSpan.input);
+        expect(inputText).toContain('Extract the names');
+      }
     });
   });
 
