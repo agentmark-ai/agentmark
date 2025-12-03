@@ -1,6 +1,6 @@
 import { AttributeExtractor, NormalizedSpan, Message, ToolCall } from '../../../types';
 import { parseTokens } from '../../../extractors/token-parser';
-import { parseMetadata } from '../../../extractors/metadata-parser';
+import { parseMetadata, extractCustomMetadata } from '../../../extractors/metadata-parser';
 import { extractReasoningFromProviderMetadata } from '../token-helpers';
 
 export class AiSdkV4Strategy implements AttributeExtractor {
@@ -84,12 +84,59 @@ export class AiSdkV4Strategy implements AttributeExtractor {
 
     extractToolCalls(attributes: Record<string, any>): ToolCall[] | undefined {
         // V4 uses 'ai.result.toolCalls' (primary) or 'ai.response.toolCalls' (fallback)
+        // Check these first as they take precedence over individual ai.toolCall.* attributes
         let toolCallsValue: any;
         if (attributes['ai.result.toolCalls'] !== undefined) {
             toolCallsValue = attributes['ai.result.toolCalls'];
         } else if (attributes['ai.response.toolCalls'] !== undefined) {
             toolCallsValue = attributes['ai.response.toolCalls'];
         } else {
+            // Fallback: check for individual ai.toolCall.* attributes (for tool call execution spans)
+            if (attributes['ai.toolCall.name'] !== undefined) {
+                const toolCallId = attributes['ai.toolCall.id'];
+                const toolName = attributes['ai.toolCall.name'];
+                const argsValue = attributes['ai.toolCall.args'];
+                const resultValue = attributes['ai.toolCall.result'];
+                
+                if (toolCallId && toolName) {
+                    let args: Record<string, any> = {};
+                    if (argsValue !== undefined) {
+                        if (typeof argsValue === 'string') {
+                            try {
+                                args = JSON.parse(argsValue);
+                            } catch {
+                                // If parsing fails, treat as empty object
+                                args = {};
+                            }
+                        } else if (typeof argsValue === 'object' && argsValue !== null) {
+                            args = argsValue;
+                        }
+                    }
+                    
+                    // Extract result - keep as string (JSON stringified) for UI compatibility
+                    let result: string | undefined;
+                    if (resultValue !== undefined) {
+                        if (typeof resultValue === 'string') {
+                            result = resultValue;
+                        } else {
+                            // If it's an object, stringify it
+                            try {
+                                result = JSON.stringify(resultValue);
+                            } catch {
+                                result = String(resultValue);
+                            }
+                        }
+                    }
+                    
+                    return [{
+                        type: 'tool-call',
+                        toolCallId: String(toolCallId),
+                        toolName: String(toolName),
+                        args,
+                        result,
+                    }];
+                }
+            }
             return undefined;
         }
 
@@ -203,10 +250,22 @@ export class AiSdkV4Strategy implements AttributeExtractor {
         // Also check for ai.telemetry.metadata.* attributes
         const aiTelemetryResult = parseMetadata(attributes, 'ai.telemetry.metadata.');
         
+        // Extract custom metadata from both prefixes
+        const agentmarkCustomMetadata = extractCustomMetadata(attributes, 'agentmark.metadata.');
+        const aiTelemetryCustomMetadata = extractCustomMetadata(attributes, 'ai.telemetry.metadata.');
+        
+        // Merge custom metadata (ai.telemetry.metadata takes precedence if both exist)
+        const mergedCustomMetadata = {
+            ...agentmarkCustomMetadata,
+            ...aiTelemetryCustomMetadata,
+        };
+        
         // Merge results (ai.telemetry.metadata takes precedence if both exist)
         return {
             ...result,
             ...aiTelemetryResult,
+            // Only include metadata field if there are custom metadata keys
+            ...(Object.keys(mergedCustomMetadata).length > 0 ? { metadata: mergedCustomMetadata } : {}),
         };
     }
 }

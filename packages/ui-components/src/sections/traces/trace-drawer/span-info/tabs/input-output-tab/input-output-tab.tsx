@@ -23,9 +23,9 @@ export const InputOutputTab = () => {
     >
       <PromptList prompts={prompts} />
       <OutputDisplay outputData={outputData} />
-      {span.data.status_message && (
+      {span.data.statusMessage && (
         <Alert severity="error" sx={{ mt: 2 }}>
-          {span.data.status_message}
+          {span.data.statusMessage}
         </Alert>
       )}
     </TabPanel>

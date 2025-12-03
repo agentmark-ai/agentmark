@@ -75,6 +75,10 @@ function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Reco
     Cost: cost,
     Input: span.input ? JSON.stringify(span.input) : null,
     Output: span.output || null,
+    OutputObject: span.outputObject ? JSON.stringify(span.outputObject) : null,
+    ToolCalls: span.toolCalls ? JSON.stringify(span.toolCalls) : null,
+    FinishReason: span.finishReason || null,
+    Settings: span.settings ? JSON.stringify(span.settings) : null,
     SessionId: span.sessionId || "",
     SessionName: span.sessionName || "",
     UserId: span.userId || "",
@@ -86,6 +90,7 @@ function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Reco
     DatasetExpectedOutput: span.datasetExpectedOutput || "",
     PromptName: span.promptName || "",
     Props: span.props || null,
+    Metadata: span.metadata ? JSON.stringify(span.metadata) : null,
   };
 }
 
@@ -98,12 +103,12 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
       ResourceAttributes, SpanAttributes, Duration, EndTime, StatusCode, StatusMessage, 
       Events, Links,
       Type, Model, InputTokens, OutputTokens, TotalTokens, ReasoningTokens, Cost,
-      Input, Output,
+      Input, Output, OutputObject, ToolCalls, FinishReason, Settings,
       SessionId, SessionName, UserId, TraceName,
       DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput,
-      PromptName, Props
+      PromptName, Props, Metadata
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
@@ -139,6 +144,10 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.Cost,
         row.Input,
         row.Output,
+        row.OutputObject,
+        row.ToolCalls,
+        row.FinishReason,
+        row.Settings,
         row.SessionId,
         row.SessionName,
         row.UserId,
@@ -149,7 +158,8 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.DatasetItemName,
         row.DatasetExpectedOutput,
         row.PromptName,
-        row.Props
+        row.Props,
+        row.Metadata
       );
     }
   });
@@ -164,32 +174,27 @@ export const getRequests = async () => {
       SpanKind AS span_kind,
       Duration AS latency_ms,
       SpanName AS span_name,
-      TenantId AS tenant_id,
-      AppId AS app_id,
       cast(Timestamp as Real) / 1000000 AS ts,
-      json_extract(json(SpanAttributes), '$."gen_ai.system_prompt"') AS system_prompt,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.prompt"') AS prompt_name,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"') AS user_id,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.props"') AS props,
+      PromptName AS prompt_name,
+      UserId AS user_id,
+      Props AS props,
       CASE
-        WHEN json_extract(json(SpanAttributes), '$."ai.response.text"') IS NOT NULL AND json_extract(json(SpanAttributes), '$."ai.response.text"') != ''
-          THEN json_extract(json(SpanAttributes), '$."ai.response.text"')
-        ELSE json_extract(json(SpanAttributes), '$."ai.response.object"')
+        WHEN Output IS NOT NULL AND Output != '' THEN Output
+        WHEN OutputObject IS NOT NULL AND OutputObject != '' THEN OutputObject
+        ELSE ToolCalls
       END AS output,
-      json_extract(json(SpanAttributes), '$."ai.prompt.messages"') AS input,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.dataset_run_id"') AS dataset_run_id,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.dataset_item_name"') AS dataset_item_name,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.dataset_expected_output"') AS dataset_expected_output,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.commit_sha"') AS commit_sha,
-      json_extract(json(SpanAttributes), '$."gen_ai.request.model"') AS model_used,
+      Input AS input,
+      DatasetRunId AS dataset_run_id,
+      DatasetItemName AS dataset_item_name,
+      DatasetExpectedOutput AS dataset_expected_output,
+      Model AS model_used,
       StatusCode AS status,
       StatusMessage AS status_message,
       -- total_tokens = prompt_tokens + completion_tokens
-      (COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.input_tokens"') AS INTEGER), 0)
-       + COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.output_tokens"') AS INTEGER), 0)) AS total_tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.input_tokens"') AS INTEGER), 0) AS prompt_tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.output_tokens"') AS INTEGER), 0) AS completion_tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.cost"') AS REAL), 0.0) AS cost
+      (COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS total_tokens,
+      COALESCE(InputTokens, 0) AS prompt_tokens,
+      COALESCE(OutputTokens, 0) AS completion_tokens,
+      COALESCE(Cost, 0.0) AS cost
     FROM traces
     WHERE SpanName IN (
       'ai.generateText.doGenerate',
@@ -211,13 +216,8 @@ export const getTraces = async () => {
 trace_costs_and_tokens AS (
     SELECT
         TraceId AS id,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
-            CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
-        ) AS tokens,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
-        ) AS cost
+        SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+        SUM(COALESCE(Cost, 0.0)) AS cost
     FROM traces
     WHERE SpanName IN (
         'ai.generateText.doGenerate',
@@ -240,26 +240,26 @@ traces_cte AS (
             WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+        MIN(DatasetRunId) AS dataset_run_id,
+        MIN(DatasetPath) AS dataset_path
     FROM traces
     GROUP BY TraceId
 ),
 
 trace_metadata AS (
     SELECT
-        TraceId AS id,
-        COALESCE(
-            MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
-            MAX(SpanName)
-        ) AS name,
-        MAX(StatusMessage) AS status_message,
-        MAX(Duration) AS latency
-    FROM traces
-    WHERE ParentSpanId NOT IN (
-        SELECT SpanId FROM traces
-    )
-    GROUP BY TraceId
+    t.TraceId AS id,
+    COALESCE(
+        MAX(NULLIF(t.TraceName, '')),
+        MAX(t.SpanName)
+    ) AS name,
+    MAX(t.StatusMessage) AS status_message,
+    MAX(t.Duration) AS latency
+    FROM traces t
+    LEFT JOIN traces c
+        ON c.SpanId = t.ParentSpanId
+    WHERE c.SpanId IS NULL    
+    GROUP BY t.TraceId
 )
 
 SELECT
@@ -302,18 +302,27 @@ export const getSpans = async (traceId: string) => {
       END AS status_code,
       StatusMessage AS status_message,
       SpanAttributes AS attributes,
-      SpanKind AS span_kind,
-      ServiceName AS service_name,
-      TenantId AS tenant_id,
-      AppId AS app_id,
-      (COALESCE(CAST(json_extract(json(SpanAttributes), '$."ai.usage.promptTokens"') AS INTEGER), 0) +
-       COALESCE(CAST(json_extract(json(SpanAttributes), '$."ai.usage.completionTokens"') AS INTEGER), 0)) AS tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.cost"') AS REAL), 0.0) AS cost,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') AS session_id,
-      COALESCE(
-        NULLIF(json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.traceName"'), ''),
-        SpanName
-      ) AS trace_name
+      Type AS type,
+      Model AS model,
+      InputTokens AS inputTokens,
+      OutputTokens AS outputTokens,
+      TotalTokens AS totalTokens,
+      ReasoningTokens AS reasoningTokens,
+      Cost AS cost,
+      Input AS input,
+      Output AS output,
+      OutputObject AS outputObject,
+      ToolCalls AS toolCalls,
+      FinishReason AS finishReason,
+      Settings AS settings,
+      SessionId AS sessionId,
+      SessionName AS sessionName,
+      UserId AS userId,
+      TraceName AS traceName,
+      PromptName AS promptName,
+      Props AS props,
+      SpanKind AS spanKind,
+      ServiceName AS serviceName
     FROM traces
     WHERE TraceId = ?
     ORDER BY CAST(Timestamp AS REAL) ASC
@@ -335,21 +344,33 @@ export const getSpans = async (traceId: string) => {
       // If parsing fails, keep empty object
     }
 
-    // Extract common attributes
+    // Map all flat fields to data object matching SpanData type
     const data: any = {
-      model_name: spanAttributes["gen_ai.request.model"],
-      status_message: row.status_message || undefined,
-      status: row.status_code,
-      span_kind: row.span_kind,
-      service_name: row.service_name,
-      tenant_id: row.tenant_id || undefined,
-      app_id: row.app_id || undefined,
-      tokens: row.tokens || 0,
-      cost: row.cost || 0,
-      session_id: row.session_id || undefined,
-      duration: row.duration || 0,
-      trace_name: row.trace_name || row.name,
+      type: row.type || undefined,
+      model: row.model || undefined,
+      inputTokens: row.inputTokens ?? undefined,
+      outputTokens: row.outputTokens ?? undefined,
+      totalTokens: row.totalTokens ?? undefined,
+      reasoningTokens: row.reasoningTokens ?? undefined,
+      cost: row.cost ?? undefined,
+      input: row.input || undefined,
+      output: row.output || undefined,
+      outputObject: row.outputObject || undefined,
+      toolCalls: row.toolCalls || undefined,
+      finishReason: row.finishReason || undefined,
+      settings: row.settings || undefined,
+      sessionId: row.sessionId || undefined,
+      sessionName: row.sessionName || undefined,
+      userId: row.userId || undefined,
+      traceName: row.traceName || undefined,
+      promptName: row.promptName || undefined,
+      props: row.props || undefined,
       attributes: JSON.stringify(spanAttributes), // Include all attributes
+      statusMessage: row.status_message || undefined,
+      status: row.status_code,
+      spanKind: row.spanKind || undefined,
+      serviceName: row.serviceName || undefined,
+      duration: row.duration || 0,
     };
 
     // Convert timestamp from microseconds to milliseconds (JavaScript standard)
@@ -369,20 +390,13 @@ export const getSpans = async (traceId: string) => {
 };
 
 export const getTraceById = async (traceId: string) => {
-  console.log("traceId", traceId);
-
   const traceSql = `
     WITH
     trace_costs_and_tokens AS (
         SELECT
             TraceId AS id,
-            SUM(
-                CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
-                CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
-            ) AS tokens,
-            SUM(
-                CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
-            ) AS cost
+            SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+            SUM(COALESCE(Cost, 0.0)) AS cost
         FROM traces
         WHERE SpanName IN (
             'ai.generateText.doGenerate',
@@ -405,26 +419,26 @@ export const getTraceById = async (traceId: string) => {
                 WHEN StatusCode = '1' THEN '1'
                 ELSE '0'
             END) AS status,
-            MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
-            MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+            MIN(DatasetRunId) AS dataset_run_id,
+            MIN(DatasetPath) AS dataset_path
         FROM traces
         GROUP BY TraceId
     ),
 
     trace_metadata AS (
         SELECT
-            TraceId AS id,
-            COALESCE(
-                MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
-                MAX(SpanName)
-            ) AS name,
-            MAX(StatusMessage) AS status_message,
-            MAX(Duration) AS latency
-        FROM traces
-        WHERE ParentSpanId NOT IN (
-            SELECT SpanId FROM traces
-        )
-        GROUP BY TraceId
+          t.TraceId AS id,
+          COALESCE(
+              MAX(NULLIF(t.TraceName, '')),
+              MAX(t.SpanName)
+          ) AS name,
+          MAX(t.StatusMessage) AS status_message,
+          MAX(t.Duration) AS latency
+        FROM traces t
+        LEFT JOIN traces c
+            ON c.SpanId = t.ParentSpanId
+        WHERE c.SpanId IS NULL    
+        GROUP BY t.TraceId
     )
 
     SELECT
@@ -562,22 +576,18 @@ export const getSessions = async () => {
   const sql = `
     WITH session_spans AS (
       SELECT
-        TRIM(json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"')) AS id,
+        TRIM(SessionId) AS id,
         CAST(Timestamp AS REAL) / 1000000 AS timestamp,
-        TenantId AS tenant_id,
-        AppId AS app_id,
-        json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionName"') AS session_name
+        SessionName AS session_name
       FROM traces
-      WHERE json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') IS NOT NULL
-        AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') != ''
-        AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') != 'null'
+      WHERE SessionId IS NOT NULL
+        AND SessionId != ''
+        AND SessionId != 'null'
     )
     SELECT
       id,
       MIN(timestamp) AS start,
       MAX(timestamp) AS end,
-      MIN(tenant_id) AS tenant_id,
-      MIN(app_id) AS app_id,
       MIN(CASE 
         WHEN session_name IS NOT NULL AND session_name != ''
         THEN session_name
@@ -598,7 +608,7 @@ export const getTracesBySessionId = async (sessionId: string) => {
   const traceIdsSql = `
     SELECT DISTINCT TraceId
     FROM traces
-    WHERE json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') = ?
+    WHERE SessionId = ?
   `;
 
   const traceIdRows = db.prepare(traceIdsSql).all(sessionId) as Array<{ TraceId: string }>;
@@ -627,13 +637,8 @@ export const getTracesByRunId = async (runId: string) => {
 trace_costs_and_tokens AS (
     SELECT
         TraceId AS id,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
-            CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
-        ) AS tokens,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
-        ) AS cost
+        SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+        SUM(COALESCE(Cost, 0.0)) AS cost
     FROM traces
     WHERE SpanName IN (
         'ai.generateText.doGenerate',
@@ -656,26 +661,26 @@ traces_cte AS (
             WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+        MIN(DatasetRunId) AS dataset_run_id,
+        MIN(DatasetPath) AS dataset_path
     FROM traces
     GROUP BY TraceId
 ),
 
 trace_metadata AS (
     SELECT
-        TraceId AS id,
-        COALESCE(
-            MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
-            MAX(SpanName)
-        ) AS name,
-        MAX(StatusMessage) AS status_message,
-        MAX(Duration) AS latency
-    FROM traces
-    WHERE ParentSpanId NOT IN (
-        SELECT SpanId FROM traces
-    )
-    GROUP BY TraceId
+    t.TraceId AS id,
+    COALESCE(
+        MAX(NULLIF(t.TraceName, '')),
+        MAX(t.SpanName)
+    ) AS name,
+    MAX(t.StatusMessage) AS status_message,
+    MAX(t.Duration) AS latency
+    FROM traces t
+    LEFT JOIN traces c
+        ON c.SpanId = t.ParentSpanId
+    WHERE c.SpanId IS NULL    
+    GROUP BY t.TraceId
 )
 
 SELECT

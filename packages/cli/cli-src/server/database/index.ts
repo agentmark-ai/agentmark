@@ -37,6 +37,10 @@ db.exec(`
         -- I/O fields
         Input TEXT,               -- JSON array of Message objects
         Output TEXT,              -- Plain text or JSON-stringified structured data
+        OutputObject TEXT,        -- JSON-stringified structured object output
+        ToolCalls TEXT,           -- JSON array of ToolCall objects
+        FinishReason TEXT,        -- Unified finish reason (stop, tool-calls, length, etc.)
+        Settings TEXT,            -- JSON-stringified model generation settings
         
         -- Trace context fields
         SessionId TEXT DEFAULT '',
@@ -54,6 +58,7 @@ db.exec(`
         -- Prompt/template fields
         PromptName TEXT DEFAULT '',
         Props TEXT,               -- JSON or string metadata props
+        Metadata TEXT,            -- JSON-encoded custom metadata (Record<string, string>)
         
         -- Raw data for export/debug (JSON-encoded)
         ResourceAttributes TEXT,

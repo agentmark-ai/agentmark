@@ -16,7 +16,6 @@ interface OutputAccordionProps {
     toolCall?: any;
     objectResponse?: any;
   } | null;
-  attributes?: Record<string, any>;
 }
 
 const formatToolCalls = (toolCallsStr?: string) => {
@@ -24,12 +23,28 @@ const formatToolCalls = (toolCallsStr?: string) => {
   try {
     const toolCalls = JSON.parse(toolCallsStr);
     return toolCalls
-      .map(
-        (call: any) => `**Tool Call**: \`${call.toolName}\`
+      .map((call: any) => {
+        const toolName = call.toolName || call.name;
+        if (!toolName) return null;
+
+        // Handle args - can be string or object
+        let argsObj: any;
+        try {
+          if (typeof call.args === 'string') {
+            argsObj = JSON.parse(call.args);
+          } else {
+            argsObj = call.args || {};
+          }
+        } catch {
+          argsObj = {};
+        }
+
+        return `**Tool Call**: \`${toolName}\`
 \`\`\`json
-${JSON.stringify(JSON.parse(call.args), null, 2)}
-\`\`\``
-      )
+${JSON.stringify(argsObj, null, 2)}
+\`\`\``;
+      })
+      .filter(Boolean)
       .join("\n\n");
   } catch {
     return null;
@@ -37,16 +52,50 @@ ${JSON.stringify(JSON.parse(call.args), null, 2)}
 };
 
 const formatToolCall = (toolCall: Record<string, any>) => {
-  if (!toolCall?.name) return null;
+  // Support both 'name' and 'toolName' for compatibility
+  const toolName = toolCall?.name || toolCall?.toolName;
+  if (!toolName) return null;
 
-  return `**Tool Call**: \`${toolCall.name}\`
+  // Handle args - can be string or object
+  let argsObj: any;
+  try {
+    if (typeof toolCall.args === 'string') {
+      argsObj = JSON.parse(toolCall.args);
+    } else {
+      argsObj = toolCall.args || {};
+    }
+  } catch {
+    argsObj = {};
+  }
+
+  // Handle result - can be string, object, or undefined
+  let resultObj: any = null;
+  if (toolCall.result !== undefined) {
+    try {
+      if (typeof toolCall.result === 'string') {
+        resultObj = JSON.parse(toolCall.result);
+      } else {
+        resultObj = toolCall.result;
+      }
+    } catch {
+      resultObj = toolCall.result;
+    }
+  }
+
+  let result = `**Tool Call**: \`${toolName}\`
 \`\`\`json
-${JSON.stringify(JSON.parse(toolCall.args), null, 2)}
-\`\`\`
+${JSON.stringify(argsObj, null, 2)}
+\`\`\``;
+
+  if (resultObj !== null && resultObj !== undefined) {
+    result += `
 **Result**: 
 \`\`\`json
-${JSON.stringify(JSON.parse(toolCall.result), null, 2)}
+${JSON.stringify(resultObj, null, 2)}
 \`\`\``;
+  }
+
+  return result;
 };
 
 const formatObjectResponse = (objectResponse: any) => {
@@ -62,10 +111,7 @@ ${JSON.stringify(objectResponse, null, 2)}
   }
 };
 
-export const OutputAccordion = ({
-  outputData,
-  attributes: _attributes,
-}: OutputAccordionProps) => {
+export const OutputAccordion = ({ outputData }: OutputAccordionProps) => {
   const { t } = useTraceDrawerContext();
   const toolCallsText =
     !outputData?.text && outputData?.toolCalls
@@ -73,7 +119,7 @@ export const OutputAccordion = ({
       : null;
 
   const toolCallText =
-    !outputData?.text && !toolCallsText && outputData?.toolCall?.name
+    !outputData?.text && !toolCallsText && (outputData?.toolCall?.name || outputData?.toolCall?.toolName)
       ? formatToolCall(outputData?.toolCall)
       : null;
 
@@ -89,7 +135,7 @@ export const OutputAccordion = ({
     outputData?.text || toolCallsText || toolCallText || objectResponse;
 
   const isObjectResponse = !!outputData?.objectResponse;
-  const isToolResponse = !!outputData?.toolCall?.name;
+  const isToolResponse = !!(outputData?.toolCall?.name || outputData?.toolCall?.toolName);
 
   return (
     <Accordion sx={{ backgroundColor: "white" }} defaultExpanded>

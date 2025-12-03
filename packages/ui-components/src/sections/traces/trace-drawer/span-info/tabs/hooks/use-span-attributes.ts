@@ -21,8 +21,8 @@ export const useSpanAttributes = (): UseSpanAttributesResult => {
   }, [selectedSpan]);
 
   const transformedAttributes = useMemo(() => {
-    return transformAttributes(rawAttributes);
-  }, [rawAttributes]);
+    return transformAttributes(rawAttributes, selectedSpan?.data);
+  }, [rawAttributes, selectedSpan?.data]);
 
   return {
     rawAttributes,

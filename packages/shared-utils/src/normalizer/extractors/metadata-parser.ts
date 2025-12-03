@@ -1,5 +1,21 @@
 import { NormalizedSpan } from '../types';
 
+// Known metadata fields that should be excluded from custom metadata
+const KNOWN_METADATA_FIELDS = new Set([
+    'session_id',
+    'session_name',
+    'user_id',
+    'trace_name',
+    'dataset_run_id',
+    'dataset_run_name',
+    'dataset_path',
+    'dataset_item_name',
+    'dataset_expected_output',
+    'prompt_name',
+    'props',
+    'commit_sha',
+]);
+
 export function parseMetadata(attributes: Record<string, any>, prefix: string = 'agentmark.metadata.'): Partial<NormalizedSpan> {
     const result: Partial<NormalizedSpan> = {};
 
@@ -27,4 +43,32 @@ export function parseMetadata(attributes: Record<string, any>, prefix: string = 
     if (get('commit_sha')) result.commitSha = String(get('commit_sha'));
 
     return result;
+}
+
+/**
+ * Extracts custom metadata keys from attributes that start with the given prefix.
+ * Excludes known metadata fields that are already extracted as normalized fields.
+ * 
+ * @param attributes - The attributes to extract from
+ * @param prefix - The prefix to look for (default: 'agentmark.metadata.')
+ * @returns A record of custom metadata keys (with prefix stripped) to string values
+ */
+export function extractCustomMetadata(attributes: Record<string, any>, prefix: string = 'agentmark.metadata.'): Record<string, string> {
+    const customMetadata: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(attributes)) {
+        // Check if the key starts with the prefix
+        if (key.startsWith(prefix)) {
+            // Extract the metadata key by removing the prefix
+            const metadataKey = key.slice(prefix.length);
+            
+            // Skip known fields and empty keys
+            if (metadataKey && !KNOWN_METADATA_FIELDS.has(metadataKey)) {
+                // Convert value to string (raw strings, no JSON parsing)
+                customMetadata[metadataKey] = String(value);
+            }
+        }
+    }
+
+    return customMetadata;
 }

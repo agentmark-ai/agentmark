@@ -1,6 +1,6 @@
 import { AttributeExtractor, NormalizedSpan, Message, ToolCall } from '../../../types';
 import { parseTokens } from '../../../extractors/token-parser';
-import { parseMetadata } from '../../../extractors/metadata-parser';
+import { parseMetadata, extractCustomMetadata } from '../../../extractors/metadata-parser';
 import { extractReasoningFromProviderMetadata } from '../token-helpers';
 
 export class AiSdkV5Strategy implements AttributeExtractor {
@@ -9,12 +9,27 @@ export class AiSdkV5Strategy implements AttributeExtractor {
     }
 
     extractInput(attributes: Record<string, any>): Message[] | undefined {
-        // V5 uses ai.prompt.messages
-        if (attributes['ai.prompt.messages'] === undefined) {
+        // V5 uses ai.prompt.messages, but also fallback to ai.prompt for compatibility
+        let messagesValue: any;
+        
+        if (attributes['ai.prompt.messages'] !== undefined) {
+            messagesValue = attributes['ai.prompt.messages'];
+        } else if (attributes['ai.prompt'] !== undefined) {
+            const promptValue = attributes['ai.prompt'];
+            // ai.prompt might be a JSON string with a messages property
+            if (typeof promptValue === 'string') {
+                try {
+                    const parsed = JSON.parse(promptValue);
+                    messagesValue = parsed.messages || parsed;
+                } catch {
+                    return undefined;
+                }
+            } else {
+                messagesValue = promptValue.messages || promptValue;
+            }
+        } else {
             return undefined;
         }
-        
-        const messagesValue = attributes['ai.prompt.messages'];
         
         // Parse if it's a string, otherwise use as-is
         let messages: any;
@@ -68,10 +83,9 @@ export class AiSdkV5Strategy implements AttributeExtractor {
     }
 
     extractToolCalls(attributes: Record<string, any>): ToolCall[] | undefined {
-        // V5 uses 'ai.response.toolCalls'
-        if (attributes['ai.response.toolCalls'] === undefined) {
-            return undefined;
-        }
+        // V5 uses 'ai.response.toolCalls' (for generation spans with tool calls)
+        // Check this first as it takes precedence over individual ai.toolCall.* attributes
+        if (attributes['ai.response.toolCalls'] !== undefined) {
 
         const toolCallsValue = attributes['ai.response.toolCalls'];
 
@@ -100,6 +114,56 @@ export class AiSdkV5Strategy implements AttributeExtractor {
             args: tc.input || tc.args || {},  // v5 uses 'input', normalize to 'args'
             providerMetadata: tc.providerMetadata || tc.providerOptions,
         }));
+        }
+
+        // Fallback: check for individual ai.toolCall.* attributes (for tool call execution spans)
+        if (attributes['ai.toolCall.name'] !== undefined) {
+            const toolCallId = attributes['ai.toolCall.id'];
+            const toolName = attributes['ai.toolCall.name'];
+            const argsValue = attributes['ai.toolCall.args'];
+            const resultValue = attributes['ai.toolCall.result'];
+            
+            if (toolCallId && toolName) {
+                let args: Record<string, any> = {};
+                if (argsValue !== undefined) {
+                    if (typeof argsValue === 'string') {
+                        try {
+                            args = JSON.parse(argsValue);
+                        } catch {
+                            // If parsing fails, treat as empty object
+                            args = {};
+                        }
+                    } else if (typeof argsValue === 'object' && argsValue !== null) {
+                        args = argsValue;
+                    }
+                }
+                
+                // Extract result - keep as string (JSON stringified) for UI compatibility
+                let result: string | undefined;
+                if (resultValue !== undefined) {
+                    if (typeof resultValue === 'string') {
+                        result = resultValue;
+                    } else {
+                        // If it's an object, stringify it
+                        try {
+                            result = JSON.stringify(resultValue);
+                        } catch {
+                            result = String(resultValue);
+                        }
+                    }
+                }
+                
+                return [{
+                    type: 'tool-call',
+                    toolCallId: String(toolCallId),
+                    toolName: String(toolName),
+                    args,
+                    result,
+                }];
+            }
+        }
+
+        return undefined;
     }
 
     extractFinishReason(attributes: Record<string, any>): string | undefined {
@@ -187,10 +251,22 @@ export class AiSdkV5Strategy implements AttributeExtractor {
         // Also check for ai.telemetry.metadata.* attributes
         const aiTelemetryResult = parseMetadata(attributes, 'ai.telemetry.metadata.');
         
+        // Extract custom metadata from both prefixes
+        const agentmarkCustomMetadata = extractCustomMetadata(attributes, 'agentmark.metadata.');
+        const aiTelemetryCustomMetadata = extractCustomMetadata(attributes, 'ai.telemetry.metadata.');
+        
+        // Merge custom metadata (ai.telemetry.metadata takes precedence if both exist)
+        const mergedCustomMetadata = {
+            ...agentmarkCustomMetadata,
+            ...aiTelemetryCustomMetadata,
+        };
+        
         // Merge results (ai.telemetry.metadata takes precedence if both exist)
         return {
             ...result,
             ...aiTelemetryResult,
+            // Only include metadata field if there are custom metadata keys
+            ...(Object.keys(mergedCustomMetadata).length > 0 ? { metadata: mergedCustomMetadata } : {}),
         };
     }
 }

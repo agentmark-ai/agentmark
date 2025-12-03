@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseMetadata } from '../../src/normalizer';
+import { parseMetadata, extractCustomMetadata } from '../../src/normalizer';
 
 describe('Metadata Parser', () => {
   describe('parseMetadata', () => {
@@ -146,6 +146,138 @@ describe('Metadata Parser', () => {
       const result = parseMetadata(attributes);
 
       expect(result.sessionId).toBe('session-123');
+    });
+  });
+
+  describe('extractCustomMetadata', () => {
+    it('should extract custom metadata keys', () => {
+      const attributes = {
+        'agentmark.metadata.custom_key': 'custom-value',
+        'agentmark.metadata.another_key': 'another-value',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.custom_key).toBe('custom-value');
+      expect(result.another_key).toBe('another-value');
+    });
+
+    it('should exclude known metadata fields', () => {
+      const attributes = {
+        'agentmark.metadata.session_id': 'session-123',
+        'agentmark.metadata.user_id': 'user-456',
+        'agentmark.metadata.trace_name': 'test-trace',
+        'agentmark.metadata.custom_key': 'custom-value',
+        'agentmark.metadata.props': '{"key":"value"}',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.session_id).toBeUndefined();
+      expect(result.user_id).toBeUndefined();
+      expect(result.trace_name).toBeUndefined();
+      expect(result.props).toBeUndefined();
+      expect(result.custom_key).toBe('custom-value');
+    });
+
+    it('should work with ai.telemetry.metadata prefix', () => {
+      const attributes = {
+        'ai.telemetry.metadata.custom_key': 'custom-value',
+        'ai.telemetry.metadata.session_id': 'session-123', // Should be excluded
+      };
+
+      const result = extractCustomMetadata(attributes, 'ai.telemetry.metadata.');
+
+      expect(result.custom_key).toBe('custom-value');
+      expect(result.session_id).toBeUndefined();
+    });
+
+    it('should convert values to strings', () => {
+      const attributes = {
+        'agentmark.metadata.number_value': 123,
+        'agentmark.metadata.boolean_value': true,
+        'agentmark.metadata.null_value': null,
+        'agentmark.metadata.object_value': { key: 'value' },
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.number_value).toBe('123');
+      expect(result.boolean_value).toBe('true');
+      expect(result.null_value).toBe('null');
+      expect(result.object_value).toBe('[object Object]');
+    });
+
+    it('should handle empty attributes', () => {
+      const attributes = {};
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it('should handle attributes without metadata prefix', () => {
+      const attributes = {
+        'other.prefix.key': 'value',
+        'no_prefix_key': 'value',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it('should exclude all known fields', () => {
+      const knownFields = [
+        'session_id',
+        'session_name',
+        'user_id',
+        'trace_name',
+        'dataset_run_id',
+        'dataset_run_name',
+        'dataset_path',
+        'dataset_item_name',
+        'dataset_expected_output',
+        'prompt_name',
+        'props',
+        'commit_sha',
+      ];
+
+      const attributes: Record<string, string> = {};
+      knownFields.forEach(field => {
+        attributes[`agentmark.metadata.${field}`] = `value-${field}`;
+      });
+      attributes['agentmark.metadata.custom_field'] = 'custom-value';
+
+      const result = extractCustomMetadata(attributes);
+
+      knownFields.forEach(field => {
+        expect(result[field]).toBeUndefined();
+      });
+      expect(result.custom_field).toBe('custom-value');
+    });
+
+    it('should handle custom prefix', () => {
+      const attributes = {
+        'custom.prefix.custom_key': 'custom-value',
+        'custom.prefix.session_id': 'session-123', // Should be excluded
+      };
+
+      const result = extractCustomMetadata(attributes, 'custom.prefix.');
+
+      expect(result.custom_key).toBe('custom-value');
+      expect(result.session_id).toBeUndefined();
+    });
+
+    it('should strip prefix from keys', () => {
+      const attributes = {
+        'agentmark.metadata.my_custom_key': 'value',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.my_custom_key).toBe('value');
+      expect(result['agentmark.metadata.my_custom_key']).toBeUndefined();
     });
   });
 });

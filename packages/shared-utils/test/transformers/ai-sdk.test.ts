@@ -242,6 +242,113 @@ describe('AiSdkTransformer', () => {
       expect(result.input).toEqual(messages);
     });
 
+    it('should extract input from ai.prompt as JSON string with messages property (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const messages = [
+        { role: 'system', content: 'Extract the names of all people attending the party from the following text. Respond with a list of names only.' },
+        { role: 'user', content: 'Text: We\'re having a party with Alice, Bob, and Carol.' }
+      ];
+      const promptJson = JSON.stringify({ messages });
+      const attributes = {
+        'ai.prompt': promptJson,
+        'ai.response.text': 'response',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual(messages);
+    });
+
+    it('should extract input from ai.prompt as JSON string that is directly an array (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const messages = [{ role: 'user', content: 'Hello' }];
+      const promptJson = JSON.stringify(messages);
+      const attributes = {
+        'ai.prompt': promptJson,
+        'ai.response.text': 'response',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual(messages);
+    });
+
+    it('should extract input from ai.prompt as object with messages property (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const messages = [{ role: 'user', content: 'Hello' }];
+      const attributes = {
+        'ai.prompt': { messages },
+        'ai.response.text': 'response',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual(messages);
+    });
+
+    it('should extract input from ai.prompt as object that is directly an array (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const messages = [{ role: 'user', content: 'Hello' }];
+      const attributes = {
+        'ai.prompt': messages,
+        'ai.response.text': 'response',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual(messages);
+    });
+
+    it('should prefer ai.prompt.messages over ai.prompt (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const messagesFromMessages = [{ role: 'user', content: 'From messages' }];
+      const messagesFromPrompt = [{ role: 'user', content: 'From prompt' }];
+      const attributes = {
+        'ai.prompt.messages': messagesFromMessages,
+        'ai.prompt': JSON.stringify({ messages: messagesFromPrompt }),
+        'ai.response.text': 'response',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual(messagesFromMessages);
+    });
+
     it('should extract output from ai.response.text (v5)', () => {
       const span: OtelSpan = {
         traceId: 'trace-1',
@@ -383,6 +490,34 @@ describe('AiSdkTransformer', () => {
       expect(result.props).toBe('{"key":"value"}');
     });
 
+    it('should extract custom metadata keys', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.response.text': '', // v5 indicator
+        'ai.telemetry.metadata.trace_name': 'test-trace', // Known field
+        'ai.telemetry.metadata.custom_key': 'custom-value',
+        'ai.telemetry.metadata.another_custom': 'another-value',
+        'agentmark.metadata.custom_from_agentmark': 'agentmark-value',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.traceName).toBe('test-trace');
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata?.custom_key).toBe('custom-value');
+      expect(result.metadata?.another_custom).toBe('another-value');
+      expect(result.metadata?.custom_from_agentmark).toBe('agentmark-value');
+      // Known fields should not be in metadata
+      expect(result.metadata?.trace_name).toBeUndefined();
+    });
+
     it('should handle v4 version detection', () => {
       const span: OtelSpan = {
         traceId: 'trace-1',
@@ -484,6 +619,121 @@ describe('AiSdkTransformer', () => {
       expect(result.toolCalls![0].toolCallId).toBe('call-456');
       expect(result.toolCalls![0].toolName).toBe('search');
       expect(result.toolCalls![0].args).toEqual({ query: 'test' }); // v4 'args' stays as 'args'
+    });
+
+    it('should extract toolCalls from individual ai.toolCall.* attributes (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'ai.toolCall',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.toolCall.name': 'search_knowledgebase',
+        'ai.toolCall.id': 'call_TmOQ6ajqh1sL7O3b6XWp7TeJ',
+        'ai.toolCall.args': '{"query":"shipping times"}',
+        'ai.toolCall.result': '{"articles":[...]}',
+        'ai.response.text': '', // v5 indicator
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.toolCalls).toBeDefined();
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolCalls![0].toolCallId).toBe('call_TmOQ6ajqh1sL7O3b6XWp7TeJ');
+      expect(result.toolCalls![0].toolName).toBe('search_knowledgebase');
+      expect(result.toolCalls![0].args).toEqual({ query: 'shipping times' });
+      expect(result.toolCalls![0].result).toBe('{"articles":[...]}');
+      expect(result.toolCalls![0].type).toBe('tool-call');
+    });
+
+    it('should extract toolCalls from individual ai.toolCall.* attributes (v4)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'ai.toolCall',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.toolCall.name': 'search_knowledgebase',
+        'ai.toolCall.id': 'call_xyz123abc456def789',
+        'ai.toolCall.args': '{"query":"test query"}',
+        'ai.toolCall.result': '{"result":"test result"}',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.toolCalls).toBeDefined();
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolCalls![0].toolCallId).toBe('call_xyz123abc456def789');
+      expect(result.toolCalls![0].toolName).toBe('search_knowledgebase');
+      expect(result.toolCalls![0].args).toEqual({ query: 'test query' });
+      expect(result.toolCalls![0].result).toBe('{"result":"test result"}');
+      expect(result.toolCalls![0].type).toBe('tool-call');
+    });
+
+    it('should extract toolCalls from ai.toolCall.* with object args (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'ai.toolCall',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const attributes = {
+        'ai.toolCall.name': 'search',
+        'ai.toolCall.id': 'call-123',
+        'ai.toolCall.args': { query: 'test', limit: 10 }, // Already an object
+        'ai.toolCall.result': { articles: [{ title: 'Article 1' }] }, // Object result
+        'ai.response.text': '', // v5 indicator
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.toolCalls).toBeDefined();
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolCalls![0].args).toEqual({ query: 'test', limit: 10 });
+      expect(result.toolCalls![0].result).toBe('{"articles":[{"title":"Article 1"}]}');
+    });
+
+    it('should prefer ai.response.toolCalls over ai.toolCall.* attributes (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'test',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+
+      const toolCallsFromResponse = [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-from-response',
+          toolName: 'search',
+          input: { query: 'from response' },
+        },
+      ];
+      const attributes = {
+        'ai.toolCall.name': 'search_knowledgebase',
+        'ai.toolCall.id': 'call-from-individual',
+        'ai.toolCall.args': '{"query":"from individual"}',
+        'ai.response.text': '', // v5 indicator
+        'ai.response.toolCalls': JSON.stringify(toolCallsFromResponse),
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.toolCalls).toBeDefined();
+      expect(result.toolCalls).toHaveLength(1);
+      // Should use ai.response.toolCalls, not ai.toolCall.*
+      expect(result.toolCalls![0].toolCallId).toBe('call-from-response');
+      expect(result.toolCalls![0].toolName).toBe('search');
+      expect(result.toolCalls![0].args).toEqual({ query: 'from response' });
     });
 
     it('should extract outputObject from ai.result.object (v4)', () => {

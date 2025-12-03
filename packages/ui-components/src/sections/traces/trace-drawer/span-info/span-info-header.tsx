@@ -1,11 +1,12 @@
 import { Typography, Stack } from "@mui/material";
 import { useSpanInfoContext } from "./span-info-provider";
 import { useTraceDrawerContext } from "../trace-drawer-provider";
-import { SpanAttributeKeys } from "./const";
 
 export const SpanInfoHeader = () => {
-  const { span, spanAttributes } = useSpanInfoContext();
+  const { span } = useSpanInfoContext();
   const { t } = useTraceDrawerContext();
+
+  const modelName = span.data.model;
 
   return (
     <Stack
@@ -24,7 +25,7 @@ export const SpanInfoHeader = () => {
         </Typography>{" "}
         {span.id}
       </Typography>
-      {spanAttributes[SpanAttributeKeys.REQUEST_MODEL] && (
+      {modelName && (
         <Typography variant="subtitle2">
           <Typography
             component="span"
@@ -33,7 +34,7 @@ export const SpanInfoHeader = () => {
           >
             {t("modelName")}:
           </Typography>{" "}
-          {spanAttributes[SpanAttributeKeys.REQUEST_MODEL]}
+          {modelName}
         </Typography>
       )}
     </Stack>

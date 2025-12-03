@@ -14,6 +14,7 @@ export interface ToolCall {
     toolCallId: string;
     toolName: string;
     args: Record<string, any>;  // Unified: v4 uses 'args', v5 uses 'input' (normalized to 'args')
+    result?: string;  // Tool execution result (JSON string for tool call execution spans)
     providerMetadata?: Record<string, any>;  // v5 specific: provider-specific metadata
 }
 
@@ -120,6 +121,9 @@ export interface NormalizedSpan {
 
     // Version control field
     commitSha?: string;
+
+    // Custom metadata fields (keys from metadata prefixes that don't map to known fields)
+    metadata?: Record<string, string>;
 
     // Raw data for export/debug
     resourceAttributes: Record<string, any>;
