@@ -8,10 +8,16 @@ import type { NormalizedSpan } from "@agentmark/shared-utils";
 /**
  * Convert NormalizedSpan to SQLite row format
  */
-function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Record<string, { promptPrice: number; completionPrice: number }>) {
+function normalizedSpanToSqliteRow(
+  span: NormalizedSpan,
+  modelsCostMapping: Record<
+    string,
+    { promptPrice: number; completionPrice: number }
+  >
+) {
   // Convert startTime from milliseconds to nanoseconds (as string for Timestamp)
   const timestampNs = Math.floor(span.startTime * 1000000).toString();
-  
+
   // Duration is stored in milliseconds (no conversion needed)
   const durationMs = Math.floor(span.duration);
 
@@ -19,8 +25,12 @@ function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Reco
   let cost = span.cost || 0;
   const isSuccess = span.statusCode !== "2";
   const spanAttributes = { ...span.spanAttributes };
-  
-  if (span.model && span.inputTokens !== undefined && span.outputTokens !== undefined) {
+
+  if (
+    span.model &&
+    span.inputTokens !== undefined &&
+    span.outputTokens !== undefined
+  ) {
     const priceMap = isSuccess ? modelsCostMapping[span.model] : null;
     if (priceMap) {
       const getCost = getCostFormula(
@@ -34,18 +44,18 @@ function normalizedSpanToSqliteRow(span: NormalizedSpan, modelsCostMapping: Reco
   }
 
   // Convert events to consolidated JSON array
-  const events = span.events.map(e => ({
+  const events = span.events.map((e) => ({
     timestamp: Math.floor(e.timestamp * 1000000),
     name: e.name,
-    attributes: e.attributes || {}
+    attributes: e.attributes || {},
   }));
 
   // Convert links to consolidated JSON array
-  const links = span.links.map(l => ({
+  const links = span.links.map((l) => ({
     traceId: l.traceId,
     spanId: l.spanId,
     traceState: l.traceState || null,
-    attributes: l.attributes || {}
+    attributes: l.attributes || {},
   }));
 
   return {
@@ -312,7 +322,8 @@ export const getSpans = async (traceId: string) => {
       PromptName AS promptName,
       Props AS props,
       SpanKind AS spanKind,
-      ServiceName AS serviceName
+      ServiceName AS serviceName,
+      Metadata AS metadata
     FROM traces
     WHERE TraceId = ?
     ORDER BY CAST(Timestamp AS REAL) ASC
@@ -361,6 +372,7 @@ export const getSpans = async (traceId: string) => {
       spanKind: row.spanKind || undefined,
       serviceName: row.serviceName || undefined,
       duration: row.duration || 0,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
     };
 
     // Convert timestamp from microseconds to milliseconds (JavaScript standard)
@@ -478,8 +490,8 @@ export const getTraceGraph = async (traceId: string) => {
       Metadata AS metadata
     FROM traces
     WHERE TraceId = ?
-      AND json_extract(json(Metadata), '$.graph.node.id') != ''
-      AND json_extract(json(Metadata), '$.graph.node.id') IS NOT NULL
+      AND json_extract(json(Metadata), '$."graph.node.id"') != ''
+      AND json_extract(json(Metadata), '$."graph.node.id"') IS NOT NULL
     ORDER BY CAST(Timestamp AS REAL) ASC
   `;
 
@@ -509,13 +521,13 @@ export const getTraceGraph = async (traceId: string) => {
       continue;
     }
 
-    const nodeId = metadata?.graph?.node?.id || "";
+    const nodeId = metadata["graph.node.id"] || "";
     if (!nodeId) continue;
 
     // Handle parent_id - can be single value or array
     let parentNodeId: string | Array<string> | undefined;
-    const parentIds = metadata?.graph?.node?.parent_ids || [];
-    const parentId = metadata?.graph?.node?.parent_id;
+    const parentIds = JSON.parse(metadata["graph.node.parent_ids"] || "[]");
+    const parentId = metadata["graph.node.parent_id"];
 
     if (Array.isArray(parentIds) && parentIds.length > 0) {
       parentNodeId = parentIds;
@@ -523,8 +535,8 @@ export const getTraceGraph = async (traceId: string) => {
       parentNodeId = parentId;
     }
 
-    const displayName = metadata?.graph?.node?.display_name || "";
-    const nodeType = metadata?.graph?.node?.type || "";
+    const displayName = metadata["graph.node.display_name"] || "";
+    const nodeType = metadata["graph.node.type"] || "";
 
     if (Array.isArray(parentNodeId)) {
       parentNodeId.forEach((id) => {
@@ -591,7 +603,9 @@ export const getTracesBySessionId = async (sessionId: string) => {
     WHERE SessionId = ?
   `;
 
-  const traceIdRows = db.prepare(traceIdsSql).all(sessionId) as Array<{ TraceId: string }>;
+  const traceIdRows = db.prepare(traceIdsSql).all(sessionId) as Array<{
+    TraceId: string;
+  }>;
   const traceIds = traceIdRows.map((row) => row.TraceId);
 
   if (traceIds.length === 0) {

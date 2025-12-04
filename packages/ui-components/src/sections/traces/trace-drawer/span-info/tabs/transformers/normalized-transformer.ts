@@ -115,8 +115,18 @@ export class NormalizedTransformer implements AttributeTransformer {
     }
 
     if (normalizedData.metadata) {
-      transformed.metadata = normalizedData.metadata;
-      hasAnyData = true;
+      try {
+        const metadata =
+          typeof normalizedData.metadata === "string"
+            ? JSON.parse(normalizedData.metadata)
+            : normalizedData.metadata;
+        if (metadata && Object.keys(metadata).length > 0) {
+          transformed.metadata = metadata;
+          hasAnyData = true;
+        }
+      } catch (_error) {
+        void _error;
+      }
     }
 
     return hasAnyData ? transformed : null;
