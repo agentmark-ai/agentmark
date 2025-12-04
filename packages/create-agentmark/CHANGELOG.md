@@ -1,5 +1,11 @@
 # create-agentmark
 
+## 0.5.0
+
+### Minor Changes
+
+- 13a7ce2: Feat: cloud/self-host arg
+
 ## 0.4.0
 
 ### Minor Changes
