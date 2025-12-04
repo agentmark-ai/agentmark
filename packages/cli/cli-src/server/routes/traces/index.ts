@@ -196,12 +196,7 @@ export const getRequests = async () => {
       COALESCE(OutputTokens, 0) AS completion_tokens,
       COALESCE(Cost, 0.0) AS cost
     FROM traces
-    WHERE SpanName IN (
-      'ai.generateText.doGenerate',
-      'ai.streamText.doStream',
-      'ai.generateObject.doGenerate',
-      'ai.streamObject.doStream'
-    )
+    WHERE Type = 'GENERATION'
     ORDER BY ts DESC
   `;
 
@@ -219,12 +214,7 @@ trace_costs_and_tokens AS (
         SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
         SUM(COALESCE(Cost, 0.0)) AS cost
     FROM traces
-    WHERE SpanName IN (
-        'ai.generateText.doGenerate',
-        'ai.streamText.doStream',
-        'ai.generateObject.doGenerate',
-        'ai.streamObject.doStream'
-    )
+    WHERE Type = 'GENERATION'
     GROUP BY TraceId
 ),
 
@@ -398,12 +388,7 @@ export const getTraceById = async (traceId: string) => {
             SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
             SUM(COALESCE(Cost, 0.0)) AS cost
         FROM traces
-        WHERE SpanName IN (
-            'ai.generateText.doGenerate',
-            'ai.streamText.doStream',
-            'ai.generateObject.doGenerate',
-            'ai.streamObject.doStream'
-        )
+        WHERE Type = 'GENERATION'
         GROUP BY TraceId
     ),
 
@@ -490,11 +475,11 @@ export const getTraceGraph = async (traceId: string) => {
     SELECT
       SpanId AS span_id,
       SpanName AS span_name,
-      SpanAttributes AS attributes
+      Metadata AS metadata
     FROM traces
     WHERE TraceId = ?
-      AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.graph.node.id"') != ''
-      AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.graph.node.id"') IS NOT NULL
+      AND json_extract(json(Metadata), '$.graph.node.id') != ''
+      AND json_extract(json(Metadata), '$.graph.node.id') IS NOT NULL
     ORDER BY CAST(Timestamp AS REAL) ASC
   `;
 
@@ -510,30 +495,27 @@ export const getTraceGraph = async (traceId: string) => {
   }> = [];
 
   for (const row of rows) {
-    // Parse SpanAttributes JSON
-    let spanAttributes: any = {};
+    // Parse Metadata JSON
+    let metadata: any = {};
     try {
-      if (row.attributes) {
-        spanAttributes =
-          typeof row.attributes === "string"
-            ? JSON.parse(row.attributes)
-            : row.attributes;
+      if (row.metadata) {
+        metadata =
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata)
+            : row.metadata;
       }
     } catch {
       // If parsing fails, skip this row
       continue;
     }
 
-    const nodeId = spanAttributes["ai.telemetry.metadata.graph.node.id"] || "";
+    const nodeId = metadata?.graph?.node?.id || "";
     if (!nodeId) continue;
 
     // Handle parent_id - can be single value or array
     let parentNodeId: string | Array<string> | undefined;
-    const parentIds = JSON.parse(
-      spanAttributes["ai.telemetry.metadata.graph.node.parent_ids"] || "[]"
-    );
-    const parentId =
-      spanAttributes["ai.telemetry.metadata.graph.node.parent_id"];
+    const parentIds = metadata?.graph?.node?.parent_ids || [];
+    const parentId = metadata?.graph?.node?.parent_id;
 
     if (Array.isArray(parentIds) && parentIds.length > 0) {
       parentNodeId = parentIds;
@@ -541,10 +523,8 @@ export const getTraceGraph = async (traceId: string) => {
       parentNodeId = parentId;
     }
 
-    const displayName =
-      spanAttributes["ai.telemetry.metadata.graph.node.display_name"] || "";
-    const nodeType =
-      spanAttributes["ai.telemetry.metadata.graph.node.type"] || "";
+    const displayName = metadata?.graph?.node?.display_name || "";
+    const nodeType = metadata?.graph?.node?.type || "";
 
     if (Array.isArray(parentNodeId)) {
       parentNodeId.forEach((id) => {
@@ -640,12 +620,7 @@ trace_costs_and_tokens AS (
         SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
         SUM(COALESCE(Cost, 0.0)) AS cost
     FROM traces
-    WHERE SpanName IN (
-        'ai.generateText.doGenerate',
-        'ai.streamText.doStream',
-        'ai.generateObject.doGenerate',
-        'ai.streamObject.doStream'
-    )
+    WHERE Type = 'GENERATION'
     GROUP BY TraceId
 ),
 

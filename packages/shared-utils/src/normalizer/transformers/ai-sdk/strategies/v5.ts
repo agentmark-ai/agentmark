@@ -1,9 +1,131 @@
-import { AttributeExtractor, NormalizedSpan, Message, ToolCall } from '../../../types';
+import { 
+    AttributeExtractor, 
+    NormalizedSpan, 
+    Message, 
+    ToolCall,
+    StandardMessageContent,
+    StandardToolCallContent,
+    StandardToolResultContent,
+} from '../../../types';
 import { parseTokens } from '../../../extractors/token-parser';
 import { parseMetadata, extractCustomMetadata } from '../../../extractors/metadata-parser';
 import { extractReasoningFromProviderMetadata } from '../token-helpers';
 
 export class AiSdkV5Strategy implements AttributeExtractor {
+    /**
+     * Normalize a content part from V5 format to standard format
+     */
+    private normalizeContentPart(part: any): StandardMessageContent {
+        // Handle plain text parts
+        if (typeof part === 'string') {
+            return part;
+        }
+
+        if (!part || typeof part !== 'object') {
+            return part;
+        }
+
+        const type = part.type;
+
+        // Handle text content
+        if (type === 'text') {
+            return {
+                type: 'text',
+                text: part.text || '',
+            };
+        }
+
+        // Handle tool-call content (V5 uses 'input', normalize to 'args')
+        if (type === 'tool-call') {
+            return {
+                type: 'tool-call',
+                toolCallId: part.toolCallId || '',
+                toolName: part.toolName || '',
+                args: part.input || part.args || {},  // V5 uses 'input', normalize to 'args'
+            } as StandardToolCallContent;
+        }
+
+        // Handle tool-result content (V5 uses 'output.value', normalize to 'result')
+        if (type === 'tool-result') {
+            let normalizedResult: any;
+
+            // V5 uses output: {type, value} structure
+            if (part.output !== undefined) {
+                // Extract the value from the output wrapper
+                if (typeof part.output === 'object' && part.output !== null) {
+                    // Handle output.value structure
+                    if ('value' in part.output) {
+                        normalizedResult = part.output.value;
+                    } else {
+                        // Fallback: use the whole output object
+                        normalizedResult = part.output;
+                    }
+                } else {
+                    normalizedResult = part.output;
+                }
+            } else if (part.result !== undefined) {
+                // Fallback to result if output is not present
+                normalizedResult = part.result;
+            } else {
+                normalizedResult = undefined;
+            }
+
+            return {
+                type: 'tool-result',
+                toolCallId: part.toolCallId || '',
+                toolName: part.toolName || '',
+                result: normalizedResult,
+            } as StandardToolResultContent;
+        }
+
+        // Unknown type, return as-is
+        return part;
+    }
+
+    /**
+     * Normalize a single message from V5 format to standard format
+     */
+    private normalizeMessage(message: any): Message {
+        if (!message || typeof message !== 'object') {
+            return message;
+        }
+
+        const { role, content, ...rest } = message;
+
+        // Normalize content
+        let normalizedContent: StandardMessageContent | StandardMessageContent[];
+
+        if (typeof content === 'string') {
+            // Plain string content
+            normalizedContent = content;
+        } else if (Array.isArray(content)) {
+            // Array of content parts - normalize each part
+            normalizedContent = content.map((part) => this.normalizeContentPart(part));
+        } else if (content && typeof content === 'object') {
+            // Single content object - normalize it
+            normalizedContent = this.normalizeContentPart(content);
+        } else {
+            normalizedContent = content;
+        }
+
+        return {
+            role: role || '',
+            content: normalizedContent,
+            ...rest,
+        };
+    }
+
+    /**
+     * Normalize messages array from V5 format to standard format
+     */
+    private normalizeMessages(messages: any[]): Message[] {
+        if (!Array.isArray(messages)) {
+            return messages;
+        }
+
+        return messages.map((msg) => this.normalizeMessage(msg));
+    }
+
     extractModel(attributes: Record<string, any>): string | undefined {
         return attributes['gen_ai.request.model'] || attributes['ai.model.id'];
     }
@@ -44,11 +166,12 @@ export class AiSdkV5Strategy implements AttributeExtractor {
         }
         
         // Ensure it's an array
-        if (Array.isArray(messages)) {
-            return messages as Message[];
+        if (!Array.isArray(messages)) {
+            return undefined;
         }
         
-        return undefined;
+        // Normalize messages from V5 format to standard format
+        return this.normalizeMessages(messages);
     }
 
     extractOutput(attributes: Record<string, any>): string | undefined {

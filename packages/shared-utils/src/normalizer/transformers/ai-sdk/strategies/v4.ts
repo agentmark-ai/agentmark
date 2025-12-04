@@ -1,9 +1,108 @@
-import { AttributeExtractor, NormalizedSpan, Message, ToolCall } from '../../../types';
+import { 
+    AttributeExtractor, 
+    NormalizedSpan, 
+    Message, 
+    ToolCall,
+    StandardMessageContent,
+    StandardToolCallContent,
+    StandardToolResultContent,
+} from '../../../types';
 import { parseTokens } from '../../../extractors/token-parser';
 import { parseMetadata, extractCustomMetadata } from '../../../extractors/metadata-parser';
 import { extractReasoningFromProviderMetadata } from '../token-helpers';
 
 export class AiSdkV4Strategy implements AttributeExtractor {
+    /**
+     * Normalize a content part from V4 format to standard format
+     */
+    private normalizeContentPart(part: any): StandardMessageContent {
+        // Handle plain text parts
+        if (typeof part === 'string') {
+            return part;
+        }
+
+        if (!part || typeof part !== 'object') {
+            return part;
+        }
+
+        const type = part.type;
+
+        // Handle text content
+        if (type === 'text') {
+            return {
+                type: 'text',
+                text: part.text || '',
+            };
+        }
+
+        // Handle tool-call content (V4 uses 'args')
+        if (type === 'tool-call') {
+            return {
+                type: 'tool-call',
+                toolCallId: part.toolCallId || '',
+                toolName: part.toolName || '',
+                args: part.args || {},  // V4 uses 'args' directly
+            } as StandardToolCallContent;
+        }
+
+        // Handle tool-result content (V4 uses 'result')
+        if (type === 'tool-result') {
+            return {
+                type: 'tool-result',
+                toolCallId: part.toolCallId || '',
+                toolName: part.toolName || '',
+                result: part.result,  // V4 uses 'result' directly
+            } as StandardToolResultContent;
+        }
+
+        // Unknown type, return as-is
+        return part;
+    }
+
+    /**
+     * Normalize a single message from V4 format to standard format
+     */
+    private normalizeMessage(message: any): Message {
+        if (!message || typeof message !== 'object') {
+            return message;
+        }
+
+        const { role, content, ...rest } = message;
+
+        // Normalize content
+        let normalizedContent: StandardMessageContent | StandardMessageContent[];
+
+        if (typeof content === 'string') {
+            // Plain string content
+            normalizedContent = content;
+        } else if (Array.isArray(content)) {
+            // Array of content parts - normalize each part
+            normalizedContent = content.map((part) => this.normalizeContentPart(part));
+        } else if (content && typeof content === 'object') {
+            // Single content object - normalize it
+            normalizedContent = this.normalizeContentPart(content);
+        } else {
+            normalizedContent = content;
+        }
+
+        return {
+            role: role || '',
+            content: normalizedContent,
+            ...rest,
+        };
+    }
+
+    /**
+     * Normalize messages array from V4 format to standard format
+     */
+    private normalizeMessages(messages: any[]): Message[] {
+        if (!Array.isArray(messages)) {
+            return messages;
+        }
+
+        return messages.map((msg) => this.normalizeMessage(msg));
+    }
+
     extractModel(attributes: Record<string, any>): string | undefined {
         return attributes['gen_ai.request.model'] || attributes['ai.model.id'];
     }
@@ -44,11 +143,12 @@ export class AiSdkV4Strategy implements AttributeExtractor {
         }
         
         // Ensure it's an array
-        if (Array.isArray(messages)) {
-            return messages as Message[];
+        if (!Array.isArray(messages)) {
+            return undefined;
         }
         
-        return undefined;
+        // Normalize messages from V4 format to standard format
+        return this.normalizeMessages(messages);
     }
 
     extractOutput(attributes: Record<string, any>): string | undefined {

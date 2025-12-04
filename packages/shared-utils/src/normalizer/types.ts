@@ -4,9 +4,45 @@ export enum SpanType {
     EVENT = 'EVENT',
 }
 
+/**
+ * Standard message content part types
+ */
+export interface StandardTextContent {
+    type: 'text';
+    text: string;
+}
+
+export interface StandardToolCallContent {
+    type: 'tool-call';
+    toolCallId: string;
+    toolName: string;
+    args: Record<string, any>;  // Normalized field name (V4 uses 'args', V5 uses 'input' -> normalized to 'args')
+}
+
+export interface StandardToolResultContent {
+    type: 'tool-result';
+    toolCallId: string;
+    toolName: string;
+    result: any;  // Normalized field name (V4 uses 'result', V5 uses 'output.value' -> normalized to 'result')
+}
+
+export type StandardMessageContent = 
+    | StandardTextContent 
+    | StandardToolCallContent 
+    | StandardToolResultContent
+    | string;  // Plain string content
+
+/**
+ * Standard message type used throughout the normalizer.
+ * Messages are normalized from V4/V5 formats to this standard format.
+ * 
+ * Content can be:
+ * - A plain string
+ * - An array of content parts (text, tool-call, tool-result)
+ */
 export interface Message {
     role: string;
-    content: string | Array<{ type: string; text: string }>;
+    content: StandardMessageContent | StandardMessageContent[];
 }
 
 export interface ToolCall {
