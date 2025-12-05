@@ -46,6 +46,40 @@ describe("OTLP Exporter", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
+  function findSpanByName(spanName: string): {
+    span: OTLPRequest["resourceSpans"][0]["scopeSpans"][0]["spans"][0];
+    attrMap: Map<string, string | undefined>;
+  } | null {
+    // Search through all requests in reverse order (most recent first)
+    for (let i = receivedRequests.length - 1; i >= 0; i--) {
+      const request = receivedRequests[i];
+      for (const resourceSpan of request.body.resourceSpans) {
+        for (const scopeSpan of resourceSpan.scopeSpans) {
+          for (const span of scopeSpan.spans) {
+            // Check if this is the span we're looking for by name
+            if (span.name === spanName) {
+              const attrMap = new Map(
+                span.attributes.map((attr) => [attr.key, attr.value.stringValue])
+              );
+              return { span, attrMap };
+            }
+            // Also check trace_name attribute as fallback
+            const traceNameAttr = span.attributes.find(
+              (attr) => attr.key === "agentmark.trace_name"
+            );
+            if (traceNameAttr?.value.stringValue === spanName) {
+              const attrMap = new Map(
+                span.attributes.map((attr) => [attr.key, attr.value.stringValue])
+              );
+              return { span, attrMap };
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   beforeAll(async () => {
     // Create a single server for all tests
     receivedRequests = [];
@@ -100,11 +134,11 @@ describe("OTLP Exporter", () => {
     }
   });
 
-  it("should test all OTLP exporter functionality", async () => {
+  it("should test all OTLP exporter functionality including utility functions and context parameters", { timeout: 30000 }, async () => {
     // Initialize tracing once for the entire test
     activeSdk = sdk.initTracing({ disableBatch: true });
 
-    // Test 1: Basic span creation and OTLP payload structure
+    // ===== Test 1: Basic span creation and OTLP payload structure =====
     await trace({ name: "test-span" }, () => {
       return Promise.resolve("test");
     });
@@ -116,7 +150,7 @@ describe("OTLP Exporter", () => {
     expect(firstRequest.body.resourceSpans).toHaveLength(1);
     expect(firstRequest.body.resourceSpans[0]).toHaveProperty("scopeSpans");
 
-    // Test 2: Resource attributes
+    // ===== Test 2: Resource attributes =====
     const resourceAttributes = firstRequest.body.resourceSpans[0].resource.attributes;
     const resourceAttrMap = new Map(
       resourceAttributes.map((attr) => [attr.key, attr.value.stringValue])
@@ -124,11 +158,11 @@ describe("OTLP Exporter", () => {
     expect(resourceAttrMap.get("service.name")).toBe("agentmark-client");
     expect(resourceAttrMap.get("agentmark.app_id")).toBe("test-app-id");
 
-    // Test 3: Tracer scope
+    // ===== Test 3: Tracer scope =====
     const scope = firstRequest.body.resourceSpans[0].scopeSpans[0].scope;
     expect(scope.name).toBe("agentmark");
 
-    // Test 4: Metadata attributes with prefix
+    // ===== Test 4: Metadata attributes with prefix =====
     await trace(
       {
         name: "test-span-metadata",
@@ -151,7 +185,7 @@ describe("OTLP Exporter", () => {
     expect(metadataAttrMap.get("agentmark.metadata.sessionId")).toBe("session-123");
     expect(metadataAttrMap.get("agentmark.metadata.userId")).toBe("user-456");
 
-    // Test 5: Events in OTLP export
+    // ===== Test 5: Events in OTLP export =====
     await trace({ name: "test-span-events" }, async () => {
       const span = api.trace.getActiveSpan();
       if (span) {
@@ -174,12 +208,12 @@ describe("OTLP Exporter", () => {
       expect(eventAttrMap.get("event.key")).toBe("event-value");
     }
 
-    // Test 6: Authentication headers
+    // ===== Test 6: Authentication headers =====
     const authRequest = receivedRequests[0];
     expect(authRequest.headers.authorization).toBe("test-api-key");
     expect(authRequest.headers["x-agentmark-app-id"]).toBe("test-app-id");
 
-    // Test 7: Component function
+    // ===== Test 7: Component function =====
     await component(
       {
         name: "test-component",
@@ -199,7 +233,7 @@ describe("OTLP Exporter", () => {
     );
     expect(componentAttrMap.get("agentmark.metadata.componentType")).toBe("processor");
 
-    // Test 8: Error handling and error status
+    // ===== Test 8: Error handling and error status =====
     try {
       await trace({ name: "error-span" }, () => {
         throw new Error("Test error");
@@ -214,7 +248,148 @@ describe("OTLP Exporter", () => {
     // OpenTelemetry uses numeric status codes: 1 = OK, 2 = ERROR
     expect(errorSpan.status?.code).toBe(2);
 
-    // Test 9: Batch span processor
+    // ===== Test 9: Utility Functions - get active traceId =====
+    let capturedTraceId: string | null = null;
+    await trace({ name: "test-trace-id" }, async () => {
+      capturedTraceId = getActiveTraceId();
+      return Promise.resolve("test");
+    });
+    await flushSpans();
+    expect(capturedTraceId).toBeTruthy();
+    expect(typeof capturedTraceId).toBe("string");
+
+    // ===== Test 10: Utility Functions - get active spanId =====
+    let capturedSpanId: string | null = null;
+    await trace({ name: "test-span-id" }, async () => {
+      capturedSpanId = getActiveSpanId();
+      return Promise.resolve("test");
+    });
+    await flushSpans();
+    expect(capturedSpanId).toBeTruthy();
+    expect(typeof capturedSpanId).toBe("string");
+
+    // ===== Test 11: Utility Functions - return null when no active span =====
+    const traceId = getActiveTraceId();
+    const spanId = getActiveSpanId();
+    // Outside of a span context, these should be null
+    // Note: This might not always be null if there's a global context
+    // but it tests the function doesn't throw
+    expect(traceId === null || typeof traceId === "string").toBe(true);
+    expect(spanId === null || typeof spanId === "string").toBe(true);
+
+    // ===== Test 12: Context Parameters - set agentmark.* attributes for context parameters in trace() =====
+    await trace(
+      {
+        name: "test-context-params",
+        sessionId: "session-123",
+        sessionName: "test-session",
+        userId: "user-456",
+        datasetRunId: "run-789",
+        datasetRunName: "test-run",
+        datasetItemName: "item-1",
+        datasetExpectedOutput: "expected-output",
+      },
+      () => {
+        return Promise.resolve("test");
+      }
+    );
+    await flushSpans();
+
+    const result1 = findSpanByName("test-context-params");
+    expect(result1).not.toBeNull();
+    const contextSpan = result1!.span;
+    const contextAttrMap = result1!.attrMap;
+
+    expect(contextSpan.name).toBe("test-context-params");
+    expect(contextAttrMap.get("agentmark.trace_name")).toBe("test-context-params");
+    expect(contextAttrMap.get("agentmark.session_id")).toBe("session-123");
+    expect(contextAttrMap.get("agentmark.session_name")).toBe("test-session");
+    expect(contextAttrMap.get("agentmark.user_id")).toBe("user-456");
+    expect(contextAttrMap.get("agentmark.dataset_run_id")).toBe("run-789");
+    expect(contextAttrMap.get("agentmark.dataset_run_name")).toBe("test-run");
+    expect(contextAttrMap.get("agentmark.dataset_item_name")).toBe("item-1");
+    expect(contextAttrMap.get("agentmark.dataset_expected_output")).toBe("expected-output");
+
+    // ===== Test 13: Context Parameters - set agentmark.* attributes for context parameters in component() =====
+    await component(
+      {
+        name: "test-component-context",
+        sessionId: "session-456",
+        userId: "user-789",
+        datasetRunId: "run-012",
+      },
+      () => {
+        return Promise.resolve("test");
+      }
+    );
+    await flushSpans();
+
+    const result2 = findSpanByName("test-component-context");
+    expect(result2).not.toBeNull();
+    const componentContextSpan = result2!.span;
+    const componentContextAttrMap = result2!.attrMap;
+
+    expect(componentContextSpan.name).toBe("test-component-context");
+    // component() should NOT set trace_name
+    expect(componentContextAttrMap.get("agentmark.trace_name")).toBeUndefined();
+    expect(componentContextAttrMap.get("agentmark.session_id")).toBe("session-456");
+    expect(componentContextAttrMap.get("agentmark.user_id")).toBe("user-789");
+    expect(componentContextAttrMap.get("agentmark.dataset_run_id")).toBe("run-012");
+
+    // ===== Test 14: Context Parameters - handle both context parameters and metadata =====
+    await trace(
+      {
+        name: "test-mixed-params",
+        sessionId: "session-999",
+        userId: "user-888",
+        metadata: {
+          customKey: "custom-value",
+          anotherKey: "another-value",
+        },
+      },
+      () => {
+        return Promise.resolve("test");
+      }
+    );
+    await flushSpans();
+
+    const result3 = findSpanByName("test-mixed-params");
+    expect(result3).not.toBeNull();
+    const mixedSpan = result3!.span;
+    const mixedAttrMap = result3!.attrMap;
+
+    expect(mixedSpan.name).toBe("test-mixed-params");
+    // Context parameters should be in agentmark.*
+    expect(mixedAttrMap.get("agentmark.session_id")).toBe("session-999");
+    expect(mixedAttrMap.get("agentmark.user_id")).toBe("user-888");
+    // Metadata should be in agentmark.metadata.*
+    expect(mixedAttrMap.get("agentmark.metadata.customKey")).toBe("custom-value");
+    expect(mixedAttrMap.get("agentmark.metadata.anotherKey")).toBe("another-value");
+
+    // ===== Test 15: Context Parameters - handle optional context parameters =====
+    await trace(
+      {
+        name: "test-optional-params",
+        sessionId: "session-only",
+        // Other params omitted
+      },
+      () => {
+        return Promise.resolve("test");
+      }
+    );
+    await flushSpans();
+
+    const result4 = findSpanByName("test-optional-params");
+    expect(result4).not.toBeNull();
+    const optionalSpan = result4!.span;
+    const optionalAttrMap = result4!.attrMap;
+
+    expect(optionalSpan.name).toBe("test-optional-params");
+    expect(optionalAttrMap.get("agentmark.session_id")).toBe("session-only");
+    expect(optionalAttrMap.get("agentmark.user_id")).toBeUndefined();
+    expect(optionalAttrMap.get("agentmark.dataset_run_id")).toBeUndefined();
+
+    // ===== Test 16: Batch span processor =====
     // Shutdown current SDK and restart with batch processor
     await activeSdk.shutdown();
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -245,175 +420,5 @@ describe("OTLP Exporter", () => {
       0
     );
     expect(totalSpans).toBeGreaterThanOrEqual(3);
-  });
-
-  describe("Utility Functions", () => {
-    beforeAll(async () => {
-      if (!activeSdk) {
-        activeSdk = sdk.initTracing({ disableBatch: true });
-      }
-    });
-
-    it("should get active traceId from span context", async () => {
-      let capturedTraceId: string | null = null;
-      
-      await trace({ name: "test-trace-id" }, async () => {
-        capturedTraceId = getActiveTraceId();
-        return Promise.resolve("test");
-      });
-      await flushSpans();
-
-      expect(capturedTraceId).toBeTruthy();
-      expect(typeof capturedTraceId).toBe("string");
-    });
-
-    it("should get active spanId from span context", async () => {
-      let capturedSpanId: string | null = null;
-      
-      await trace({ name: "test-span-id" }, async () => {
-        capturedSpanId = getActiveSpanId();
-        return Promise.resolve("test");
-      });
-      await flushSpans();
-
-      expect(capturedSpanId).toBeTruthy();
-      expect(typeof capturedSpanId).toBe("string");
-    });
-
-    it("should return null when no active span", () => {
-      const traceId = getActiveTraceId();
-      const spanId = getActiveSpanId();
-
-      // Outside of a span context, these should be null
-      // Note: This might not always be null if there's a global context
-      // but it tests the function doesn't throw
-      expect(traceId === null || typeof traceId === "string").toBe(true);
-      expect(spanId === null || typeof spanId === "string").toBe(true);
-    });
-  });
-
-  describe("Context Parameters", () => {
-    beforeAll(async () => {
-      if (!activeSdk) {
-        activeSdk = sdk.initTracing({ disableBatch: true });
-      }
-    });
-
-    it("should set agentmark.* attributes for context parameters in trace()", async () => {
-      await trace(
-        {
-          name: "test-context-params",
-          sessionId: "session-123",
-          sessionName: "test-session",
-          userId: "user-456",
-          datasetRunId: "run-789",
-          datasetRunName: "test-run",
-          datasetItemName: "item-1",
-          datasetExpectedOutput: "expected-output",
-        },
-        () => {
-          return Promise.resolve("test");
-        }
-      );
-      await flushSpans();
-
-      const contextRequest = receivedRequests[receivedRequests.length - 1];
-      const contextSpan = contextRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
-      const contextAttrMap = new Map(
-        contextSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
-      );
-
-      expect(contextAttrMap.get("agentmark.trace_name")).toBe("test-context-params");
-      expect(contextAttrMap.get("agentmark.session_id")).toBe("session-123");
-      expect(contextAttrMap.get("agentmark.session_name")).toBe("test-session");
-      expect(contextAttrMap.get("agentmark.user_id")).toBe("user-456");
-      expect(contextAttrMap.get("agentmark.dataset_run_id")).toBe("run-789");
-      expect(contextAttrMap.get("agentmark.dataset_run_name")).toBe("test-run");
-      expect(contextAttrMap.get("agentmark.dataset_item_name")).toBe("item-1");
-      expect(contextAttrMap.get("agentmark.dataset_expected_output")).toBe("expected-output");
-    });
-
-    it("should set agentmark.* attributes for context parameters in component()", async () => {
-      await component(
-        {
-          name: "test-component-context",
-          sessionId: "session-456",
-          userId: "user-789",
-          datasetRunId: "run-012",
-        },
-        () => {
-          return Promise.resolve("test");
-        }
-      );
-      await flushSpans();
-
-      const componentRequest = receivedRequests[receivedRequests.length - 1];
-      const componentSpan = componentRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
-      const componentAttrMap = new Map(
-        componentSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
-      );
-
-      // component() should NOT set trace_name
-      expect(componentAttrMap.get("agentmark.trace_name")).toBeUndefined();
-      expect(componentAttrMap.get("agentmark.session_id")).toBe("session-456");
-      expect(componentAttrMap.get("agentmark.user_id")).toBe("user-789");
-      expect(componentAttrMap.get("agentmark.dataset_run_id")).toBe("run-012");
-    });
-
-    it("should handle both context parameters and metadata", async () => {
-      await trace(
-        {
-          name: "test-mixed-params",
-          sessionId: "session-999",
-          userId: "user-888",
-          metadata: {
-            customKey: "custom-value",
-            anotherKey: "another-value",
-          },
-        },
-        () => {
-          return Promise.resolve("test");
-        }
-      );
-      await flushSpans();
-
-      const mixedRequest = receivedRequests[receivedRequests.length - 1];
-      const mixedSpan = mixedRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
-      const mixedAttrMap = new Map(
-        mixedSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
-      );
-
-      // Context parameters should be in agentmark.*
-      expect(mixedAttrMap.get("agentmark.session_id")).toBe("session-999");
-      expect(mixedAttrMap.get("agentmark.user_id")).toBe("user-888");
-
-      // Metadata should be in agentmark.metadata.*
-      expect(mixedAttrMap.get("agentmark.metadata.customKey")).toBe("custom-value");
-      expect(mixedAttrMap.get("agentmark.metadata.anotherKey")).toBe("another-value");
-    });
-
-    it("should handle optional context parameters", async () => {
-      await trace(
-        {
-          name: "test-optional-params",
-          sessionId: "session-only",
-          // Other params omitted
-        },
-        () => {
-          return Promise.resolve("test");
-        }
-      );
-      await flushSpans();
-
-      const optionalRequest = receivedRequests[receivedRequests.length - 1];
-      const optionalSpan = optionalRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
-      const optionalAttrMap = new Map(
-        optionalSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
-      );
-
-      expect(optionalAttrMap.get("agentmark.session_id")).toBe("session-only");
-      expect(optionalAttrMap.get("agentmark.user_id")).toBeUndefined();
-      expect(optionalAttrMap.get("agentmark.dataset_run_id")).toBeUndefined();
-    });
   });
 });

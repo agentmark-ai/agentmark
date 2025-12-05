@@ -7,7 +7,6 @@ import { client } from "./agentmark.client";
 const telemetry = {
   isEnabled: true,
   metadata: {
-    trace_id: "trace-123",
     trace_name: "customer-support",
     user_id: "user-123",
     session_id: "session-123",
@@ -55,7 +54,6 @@ import { client } from "./agentmark.client";
 const telemetry = {
   isEnabled: true,
   metadata: {
-    trace_id: "trace-123",
     trace_name: "customer-support",
     user_id: "user-123",
     session_id: "session-123",

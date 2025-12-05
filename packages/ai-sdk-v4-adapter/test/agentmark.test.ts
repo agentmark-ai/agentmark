@@ -178,7 +178,7 @@ describe("AgentMark Integration", () => {
         functionId: "1",
         metadata: {
           ...metadata,
-          prompt: "math",
+          prompt_name: "math",
           props: JSON.stringify({ userMessage: "What is 2+2?" }),
         },
       };
