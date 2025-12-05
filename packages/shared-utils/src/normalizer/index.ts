@@ -1,10 +1,13 @@
 import { NormalizedSpan, OtelResource, OtelScope, OtelSpan, SpanType } from './types';
 import { registry } from './registry';
 import { AiSdkTransformer } from './transformers/ai-sdk';
+import { MastraTransformer } from './transformers/mastra';
 import { OtlpResourceSpans, extractResourceScopeSpan } from './converters/otlp-converter';
+import { parseAgentMarkAttributes } from './extractors/agentmark-parser';
 
 // Register transformers
 registry.register('ai', new AiSdkTransformer());
+registry.register('default-tracer', new MastraTransformer());
 // Set AiSdkTransformer as default adapter for all scopes
 registry.setDefault(new AiSdkTransformer());
 // We can register more transformers here for other scopes (e.g. 'langchain')
@@ -82,7 +85,12 @@ export function normalizeSpan(
         Object.assign(normalized, transformed);
     }
 
-    // 5. Extract Tenant/App ID from Resource Attributes if not already set
+    // 5. Parse agentmark.* attributes (direct SDK context attributes)
+    // These take precedence over metadata.* attributes if both exist
+    const agentMarkAttributes = parseAgentMarkAttributes(allAttributes);
+    Object.assign(normalized, agentMarkAttributes);
+
+    // 6. Extract Tenant/App ID from Resource Attributes if not already set
 
     return normalized;
 }
@@ -110,6 +118,8 @@ export * from './type-classifier';
 export * from './converters/otlp-converter';
 export { parseTokens } from './extractors/token-parser';
 export * from './extractors/metadata-parser';
+export * from './extractors/agentmark-parser';
 export * from './transformers/ai-sdk';
 export * from './transformers/ai-sdk/token-helpers';
 export * from './transformers/ai-sdk/version-detector';
+export * from './transformers/mastra';

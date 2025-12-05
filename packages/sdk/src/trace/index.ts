@@ -1,1 +1,1 @@
-export { initialize, trace, component } from './tracing';
+export { initialize, trace, component, getActiveTraceId, getActiveSpanId } from './tracing';

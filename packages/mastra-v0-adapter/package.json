@@ -43,6 +43,7 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
+    "@agentmark/sdk": "workspace:^",
     "json-schema-to-zod": "^2.6.1",
     "zod": "^4.0.17"
   },

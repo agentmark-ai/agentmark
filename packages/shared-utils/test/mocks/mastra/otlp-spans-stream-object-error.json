@@ -1,0 +1,670 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "host.name",
+            "value": { "stringValue": "test-host" }
+          },
+          {
+            "key": "host.arch",
+            "value": { "stringValue": "amd64" }
+          },
+          {
+            "key": "host.id",
+            "value": { "stringValue": "test-host-id" }
+          },
+          {
+            "key": "process.pid",
+            "value": { "intValue": 12345 }
+          },
+          {
+            "key": "process.executable.name",
+            "value": { "stringValue": "/test/bin/node" }
+          },
+          {
+            "key": "process.executable.path",
+            "value": { "stringValue": "/test/bin/node" }
+          },
+          {
+            "key": "process.command_args",
+            "value": {
+              "arrayValue": {
+                "values": [
+                  { "stringValue": "/test/bin/node" },
+                  { "stringValue": "--require" },
+                  { "stringValue": "/test/node_modules/tsx/dist/preflight.cjs" },
+                  { "stringValue": "--import" },
+                  { "stringValue": "file:///test/node_modules/tsx/dist/loader.mjs" },
+                  { "stringValue": "/test/.agentmark/dev-entry.ts" },
+                  { "stringValue": "agentmark.client.ts" },
+                  { "stringValue": "agentmark/**/*" },
+                  { "stringValue": "--webhook-port=9417" },
+                  { "stringValue": "--api-server-port=9418" }
+                ]
+              }
+            }
+          },
+          {
+            "key": "process.runtime.version",
+            "value": { "stringValue": "22.21.1" }
+          },
+          {
+            "key": "process.runtime.name",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "process.runtime.description",
+            "value": { "stringValue": "Node.js" }
+          },
+          {
+            "key": "process.command",
+            "value": { "stringValue": "/test/.agentmark/dev-entry.ts" }
+          },
+          {
+            "key": "process.owner",
+            "value": { "stringValue": "user" }
+          },
+          {
+            "key": "service.name",
+            "value": { "stringValue": "agentmark-client" }
+          },
+          {
+            "key": "agentmark.app_id",
+            "value": { "stringValue": "" }
+          },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": { "stringValue": "2.2.0" }
+          }
+        ],
+        "droppedAttributesCount": 0
+      },
+      "scopeSpans": [
+        {
+          "scope": { "name": "default-tracer" },
+          "spans": [
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "4e05d08b32b7ab3c",
+              "parentSpanId": "e943c06ee29cea1f",
+              "name": "agent.prepareLLMOptions",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913457000000",
+              "endTimeUnixNano": "1764922913457666200",
+              "attributes": [
+                {
+                  "key": "agent.prepareLLMOptions.argument.0",
+                  "value": {
+                    "stringValue": "[{\"role\":\"system\",\"content\":\"Extract the names of all people attending the party from the following text. Respond with a list of names only.\"},{\"role\":\"user\",\"content\":\"Text: We're having a party with Alice, Bob, and Carol.\"}]"
+                  }
+                },
+                {
+                  "key": "agent.prepareLLMOptions.argument.1",
+                  "value": {
+                    "stringValue": "{\"output\":{\"_def\":{\"unknownKeys\":\"strip\",\"catchall\":{\"_def\":{\"typeName\":\"ZodNever\"},\"~standard\":{\"version\":1,\"vendor\":\"zod\"}},\"typeName\":\"ZodObject\"},\"~standard\":{\"version\":1,\"vendor\":\"zod\"},\"_cached\":null},\"telemetry\":{\"isEnabled\":true,\"metadata\":{\"traceId\":\"ef151d31-c5c1-4f2a-9f50-bed61f8c50e8\",\"traceName\":\"party-planner\",\"prompt_name\":\"party-planner\",\"props\":\"{\\\"party_text\\\":\\\"We're having a party with Alice, Bob, and Carol.\\\"}\"}}}"
+                  }
+                },
+                {
+                  "key": "agent.prepareLLMOptions.argument.2",
+                  "value": { "stringValue": "\"stream\"" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.prepareLLMOptions.result",
+                  "value": {
+                    "stringValue": "{\"llm\":{\"component\":\"LLM\",\"logger\":{\"name\":\"LLM - aisdk\",\"level\":\"error\",\"transports\":{}},\"name\":\"aisdk\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "1fcc70c6fe1fa1a6",
+              "parentSpanId": "4e05d08b32b7ab3c",
+              "name": "agent.resolveModelConfig",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913457000000",
+              "endTimeUnixNano": "1764922913457031700",
+              "attributes": [
+                {
+                  "key": "agent.resolveModelConfig.argument.0",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                },
+                {
+                  "key": "agent.resolveModelConfig.argument.1",
+                  "value": { "stringValue": "{}" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.resolveModelConfig.result",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "d769474ddbf98866",
+              "parentSpanId": "0d8d21d83fa9d69b",
+              "name": "agent.getAssignedTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913458000000",
+              "endTimeUnixNano": "1764922913458037700",
+              "attributes": [
+                {
+                  "key": "agent.getAssignedTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"aa625d95-ebe5-4ee4-87dc-e93f009b17f3\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.getAssignedTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "6976c7d67e1626bd",
+              "parentSpanId": "0d8d21d83fa9d69b",
+              "name": "agent.formatTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913460000000",
+              "endTimeUnixNano": "1764922913460021300",
+              "attributes": [
+                {
+                  "key": "agent.formatTools.argument.0",
+                  "value": { "stringValue": "{}" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.formatTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "e943c06ee29cea1f",
+              "parentSpanId": "da2c78690427ecee",
+              "name": "agent.streamLegacy",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913457000000",
+              "endTimeUnixNano": "1764922913462249700",
+              "attributes": [
+                {
+                  "key": "agent.streamLegacy.argument.0",
+                  "value": {
+                    "stringValue": "[{\"role\":\"system\",\"content\":\"Extract the names of all people attending the party from the following text. Respond with a list of names only.\"},{\"role\":\"user\",\"content\":\"Text: We're having a party with Alice, Bob, and Carol.\"}]"
+                  }
+                },
+                {
+                  "key": "agent.streamLegacy.argument.1",
+                  "value": {
+                    "stringValue": "{\"output\":{\"_def\":{\"unknownKeys\":\"strip\",\"catchall\":{\"_def\":{\"typeName\":\"ZodNever\"},\"~standard\":{\"version\":1,\"vendor\":\"zod\"}},\"typeName\":\"ZodObject\"},\"~standard\":{\"version\":1,\"vendor\":\"zod\"},\"_cached\":null},\"telemetry\":{\"isEnabled\":true,\"metadata\":{\"traceId\":\"ef151d31-c5c1-4f2a-9f50-bed61f8c50e8\",\"traceName\":\"party-planner\",\"prompt_name\":\"party-planner\",\"props\":\"{\\\"party_text\\\":\\\"We're having a party with Alice, Bob, and Carol.\\\"}\"}}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "b9bc2786a7c48091",
+              "parentSpanId": "0d8d21d83fa9d69b",
+              "name": "agent.getToolsets",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913459000000",
+              "endTimeUnixNano": "1764922913459038400",
+              "attributes": [
+                {
+                  "key": "agent.getToolsets.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"aa625d95-ebe5-4ee4-87dc-e93f009b17f3\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.getToolsets.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "4948a2aea831268d",
+              "parentSpanId": "0d8d21d83fa9d69b",
+              "name": "agent.getClientTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913459000000",
+              "endTimeUnixNano": "1764922913459032600",
+              "attributes": [
+                {
+                  "key": "agent.getClientTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"aa625d95-ebe5-4ee4-87dc-e93f009b17f3\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.getClientTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "2c32104156bb2742",
+              "parentSpanId": "0d8d21d83fa9d69b",
+              "name": "agent.getMemoryTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913459000000",
+              "endTimeUnixNano": "1764922913459033000",
+              "attributes": [
+                {
+                  "key": "agent.getMemoryTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"aa625d95-ebe5-4ee4-87dc-e93f009b17f3\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.getMemoryTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "0d8d21d83fa9d69b",
+              "parentSpanId": "e943c06ee29cea1f",
+              "name": "agent.convertTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913458000000",
+              "endTimeUnixNano": "1764922913459464300",
+              "attributes": [
+                {
+                  "key": "agent.convertTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"aa625d95-ebe5-4ee4-87dc-e93f009b17f3\",\"runtimeContext\":{},\"tracingContext\":{},\"methodType\":\"stream\"}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.convertTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "cba2845549c74854",
+              "parentSpanId": "0d8d21d83fa9d69b",
+              "name": "agent.getWorkflowTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913459000000",
+              "endTimeUnixNano": "1764922913459033000",
+              "attributes": [
+                {
+                  "key": "agent.getWorkflowTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"aa625d95-ebe5-4ee4-87dc-e93f009b17f3\",\"runtimeContext\":{},\"methodType\":\"stream\",\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "agent.getWorkflowTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            }
+          ]
+        },
+        {
+          "scope": { "name": "agentmark" },
+          "spans": [
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "6754aca52a379870",
+              "name": "party-planner",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913457000000",
+              "endTimeUnixNano": "1764922913464936701",
+              "attributes": [
+                {
+                  "key": "agentmark.trace_name",
+                  "value": { "stringValue": "party-planner" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 1 },
+              "links": [],
+              "droppedLinksCount": 0
+            }
+          ]
+        },
+        {
+          "scope": { "name": "ai" },
+          "spans": [
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "5261dd90c9999892",
+              "parentSpanId": "48b76cbfd2fb93c8",
+              "name": "ai.streamObject.doStream",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913463000000",
+              "endTimeUnixNano": "1764922913868912010",
+              "attributes": [
+                {
+                  "key": "operation.name",
+                  "value": { "stringValue": "ai.streamObject.doStream" }
+                },
+                {
+                  "key": "ai.operationId",
+                  "value": { "stringValue": "ai.streamObject.doStream" }
+                },
+                {
+                  "key": "ai.model.provider",
+                  "value": { "stringValue": "openai.chat" }
+                },
+                {
+                  "key": "ai.model.id",
+                  "value": { "stringValue": "gpt-4o" }
+                },
+                {
+                  "key": "ai.settings.toolChoice",
+                  "value": { "stringValue": "auto" }
+                },
+                {
+                  "key": "ai.settings.maxRetries",
+                  "value": { "intValue": 2 }
+                },
+                {
+                  "key": "ai.telemetry.metadata.traceId",
+                  "value": { "stringValue": "ef151d31-c5c1-4f2a-9f50-bed61f8c50e8" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.traceName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.prompt_name",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.props",
+                  "value": {
+                    "stringValue": "{\"party_text\":\"We're having a party with Alice, Bob, and Carol.\"}"
+                  }
+                },
+                {
+                  "key": "ai.prompt.format",
+                  "value": { "stringValue": "messages" }
+                },
+                {
+                  "key": "ai.prompt.messages",
+                  "value": {
+                    "stringValue": "[{\"role\":\"system\",\"content\":\"Extract the names of all people attending the party from the following text. Respond with a list of names only.\"},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Text: We're having a party with Alice, Bob, and Carol.\"}]}]"
+                  }
+                },
+                {
+                  "key": "ai.settings.mode",
+                  "value": { "stringValue": "tool" }
+                },
+                {
+                  "key": "gen_ai.system",
+                  "value": { "stringValue": "openai.chat" }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": { "stringValue": "gpt-4o" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [
+                {
+                  "attributes": [
+                    {
+                      "key": "exception.type",
+                      "value": { "stringValue": "AI_APICallError" }
+                    },
+                    {
+                      "key": "exception.message",
+                      "value": {
+                        "stringValue": "Incorrect API key provided: sk-proj-*******************************************7gPp. You can find your API key at https://platform.openai.com/account/api-keys."
+                      }
+                    },
+                    {
+                      "key": "exception.stacktrace",
+                      "value": {
+                        "stringValue": "AI_APICallError: Incorrect API key provided: sk-proj-*******************************************7gPp. You can find your API key at https://platform.openai.com/account/api-keys.\n    at <anonymous> (/test/node_modules/@ai-sdk/provider-utils/src/response-handler.ts:59:16)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async postToApi (/test/node_modules/@ai-sdk/provider-utils/src/post-to-api.ts:111:28)\n    at async OpenAIChatLanguageModel.doStream (/test/node_modules/@ai-sdk/openai/src/openai-chat-language-model.ts:513:50)\n    at async fn (/test/node_modules/ai/core/generate-object/stream-object.ts:746:23)\n    at async <anonymous> (/test/node_modules/ai/core/telemetry/record-span.ts:18:22)\n    at async _retryWithExponentialBackoff (/test/node_modules/ai/util/retry-with-exponential-backoff.ts:36:12)\n    at async fn (/test/node_modules/ai/core/generate-object/stream-object.ts:711:13)\n    at async <anonymous> (/test/node_modules/ai/core/telemetry/record-span.ts:18:22)"
+                      }
+                    }
+                  ],
+                  "name": "exception",
+                  "timeUnixNano": "1764922913868892010",
+                  "droppedAttributesCount": 0
+                }
+              ],
+              "droppedEventsCount": 0,
+              "status": {
+                "code": 2,
+                "message": "Incorrect API key provided: sk-proj-*******************************************7gPp. You can find your API key at https://platform.openai.com/account/api-keys."
+              },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "830a699c99d892614788c4baa92a5cee",
+              "spanId": "48b76cbfd2fb93c8",
+              "parentSpanId": "e943c06ee29cea1f",
+              "name": "ai.streamObject",
+              "kind": 1,
+              "startTimeUnixNano": "1764922913462000000",
+              "endTimeUnixNano": "1764922913869361110",
+              "attributes": [
+                {
+                  "key": "operation.name",
+                  "value": { "stringValue": "ai.streamObject" }
+                },
+                {
+                  "key": "ai.operationId",
+                  "value": { "stringValue": "ai.streamObject" }
+                },
+                {
+                  "key": "ai.model.provider",
+                  "value": { "stringValue": "openai.chat" }
+                },
+                {
+                  "key": "ai.model.id",
+                  "value": { "stringValue": "gpt-4o" }
+                },
+                {
+                  "key": "ai.settings.toolChoice",
+                  "value": { "stringValue": "auto" }
+                },
+                {
+                  "key": "ai.settings.maxRetries",
+                  "value": { "intValue": 2 }
+                },
+                {
+                  "key": "ai.telemetry.metadata.traceId",
+                  "value": { "stringValue": "ef151d31-c5c1-4f2a-9f50-bed61f8c50e8" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.traceName",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.prompt_name",
+                  "value": { "stringValue": "party-planner" }
+                },
+                {
+                  "key": "ai.telemetry.metadata.props",
+                  "value": {
+                    "stringValue": "{\"party_text\":\"We're having a party with Alice, Bob, and Carol.\"}"
+                  }
+                },
+                {
+                  "key": "ai.prompt",
+                  "value": {
+                    "stringValue": "{\"messages\":[{\"role\":\"system\",\"content\":\"Extract the names of all people attending the party from the following text. Respond with a list of names only.\"},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Text: We're having a party with Alice, Bob, and Carol.\"}]}]}"
+                  }
+                },
+                {
+                  "key": "ai.schema",
+                  "value": {
+                    "stringValue": "{\"type\":\"object\",\"properties\":{\"names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"List of names of people attending the party.\"}},\"required\":[\"names\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}"
+                  }
+                },
+                {
+                  "key": "ai.settings.output",
+                  "value": { "stringValue": "object" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [
+                {
+                  "attributes": [
+                    {
+                      "key": "exception.type",
+                      "value": { "stringValue": "AI_APICallError" }
+                    },
+                    {
+                      "key": "exception.message",
+                      "value": {
+                        "stringValue": "Incorrect API key provided: sk-proj-*******************************************7gPp. You can find your API key at https://platform.openai.com/account/api-keys."
+                      }
+                    },
+                    {
+                      "key": "exception.stacktrace",
+                      "value": {
+                        "stringValue": "AI_APICallError: Incorrect API key provided: sk-proj-*******************************************7gPp. You can find your API key at https://platform.openai.com/account/api-keys.\n    at <anonymous> (/test/node_modules/@ai-sdk/provider-utils/src/response-handler.ts:59:16)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async postToApi (/test/node_modules/@ai-sdk/provider-utils/src/post-to-api.ts:111:28)\n    at async OpenAIChatLanguageModel.doStream (/test/node_modules/@ai-sdk/openai/src/openai-chat-language-model.ts:513:50)\n    at async fn (/test/node_modules/ai/core/generate-object/stream-object.ts:746:23)\n    at async <anonymous> (/test/node_modules/ai/core/telemetry/record-span.ts:18:22)\n    at async _retryWithExponentialBackoff (/test/node_modules/ai/util/retry-with-exponential-backoff.ts:36:12)\n    at async fn (/test/node_modules/ai/core/generate-object/stream-object.ts:711:13)\n    at async <anonymous> (/test/node_modules/ai/core/telemetry/record-span.ts:18:22)"
+                      }
+                    }
+                  ],
+                  "name": "exception",
+                  "timeUnixNano": "1764922913869351410",
+                  "droppedAttributesCount": 0
+                }
+              ],
+              "droppedEventsCount": 0,
+              "status": {
+                "code": 2,
+                "message": "Incorrect API key provided: sk-proj-*******************************************7gPp. You can find your API key at https://platform.openai.com/account/api-keys."
+              },
+              "links": [],
+              "droppedLinksCount": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

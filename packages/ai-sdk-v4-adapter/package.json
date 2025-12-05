@@ -52,5 +52,8 @@
   },
   "files": [
     "dist/"
-  ]
+  ],
+  "dependencies": {
+    "@agentmark/sdk": "workspace:^"
+  }
 }

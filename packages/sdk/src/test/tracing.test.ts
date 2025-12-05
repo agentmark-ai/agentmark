@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
-import { trace, component } from "../trace/tracing";
+import { trace, component, getActiveTraceId, getActiveSpanId } from "../trace/tracing";
 import { AgentMarkSDK } from "../agentmark";
 import * as api from "@opentelemetry/api";
 
@@ -245,5 +245,175 @@ describe("OTLP Exporter", () => {
       0
     );
     expect(totalSpans).toBeGreaterThanOrEqual(3);
+  });
+
+  describe("Utility Functions", () => {
+    beforeAll(async () => {
+      if (!activeSdk) {
+        activeSdk = sdk.initTracing({ disableBatch: true });
+      }
+    });
+
+    it("should get active traceId from span context", async () => {
+      let capturedTraceId: string | null = null;
+      
+      await trace({ name: "test-trace-id" }, async () => {
+        capturedTraceId = getActiveTraceId();
+        return Promise.resolve("test");
+      });
+      await flushSpans();
+
+      expect(capturedTraceId).toBeTruthy();
+      expect(typeof capturedTraceId).toBe("string");
+    });
+
+    it("should get active spanId from span context", async () => {
+      let capturedSpanId: string | null = null;
+      
+      await trace({ name: "test-span-id" }, async () => {
+        capturedSpanId = getActiveSpanId();
+        return Promise.resolve("test");
+      });
+      await flushSpans();
+
+      expect(capturedSpanId).toBeTruthy();
+      expect(typeof capturedSpanId).toBe("string");
+    });
+
+    it("should return null when no active span", () => {
+      const traceId = getActiveTraceId();
+      const spanId = getActiveSpanId();
+
+      // Outside of a span context, these should be null
+      // Note: This might not always be null if there's a global context
+      // but it tests the function doesn't throw
+      expect(traceId === null || typeof traceId === "string").toBe(true);
+      expect(spanId === null || typeof spanId === "string").toBe(true);
+    });
+  });
+
+  describe("Context Parameters", () => {
+    beforeAll(async () => {
+      if (!activeSdk) {
+        activeSdk = sdk.initTracing({ disableBatch: true });
+      }
+    });
+
+    it("should set agentmark.* attributes for context parameters in trace()", async () => {
+      await trace(
+        {
+          name: "test-context-params",
+          sessionId: "session-123",
+          sessionName: "test-session",
+          userId: "user-456",
+          datasetRunId: "run-789",
+          datasetRunName: "test-run",
+          datasetItemName: "item-1",
+          datasetExpectedOutput: "expected-output",
+        },
+        () => {
+          return Promise.resolve("test");
+        }
+      );
+      await flushSpans();
+
+      const contextRequest = receivedRequests[receivedRequests.length - 1];
+      const contextSpan = contextRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
+      const contextAttrMap = new Map(
+        contextSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
+      );
+
+      expect(contextAttrMap.get("agentmark.trace_name")).toBe("test-context-params");
+      expect(contextAttrMap.get("agentmark.session_id")).toBe("session-123");
+      expect(contextAttrMap.get("agentmark.session_name")).toBe("test-session");
+      expect(contextAttrMap.get("agentmark.user_id")).toBe("user-456");
+      expect(contextAttrMap.get("agentmark.dataset_run_id")).toBe("run-789");
+      expect(contextAttrMap.get("agentmark.dataset_run_name")).toBe("test-run");
+      expect(contextAttrMap.get("agentmark.dataset_item_name")).toBe("item-1");
+      expect(contextAttrMap.get("agentmark.dataset_expected_output")).toBe("expected-output");
+    });
+
+    it("should set agentmark.* attributes for context parameters in component()", async () => {
+      await component(
+        {
+          name: "test-component-context",
+          sessionId: "session-456",
+          userId: "user-789",
+          datasetRunId: "run-012",
+        },
+        () => {
+          return Promise.resolve("test");
+        }
+      );
+      await flushSpans();
+
+      const componentRequest = receivedRequests[receivedRequests.length - 1];
+      const componentSpan = componentRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
+      const componentAttrMap = new Map(
+        componentSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
+      );
+
+      // component() should NOT set trace_name
+      expect(componentAttrMap.get("agentmark.trace_name")).toBeUndefined();
+      expect(componentAttrMap.get("agentmark.session_id")).toBe("session-456");
+      expect(componentAttrMap.get("agentmark.user_id")).toBe("user-789");
+      expect(componentAttrMap.get("agentmark.dataset_run_id")).toBe("run-012");
+    });
+
+    it("should handle both context parameters and metadata", async () => {
+      await trace(
+        {
+          name: "test-mixed-params",
+          sessionId: "session-999",
+          userId: "user-888",
+          metadata: {
+            customKey: "custom-value",
+            anotherKey: "another-value",
+          },
+        },
+        () => {
+          return Promise.resolve("test");
+        }
+      );
+      await flushSpans();
+
+      const mixedRequest = receivedRequests[receivedRequests.length - 1];
+      const mixedSpan = mixedRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
+      const mixedAttrMap = new Map(
+        mixedSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
+      );
+
+      // Context parameters should be in agentmark.*
+      expect(mixedAttrMap.get("agentmark.session_id")).toBe("session-999");
+      expect(mixedAttrMap.get("agentmark.user_id")).toBe("user-888");
+
+      // Metadata should be in agentmark.metadata.*
+      expect(mixedAttrMap.get("agentmark.metadata.customKey")).toBe("custom-value");
+      expect(mixedAttrMap.get("agentmark.metadata.anotherKey")).toBe("another-value");
+    });
+
+    it("should handle optional context parameters", async () => {
+      await trace(
+        {
+          name: "test-optional-params",
+          sessionId: "session-only",
+          // Other params omitted
+        },
+        () => {
+          return Promise.resolve("test");
+        }
+      );
+      await flushSpans();
+
+      const optionalRequest = receivedRequests[receivedRequests.length - 1];
+      const optionalSpan = optionalRequest.body.resourceSpans[0].scopeSpans[0].spans[0];
+      const optionalAttrMap = new Map(
+        optionalSpan.attributes.map((attr) => [attr.key, attr.value.stringValue])
+      );
+
+      expect(optionalAttrMap.get("agentmark.session_id")).toBe("session-only");
+      expect(optionalAttrMap.get("agentmark.user_id")).toBeUndefined();
+      expect(optionalAttrMap.get("agentmark.dataset_run_id")).toBeUndefined();
+    });
   });
 });

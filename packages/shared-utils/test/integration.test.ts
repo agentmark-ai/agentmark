@@ -29,6 +29,14 @@ const otlpV5StreamObjectData = JSON.parse(
   readFileSync(join(__dirname, 'mocks', 'ai-sdk', 'otlp-v5-stream-object.json'), 'utf-8')
 );
 
+const mastraStreamTextErrorData = JSON.parse(
+  readFileSync(join(__dirname, 'mocks', 'mastra', 'otlp-spans-stream-text-error.json'), 'utf-8')
+);
+
+const mastraStreamObjectSuccessData = JSON.parse(
+  readFileSync(join(__dirname, 'mocks', 'mastra', 'otlp-spans-stream-object-success.json'), 'utf-8')
+);
+
 describe('Integration Tests', () => {
   describe('OTLP v5 Error Data', () => {
     it('should normalize the provided OTLP v5 error span', () => {
@@ -1357,6 +1365,95 @@ describe('Integration Tests', () => {
       expect(result[0].traceId).toBe('');
       expect(result[0].spanId).toBe('');
       expect(result[0].name).toBe('');
+    });
+  });
+
+  describe('Mastra SDK', () => {
+    describe('Stream Text Error Data', () => {
+      it('should normalize Mastra agent.streamLegacy span', () => {
+        const resourceSpans = mastraStreamTextErrorData as { resourceSpans: OtlpResourceSpans[] };
+        const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+        // Find the agent.streamLegacy span
+        const streamLegacySpan = result.find((s) => s.name === 'agent.streamLegacy');
+        expect(streamLegacySpan).toBeDefined();
+        expect(streamLegacySpan?.type).toBe(SpanType.GENERATION);
+
+        // Check input extraction
+        expect(streamLegacySpan?.input).toBeDefined();
+        expect(Array.isArray(streamLegacySpan?.input)).toBe(true);
+        if (streamLegacySpan?.input && Array.isArray(streamLegacySpan.input)) {
+          expect(streamLegacySpan.input.length).toBeGreaterThan(0);
+          expect(streamLegacySpan.input[0]).toHaveProperty('role');
+          expect(streamLegacySpan.input[0]).toHaveProperty('content');
+        }
+
+        // Check trace name extraction
+        const traceSpan = result.find((s) => s.name === 'customer-support-agent');
+        expect(traceSpan?.traceName).toBe('customer-support-agent');
+      });
+
+      it('should normalize Mastra agent spans with componentName', () => {
+        const resourceSpans = mastraStreamTextErrorData as { resourceSpans: OtlpResourceSpans[] };
+        const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+        // Find spans with componentName
+        const spansWithComponent = result.filter((s) => 
+          s.spanAttributes?.['componentName'] === 'customer-support-agent'
+        );
+        expect(spansWithComponent.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('Stream Object Success Data', () => {
+      it('should normalize Mastra agent.stream span with output object', () => {
+        const resourceSpans = mastraStreamObjectSuccessData as { resourceSpans: OtlpResourceSpans[] };
+        const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+        // Find the agent.stream span
+        const streamSpan = result.find((s) => s.name === 'agent.stream');
+        expect(streamSpan).toBeDefined();
+        expect(streamSpan?.type).toBe(SpanType.GENERATION);
+
+        // Check output extraction
+        if (streamSpan?.spanAttributes?.['agent.stream.result']) {
+          const streamResult = JSON.parse(streamSpan.spanAttributes['agent.stream.result']);
+          if (streamResult.object) {
+            expect(streamSpan.output).toBeDefined();
+            expect(streamSpan.outputObject).toBeDefined();
+          }
+          if (streamResult.usage) {
+            expect(streamSpan.inputTokens).toBe(streamResult.usage.promptTokens);
+            expect(streamSpan.outputTokens).toBe(streamResult.usage.completionTokens);
+            expect(streamSpan.totalTokens).toBe(streamResult.usage.totalTokens);
+          }
+        }
+      });
+
+      it('should extract trace name from agentmark scope', () => {
+        const resourceSpans = mastraStreamObjectSuccessData as { resourceSpans: OtlpResourceSpans[] };
+        const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+        // Find the trace span from agentmark scope
+        const traceSpan = result.find((s) => s.name === 'party-planner');
+        expect(traceSpan).toBeDefined();
+        expect(traceSpan?.traceName).toBe('party-planner');
+      });
+
+      it('should normalize agent.streamLegacy span', () => {
+        const resourceSpans = mastraStreamObjectSuccessData as { resourceSpans: OtlpResourceSpans[] };
+        const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
+
+        const streamLegacySpan = result.find((s) => s.name === 'agent.streamLegacy');
+        expect(streamLegacySpan).toBeDefined();
+        expect(streamLegacySpan?.type).toBe(SpanType.GENERATION);
+
+        // Check input extraction
+        expect(streamLegacySpan?.input).toBeDefined();
+        if (streamLegacySpan?.input && Array.isArray(streamLegacySpan.input)) {
+          expect(streamLegacySpan.input.length).toBeGreaterThan(0);
+        }
+      });
     });
   });
 });

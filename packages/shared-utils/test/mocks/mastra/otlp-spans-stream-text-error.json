@@ -1,0 +1,558 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "host.name",
+            "value": { "stringValue": "test-host" }
+          },
+          {
+            "key": "host.arch",
+            "value": { "stringValue": "amd64" }
+          },
+          {
+            "key": "host.id",
+            "value": { "stringValue": "test-host-id" }
+          },
+          {
+            "key": "process.pid",
+            "value": { "intValue": 12345 }
+          },
+          {
+            "key": "process.executable.name",
+            "value": { "stringValue": "/test/bin/node" }
+          },
+          {
+            "key": "process.executable.path",
+            "value": { "stringValue": "/test/bin/node" }
+          },
+          {
+            "key": "process.command_args",
+            "value": {
+              "arrayValue": {
+                "values": [
+                  { "stringValue": "/test/bin/node" },
+                  { "stringValue": "--require" },
+                  { "stringValue": "/test/node_modules/tsx/dist/preflight.cjs" },
+                  { "stringValue": "--import" },
+                  { "stringValue": "file:///test/node_modules/tsx/dist/loader.mjs" },
+                  { "stringValue": "/test/.agentmark/dev-entry.ts" },
+                  { "stringValue": "agentmark.client.ts" },
+                  { "stringValue": "agentmark/**/*" },
+                  { "stringValue": "--webhook-port=9417" },
+                  { "stringValue": "--api-server-port=9418" }
+                ]
+              }
+            }
+          },
+          {
+            "key": "process.runtime.version",
+            "value": { "stringValue": "22.21.1" }
+          },
+          {
+            "key": "process.runtime.name",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "process.runtime.description",
+            "value": { "stringValue": "Node.js" }
+          },
+          {
+            "key": "process.command",
+            "value": { "stringValue": "/test/.agentmark/dev-entry.ts" }
+          },
+          {
+            "key": "process.owner",
+            "value": { "stringValue": "user" }
+          },
+          {
+            "key": "service.name",
+            "value": { "stringValue": "agentmark-client" }
+          },
+          {
+            "key": "agentmark.app_id",
+            "value": { "stringValue": "" }
+          },
+          {
+            "key": "telemetry.sdk.language",
+            "value": { "stringValue": "nodejs" }
+          },
+          {
+            "key": "telemetry.sdk.name",
+            "value": { "stringValue": "opentelemetry" }
+          },
+          {
+            "key": "telemetry.sdk.version",
+            "value": { "stringValue": "2.2.0" }
+          }
+        ],
+        "droppedAttributesCount": 0
+      },
+      "scopeSpans": [
+        {
+          "scope": { "name": "agentmark" },
+          "spans": [
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "c67f026d4148b8f4",
+              "name": "customer-support-agent",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856430000000",
+              "endTimeUnixNano": "1764921856479146402",
+              "attributes": [
+                {
+                  "key": "agentmark.trace_name",
+                  "value": { "stringValue": "customer-support-agent" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 1 },
+              "links": [],
+              "droppedLinksCount": 0
+            }
+          ]
+        },
+        {
+          "scope": { "name": "default-tracer" },
+          "spans": [
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "a1dfda9d52b2e6ed",
+              "parentSpanId": "c67f026d4148b8f4",
+              "name": "agent.streamLegacy",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856431000000",
+              "endTimeUnixNano": "1764921856452579801",
+              "attributes": [
+                {
+                  "key": "agent.streamLegacy.argument.0",
+                  "value": {
+                    "stringValue": "[{\"role\":\"user\",\"content\":\"I'm having trouble with my order. How long does shipping take?\"}]"
+                  }
+                },
+                {
+                  "key": "agent.streamLegacy.argument.1",
+                  "value": { "stringValue": "{\"maxSteps\":2}" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "a1dfda9d52b2e6ed",
+              "parentSpanId": "a1dfda9d52b2e6ed",
+              "name": "agent.prepareLLMOptions",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856432000000",
+              "endTimeUnixNano": "1764921856438214100",
+              "attributes": [
+                {
+                  "key": "agent.prepareLLMOptions.argument.0",
+                  "value": {
+                    "stringValue": "[{\"role\":\"user\",\"content\":\"I'm having trouble with my order. How long does shipping take?\"}]"
+                  }
+                },
+                {
+                  "key": "agent.prepareLLMOptions.argument.1",
+                  "value": { "stringValue": "{\"maxSteps\":2}" }
+                },
+                {
+                  "key": "agent.prepareLLMOptions.argument.2",
+                  "value": { "stringValue": "\"stream\"" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.prepareLLMOptions.result",
+                  "value": {
+                    "stringValue": "{\"llm\":{\"component\":\"LLM\",\"logger\":{\"name\":\"LLM - aisdk\",\"level\":\"error\",\"transports\":{}},\"name\":\"aisdk\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "7e12218fe5ddbbde",
+              "parentSpanId": "cd0d467c74da07d6",
+              "name": "agent.resolveModelConfig",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856432000000",
+              "endTimeUnixNano": "1764921856432324300",
+              "attributes": [
+                {
+                  "key": "agent.resolveModelConfig.argument.0",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                },
+                {
+                  "key": "agent.resolveModelConfig.argument.1",
+                  "value": { "stringValue": "{}" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.resolveModelConfig.result",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "cd0d467c74da07d6",
+              "parentSpanId": "a1dfda9d52b2e6ed",
+              "name": "agent.resolveModelConfig",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856432000000",
+              "endTimeUnixNano": "1764921856432324300",
+              "attributes": [
+                {
+                  "key": "agent.resolveModelConfig.argument.0",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                },
+                {
+                  "key": "agent.resolveModelConfig.argument.1",
+                  "value": { "stringValue": "{}" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.resolveModelConfig.result",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "11eca7140957effa",
+              "parentSpanId": "a1dfda9d52b2e6ed",
+              "name": "agent.convertTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856439000000",
+              "endTimeUnixNano": "1764921856446109800",
+              "attributes": [
+                {
+                  "key": "agent.convertTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"789272e0-217b-45dd-bd77-211f277a110b\",\"runtimeContext\":{},\"tracingContext\":{},\"methodType\":\"stream\"}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.convertTools.result",
+                  "value": {
+                    "stringValue": "{\"search_knowledgebase\":{\"type\":\"function\",\"description\":\"Search the company knowledgebase for information about shipping, warranty, and returns policies.\",\"parameters\":{\"jsonSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to find relevant information\"}},\"required\":[\"query\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}},\"id\":\"search_knowledgebase\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "4baa6ca617f682aa",
+              "parentSpanId": "11eca7140957effa",
+              "name": "agent.getAssignedTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856439000000",
+              "endTimeUnixNano": "1764921856441737600",
+              "attributes": [
+                {
+                  "key": "agent.getAssignedTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"789272e0-217b-45dd-bd77-211f277a110b\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.getAssignedTools.result",
+                  "value": {
+                    "stringValue": "{\"search_knowledgebase\":{\"type\":\"function\",\"description\":\"Search the company knowledgebase for information about shipping, warranty, and returns policies.\",\"parameters\":{\"jsonSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to find relevant information\"}},\"required\":[\"query\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}},\"id\":\"search_knowledgebase\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "d6d3511584fb2e8b",
+              "parentSpanId": "4baa6ca617f682aa",
+              "name": "agent.resolveModelConfig",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856440000000",
+              "endTimeUnixNano": "1764921856440064700",
+              "attributes": [
+                {
+                  "key": "agent.resolveModelConfig.argument.0",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                },
+                {
+                  "key": "agent.resolveModelConfig.argument.1",
+                  "value": { "stringValue": "{}" }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.resolveModelConfig.result",
+                  "value": {
+                    "stringValue": "{\"specificationVersion\":\"v1\",\"modelId\":\"gpt-4o\",\"settings\":{},\"config\":{\"provider\":\"openai.chat\",\"compatibility\":\"strict\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "c90f55361085b4ba",
+              "parentSpanId": "11eca7140957effa",
+              "name": "agent.getMemoryTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856443000000",
+              "endTimeUnixNano": "1764921856443241200",
+              "attributes": [
+                {
+                  "key": "agent.getMemoryTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"789272e0-217b-45dd-bd77-211f277a110b\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.getMemoryTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "a4c042faf03ad088",
+              "parentSpanId": "11eca7140957effa",
+              "name": "agent.getToolsets",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856443000000",
+              "endTimeUnixNano": "1764921856443233700",
+              "attributes": [
+                {
+                  "key": "agent.getToolsets.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"789272e0-217b-45dd-bd77-211f277a110b\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.getToolsets.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "e4cf60406e6897ad",
+              "parentSpanId": "11eca7140957effa",
+              "name": "agent.getWorkflowTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856444000000",
+              "endTimeUnixNano": "1764921856444221000",
+              "attributes": [
+                {
+                  "key": "agent.getWorkflowTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"789272e0-217b-45dd-bd77-211f277a110b\",\"runtimeContext\":{},\"methodType\":\"stream\",\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.getWorkflowTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "98c85d985c273869",
+              "parentSpanId": "11eca7140957effa",
+              "name": "agent.getClientTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856444000000",
+              "endTimeUnixNano": "1764921856444150200",
+              "attributes": [
+                {
+                  "key": "agent.getClientTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"runId\":\"789272e0-217b-45dd-bd77-211f277a110b\",\"runtimeContext\":{},\"tracingContext\":{}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.getClientTools.result",
+                  "value": { "stringValue": "{}" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "0ecabd081501aceb",
+              "parentSpanId": "11eca7140957effa",
+              "name": "agent.formatTools",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856445000000",
+              "endTimeUnixNano": "1764921856445195100",
+              "attributes": [
+                {
+                  "key": "agent.formatTools.argument.0",
+                  "value": {
+                    "stringValue": "{\"search_knowledgebase\":{\"type\":\"function\",\"description\":\"Search the company knowledgebase for information about shipping, warranty, and returns policies.\",\"parameters\":{\"jsonSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to find relevant information\"}},\"required\":[\"query\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}},\"id\":\"search_knowledgebase\"}}"
+                  }
+                },
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.formatTools.result",
+                  "value": {
+                    "stringValue": "{\"search_knowledgebase\":{\"type\":\"function\",\"description\":\"Search the company knowledgebase for information about shipping, warranty, and returns policies.\",\"parameters\":{\"jsonSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to find relevant information\"}},\"required\":[\"query\"],\"additionalProperties\":false,\"$schema\":\"http://json-schema.org/draft-07/schema#\"}},\"id\":\"search_knowledgebase\"}}"
+                  }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            },
+            {
+              "traceId": "a86b565e876060dcbf8531218451e979",
+              "spanId": "664850fb7e7cde1a",
+              "parentSpanId": "a1dfda9d52b2e6ed",
+              "name": "agent.getResolvedOutputProcessors",
+              "kind": 1,
+              "startTimeUnixNano": "1764921856448000000",
+              "endTimeUnixNano": "1764921856448087000",
+              "attributes": [
+                {
+                  "key": "componentName",
+                  "value": { "stringValue": "customer-support-agent" }
+                },
+                {
+                  "key": "agent.getResolvedOutputProcessors.result",
+                  "value": { "stringValue": "[]" }
+                }
+              ],
+              "droppedAttributesCount": 0,
+              "events": [],
+              "droppedEventsCount": 0,
+              "status": { "code": 0 },
+              "links": [],
+              "droppedLinksCount": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

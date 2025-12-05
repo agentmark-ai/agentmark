@@ -1,5 +1,5 @@
 export { AgentMarkSDK } from "./agentmark";
-export { trace, component } from "./trace";
+export { trace, component, getActiveTraceId, getActiveSpanId } from "./trace";
 
 // Re-export ApiLoader from @agentmark/loader-api for convenience
 export { ApiLoader } from "@agentmark/loader-api";
