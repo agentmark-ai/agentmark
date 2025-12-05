@@ -37,6 +37,7 @@
   "devDependencies": {
     "@agentmark/loader-file": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",
+    "@agentmark/sdk": "workspace:^",
     "@ai-sdk/mcp": "^0.0.8",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
@@ -49,13 +50,11 @@
   },
   "peerDependencies": {
     "@agentmark/prompt-core": "*",
+    "@agentmark/sdk": "workspace:^",
     "@ai-sdk/mcp": "^0.0.8",
     "ai": "^5.0.0"
   },
   "files": [
     "dist/"
-  ],
-  "dependencies": {
-    "@agentmark/sdk": "workspace:^"
-  }
+  ]
 }
