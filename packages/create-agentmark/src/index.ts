@@ -2,7 +2,23 @@ import fs from "fs-extra";
 import prompts from "prompts";
 import { createExampleApp } from "./utils/examples/create-example-app";
 
+const parseArgs = () => {
+  const args = process.argv.slice(2);
+  let deploymentMode: "cloud" | "static" | undefined;
+
+  for (const arg of args) {
+    if (arg === "--cloud") {
+      deploymentMode = "cloud";
+    } else if (arg === "--self-host") {
+      deploymentMode = "static";
+    }
+  }
+
+  return { deploymentMode };
+};
+
 const main = async () => {
+  const cliArgs = parseArgs();
   const config: any = {
     $schema:
       "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
@@ -45,23 +61,27 @@ const main = async () => {
     ],
   });
 
-  const { deploymentMode } = await prompts({
-    name: "deploymentMode",
-    type: "select",
-    message: "Use AgentMark Cloud or manage yourself?",
-    choices: [
-      {
-        title: "AgentMark Cloud (recommended)",
-        value: "cloud",
-        description: "Have AgentMark cloud manage prompts, datasets, traces, experiments, alerts & more"
-      },
-      {
-        title: "Self-hosted",
-        value: "static",
-        description: "Self-manage your prompts, datasets, traces & experiments"
-      },
-    ],
-  });
+  let deploymentMode = cliArgs.deploymentMode;
+  if (!deploymentMode) {
+    const response = await prompts({
+      name: "deploymentMode",
+      type: "select",
+      message: "Use AgentMark Cloud or manage yourself?",
+      choices: [
+        {
+          title: "AgentMark Cloud (recommended)",
+          value: "cloud",
+          description: "Have AgentMark cloud manage prompts, datasets, traces, experiments, alerts & more"
+        },
+        {
+          title: "Self-hosted",
+          value: "static",
+          description: "Self-manage your prompts, datasets, traces & experiments"
+        },
+      ],
+    });
+    deploymentMode = response.deploymentMode;
+  }
 
   const { client } = await prompts({
     name: "client",
