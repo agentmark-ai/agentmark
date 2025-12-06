@@ -40,7 +40,7 @@
     "@agentmark/sdk": "workspace:^",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
-    "ai": "^4.0.0",
+    "ai": "^5.0.108",
     "cpy-cli": "^5.0.0",
     "react": "^18.3.1",
     "tsup": "^8.3.5",
@@ -50,7 +50,7 @@
   "peerDependencies": {
     "@agentmark/prompt-core": "*",
     "@agentmark/sdk": "workspace:^",
-    "ai": "^4.0.0"
+    "ai": "^5.0.108"
   },
   "files": [
     "dist/"
