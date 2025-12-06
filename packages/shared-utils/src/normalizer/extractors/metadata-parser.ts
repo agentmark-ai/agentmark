@@ -16,6 +16,16 @@ const KNOWN_METADATA_FIELDS = new Set([
     'commit_sha',
 ]);
 
+// Dangerous keys that could cause prototype pollution
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Check if a key is safe to use as an object property
+ */
+function isSafeKey(key: string): boolean {
+    return !DANGEROUS_KEYS.has(key);
+}
+
 export function parseMetadata(attributes: Record<string, any>, prefix: string = 'agentmark.metadata.'): Partial<NormalizedSpan> {
     const result: Partial<NormalizedSpan> = {};
 
@@ -62,8 +72,8 @@ export function extractCustomMetadata(attributes: Record<string, any>, prefix: s
             // Extract the metadata key by removing the prefix
             const metadataKey = key.slice(prefix.length);
             
-            // Skip known fields and empty keys
-            if (metadataKey && !KNOWN_METADATA_FIELDS.has(metadataKey)) {
+            // Skip known fields, empty keys, and dangerous keys to prevent prototype pollution
+            if (metadataKey && !KNOWN_METADATA_FIELDS.has(metadataKey) && isSafeKey(metadataKey)) {
                 // Convert value to string (raw strings, no JSON parsing)
                 customMetadata[metadataKey] = String(value);
             }

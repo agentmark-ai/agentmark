@@ -279,6 +279,47 @@ describe('Metadata Parser', () => {
       expect(result.my_custom_key).toBe('value');
       expect(result['agentmark.metadata.my_custom_key']).toBeUndefined();
     });
+
+    it('should skip __proto__ key to prevent prototype pollution', () => {
+      const attributes = {
+        'agentmark.metadata.__proto__': 'malicious',
+        'agentmark.metadata.valid_key': 'value',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.valid_key).toBe('value');
+      // Check that __proto__ is not an own property
+      expect(Object.hasOwn(result, '__proto__')).toBe(false);
+      // Ensure prototype wasn't polluted
+      expect(({} as any).__proto__).not.toBe('malicious');
+    });
+
+    it('should skip constructor key to prevent prototype pollution', () => {
+      const attributes = {
+        'agentmark.metadata.constructor': 'malicious',
+        'agentmark.metadata.valid_key': 'value',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.valid_key).toBe('value');
+      // Check that constructor is not an own property
+      expect(Object.hasOwn(result, 'constructor')).toBe(false);
+    });
+
+    it('should skip prototype key to prevent prototype pollution', () => {
+      const attributes = {
+        'agentmark.metadata.prototype': 'malicious',
+        'agentmark.metadata.valid_key': 'value',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.valid_key).toBe('value');
+      // Check that prototype is not an own property
+      expect(Object.hasOwn(result, 'prototype')).toBe(false);
+    });
   });
 });
 

@@ -148,6 +148,50 @@ describe('OTLP Converter', () => {
         valid: 'test',
       });
     });
+
+    it('should skip __proto__ key to prevent prototype pollution', () => {
+      const attributes = [
+        { key: 'valid', value: { stringValue: 'test' } },
+        { key: '__proto__', value: { stringValue: 'malicious' } },
+      ];
+
+      const result = convertOtlpAttributes(attributes);
+      expect(result).toEqual({
+        valid: 'test',
+      });
+      // Check that __proto__ is not an own property
+      expect(Object.hasOwn(result, '__proto__')).toBe(false);
+      // Ensure prototype wasn't polluted
+      expect(({} as any).__proto__).not.toBe('malicious');
+    });
+
+    it('should skip constructor key to prevent prototype pollution', () => {
+      const attributes = [
+        { key: 'valid', value: { stringValue: 'test' } },
+        { key: 'constructor', value: { stringValue: 'malicious' } },
+      ];
+
+      const result = convertOtlpAttributes(attributes);
+      expect(result).toEqual({
+        valid: 'test',
+      });
+      // Check that constructor is not an own property
+      expect(Object.hasOwn(result, 'constructor')).toBe(false);
+    });
+
+    it('should skip prototype key to prevent prototype pollution', () => {
+      const attributes = [
+        { key: 'valid', value: { stringValue: 'test' } },
+        { key: 'prototype', value: { stringValue: 'malicious' } },
+      ];
+
+      const result = convertOtlpAttributes(attributes);
+      expect(result).toEqual({
+        valid: 'test',
+      });
+      // Check that prototype is not an own property
+      expect(Object.hasOwn(result, 'prototype')).toBe(false);
+    });
   });
 
   describe('extractResourceScopeSpan', () => {

@@ -100,6 +100,18 @@ export interface OtlpResourceSpans {
 }
 
 /**
+ * Dangerous keys that could cause prototype pollution
+ */
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Check if a key is safe to use as an object property
+ */
+function isSafeKey(key: string): boolean {
+  return !DANGEROUS_KEYS.has(key);
+}
+
+/**
  * Convert OTLP attribute value to JavaScript value
  */
 function convertOtlpValue(value: OtlpAttributeValue): any {
@@ -136,7 +148,8 @@ export function convertOtlpAttributes(attributes?: OtlpAttribute[]): Record<stri
 
   const result: Record<string, any> = {};
   for (const attr of attributes) {
-    if (attr.key) {
+    // Skip dangerous keys to prevent prototype pollution
+    if (attr.key && isSafeKey(attr.key)) {
       result[attr.key] = convertOtlpValue(attr.value);
     }
   }
