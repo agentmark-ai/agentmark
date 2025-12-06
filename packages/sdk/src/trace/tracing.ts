@@ -1,7 +1,7 @@
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { AgentmarkSampler } from "./sampler";
-import api, { context, ROOT_CONTEXT, SpanStatusCode } from "@opentelemetry/api";
+import api, { context, ROOT_CONTEXT, SpanStatusCode, Span, Tracer, Attributes } from "@opentelemetry/api";
 import {
   BatchSpanProcessor,
   SimpleSpanProcessor,
@@ -58,7 +58,10 @@ export const initialize = ({
   return sdk;
 };
 
-type TraceOptions = {
+/**
+ * Options for creating a trace or span
+ */
+export type TraceOptions = {
   name: string;
   metadata?: Record<string, string>;
   sessionId?: string;
@@ -70,84 +73,173 @@ type TraceOptions = {
   datasetExpectedOutput?: string;
 };
 
+/**
+ * Options for creating a child span
+ */
+export type SpanOptions = {
+  name: string;
+  metadata?: Record<string, string>;
+};
+
+/**
+ * Context passed to trace/span callbacks with explicit access to trace info and child span creation
+ */
+export interface TraceContext {
+  /** The trace ID for this trace */
+  readonly traceId: string;
+  /** The span ID for this span */
+  readonly spanId: string;
+  /** Set an attribute on this span */
+  setAttribute: (key: string, value: string | number | boolean) => void;
+  /** Add an event to this span */
+  addEvent: (name: string, attributes?: Attributes) => void;
+  /** Create a child span within this trace */
+  span: <T>(options: SpanOptions, fn: (ctx: TraceContext) => Promise<T>) => Promise<T>;
+}
+
 const MetadataKey = "agentmark.metadata";
 const AgentMarkKey = "agentmark";
 
 /**
- * Get the traceId from the currently active span context
- * @returns The traceId as a string, or null if no active span exists
+ * Build a TraceContext from an OpenTelemetry span
  */
-export const getActiveTraceId = (): string | null => {
-  const span = api.trace.getActiveSpan();
-  if (!span) {
-    return null;
-  }
+function buildContext(span: Span, tracer: Tracer): TraceContext {
   const spanContext = span.spanContext();
-  return spanContext.traceId || null;
-};
+
+  const ctx: TraceContext = {
+    traceId: spanContext.traceId,
+    spanId: spanContext.spanId,
+
+    setAttribute: (key: string, value: string | number | boolean) => {
+      span.setAttribute(key, value);
+    },
+
+    addEvent: (name: string, attributes?: Attributes) => {
+      span.addEvent(name, attributes);
+    },
+
+    span: async <T>(options: SpanOptions, fn: (ctx: TraceContext) => Promise<T>): Promise<T> => {
+      // Create child span with this span as explicit parent
+      const parentContext = api.trace.setSpan(api.context.active(), span);
+
+      return api.context.with(parentContext, () =>
+        tracer.startActiveSpan(options.name, async (childSpan) => {
+          // Set metadata attributes on child span
+          if (options.metadata) {
+            for (const [key, value] of Object.entries(options.metadata)) {
+              childSpan.setAttribute(`${MetadataKey}.${key}`, value);
+            }
+          }
+
+          const childCtx = buildContext(childSpan, tracer);
+          try {
+            const result = await fn(childCtx);
+            childSpan.setStatus({ code: SpanStatusCode.OK });
+            return result;
+          } catch (e: any) {
+            childSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: e.message,
+            });
+            throw e;
+          } finally {
+            childSpan.end();
+          }
+        })
+      );
+    },
+  };
+
+  return ctx;
+}
 
 /**
- * Get the spanId from the currently active span context
- * @returns The spanId as a string, or null if no active span exists
+ * Set agentmark-specific attributes on a span
  */
-export const getActiveSpanId = (): string | null => {
-  const span = api.trace.getActiveSpan();
-  if (!span) {
-    return null;
-  }
-  const spanContext = span.spanContext();
-  return spanContext.spanId || null;
-};
+function setAgentmarkAttributes(span: Span, options: TraceOptions): void {
+  span.setAttribute(`${AgentMarkKey}.trace_name`, options.name);
 
-export const trace = <A, F extends (...args: A[]) => ReturnType<F>>(
+  if (options.sessionId) {
+    span.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
+  }
+  if (options.sessionName) {
+    span.setAttribute(`${AgentMarkKey}.session_name`, options.sessionName);
+  }
+  if (options.userId) {
+    span.setAttribute(`${AgentMarkKey}.user_id`, options.userId);
+  }
+  if (options.datasetRunId) {
+    span.setAttribute(`${AgentMarkKey}.dataset_run_id`, options.datasetRunId);
+  }
+  if (options.datasetRunName) {
+    span.setAttribute(`${AgentMarkKey}.dataset_run_name`, options.datasetRunName);
+  }
+  if (options.datasetItemName) {
+    span.setAttribute(`${AgentMarkKey}.dataset_item_name`, options.datasetItemName);
+  }
+  if (options.datasetExpectedOutput) {
+    span.setAttribute(`${AgentMarkKey}.dataset_expected_output`, options.datasetExpectedOutput);
+  }
+
+  if (options.metadata) {
+    for (const [key, value] of Object.entries(options.metadata)) {
+      span.setAttribute(`${MetadataKey}.${key}`, value);
+    }
+  }
+}
+
+/**
+ * Result returned from the trace function
+ */
+export interface TraceResult<T> {
+  /** The result of the traced function */
+  result: T;
+  /** The trace ID for correlation */
+  traceId: string;
+}
+
+/**
+ * Start a new trace (root span) and execute a function within it.
+ *
+ * Returns both the result and traceId, eliminating the need for closure mutation.
+ *
+ * The callback receives a TraceContext with:
+ * - traceId: The trace ID for correlation
+ * - spanId: The span ID for this root span
+ * - setAttribute(): Add attributes to the span
+ * - addEvent(): Add events to the span
+ * - span(): Create child spans within this trace
+ *
+ * @example
+ * ```typescript
+ * const { result, traceId } = await trace({ name: 'request-handler' }, async (ctx) => {
+ *   // Create child spans
+ *   const user = await ctx.span({ name: 'fetch-user' }, async (spanCtx) => {
+ *     return db.getUser(id);
+ *   });
+ *
+ *   return user;
+ * });
+ * // traceId is available here without closure mutation
+ * ```
+ */
+export const trace = async <T>(
   options: TraceOptions,
-  fn: F
-) => {
+  fn: (ctx: TraceContext) => Promise<T>
+): Promise<TraceResult<T>> => {
   const tracer = api.trace.getTracer("agentmark");
-  return context.with(ROOT_CONTEXT, async () =>
+
+  return context.with(ROOT_CONTEXT, () =>
     tracer.startActiveSpan(options.name, async (span) => {
-      // Set agentmark.* attributes (snake_case)
-      // Set trace_name from name (only for trace function)
-      span.setAttribute(`${AgentMarkKey}.trace_name`, options.name);
-      
-      if (options.sessionId) {
-        span.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
-      }
-      if (options.sessionName) {
-        span.setAttribute(`${AgentMarkKey}.session_name`, options.sessionName);
-      }
-      if (options.userId) {
-        span.setAttribute(`${AgentMarkKey}.user_id`, options.userId);
-      }
-      if (options.datasetRunId) {
-        span.setAttribute(`${AgentMarkKey}.dataset_run_id`, options.datasetRunId);
-      }
-      if (options.datasetRunName) {
-        span.setAttribute(`${AgentMarkKey}.dataset_run_name`, options.datasetRunName);
-      }
-      if (options.datasetItemName) {
-        span.setAttribute(`${AgentMarkKey}.dataset_item_name`, options.datasetItemName);
-      }
-      if (options.datasetExpectedOutput) {
-        span.setAttribute(`${AgentMarkKey}.dataset_expected_output`, options.datasetExpectedOutput);
-      }
-      
-      // Set metadata attributes (agentmark.metadata.*)
-      if (options.metadata) {
-        for (const [key, value] of Object.entries(options.metadata)) {
-          span.setAttribute(`${MetadataKey}.${key}`, value);
-        }
-      }
+      setAgentmarkAttributes(span, options);
+
+      const ctx = buildContext(span, tracer);
+      const traceId = ctx.traceId;
       try {
-        const response = fn();
-        if (response instanceof Promise) {
-          const result = await response;
-          span.setStatus({ code: SpanStatusCode.OK });
-          return result;
-        }
+        const result = await fn(ctx);
         span.setStatus({ code: SpanStatusCode.OK });
-        return response;
-      } catch (e) {
+        return { result, traceId };
+      } catch (e: any) {
         span.setStatus({
           code: SpanStatusCode.ERROR,
           message: e.message,
@@ -158,60 +250,4 @@ export const trace = <A, F extends (...args: A[]) => ReturnType<F>>(
       }
     })
   );
-};
-
-export const component = <A, F extends (...args: A[]) => ReturnType<F>>(
-  options: TraceOptions,
-  fn: F
-) => {
-  const tracer = api.trace.getTracer("agentmark");
-  return tracer.startActiveSpan(options.name, async (span) => {
-    // Set agentmark.* attributes (snake_case)
-    if (options.sessionId) {
-      span.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
-    }
-    if (options.sessionName) {
-      span.setAttribute(`${AgentMarkKey}.session_name`, options.sessionName);
-    }
-    if (options.userId) {
-      span.setAttribute(`${AgentMarkKey}.user_id`, options.userId);
-    }
-    if (options.datasetRunId) {
-      span.setAttribute(`${AgentMarkKey}.dataset_run_id`, options.datasetRunId);
-    }
-    if (options.datasetRunName) {
-      span.setAttribute(`${AgentMarkKey}.dataset_run_name`, options.datasetRunName);
-    }
-    if (options.datasetItemName) {
-      span.setAttribute(`${AgentMarkKey}.dataset_item_name`, options.datasetItemName);
-    }
-    if (options.datasetExpectedOutput) {
-      span.setAttribute(`${AgentMarkKey}.dataset_expected_output`, options.datasetExpectedOutput);
-    }
-    
-    // Set metadata attributes (agentmark.metadata.*)
-    if (options.metadata) {
-      for (const [key, value] of Object.entries(options.metadata)) {
-        span.setAttribute(`${MetadataKey}.${key}`, value);
-      }
-    }
-    try {
-      const response = fn();
-      if (response instanceof Promise) {
-        const result = await response;
-        span.setStatus({ code: SpanStatusCode.OK });
-        return result;
-      }
-      span.setStatus({ code: SpanStatusCode.OK });
-      return response;
-    } catch (e) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: e.message,
-      });
-      throw e;
-    } finally {
-      span.end();
-    }
-  });
 };

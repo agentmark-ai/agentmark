@@ -1,1 +1,2 @@
-export { initialize, trace, component, getActiveTraceId, getActiveSpanId } from './tracing';
+export { initialize, trace } from './tracing';
+export type { TraceContext, TraceOptions, SpanOptions, TraceResult } from './tracing';

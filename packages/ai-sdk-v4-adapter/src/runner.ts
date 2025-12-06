@@ -5,7 +5,7 @@ import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
 import { createPromptTelemetry } from "@agentmark/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
-import { trace, getActiveTraceId } from "@agentmark/sdk";
+import { trace } from "@agentmark/sdk";
 
 type Frontmatter = {
   name?: string;
@@ -30,9 +30,7 @@ export class VercelAdapterWebhookHandler {
         : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        let traceId = "";
-        const { usage, fullStream } = await trace({ name: frontmatter.name || 'prompt-run' }, async () => {
-          traceId = getActiveTraceId() || "";
+        const { result: { usage, fullStream }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
           return streamObject(input);
         });
         const stream = new ReadableStream({
@@ -58,9 +56,7 @@ export class VercelAdapterWebhookHandler {
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
-      let traceId = "";
-      const { object, usage, finishReason } = await trace({ name: frontmatter.name || 'prompt-run' }, async () => {
-        traceId = getActiveTraceId() || "";
+      const { result: { object, usage, finishReason }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateObject(input);
       });
       return { type: "object", result: object, usage, finishReason, traceId } as WebhookPromptResponse;
@@ -73,9 +69,7 @@ export class VercelAdapterWebhookHandler {
         : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        let traceId = "";
-        const { fullStream } = await trace({ name: frontmatter.name || 'prompt-run' }, async () => {
-          traceId = getActiveTraceId() || "";
+        const { result: { fullStream }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
           return streamText(input);
         });
         const stream = new ReadableStream({
@@ -108,9 +102,7 @@ export class VercelAdapterWebhookHandler {
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
-      let traceId = "";
-      const { text, usage, finishReason, steps } = await trace({ name: frontmatter.name || 'prompt-run' }, async () => {
-        traceId = getActiveTraceId() || "";
+      const { result: { text, usage, finishReason, steps }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateText(input);
       });
       const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
@@ -123,14 +115,12 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      let traceId = "";
-      const result = await trace({ name: frontmatter.name || 'prompt-run' }, async () => {
-        traceId = getActiveTraceId() || "";
+      const { result: imageResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateImage(input);
       });
       return {
         type: "image",
-        result: result.images.map((i: any) => ({ mimeType: i.mimeType, base64: i.base64 })),
+        result: imageResult.images.map((i: any) => ({ mimeType: i.mimeType, base64: i.base64 })),
         traceId
       } as WebhookPromptResponse;
     }
@@ -140,14 +130,12 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      let traceId = "";
-      const result = await trace({ name: frontmatter.name || 'prompt-run' }, async () => {
-        traceId = getActiveTraceId() || "";
+      const { result: speechResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateSpeech(input);
       });
       return {
         type: "speech",
-        result: { mimeType: result.audio.mimeType, base64: result.audio.base64, format: result.audio.format },
+        result: { mimeType: speechResult.audio.mimeType, base64: speechResult.audio.base64, format: speechResult.audio.format },
         traceId
       } as WebhookPromptResponse;
     }
@@ -181,13 +169,13 @@ export class VercelAdapterWebhookHandler {
             if (done) break;
             if (item.type === "error") continue;
             const formatted = item.formatted as any;
-            const { text, usage } = await trace({
+            const { result: { text, usage } } = await trace({
               name: `experiment-${datasetRunName}-${index}`,
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
               datasetItemName: `${index}`,
               datasetExpectedOutput: item.dataset?.expected_output
-            }, async () => {
+            }, async (_ctx) => {
               return generateText({
                 ...formatted,
                 experimental_telemetry: {
@@ -248,13 +236,13 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const { object, usage } = await trace({
+            const { result: { object, usage } } = await trace({
               name: `experiment-${datasetRunName}-${index}`,
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
               datasetItemName: `${index}`,
               datasetExpectedOutput: item.dataset.expected_output
-            }, async () => {
+            }, async (_ctx) => {
               return (await import("ai")).generateObject({
                 ...item.formatted,
                 experimental_telemetry: {
