@@ -61,24 +61,21 @@ export type WebhookPromptResponse =
   | WebhookStreamResponse;
 
 /**
- * Creates telemetry metadata for a prompt run with traceId and traceName.
+ * Creates telemetry metadata for a prompt run with traceName.
  * Use this in adapters to ensure consistent telemetry across all implementations.
  *
  * Priority for traceName: baseTelemetry.metadata.traceName > promptName > 'prompt-run'
  */
 export function createPromptTelemetry(promptName?: string, baseTelemetry?: { isEnabled: boolean; metadata?: Record<string, any> }) {
-  const traceId = crypto.randomUUID();
-  const traceName = baseTelemetry?.metadata?.traceName || promptName || 'prompt-run';
+  const traceName = baseTelemetry?.metadata?.trace_name || promptName || 'prompt-run';
 
   return {
-    traceId,
     telemetry: baseTelemetry ? {
       ...baseTelemetry,
       metadata: {
         ...baseTelemetry.metadata,
-        traceId,
-        traceName
+        trace_name: traceName
       }
-    } : { isEnabled: true, metadata: { traceId, traceName } }
+    } : { isEnabled: true, metadata: { trace_name: traceName } }
   };
 }

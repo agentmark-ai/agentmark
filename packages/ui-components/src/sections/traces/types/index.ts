@@ -26,9 +26,33 @@ export interface SpanData {
   timestamp: number;
   traceId?: string;
   data: {
-    model_name?: string;
+    type?: string;
+    model?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    reasoningTokens?: number;
+    cost?: number;
+    input?: string;
+    output?: string;
+    outputObject?: string;
+    toolCalls?: string;
+    finishReason?: string;
+    settings?: string;
+    sessionId?: string;
+    sessionName?: string;
+    userId?: string;
+    traceName?: string;
+    promptName?: string;
+    props?: string;
     attributes?: string;
-    status_message?: string;
+    statusMessage?: string;
+    status?: string;
+    spanKind?: string;
+    serviceName?: string;
+    tenantId?: string;
+    appId?: string;
+    duration?: number;
     [key: string]: any;
   };
 }

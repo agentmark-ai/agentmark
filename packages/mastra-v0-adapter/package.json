@@ -36,6 +36,7 @@
   "devDependencies": {
     "@agentmark/loader-file": "workspace:*",
     "@agentmark/prompt-core": "workspace:*",
+    "@agentmark/sdk": "workspace:^",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",
     "tsup": "^8.0.1",
@@ -48,6 +49,7 @@
   },
   "peerDependencies": {
     "@agentmark/prompt-core": "*",
+    "@agentmark/sdk": "workspace:^",
     "@mastra/core": "<0.20.0",
     "@mastra/mcp": "<0.13.4"
   }

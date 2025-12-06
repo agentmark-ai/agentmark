@@ -191,7 +191,7 @@ export const createExampleApp = async (
     fs.ensureDirSync(agentmarkInternalDir);
 
     // Get adapter-specific values from config
-    const adapterConfig = getAdapterConfig(adapter);
+    const adapterConfig = getAdapterConfig(adapter, modelProvider);
     const { webhookHandler } = adapterConfig.classes;
 
     const devEntryContent = `// Auto-generated webhook server entry point
@@ -205,15 +205,15 @@ import path from 'path';
 async function main() {
   const args = process.argv.slice(2);
   const webhookPortArg = args.find(arg => arg.startsWith('--webhook-port='));
-  const fileServerPortArg = args.find(arg => arg.startsWith('--file-server-port='));
+  const apiServerPortArg = args.find(arg => arg.startsWith('--api-server-port='));
 
   const webhookPort = webhookPortArg ? parseInt(webhookPortArg.split('=')[1]) : 9417;
-  const fileServerPort = fileServerPortArg ? parseInt(fileServerPortArg.split('=')[1]) : 9418;
-  const fileServerUrl = \`http://localhost:\${fileServerPort}\`;
+  const apiServerPort = apiServerPortArg ? parseInt(apiServerPortArg.split('=')[1]) : 9418;
+  const apiServerUrl = \`http://localhost:\${apiServerPort}\`;
 
   // Set environment for development mode before importing client
   process.env.NODE_ENV = 'development';
-  process.env.AGENTMARK_BASE_URL = fileServerUrl;
+  process.env.AGENTMARK_BASE_URL = apiServerUrl;
 
   // Now import client - it will pick up the dev environment
   const { client } = await import('../agentmark.client.js');
@@ -222,7 +222,7 @@ async function main() {
   const sdk = new AgentMarkSDK({
     apiKey: '',
     appId: '',
-    baseUrl: fileServerUrl,
+    baseUrl: apiServerUrl,
   });
   sdk.initTracing({ disableBatch: true });
 
@@ -232,7 +232,7 @@ async function main() {
   await createWebhookServer({
     port: webhookPort,
     handler,
-    fileServerUrl,
+    apiServerUrl,
     templatesDirectory
   });
 }

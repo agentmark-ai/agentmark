@@ -5,6 +5,7 @@ import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
 import { createPromptTelemetry } from "@agentmark/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
+import { trace } from "@agentmark/sdk";
 
 type Frontmatter = {
   name?: string;
@@ -20,7 +21,7 @@ export class VercelAdapterWebhookHandler {
 
   async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
-    const { traceId, telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
+    const { telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
@@ -29,7 +30,9 @@ export class VercelAdapterWebhookHandler {
         : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { usage, fullStream } = streamObject(input);
+        const { result: { usage, fullStream }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          return streamObject(input);
+        });
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
@@ -53,7 +56,9 @@ export class VercelAdapterWebhookHandler {
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
-      const { object, usage, finishReason } = await generateObject(input);
+      const { result: { object, usage, finishReason }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        return generateObject(input);
+      });
       return { type: "object", result: object, usage, finishReason, traceId } as WebhookPromptResponse;
     }
 
@@ -64,7 +69,9 @@ export class VercelAdapterWebhookHandler {
         : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { fullStream } = streamText(input);
+        const { result: { fullStream }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          return streamText(input);
+        });
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
@@ -95,7 +102,9 @@ export class VercelAdapterWebhookHandler {
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
-      const { text, usage, finishReason, steps } = await generateText(input);
+      const { result: { text, usage, finishReason, steps }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        return generateText(input);
+      });
       const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
       const toolResults = steps?.flatMap((s: any) => s.toolResults) ?? [];
       return { type: "text", result: text, usage, finishReason, toolCalls, toolResults, traceId } as WebhookPromptResponse;
@@ -106,10 +115,12 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const result = await generateImage(input);
+      const { result: imageResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        return generateImage(input);
+      });
       return {
         type: "image",
-        result: result.images.map(i => ({ mimeType: i.mimeType, base64: i.base64 })),
+        result: imageResult.images.map((i: any) => ({ mimeType: i.mimeType, base64: i.base64 })),
         traceId
       } as WebhookPromptResponse;
     }
@@ -119,10 +130,12 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const result = await generateSpeech(input);
+      const { result: speechResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        return generateSpeech(input);
+      });
       return {
         type: "speech",
-        result: { mimeType: result.audio.mimeType, base64: result.audio.base64, format: result.audio.format },
+        result: { mimeType: speechResult.audio.mimeType, base64: speechResult.audio.base64, format: speechResult.audio.format },
         traceId
       } as WebhookPromptResponse;
     }
@@ -155,23 +168,23 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const traceId = crypto.randomUUID();
             const formatted = item.formatted as any;
-            const { text, usage } = await generateText({
-              ...formatted,
-              experimental_telemetry: {
-                ...(formatted?.experimental_telemetry ?? {}),
-                metadata: {
-                  ...((formatted?.experimental_telemetry?.metadata) ?? {}),
-                  dataset_run_id: experimentRunId,
-                  dataset_path: resolvedDatasetPath,
-                  dataset_run_name: datasetRunName,
-                  dataset_item_name: index,
-                  traceName: `experiment-${datasetRunName}-${index}`,
-                  traceId,
-                  dataset_expected_output: item.dataset?.expected_output,
+            const { result: { text, usage } } = await trace({
+              name: `experiment-${datasetRunName}-${index}`,
+              datasetRunId: experimentRunId,
+              datasetRunName: datasetRunName,
+              datasetItemName: `${index}`,
+              datasetExpectedOutput: item.dataset?.expected_output
+            }, async (_ctx) => {
+              return generateText({
+                ...formatted,
+                experimental_telemetry: {
+                  ...(formatted?.experimental_telemetry ?? {}),
+                  metadata: {
+                    ...((formatted?.experimental_telemetry?.metadata) ?? {}),
+                  },
                 },
-              },
+              });
             });
 
             let evalResults: any[] = [];
@@ -202,7 +215,6 @@ export class VercelAdapterWebhookHandler {
               },
               runId: experimentRunId,
               runName: datasetRunName,
-              traceId,
             }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -224,22 +236,22 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const traceId = crypto.randomUUID();
-            const { object, usage } = await (await import("ai")).generateObject({
-              ...item.formatted,
-              experimental_telemetry: {
-                ...(item.formatted.experimental_telemetry ?? {}),
-                metadata: {
-                  ...(item.formatted.experimental_telemetry?.metadata ?? {}),
-                  dataset_run_id: experimentRunId,
-                  dataset_path: resolvedDatasetPath,
-                  dataset_run_name: datasetRunName,
-                  dataset_item_name: index,
-                  traceName: `experiment-${datasetRunName}-${index}`,
-                  traceId,
-                  dataset_expected_output: item.dataset.expected_output,
+            const { result: { object, usage } } = await trace({
+              name: `experiment-${datasetRunName}-${index}`,
+              datasetRunId: experimentRunId,
+              datasetRunName: datasetRunName,
+              datasetItemName: `${index}`,
+              datasetExpectedOutput: item.dataset.expected_output
+            }, async (_ctx) => {
+              return (await import("ai")).generateObject({
+                ...item.formatted,
+                experimental_telemetry: {
+                  ...(item.formatted.experimental_telemetry ?? {}),
+                  metadata: {
+                    ...(item.formatted.experimental_telemetry?.metadata ?? {}),
+                  },
                 },
-              },
+              });
             });
 
             let evalResults: any[] = [];
@@ -269,7 +281,6 @@ export class VercelAdapterWebhookHandler {
               },
               runId: experimentRunId,
               runName: datasetRunName,
-              traceId,
             }) + "\n";
             controller.enqueue(chunk);
             index++;
@@ -290,7 +301,6 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const traceId = crypto.randomUUID();
             const { images } = await (await import("ai")).experimental_generateImage({
               ...(item.formatted as any)
             });
@@ -305,7 +315,6 @@ export class VercelAdapterWebhookHandler {
               },
               runId: experimentRunId,
               runName: datasetRunName,
-              traceId,
             }) + "\n";
             controller.enqueue(chunk);
           }
@@ -325,7 +334,6 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const traceId = crypto.randomUUID();
             const { audio } = await (await import("ai")).experimental_generateSpeech({
               ...(item.formatted as any)
             });
@@ -340,7 +348,6 @@ export class VercelAdapterWebhookHandler {
               },
               runId: experimentRunId,
               runName: datasetRunName,
-              traceId,
             }) + "\n";
             controller.enqueue(chunk);
           }

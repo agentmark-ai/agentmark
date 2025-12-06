@@ -1,6 +1,6 @@
 let prices: Record<string, { promptPrice: number; completionPrice: number }> = {};
 
-const pricesUrl = ""
+const pricesUrl = "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/cli-src/cost-mapping/pricing.json"
 export const getModelCostMappings = async (): Promise<{
   [key: string]: { promptPrice: number; completionPrice: number };
 }> => {

@@ -5,6 +5,7 @@ import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
 import { createPromptTelemetry } from "@agentmark/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
+import { trace } from "@agentmark/sdk";
 
 type Frontmatter = {
   name?: string;
@@ -35,7 +36,7 @@ export class MastraAdapterWebhookHandler {
     options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }
   ): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
-    const { traceId, telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
+    const { telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
@@ -52,7 +53,9 @@ export class MastraAdapterWebhookHandler {
 
       if (shouldStream) {
         try {
-          const streamResult = await agent.stream(messages, generateOptions);
+          const { result: streamResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+            return agent.stream(messages, generateOptions);
+          });
           const fullStream = (streamResult as any).fullStream;
           
           if (fullStream) {
@@ -131,7 +134,9 @@ export class MastraAdapterWebhookHandler {
       }
 
       // Non-streaming object generation
-      const response = await agent.generate(messages, generateOptions);
+      const { result: response, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        return agent.generate(messages, generateOptions);
+      });
       return {
         type: "object",
         result: (response as any).object || response,
@@ -156,7 +161,9 @@ export class MastraAdapterWebhookHandler {
 
       if (shouldStream) {
         try {
-          const streamResult = await agent.stream(messages, generateOptions);
+          const { result: streamResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+            return agent.stream(messages, generateOptions);
+          });
           const fullStream = (streamResult as any).fullStream;
           
           if (fullStream) {
@@ -255,7 +262,9 @@ export class MastraAdapterWebhookHandler {
       }
 
       // Non-streaming text generation
-      const response = await agent.generate(messages, generateOptions);
+      const { result: response, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        return agent.generate(messages, generateOptions);
+      });
       return {
         type: "text",
         result:
@@ -309,32 +318,30 @@ export class MastraAdapterWebhookHandler {
             for (;;) {
               const { value: item, done } = await reader.read();
               if (done) break;
-              const traceId = crypto.randomUUID();
               const formatted = item.formatted;
               const [messages, options] = await formatted.formatMessages();
 
               const agent = new Agent(formatted);
               const telemetryMetadata: Record<string, any> = {
                 ...(options.telemetry?.metadata ?? {}),
-                dataset_run_id: runId,
-                dataset_path: resolvedDatasetPath || "",
-                dataset_run_name: datasetRunName,
-                dataset_item_name: String(index),
-                traceName: `ds-run-${datasetRunName}-${index}`,
-                traceId,
               };
-              if (item.dataset?.expected_output !== undefined) {
-                telemetryMetadata.dataset_expected_output = item.dataset.expected_output;
-              }
 
-              const response = await agent.generate(messages, {
-                ...options,
-                telemetry: options.telemetry
-                  ? {
-                      ...options.telemetry,
-                      metadata: telemetryMetadata,
-                    }
-                  : undefined,
+              const { result: response, traceId } = await trace({
+                name: `ds-run-${datasetRunName}-${index}`,
+                datasetRunId: runId,
+                datasetRunName: datasetRunName,
+                datasetItemName: String(index),
+                datasetExpectedOutput: item.dataset?.expected_output
+              }, async (_ctx) => {
+                return agent.generate(messages, {
+                  ...options,
+                  telemetry: options.telemetry
+                    ? {
+                        ...options.telemetry,
+                        metadata: telemetryMetadata,
+                      }
+                    : undefined,
+                });
               });
 
               const text =
@@ -384,6 +391,7 @@ export class MastraAdapterWebhookHandler {
                   },
                   runId,
                   runName: datasetRunName,
+                  traceId,
                 }) + "\n";
               controller.enqueue(chunk);
               index++;
@@ -415,32 +423,30 @@ export class MastraAdapterWebhookHandler {
             for (;;) {
               const { value: item, done } = await reader.read();
               if (done) break;
-              const traceId = crypto.randomUUID();
               const formatted = item.formatted;
               const [messages, options] = await formatted.formatMessages();
 
               const agent = new Agent(formatted);
               const telemetryMetadata: Record<string, any> = {
                 ...(options.telemetry?.metadata ?? {}),
-                dataset_run_id: runId,
-                dataset_path: resolvedDatasetPath || "",
-                dataset_run_name: datasetRunName,
-                dataset_item_name: String(index),
-                traceName: `ds-run-${datasetRunName}-${index}`,
-                traceId,
               };
-              if (item.dataset.expected_output !== undefined) {
-                telemetryMetadata.dataset_expected_output = item.dataset.expected_output;
-              }
 
-              const response = await agent.generate(messages, {
-                ...options,
-                telemetry: options.telemetry
-                  ? {
-                      ...options.telemetry,
-                      metadata: telemetryMetadata,
-                    }
-                  : undefined,
+              const { result: response, traceId } = await trace({
+                name: `ds-run-${datasetRunName}-${index}`,
+                datasetRunId: runId,
+                datasetRunName: datasetRunName,
+                datasetItemName: String(index),
+                datasetExpectedOutput: item.dataset.expected_output
+              }, async (_ctx) => {
+                return agent.generate(messages, {
+                  ...options,
+                  telemetry: options.telemetry
+                    ? {
+                        ...options.telemetry,
+                        metadata: telemetryMetadata,
+                      }
+                    : undefined,
+                });
               });
 
               const object = (response as any).object || response;
@@ -486,6 +492,7 @@ export class MastraAdapterWebhookHandler {
                   },
                   runId,
                   runName: datasetRunName,
+                  traceId,
                 }) + "\n";
               controller.enqueue(chunk);
               index++;

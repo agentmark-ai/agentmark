@@ -3,87 +3,177 @@ import {
   getModelCostMappings,
 } from "../../../cost-mapping/cost-mapping";
 import db from "../../database";
+import type { NormalizedSpan } from "@agentmark/shared-utils";
 
-export const exportTraces = async (traces: any[]) => {
-  // Insert array of traces into sqlite3 using transaction and prepared statement
+/**
+ * Convert NormalizedSpan to SQLite row format
+ */
+function normalizedSpanToSqliteRow(
+  span: NormalizedSpan,
+  modelsCostMapping: Record<
+    string,
+    { promptPrice: number; completionPrice: number }
+  >
+) {
+  // Convert startTime from milliseconds to nanoseconds (as string for Timestamp)
+  const timestampNs = Math.floor(span.startTime * 1000000).toString();
+
+  // Duration is stored in milliseconds (no conversion needed)
+  const durationMs = Math.floor(span.duration);
+
+  // Calculate cost if model and tokens are available
+  let cost = span.cost || 0;
+  const isSuccess = span.statusCode !== "2";
+  const spanAttributes = { ...span.spanAttributes };
+
+  if (
+    span.model &&
+    span.inputTokens !== undefined &&
+    span.outputTokens !== undefined
+  ) {
+    const priceMap = isSuccess ? modelsCostMapping[span.model] : null;
+    if (priceMap) {
+      const getCost = getCostFormula(
+        Number(priceMap.promptPrice || 0),
+        Number(priceMap.completionPrice || 0),
+        1000
+      );
+      cost = getCost(span.inputTokens || 0, span.outputTokens || 0);
+    }
+    spanAttributes["gen_ai.usage.cost"] = cost;
+  }
+
+  // Convert events to consolidated JSON array
+  const events = span.events.map((e) => ({
+    timestamp: Math.floor(e.timestamp * 1000000),
+    name: e.name,
+    attributes: e.attributes || {},
+  }));
+
+  // Convert links to consolidated JSON array
+  const links = span.links.map((l) => ({
+    traceId: l.traceId,
+    spanId: l.spanId,
+    traceState: l.traceState || null,
+    attributes: l.attributes || {},
+  }));
+
+  return {
+    Timestamp: timestampNs,
+    TraceId: span.traceId,
+    SpanId: span.spanId,
+    ParentSpanId: span.parentSpanId || null,
+    TraceState: span.traceState || null,
+    SpanName: span.name,
+    SpanKind: span.kind,
+    ServiceName: span.serviceName || null,
+    ResourceAttributes: JSON.stringify(span.resourceAttributes || {}),
+    SpanAttributes: JSON.stringify(spanAttributes),
+    Duration: durationMs,
+    EndTime: span.endTime || null,
+    StatusCode: span.statusCode,
+    StatusMessage: span.statusMessage || null,
+    Events: JSON.stringify(events),
+    Links: JSON.stringify(links),
+    // Normalized columns
+    Type: span.type,
+    Model: span.model || "",
+    InputTokens: span.inputTokens || 0,
+    OutputTokens: span.outputTokens || 0,
+    TotalTokens: span.totalTokens || 0,
+    ReasoningTokens: span.reasoningTokens || 0,
+    Cost: cost,
+    Input: span.input ? JSON.stringify(span.input) : null,
+    Output: span.output || null,
+    OutputObject: span.outputObject ? JSON.stringify(span.outputObject) : null,
+    ToolCalls: span.toolCalls ? JSON.stringify(span.toolCalls) : null,
+    FinishReason: span.finishReason || null,
+    Settings: span.settings ? JSON.stringify(span.settings) : null,
+    SessionId: span.sessionId || "",
+    SessionName: span.sessionName || "",
+    UserId: span.userId || "",
+    TraceName: span.traceName || "",
+    DatasetRunId: span.datasetRunId || "",
+    DatasetRunName: span.datasetRunName || "",
+    DatasetPath: span.datasetPath || "",
+    DatasetItemName: span.datasetItemName || "",
+    DatasetExpectedOutput: span.datasetExpectedOutput || "",
+    PromptName: span.promptName || "",
+    Props: span.props || null,
+    Metadata: span.metadata ? JSON.stringify(span.metadata) : null,
+  };
+}
+
+export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
+  // Insert array of normalized spans into sqlite3 using transaction and prepared statement
   const insert = db.prepare(
     `
-    INSERT INTO traces (Timestamp, TraceId, SpanId, ParentSpanId, TraceState, SpanName, SpanKind, ServiceName, ResourceAttributes, SpanAttributes, Duration, StatusCode, StatusMessage, Events_Timestamp, Events_Name, Events_Attributes, Links_TraceId, Links_SpanId, Links_TraceState, Links_Attributes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO traces (
+      Timestamp, TraceId, SpanId, ParentSpanId, TraceState, SpanName, SpanKind, ServiceName, 
+      ResourceAttributes, SpanAttributes, Duration, EndTime, StatusCode, StatusMessage, 
+      Events, Links,
+      Type, Model, InputTokens, OutputTokens, TotalTokens, ReasoningTokens, Cost,
+      Input, Output, OutputObject, ToolCalls, FinishReason, Settings,
+      SessionId, SessionName, UserId, TraceName,
+      DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput,
+      PromptName, Props, Metadata
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
   // Get model cost mappings once before the transaction
   const modelsCostMapping = await getModelCostMappings();
 
-  const insertMany = db.transaction((traces: any[]) => {
-    for (const trace of traces) {
-      const isSuccess = trace.StatusCode !== 2;
-      const spanAttributes = { ...trace.SpanAttributes };
-      if (spanAttributes["gen_ai.request.model"]) {
-        let getCost = (_a: number, _b: number) => {
-          return 0;
-        };
-
-        const priceMap = isSuccess
-          ? modelsCostMapping[spanAttributes["gen_ai.request.model"]]
-          : null;
-        getCost = getCostFormula(
-          Number(priceMap?.promptPrice || 0),
-          Number(priceMap?.completionPrice || 0),
-          1000
-        );
-        const cost = getCost(
-          Number(spanAttributes["gen_ai.usage.input_tokens"] || 0),
-          Number(spanAttributes["gen_ai.usage.output_tokens"] || 0)
-        );
-
-        spanAttributes["gen_ai.usage.cost"] = cost;
-      }
-
+  const insertMany = db.transaction((spans: NormalizedSpan[]) => {
+    for (const span of spans) {
+      const row = normalizedSpanToSqliteRow(span, modelsCostMapping);
       insert.run(
-        trace.Timestamp,
-        `${trace.TraceId}`,
-        `${trace.SpanId}`,
-        `${trace.ParentSpanId}`,
-        `${trace.TraceState}`,
-        `${trace.SpanName}`,
-        `${trace.SpanKind}`,
-        `${trace.ServiceName}`,
-        typeof trace.ResourceAttributes === "object"
-          ? JSON.stringify(trace.ResourceAttributes)
-          : trace.ResourceAttributes,
-        typeof spanAttributes === "object"
-          ? JSON.stringify(spanAttributes)
-          : spanAttributes,
-        `${trace.Duration}`,
-        `${trace.StatusCode}`,
-        trace.StatusMessage,
-        typeof trace.Events_Timestamp === "object"
-          ? JSON.stringify(trace.Events_Timestamp)
-          : trace.Events_Timestamp,
-        typeof trace.Events_Name === "object"
-          ? JSON.stringify(trace.Events_Name)
-          : trace.Events_Name,
-        typeof trace.Events_Attributes === "object"
-          ? JSON.stringify(trace.Events_Attributes)
-          : trace.Events_Attributes,
-        typeof trace.Links_TraceId === "object"
-          ? JSON.stringify(trace.Links_TraceId)
-          : trace.Links_TraceId,
-        typeof trace.Links_SpanId === "object"
-          ? JSON.stringify(trace.Links_SpanId)
-          : trace.Links_SpanId,
-        typeof trace.Links_TraceState === "object"
-          ? JSON.stringify(trace.Links_TraceState)
-          : trace.Links_TraceState,
-        typeof trace.Links_Attributes === "object"
-          ? JSON.stringify(trace.Links_Attributes)
-          : trace.Links_Attributes
+        row.Timestamp,
+        row.TraceId,
+        row.SpanId,
+        row.ParentSpanId,
+        row.TraceState,
+        row.SpanName,
+        row.SpanKind,
+        row.ServiceName,
+        row.ResourceAttributes,
+        row.SpanAttributes,
+        row.Duration,
+        row.EndTime,
+        row.StatusCode,
+        row.StatusMessage,
+        row.Events,
+        row.Links,
+        row.Type,
+        row.Model,
+        row.InputTokens,
+        row.OutputTokens,
+        row.TotalTokens,
+        row.ReasoningTokens,
+        row.Cost,
+        row.Input,
+        row.Output,
+        row.OutputObject,
+        row.ToolCalls,
+        row.FinishReason,
+        row.Settings,
+        row.SessionId,
+        row.SessionName,
+        row.UserId,
+        row.TraceName,
+        row.DatasetRunId,
+        row.DatasetRunName,
+        row.DatasetPath,
+        row.DatasetItemName,
+        row.DatasetExpectedOutput,
+        row.PromptName,
+        row.Props,
+        row.Metadata
       );
     }
   });
-  insertMany(traces);
+  insertMany(normalizedSpans);
 };
 
 export const getRequests = async () => {
@@ -94,40 +184,29 @@ export const getRequests = async () => {
       SpanKind AS span_kind,
       Duration AS latency_ms,
       SpanName AS span_name,
-      TenantId AS tenant_id,
-      AppId AS app_id,
       cast(Timestamp as Real) / 1000000 AS ts,
-      json_extract(json(SpanAttributes), '$."gen_ai.system_prompt"') AS system_prompt,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.templateName"') AS template_name,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.prompt"') AS prompt_name,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.userId"') AS user_id,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.props"') AS props,
+      PromptName AS prompt_name,
+      UserId AS user_id,
+      Props AS props,
       CASE
-        WHEN json_extract(json(SpanAttributes), '$."ai.response.text"') IS NOT NULL AND json_extract(json(SpanAttributes), '$."ai.response.text"') != ''
-          THEN json_extract(json(SpanAttributes), '$."ai.response.text"')
-        ELSE json_extract(json(SpanAttributes), '$."ai.response.object"')
+        WHEN Output IS NOT NULL AND Output != '' THEN Output
+        WHEN OutputObject IS NOT NULL AND OutputObject != '' THEN OutputObject
+        ELSE ToolCalls
       END AS output,
-      json_extract(json(SpanAttributes), '$."ai.prompt.messages"') AS input,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.dataset_run_id"') AS dataset_run_id,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.dataset_item_name"') AS dataset_item_name,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.dataset_expected_output"') AS dataset_expected_output,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.commit_sha"') AS commit_sha,
-      json_extract(json(SpanAttributes), '$."gen_ai.request.model"') AS model_used,
+      Input AS input,
+      DatasetRunId AS dataset_run_id,
+      DatasetItemName AS dataset_item_name,
+      DatasetExpectedOutput AS dataset_expected_output,
+      Model AS model_used,
       StatusCode AS status,
       StatusMessage AS status_message,
       -- total_tokens = prompt_tokens + completion_tokens
-      (COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.input_tokens"') AS INTEGER), 0)
-       + COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.output_tokens"') AS INTEGER), 0)) AS total_tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.input_tokens"') AS INTEGER), 0) AS prompt_tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.output_tokens"') AS INTEGER), 0) AS completion_tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.cost"') AS REAL), 0.0) AS cost
+      (COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS total_tokens,
+      COALESCE(InputTokens, 0) AS prompt_tokens,
+      COALESCE(OutputTokens, 0) AS completion_tokens,
+      COALESCE(Cost, 0.0) AS cost
     FROM traces
-    WHERE SpanName IN (
-      'ai.generateText.doGenerate',
-      'ai.streamText.doStream',
-      'ai.generateObject.doGenerate',
-      'ai.streamObject.doStream'
-    )
+    WHERE Type = 'GENERATION'
     ORDER BY ts DESC
   `;
 
@@ -142,20 +221,10 @@ export const getTraces = async () => {
 trace_costs_and_tokens AS (
     SELECT
         TraceId AS id,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
-            CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
-        ) AS tokens,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
-        ) AS cost
+        SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+        SUM(COALESCE(Cost, 0.0)) AS cost
     FROM traces
-    WHERE SpanName IN (
-        'ai.generateText.doGenerate',
-        'ai.streamText.doStream',
-        'ai.generateObject.doGenerate',
-        'ai.streamObject.doStream'
-    )
+    WHERE Type = 'GENERATION'
     GROUP BY TraceId
 ),
 
@@ -171,26 +240,26 @@ traces_cte AS (
             WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+        MIN(DatasetRunId) AS dataset_run_id,
+        MIN(DatasetPath) AS dataset_path
     FROM traces
     GROUP BY TraceId
 ),
 
 trace_metadata AS (
     SELECT
-        TraceId AS id,
-        COALESCE(
-            MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
-            MAX(SpanName)
-        ) AS name,
-        MAX(StatusMessage) AS status_message,
-        MAX(Duration) AS latency
-    FROM traces
-    WHERE ParentSpanId NOT IN (
-        SELECT SpanId FROM traces
-    )
-    GROUP BY TraceId
+    t.TraceId AS id,
+    COALESCE(
+        MAX(NULLIF(t.TraceName, '')),
+        MAX(t.SpanName)
+    ) AS name,
+    MAX(t.StatusMessage) AS status_message,
+    MAX(t.Duration) AS latency
+    FROM traces t
+    LEFT JOIN traces c
+        ON c.SpanId = t.ParentSpanId
+    WHERE c.SpanId IS NULL    
+    GROUP BY t.TraceId
 )
 
 SELECT
@@ -233,18 +302,28 @@ export const getSpans = async (traceId: string) => {
       END AS status_code,
       StatusMessage AS status_message,
       SpanAttributes AS attributes,
-      SpanKind AS span_kind,
-      ServiceName AS service_name,
-      TenantId AS tenant_id,
-      AppId AS app_id,
-      (COALESCE(CAST(json_extract(json(SpanAttributes), '$."ai.usage.promptTokens"') AS INTEGER), 0) +
-       COALESCE(CAST(json_extract(json(SpanAttributes), '$."ai.usage.completionTokens"') AS INTEGER), 0)) AS tokens,
-      COALESCE(CAST(json_extract(json(SpanAttributes), '$."gen_ai.usage.cost"') AS REAL), 0.0) AS cost,
-      json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') AS session_id,
-      COALESCE(
-        NULLIF(json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.traceName"'), ''),
-        SpanName
-      ) AS trace_name
+      Type AS type,
+      Model AS model,
+      InputTokens AS inputTokens,
+      OutputTokens AS outputTokens,
+      TotalTokens AS totalTokens,
+      ReasoningTokens AS reasoningTokens,
+      Cost AS cost,
+      Input AS input,
+      Output AS output,
+      OutputObject AS outputObject,
+      ToolCalls AS toolCalls,
+      FinishReason AS finishReason,
+      Settings AS settings,
+      SessionId AS sessionId,
+      SessionName AS sessionName,
+      UserId AS userId,
+      TraceName AS traceName,
+      PromptName AS promptName,
+      Props AS props,
+      SpanKind AS spanKind,
+      ServiceName AS serviceName,
+      Metadata AS metadata
     FROM traces
     WHERE TraceId = ?
     ORDER BY CAST(Timestamp AS REAL) ASC
@@ -266,21 +345,34 @@ export const getSpans = async (traceId: string) => {
       // If parsing fails, keep empty object
     }
 
-    // Extract common attributes
+    // Map all flat fields to data object matching SpanData type
     const data: any = {
-      model_name: spanAttributes["gen_ai.request.model"],
-      status_message: row.status_message || undefined,
-      status: row.status_code,
-      span_kind: row.span_kind,
-      service_name: row.service_name,
-      tenant_id: row.tenant_id || undefined,
-      app_id: row.app_id || undefined,
-      tokens: row.tokens || 0,
-      cost: row.cost || 0,
-      session_id: row.session_id || undefined,
-      duration: row.duration || 0,
-      trace_name: row.trace_name || row.name,
+      type: row.type || undefined,
+      model: row.model || undefined,
+      inputTokens: row.inputTokens ?? undefined,
+      outputTokens: row.outputTokens ?? undefined,
+      totalTokens: row.totalTokens ?? undefined,
+      reasoningTokens: row.reasoningTokens ?? undefined,
+      cost: row.cost ?? undefined,
+      input: row.input || undefined,
+      output: row.output || undefined,
+      outputObject: row.outputObject || undefined,
+      toolCalls: row.toolCalls || undefined,
+      finishReason: row.finishReason || undefined,
+      settings: row.settings || undefined,
+      sessionId: row.sessionId || undefined,
+      sessionName: row.sessionName || undefined,
+      userId: row.userId || undefined,
+      traceName: row.traceName || undefined,
+      promptName: row.promptName || undefined,
+      props: row.props || undefined,
       attributes: JSON.stringify(spanAttributes), // Include all attributes
+      statusMessage: row.status_message || undefined,
+      status: row.status_code,
+      spanKind: row.spanKind || undefined,
+      serviceName: row.serviceName || undefined,
+      duration: row.duration || 0,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
     };
 
     // Convert timestamp from microseconds to milliseconds (JavaScript standard)
@@ -300,27 +392,15 @@ export const getSpans = async (traceId: string) => {
 };
 
 export const getTraceById = async (traceId: string) => {
-  console.log("traceId", traceId);
-
   const traceSql = `
     WITH
     trace_costs_and_tokens AS (
         SELECT
             TraceId AS id,
-            SUM(
-                CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
-                CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
-            ) AS tokens,
-            SUM(
-                CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
-            ) AS cost
+            SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+            SUM(COALESCE(Cost, 0.0)) AS cost
         FROM traces
-        WHERE SpanName IN (
-            'ai.generateText.doGenerate',
-            'ai.streamText.doStream',
-            'ai.generateObject.doGenerate',
-            'ai.streamObject.doStream'
-        )
+        WHERE Type = 'GENERATION'
         GROUP BY TraceId
     ),
 
@@ -336,26 +416,26 @@ export const getTraceById = async (traceId: string) => {
                 WHEN StatusCode = '1' THEN '1'
                 ELSE '0'
             END) AS status,
-            MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
-            MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+            MIN(DatasetRunId) AS dataset_run_id,
+            MIN(DatasetPath) AS dataset_path
         FROM traces
         GROUP BY TraceId
     ),
 
     trace_metadata AS (
         SELECT
-            TraceId AS id,
-            COALESCE(
-                MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
-                MAX(SpanName)
-            ) AS name,
-            MAX(StatusMessage) AS status_message,
-            MAX(Duration) AS latency
-        FROM traces
-        WHERE ParentSpanId NOT IN (
-            SELECT SpanId FROM traces
-        )
-        GROUP BY TraceId
+          t.TraceId AS id,
+          COALESCE(
+              MAX(NULLIF(t.TraceName, '')),
+              MAX(t.SpanName)
+          ) AS name,
+          MAX(t.StatusMessage) AS status_message,
+          MAX(t.Duration) AS latency
+        FROM traces t
+        LEFT JOIN traces c
+            ON c.SpanId = t.ParentSpanId
+        WHERE c.SpanId IS NULL    
+        GROUP BY t.TraceId
     )
 
     SELECT
@@ -407,11 +487,11 @@ export const getTraceGraph = async (traceId: string) => {
     SELECT
       SpanId AS span_id,
       SpanName AS span_name,
-      SpanAttributes AS attributes
+      Metadata AS metadata
     FROM traces
     WHERE TraceId = ?
-      AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.graph.node.id"') != ''
-      AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.graph.node.id"') IS NOT NULL
+      AND json_extract(json(Metadata), '$."graph.node.id"') != ''
+      AND json_extract(json(Metadata), '$."graph.node.id"') IS NOT NULL
     ORDER BY CAST(Timestamp AS REAL) ASC
   `;
 
@@ -427,30 +507,27 @@ export const getTraceGraph = async (traceId: string) => {
   }> = [];
 
   for (const row of rows) {
-    // Parse SpanAttributes JSON
-    let spanAttributes: any = {};
+    // Parse Metadata JSON
+    let metadata: any = {};
     try {
-      if (row.attributes) {
-        spanAttributes =
-          typeof row.attributes === "string"
-            ? JSON.parse(row.attributes)
-            : row.attributes;
+      if (row.metadata) {
+        metadata =
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata)
+            : row.metadata;
       }
     } catch {
       // If parsing fails, skip this row
       continue;
     }
 
-    const nodeId = spanAttributes["ai.telemetry.metadata.graph.node.id"] || "";
+    const nodeId = metadata["graph.node.id"] || "";
     if (!nodeId) continue;
 
     // Handle parent_id - can be single value or array
     let parentNodeId: string | Array<string> | undefined;
-    const parentIds = JSON.parse(
-      spanAttributes["ai.telemetry.metadata.graph.node.parent_ids"] || "[]"
-    );
-    const parentId =
-      spanAttributes["ai.telemetry.metadata.graph.node.parent_id"];
+    const parentIds = JSON.parse(metadata["graph.node.parent_ids"] || "[]");
+    const parentId = metadata["graph.node.parent_id"];
 
     if (Array.isArray(parentIds) && parentIds.length > 0) {
       parentNodeId = parentIds;
@@ -458,10 +535,8 @@ export const getTraceGraph = async (traceId: string) => {
       parentNodeId = parentId;
     }
 
-    const displayName =
-      spanAttributes["ai.telemetry.metadata.graph.node.display_name"] || "";
-    const nodeType =
-      spanAttributes["ai.telemetry.metadata.graph.node.type"] || "";
+    const displayName = metadata["graph.node.display_name"] || "";
+    const nodeType = metadata["graph.node.type"] || "";
 
     if (Array.isArray(parentNodeId)) {
       parentNodeId.forEach((id) => {
@@ -493,22 +568,18 @@ export const getSessions = async () => {
   const sql = `
     WITH session_spans AS (
       SELECT
-        TRIM(json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"')) AS id,
+        TRIM(SessionId) AS id,
         CAST(Timestamp AS REAL) / 1000000 AS timestamp,
-        TenantId AS tenant_id,
-        AppId AS app_id,
-        json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionName"') AS session_name
+        SessionName AS session_name
       FROM traces
-      WHERE json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') IS NOT NULL
-        AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') != ''
-        AND json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') != 'null'
+      WHERE SessionId IS NOT NULL
+        AND SessionId != ''
+        AND SessionId != 'null'
     )
     SELECT
       id,
       MIN(timestamp) AS start,
       MAX(timestamp) AS end,
-      MIN(tenant_id) AS tenant_id,
-      MIN(app_id) AS app_id,
       MIN(CASE 
         WHEN session_name IS NOT NULL AND session_name != ''
         THEN session_name
@@ -529,10 +600,12 @@ export const getTracesBySessionId = async (sessionId: string) => {
   const traceIdsSql = `
     SELECT DISTINCT TraceId
     FROM traces
-    WHERE json_extract(json(SpanAttributes), '$."ai.telemetry.metadata.sessionId"') = ?
+    WHERE SessionId = ?
   `;
 
-  const traceIdRows = db.prepare(traceIdsSql).all(sessionId) as Array<{ TraceId: string }>;
+  const traceIdRows = db.prepare(traceIdsSql).all(sessionId) as Array<{
+    TraceId: string;
+  }>;
   const traceIds = traceIdRows.map((row) => row.TraceId);
 
   if (traceIds.length === 0) {
@@ -558,20 +631,10 @@ export const getTracesByRunId = async (runId: string) => {
 trace_costs_and_tokens AS (
     SELECT
         TraceId AS id,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."ai.usage.promptTokens"') AS INTEGER) +
-            CAST(json_extract(SpanAttributes, '$."ai.usage.completionTokens"') AS INTEGER)
-        ) AS tokens,
-        SUM(
-            CAST(json_extract(SpanAttributes, '$."gen_ai.usage.cost"') AS REAL)
-        ) AS cost
+        SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+        SUM(COALESCE(Cost, 0.0)) AS cost
     FROM traces
-    WHERE SpanName IN (
-        'ai.generateText.doGenerate',
-        'ai.streamText.doStream',
-        'ai.generateObject.doGenerate',
-        'ai.streamObject.doStream'
-    )
+    WHERE Type = 'GENERATION'
     GROUP BY TraceId
 ),
 
@@ -587,26 +650,26 @@ traces_cte AS (
             WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_run_id"')) AS dataset_run_id,
-        MIN(json_extract(SpanAttributes, '$."ai.telemetry.metadata.dataset_path"')) AS dataset_path
+        MIN(DatasetRunId) AS dataset_run_id,
+        MIN(DatasetPath) AS dataset_path
     FROM traces
     GROUP BY TraceId
 ),
 
 trace_metadata AS (
     SELECT
-        TraceId AS id,
-        COALESCE(
-            MAX(json_extract(SpanAttributes, '$."ai.telemetry.metadata.traceName"')),
-            MAX(SpanName)
-        ) AS name,
-        MAX(StatusMessage) AS status_message,
-        MAX(Duration) AS latency
-    FROM traces
-    WHERE ParentSpanId NOT IN (
-        SELECT SpanId FROM traces
-    )
-    GROUP BY TraceId
+    t.TraceId AS id,
+    COALESCE(
+        MAX(NULLIF(t.TraceName, '')),
+        MAX(t.SpanName)
+    ) AS name,
+    MAX(t.StatusMessage) AS status_message,
+    MAX(t.Duration) AS latency
+    FROM traces t
+    LEFT JOIN traces c
+        ON c.SpanId = t.ParentSpanId
+    WHERE c.SpanId IS NULL    
+    GROUP BY t.TraceId
 )
 
 SELECT

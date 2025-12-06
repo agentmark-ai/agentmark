@@ -1,6 +1,5 @@
 import { SpanData } from "@/sections/traces/types";
 import { useState, useEffect, useMemo } from "react";
-import { SpanAttributeKeys } from "../const";
 
 interface UseSpanInfoProps {
   span?: SpanData;
@@ -10,24 +9,9 @@ export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
   const [activeTab, setActiveTab] = useState<string>("attributes");
   const [tabs, setTabs] = useState<{ value: string; label: string }[]>([]);
 
-  const spanAttributes = useMemo(() => {
-    try {
-      return JSON.parse(span?.data?.attributes || "{}");
-    } catch {
-      return {};
-    }
-  }, [span]);
-
-  const hasLLMAttributes = (attributes: Record<string, any>) => {
-    return !!(
-      attributes[SpanAttributeKeys.AI_PROMPT_MESSAGES] ||
-      attributes[SpanAttributeKeys.AI_PROMPT] ||
-      attributes[SpanAttributeKeys.AI_MODEL_ID] ||
-      attributes[SpanAttributeKeys.REQUEST_MODEL]
-    );
-  };
-
-  const isLLMCall = hasLLMAttributes(spanAttributes);
+  const isLLMCall = useMemo(() => {
+    return span?.data?.type === "GENERATION" || !!span?.data?.model;
+  }, [span?.data?.type, span?.data?.model]);
 
   useEffect(() => {
     if (span?.id) {
@@ -73,7 +57,6 @@ export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
     activeTab,
     setActiveTab,
     tabs,
-    spanAttributes,
     isLLMCall,
   };
 };

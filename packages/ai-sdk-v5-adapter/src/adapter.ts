@@ -132,7 +132,7 @@ const getTelemetryConfig = (
     ...telemetry,
     metadata: {
       ...telemetry?.metadata,
-      prompt: promptName,
+      prompt_name: promptName,
       props: JSON.stringify(props),
       ...(agentmarkMeta ? { ...agentmarkMeta } : {}),
     },

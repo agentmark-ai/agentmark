@@ -7,11 +7,10 @@ import { client } from "./agentmark.client";
 const telemetry = {
   isEnabled: true,
   metadata: {
-    traceId: "trace-123",
-    traceName: "customer-support",
-    userId: "user-123",
-    sessionId: "session-123",
-    sessionName: "my-first-session",
+    trace_name: "customer-support",
+    user_id: "user-123",
+    session_id: "session-123",
+    session_name: "my-first-session",
   },
 };
 
@@ -55,11 +54,10 @@ import { client } from "./agentmark.client";
 const telemetry = {
   isEnabled: true,
   metadata: {
-    traceId: "trace-123",
-    traceName: "customer-support",
-    userId: "user-123",
-    sessionId: "session-123",
-    sessionName: "my-first-session",
+    trace_name: "customer-support",
+    user_id: "user-123",
+    session_id: "session-123",
+    session_name: "my-first-session",
   },
 };
 

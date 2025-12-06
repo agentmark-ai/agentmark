@@ -144,7 +144,7 @@ describe("Mastra Adapter Integration", () => {
         functionId: "1",
         metadata: expect.objectContaining({
           ...metadata,
-          prompt: "math",
+          prompt_name: "math",
           props: JSON.stringify({ userMessage: "What is 2+2?" }),
         }),
       })

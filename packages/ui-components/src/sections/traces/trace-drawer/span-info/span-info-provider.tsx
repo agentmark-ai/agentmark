@@ -10,7 +10,6 @@ const SpanInfoContext = createContext<SpanInfoContextValue | undefined>(
 interface SpanInfoContextValue {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  spanAttributes: Record<string, any>;
   tabs: { value: string; label: string }[];
   span: SpanData;
 }
@@ -21,7 +20,7 @@ export const SpanInfoProvider = ({
   children: React.ReactNode;
 }) => {
   const { selectedSpan } = useTraceDrawerContext();
-  const { activeTab, setActiveTab, spanAttributes, tabs } = useSpanInfo({
+  const { activeTab, setActiveTab, tabs } = useSpanInfo({
     span: selectedSpan || undefined,
   });
 
@@ -35,7 +34,6 @@ export const SpanInfoProvider = ({
         span: selectedSpan,
         activeTab,
         setActiveTab,
-        spanAttributes,
         tabs,
       }}
     >
