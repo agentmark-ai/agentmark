@@ -10,6 +10,3 @@ yalc.lock
 .env
 *storybook.log
 storybook-static
-
-# AgentMark local development config (contains webhook secrets)
-.agentmark/dev-config.json
