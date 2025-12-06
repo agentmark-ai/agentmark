@@ -1,4 +1,5 @@
 import { NormalizedSpan } from '../types';
+import { isSafeKey } from '../utils/key-sanitizer';
 
 // Known metadata fields that should be excluded from custom metadata
 const KNOWN_METADATA_FIELDS = new Set([
@@ -15,16 +16,6 @@ const KNOWN_METADATA_FIELDS = new Set([
     'props',
     'commit_sha',
 ]);
-
-// Dangerous keys that could cause prototype pollution
-const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
-/**
- * Check if a key is safe to use as an object property
- */
-function isSafeKey(key: string): boolean {
-    return !DANGEROUS_KEYS.has(key);
-}
 
 export function parseMetadata(attributes: Record<string, any>, prefix: string = 'agentmark.metadata.'): Partial<NormalizedSpan> {
     const result: Partial<NormalizedSpan> = {};

@@ -1,4 +1,5 @@
 import { OtelResource, OtelScope, OtelSpan, OtelEvent, OtelLink } from '../types';
+import { isSafeKey } from '../utils/key-sanitizer';
 
 /**
  * OTLP attribute value types
@@ -97,18 +98,6 @@ export interface OtlpScopeSpans {
 export interface OtlpResourceSpans {
   resource?: OtlpResource;
   scopeSpans: OtlpScopeSpans[];
-}
-
-/**
- * Dangerous keys that could cause prototype pollution
- */
-const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
-/**
- * Check if a key is safe to use as an object property
- */
-function isSafeKey(key: string): boolean {
-  return !DANGEROUS_KEYS.has(key);
 }
 
 /**
