@@ -43,6 +43,7 @@ __metadata:
     vitest: "npm:^3.0.8"
   peerDependencies:
     "@agentmark/prompt-core": "*"
+    "@agentmark/sdk": "workspace:^"
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
@@ -65,6 +66,7 @@ __metadata:
     vitest: "npm:^3.0.8"
   peerDependencies:
     "@agentmark/prompt-core": "*"
+    "@agentmark/sdk": "workspace:^"
     "@ai-sdk/mcp": ^0.0.8
     ai: ^5.0.0
   languageName: unknown
@@ -193,6 +195,7 @@ __metadata:
     zod: "npm:^4.0.17"
   peerDependencies:
     "@agentmark/prompt-core": "*"
+    "@agentmark/sdk": "workspace:^"
     "@mastra/core": <0.20.0
     "@mastra/mcp": <0.13.4
   languageName: unknown
