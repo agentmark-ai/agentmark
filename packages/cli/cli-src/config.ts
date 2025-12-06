@@ -24,6 +24,12 @@ let cachedConfig: LocalConfig | null = null;
 let cachedConfigPath: string | null = null;
 
 function getConfigPath(): string {
+  // Use temp directory during tests to avoid polluting the project
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+    const tmpDir = process.env.TMPDIR || '/tmp';
+    return path.join(tmpDir, '.agentmark-dev-config.json');
+  }
+
   // Use .agentmark directory in project root for config
   try {
     const cwd = process.cwd();

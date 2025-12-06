@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 import { trace } from "../trace/tracing";
-import type { TraceContext } from "../trace/tracing";
 import { AgentMarkSDK } from "../agentmark";
 import * as api from "@opentelemetry/api";
 
