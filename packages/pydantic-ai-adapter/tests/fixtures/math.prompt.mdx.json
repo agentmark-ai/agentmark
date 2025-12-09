@@ -1,0 +1,57 @@
+{
+  "type": "root",
+  "children": [
+    {
+      "type": "yaml",
+      "value": "name: math\nobject_config:\n  model_name: test-model\n  temperature: 0.5\n  schema:\n    type: object\n    properties:\n      answer:\n        type: string\n    required: [\"answer\"]"
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "System",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "You are a helpful math tutor."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "User",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "mdxTextExpression",
+              "value": "props.userMessage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "Assistant",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "Here's your answer!"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
