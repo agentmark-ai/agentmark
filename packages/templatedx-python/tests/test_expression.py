@@ -261,3 +261,111 @@ class TestExpressionEvaluator:
         evaluator = self.create_evaluator({})
         with pytest.raises(EvaluationError, match="Modulo by zero"):
             evaluator.evaluate("10 % 0")
+
+
+class TestExpressionSecurity:
+    """Security-focused tests for the expression evaluator."""
+
+    def create_evaluator(self, variables: dict) -> ExpressionEvaluator:
+        scope = Scope(variables=variables)
+        registry = FilterRegistry()
+        registry.copy_from_global()
+        return ExpressionEvaluator(scope, registry)
+
+    def test_blocks_dunder_class(self) -> None:
+        """Ensure __class__ access is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.__class__")
+
+    def test_blocks_dunder_dict(self) -> None:
+        """Ensure __dict__ access is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.__dict__")
+
+    def test_blocks_dunder_bases(self) -> None:
+        """Ensure __bases__ access is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.__bases__")
+
+    def test_blocks_dunder_subclasses(self) -> None:
+        """Ensure __subclasses__ access is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.__subclasses__")
+
+    def test_blocks_dunder_globals(self) -> None:
+        """Ensure __globals__ access is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.__globals__")
+
+    def test_blocks_dunder_init(self) -> None:
+        """Ensure __init__ access is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.__init__")
+
+    def test_blocks_single_underscore_prefix(self) -> None:
+        """Ensure single underscore prefix attributes are blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props._private")
+
+    def test_blocks_computed_dunder_access(self) -> None:
+        """Ensure computed access to dunder attributes is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate('props["__class__"]')
+
+    def test_blocks_computed_private_access(self) -> None:
+        """Ensure computed access to private attributes is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate('props["_private"]')
+
+    def test_allows_normal_props_access(self) -> None:
+        """Ensure normal props access still works."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        assert evaluator.evaluate("props.name") == "Alice"
+
+    def test_allows_numeric_index_access(self) -> None:
+        """Ensure numeric index access to arrays still works."""
+        evaluator = self.create_evaluator({"props": {"items": ["a", "b", "c"]}})
+        assert evaluator.evaluate("props.items[0]") == "a"
+
+    def test_arbitrary_function_calls_blocked(self) -> None:
+        """Ensure arbitrary function calls are blocked (only registered filters allowed)."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        with pytest.raises(EvaluationError, match='Filter "eval" is not registered'):
+            evaluator.evaluate('eval("malicious")')
+
+    def test_method_calls_blocked(self) -> None:
+        """Ensure calling methods on objects is blocked."""
+        evaluator = self.create_evaluator({"props": {"name": "Alice"}})
+        # Even if we access a method, we can't call it - only registered filters are callable
+        with pytest.raises(EvaluationError, match="Only calls to registered filters are allowed"):
+            evaluator.evaluate("props.name.upper()")
+
+    def test_nested_dunder_access_blocked(self) -> None:
+        """Ensure deeply nested dunder access is blocked."""
+        evaluator = self.create_evaluator({"props": {"obj": {"nested": {}}}})
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.obj.__class__")
+
+    def test_class_instance_dunder_blocked(self) -> None:
+        """Ensure dunder access on class instances is blocked."""
+
+        class MyClass:
+            value = "test"
+
+        evaluator = self.create_evaluator({"props": {"obj": MyClass()}})
+
+        # Normal attribute access should work
+        assert evaluator.evaluate("props.obj.value") == "test"
+
+        # Dunder access should be blocked
+        with pytest.raises(EvaluationError, match="Access to private attribute"):
+            evaluator.evaluate("props.obj.__class__")

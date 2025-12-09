@@ -658,6 +658,10 @@ class ExpressionEvaluator:
             else:
                 raise EvaluationError("Non-computed member access requires identifier")
 
+        # Security: Block access to dunder attributes to prevent sandbox escape
+        if isinstance(prop, str) and (prop.startswith("__") or prop.startswith("_")):
+            raise EvaluationError(f"Access to private attribute '{prop}' is not allowed")
+
         # Handle dict access
         if isinstance(obj, dict):
             result = obj.get(prop)

@@ -27,10 +27,12 @@ class IfPlugin(TagPlugin):
         Returns:
             Transformed children if condition is true, otherwise empty list
         """
-        condition = props.get("condition", False)
+        raw_condition = props.get("condition")
+        # Match TypeScript behavior: only boolean true is truthy, everything else is falsy
+        condition = raw_condition is True
 
         # Store condition state for ElseIf/Else
-        context.scope.set_local("__condition_met", bool(condition))
+        context.scope.set_local("__condition_met", condition)
 
         if condition:
             transformer = context.create_node_transformer(context.scope)
@@ -67,7 +69,9 @@ class ElseIfPlugin(TagPlugin):
         if condition_met:
             return []
 
-        condition = props.get("condition", False)
+        raw_condition = props.get("condition")
+        # Match TypeScript behavior: only boolean true is truthy, everything else is falsy
+        condition = raw_condition is True
         if condition:
             context.scope.set_local("__condition_met", True)
             transformer = context.create_node_transformer(context.scope)

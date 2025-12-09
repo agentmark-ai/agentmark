@@ -319,3 +319,106 @@ class TestRegistryIsolation:
         assert engine.get_tag_plugin("Else") is not None
         assert engine.get_tag_plugin("ForEach") is not None
         assert engine.get_tag_plugin("Raw") is not None
+
+
+class TestConditionalStrictBoolean:
+    """Tests for strict boolean handling in conditionals (matching TypeScript behavior)."""
+
+    def _make_if_else_tree(self, condition_expr: str) -> dict:
+        """Helper to create an If/Else tree with a given condition expression."""
+        return {
+            "type": "root",
+            "children": [
+                {
+                    "type": NODE_TYPES["MDX_JSX_FLOW_ELEMENT"],
+                    "name": "If",
+                    "attributes": [
+                        {
+                            "type": "mdxJsxAttribute",
+                            "name": "condition",
+                            "value": {
+                                "type": "mdxJsxAttributeValueExpression",
+                                "value": condition_expr,
+                            },
+                        }
+                    ],
+                    "children": [{"type": NODE_TYPES["TEXT"], "value": "If branch"}],
+                },
+                {
+                    "type": NODE_TYPES["MDX_JSX_FLOW_ELEMENT"],
+                    "name": "Else",
+                    "attributes": [],
+                    "children": [{"type": NODE_TYPES["TEXT"], "value": "Else branch"}],
+                },
+            ],
+        }
+
+    @pytest.mark.asyncio
+    async def test_missing_condition_defaults_to_false(self) -> None:
+        """Missing condition prop should default to false (Else renders)."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.missingCondition")
+        result = await engine.transform(tree, props={})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "Else branch"
+
+    @pytest.mark.asyncio
+    async def test_null_condition_defaults_to_false(self) -> None:
+        """Null condition should default to false (Else renders)."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.nullCondition")
+        result = await engine.transform(tree, props={"nullCondition": None})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "Else branch"
+
+    @pytest.mark.asyncio
+    async def test_truthy_string_defaults_to_false(self) -> None:
+        """Non-boolean truthy string should default to false (Else renders)."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.stringCondition")
+        result = await engine.transform(tree, props={"stringCondition": "truthy string"})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "Else branch"
+
+    @pytest.mark.asyncio
+    async def test_truthy_number_defaults_to_false(self) -> None:
+        """Non-boolean truthy number should default to false (Else renders)."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.numberCondition")
+        result = await engine.transform(tree, props={"numberCondition": 1})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "Else branch"
+
+    @pytest.mark.asyncio
+    async def test_boolean_true_renders_if(self) -> None:
+        """Boolean true should render If branch."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.trueCondition")
+        result = await engine.transform(tree, props={"trueCondition": True})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "If branch"
+
+    @pytest.mark.asyncio
+    async def test_boolean_false_renders_else(self) -> None:
+        """Boolean false should render Else branch."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.falseCondition")
+        result = await engine.transform(tree, props={"falseCondition": False})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "Else branch"
+
+    @pytest.mark.asyncio
+    async def test_comparison_result_is_boolean(self) -> None:
+        """Comparison expressions (which return boolean) should work."""
+        engine = TemplateDX()
+        tree = self._make_if_else_tree("props.num == 4")
+        result = await engine.transform(tree, props={"num": 4})
+
+        assert len(result["children"]) == 1
+        assert result["children"][0]["value"] == "If branch"
