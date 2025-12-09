@@ -46,7 +46,7 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
-    "@agentmark/templatedx": "^0.8.1",
+    "@agentmark/templatedx": "workspace:*",
     "zod": "^3.23.8"
   },
   "files": [
