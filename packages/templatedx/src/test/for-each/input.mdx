@@ -1,0 +1,44 @@
+{/**
+  * @typedef Props
+  * @property {Array<any>} nestedArr
+  * @property {Array<any>} arr
+  */}
+
+# Main
+
+## List Index Items
+
+<ForEach arr={props.arr}>
+  {(_, index) => (
+    <>
+      ### Component {index}
+    </>
+  )}
+</ForEach>
+
+## List array items
+
+<ForEach arr={props.nestedArr}>
+  {(item) => (
+    <>
+      * List Item {item.num} {item.deep.name}
+    </>
+  )}
+</ForEach>
+
+## Nested Map
+
+<ForEach arr={props.arr}>
+  {(outerItem) => (
+    <>
+      ### Outer Loop {outerItem}
+      <ForEach arr={props.nestedArr}>
+        {(innerItem) => (
+          <>
+            * Inner Loop: {innerItem.num}
+          </>
+        )}
+      </ForEach>
+    </>
+  )}
+</ForEach>

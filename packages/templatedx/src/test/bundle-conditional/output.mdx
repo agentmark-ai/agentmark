@@ -1,0 +1,19 @@
+<If condition={props.isVisible}>
+  ## Component {props.name}
+</If>
+
+<ElseIf condition={props.isEqualTo2(props.num)}>
+  # Condition2
+</ElseIf>
+
+<Else>
+  <If condition={props.num == 2}>
+    # Nested Condition 1
+  </If>
+
+  <Else>
+    # Nested Default
+  </Else>
+
+  # Default
+</Else>

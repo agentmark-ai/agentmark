@@ -1,0 +1,22 @@
+{/**
+  * @typedef Props
+  * @property {number} num4
+  * @property {number} num5
+  * @property {number} num3
+  * @property {boolean} a
+  * @property {boolean} b
+  */}
+
+# Main
+
+math: {1 + 2}, {4 - 2}, {4 / 2}, {3 * 2}, {3 % 2}, {4 % 2}
+
+dynamic math: {props.num4 + 2}, {5 + 2}, {props.num4 + props.num5 + props.num3}
+
+boolean operators: {props.a || props.b}, { props.a && props.b}
+
+equality: {props.num4 == 4}, {2 > 2}, {2 < 3}, {2 <= 2}, {2 >= 2}
+
+complex bool: {(props.num4 == 4 && props.num3 != 2 && 1 + 2 + 3 == 6) || false}
+
+complex operator: {10 / 2 * (5 - 2 + 3)}

@@ -1,0 +1,56 @@
+{
+  "name": "@agentmark/templatedx",
+  "version": "0.8.1",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsup && cpx \"src/global.d.ts\" dist/",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/estree": "^1.0.6",
+    "@types/js-yaml": "^4.0.9",
+    "@types/mdast": "^4.0.4",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^22.8.1",
+    "@types/react": "^18.3.12",
+    "cpx": "^1.5.0",
+    "mdast-util-mdx": "^3.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.2",
+    "vitest": "^3.0.8"
+  },
+  "dependencies": {
+    "@jsep-plugin/object": "^1.2.1",
+    "js-yaml": "^4.1.0",
+    "jsep": "^1.3.9",
+    "mdast": "^3.0.0",
+    "mdast-util-to-markdown": "^2.1.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-mdx": "^3.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
+  },
+  "files": [
+    "dist/"
+  ]
+}

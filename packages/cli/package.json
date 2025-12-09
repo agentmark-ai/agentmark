@@ -26,7 +26,7 @@
   "dependencies": {
     "@agentmark/prompt-core": "*",
     "@agentmark/shared-utils": "*",
-    "@agentmark/templatedx": "^0.6.3",
+    "@agentmark/templatedx": "workspace:*",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",

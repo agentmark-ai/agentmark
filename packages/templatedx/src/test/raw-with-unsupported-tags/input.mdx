@@ -1,0 +1,14 @@
+# Test Raw with Unsupported Tags
+
+This should work because unsupported tags inside Raw are ignored:
+
+<Raw>
+<UnsupportedTag>This should not cause an error</UnsupportedTag>
+<AnotherBadTag prop="value">
+  <NestedUnsupportedTag />
+</AnotherBadTag>
+</Raw>
+
+This should still error though:
+
+<UnsupportedTagOutsideRaw>This should cause an error</UnsupportedTagOutsideRaw>
