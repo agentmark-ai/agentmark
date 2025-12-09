@@ -1,0 +1,46 @@
+# ForEach with Missing Props Test
+
+## Empty array when arr is missing
+<ForEach arr={props.missingArray}>
+  {(item, index) => (
+    <>
+      * Missing: {item} at {index}
+    </>
+  )}
+</ForEach>
+
+## Empty array when arr is null
+<ForEach arr={props.nullArray}>
+  {(item, index) => (
+    <>
+      * Null: {item} at {index}
+    </>
+  )}
+</ForEach>
+
+## Empty array when arr is undefined
+<ForEach arr={props.undefinedArray}>
+  {(item, index) => (
+    <>
+      * Undefined: {item} at {index}
+    </>
+  )}
+</ForEach>
+
+## Empty array when arr is not an array
+<ForEach arr={props.notAnArray}>
+  {(item, index) => (
+    <>
+      * Not Array: {item} at {index}
+    </>
+  )}
+</ForEach>
+
+## Works normally with valid array
+<ForEach arr={props.validArray}>
+  {(item, index) => (
+    <>
+      * Valid: {item} at {index}
+    </>
+  )}
+</ForEach>

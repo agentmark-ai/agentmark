@@ -1,0 +1,165 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Main",
+        },
+      ],
+      "depth": 1,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Person: ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.name1",
+        },
+      ],
+      "depth": 2,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Company: ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.company1",
+        },
+      ],
+      "depth": 2,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Address ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.address1.street",
+        },
+        {
+          "type": "text",
+          "value": ", ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.address1.city",
+        },
+      ],
+      "depth": 3,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Person: ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.name2",
+        },
+      ],
+      "depth": 2,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Company: ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.company2",
+        },
+      ],
+      "depth": 2,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Address ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.address2.street",
+        },
+        {
+          "type": "text",
+          "value": ", ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.address2.city",
+        },
+      ],
+      "depth": 3,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Person: ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "reverse(props.name3)",
+        },
+      ],
+      "depth": 2,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Company: ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "reverse(props.company3)",
+        },
+      ],
+      "depth": 2,
+      "type": "heading",
+    },
+    {
+      "children": [
+        {
+          "type": "text",
+          "value": "Address ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.address3.street",
+        },
+        {
+          "type": "text",
+          "value": ", ",
+        },
+        {
+          "type": "mdxTextExpression",
+          "value": "props.address3.city",
+        },
+      ],
+      "depth": 3,
+      "type": "heading",
+    },
+  ],
+  "type": "root",
+}

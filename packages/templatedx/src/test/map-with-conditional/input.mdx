@@ -1,0 +1,34 @@
+{/**
+  * @typedef MessageItem
+  * @property {"user" | "assistant"} role
+  * @property {string} message
+  */}
+{/**
+  * @typedef Props
+  * @property {Array<MessageItem>} messageHistory
+  */}
+
+# Main
+
+<ForEach arr={props.messageHistory}>
+  {(item) => (
+    <>
+      <If condition={item.role == 'user'}>
+        user: {item.message}
+      </If>
+      <ElseIf condition={item.role == 'assistant'}>
+        assistant: {item.message}
+      </ElseIf>
+    </>
+  )}
+</ForEach>
+
+# User Only Loop
+
+<ForEach arr={props.messageHistory}>
+  {(item) => (
+    <If condition={item.role == 'user'}>
+      user: {item.message}
+    </If>
+  )}
+</ForEach>
