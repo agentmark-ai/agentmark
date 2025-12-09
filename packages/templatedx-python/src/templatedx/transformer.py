@@ -201,8 +201,8 @@ class NodeTransformer:
                 value = attr.get("value")
 
                 if value is None or isinstance(value, str):
-                    # String literal or boolean attribute
-                    props[name] = value if value is not None else ""
+                    # String literal or boolean attribute (None means boolean true)
+                    props[name] = value if value is not None else True
                 elif isinstance(value, dict):
                     value_type = value.get("type", "")
                     if value_type == MDX_JSX_ATTRIBUTE_TYPES["MDX_JSX_ATTRIBUTE_VALUE_EXPRESSION"]:

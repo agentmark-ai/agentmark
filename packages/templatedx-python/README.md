@@ -10,16 +10,26 @@ pip install agentmark-templatedx
 
 ## Usage
 
+This package transforms pre-parsed MDX AST trees. The AST is typically obtained by:
+- Parsing MDX with the TypeScript `@agentmark/templatedx` package
+- Loading a pre-parsed AST from a JSON file
+- Receiving an AST from the AgentMark runtime
+
 ```python
 import asyncio
+import json
 from templatedx import TemplateDX
 
 async def main():
     engine = TemplateDX()
 
-    # Transform an AST with props
+    # Load a pre-parsed MDX AST (from TypeScript parser or JSON file)
+    with open("template.ast.json") as f:
+        ast = json.load(f)
+
+    # Transform the AST with props
     result = await engine.transform(
-        ast,  # Pre-parsed MDX AST (JSON)
+        ast,
         props={"name": "Alice", "items": [1, 2, 3]}
     )
 

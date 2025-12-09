@@ -722,8 +722,12 @@ class ExpressionEvaluator:
             case "*":
                 return left * right
             case "/":
+                if right == 0:
+                    raise EvaluationError("Division by zero")
                 return left / right
             case "%":
+                if right == 0:
+                    raise EvaluationError("Modulo by zero")
                 return left % right
             case "==" | "===":
                 return left == right

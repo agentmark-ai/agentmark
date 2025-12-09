@@ -251,3 +251,13 @@ class TestExpressionEvaluator:
         assert evaluator.evaluate("1 + 2 * 3") == 7
         # Parentheses override precedence
         assert evaluator.evaluate("(1 + 2) * 3") == 9
+
+    def test_evaluate_division_by_zero(self) -> None:
+        evaluator = self.create_evaluator({})
+        with pytest.raises(EvaluationError, match="Division by zero"):
+            evaluator.evaluate("10 / 0")
+
+    def test_evaluate_modulo_by_zero(self) -> None:
+        evaluator = self.create_evaluator({})
+        with pytest.raises(EvaluationError, match="Modulo by zero"):
+            evaluator.evaluate("10 % 0")
