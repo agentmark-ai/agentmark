@@ -1,0 +1,11 @@
+{
+  "name": "@agentmark/prompt-core-python",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "python3 -m venv .venv && .venv/bin/pip install -q -e '.[dev]'",
+    "test": ".venv/bin/pytest tests/",
+    "lint": ".venv/bin/ruff check src/ tests/ && .venv/bin/mypy src --strict",
+    "lint:fix": ".venv/bin/ruff check --fix src/ tests/"
+  }
+}
