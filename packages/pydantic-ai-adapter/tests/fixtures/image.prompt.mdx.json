@@ -1,0 +1,25 @@
+{
+  "type": "root",
+  "children": [
+    {
+      "type": "yaml",
+      "value": "name: image\nimage_config:\n  model_name: test-model\n  num_images: 1\n  size: 1024x1024\n  aspect_ratio: \"1:1\"\n  seed: 12345"
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "ImagePrompt",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "This is a test for the image prompt to be drawn."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
