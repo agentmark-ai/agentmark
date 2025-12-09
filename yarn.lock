@@ -257,6 +257,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark/templatedx-python@workspace:packages/templatedx-python":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/templatedx-python@workspace:packages/templatedx-python"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/templatedx@workspace:*, @agentmark/templatedx@workspace:packages/templatedx":
   version: 0.0.0-use.local
   resolution: "@agentmark/templatedx@workspace:packages/templatedx"
