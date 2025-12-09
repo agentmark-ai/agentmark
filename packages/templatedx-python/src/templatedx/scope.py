@@ -23,8 +23,8 @@ class Scope:
             shared: Shared/global context accessible from all scopes
             parent: Parent scope for variable resolution chain
         """
-        self._variables = variables or {}
-        self._shared = shared or {}
+        self._variables = variables if variables is not None else {}
+        self._shared = shared if shared is not None else {}
         self._parent = parent
 
     def get(self, key: str) -> Any:

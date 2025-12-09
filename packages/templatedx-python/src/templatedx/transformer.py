@@ -238,7 +238,7 @@ async def transform_tree(
         Transformed AST tree
     """
     # Wrap props to match TypeScript behavior
-    variables = {"props": props or {}}
-    scope = Scope(variables=variables, shared=shared or {})
+    variables = {"props": props if props is not None else {}}
+    scope = Scope(variables=variables, shared=shared if shared is not None else {})
     transformer = NodeTransformer(scope, templatedx)
     return await transformer.transform(tree)
