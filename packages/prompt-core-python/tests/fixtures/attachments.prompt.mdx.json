@@ -1,0 +1,80 @@
+{
+  "type": "root",
+  "children": [
+    {
+      "type": "yaml",
+      "value": "name: attachments\nobject_config:\n  model_name: test-model\n  temperature: 0.5\n  schema:\n    type: object\n    properties:\n      answer:\n        type: string\n    required: [\"answer\"]"
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "System",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "You are an observer that comments on images and files."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "User",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "hello!!!!"
+            },
+            {
+              "type": "mdxTextExpression",
+              "value": "props.userMessage"
+            }
+          ]
+        },
+        {
+          "type": "mdxJsxFlowElement",
+          "name": "ImageAttachment",
+          "attributes": [
+            {
+              "type": "mdxJsxAttribute",
+              "name": "image",
+              "value": {
+                "type": "mdxJsxAttributeValueExpression",
+                "value": "props.imageLink"
+              }
+            }
+          ],
+          "children": []
+        },
+        {
+          "type": "mdxJsxFlowElement",
+          "name": "FileAttachment",
+          "attributes": [
+            {
+              "type": "mdxJsxAttribute",
+              "name": "data",
+              "value": "https://example.com/document.pdf"
+            },
+            {
+              "type": "mdxJsxAttribute",
+              "name": "mimeType",
+              "value": {
+                "type": "mdxJsxAttributeValueExpression",
+                "value": "props.fileMimeType"
+              }
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  ]
+}

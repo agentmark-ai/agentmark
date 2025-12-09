@@ -201,6 +201,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark/prompt-core-python@workspace:packages/prompt-core-python":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/prompt-core-python@workspace:packages/prompt-core-python"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/prompt-core@npm:*, @agentmark/prompt-core@workspace:*, @agentmark/prompt-core@workspace:packages/prompt-core":
   version: 0.0.0-use.local
   resolution: "@agentmark/prompt-core@workspace:packages/prompt-core"
@@ -254,6 +260,12 @@ __metadata:
     typescript: "npm:^5"
     vitest: "npm:^3.1.4"
     yaml: "npm:^2.7.0"
+  languageName: unknown
+  linkType: soft
+
+"@agentmark/templatedx-python@workspace:packages/templatedx-python":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/templatedx-python@workspace:packages/templatedx-python"
   languageName: unknown
   linkType: soft
 
