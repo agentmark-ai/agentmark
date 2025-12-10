@@ -18,6 +18,16 @@ Example:
     agent = Agent(params.model, system_prompt=params.system_prompt)
     result = await agent.run(params.user_prompt)
     print(result.output)
+
+MCP (Model Context Protocol) Example:
+    from agentmark_pydantic_ai import create_pydantic_ai_client, McpServerRegistry
+
+    # Create MCP registry
+    mcp_registry = McpServerRegistry()
+    mcp_registry.register("search", {"url": "http://localhost:8000/mcp"})
+
+    # Create client with MCP support
+    client = create_pydantic_ai_client(mcp_registry=mcp_registry)
 """
 
 from __future__ import annotations
@@ -27,6 +37,7 @@ from typing import TYPE_CHECKING
 from agentmark.prompt_core import AgentMark, EvalRegistry
 
 from .adapter import PydanticAIAdapter
+from .mcp import McpServerRegistry
 from .model_registry import PydanticAIModelRegistry, create_default_model_registry
 from .runner import (
     ObjectRunResult,
@@ -45,6 +56,7 @@ from .types import (
     RegisteredTool,
     ToolFunction,
 )
+from .webhook import PydanticAIWebhookHandler
 
 if TYPE_CHECKING:
     from agentmark.prompt_core.types import Loader
@@ -58,6 +70,7 @@ __all__ = [
     # Registries
     "PydanticAIModelRegistry",
     "PydanticAIToolRegistry",
+    "McpServerRegistry",
     "create_default_model_registry",
     # Types
     "PydanticAITextParams",
@@ -73,12 +86,15 @@ __all__ = [
     "stream_text_prompt",
     "TextRunResult",
     "ObjectRunResult",
+    # Webhook handler
+    "PydanticAIWebhookHandler",
 ]
 
 
 def create_pydantic_ai_client(
     model_registry: PydanticAIModelRegistry | None = None,
     tool_registry: PydanticAIToolRegistry | None = None,
+    mcp_registry: McpServerRegistry | None = None,
     eval_registry: EvalRegistry | None = None,
     loader: Loader | None = None,
 ) -> AgentMark:
@@ -91,6 +107,7 @@ def create_pydantic_ai_client(
         model_registry: Registry mapping model names to Pydantic AI models.
             If None, uses create_default_model_registry().
         tool_registry: Optional registry for tool execution functions.
+        mcp_registry: Optional MCP server registry for MCP tool resolution.
         eval_registry: Optional registry for evaluation functions.
         loader: Optional loader for loading prompts from paths.
 
@@ -111,10 +128,16 @@ def create_pydantic_ai_client(
         tool_registry.register("search", lambda args, ctx: search_web(args["query"]))
         client = create_pydantic_ai_client(tool_registry=tool_registry)
 
+        # With MCP servers
+        mcp_registry = McpServerRegistry()
+        mcp_registry.register("search-server", {"url": "http://localhost:8000/mcp"})
+        client = create_pydantic_ai_client(mcp_registry=mcp_registry)
+
         # Full example
         client = create_pydantic_ai_client(
             model_registry=create_default_model_registry(),
             tool_registry=tool_registry,
+            mcp_registry=mcp_registry,
             eval_registry=EvalRegistry(),
         )
     """
@@ -124,6 +147,7 @@ def create_pydantic_ai_client(
     adapter = PydanticAIAdapter(
         model_registry=model_registry,
         tool_registry=tool_registry,
+        mcp_registry=mcp_registry,
     )
 
     return AgentMark(

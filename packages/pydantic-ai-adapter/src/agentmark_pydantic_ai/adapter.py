@@ -7,13 +7,15 @@ configs into Pydantic AI Agent parameters.
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import Enum
-from typing import TYPE_CHECKING, Any
+from enum import Enum, StrEnum
+from typing import TYPE_CHECKING, Any, cast
 
+from agentmark.prompt_core.mcp import parse_mcp_uri
 from pydantic import BaseModel, create_model
 from pydantic_ai import Tool
 from pydantic_ai.settings import ModelSettings
 
+from .mcp import McpServerRegistry
 from .model_registry import PydanticAIModelRegistry
 from .tool_registry import PydanticAIToolRegistry
 from .types import PydanticAIObjectParams, PydanticAITextParams, RegisteredTool
@@ -114,8 +116,8 @@ def _build_model_settings(config: dict[str, Any]) -> ModelSettings | None:
     if not settings_dict:
         return None
 
-    # ModelSettings is a TypedDict, cast required for dynamic construction
-    return ModelSettings(**settings_dict)  # type: ignore[typeddict-item, no-any-return]
+    # ModelSettings is a TypedDict; use cast for dynamic construction from validated keys
+    return cast(ModelSettings, settings_dict)
 
 
 class PydanticAIAdapter:
@@ -125,6 +127,7 @@ class PydanticAIAdapter:
     the same patterns as the TypeScript VercelAIAdapter:
     - Model registry for model name → instance mapping
     - Tool registry for type-safe tool execution
+    - MCP registry for Model Context Protocol server integration
     - adapt_* methods for each prompt type
 
     Note: Pydantic AI focuses on language models, so adapt_image and
@@ -134,15 +137,18 @@ class PydanticAIAdapter:
         # Create registries
         model_registry = create_default_model_registry()
         tool_registry = PydanticAIToolRegistry()
+        mcp_registry = McpServerRegistry()
+        mcp_registry.register("search", {"url": "http://localhost:8000/mcp"})
 
         # Create adapter
         adapter = PydanticAIAdapter(
             model_registry=model_registry,
             tool_registry=tool_registry,
+            mcp_registry=mcp_registry,
         )
 
-        # Adapt a text config
-        params = adapter.adapt_text(config, options, metadata)
+        # Adapt a text config (async for MCP support)
+        params = await adapter.adapt_text(config, options, metadata)
 
         # Execute with Pydantic AI
         from pydantic_ai import Agent
@@ -154,33 +160,38 @@ class PydanticAIAdapter:
         self,
         model_registry: PydanticAIModelRegistry,
         tool_registry: PydanticAIToolRegistry | None = None,
+        mcp_registry: McpServerRegistry | None = None,
     ) -> None:
         """Initialize the adapter.
 
         Args:
             model_registry: Registry for model name resolution.
             tool_registry: Optional tool registry for tool execution.
+            mcp_registry: Optional MCP server registry for MCP tool resolution.
         """
         self._model_registry = model_registry
         self._tool_registry = tool_registry
+        self._mcp_registry = mcp_registry
 
     @property
     def name(self) -> str:
         """Adapter name identifier - required by Adapter protocol."""
         return "pydantic-ai"
 
-    def adapt_text(
+    async def adapt_text(
         self,
         config: TextConfigSchema,
         options: AdaptOptions,
-        _metadata: PromptMetadata,
+        _metadata: PromptMetadata,  # Required by Adapter protocol, reserved for future use
     ) -> PydanticAITextParams:
         """Adapt a text prompt config for Pydantic AI.
+
+        This method is async to support MCP tool resolution.
 
         Args:
             config: Text prompt configuration.
             options: Adapter options (telemetry, API keys, etc.).
-            metadata: Prompt metadata (props, path, template).
+            _metadata: Prompt metadata (required by protocol, reserved for future use).
 
         Returns:
             PydanticAITextParams ready for Agent.run().
@@ -194,10 +205,10 @@ class PydanticAIAdapter:
             list(config.messages)
         )
 
-        # Build tools if specified
+        # Build tools if specified (async for MCP support)
         tool_context: dict[str, Any] = options.get("toolContext", {})
         tools = (
-            self._build_tools(text_config.tools, tool_context)
+            await self._build_tools(text_config.tools, tool_context)
             if text_config.tools
             else []
         )
@@ -218,14 +229,14 @@ class PydanticAIAdapter:
         self,
         config: ObjectConfigSchema,
         options: AdaptOptions,
-        _metadata: PromptMetadata,
+        _metadata: PromptMetadata,  # Required by Adapter protocol, reserved for future use
     ) -> PydanticAIObjectParams[Any]:
         """Adapt an object prompt config for Pydantic AI structured output.
 
         Args:
             config: Object prompt configuration.
             options: Adapter options.
-            metadata: Prompt metadata.
+            _metadata: Prompt metadata (required by protocol, reserved for future use).
 
         Returns:
             PydanticAIObjectParams with dynamically generated output_type.
@@ -296,12 +307,14 @@ class PydanticAIAdapter:
             "Use OpenAI SDK or another TTS library directly."
         )
 
-    def _build_tools(
+    async def _build_tools(
         self,
         tools_config: dict[str, str | dict[str, Any]],
         tool_context: dict[str, Any],
     ) -> list[Tool[Any]]:
         """Build Pydantic AI Tool instances from config.
+
+        Supports both inline tool definitions and MCP URIs.
 
         Args:
             tools_config: Tool definitions from AgentMark config.
@@ -313,10 +326,11 @@ class PydanticAIAdapter:
         tools: list[Tool[Any]] = []
 
         for name, definition in tools_config.items():
-            # Skip MCP URIs for now (future implementation)
+            # Handle MCP URIs (e.g., "mcp://server/tool" or "mcp://server/*")
             if isinstance(definition, str):
                 if definition.startswith("mcp://"):
-                    # TODO: MCP integration via Pydantic AI toolsets
+                    mcp_tools = await self._resolve_mcp_tools(name, definition)
+                    tools.extend(mcp_tools)
                     continue
                 raise ValueError(f"Invalid tool definition for '{name}': {definition}")
 
@@ -363,6 +377,57 @@ class PydanticAIAdapter:
                 tools.append(tool)
 
         return tools
+
+    async def _resolve_mcp_tools(
+        self,
+        alias: str,
+        mcp_uri: str,
+    ) -> list[Tool[Any]]:
+        """Resolve MCP URI to Pydantic AI Tool instances.
+
+        Args:
+            alias: The tool alias from config (used as key).
+            mcp_uri: MCP URI (e.g., "mcp://server/tool" or "mcp://server/*").
+
+        Returns:
+            List of resolved Tool instances.
+
+        Raises:
+            ValueError: If MCP registry not configured or server not found.
+        """
+        if not self._mcp_registry:
+            raise ValueError(
+                f"MCP URI '{mcp_uri}' found but no MCP registry configured. "
+                "Pass mcp_registry to PydanticAIAdapter constructor."
+            )
+
+        parsed = parse_mcp_uri(mcp_uri)
+        server_name = parsed["server"]
+        tool_name = parsed["tool"]
+
+        if not self._mcp_registry.has(server_name):
+            available = ", ".join(self._mcp_registry.list_servers()) or "(none)"
+            raise ValueError(
+                f"MCP server '{server_name}' not registered. "
+                f"Available servers: {available}"
+            )
+
+        # Handle wildcard: mcp://server/* returns all tools
+        if tool_name == "*":
+            all_tools = await self._mcp_registry.get_all_tools(server_name)
+            return list(all_tools.values())
+
+        # Single tool lookup
+        tool = await self._mcp_registry.get_tool(server_name, tool_name)
+        # The alias might differ from the actual tool name
+        # Create a new tool with the alias as name if different
+        if alias != tool_name:
+            tool = Tool(
+                function=tool.function,
+                name=alias,
+                description=tool.description,
+            )
+        return [tool]
 
     def _schema_to_pydantic_model(
         self,
@@ -416,7 +481,12 @@ class PydanticAIAdapter:
         # Handle enum
         if "enum" in prop_schema:
             enum_values = prop_schema["enum"]
-            # Create string enum
+            # Use StrEnum for string values (better Pydantic compatibility)
+            if all(isinstance(v, str) for v in enum_values):
+                return StrEnum(  # type: ignore[return-value]
+                    nested_name or "EnumType", {v: v for v in enum_values}
+                )
+            # Fall back to regular Enum for mixed/non-string values
             return Enum(  # type: ignore[return-value]
                 nested_name or "EnumType", {str(v): v for v in enum_values}
             )

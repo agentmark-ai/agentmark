@@ -1,1 +1,1 @@
-"""Tests for agentmark-pydantic-ai package."""
+"""Tests for Pydantic AI Adapter."""

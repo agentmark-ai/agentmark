@@ -4,6 +4,23 @@ import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 
 /**
+ * Detect prompt type from raw file content by scanning frontmatter.
+ * This allows us to choose the correct parser before full parsing.
+ */
+function detectPromptTypeFromContent(content: string): 'language' | 'image' | 'speech' {
+  // Simple detection by looking for config keys in frontmatter
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!frontmatterMatch) {
+    return 'language'; // Default to language if no frontmatter
+  }
+
+  const frontmatter = frontmatterMatch[1];
+  if (frontmatter.includes('image_config:')) return 'image';
+  if (frontmatter.includes('speech_config:')) return 'speech';
+  return 'language'; // text_config and object_config use language parser
+}
+
+/**
  * Loads an AST from either a pre-built JSON file or an MDX file.
  * @param resolvedFilepath - Absolute path to the file
  * @returns The AST, prompt name, and dataset path (if available)
@@ -36,10 +53,27 @@ async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptNam
       datasetPath
     };
   } else if (resolvedFilepath.endsWith('.mdx')) {
-    // Parse MDX file
-    const { load, getFrontMatter } = await import("@agentmark/templatedx");
-    const ast: Root = await load(resolvedFilepath);
-    const frontmatter = getFrontMatter(ast) as { name?: string };
+    // Parse MDX file using prompt-core's TemplateDX instances (which have tags registered)
+    const { getTemplateDXInstance } = await import("@agentmark/prompt-core");
+
+    // Read content to detect prompt type
+    const content = fs.readFileSync(resolvedFilepath, 'utf-8');
+    const parserType = detectPromptTypeFromContent(content);
+
+    // Get the appropriate TemplateDX instance with AgentMark tags registered
+    const templateDX = getTemplateDXInstance(parserType);
+
+    // Create content loader for resolving imports
+    const baseDir = path.dirname(resolvedFilepath);
+    const contentLoader = async (filePath: string) => {
+      const { readFile } = await import('fs/promises');
+      const resolvedPath = path.resolve(baseDir, filePath);
+      return readFile(resolvedPath, 'utf-8');
+    };
+
+    // Parse the MDX content
+    const ast: Root = await templateDX.parse(content, baseDir, contentLoader);
+    const frontmatter = templateDX.getFrontMatter(ast) as { name?: string };
 
     // Extract dataset path from frontmatter
     let datasetPath: string | undefined;
@@ -213,7 +247,13 @@ export default async function runExperiment(filepath: string, options: { skipEva
   }
 
   // Load AST from MDX or pre-built JSON file
-  const { ast, promptName, datasetPath } = await loadAst(resolvedFilepath);
+  const { ast, promptName, datasetPath: rawDatasetPath } = await loadAst(resolvedFilepath);
+
+  // Resolve dataset path to absolute if it's relative
+  const promptDir = path.dirname(resolvedFilepath);
+  const datasetPath = rawDatasetPath && !path.isAbsolute(rawDatasetPath)
+    ? path.resolve(promptDir, rawDatasetPath)
+    : rawDatasetPath;
 
   // Determine prompt type from frontmatter (Text/Object/Image/Speech)
   let promptType: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';

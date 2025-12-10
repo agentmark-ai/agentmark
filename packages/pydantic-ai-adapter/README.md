@@ -45,6 +45,7 @@ print(result.output)
 - **Type-safe integration**: Full type safety from AgentMark prompts to Pydantic AI
 - **Model registry**: Flexible model name resolution with pattern matching
 - **Tool registry**: Register tool execution functions for AgentMark-defined tools
+- **MCP support**: Model Context Protocol integration for external tool servers
 - **Structured output**: Automatic JSON Schema to Pydantic model conversion
 - **Runner utilities**: Convenience functions for common execution patterns
 
@@ -58,6 +59,7 @@ from agentmark_pydantic_ai import create_pydantic_ai_client
 client = create_pydantic_ai_client(
     model_registry=None,      # Optional custom model registry
     tool_registry=None,       # Optional tool registry
+    mcp_registry=None,        # Optional MCP server registry
     eval_registry=None,       # Optional eval registry
     loader=None,              # Optional prompt loader
 )
@@ -97,6 +99,39 @@ async def fetch_data(args, ctx):
 registry.register("fetch", fetch_data)
 ```
 
+### MCP Server Registry
+
+```python
+from agentmark_pydantic_ai import McpServerRegistry
+
+registry = McpServerRegistry()
+
+# Register HTTP-based MCP server
+registry.register("search-server", {
+    "url": "http://localhost:8000/mcp",
+    "headers": {"Authorization": "Bearer token"},  # Optional
+})
+
+# Register stdio-based MCP server
+registry.register("python-runner", {
+    "command": "python",
+    "args": ["-m", "mcp_server"],
+    "cwd": "/app",
+    "env": {"API_KEY": "secret"},
+})
+
+# Use with client
+client = create_pydantic_ai_client(mcp_registry=registry)
+```
+
+Then in your AgentMark prompt, reference MCP tools:
+
+```yaml
+tools:
+  search: mcp://search-server/web-search    # Single tool
+  all_tools: mcp://search-server/*          # All tools from server
+```
+
 ### Runner Utilities
 
 ```python
@@ -115,6 +150,29 @@ print(result.output)       # Typed Pydantic model
 async for chunk in stream_text_prompt(params):
     print(chunk, end="", flush=True)
 ```
+
+### Webhook Handler
+
+For building HTTP servers that execute AgentMark prompts (used by the CLI dev server):
+
+```python
+from agentmark_pydantic_ai import create_pydantic_ai_client, PydanticAIWebhookHandler
+
+# Create client and handler
+client = create_pydantic_ai_client()
+handler = PydanticAIWebhookHandler(client)
+
+# Execute a prompt (non-streaming)
+result = await handler.run_prompt(prompt_ast, {"shouldStream": False})
+print(result["result"])  # "Hello, world!"
+
+# Execute a prompt (streaming)
+result = await handler.run_prompt(prompt_ast, {"shouldStream": True})
+async for chunk in result["stream"]:
+    print(chunk)  # NDJSON chunks
+```
+
+The webhook handler implements the AgentMark webhook protocol, producing NDJSON responses compatible with the CLI.
 
 ## License
 

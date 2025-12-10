@@ -18,6 +18,23 @@ interface RunPromptOptions {
 }
 
 /**
+ * Detect prompt type from raw file content by scanning frontmatter.
+ * This allows us to choose the correct parser before full parsing.
+ */
+function detectPromptTypeFromContent(content: string): 'language' | 'image' | 'speech' {
+  // Simple detection by looking for config keys in frontmatter
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!frontmatterMatch) {
+    return 'language'; // Default to language if no frontmatter
+  }
+
+  const frontmatter = frontmatterMatch[1];
+  if (frontmatter.includes('image_config:')) return 'image';
+  if (frontmatter.includes('speech_config:')) return 'speech';
+  return 'language'; // text_config and object_config use language parser
+}
+
+/**
  * Loads an AST from either a pre-built JSON file or an MDX file.
  * @param resolvedFilepath - Absolute path to the file
  * @returns The AST and prompt name
@@ -37,10 +54,27 @@ async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptNam
       promptName: built.metadata?.name
     };
   } else if (resolvedFilepath.endsWith('.mdx')) {
-    // Parse MDX file
-    const { load, getFrontMatter } = await import("@agentmark/templatedx");
-    const ast: Root = await load(resolvedFilepath);
-    const frontmatter = getFrontMatter(ast) as { name?: string };
+    // Parse MDX file using prompt-core's TemplateDX instances (which have tags registered)
+    const { getTemplateDXInstance } = await import("@agentmark/prompt-core");
+
+    // Read content to detect prompt type
+    const content = fs.readFileSync(resolvedFilepath, 'utf-8');
+    const parserType = detectPromptTypeFromContent(content);
+
+    // Get the appropriate TemplateDX instance with AgentMark tags registered
+    const templateDX = getTemplateDXInstance(parserType);
+
+    // Create content loader for resolving imports
+    const baseDir = path.dirname(resolvedFilepath);
+    const contentLoader = async (filePath: string) => {
+      const { readFile } = await import('fs/promises');
+      const resolvedPath = path.resolve(baseDir, filePath);
+      return readFile(resolvedPath, 'utf-8');
+    };
+
+    // Parse the MDX content
+    const ast: Root = await templateDX.parse(content, baseDir, contentLoader);
+    const frontmatter = templateDX.getFrontMatter(ast) as { name?: string };
 
     return {
       ast,

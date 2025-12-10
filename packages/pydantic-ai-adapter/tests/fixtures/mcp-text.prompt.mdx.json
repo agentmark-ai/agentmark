@@ -1,0 +1,41 @@
+{
+  "type": "root",
+  "children": [
+    {
+      "type": "yaml",
+      "value": "name: mcp-tools\ntext_config:\n  model_name: test-model\n  tools:\n    search: mcp://server-1/web-search\n    sum:\n      description: Add two numbers\n      parameters:\n        type: object\n        properties:\n          a:\n            type: integer\n          b:\n            type: integer\n        required:\n          - a\n          - b"
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "System",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "You are a helpful assistant with tools."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "User",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "{props.userMessage}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

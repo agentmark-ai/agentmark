@@ -1,6 +1,6 @@
 """Prompt classes for prompt-core."""
 
-from .base import BasePrompt
+from .base import BasePrompt, SimpleDatasetReader, SimpleDatasetStream
 from .image import ImagePrompt
 from .object import ObjectPrompt
 from .speech import SpeechPrompt
@@ -12,4 +12,6 @@ __all__ = [
     "ObjectPrompt",
     "ImagePrompt",
     "SpeechPrompt",
+    "SimpleDatasetStream",
+    "SimpleDatasetReader",
 ]

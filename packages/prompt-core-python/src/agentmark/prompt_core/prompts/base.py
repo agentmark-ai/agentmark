@@ -3,10 +3,48 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from ..types import AdaptOptions, Loader, PromptMetadata, TemplateEngine, TestSettings
+from ..types import (
+    AdaptOptions,
+    DatasetStream,
+    FormatWithDatasetOptions,
+    Loader,
+    PromptMetadata,
+    TemplateEngine,
+    TestSettings,
+)
 
 if TYPE_CHECKING:
     from ..adapters.base import Adapter
+
+
+class SimpleDatasetStream:
+    """A simple dataset stream implementation using a list of items."""
+
+    def __init__(self, items: list[dict[str, Any]]) -> None:
+        """Initialize with a list of items."""
+        self._items = items
+        self._index = 0
+
+    def get_reader(self) -> "SimpleDatasetReader":
+        """Get a reader for this stream."""
+        return SimpleDatasetReader(self._items)
+
+
+class SimpleDatasetReader:
+    """A simple dataset reader implementation."""
+
+    def __init__(self, items: list[dict[str, Any]]) -> None:
+        """Initialize with a list of items."""
+        self._items = items
+        self._index = 0
+
+    async def read(self) -> dict[str, Any]:
+        """Read the next item."""
+        if self._index >= len(self._items):
+            return {"done": True}
+        item = self._items[self._index]
+        self._index += 1
+        return {"done": False, "value": item}
 
 
 class BasePrompt[C](ABC):
@@ -98,6 +136,96 @@ class BasePrompt[C](ABC):
         if self._test_settings:
             test_props = self._test_settings.get("props")
         return await self.format(props=test_props or {}, **options)
+
+    async def format_with_dataset(
+        self,
+        dataset_path: str | None = None,
+        **options: Any,
+    ) -> DatasetStream:
+        """Format the prompt for each row in a dataset.
+
+        Args:
+            dataset_path: Path to the dataset file (JSONL format).
+                If not provided, uses test_settings.dataset.
+            **options: Additional adapter options passed to format().
+
+        Returns:
+            A DatasetStream that yields formatted chunks for each dataset row.
+
+        Raises:
+            ValueError: If no loader is configured or no dataset path is available.
+
+        Example:
+            prompt = await client.load_text_prompt(ast)
+            dataset = await prompt.format_with_dataset()
+
+            reader = dataset.get_reader()
+            while True:
+                result = await reader.read()
+                if result["done"]:
+                    break
+                item = result["value"]
+                print(item["dataset"]["input"])
+                print(item["formatted"])
+        """
+        # Resolve dataset path
+        ds_path = dataset_path or (
+            self._test_settings.get("dataset") if self._test_settings else None
+        )
+
+        if not self._loader:
+            raise ValueError(
+                "No loader configured for this prompt. "
+                "Provide a loader to use format_with_dataset."
+            )
+
+        if not ds_path:
+            raise ValueError(
+                "No dataset path provided. Either pass dataset_path or "
+                "set test_settings.dataset in the prompt frontmatter."
+            )
+
+        # Load the dataset
+        dataset_stream = await self._loader.load_dataset(ds_path)
+
+        # Get evals from test settings
+        evals = self._test_settings.get("evals", []) if self._test_settings else []
+
+        # Process each item and yield formatted results
+        results: list[dict[str, Any]] = []
+        reader = dataset_stream.get_reader()
+
+        while True:
+            read_result = await reader.read()
+            if read_result.get("done"):
+                break
+
+            item = read_result.get("value", {})
+            input_data = item.get("input", {})
+            expected_output = item.get("expected_output")
+
+            try:
+                formatted = await self.format(props=input_data, **options)
+                results.append(
+                    {
+                        "type": "dataset",
+                        "dataset": {
+                            "input": input_data,
+                            "expected_output": expected_output,
+                        },
+                        "evals": evals,
+                        "formatted": formatted,
+                    }
+                )
+            except Exception as e:
+                results.append(
+                    {
+                        "type": "error",
+                        "error": str(e),
+                    }
+                )
+
+        return SimpleDatasetStream(results)
 
     def _build_adapt_options(self, options: dict[str, Any]) -> AdaptOptions:
         """Build AdaptOptions from kwargs.
