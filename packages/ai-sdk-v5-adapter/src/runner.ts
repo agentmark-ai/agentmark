@@ -56,9 +56,10 @@ export class VercelAdapterWebhookHandler {
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { result: { usage, fullStream }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
           return streamObject(input);
         });
+        const { usage, fullStream } = await result;
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
@@ -108,9 +109,10 @@ export class VercelAdapterWebhookHandler {
           traceId,
         } as WebhookPromptResponse;
       }
-      const { result: { object, usage, finishReason }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateObject(input);
       });
+      const { object, usage, finishReason } = await result;
       return {
         type: "object",
         result: object,
@@ -132,9 +134,10 @@ export class VercelAdapterWebhookHandler {
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { result: { fullStream }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
           return streamText(input);
         });
+        const { fullStream } = await result;
         const stream = new ReadableStream({
           async start(controller) {
             const encoder = new TextEncoder();
@@ -215,9 +218,10 @@ export class VercelAdapterWebhookHandler {
           traceId,
         } as WebhookPromptResponse;
       }
-      const { result: { text, usage, finishReason, steps }, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateText(input);
       });
+      const { text, usage, finishReason, steps } = await result;
       const toolCalls = steps?.flatMap((s: any) => s.toolCalls) ?? [];
       const toolResults = steps?.flatMap((s: any) => s.toolResults) ?? [];
       return {
@@ -240,9 +244,10 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const { result: imageResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateImage(input);
       });
+      const imageResult = await result;
       return {
         type: "image",
         result: imageResult.images.map((i: any) => ({
@@ -258,9 +263,10 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const { result: speechResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return generateSpeech(input);
       });
+      const speechResult = await result;
       return {
         type: "speech",
         result: {
@@ -305,7 +311,7 @@ export class VercelAdapterWebhookHandler {
             if (done) break;
             if (item.type === "error") continue;
             const formatted = item.formatted as any;
-            const { result: { text, usage }, traceId } = await trace({
+            const { result, traceId } = await trace({
               name: `experiment-${datasetRunName}-${index}`,
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
@@ -322,6 +328,7 @@ export class VercelAdapterWebhookHandler {
                 },
               });
             });
+            const { text, usage } = await result;
 
             let evalResults: any[] = [];
             if (
@@ -388,7 +395,7 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const { result: { object, usage }, traceId } = await trace({
+            const { result, traceId } = await trace({
               name: `experiment-${datasetRunName}-${index}`,
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
@@ -405,6 +412,7 @@ export class VercelAdapterWebhookHandler {
                 },
               });
             });
+            const { object, usage } = await result;
 
             let evalResults: any[] = [];
             if (
