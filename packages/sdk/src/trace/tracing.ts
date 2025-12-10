@@ -193,7 +193,7 @@ function setAgentmarkAttributes(span: Span, options: TraceOptions): void {
  */
 export interface TraceResult<T> {
   /** The result of the traced function */
-  result: T;
+  result: Promise<T>;
   /** The trace ID for correlation */
   traceId: string;
 }
@@ -230,23 +230,35 @@ export const trace = async <T>(
   const tracer = api.trace.getTracer("agentmark");
 
   return context.with(ROOT_CONTEXT, () =>
-    tracer.startActiveSpan(options.name, async (span) => {
+    tracer.startActiveSpan(options.name, (span) => {
       setAgentmarkAttributes(span, options);
 
       const ctx = buildContext(span, tracer);
       const traceId = ctx.traceId;
       try {
-        const result = await fn(ctx);
-        span.setStatus({ code: SpanStatusCode.OK });
+        const result = fn(ctx);
+        // Handle promise completion to set status and end span
+        result
+          .then(() => {
+            span.setStatus({ code: SpanStatusCode.OK });
+          })
+          .catch((e: any) => {
+            span.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: e.message,
+            });
+          })
+          .finally(() => {
+            span.end();
+          });
         return { result, traceId };
       } catch (e: any) {
         span.setStatus({
           code: SpanStatusCode.ERROR,
           message: e.message,
         });
-        throw e;
-      } finally {
         span.end();
+        throw e;
       }
     })
   );

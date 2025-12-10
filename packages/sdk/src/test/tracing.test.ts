@@ -145,7 +145,7 @@ describe("OTLP Exporter", () => {
     const { result: result1, traceId: traceId1 } = await trace({ name: "test-span" }, async (_ctx) => {
       return "test";
     });
-    expect(result1).toBe("test");
+    expect(await result1).toBe("test");
     expect(traceId1).toBeTruthy();
     await flushSpans();
 
@@ -560,7 +560,7 @@ describe("OTLP Exporter", () => {
     });
     await flushSpans();
 
-    expect(caughtResult).toBe("parent-success");
+    expect(await caughtResult).toBe("parent-success");
 
     // Verify parent span has OK status
     const catchParent = findSpanByName("catch-parent");
