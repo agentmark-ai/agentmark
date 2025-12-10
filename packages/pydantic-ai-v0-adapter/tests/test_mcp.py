@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic_ai import Tool
 
-from agentmark_pydantic_ai import (
+from agentmark_pydantic_ai_v0 import (
     McpServerRegistry,
     PydanticAIAdapter,
     PydanticAIModelRegistry,

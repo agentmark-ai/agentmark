@@ -5,21 +5,21 @@ Pydantic AI adapter for AgentMark - integrate AgentMark prompts with Pydantic AI
 ## Installation
 
 ```bash
-pip install agentmark-pydantic-ai
+pip install agentmark-pydantic-ai-v0
 ```
 
 For specific providers, install with extras:
 
 ```bash
-pip install agentmark-pydantic-ai[openai]
-pip install agentmark-pydantic-ai[anthropic]
-pip install agentmark-pydantic-ai[gemini]
+pip install agentmark-pydantic-ai-v0[openai]
+pip install agentmark-pydantic-ai-v0[anthropic]
+pip install agentmark-pydantic-ai-v0[gemini]
 ```
 
 ## Quick Start
 
 ```python
-from agentmark_pydantic_ai import create_pydantic_ai_client, run_text_prompt
+from agentmark_pydantic_ai_v0 import create_pydantic_ai_client, run_text_prompt
 
 # Create client
 client = create_pydantic_ai_client()
@@ -54,7 +54,7 @@ print(result.output)
 ### Factory Function
 
 ```python
-from agentmark_pydantic_ai import create_pydantic_ai_client
+from agentmark_pydantic_ai_v0 import create_pydantic_ai_client
 
 client = create_pydantic_ai_client(
     model_registry=None,      # Optional custom model registry
@@ -68,7 +68,7 @@ client = create_pydantic_ai_client(
 ### Model Registry
 
 ```python
-from agentmark_pydantic_ai import PydanticAIModelRegistry, create_default_model_registry
+from agentmark_pydantic_ai_v0 import PydanticAIModelRegistry, create_default_model_registry
 import re
 
 # Use default registry (handles common model prefixes)
@@ -86,7 +86,7 @@ registry.register_models(
 ### Tool Registry
 
 ```python
-from agentmark_pydantic_ai import PydanticAIToolRegistry
+from agentmark_pydantic_ai_v0 import PydanticAIToolRegistry
 
 registry = PydanticAIToolRegistry()
 
@@ -102,7 +102,7 @@ registry.register("fetch", fetch_data)
 ### MCP Server Registry
 
 ```python
-from agentmark_pydantic_ai import McpServerRegistry
+from agentmark_pydantic_ai_v0 import McpServerRegistry
 
 registry = McpServerRegistry()
 
@@ -135,7 +135,7 @@ tools:
 ### Runner Utilities
 
 ```python
-from agentmark_pydantic_ai import run_text_prompt, run_object_prompt, stream_text_prompt
+from agentmark_pydantic_ai_v0 import run_text_prompt, run_object_prompt, stream_text_prompt
 
 # Run text prompt
 result = await run_text_prompt(params)
@@ -156,7 +156,7 @@ async for chunk in stream_text_prompt(params):
 For building HTTP servers that execute AgentMark prompts (used by the CLI dev server):
 
 ```python
-from agentmark_pydantic_ai import create_pydantic_ai_client, PydanticAIWebhookHandler
+from agentmark_pydantic_ai_v0 import create_pydantic_ai_client, PydanticAIWebhookHandler
 
 # Create client and handler
 client = create_pydantic_ai_client()

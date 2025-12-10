@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 if TYPE_CHECKING:
-    from agentmark_pydantic_ai import (
+    from agentmark_pydantic_ai_v0 import (
         PydanticAIModelRegistry,
         PydanticAIToolRegistry,
     )
@@ -52,7 +52,7 @@ def speech_ast(fixtures_dir: Path) -> dict[str, Any]:
 @pytest.fixture
 def mock_model_registry() -> PydanticAIModelRegistry:
     """Create a model registry with a mock model creator."""
-    from agentmark_pydantic_ai import PydanticAIModelRegistry
+    from agentmark_pydantic_ai_v0 import PydanticAIModelRegistry
 
     def mock_creator(name: str, options: dict[str, Any] | None) -> str:
         """Mock model creator that returns a provider-prefixed string."""
@@ -65,7 +65,7 @@ def mock_model_registry() -> PydanticAIModelRegistry:
 @pytest.fixture
 def tool_registry() -> PydanticAIToolRegistry:
     """Create a tool registry with a sample tool."""
-    from agentmark_pydantic_ai import PydanticAIToolRegistry
+    from agentmark_pydantic_ai_v0 import PydanticAIToolRegistry
 
     registry = PydanticAIToolRegistry()
 

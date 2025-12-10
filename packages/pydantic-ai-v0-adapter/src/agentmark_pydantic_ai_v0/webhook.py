@@ -5,8 +5,8 @@ AgentMark webhook protocol for executing prompts via HTTP. It mirrors
 TypeScript's VercelAdapterWebhookHandler for Python/Pydantic AI.
 
 Example:
-    from agentmark_pydantic_ai import create_pydantic_ai_client
-    from agentmark_pydantic_ai.webhook import PydanticAIWebhookHandler
+    from agentmark_pydantic_ai_v0 import create_pydantic_ai_client
+    from agentmark_pydantic_ai_v0.webhook import PydanticAIWebhookHandler
 
     client = create_pydantic_ai_client()
     handler = PydanticAIWebhookHandler(client)

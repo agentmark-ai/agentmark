@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from agentmark_pydantic_ai import PydanticAIToolRegistry
+from agentmark_pydantic_ai_v0 import PydanticAIToolRegistry
 
 
 class TestPydanticAIToolRegistry:

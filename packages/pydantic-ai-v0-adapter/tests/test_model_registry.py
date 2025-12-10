@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from agentmark_pydantic_ai import (
+from agentmark_pydantic_ai_v0 import (
     PydanticAIModelRegistry,
     create_default_model_registry,
 )

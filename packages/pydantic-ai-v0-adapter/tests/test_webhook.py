@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agentmark_pydantic_ai.webhook import PydanticAIWebhookHandler
+from agentmark_pydantic_ai_v0.webhook import PydanticAIWebhookHandler
 
 
 class TestWebhookHandlerEvals:

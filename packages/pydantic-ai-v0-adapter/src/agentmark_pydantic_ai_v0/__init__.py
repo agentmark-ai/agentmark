@@ -4,7 +4,7 @@ This package provides integration between AgentMark prompts and Pydantic AI
 for type-safe LLM interactions in Python.
 
 Example:
-    from agentmark_pydantic_ai import create_pydantic_ai_client
+    from agentmark_pydantic_ai_v0 import create_pydantic_ai_client
     from pydantic_ai import Agent
 
     # Create the client
@@ -20,7 +20,7 @@ Example:
     print(result.output)
 
 MCP (Model Context Protocol) Example:
-    from agentmark_pydantic_ai import create_pydantic_ai_client, McpServerRegistry
+    from agentmark_pydantic_ai_v0 import create_pydantic_ai_client, McpServerRegistry
 
     # Create MCP registry
     mcp_registry = McpServerRegistry()
