@@ -10,10 +10,11 @@ from collections.abc import Callable
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
-from agentmark.prompt_core.mcp import parse_mcp_uri
 from pydantic import BaseModel, create_model
 from pydantic_ai import Tool
 from pydantic_ai.settings import ModelSettings
+
+from agentmark.prompt_core.mcp import parse_mcp_uri
 
 from .mcp import McpServerRegistry
 from .model_registry import PydanticAIModelRegistry

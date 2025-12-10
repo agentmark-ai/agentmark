@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
 from agentmark_pydantic_ai_v0 import PydanticAIToolRegistry
 
 

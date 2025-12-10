@@ -11,7 +11,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .prompts.base import SimpleDatasetReader, SimpleDatasetStream
 from .types import DatasetStream, PromptKind
 
 

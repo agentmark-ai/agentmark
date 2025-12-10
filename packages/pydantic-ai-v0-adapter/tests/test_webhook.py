@@ -55,7 +55,7 @@ class TestWebhookHandlerEvals:
     ) -> None:
         """Test running an asynchronous eval function."""
 
-        async def async_eval(params: dict[str, Any]) -> dict[str, Any]:
+        async def async_eval(_params: dict[str, Any]) -> dict[str, Any]:
             return {
                 "passed": True,
                 "score": 0.95,
@@ -152,7 +152,7 @@ class TestWebhookHandlerEvals:
         """Test execute_evals propagates errors (matches TS behavior)."""
         mock_registry = MagicMock()
 
-        def failing_eval(params: dict[str, Any]) -> dict[str, Any]:
+        def failing_eval(_params: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Eval failed")
 
         mock_registry.get.return_value = failing_eval
@@ -177,13 +177,13 @@ class TestWebhookHandlerEvals:
         mock_registry = MagicMock()
         call_order: list[str] = []
 
-        async def slow_eval(params: dict[str, Any]) -> dict[str, Any]:
+        async def slow_eval(_params: dict[str, Any]) -> dict[str, Any]:
             call_order.append("slow_start")
             await asyncio.sleep(0.05)
             call_order.append("slow_end")
             return {"passed": True, "name": "slow"}
 
-        async def fast_eval(params: dict[str, Any]) -> dict[str, Any]:
+        async def fast_eval(_params: dict[str, Any]) -> dict[str, Any]:
             call_order.append("fast_start")
             call_order.append("fast_end")
             return {"passed": True, "name": "fast"}

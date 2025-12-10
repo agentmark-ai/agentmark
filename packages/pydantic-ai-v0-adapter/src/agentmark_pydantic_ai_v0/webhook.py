@@ -26,15 +26,16 @@ import asyncio
 import inspect
 import json
 import uuid
-from typing import TYPE_CHECKING, Any, AsyncIterator, Callable
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any
 
-from agentmark.prompt_core import AgentMark, EvalRegistry, get_front_matter
+from agentmark.prompt_core import AgentMark, get_front_matter
 from agentmark.prompt_core.types import EvalFunction, EvalParams
 
 from .runner import run_object_prompt, run_text_prompt
 
 if TYPE_CHECKING:
-    from .adapter import PydanticAIAdapter
+    pass
 
 
 class PydanticAIWebhookHandler:
@@ -110,7 +111,7 @@ class PydanticAIWebhookHandler:
     async def _run_text_prompt(
         self,
         prompt_ast: dict[str, Any],
-        frontmatter: dict[str, Any],
+        _frontmatter: dict[str, Any],
         should_stream: bool,
         custom_props: dict[str, Any] | None,
     ) -> dict[str, Any]:
@@ -143,7 +144,7 @@ class PydanticAIWebhookHandler:
     async def _run_object_prompt(
         self,
         prompt_ast: dict[str, Any],
-        frontmatter: dict[str, Any],
+        _frontmatter: dict[str, Any],
         should_stream: bool,
         custom_props: dict[str, Any] | None,
     ) -> dict[str, Any]:

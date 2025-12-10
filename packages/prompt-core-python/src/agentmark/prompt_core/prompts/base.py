@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from ..types import (
     AdaptOptions,
     DatasetStream,
-    FormatWithDatasetOptions,
     Loader,
     PromptMetadata,
     TemplateEngine,

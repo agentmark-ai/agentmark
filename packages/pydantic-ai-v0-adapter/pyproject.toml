@@ -76,6 +76,9 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["agentmark_pydantic_ai_v0", "agentmark"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ARG001", "ARG002", "ARG005"]  # Allow unused args in test mocks/fixtures
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

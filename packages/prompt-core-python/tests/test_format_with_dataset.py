@@ -8,11 +8,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from agentmark.prompt_core import (
-    AgentMark,
     SimpleDatasetReader,
     SimpleDatasetStream,
 )
-from agentmark.prompt_core.prompts.base import BasePrompt
 
 
 class TestSimpleDatasetStream:
