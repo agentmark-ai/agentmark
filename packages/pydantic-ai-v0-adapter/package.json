@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "python3 -m venv .venv && .venv/bin/pip install -q -e ../prompt-core-python && .venv/bin/pip install -q -e '.[dev]'",
+    "postinstall": "python3 -m venv .venv && .venv/bin/pip install -q -e ../templatedx-python && .venv/bin/pip install -q -e ../prompt-core-python && .venv/bin/pip install -q -e '.[dev]'",
     "test": ".venv/bin/pytest",
     "test:watch": ".venv/bin/pytest --watch",
     "lint": ".venv/bin/ruff check src tests",
