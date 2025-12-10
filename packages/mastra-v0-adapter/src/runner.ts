@@ -53,9 +53,10 @@ export class MastraAdapterWebhookHandler {
 
       if (shouldStream) {
         try {
-          const { result: streamResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
             return agent.stream(messages, generateOptions);
           });
+          const streamResult = await result;
           const fullStream = (streamResult as any).fullStream;
           
           if (fullStream) {
@@ -134,9 +135,10 @@ export class MastraAdapterWebhookHandler {
       }
 
       // Non-streaming object generation
-      const { result: response, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return agent.generate(messages, generateOptions);
       });
+      const response = await result;
       return {
         type: "object",
         result: (response as any).object || response,
@@ -161,9 +163,10 @@ export class MastraAdapterWebhookHandler {
 
       if (shouldStream) {
         try {
-          const { result: streamResult, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
             return agent.stream(messages, generateOptions);
           });
+          const streamResult = await result;
           const fullStream = (streamResult as any).fullStream;
           
           if (fullStream) {
@@ -262,9 +265,10 @@ export class MastraAdapterWebhookHandler {
       }
 
       // Non-streaming text generation
-      const { result: response, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
         return agent.generate(messages, generateOptions);
       });
+      const response = await result;
       return {
         type: "text",
         result:
@@ -326,7 +330,7 @@ export class MastraAdapterWebhookHandler {
                 ...(options.telemetry?.metadata ?? {}),
               };
 
-              const { result: response, traceId } = await trace({
+              const { result, traceId } = await trace({
                 name: `ds-run-${datasetRunName}-${index}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
@@ -344,6 +348,7 @@ export class MastraAdapterWebhookHandler {
                 });
               });
 
+              const response = await result;
               const text =
                 (response as any).text ||
                 (response as any).content ||
@@ -431,7 +436,7 @@ export class MastraAdapterWebhookHandler {
                 ...(options.telemetry?.metadata ?? {}),
               };
 
-              const { result: response, traceId } = await trace({
+              const { result, traceId } = await trace({
                 name: `ds-run-${datasetRunName}-${index}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
@@ -449,6 +454,7 @@ export class MastraAdapterWebhookHandler {
                 });
               });
 
+              const response = await result;
               const object = (response as any).object || response;
               const usage = (response as any).usage;
 
