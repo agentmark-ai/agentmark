@@ -1,0 +1,185 @@
+import {
+  TraceDrawer,
+  TraceDrawerContainer,
+  TraceDrawerHeader,
+  TraceDrawerMain,
+  TraceDrawerProvider,
+  TraceDrawerSidebar,
+  TraceDrawerTitle,
+  TraceGraphCanvas,
+} from "@/sections";
+import type { Meta, StoryObj } from "@storybook/react";
+import { graphData, workflowTraceData } from "./mocks";
+import { Box, Button, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+
+const meta: Meta<typeof WorkflowGraphDemo> = {
+  title: "Sections/WorkflowGraph",
+  component: WorkflowGraphDemo,
+  tags: ["autodocs"],
+  parameters: {
+    layout: "fullscreen",
+  },
+};
+
+export default meta;
+
+type Story = StoryObj<typeof WorkflowGraphDemo>;
+
+/**
+ * Demo component showing the workflow graph with auto-generated nodes.
+ * This demonstrates the agentic workflow pattern: LLM → tool → LLM → tool → LLM
+ */
+function WorkflowGraphDemo() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Stack spacing={2} p={2}>
+        <Typography variant="h5">Workflow Graph Demo</Typography>
+        <Typography variant="body2" color="text.secondary">
+          This demo shows the auto-generated workflow graph feature. The graph
+          automatically groups spans with the same name and creates edges based
+          on execution order.
+        </Typography>
+        <Button variant="contained" onClick={() => setOpen(true)}>
+          Open Workflow Graph
+        </Button>
+      </Stack>
+      <TraceDrawerProvider
+        traces={[workflowTraceData]}
+        t={(key) => key}
+        onSpanChange={() => Promise.resolve()}
+      >
+        <TraceDrawer open={open} onClose={() => setOpen(false)}>
+          <TraceDrawerContainer>
+            <TraceDrawerHeader>
+              <Stack direction="row" justifyContent="space-between">
+                <TraceDrawerTitle>Agentic Workflow Graph</TraceDrawerTitle>
+              </Stack>
+            </TraceDrawerHeader>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                width: "100%",
+                height: "calc(100vh - 100px)",
+                overflow: "hidden",
+              }}
+            >
+              <TraceDrawerMain>
+                <TraceDrawerSidebar>
+                  <TraceGraphCanvas graphData={[]} isLoading={false} />
+                </TraceDrawerSidebar>
+              </TraceDrawerMain>
+            </Box>
+          </TraceDrawerContainer>
+        </TraceDrawer>
+      </TraceDrawerProvider>
+    </>
+  );
+}
+
+/**
+ * Demo showing manual graph data (backward compatibility)
+ */
+function ManualGraphDemo() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Stack spacing={2} p={2}>
+        <Typography variant="h5">Manual Graph Demo</Typography>
+        <Typography variant="body2" color="text.secondary">
+          This demo shows the workflow graph with manually specified graph.node.*
+          metadata. This is the backward-compatible mode.
+        </Typography>
+        <Button variant="contained" onClick={() => setOpen(true)}>
+          Open Manual Graph
+        </Button>
+      </Stack>
+      <TraceDrawerProvider
+        traces={[workflowTraceData]}
+        t={(key) => key}
+        onSpanChange={() => Promise.resolve()}
+      >
+        <TraceDrawer open={open} onClose={() => setOpen(false)}>
+          <TraceDrawerContainer>
+            <TraceDrawerHeader>
+              <Stack direction="row" justifyContent="space-between">
+                <TraceDrawerTitle>Manual Workflow Graph</TraceDrawerTitle>
+              </Stack>
+            </TraceDrawerHeader>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                width: "100%",
+                height: "calc(100vh - 100px)",
+                overflow: "hidden",
+              }}
+            >
+              <TraceDrawerMain>
+                <TraceDrawerSidebar>
+                  <TraceGraphCanvas graphData={graphData} isLoading={false} />
+                </TraceDrawerSidebar>
+              </TraceDrawerMain>
+            </Box>
+          </TraceDrawerContainer>
+        </TraceDrawer>
+      </TraceDrawerProvider>
+    </>
+  );
+}
+
+/**
+ * Demo showing loading state
+ */
+function LoadingStateDemo() {
+  return (
+    <Box sx={{ width: 400, height: 300, border: "1px solid #ccc", m: 2 }}>
+      <TraceDrawerProvider
+        traces={[]}
+        t={(key) => key}
+        onSpanChange={() => Promise.resolve()}
+      >
+        <TraceGraphCanvas graphData={[]} isLoading={true} />
+      </TraceDrawerProvider>
+    </Box>
+  );
+}
+
+/**
+ * Demo showing empty state
+ */
+function EmptyStateDemo() {
+  return (
+    <Box sx={{ width: 400, height: 300, border: "1px solid #ccc", m: 2 }}>
+      <TraceDrawerProvider
+        traces={[]}
+        t={(key) => key}
+        onSpanChange={() => Promise.resolve()}
+      >
+        <TraceGraphCanvas graphData={[]} isLoading={false} />
+      </TraceDrawerProvider>
+    </Box>
+  );
+}
+
+export const AutoGeneratedGraph: Story = {
+  render: () => <WorkflowGraphDemo />,
+};
+
+export const ManualGraph: Story = {
+  render: () => <ManualGraphDemo />,
+};
+
+export const Loading: Story = {
+  render: () => <LoadingStateDemo />,
+};
+
+export const Empty: Story = {
+  render: () => <EmptyStateDemo />,
+};

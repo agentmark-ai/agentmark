@@ -11,14 +11,84 @@ type TraceNodeData = {
   color?: string;
   icon?: string;
   onNodeClick?: (spanId: string) => void;
+  /** All span IDs for multi-span nodes (for cycling) */
+  spanIds?: string[];
+  /** Current span index (for position indicator) */
+  currentSpanIndex?: number;
+  /** Callback when node is clicked (receives nodeId for cycling) */
+  onNodeCycleClick?: (nodeId: string) => void;
 };
 
 function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
-  const { data } = props;
+  const { id, data } = props;
   const theme = useTheme();
 
   const borderColor = data.color || data.branchColor;
+  const spanCount = data.spanIds?.length || 1;
+  const showPositionIndicator = spanCount > 1;
+  const isStartOrEnd = data.nodeType === "start" || data.nodeType === "end";
 
+  const handleClick = () => {
+    // Start/end nodes are not clickable
+    if (isStartOrEnd) return;
+
+    // If we have cycle click handler and multiple spans, use cycling
+    if (data.onNodeCycleClick && data.spanIds && data.spanIds.length > 1) {
+      data.onNodeCycleClick(id);
+    } else if (data.onNodeClick && data.spanId) {
+      // Fall back to single span click
+      data.onNodeClick(data.spanId);
+    }
+  };
+
+  // Format position indicator text
+  const positionText = showPositionIndicator
+    ? `(${(data.currentSpanIndex ?? 0) + 1}/${spanCount})`
+    : "";
+
+  // Render icon-only circular node for start/end
+  if (isStartOrEnd) {
+    return (
+      <>
+        <Handle
+          type="target"
+          position={Position.Top}
+          style={{ visibility: "hidden" }}
+        />
+
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            backgroundColor: theme.palette.background.paper,
+            borderRadius: "50%",
+            border: `2px solid ${borderColor}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: theme.shadows[2],
+          }}
+        >
+          {data.icon && (
+            <Iconify
+              icon={data.icon}
+              width={24}
+              height={24}
+              color={borderColor}
+            />
+          )}
+        </Box>
+
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          style={{ visibility: "hidden" }}
+        />
+      </>
+    );
+  }
+
+  // Render regular rectangular node
   return (
     <>
       <Handle
@@ -29,30 +99,24 @@ function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
 
       <Box
         sx={{
-          width: 88,
-          height: 88,
+          minWidth: 120,
+          maxWidth: 180,
           backgroundColor: theme.palette.background.paper,
-          borderRadius: "50%",
-          border: `3px solid ${borderColor}`,
+          borderRadius: 2,
+          border: `2px solid ${borderColor}`,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          padding: 1,
+          padding: 1.5,
           boxShadow: theme.shadows[2],
           cursor: "pointer",
-          gap: 0.25,
+          gap: 1,
           "&:hover": {
-            transform: "scale(1.05)",
             boxShadow: theme.shadows[4],
+            borderColor: borderColor,
           },
-          transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+          transition: "box-shadow 0.2s ease-in-out",
         }}
-        onClick={() => {
-          if (data.onNodeClick && data.spanId) {
-            data.onNodeClick(data.spanId);
-          }
-        }}
+        onClick={handleClick}
       >
         {data.icon && (
           <Iconify
@@ -60,25 +124,36 @@ function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
             width={20}
             height={20}
             color={borderColor}
+            style={{ flexShrink: 0 }}
           />
         )}
-        <Typography
-          variant="caption"
-          sx={{
-            fontWeight: 600,
-            color: borderColor,
-            textAlign: "center",
-            maxWidth: 72,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            px: 0.5,
-            mt: 0.25,
-          }}
-          title={data.label}
-        >
-          {data.label}
-        </Typography>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 600,
+              color: theme.palette.text.primary,
+              display: "block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={data.label}
+          >
+            {data.label}
+          </Typography>
+          {showPositionIndicator && (
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: "0.65rem",
+                color: theme.palette.text.secondary,
+              }}
+            >
+              {positionText}
+            </Typography>
+          )}
+        </Box>
       </Box>
 
       <Handle

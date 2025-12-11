@@ -9,6 +9,7 @@ yalc.lock
 .env
 *storybook.log
 storybook-static
+tmp-dev*/
 .claude
 
 # Python

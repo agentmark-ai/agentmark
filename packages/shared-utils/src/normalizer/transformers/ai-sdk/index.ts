@@ -37,13 +37,15 @@ export class AiSdkTransformer implements ScopeTransformer {
         const strategy = version === 'v5' ? this.strategies.v5 : this.strategies.v4;
 
         const tokens = strategy.extractTokens(attributes);
+        const toolCalls = strategy.extractToolCalls(attributes);
 
-        return {
+        // Build result with standard fields
+        const result: Partial<NormalizedSpan> = {
             model: strategy.extractModel(attributes),
             input: strategy.extractInput(attributes),
             output: strategy.extractOutput(attributes),
             outputObject: strategy.extractOutputObject(attributes),
-            toolCalls: strategy.extractToolCalls(attributes),
+            toolCalls,
             finishReason: strategy.extractFinishReason(attributes),
             settings: strategy.extractSettings(attributes),
             inputTokens: tokens.input,
@@ -53,5 +55,15 @@ export class AiSdkTransformer implements ScopeTransformer {
 
             ...strategy.extractMetadata(attributes),
         };
+
+        // Override span name with tool name for tool call execution spans
+        // This enables proper grouping by tool name in the workflow graph
+        // (e.g., "search_web" instead of generic "ai.toolCall")
+        const toolName = attributes['ai.toolCall.name'];
+        if (toolName && typeof toolName === 'string') {
+            result.name = toolName;
+        }
+
+        return result;
     }
 }

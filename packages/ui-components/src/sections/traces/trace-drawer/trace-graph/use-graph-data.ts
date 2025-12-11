@@ -13,18 +13,28 @@ export interface GraphNode {
   label: string;
   spanId?: string;
   nodeType?: string;
+  /** All span IDs for multi-span nodes */
+  spanIds?: string[];
+  /** Number of spans in this node */
+  spanCount?: number;
 }
 
 export interface GraphEdge {
   id: string;
   source: string;
   target: string;
+  /** True if edge represents bidirectional flow (A→B and B→A) */
+  bidirectional?: boolean;
 }
 
 export interface UseGraphDataProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
   onNodeClick?: (spanId: string) => void;
+  /** Handler for cycling through spans in multi-span nodes */
+  onNodeCycleClick?: (nodeId: string) => void;
+  /** Map of node ID to current span index (for position indicator) */
+  nodeSpanIndices?: Map<string, number>;
 }
 
 export interface UseGraphDataResult {
@@ -36,6 +46,8 @@ export function useGraphData({
   nodes: rawNodes,
   edges: rawEdges,
   onNodeClick,
+  onNodeCycleClick,
+  nodeSpanIndices,
 }: UseGraphDataProps): UseGraphDataResult {
   const theme = useTheme();
 
@@ -61,6 +73,7 @@ export function useGraphData({
       const branchFamily = branchFamilies.get(node.id) || node.id;
       const branchColor = getBranchColor(branchFamily, theme);
       const { color, icon } = getNodeTypeStyle(rawNode?.nodeType, theme);
+      const currentSpanIndex = nodeSpanIndices?.get(node.id);
 
       return {
         ...node,
@@ -73,23 +86,31 @@ export function useGraphData({
           color,
           icon,
           onNodeClick,
+          spanIds: rawNode?.spanIds,
+          currentSpanIndex,
+          onNodeCycleClick,
         },
       };
     });
 
     return styledNodes;
-  }, [rawNodes, rawEdges, theme, onNodeClick]);
+  }, [rawNodes, rawEdges, theme, onNodeClick, onNodeCycleClick, nodeSpanIndices]);
 
-  const reactFlowEdges: Edge[] = useMemo(
-    () =>
-      rawEdges.map((edge) => ({
+  const reactFlowEdges: Edge[] = useMemo(() => {
+    const edges: Edge[] = [];
+
+    rawEdges.forEach((edge) => {
+      edges.push({
         id: edge.id,
         source: edge.source,
         target: edge.target,
+        type: "default",
         animated: true,
-      })),
-    [rawEdges]
-  );
+      });
+    });
+
+    return edges;
+  }, [rawEdges]);
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(
     () => applyDagreLayout(reactFlowNodes, reactFlowEdges),

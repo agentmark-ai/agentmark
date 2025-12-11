@@ -192,8 +192,11 @@ describe('Integration Tests', () => {
       const resourceSpans = otlpV5SuccessData as { resourceSpans: OtlpResourceSpans[] };
       const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
 
-      const toolCallSpan = result.find((s) => s.name === 'ai.toolCall');
+      // Tool call spans are renamed to the tool name (e.g., 'search_knowledgebase' instead of 'ai.toolCall')
+      // Find them by checking spanAttributes for ai.toolCall.name
+      const toolCallSpan = result.find((s) => s.spanAttributes['ai.toolCall.name'] !== undefined);
       expect(toolCallSpan).toBeDefined();
+      expect(toolCallSpan?.name).toBe('search_knowledgebase');
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.name', 'search_knowledgebase');
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.id', 'test-tool-call-id-1234567890');
     });
@@ -385,8 +388,11 @@ describe('Integration Tests', () => {
       const resourceSpans = otlpV4SuccessData as { resourceSpans: OtlpResourceSpans[] };
       const result = normalizeOtlpSpans(resourceSpans.resourceSpans);
 
-      const toolCallSpan = result.find((s) => s.name === 'ai.toolCall');
+      // Tool call spans are renamed to the tool name (e.g., 'search_knowledgebase' instead of 'ai.toolCall')
+      // Find them by checking spanAttributes for ai.toolCall.name
+      const toolCallSpan = result.find((s) => s.spanAttributes['ai.toolCall.name'] !== undefined);
       expect(toolCallSpan).toBeDefined();
+      expect(toolCallSpan?.name).toBe('search_knowledgebase');
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.name', 'search_knowledgebase');
       expect(toolCallSpan?.spanAttributes).toHaveProperty('ai.toolCall.id', 'call_xyz123abc456def789');
     });
