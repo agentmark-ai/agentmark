@@ -113,7 +113,6 @@ requires-python = ">=3.12"
 dependencies = [
     "agentmark-pydantic-ai>=0.1.0",
     "agentmark-prompt-core>=0.1.0",
-    "aiohttp>=3.9.0",
     "python-dotenv>=1.0.0",
     "pydantic-ai[openai]>=0.1.0",
 ]
@@ -151,7 +150,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from agentmark.prompt_core import FileLoader
-from agentmark_pydantic_ai import (
+from agentmark_pydantic_ai_v0 import (
     create_pydantic_ai_client,
     create_default_model_registry,
     PydanticAIToolRegistry,
@@ -199,7 +198,7 @@ import asyncio
 import json
 from pathlib import Path
 
-from agentmark_pydantic_ai import run_text_prompt
+from agentmark_pydantic_ai_v0 import run_text_prompt
 from agentmark_client import client
 
 
@@ -245,136 +244,26 @@ const getDevServerContent = (): string => {
 
 This server is started by 'npm run dev' (agentmark dev) and handles
 prompt execution requests from the CLI.
-
-To customize, create a dev_server.py file in your project root.
 """
 
 import argparse
-import json
-import os
 import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from aiohttp import web
-from agentmark_pydantic_ai import PydanticAIWebhookHandler
-
-# Import client from user config
+from agentmark_pydantic_ai_v0 import create_webhook_server
 from agentmark_client import client
 
 
-async def handle_webhook(request: web.Request) -> web.Response:
-    """Handle incoming webhook requests."""
-    try:
-        body = await request.json()
-        event_type = body.get("type")
-        data = body.get("data", {})
-
-        if not event_type:
-            return web.json_response(
-                {"message": "Missing event type"},
-                status=400
-            )
-
-        handler = PydanticAIWebhookHandler(client)
-
-        if event_type == "prompt-run":
-            options = {
-                "shouldStream": data.get("options", {}).get("shouldStream", True),
-                "customProps": data.get("customProps"),
-            }
-            result = await handler.run_prompt(data["ast"], options)
-
-            if result.get("type") == "stream":
-                # Return streaming response
-                response = web.StreamResponse()
-                response.headers["Content-Type"] = "application/x-ndjson"
-                response.headers["AgentMark-Streaming"] = "true"
-                await response.prepare(request)
-
-                async for chunk in result["stream"]:
-                    await response.write(chunk.encode() + b"\\n")
-
-                if result.get("traceId"):
-                    await response.write(
-                        json.dumps({"type": "done", "traceId": result["traceId"]}).encode() + b"\\n"
-                    )
-                await response.write_eof()
-                return response
-
-            return web.json_response(result)
-
-        elif event_type == "dataset-run":
-            experiment_id = data.get("experimentId", "local-experiment")
-            result = await handler.run_experiment(
-                data["ast"],
-                experiment_id,
-                data.get("datasetPath")
-            )
-
-            # Dataset runs always stream
-            response = web.StreamResponse()
-            response.headers["Content-Type"] = "application/x-ndjson"
-            response.headers["AgentMark-Streaming"] = "true"
-            await response.prepare(request)
-
-            async for chunk in result["stream"]:
-                await response.write(chunk.encode() + b"\\n")
-
-            await response.write_eof()
-            return response
-
-        return web.json_response(
-            {"message": f"Unknown event type: {event_type}"},
-            status=400
-        )
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return web.json_response(
-            {"message": str(e)},
-            status=500
-        )
-
-
-async def handle_root(request: web.Request) -> web.Response:
-    """Landing page for browser access."""
-    html = """<!DOCTYPE html>
-<html>
-<head><title>AgentMark Python Dev Server</title></head>
-<body>
-<h1>AgentMark Python Webhook Server</h1>
-<p>Server is running. Use the CLI to run prompts:</p>
-<pre>npm run prompt agentmark/party-planner.prompt.mdx</pre>
-</body>
-</html>"""
-    return web.Response(text=html, content_type="text/html")
-
-
-def main():
-    """Start the webhook server."""
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--webhook-port", type=int, default=9417)
     parser.add_argument("--api-server-port", type=int, default=9418)
     args = parser.parse_args()
 
-    # Set environment for development
-    os.environ["AGENTMARK_BASE_URL"] = f"http://localhost:{args.api_server_port}"
-
-    app = web.Application()
-    app.router.add_get("/", handle_root)
-    app.router.add_post("/", handle_webhook)
-
-    print(f"Starting Python webhook server on port {args.webhook_port}")
-    print(f"API server URL: http://localhost:{args.api_server_port}")
-    web.run_app(app, port=args.webhook_port, print=False)
-
-
-if __name__ == "__main__":
-    main()
+    create_webhook_server(client, args.webhook_port, args.api_server_port)
 `;
 };
 

@@ -46,6 +46,7 @@ from .runner import (
     run_text_prompt,
     stream_text_prompt,
 )
+from .server import create_webhook_server
 from .tool_registry import PydanticAIToolRegistry
 from .types import (
     AdaptOptions,
@@ -86,7 +87,8 @@ __all__ = [
     "stream_text_prompt",
     "TextRunResult",
     "ObjectRunResult",
-    # Webhook handler
+    # Webhook server
+    "create_webhook_server",
     "PydanticAIWebhookHandler",
 ]
 
