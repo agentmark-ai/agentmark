@@ -27,6 +27,29 @@ function detectProjectLanguage(cwd: string): ProjectLanguage {
   return "typescript";
 }
 
+/**
+ * Find Python executable, preferring virtual environment if present.
+ * Checks .venv and venv directories in the project root.
+ */
+function findPythonExecutable(cwd: string): string {
+  const isWindows = process.platform === 'win32';
+  const binDir = isWindows ? 'Scripts' : 'bin';
+  const pythonName = isWindows ? 'python.exe' : 'python';
+
+  // Check common virtual environment directories
+  const venvDirs = ['.venv', 'venv'];
+  for (const venvDir of venvDirs) {
+    const venvPython = path.join(cwd, venvDir, binDir, pythonName);
+    if (fs.existsSync(venvPython)) {
+      console.log(`Using virtual environment: ${venvDir}/`);
+      return venvPython;
+    }
+  }
+
+  // Fallback to system Python
+  return isWindows ? 'python' : 'python3';
+}
+
 function isPortFree(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const tester = net.createServer()
@@ -180,8 +203,8 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
   if (projectLanguage === "python") {
     // For Python projects, spawn the Python dev server
-    // Try to find Python executable
-    const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+    // Find Python executable (prefers virtual environment if present)
+    const pythonCommand = findPythonExecutable(cwd);
 
     webhookServer = spawn(pythonCommand, [
       devServerFile,

@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import type { Root } from "mdast";
+import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
 
 function resolveAgainstCwdOrEnv(inputPath: string): string {
   if (path.isAbsolute(inputPath)) return inputPath;
@@ -15,23 +16,6 @@ interface RunPromptOptions {
   propsFile?: string;
   server?: string;
   saveOutput?: string;
-}
-
-/**
- * Detect prompt type from raw file content by scanning frontmatter.
- * This allows us to choose the correct parser before full parsing.
- */
-function detectPromptTypeFromContent(content: string): 'language' | 'image' | 'speech' {
-  // Simple detection by looking for config keys in frontmatter
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) {
-    return 'language'; // Default to language if no frontmatter
-  }
-
-  const frontmatter = frontmatterMatch[1];
-  if (frontmatter.includes('image_config:')) return 'image';
-  if (frontmatter.includes('speech_config:')) return 'speech';
-  return 'language'; // text_config and object_config use language parser
 }
 
 /**
