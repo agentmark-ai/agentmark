@@ -110,6 +110,57 @@ class TestSettings(TypedDict, total=False):
     evals: list[str] | None
 
 
+# Dataset types
+class DatasetItem(TypedDict):
+    """A single item from a dataset."""
+
+    input: dict[str, Any]
+    expected_output: str | None
+
+
+class DatasetStreamChunk(TypedDict):
+    """A chunk from the dataset stream with formatted output."""
+
+    type: Literal["dataset"]
+    dataset: DatasetItem
+    evals: list[str]
+    formatted: Any
+
+
+class DatasetErrorChunk(TypedDict):
+    """An error chunk from the dataset stream."""
+
+    type: Literal["error"]
+    error: str
+
+
+class FormatWithDatasetOptions(TypedDict, total=False):
+    """Options for format_with_dataset."""
+
+    dataset_path: str
+    telemetry: TelemetryOptions
+    api_key: str
+    base_url: str
+    tool_context: dict[str, Any]
+
+
+# Async iterator for dataset streaming
+class DatasetReader(Protocol):
+    """Protocol for dataset reader with async iteration."""
+
+    async def read(self) -> dict[str, Any]:
+        """Read the next item. Returns {'done': True} when complete."""
+        ...
+
+
+class DatasetStream(Protocol):
+    """Protocol for dataset streams."""
+
+    def get_reader(self) -> DatasetReader:
+        """Get a reader for the stream."""
+        ...
+
+
 # Loader protocol
 class Loader(Protocol):
     """Protocol for prompt loaders."""
@@ -118,6 +169,17 @@ class Loader(Protocol):
         self, path: str, prompt_type: PromptKind, options: dict[str, Any] | None = None
     ) -> Any:
         """Load a prompt from a path."""
+        ...
+
+    async def load_dataset(self, dataset_path: str) -> DatasetStream:
+        """Load a dataset from a path.
+
+        Args:
+            dataset_path: Path to the dataset file (JSONL format).
+
+        Returns:
+            A DatasetStream that can be iterated to get dataset items.
+        """
         ...
 
 

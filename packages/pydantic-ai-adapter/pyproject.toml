@@ -3,16 +3,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentmark-prompt-core"
-version = "0.1.0"
-description = "Python prompt-core package for AgentMark - high-level runtime for working with AgentMark prompts"
+name = "agentmark-pydantic-ai"
+version = "0.0.0"
+description = "Pydantic AI adapter for AgentMark - integrate AgentMark prompts with Pydantic AI"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 authors = [
     { name = "AgentMark Team" }
 ]
-keywords = ["agentmark", "prompt", "llm", "ai", "mdx"]
+keywords = ["agentmark", "pydantic-ai", "llm", "ai", "prompt"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -25,17 +25,21 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2.0",
-    "pyyaml>=6.0",
+    "pydantic-ai>=0.0.39",
+    "agentmark-prompt-core>=0.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
+    "pytest-mock>=3.0",
     "ruff>=0.8.0",
     "mypy>=1.0",
-    "types-PyYAML>=6.0",
 ]
+openai = ["pydantic-ai[openai]"]
+anthropic = ["pydantic-ai[anthropic]"]
+gemini = ["pydantic-ai[gemini]"]
 
 [project.urls]
 Homepage = "https://github.com/agentmark/agentmark"
@@ -43,7 +47,7 @@ Documentation = "https://github.com/agentmark/agentmark#readme"
 Repository = "https://github.com/agentmark/agentmark"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agentmark"]
+packages = ["src/agentmark_pydantic_ai"]
 
 [tool.ruff]
 target-version = "py312"
@@ -65,13 +69,12 @@ ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
     "B905",   # zip without explicit strict parameter
+    "UP046",  # Generic subclass style - valid alternative to PEP 695
+    "UP047",  # Generic function style - valid alternative to PEP 695
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agentmark", "templatedx"]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ARG001", "ARG002", "ARG005"]  # Allow unused args in test mocks/fixtures
+known-first-party = ["agentmark_pydantic_ai", "agentmark"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -90,7 +93,7 @@ follow_imports = "normal"
 ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
-module = "yaml"
+module = ["pydantic_ai.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -9,3 +9,16 @@ yalc.lock
 .env
 *storybook.log
 storybook-static
+.claude
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

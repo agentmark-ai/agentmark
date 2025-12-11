@@ -1,0 +1,41 @@
+{
+  "type": "root",
+  "children": [
+    {
+      "type": "yaml",
+      "value": "name: speech\nspeech_config:\n  model_name: test-model\n  voice: nova\n  speed: 1.0\n  output_format: mp3"
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "System",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "Please read this text aloud."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mdxJsxFlowElement",
+      "name": "SpeechPrompt",
+      "attributes": [],
+      "children": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "This is a test for the speech prompt to be spoken aloud."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

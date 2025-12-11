@@ -225,6 +225,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter"
+  languageName: unknown
+  linkType: soft
+
+"@agentmark/sdk-python@workspace:packages/sdk-python":
+  version: 0.0.0-use.local
+  resolution: "@agentmark/sdk-python@workspace:packages/sdk-python"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark/sdk@workspace:^, @agentmark/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark/sdk@workspace:packages/sdk"

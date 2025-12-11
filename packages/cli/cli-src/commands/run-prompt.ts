@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import type { Root } from "mdast";
+import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
 
 function resolveAgainstCwdOrEnv(inputPath: string): string {
   if (path.isAbsolute(inputPath)) return inputPath;
@@ -37,10 +38,27 @@ async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptNam
       promptName: built.metadata?.name
     };
   } else if (resolvedFilepath.endsWith('.mdx')) {
-    // Parse MDX file
-    const { load, getFrontMatter } = await import("@agentmark/templatedx");
-    const ast: Root = await load(resolvedFilepath);
-    const frontmatter = getFrontMatter(ast) as { name?: string };
+    // Parse MDX file using prompt-core's TemplateDX instances (which have tags registered)
+    const { getTemplateDXInstance } = await import("@agentmark/prompt-core");
+
+    // Read content to detect prompt type
+    const content = fs.readFileSync(resolvedFilepath, 'utf-8');
+    const parserType = detectPromptTypeFromContent(content);
+
+    // Get the appropriate TemplateDX instance with AgentMark tags registered
+    const templateDX = getTemplateDXInstance(parserType);
+
+    // Create content loader for resolving imports
+    const baseDir = path.dirname(resolvedFilepath);
+    const contentLoader = async (filePath: string) => {
+      const { readFile } = await import('fs/promises');
+      const resolvedPath = path.resolve(baseDir, filePath);
+      return readFile(resolvedPath, 'utf-8');
+    };
+
+    // Parse the MDX content
+    const ast: Root = await templateDX.parse(content, baseDir, contentLoader);
+    const frontmatter = templateDX.getFrontMatter(ast) as { name?: string };
 
     return {
       ast,

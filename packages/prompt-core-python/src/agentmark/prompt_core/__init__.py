@@ -3,6 +3,7 @@
 from .adapters import Adapter, DefaultAdapter
 from .agentmark import AgentMark, create_agentmark
 from .eval_registry import EvalRegistry
+from .loaders import FileDatasetReader, FileDatasetStream, FileLoader
 from .mcp import (
     InlineToolDefinition,
     McpServerConfig,
@@ -14,7 +15,15 @@ from .mcp import (
     normalize_tools_map,
     parse_mcp_uri,
 )
-from .prompts import BasePrompt, ImagePrompt, ObjectPrompt, SpeechPrompt, TextPrompt
+from .prompts import (
+    BasePrompt,
+    ImagePrompt,
+    ObjectPrompt,
+    SimpleDatasetReader,
+    SimpleDatasetStream,
+    SpeechPrompt,
+    TextPrompt,
+)
 from .schemas import (
     AgentmarkConfigSchema,
     ImageConfigSchema,
@@ -32,10 +41,16 @@ from .types import (
     AdaptOptions,
     ChatMessage,
     ContentPart,
+    DatasetErrorChunk,
+    DatasetItem,
+    DatasetReader,
+    DatasetStream,
+    DatasetStreamChunk,
     EvalFunction,
     EvalParams,
     EvalResult,
     FilePart,
+    FormatWithDatasetOptions,
     ImagePart,
     JSONObject,
     JSONPrimitive,
@@ -63,8 +78,14 @@ __all__ = [
     "ObjectPrompt",
     "ImagePrompt",
     "SpeechPrompt",
+    "SimpleDatasetStream",
+    "SimpleDatasetReader",
     # Registries
     "EvalRegistry",
+    # Loaders
+    "FileLoader",
+    "FileDatasetStream",
+    "FileDatasetReader",
     # Template engines
     "TemplateDXTemplateEngine",
     "get_front_matter",
@@ -99,6 +120,13 @@ __all__ = [
     "TestSettings",
     "Loader",
     "TemplateEngine",
+    # Dataset types
+    "DatasetItem",
+    "DatasetStreamChunk",
+    "DatasetErrorChunk",
+    "FormatWithDatasetOptions",
+    "DatasetReader",
+    "DatasetStream",
     # MCP utilities
     "parse_mcp_uri",
     "interpolate_env_in_object",
