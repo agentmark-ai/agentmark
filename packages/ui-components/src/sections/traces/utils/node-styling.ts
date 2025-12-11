@@ -40,6 +40,16 @@ export function getNodeTypeStyle(
         color: theme.palette.secondary.main,
         icon: "mdi:account-cog-outline",
       };
+    case "start":
+      return {
+        color: theme.palette.success.main,
+        icon: "mdi:play-circle",
+      };
+    case "end":
+      return {
+        color: theme.palette.error.main,
+        icon: "mdi:stop-circle",
+      };
     default:
       return {
         color: theme.palette.primary.main,

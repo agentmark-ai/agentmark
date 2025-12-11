@@ -171,3 +171,239 @@ export const graphData: GraphData[] = [
     spanName: "Span 3",
   },
 ];
+
+/**
+ * Mock spans for auto-generated workflow graph testing.
+ * Simulates an agentic workflow with a parent agent span containing:
+ * - Multiple LLM calls (generateText)
+ * - Two different tool calls (search_web, calculate)
+ */
+export const workflowSpans = [
+  // Parent agent span
+  {
+    spanId: "agent-span",
+    parentSpanId: undefined,
+    name: "research_agent",
+    startTime: 0,
+    type: "SPAN",
+    data: { type: "SPAN" },
+  },
+  // First generateText call (planning)
+  {
+    spanId: "span-1",
+    parentSpanId: "agent-span",
+    name: "generateText",
+    startTime: 1000,
+    type: "GENERATION",
+    data: { type: "GENERATION" },
+  },
+  // First search tool call
+  {
+    spanId: "span-2",
+    parentSpanId: "agent-span",
+    name: "search_web",
+    startTime: 2000,
+    type: "SPAN",
+    data: { toolCalls: '[{"name":"search_web"}]' },
+  },
+  // Second generateText call (process search results)
+  {
+    spanId: "span-3",
+    parentSpanId: "agent-span",
+    name: "generateText",
+    startTime: 3000,
+    type: "GENERATION",
+    data: { type: "GENERATION" },
+  },
+  // Calculate tool call (new tool type)
+  {
+    spanId: "span-4",
+    parentSpanId: "agent-span",
+    name: "calculate",
+    startTime: 4000,
+    type: "SPAN",
+    data: { toolCalls: '[{"name":"calculate"}]' },
+  },
+  // Third generateText call (more reasoning)
+  {
+    spanId: "span-5",
+    parentSpanId: "agent-span",
+    name: "generateText",
+    startTime: 5000,
+    type: "GENERATION",
+    data: { type: "GENERATION" },
+  },
+  // Second search tool call
+  {
+    spanId: "span-6",
+    parentSpanId: "agent-span",
+    name: "search_web",
+    startTime: 6000,
+    type: "SPAN",
+    data: { toolCalls: '[{"name":"search_web"}]' },
+  },
+  // Final generateText call (response)
+  {
+    spanId: "span-7",
+    parentSpanId: "agent-span",
+    name: "generateText",
+    startTime: 7000,
+    type: "GENERATION",
+    data: { type: "GENERATION" },
+  },
+];
+
+/**
+ * Mock trace data with spans suitable for auto-graph generation.
+ * Demonstrates an agentic workflow with:
+ * - Parent agent span containing all operations
+ * - Multiple LLM calls (generateText) grouped into one node
+ * - Two different tool types (search_web, calculate) as separate nodes
+ *
+ * Expected graph structure:
+ * research_agent → generateText (4 spans) → search_web (2 spans)
+ *                                        → calculate (1 span)
+ */
+export const workflowTraceData: TraceData = {
+  id: "workflow-trace-1",
+  name: "Research Agent Workflow",
+  spans: [
+    // Parent agent span
+    {
+      id: "agent-span",
+      name: "research_agent",
+      duration: 7500,
+      timestamp: 0,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "SPAN",
+        status: "2",
+      },
+    },
+    // First generateText (planning)
+    {
+      id: "span-1",
+      name: "generateText",
+      parentId: "agent-span",
+      duration: 800,
+      timestamp: 1000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "GENERATION",
+        model: "claude-3-sonnet",
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+        cost: 0.001,
+        input: JSON.stringify([{ role: "user", content: "What is the population of Tokyo and calculate the density?" }]),
+        output: "I'll search for Tokyo's population and area, then calculate the density.",
+        status: "2",
+      },
+    },
+    // First search_web tool call
+    {
+      id: "span-2",
+      name: "search_web",
+      parentId: "agent-span",
+      duration: 500,
+      timestamp: 2000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "SPAN",
+        toolCalls: JSON.stringify([{ name: "search_web", args: { query: "Tokyo population 2024" } }]),
+        status: "2",
+      },
+    },
+    // Second generateText (process search results)
+    {
+      id: "span-3",
+      name: "generateText",
+      parentId: "agent-span",
+      duration: 600,
+      timestamp: 3000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "GENERATION",
+        model: "claude-3-sonnet",
+        inputTokens: 200,
+        outputTokens: 80,
+        totalTokens: 280,
+        cost: 0.0015,
+        input: JSON.stringify([{ role: "assistant", content: "Found population: 13.96 million. Now I need the area." }]),
+        output: "I found the population. Now let me calculate the density.",
+        status: "2",
+      },
+    },
+    // Calculate tool call
+    {
+      id: "span-4",
+      name: "calculate",
+      parentId: "agent-span",
+      duration: 100,
+      timestamp: 4000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "SPAN",
+        toolCalls: JSON.stringify([{ name: "calculate", args: { expression: "13960000 / 2194" } }]),
+        status: "2",
+      },
+    },
+    // Third generateText (more reasoning)
+    {
+      id: "span-5",
+      name: "generateText",
+      parentId: "agent-span",
+      duration: 700,
+      timestamp: 5000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "GENERATION",
+        model: "claude-3-sonnet",
+        inputTokens: 250,
+        outputTokens: 100,
+        totalTokens: 350,
+        cost: 0.002,
+        input: JSON.stringify([{ role: "assistant", content: "Density calculated. Let me verify with another search." }]),
+        output: "The density is about 6,363 people per km². Let me verify this.",
+        status: "2",
+      },
+    },
+    // Second search_web tool call
+    {
+      id: "span-6",
+      name: "search_web",
+      parentId: "agent-span",
+      duration: 450,
+      timestamp: 6000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "SPAN",
+        toolCalls: JSON.stringify([{ name: "search_web", args: { query: "Tokyo population density verification" } }]),
+        status: "2",
+      },
+    },
+    // Final generateText (response)
+    {
+      id: "span-7",
+      name: "generateText",
+      parentId: "agent-span",
+      duration: 900,
+      timestamp: 7000,
+      traceId: "workflow-trace-1",
+      data: {
+        type: "GENERATION",
+        model: "claude-3-sonnet",
+        inputTokens: 300,
+        outputTokens: 150,
+        totalTokens: 450,
+        cost: 0.0025,
+        input: JSON.stringify([{ role: "assistant", content: "Compiling final verified response." }]),
+        output: "Tokyo has a population of approximately 13.96 million people with a population density of about 6,363 people per square kilometer, making it one of the most densely populated cities in the world.",
+        status: "2",
+      },
+    },
+  ],
+  data: {
+    latency: 7500,
+  },
+};

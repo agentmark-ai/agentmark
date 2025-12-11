@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: AgentMark Trace Graph API
+  description: |
+    API contract for the Agentic Workflow Graph feature.
+    This extends the existing `/v1/traces/:traceId/graph` endpoint to support
+    automatic graph generation when no manual `graph.node.*` metadata exists.
+  version: 1.0.0
+
+paths:
+  /v1/traces/{traceId}/graph:
+    get:
+      summary: Get trace workflow graph
+      description: |
+        Returns the workflow graph for a trace. If spans have manual `graph.node.*`
+        metadata, returns those nodes/edges. Otherwise, auto-generates workflow nodes
+        by grouping spans by name under each parent.
+      operationId: getTraceGraph
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          description: The trace ID to fetch the graph for
+          schema:
+            type: string
+            example: "abc123def456"
+      responses:
+        '200':
+          description: Workflow graph data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphDataResponse'
+              examples:
+                manual_metadata:
+                  summary: Trace with manual graph.node.* metadata
+                  value:
+                    - parentNodeId: "root"
+                      nodeId: "llm-1"
+                      spanId: "span-001"
+                      nodeType: "llm"
+                      displayName: "Generate Response"
+                      spanName: "generateText"
+                auto_generated:
+                  summary: Auto-generated workflow graph
+                  value:
+                    - parentNodeId: null
+                      nodeId: "root:generateText"
+                      spanId: "span-001"
+                      nodeType: "llm"
+                      displayName: "generateText"
+                      spanName: "generateText"
+                      spanIds: ["span-001", "span-003", "span-005"]
+                      spanCount: 3
+                    - parentNodeId: null
+                      nodeId: "root:search_web"
+                      spanId: "span-002"
+                      nodeType: "tool"
+                      displayName: "search_web"
+                      spanName: "search_web"
+                      spanIds: ["span-002", "span-004"]
+                      spanCount: 2
+        '404':
+          description: Trace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    GraphDataResponse:
+      type: array
+      description: |
+        Array of graph data items. For backward compatibility, the shape is
+        the same as before, but auto-generated items include additional fields
+        (`spanIds`, `spanCount`) for multi-span nodes.
+      items:
+        $ref: '#/components/schemas/GraphDataItem'
+
+    GraphDataItem:
+      type: object
+      required:
+        - nodeId
+        - spanId
+        - nodeType
+        - displayName
+        - spanName
+      properties:
+        parentNodeId:
+          type: string
+          nullable: true
+          description: Parent node ID for hierarchy (null for root nodes)
+          example: "root:agentLoop"
+        nodeId:
+          type: string
+          description: Unique node identifier
+          example: "root:generateText"
+        spanId:
+          type: string
+          description: Primary span ID (first span in group for auto-generated)
+          example: "span-001"
+        nodeType:
+          type: string
+          enum: [llm, tool, agent, retrieval, router, memory, default]
+          description: Inferred or manual node type for styling
+          example: "llm"
+        displayName:
+          type: string
+          description: Human-readable node label
+          example: "generateText"
+        spanName:
+          type: string
+          description: Original span name
+          example: "generateText"
+        spanIds:
+          type: array
+          items:
+            type: string
+          description: |
+            All span IDs grouped in this node (auto-generated only).
+            For manual metadata, this field is omitted.
+          example: ["span-001", "span-003", "span-005"]
+        spanCount:
+          type: integer
+          minimum: 1
+          description: |
+            Number of spans in this node (auto-generated only).
+            For manual metadata, this field is omitted.
+          example: 3
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeInfo'
+          description: |
+            Outgoing edges from this node (auto-generated only).
+            For manual metadata, edges are inferred from parentNodeId.
+
+    EdgeInfo:
+      type: object
+      required:
+        - target
+      properties:
+        target:
+          type: string
+          description: Target node ID
+          example: "root:search_web"
+        bidirectional:
+          type: boolean
+          description: True if both A->B and B->A transitions exist
+          example: true
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Trace not found"
