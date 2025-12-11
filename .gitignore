@@ -10,3 +10,16 @@ yalc.lock
 *storybook.log
 storybook-static
 tmp-dev*/
+.claude
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

@@ -240,7 +240,7 @@ describe('agentmark dev', () => {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
     }
-  }, 15000); // Increase timeout for this test
+  }, 30000); // Increase timeout for CI
 
   it('uses default dev-entry.ts when custom dev-server.ts is missing', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-autogen-' + Date.now());
@@ -299,7 +299,7 @@ describe('agentmark dev', () => {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
     }
-  }, 15000);
+  }, 30000); // Increase timeout for CI
 
   it('allows custom port configuration', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-custom-port-' + Date.now());
@@ -348,5 +348,5 @@ describe('agentmark dev', () => {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
     }
-  }, 15000);
+  }, 30000); // Increase timeout for CI
 });

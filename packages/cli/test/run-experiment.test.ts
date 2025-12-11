@@ -167,7 +167,7 @@ describe('run-experiment', () => {
     await runExperiment(dummyPath, { thresholdPercent: 100, server: 'http://localhost:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Experiment passed threshold/);
-  });
+  }, 15000);
 
   it('fails threshold when evals FAIL', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);

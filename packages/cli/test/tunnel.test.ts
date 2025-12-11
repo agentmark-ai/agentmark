@@ -25,12 +25,14 @@ function createMockTunnel(url: string | null) {
 describe('tunnel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     // Reset the mock implementation - successful tunnel by default
     mockLocaltunnel.mockResolvedValue(createMockTunnel('https://test-subdomain.loca.lt'));
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   describe('createTunnel', () => {
@@ -60,11 +62,15 @@ describe('tunnel', () => {
         .mockRejectedValueOnce(networkError)
         .mockResolvedValueOnce(createMockTunnel('https://test-subdomain.loca.lt'));
 
-      const result = await createTunnel(9417, 'test-subdomain', 3);
+      // Use runAllTimersAsync to handle async timer resolution properly
+      const tunnelPromise = createTunnel(9417, 'test-subdomain', 3);
+      await vi.runAllTimersAsync();
+
+      const result = await tunnelPromise;
 
       expect(result.url).toBe('https://test-subdomain.loca.lt');
       expect(mockLocaltunnel).toHaveBeenCalledTimes(3);
-    }, 15000);
+    });
 
     it('does not retry on EADDRINUSE error', async () => {
       const error = new Error('Port already in use');
@@ -101,11 +107,24 @@ describe('tunnel', () => {
     });
 
     it('throws after max retries exhausted', async () => {
-      mockLocaltunnel.mockRejectedValue(new Error('Connection timeout'));
+      const error = new Error('Connection timeout');
+      mockLocaltunnel
+        .mockRejectedValueOnce(error)
+        .mockRejectedValueOnce(error)
+        .mockRejectedValueOnce(error);
 
-      await expect(createTunnel(9417, undefined, 3)).rejects.toThrow('Connection timeout');
+      // Attach catch handler immediately to prevent unhandled rejection warning
+      let caughtError: Error | null = null;
+      const tunnelPromise = createTunnel(9417, undefined, 3).catch((e) => {
+        caughtError = e;
+      });
+      await vi.runAllTimersAsync();
+      await tunnelPromise;
+
+      expect(caughtError).toBeTruthy();
+      expect(caughtError?.message).toBe('Connection timeout');
       expect(mockLocaltunnel).toHaveBeenCalledTimes(3);
-    }, 15000);
+    });
 
     it('disconnect function closes the tunnel', async () => {
       const mockTunnel = createMockTunnel('https://test-subdomain.loca.lt');

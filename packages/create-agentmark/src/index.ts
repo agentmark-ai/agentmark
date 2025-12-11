@@ -1,20 +1,26 @@
 import fs from "fs-extra";
 import prompts from "prompts";
 import { createExampleApp } from "./utils/examples/create-example-app";
+import { createPythonApp } from "./utils/examples/create-python-app";
 
 const parseArgs = () => {
   const args = process.argv.slice(2);
   let deploymentMode: "cloud" | "static" | undefined;
+  let language: "typescript" | "python" | undefined;
 
   for (const arg of args) {
     if (arg === "--cloud") {
       deploymentMode = "cloud";
     } else if (arg === "--self-host") {
       deploymentMode = "static";
+    } else if (arg === "--python") {
+      language = "python";
+    } else if (arg === "--typescript") {
+      language = "typescript";
     }
   }
 
-  return { deploymentMode };
+  return { deploymentMode, language };
 };
 
 const main = async () => {
@@ -39,6 +45,21 @@ const main = async () => {
   const targetPath = `./${folderName}`;
   fs.ensureDirSync(targetPath);
 
+  // Language selection
+  let language = cliArgs.language;
+  if (!language) {
+    const response = await prompts({
+      name: "language",
+      type: "select",
+      message: "Which language would you like to use?",
+      choices: [
+        { title: "TypeScript", value: "typescript" },
+        { title: "Python", value: "python" },
+      ],
+    });
+    language = response.language;
+  }
+
   config.builtInModels = ['gpt-4o'];
 
   // Prompt only for the OpenAI API key
@@ -51,15 +72,24 @@ const main = async () => {
   });
   apiKey = providedApiKey || "";
 
-  const { adapter } = await prompts({
-    name: "adapter",
-    type: "select",
-    message: "Which adapter would you like to use?",
-    choices: [
-      { title: "AI SDK (Vercel)", value: "ai-sdk" },
-      { title: "Mastra", value: "mastra" },
-    ],
-  });
+  // Adapter selection depends on language
+  let adapter: string;
+  if (language === "python") {
+    // Python only has Pydantic AI adapter
+    adapter = "pydantic-ai";
+    console.log("Using Pydantic AI adapter for Python.");
+  } else {
+    const response = await prompts({
+      name: "adapter",
+      type: "select",
+      message: "Which adapter would you like to use?",
+      choices: [
+        { title: "AI SDK (Vercel)", value: "ai-sdk" },
+        { title: "Mastra", value: "mastra" },
+      ],
+    });
+    adapter = response.adapter;
+  }
 
   let deploymentMode = cliArgs.deploymentMode;
   if (!deploymentMode) {
@@ -96,7 +126,11 @@ const main = async () => {
     ],
   });
 
-  await createExampleApp(client, targetPath, apiKey, adapter, deploymentMode);
+  if (language === "python") {
+    await createPythonApp(client, targetPath, apiKey, deploymentMode);
+  } else {
+    await createExampleApp(client, targetPath, apiKey, adapter, deploymentMode);
+  }
 
   // Always generate agentmark.json so config is consistent
   fs.writeJsonSync(`${targetPath}/agentmark.json`, config, { spaces: 2 });
