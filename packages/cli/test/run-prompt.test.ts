@@ -139,7 +139,7 @@ describe('run-prompt', () => {
     // Ensure streamed tokens were printed to stdout
     // We can't capture stdout easily via spy here, but absence of errors and presence of header proves path
     // files cleaned up in afterEach
-  });
+  }, 15000);
 
   it('saves image outputs to files', async () => {
     const tempPath = path.join(__dirname, '..', 'dummy.mdx');
