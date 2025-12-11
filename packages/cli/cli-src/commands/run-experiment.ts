@@ -247,13 +247,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   }
 
   // Load AST from MDX or pre-built JSON file
-  const { ast, promptName, datasetPath: rawDatasetPath } = await loadAst(resolvedFilepath);
-
-  // Resolve dataset path to absolute if it's relative
-  const promptDir = path.dirname(resolvedFilepath);
-  const datasetPath = rawDatasetPath && !path.isAbsolute(rawDatasetPath)
-    ? path.resolve(promptDir, rawDatasetPath)
-    : rawDatasetPath;
+  const { ast, promptName, datasetPath } = await loadAst(resolvedFilepath);
 
   // Determine prompt type from frontmatter (Text/Object/Image/Speech)
   let promptType: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
