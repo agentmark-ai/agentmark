@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import path from "path";
-import { createAgentMarkClient } from "@agentmark/fallback-adapter";
-import { FileLoader } from "@agentmark/loader-file";
+import { createAgentMarkClient } from "@agentmark-ai/fallback-adapter";
+import { FileLoader } from "@agentmark-ai/loader-file";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {

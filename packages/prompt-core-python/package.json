@@ -1,6 +1,6 @@
 {
-  "name": "@agentmark/prompt-core-python",
-  "version": "0.1.0",
+  "name": "@agentmark-ai/prompt-core-python",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "postinstall": "python3 -m venv .venv && .venv/bin/pip install -q -e ../templatedx-python && .venv/bin/pip install -q -e '.[dev]'",

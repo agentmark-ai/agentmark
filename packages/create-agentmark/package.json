@@ -1,6 +1,6 @@
 {
   "name": "create-agentmark",
-  "version": "0.5.0",
+  "version": "0.0.0",
   "type": "module",
   "description": "Create AgentMark projects with npm create agentmark",
   "main": "dist/index.js",
@@ -29,7 +29,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@agentmark/shared-utils": "*",
+    "@agentmark-ai/shared-utils": "*",
     "fs-extra": "^11.2.0",
     "prompts": "^2.4.2"
   },

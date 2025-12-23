@@ -5,7 +5,7 @@ import {
   ObjectPrompt,
   PromptFormatParams,
   PromptShape,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 import { DefaultAdapter } from "./adapter";
 import type { Root } from "mdast";
 
@@ -40,4 +40,4 @@ export function createAgentMarkClient<D extends PromptShape<D>>(opts: {
 
 export { DefaultAdapter } from "./adapter";
 
-export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
+export type { FormatWithDatasetOptions } from "@agentmark-ai/prompt-core";

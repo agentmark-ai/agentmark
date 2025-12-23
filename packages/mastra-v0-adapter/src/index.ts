@@ -1,8 +1,8 @@
-import type { Loader, PromptShape, EvalRegistry } from "@agentmark/prompt-core";
+import type { Loader, PromptShape, EvalRegistry } from "@agentmark-ai/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraToolRegistry } from "./tool-registry";
 import { MastraAdapter } from "./adapter";
-import type { McpServers } from "@agentmark/prompt-core";
+import type { McpServers } from "@agentmark-ai/prompt-core";
 import { MastraAgentMark } from "./mastra-agentmark";
 
 export function createAgentMarkClient<
@@ -30,7 +30,7 @@ export function createAgentMarkClient<
 export { MastraModelRegistry } from "./model-registry";
 export { MastraToolRegistry } from "./tool-registry";
 export { MastraAdapterWebhookHandler } from "./runner";
-export { EvalRegistry } from "@agentmark/prompt-core";
+export { EvalRegistry } from "@agentmark-ai/prompt-core";
 
-export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
+export type { FormatWithDatasetOptions } from "@agentmark-ai/prompt-core";
 

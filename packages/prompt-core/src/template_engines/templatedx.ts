@@ -1,4 +1,4 @@
-import type { Ast } from "@agentmark/templatedx";
+import type { Ast } from "@agentmark-ai/templatedx";
 import type {
   TemplateEngine,
   JSONObject,

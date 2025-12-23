@@ -39,7 +39,7 @@ export const setupPackageJson = (targetPath: string = ".", deploymentMode: "clou
   pkgJson.scripts = scripts;
 
   // Add overrides to fix vulnerabilities in transitive dependencies
-  // localtunnel (used by @agentmark/cli) depends on axios@0.21.4 which has vulnerabilities
+  // localtunnel (used by @agentmark-ai/cli) depends on axios@0.21.4 which has vulnerabilities
   pkgJson.overrides = {
     ...pkgJson.overrides,
     "axios": "^1.7.9"
@@ -61,8 +61,8 @@ export const installDependencies = (
 
   try {
     // Install TypeScript, ts-node, CLI, and other dev dependencies
-    // CLI needs to be a devDep so dev-entry.ts can import from @agentmark/cli/runner-server
-    const devDepsCmd = "npm install --save-dev typescript ts-node @types/node @agentmark/cli --legacy-peer-deps";
+    // CLI needs to be a devDep so dev-entry.ts can import from @agentmark-ai/cli/runner-server
+    const devDepsCmd = "npm install --save-dev typescript ts-node @types/node @agentmark-ai/cli --legacy-peer-deps";
 
     execSync(devDepsCmd, {
       stdio: "inherit",
@@ -73,14 +73,14 @@ export const installDependencies = (
     // SDK is required for both local (connects to agentmark serve) and cloud (connects to API)
     // Loader packages are imported directly - ApiLoader always needed, FileLoader only for static mode
     const loaderPackages = deploymentMode === "static"
-      ? ["@agentmark/loader-api", "@agentmark/loader-file"]
-      : ["@agentmark/loader-api"];
+      ? ["@agentmark-ai/loader-api", "@agentmark-ai/loader-file"]
+      : ["@agentmark-ai/loader-api"];
 
     const installArgs = [
       "install",
       "dotenv",
-      "@agentmark/prompt-core",
-      "@agentmark/sdk",
+      "@agentmark-ai/prompt-core",
+      "@agentmark-ai/sdk",
       adapterConfig.package,
       ...loaderPackages,
       ...adapterConfig.dependencies,

@@ -1,5 +1,5 @@
 import { API_URL } from "../../config/api";
-import { ScoreData } from "@agentmark/ui-components";
+import { ScoreData } from "@agentmark-ai/ui-components";
 
 type CreateScoreBody = {
   resourceId: string;

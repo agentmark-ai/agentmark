@@ -35,7 +35,7 @@ vi.mock('prompts', () => ({
 process.env.OPENAI_API_KEY = TEST_API_KEY;
 
 // Mock templatedx
-vi.mock('@agentmark/templatedx', () => ({
+vi.mock('@agentmark-ai/templatedx', () => ({
   getFrontMatter: vi.fn(() => ({})),
   load: vi.fn(async () => ({ children: [{ type: 'yaml', value: '' }] })),
 }));
@@ -121,8 +121,8 @@ vi.mock('fs', async () => {
 });
 
 // Base core mock; per test we override compile outputs
-vi.mock('@agentmark/prompt-core', async () => {
-  const actual = await vi.importActual<any>('@agentmark/prompt-core');
+vi.mock('@agentmark-ai/prompt-core', async () => {
+  const actual = await vi.importActual<any>('@agentmark-ai/prompt-core');
   return {
     ...actual,
     TemplateDXTemplateEngine: class {
@@ -322,8 +322,8 @@ ${yamlContent}
     let capturedDatasetPath: string | undefined;
 
     // Mock templatedx to return the YAML content for this specific prompt
-    const { load: originalLoad } = await import('@agentmark/templatedx');
-    const templatedx = await import('@agentmark/templatedx');
+    const { load: originalLoad } = await import('@agentmark-ai/templatedx');
+    const templatedx = await import('@agentmark-ai/templatedx');
     vi.mocked(templatedx.load).mockImplementation(async (filepath: string) => {
       if (filepath === promptPath) {
         return { children: [{ type: 'yaml', value: yamlContent }] } as any;

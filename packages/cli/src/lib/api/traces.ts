@@ -1,4 +1,4 @@
-import { Trace, TraceData } from "@agentmark/ui-components";
+import { Trace, TraceData } from "@agentmark-ai/ui-components";
 import { API_URL } from "../../config/api";
 
 export interface GraphData {

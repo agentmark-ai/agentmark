@@ -8,7 +8,7 @@ import type {
   PromptShape,
   KeysWithKind,
   SpeechConfig,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 import type {
   LanguageModel,
   ImageModel,
@@ -18,7 +18,7 @@ import type {
   SpeechModel,
 } from "ai";
 import { jsonSchema } from "ai";
-import { parseMcpUri } from "@agentmark/prompt-core";
+import { parseMcpUri } from "@agentmark-ai/prompt-core";
 import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
 type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;

@@ -1,4 +1,4 @@
-import { TraceData } from "@agentmark/ui-components";
+import { TraceData } from "@agentmark-ai/ui-components";
 import { API_URL } from "../../config/api";
 
 export interface Session {
@@ -11,7 +11,7 @@ export interface Session {
 }
 
 // Re-export SessionData from ui-components for type compatibility
-export type { SessionData } from "@agentmark/ui-components";
+export type { SessionData } from "@agentmark-ai/ui-components";
 
 export const getSessions = async (): Promise<Session[]> => {
   try {

@@ -60,14 +60,14 @@ describe('init', () => {
 
       // Verify CLI is installed as devDependency
       const devDepsCmd = calls.find(c => c.includes('--save-dev')) || '';
-      expect(devDepsCmd).toContain('@agentmark/cli');
+      expect(devDepsCmd).toContain('@agentmark-ai/cli');
       expect(devDepsCmd).toContain('typescript');
 
       // Find the main app install command (not the devDeps one)
       const appInstallCmd = calls.find(c =>
         c.startsWith('npm install ') &&
         !c.includes('--save-dev') &&
-        c.includes('@agentmark/ai-sdk-v5-adapter')
+        c.includes('@agentmark-ai/ai-sdk-v5-adapter')
       ) || '';
       expect(appInstallCmd).toContain(' ai@^5');
       expect(appInstallCmd).toMatch(/@ai-sdk\/openai@\^2/);
@@ -79,7 +79,7 @@ describe('init', () => {
   it('uses ApiLoader in generated agentmark.client.ts', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
     const content = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
-    expect(content).toContain("from \"@agentmark/loader-api\"");
+    expect(content).toContain("from \"@agentmark-ai/loader-api\"");
     expect(content).toContain("ApiLoader");
     expect(content).toContain("ApiLoader.local");
   });
@@ -155,8 +155,8 @@ describe('init', () => {
       expect(fs.existsSync(devEntryPath)).toBe(true);
 
       const content = fs.readFileSync(devEntryPath, 'utf8');
-      expect(content).toContain("import { createWebhookServer } from '@agentmark/cli/runner-server'");
-      expect(content).toContain("import { VercelAdapterWebhookHandler } from '@agentmark/ai-sdk-v5-adapter/runner'");
+      expect(content).toContain("import { createWebhookServer } from '@agentmark-ai/cli/runner-server'");
+      expect(content).toContain("import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v5-adapter/runner'");
       expect(content).toContain('new VercelAdapterWebhookHandler(client');
       expect(content).toContain('createWebhookServer({');
 

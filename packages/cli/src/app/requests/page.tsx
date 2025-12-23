@@ -1,5 +1,5 @@
 "use client";
-import { Request, Requests } from "@agentmark/ui-components";
+import { Request, Requests } from "@agentmark-ai/ui-components";
 import { useTranslations } from "next-intl";
 import { use, useEffect, useState } from "react";
 import { API_URL } from "../../config/api";

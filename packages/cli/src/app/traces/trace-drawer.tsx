@@ -24,7 +24,7 @@ import {
   TraceInfoSkeleton,
   ScoreData,
   SpanData,
-} from "@agentmark/ui-components";
+} from "@agentmark-ai/ui-components";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";

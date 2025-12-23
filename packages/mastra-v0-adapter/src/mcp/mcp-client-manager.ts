@@ -1,5 +1,5 @@
-import type { McpServers } from "@agentmark/prompt-core";
-import { interpolateEnvInObject } from "@agentmark/prompt-core";
+import type { McpServers } from "@agentmark-ai/prompt-core";
+import { interpolateEnvInObject } from "@agentmark-ai/prompt-core";
 
 type MCPClientLike = {
   getTools: () => Promise<Record<string, unknown>>;

@@ -1,4 +1,4 @@
-import { TemplateDX, TagPlugin, PluginContext } from "@agentmark/templatedx";
+import { TemplateDX, TagPlugin, PluginContext } from "@agentmark-ai/templatedx";
 import type { Node } from "mdast";
 import type { ImagePart, TextPart, FilePart } from "../types";
 

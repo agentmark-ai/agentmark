@@ -212,9 +212,9 @@ export const TraceGraphCanvas = ({ spans, loadingState }) => {
 yarn test
 
 # Run specific package tests
-yarn workspace @agentmark/cli test
-yarn workspace @agentmark/ui-components test
-yarn workspace @agentmark/shared-utils test
+yarn workspace @agentmark-ai/cli test
+yarn workspace @agentmark-ai/ui-components test
+yarn workspace @agentmark-ai/shared-utils test
 ```
 
 ### Test Cases

@@ -1,19 +1,8 @@
-# @agentmark/ui-components
+# Changelog
 
-## 0.3.0
+## 0.0.0
 
-### Minor Changes
+Initial release under `@agentmark-ai` organization.
 
-- 7496360: Feat: webhook support
-
-## 0.2.0
-
-### Minor Changes
-
-- 82ca057: Add status message in trace span for failure
-
-## 0.1.0
-
-### Minor Changes
-
-- 73ff875: Local platform and ui components
+> **Note:** This package was previously published as `@agentmark/ui-components`.
+> See git history for prior changelog entries.

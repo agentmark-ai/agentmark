@@ -1,46 +1,8 @@
-# @agentmark/ai-sdk-v5-adapter
+# Changelog
 
-## 2.0.0
+## 0.0.0
 
-### Minor Changes
+Initial release under `@agentmark-ai` organization.
 
-- e362bb5: Feat: local development w/ new file/api loader.
-
-### Patch Changes
-
-- Updated dependencies [e362bb5]
-  - @agentmark/prompt-core@0.3.0
-
-## 1.0.2
-
-### Patch Changes
-
-- 85e9e02: Fix: fix stream text handling
-
-## 1.0.1
-
-### Patch Changes
-
-- cf45b66: Resolve issues
-
-## 1.0.0
-
-### Minor Changes
-
-- 7496360: Feat: webhook support
-
-### Patch Changes
-
-- Updated dependencies [7496360]
-  - @agentmark/prompt-core@0.2.0
-
-## 0.1.0
-
-### Minor Changes
-
-- f268996: Add ai sdk v5 adapter and make it default in cli + remove ai as peer dependency from prompt-core
-
-### Patch Changes
-
-- Updated dependencies [f268996]
-  - @agentmark/prompt-core@0.1.1
+> **Note:** This package was previously published as `@agentmark/ai-sdk-v5-adapter`.
+> See git history for prior changelog entries.

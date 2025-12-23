@@ -1,6 +1,6 @@
 {
-  "name": "@agentmark/prompt-core",
-  "version": "0.3.0",
+  "name": "@agentmark-ai/prompt-core",
+  "version": "0.0.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,7 +35,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@agentmark/loader-file": "*",
+    "@agentmark-ai/loader-file": "*",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "cpy-cli": "^5.0.0",
@@ -46,7 +46,7 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
-    "@agentmark/templatedx": "workspace:*",
+    "@agentmark-ai/templatedx": "workspace:*",
     "zod": "^3.23.8"
   },
   "files": [

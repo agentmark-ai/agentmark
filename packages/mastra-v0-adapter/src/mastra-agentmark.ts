@@ -6,8 +6,8 @@ import {
   type AgentMarkOptions,
   type TextConfig,
   type ObjectConfig,
-} from "@agentmark/prompt-core";
-import { TextConfigSchema } from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
+import { TextConfigSchema } from "@agentmark-ai/prompt-core";
 import { MastraTextPrompt } from "./text-prompt";
 import { MastraObjectPrompt } from "./object-prompt";
 import { MastraAdapter } from "./adapter";

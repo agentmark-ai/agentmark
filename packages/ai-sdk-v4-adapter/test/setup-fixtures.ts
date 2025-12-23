@@ -1,9 +1,9 @@
 /**
  * Setup script to generate pre-built JSON fixtures from MDX test files.
- * This re-exports the shared test utilities from @agentmark/prompt-core/test-utils.
+ * This re-exports the shared test utilities from @agentmark-ai/prompt-core/test-utils.
  */
 import path from "path";
-import { createFixtureHelpers } from "@agentmark/prompt-core/test-utils";
+import { createFixtureHelpers } from "@agentmark-ai/prompt-core/test-utils";
 
 const fixturesDir = path.join(__dirname, "fixtures");
 const helpers = createFixtureHelpers(fixturesDir);

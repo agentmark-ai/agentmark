@@ -1,5 +1,5 @@
 {
-  "name": "@agentmark/sdk-python",
+  "name": "@agentmark-ai/sdk-python",
   "version": "0.0.0",
   "private": true,
   "scripts": {

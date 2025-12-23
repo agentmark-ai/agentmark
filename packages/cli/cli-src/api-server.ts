@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import fs from "fs";
 import rateLimit from "express-rate-limit";
 import path from "path";
-import { findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark/shared-utils";
+import { findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark-ai/shared-utils";
 import cors from "cors";
 import {
   exportTraces,
@@ -384,7 +384,7 @@ ${promptsList}
         return fs.createReadStream(fullPath).pipe(res);
       }
       // Prompt: parse and return AST (no datasetUrl coupling)
-      const { parse } = await import("@agentmark/templatedx");
+      const { parse } = await import("@agentmark-ai/templatedx");
       const fileContent = fs.readFileSync(fullPath, "utf-8");
       const data = await parse(
         fileContent,

@@ -3,7 +3,7 @@
  * Uses HMAC-SHA256 signatures to verify requests are from trusted sources.
  */
 
-import { verifySignature } from '@agentmark/shared-utils';
+import { verifySignature } from '@agentmark-ai/shared-utils';
 
 export interface SignatureVerificationOptions {
   /**

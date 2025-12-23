@@ -6,7 +6,7 @@ An AgentMark adapter is a bridge between AgentMark's standardized prompt format 
 
 ## Core Adapter Interface
 
-Every adapter must implement the `Adapter<T>` interface from `@agentmark/agentmark-core`:
+Every adapter must implement the `Adapter<T>` interface from `@agentmark-ai/prompt-core`:
 
 **Required Implementation:**
 - Create a class that implements the core `Adapter<T>` interface
@@ -110,7 +110,7 @@ Provide a factory function for creating AgentMark clients:
 ### Package.json Requirements
 
 **Essential Configuration:**
-- Use `@agentmark/framework-name-adapter` naming convention
+- Use `@agentmark-ai/framework-name-adapter` naming convention
 - Configure as ES module with dual CJS/ESM exports
 - Include proper TypeScript declaration files
 - Set up build scripts using tsup for bundling

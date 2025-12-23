@@ -2,8 +2,8 @@ import type {
   McpServerConfig,
   McpUrlServerConfig,
   McpStdioServerConfig,
-} from "@agentmark/prompt-core";
-import { interpolateEnvInObject } from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
+import { interpolateEnvInObject } from "@agentmark-ai/prompt-core";
 import type { Tool } from "ai";
 import { experimental_createMCPClient } from "ai";
 // @ts-expect-error no types

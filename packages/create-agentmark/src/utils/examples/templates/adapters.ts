@@ -16,7 +16,7 @@ export const createAdapterConfig = (
 ): Record<string, AdapterConfig> => {
   return {
     "ai-sdk": {
-      package: "@agentmark/ai-sdk-v5-adapter",
+      package: "@agentmark-ai/ai-sdk-v5-adapter",
       dependencies: ["ai@^5", `@ai-sdk/${provider}@^2`],
       classes: {
         modelRegistry: "VercelAIModelRegistry",
@@ -25,7 +25,7 @@ export const createAdapterConfig = (
       },
     },
     mastra: {
-      package: "@agentmark/mastra-v0-adapter",
+      package: "@agentmark-ai/mastra-v0-adapter",
       dependencies: [
         "@mastra/core@<0.20.0",
         "@mastra/mcp@<0.13.4",

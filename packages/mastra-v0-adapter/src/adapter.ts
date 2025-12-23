@@ -6,14 +6,14 @@ import type {
   PromptMetadata,
   AdaptOptions,
   RichChatMessage,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraToolRegistry } from "./tool-registry";
 import { AgentConfig, AgentGenerateOptions } from "@mastra/core/agent";
 import { resolveSerializedZodOutput } from "@mastra/core/utils";
 import { parseSchema } from "json-schema-to-zod";
-import { parseMcpUri } from "@agentmark/prompt-core";
-import type { McpServers } from "@agentmark/prompt-core";
+import { parseMcpUri } from "@agentmark-ai/prompt-core";
+import type { McpServers } from "@agentmark-ai/prompt-core";
 import { MCPClientManager } from "./mcp/mcp-client-manager";
 
 function getTelemetryConfig(

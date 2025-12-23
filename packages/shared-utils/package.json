@@ -1,8 +1,8 @@
 {
-  "name": "@agentmark/shared-utils",
+  "name": "@agentmark-ai/shared-utils",
   "main": "./dist/index.js",
   "types": "./dist/index.ts",
-  "version": "1.5.0",
+  "version": "0.0.0",
   "scripts": {
     "build": "tsup",
     "lint": "eslint .",

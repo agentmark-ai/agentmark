@@ -9,7 +9,7 @@ export default defineConfig({
   clean: true,
   target: 'es2019',
   treeshake: true,
-  noExternal: ['@agentmark/templatedx'],
+  noExternal: ['@agentmark-ai/templatedx'],
   outExtension({ format }) {
     return {
       js: format === 'cjs' ? '.cjs' : '.js'

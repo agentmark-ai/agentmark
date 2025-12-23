@@ -3,7 +3,7 @@ import {
   getModelCostMappings,
 } from "../../../cost-mapping/cost-mapping";
 import db from "../../database";
-import type { NormalizedSpan } from "@agentmark/shared-utils";
+import type { NormalizedSpan } from "@agentmark-ai/shared-utils";
 
 /**
  * Convert NormalizedSpan to SQLite row format

@@ -5,7 +5,7 @@ import {
   ObjectConfig,
   PromptShape,
   SpeechConfig,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 
 export class DefaultAdapter<T extends PromptShape<T>> implements Adapter<T> {
   declare readonly __dict: T;

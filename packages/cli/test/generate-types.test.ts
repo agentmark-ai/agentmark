@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'fs-extra';
 import generateTypes from '../cli-src/commands/generate-types';
-import { findPromptFiles, generateTypeDefinitions, fetchPromptsFrontmatter } from '@agentmark/shared-utils';
+import { findPromptFiles, generateTypeDefinitions, fetchPromptsFrontmatter } from '@agentmark-ai/shared-utils';
 
 describe('generate-types', () => {
   const testDir = path.join(__dirname, '..', 'tmp-generate-types-test');
