@@ -79,7 +79,7 @@ __metadata:
     "@agentmark-ai/prompt-core": "npm:*"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "workspace:*"
-    "@agentmark-ai/ui-components": "npm:0.0.0"
+    "@agentmark-ai/ui-components": "npm:0.1.0"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -159,7 +159,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/loader-api@npm:0.0.0, @agentmark-ai/loader-api@workspace:packages/loader-api":
+"@agentmark-ai/loader-api@npm:0.1.0, @agentmark-ai/loader-api@workspace:packages/loader-api":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/loader-api@workspace:packages/loader-api"
   dependencies:
@@ -241,7 +241,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark-ai/loader-api": "npm:0.0.0"
+    "@agentmark-ai/loader-api": "npm:0.1.0"
     "@agentmark-ai/prompt-core": "workspace:*"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.208.0"
@@ -310,7 +310,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.0.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.1.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
