@@ -1,3 +1,3 @@
-import baseConfig from "@agentmark/eslint-config";
+import baseConfig from "@agentmark-ai/eslint-config";
 
 export default baseConfig;

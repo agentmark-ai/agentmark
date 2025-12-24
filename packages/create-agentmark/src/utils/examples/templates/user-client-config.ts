@@ -14,9 +14,9 @@ export const getClientConfigContent = (options: { provider: string; languageMode
 
   // Import loaders from dedicated packages
   const loaderImport = deploymentMode === "cloud"
-    ? `import { ApiLoader } from "@agentmark/loader-api";`
-    : `import { ApiLoader } from "@agentmark/loader-api";
-import { FileLoader } from "@agentmark/loader-file";`;
+    ? `import { ApiLoader } from "@agentmark-ai/loader-api";`
+    : `import { ApiLoader } from "@agentmark-ai/loader-api";
+import { FileLoader } from "@agentmark-ai/loader-file";`;
 
   const loaderSetup = deploymentMode === "cloud"
     ? `  // ApiLoader works for both development and production

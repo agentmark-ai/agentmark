@@ -1,7 +1,8 @@
-# @agentmark/loader-api
+# Changelog
 
-## 0.1.0
+## 0.0.0
 
-### Minor Changes
+Initial release under `@agentmark-ai` organization.
 
-- e362bb5: Feat: local development w/ new file/api loader.
+> **Note:** This package was previously published as `@agentmark/loader-api`.
+> See git history for prior changelog entries.

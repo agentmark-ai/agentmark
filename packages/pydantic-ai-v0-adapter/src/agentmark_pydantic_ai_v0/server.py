@@ -2,7 +2,7 @@
 
 This module provides create_webhook_server(), a factory function that creates
 an aiohttp-based webhook server for executing AgentMark prompts during
-development. This mirrors TypeScript's createWebhookServer in @agentmark/cli.
+development. This mirrors TypeScript's createWebhookServer in @agentmark-ai/cli.
 
 Example:
     from agentmark_pydantic_ai_v0 import create_pydantic_ai_client

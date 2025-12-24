@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, Typography, Stack } from "@mui/material";
-import { Trace, TracesList, useTable } from "@agentmark/ui-components";
+import { Trace, TracesList, useTable } from "@agentmark-ai/ui-components";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";

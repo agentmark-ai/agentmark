@@ -26,13 +26,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter":
+"@agentmark-ai/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter"
+  resolution: "@agentmark-ai/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter"
   dependencies:
-    "@agentmark/loader-file": "workspace:*"
-    "@agentmark/prompt-core": "workspace:*"
-    "@agentmark/sdk": "workspace:^"
+    "@agentmark-ai/loader-file": "workspace:*"
+    "@agentmark-ai/prompt-core": "workspace:*"
+    "@agentmark-ai/sdk": "workspace:^"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -42,19 +42,19 @@ __metadata:
     typescript: "npm:^5.6.2"
     vitest: "npm:^3.0.8"
   peerDependencies:
-    "@agentmark/prompt-core": "*"
-    "@agentmark/sdk": "workspace:^"
+    "@agentmark-ai/prompt-core": "*"
+    "@agentmark-ai/sdk": "workspace:^"
     ai: ^4.0.0
   languageName: unknown
   linkType: soft
 
-"@agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter":
+"@agentmark-ai/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
+  resolution: "@agentmark-ai/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
   dependencies:
-    "@agentmark/loader-file": "workspace:*"
-    "@agentmark/prompt-core": "workspace:*"
-    "@agentmark/sdk": "workspace:^"
+    "@agentmark-ai/loader-file": "workspace:*"
+    "@agentmark-ai/prompt-core": "workspace:*"
+    "@agentmark-ai/sdk": "workspace:^"
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -65,21 +65,21 @@ __metadata:
     typescript: "npm:^5.6.2"
     vitest: "npm:^3.0.8"
   peerDependencies:
-    "@agentmark/prompt-core": "*"
-    "@agentmark/sdk": "workspace:^"
+    "@agentmark-ai/prompt-core": "*"
+    "@agentmark-ai/sdk": "workspace:^"
     "@ai-sdk/mcp": ^0.0.8
     ai: ^5.0.0
   languageName: unknown
   linkType: soft
 
-"@agentmark/cli@workspace:packages/cli":
+"@agentmark-ai/cli@workspace:packages/cli":
   version: 0.0.0-use.local
-  resolution: "@agentmark/cli@workspace:packages/cli"
+  resolution: "@agentmark-ai/cli@workspace:packages/cli"
   dependencies:
-    "@agentmark/prompt-core": "npm:*"
-    "@agentmark/shared-utils": "npm:*"
-    "@agentmark/templatedx": "workspace:*"
-    "@agentmark/ui-components": "npm:0.3.0"
+    "@agentmark-ai/prompt-core": "npm:*"
+    "@agentmark-ai/shared-utils": "npm:*"
+    "@agentmark-ai/templatedx": "workspace:*"
+    "@agentmark-ai/ui-components": "npm:0.0.0"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -129,9 +129,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/eslint-config@workspace:packages/eslint-config":
+"@agentmark-ai/eslint-config@workspace:packages/eslint-config":
   version: 0.0.0-use.local
-  resolution: "@agentmark/eslint-config@workspace:packages/eslint-config"
+  resolution: "@agentmark-ai/eslint-config@workspace:packages/eslint-config"
   dependencies:
     "@eslint/js": "npm:^9.15.0"
     eslint: "npm:^9.39.1"
@@ -141,12 +141,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/fallback-adapter@workspace:packages/fallback-adapter":
+"@agentmark-ai/fallback-adapter@workspace:packages/fallback-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark/fallback-adapter@workspace:packages/fallback-adapter"
+  resolution: "@agentmark-ai/fallback-adapter@workspace:packages/fallback-adapter"
   dependencies:
-    "@agentmark/loader-file": "workspace:*"
-    "@agentmark/prompt-core": "workspace:*"
+    "@agentmark-ai/loader-file": "workspace:*"
+    "@agentmark-ai/prompt-core": "workspace:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     cpy-cli: "npm:^5.0.0"
@@ -155,13 +155,13 @@ __metadata:
     typescript: "npm:^5.6.2"
     vitest: "npm:^3.0.8"
   peerDependencies:
-    "@agentmark/prompt-core": "*"
+    "@agentmark-ai/prompt-core": "*"
   languageName: unknown
   linkType: soft
 
-"@agentmark/loader-api@npm:0.1.0, @agentmark/loader-api@workspace:packages/loader-api":
+"@agentmark-ai/loader-api@npm:0.0.0, @agentmark-ai/loader-api@workspace:packages/loader-api":
   version: 0.0.0-use.local
-  resolution: "@agentmark/loader-api@workspace:packages/loader-api"
+  resolution: "@agentmark-ai/loader-api@workspace:packages/loader-api"
   dependencies:
     "@isaacs/ttlcache": "npm:^1.4.1"
     tsup: "npm:^8.3.5"
@@ -169,9 +169,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/loader-file@npm:*, @agentmark/loader-file@workspace:*, @agentmark/loader-file@workspace:packages/loader-file":
+"@agentmark-ai/loader-file@npm:*, @agentmark-ai/loader-file@workspace:*, @agentmark-ai/loader-file@workspace:packages/loader-file":
   version: 0.0.0-use.local
-  resolution: "@agentmark/loader-file@workspace:packages/loader-file"
+  resolution: "@agentmark-ai/loader-file@workspace:packages/loader-file"
   dependencies:
     "@types/node": "npm:^22.8.1"
     tsup: "npm:^8.3.5"
@@ -179,13 +179,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter":
+"@agentmark-ai/mastra-v0-adapter@workspace:packages/mastra-v0-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
+  resolution: "@agentmark-ai/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
   dependencies:
-    "@agentmark/loader-file": "workspace:*"
-    "@agentmark/prompt-core": "workspace:*"
-    "@agentmark/sdk": "workspace:^"
+    "@agentmark-ai/loader-file": "workspace:*"
+    "@agentmark-ai/prompt-core": "workspace:*"
+    "@agentmark-ai/sdk": "workspace:^"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"
     json-schema-to-zod: "npm:^2.6.1"
@@ -194,25 +194,25 @@ __metadata:
     vitest: "npm:^3.0.8"
     zod: "npm:^4.0.17"
   peerDependencies:
-    "@agentmark/prompt-core": "*"
-    "@agentmark/sdk": "workspace:^"
+    "@agentmark-ai/prompt-core": "*"
+    "@agentmark-ai/sdk": "workspace:^"
     "@mastra/core": <0.20.0
     "@mastra/mcp": <0.13.4
   languageName: unknown
   linkType: soft
 
-"@agentmark/prompt-core-python@workspace:packages/prompt-core-python":
+"@agentmark-ai/prompt-core-python@workspace:packages/prompt-core-python":
   version: 0.0.0-use.local
-  resolution: "@agentmark/prompt-core-python@workspace:packages/prompt-core-python"
+  resolution: "@agentmark-ai/prompt-core-python@workspace:packages/prompt-core-python"
   languageName: unknown
   linkType: soft
 
-"@agentmark/prompt-core@npm:*, @agentmark/prompt-core@workspace:*, @agentmark/prompt-core@workspace:packages/prompt-core":
+"@agentmark-ai/prompt-core@npm:*, @agentmark-ai/prompt-core@workspace:*, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
   version: 0.0.0-use.local
-  resolution: "@agentmark/prompt-core@workspace:packages/prompt-core"
+  resolution: "@agentmark-ai/prompt-core@workspace:packages/prompt-core"
   dependencies:
-    "@agentmark/loader-file": "npm:*"
-    "@agentmark/templatedx": "workspace:*"
+    "@agentmark-ai/loader-file": "npm:*"
+    "@agentmark-ai/templatedx": "workspace:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     cpy-cli: "npm:^5.0.0"
@@ -225,24 +225,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter":
+"@agentmark-ai/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter"
+  resolution: "@agentmark-ai/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter"
   languageName: unknown
   linkType: soft
 
-"@agentmark/sdk-python@workspace:packages/sdk-python":
+"@agentmark-ai/sdk-python@workspace:packages/sdk-python":
   version: 0.0.0-use.local
-  resolution: "@agentmark/sdk-python@workspace:packages/sdk-python"
+  resolution: "@agentmark-ai/sdk-python@workspace:packages/sdk-python"
   languageName: unknown
   linkType: soft
 
-"@agentmark/sdk@workspace:^, @agentmark/sdk@workspace:packages/sdk":
+"@agentmark-ai/sdk@workspace:^, @agentmark-ai/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
-  resolution: "@agentmark/sdk@workspace:packages/sdk"
+  resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark/loader-api": "npm:0.1.0"
-    "@agentmark/prompt-core": "workspace:*"
+    "@agentmark-ai/loader-api": "npm:0.0.0"
+    "@agentmark-ai/prompt-core": "workspace:*"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.208.0"
     "@opentelemetry/resources": "npm:^2.2.0"
@@ -254,13 +254,13 @@ __metadata:
     typescript: "npm:^5.6.3"
     vitest: "npm:^3.1.4"
   peerDependencies:
-    "@agentmark/loader-api": ">=0.0.0"
+    "@agentmark-ai/loader-api": ">=0.0.0"
   languageName: unknown
   linkType: soft
 
-"@agentmark/shared-utils@npm:*, @agentmark/shared-utils@workspace:packages/shared-utils":
+"@agentmark-ai/shared-utils@npm:*, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
-  resolution: "@agentmark/shared-utils@workspace:packages/shared-utils"
+  resolution: "@agentmark-ai/shared-utils@workspace:packages/shared-utils"
   dependencies:
     "@babel/preset-typescript": "npm:^7.24.1"
     "@types/fs-extra": "npm:^11.0.4"
@@ -275,15 +275,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/templatedx-python@workspace:packages/templatedx-python":
+"@agentmark-ai/templatedx-python@workspace:packages/templatedx-python":
   version: 0.0.0-use.local
-  resolution: "@agentmark/templatedx-python@workspace:packages/templatedx-python"
+  resolution: "@agentmark-ai/templatedx-python@workspace:packages/templatedx-python"
   languageName: unknown
   linkType: soft
 
-"@agentmark/templatedx@workspace:*, @agentmark/templatedx@workspace:packages/templatedx":
+"@agentmark-ai/templatedx@workspace:*, @agentmark-ai/templatedx@workspace:packages/templatedx":
   version: 0.0.0-use.local
-  resolution: "@agentmark/templatedx@workspace:packages/templatedx"
+  resolution: "@agentmark-ai/templatedx@workspace:packages/templatedx"
   dependencies:
     "@jsep-plugin/object": "npm:^1.2.1"
     "@types/estree": "npm:^1.0.6"
@@ -310,9 +310,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark/ui-components@npm:0.3.0, @agentmark/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.0.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
-  resolution: "@agentmark/ui-components@workspace:packages/ui-components"
+  resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
     "@chromatic-com/storybook": "npm:^4.1.1"
     "@codemirror/lang-json": "npm:^6.0.2"
@@ -8045,7 +8045,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-agentmark@workspace:packages/create-agentmark"
   dependencies:
-    "@agentmark/shared-utils": "npm:*"
+    "@agentmark-ai/shared-utils": "npm:*"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/node": "npm:^20"
     "@types/prompts": "npm:^2.4.9"

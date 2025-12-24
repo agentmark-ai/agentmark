@@ -39,7 +39,7 @@ async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptNam
     };
   } else if (resolvedFilepath.endsWith('.mdx')) {
     // Parse MDX file using prompt-core's TemplateDX instances (which have tags registered)
-    const { getTemplateDXInstance } = await import("@agentmark/prompt-core");
+    const { getTemplateDXInstance } = await import("@agentmark-ai/prompt-core");
 
     // Read content to detect prompt type
     const content = fs.readFileSync(resolvedFilepath, 'utf-8');
@@ -160,7 +160,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
       if (webhookSecret) {
-        const { createSignature } = await import('@agentmark/shared-utils');
+        const { createSignature } = await import('@agentmark-ai/shared-utils');
         const signature = await createSignature(webhookSecret, body);
         headers['x-agentmark-signature-256'] = signature;
       }

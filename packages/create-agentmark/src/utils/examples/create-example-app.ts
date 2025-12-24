@@ -11,7 +11,7 @@ import {
   getClientConfigContent,
   getAdapterConfig,
 } from "./templates/index.js";
-import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark/shared-utils";
+import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark-ai/shared-utils";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -197,9 +197,9 @@ export const createExampleApp = async (
     const devEntryContent = `// Auto-generated webhook server entry point
 // To customize, create a dev-server.ts file in your project root
 
-import { createWebhookServer } from '@agentmark/cli/runner-server';
+import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { ${webhookHandler} } from '${adapterConfig.package}/runner';
-import { AgentMarkSDK } from '@agentmark/sdk';
+import { AgentMarkSDK } from '@agentmark-ai/sdk';
 import path from 'path';
 
 async function main() {

@@ -1,4 +1,4 @@
-import { generateTypeDefinitions, fetchPromptsFrontmatter } from "@agentmark/shared-utils";
+import { generateTypeDefinitions, fetchPromptsFrontmatter } from "@agentmark-ai/shared-utils";
 
 type Options = {
   language: "typescript";

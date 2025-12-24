@@ -1,7 +1,8 @@
-# @agentmark/eslint-config
+# Changelog
 
-## 1.1.0
+## 0.0.0
 
-### Minor Changes
+Initial release under `@agentmark-ai` organization.
 
-- 7496360: Feat: webhook support
+> **Note:** This package was previously published as `@agentmark/eslint-config`.
+> See git history for prior changelog entries.

@@ -1,6 +1,6 @@
 {
-  "name": "@agentmark/mastra-v0-adapter",
-  "version": "3.0.0",
+  "name": "@agentmark-ai/mastra-v0-adapter",
+  "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -34,9 +34,9 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@agentmark/loader-file": "workspace:*",
-    "@agentmark/prompt-core": "workspace:*",
-    "@agentmark/sdk": "workspace:^",
+    "@agentmark-ai/loader-file": "workspace:*",
+    "@agentmark-ai/prompt-core": "workspace:*",
+    "@agentmark-ai/sdk": "workspace:^",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",
     "tsup": "^8.0.1",
@@ -48,8 +48,8 @@
     "zod": "^4.0.17"
   },
   "peerDependencies": {
-    "@agentmark/prompt-core": "*",
-    "@agentmark/sdk": "workspace:^",
+    "@agentmark-ai/prompt-core": "*",
+    "@agentmark-ai/sdk": "workspace:^",
     "@mastra/core": "<0.20.0",
     "@mastra/mcp": "<0.13.4"
   }

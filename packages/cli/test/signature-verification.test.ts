@@ -5,11 +5,11 @@ import {
 } from '../cli-src/runner-server/middleware/signature-verification';
 
 // Mock the shared-utils module
-vi.mock('@agentmark/shared-utils', () => ({
+vi.mock('@agentmark-ai/shared-utils', () => ({
   verifySignature: vi.fn()
 }));
 
-import { verifySignature } from '@agentmark/shared-utils';
+import { verifySignature } from '@agentmark-ai/shared-utils';
 
 describe('signature-verification', () => {
   beforeEach(() => {

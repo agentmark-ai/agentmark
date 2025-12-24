@@ -11,7 +11,7 @@ pip install agentmark-templatedx
 ## Usage
 
 This package transforms pre-parsed MDX AST trees. The AST is typically obtained by:
-- Parsing MDX with the TypeScript `@agentmark/templatedx` package
+- Parsing MDX with the TypeScript `@agentmark-ai/templatedx` package
 - Loading a pre-parsed AST from a JSON file
 - Receiving an AST from the AgentMark runtime
 

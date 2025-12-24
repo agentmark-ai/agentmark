@@ -15,8 +15,8 @@ function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 function createMinimalAgentMarkConfig(): string {
   return `
-import { AgentMark } from '@agentmark/prompt-core';
-import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark/ai-sdk-v4-adapter';
+import { AgentMark } from '@agentmark-ai/prompt-core';
+import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark-ai/ai-sdk-v4-adapter';
 import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || 'test-key' });
@@ -31,8 +31,8 @@ export const client = new AgentMark({ prompt: {}, adapter });
 const DEV_ENTRY_TEMPLATE = `// Auto-generated runner server entry point
 // To customize, create a dev-server.ts file in your project root
 
-import { createWebhookServer } from '@agentmark/cli/runner-server';
-import { VercelAdapterWebhookHandler } from '@agentmark/ai-sdk-v4-adapter/runner';
+import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
+import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v4-adapter/runner';
 
 async function main() {
   const { client } = await import('../agentmark.client.js');

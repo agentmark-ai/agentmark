@@ -8,7 +8,7 @@ import type {
   PromptShape,
   KeysWithKind,
   SpeechConfig,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 import type {
   LanguageModel,
   ImageModel,
@@ -19,7 +19,7 @@ import type {
   ModelMessage,
 } from "ai";
 import { jsonSchema, stepCountIs } from "ai";
-import { parseMcpUri } from "@agentmark/prompt-core";
+import { parseMcpUri } from "@agentmark-ai/prompt-core";
 import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
 // Convert RichChatMessage[] to ModelMessage[] for AI SDK v5 compatibility

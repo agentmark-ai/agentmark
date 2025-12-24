@@ -8,7 +8,7 @@ import {
   PromptFormatParams,
   PromptShape,
   FormatWithDatasetOptions,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 import {
   VercelAIAdapter,
   VercelAIModelRegistry,
@@ -18,7 +18,7 @@ import {
 import type {
   DatasetErrorChunk,
   DatasetStreamChunk,
-} from "@agentmark/prompt-core";
+} from "@agentmark-ai/prompt-core";
 import type { Root } from "mdast";
 import { McpServerRegistry } from "./mcp/mcp-server-registry.js";
 
@@ -93,6 +93,6 @@ export {
 
 export { McpServerRegistry } from "./mcp/mcp-server-registry.js";
 
-export { EvalRegistry } from "@agentmark/prompt-core";
+export { EvalRegistry } from "@agentmark-ai/prompt-core";
 
-export type { FormatWithDatasetOptions } from "@agentmark/prompt-core";
+export type { FormatWithDatasetOptions } from "@agentmark-ai/prompt-core";

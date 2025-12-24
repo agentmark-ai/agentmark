@@ -60,14 +60,14 @@ vi.mock('path', async () => {
 });
 
 // Mock templatedx to return a minimal ast and frontmatter that uses text_config
-vi.mock('@agentmark/templatedx', () => ({
+vi.mock('@agentmark-ai/templatedx', () => ({
   getFrontMatter: vi.fn(() => ({})),
   load: vi.fn(async () => ({ children: [{ type: 'yaml', value: '' }] })),
 }));
 
 // Mock Template engine compile to return a text_config
-vi.mock('@agentmark/prompt-core', async () => {
-  const actual = await vi.importActual<any>('@agentmark/prompt-core');
+vi.mock('@agentmark-ai/prompt-core', async () => {
+  const actual = await vi.importActual<any>('@agentmark-ai/prompt-core');
   return {
     ...actual,
     TemplateDXTemplateEngine: class {

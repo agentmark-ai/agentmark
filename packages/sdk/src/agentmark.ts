@@ -1,6 +1,6 @@
 import { AGENTMARK_SCORE_ENDPOINT } from "./config";
 import { initialize } from "./trace";
-import { ApiLoader } from "@agentmark/loader-api";
+import { ApiLoader } from "@agentmark-ai/loader-api";
 
 type AgentmarkProps = {
   apiKey: string;

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
-import { EvalRegistry } from "@agentmark/prompt-core";
-import { FileLoader } from "@agentmark/loader-file";
+import { EvalRegistry } from "@agentmark-ai/prompt-core";
+import { FileLoader } from "@agentmark-ai/loader-file";
 import { MastraAdapterWebhookHandler } from "../src/runner";
-import type { Ast } from "@agentmark/templatedx";
+import type { Ast } from "@agentmark-ai/templatedx";
 import type { MastraAgentMark } from "../src/mastra-agentmark";
 import type { MastraAdapter } from "../src/adapter";
 import { createAgentMarkClient, MastraModelRegistry } from "../src";

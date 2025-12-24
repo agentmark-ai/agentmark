@@ -26,7 +26,7 @@ class TestEndToEndPipeline:
 
     async def test_text_prompt_full_pipeline(self, agentmark: AgentMark) -> None:
         """Test complete text prompt pipeline from AST to formatted output."""
-        # Simulated parsed MDX AST (what would come from @agentmark/parser)
+        # Simulated parsed MDX AST (what would come from @agentmark-ai/parser)
         ast = {
             "type": "root",
             "children": [

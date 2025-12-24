@@ -1,6 +1,6 @@
 {
-  "name": "@agentmark/eslint-config",
-  "version": "1.1.0",
+  "name": "@agentmark-ai/eslint-config",
+  "version": "0.0.0",
   "description": "Shared ESLint configuration for AgentMark monorepo",
   "main": "eslint.config.js",
   "private": true,

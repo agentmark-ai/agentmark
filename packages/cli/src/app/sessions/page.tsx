@@ -1,14 +1,14 @@
 "use client";
 
 import { Card, Stack, Typography } from "@mui/material";
-import { SessionsList } from "@agentmark/ui-components";
+import { SessionsList } from "@agentmark-ai/ui-components";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, Suspense } from "react";
 import { SessionDrawer } from "./session-drawer";
 import { getSessions } from "../../lib/api/sessions";
-import type { SessionData } from "@agentmark/ui-components";
-import { useTable } from "@agentmark/ui-components";
+import type { SessionData } from "@agentmark-ai/ui-components";
+import { useTable } from "@agentmark-ai/ui-components";
 
 export default function SessionsPage() {
   const router = useRouter();

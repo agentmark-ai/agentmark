@@ -1,11 +1,11 @@
-import { getFrontMatter } from "@agentmark/templatedx";
-import type { Ast } from "@agentmark/templatedx";
+import { getFrontMatter } from "@agentmark-ai/templatedx";
+import type { Ast } from "@agentmark-ai/templatedx";
 import type { MastraAgentMark } from "./mastra-agentmark";
 import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
-import { createPromptTelemetry } from "@agentmark/prompt-core";
-import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
-import { trace } from "@agentmark/sdk";
+import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
+import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
+import { trace } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
   name?: string;

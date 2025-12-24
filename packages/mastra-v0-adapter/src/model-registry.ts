@@ -1,4 +1,4 @@
-import type { AdaptOptions } from "@agentmark/prompt-core";
+import type { AdaptOptions } from "@agentmark-ai/prompt-core";
 
 export type ModelFunctionCreator = (modelName: string, options?: AdaptOptions) => any;
 

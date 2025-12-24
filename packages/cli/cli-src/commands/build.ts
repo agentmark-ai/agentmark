@@ -103,8 +103,8 @@ const build = async (options: BuildOptions = {}) => {
   await fs.ensureDir(outDir);
 
   // Import templatedx for parsing
-  const { getTemplateDXInstance } = await import("@agentmark/prompt-core");
-  const { compressAst } = await import("@agentmark/templatedx");
+  const { getTemplateDXInstance } = await import("@agentmark-ai/prompt-core");
+  const { compressAst } = await import("@agentmark-ai/templatedx");
 
   // Find all prompt files
   const promptFilesAbsolute = await findFiles(sourceDir, /\.prompt\.mdx$/);

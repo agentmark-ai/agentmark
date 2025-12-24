@@ -1,11 +1,11 @@
-import { getFrontMatter } from "@agentmark/templatedx";
-import type { Ast } from "@agentmark/templatedx";
-import type { AgentMark } from "@agentmark/prompt-core";
+import { getFrontMatter } from "@agentmark-ai/templatedx";
+import type { Ast } from "@agentmark-ai/templatedx";
+import type { AgentMark } from "@agentmark-ai/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
 import { generateObject, generateText, streamObject, streamText, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
-import { createPromptTelemetry } from "@agentmark/prompt-core";
-import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark/prompt-core";
-import { trace } from "@agentmark/sdk";
+import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
+import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
+import { trace } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
   name?: string;

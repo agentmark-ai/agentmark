@@ -3,7 +3,7 @@
  * These types are used by the core handler and all platform adapters.
  */
 
-import type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark/prompt-core';
+import type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark-ai/prompt-core';
 
 /**
  * Telemetry options for tracking prompt execution.
@@ -54,4 +54,4 @@ export type WebhookResponse =
   | { type: 'error'; error: string; details?: string; status: number };
 
 // Re-export prompt-core types for convenience
-export type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark/prompt-core';
+export type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark-ai/prompt-core';

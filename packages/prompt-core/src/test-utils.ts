@@ -109,7 +109,7 @@ export function cleanupFixtures(fixturesDir: string): void {
  *
  * @example
  * ```ts
- * import { createFixtureHelpers } from "@agentmark/prompt-core/test-utils";
+ * import { createFixtureHelpers } from "@agentmark-ai/prompt-core/test-utils";
  * import path from "path";
  *
  * const fixturesDir = path.join(__dirname, "fixtures");
