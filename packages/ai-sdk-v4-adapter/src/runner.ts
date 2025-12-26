@@ -180,7 +180,8 @@ export class VercelAdapterWebhookHandler {
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
               datasetItemName: `${index}`,
-              datasetExpectedOutput: item.dataset?.expected_output
+              datasetExpectedOutput: item.dataset?.expected_output,
+              datasetPath: resolvedDatasetPath
             }, async (_ctx) => {
               return generateText({
                 ...formatted,
@@ -249,7 +250,8 @@ export class VercelAdapterWebhookHandler {
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
               datasetItemName: `${index}`,
-              datasetExpectedOutput: item.dataset.expected_output
+              datasetExpectedOutput: item.dataset.expected_output,
+              datasetPath: resolvedDatasetPath
             }, async (_ctx) => {
               return (await import("ai")).generateObject({
                 ...item.formatted,

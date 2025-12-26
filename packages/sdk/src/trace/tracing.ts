@@ -71,6 +71,7 @@ export type TraceOptions = {
   datasetRunName?: string;
   datasetItemName?: string;
   datasetExpectedOutput?: string;
+  datasetPath?: string;
 };
 
 /**
@@ -179,6 +180,9 @@ function setAgentmarkAttributes(span: Span, options: TraceOptions): void {
   }
   if (options.datasetExpectedOutput) {
     span.setAttribute(`${AgentMarkKey}.dataset_expected_output`, options.datasetExpectedOutput);
+  }
+  if (options.datasetPath) {
+    span.setAttribute(`${AgentMarkKey}.dataset_path`, options.datasetPath);
   }
 
   if (options.metadata) {
