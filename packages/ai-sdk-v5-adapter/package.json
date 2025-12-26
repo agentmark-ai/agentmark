@@ -35,9 +35,9 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@agentmark-ai/loader-file": "workspace:*",
-    "@agentmark-ai/prompt-core": "workspace:*",
-    "@agentmark-ai/sdk": "workspace:^",
+    "@agentmark-ai/loader-file": "*",
+    "@agentmark-ai/prompt-core": "*",
+    "@agentmark-ai/sdk": "*",
     "@ai-sdk/mcp": "^0.0.8",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
@@ -50,7 +50,7 @@
   },
   "peerDependencies": {
     "@agentmark-ai/prompt-core": "*",
-    "@agentmark-ai/sdk": "workspace:^",
+    "@agentmark-ai/sdk": "*",
     "@ai-sdk/mcp": "^0.0.8",
     "ai": "^5.0.0"
   },
