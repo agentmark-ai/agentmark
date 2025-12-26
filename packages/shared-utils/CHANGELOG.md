@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+### Patch Changes
+
+- 00fd34d: fix: missing dataset path in metadata
+
 ## 0.1.0
 
 ### Minor Changes

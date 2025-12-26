@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+### Patch Changes
+
+- 00fd34d: fix: missing dataset path in metadata
+- Updated dependencies [00fd34d]
+  - @agentmark-ai/sdk@1.0.2
+
 ## 1.0.1
 
 ### Patch Changes
