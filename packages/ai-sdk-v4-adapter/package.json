@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ai-sdk-v4-adapter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
