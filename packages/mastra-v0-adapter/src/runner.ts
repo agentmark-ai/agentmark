@@ -335,7 +335,8 @@ export class MastraAdapterWebhookHandler {
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
                 datasetItemName: String(index),
-                datasetExpectedOutput: item.dataset?.expected_output
+                datasetExpectedOutput: item.dataset?.expected_output,
+                datasetPath: resolvedDatasetPath
               }, async (_ctx) => {
                 return agent.generate(messages, {
                   ...options,
@@ -441,7 +442,8 @@ export class MastraAdapterWebhookHandler {
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
                 datasetItemName: String(index),
-                datasetExpectedOutput: item.dataset.expected_output
+                datasetExpectedOutput: item.dataset.expected_output,
+                datasetPath: resolvedDatasetPath
               }, async (_ctx) => {
                 return agent.generate(messages, {
                   ...options,
