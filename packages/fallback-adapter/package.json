@@ -25,8 +25,8 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@agentmark-ai/loader-file": "workspace:*",
-    "@agentmark-ai/prompt-core": "workspace:*",
+    "@agentmark-ai/loader-file": "*",
+    "@agentmark-ai/prompt-core": "*",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "cpy-cli": "^5.0.0",
