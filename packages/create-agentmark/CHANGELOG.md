@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+### Minor Changes
+
+- ca59b7c: Change package orgs
+
 ## 0.1.0
 
 ### Minor Changes
