@@ -25,6 +25,7 @@ describe('AgentMark Parser', () => {
         'agentmark.dataset_run_name': 'test-run',
         'agentmark.dataset_item_name': 'item-1',
         'agentmark.dataset_expected_output': 'expected output',
+        'agentmark.dataset_path': 'path/to/dataset.json',
       };
 
       const result = parseAgentMarkAttributes(attributes);
@@ -33,6 +34,7 @@ describe('AgentMark Parser', () => {
       expect(result.datasetRunName).toBe('test-run');
       expect(result.datasetItemName).toBe('item-1');
       expect(result.datasetExpectedOutput).toBe('expected output');
+      expect(result.datasetPath).toBe('path/to/dataset.json');
     });
 
     it('should extract all fields together', () => {
@@ -45,6 +47,7 @@ describe('AgentMark Parser', () => {
         'agentmark.dataset_run_name': 'test-run',
         'agentmark.dataset_item_name': 'item-1',
         'agentmark.dataset_expected_output': 'expected-output',
+        'agentmark.dataset_path': 'datasets/test.json',
       };
 
       const result = parseAgentMarkAttributes(attributes);
@@ -57,6 +60,7 @@ describe('AgentMark Parser', () => {
       expect(result.datasetRunName).toBe('test-run');
       expect(result.datasetItemName).toBe('item-1');
       expect(result.datasetExpectedOutput).toBe('expected-output');
+      expect(result.datasetPath).toBe('datasets/test.json');
     });
 
     it('should handle custom prefix', () => {
