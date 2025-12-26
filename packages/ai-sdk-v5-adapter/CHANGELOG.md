@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1
+
+### Patch Changes
+
+- 53c4b70: Fix: workspace refs
+- Updated dependencies [53c4b70]
+  - @agentmark-ai/prompt-core@0.1.1
+  - @agentmark-ai/sdk@1.0.1
+
 ## 1.0.0
 
 ### Minor Changes
