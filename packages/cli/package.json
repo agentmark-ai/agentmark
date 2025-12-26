@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {

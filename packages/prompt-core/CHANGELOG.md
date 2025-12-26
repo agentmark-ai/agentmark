@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+### Patch Changes
+
+- 53c4b70: Fix: workspace refs
+
 ## 0.1.0
 
 ### Minor Changes
