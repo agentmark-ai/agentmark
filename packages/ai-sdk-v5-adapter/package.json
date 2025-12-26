@@ -41,7 +41,7 @@
     "@ai-sdk/mcp": "^0.0.8",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
-    "ai": "^5.0.0",
+    "ai": "^5.0.52",
     "cpy-cli": "^5.0.0",
     "react": "^18.3.1",
     "tsup": "^8.3.5",
@@ -52,7 +52,7 @@
     "@agentmark-ai/prompt-core": "*",
     "@agentmark-ai/sdk": "*",
     "@ai-sdk/mcp": "^0.0.8",
-    "ai": "^5.0.0"
+    "ai": "^5.0.52"
   },
   "files": [
     "dist/"
