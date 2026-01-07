@@ -4,7 +4,7 @@ import fs from "fs";
 import net from "net";
 import { createApiServer } from "../api-server";
 import { createTunnel, type TunnelInfo } from "../tunnel";
-import { loadLocalConfig, getTunnelSubdomain } from "../config";
+import { loadLocalConfig, getTunnelSubdomain, setAppPort } from "../config";
 import type { LocalConfig } from "../config";
 
 function getSafeCwd(): string {
@@ -266,6 +266,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       console.warn(`Port ${actualAppPort} is busy, trying ${actualAppPort + 1}`);
       actualAppPort++;
     }
+
+    // Save the actual app port to config so run-prompt/run-experiment can use it
+    setAppPort(actualAppPort);
 
     uiServer = spawn('npm', ['start', '--', '-p', `${actualAppPort}`], {
       stdio: 'pipe',
