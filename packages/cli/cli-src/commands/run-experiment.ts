@@ -529,7 +529,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
 
   // Display link to view all experiment traces (only for text or object prompts)
   if (experimentRunId && format === 'table' && (promptType === 'Text' || promptType === 'Object')) {
-    console.log(`\n📊 View traces: http://localhost:3000/traces?runId=${experimentRunId}`);
+    const { getAppPort } = await import('../config.js');
+    const appPort = getAppPort();
+    console.log(`\n📊 View traces: http://localhost:${appPort}/traces?runId=${experimentRunId}`);
   }
 
   if (evalEnabled && totalEvals > 0 && options.thresholdPercent !== undefined) {
