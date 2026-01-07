@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 test-build-project
+
+# AgentMark local development config (contains webhook secrets)
+.agentmark/dev-config.json

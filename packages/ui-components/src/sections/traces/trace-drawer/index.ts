@@ -8,4 +8,5 @@ export * from "./hooks/use-trace-drawer";
 export * from "./trace-drawer-container";
 export * from "./trace-tree";
 export * from "./trace-graph";
+export * from "./trace-timeline";
 export * from "./span-info";

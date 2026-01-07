@@ -375,8 +375,9 @@ export const getSpans = async (traceId: string) => {
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
     };
 
-    // Convert timestamp from microseconds to milliseconds (JavaScript standard)
-    const timestampMs = row.timestamp ? Math.floor(row.timestamp / 1000) : 0;
+    // Convert timestamp from nanoseconds to milliseconds (JavaScript standard)
+    // Database stores nanoseconds, divide by 1,000,000 to get milliseconds
+    const timestampMs = row.timestamp ? Math.floor(row.timestamp / 1000000) : 0;
 
     return {
       id: row.id,

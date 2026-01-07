@@ -45,7 +45,6 @@ export const TraceTree = () => {
     traces,
     findCostAndTokens,
     traceId,
-    treeHeight,
   } = useTraceDrawerContext();
 
   const tree = useMemo(() => {
@@ -53,7 +52,7 @@ export const TraceTree = () => {
   }, [spanTree]);
 
   return (
-    <Box sx={{ height: treeHeight, overflowY: "auto", p: 2 }}>
+    <Box sx={{ height: "100%", overflowY: "auto", p: 2 }}>
       {selectedSpan?.id && (
         <SimpleTreeView
           expansionTrigger="iconContainer"

@@ -1,4 +1,4 @@
-import { Divider, Stack } from "@mui/material";
+import { Box } from "@mui/material";
 
 export const TraceDrawerContainer = ({
   children,
@@ -6,8 +6,15 @@ export const TraceDrawerContainer = ({
   children: React.ReactNode;
 }) => {
   return (
-    <Stack height="100%" divider={<Divider />}>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       {children}
-    </Stack>
+    </Box>
   );
 };
