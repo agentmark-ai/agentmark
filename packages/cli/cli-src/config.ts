@@ -17,6 +17,7 @@ export interface LocalConfig {
   webhookSecret?: string;
   tunnelSubdomain?: string;
   createdAt?: string;
+  appPort?: number;
 }
 
 // Cache for loaded config to avoid repeated file I/O
@@ -188,4 +189,23 @@ export function getWebhookSecret(): string {
 export function getTunnelSubdomain(): string | undefined {
   const config = loadLocalConfig();
   return config.tunnelSubdomain;
+}
+
+/**
+ * Updates the app port in the config (called when dev server starts)
+ */
+export function setAppPort(port: number): void {
+  const config = loadLocalConfig();
+  config.appPort = port;
+  saveLocalConfig(config);
+  // Update cache
+  cachedConfig = config;
+}
+
+/**
+ * Gets the current app port from config (defaults to 3000)
+ */
+export function getAppPort(): number {
+  const config = loadLocalConfig();
+  return config.appPort ?? 3000;
 }
