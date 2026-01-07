@@ -36,3 +36,4 @@ export { TimelineBar } from "./timeline-bar";
 export { TimelineRuler } from "./timeline-ruler";
 export { TimelineTooltip } from "./timeline-tooltip";
 export { TimelineLegend } from "./timeline-legend";
+export { TimelineErrorBoundary } from "./timeline-error-boundary";

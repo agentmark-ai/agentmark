@@ -8,7 +8,6 @@
 import React, { memo, useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { Box, Skeleton, Typography, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { SpanData } from "../../types";
 import type { TraceTimelineProps, TimelineBarLayout } from "./timeline-types";
 import { TIMELINE_CONSTANTS } from "./timeline-types";
 import { useTimelineLayout } from "./use-timeline-layout";
@@ -17,6 +16,7 @@ import { TimelineBar } from "./timeline-bar";
 import { TimelineRuler } from "./timeline-ruler";
 import { TimelineTooltip } from "./timeline-tooltip";
 import { TimelineLegend } from "./timeline-legend";
+import { TimelineErrorBoundary } from "./timeline-error-boundary";
 
 const { ROW_HEIGHT, RULER_HEIGHT, PADDING, LABEL_WIDTH } = TIMELINE_CONSTANTS;
 
@@ -74,7 +74,7 @@ export const TraceTimeline = memo(function TraceTimeline({
   } = useTimelineZoom(timelineWidth, contentHeight);
 
   // Virtualization: calculate visible rows (T035)
-  const { visibleLayouts, startIndex, endIndex } = useMemo(() => {
+  const { visibleLayouts } = useMemo(() => {
     // Skip virtualization for small traces
     if (layouts.length < VIRTUALIZATION_THRESHOLD) {
       return {
@@ -262,6 +262,7 @@ export const TraceTimeline = memo(function TraceTimeline({
   }
 
   return (
+    <TimelineErrorBoundary>
     <Box
       ref={containerRef}
       sx={{
@@ -459,6 +460,7 @@ export const TraceTimeline = memo(function TraceTimeline({
         visible={tooltipData.layout !== null}
       />
     </Box>
+    </TimelineErrorBoundary>
   );
 });
 

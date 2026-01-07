@@ -45,7 +45,6 @@ export const TraceTree = () => {
     traces,
     findCostAndTokens,
     traceId,
-    treeHeight,
   } = useTraceDrawerContext();
 
   const tree = useMemo(() => {

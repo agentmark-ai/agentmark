@@ -34,7 +34,6 @@ import {
   Stack,
   Tabs,
   Tab,
-  Divider,
   Typography,
   Snackbar,
 } from "@mui/material";

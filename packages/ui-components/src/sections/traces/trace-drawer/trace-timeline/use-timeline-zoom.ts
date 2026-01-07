@@ -11,18 +11,6 @@ import { TIMELINE_CONSTANTS } from "./timeline-types";
 
 const { MIN_SCALE, MAX_SCALE } = TIMELINE_CONSTANTS;
 
-/** Default view state showing all content */
-const DEFAULT_VIEW_STATE: TimelineViewState = {
-  viewBox: {
-    x: 0,
-    y: 0,
-    width: 1000,
-    height: 500,
-  },
-  scale: 1,
-  isPanning: false,
-};
-
 /** Zoom factor for each zoom step */
 const ZOOM_FACTOR = 1.2;
 

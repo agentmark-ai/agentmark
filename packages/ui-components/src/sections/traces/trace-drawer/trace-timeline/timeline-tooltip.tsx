@@ -4,7 +4,7 @@
  * Displays hover tooltip with span details for the timeline.
  */
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Box, Typography, Paper, Divider, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { getNodeTypeStyle } from "../../utils/node-styling";
@@ -84,6 +84,21 @@ export const TimelineTooltip = memo(function TimelineTooltip({
 }: TimelineTooltipProps) {
   const theme = useTheme();
 
+  // Memoize attributes parsing to avoid re-parsing on every render
+  // Must be called before any conditional returns to satisfy hooks rules
+  const parsedAttributes = useMemo(() => {
+    const attributes = layout?.span?.data?.attributes;
+    if (!attributes) return null;
+    try {
+      return typeof attributes === "string"
+        ? JSON.parse(attributes)
+        : attributes;
+    } catch {
+      // Ignore parse errors
+      return null;
+    }
+  }, [layout?.span?.data?.attributes]);
+
   if (!visible || !layout || !position) {
     return null;
   }
@@ -96,18 +111,6 @@ export const TimelineTooltip = memo(function TimelineTooltip({
   const hasInputOutput = spanData.input || spanData.output;
   const hasToolCalls = spanData.toolCalls;
 
-  // Parse attributes if it's a string
-  let parsedAttributes: Record<string, unknown> | null = null;
-  if (spanData.attributes) {
-    try {
-      parsedAttributes =
-        typeof spanData.attributes === "string"
-          ? JSON.parse(spanData.attributes)
-          : spanData.attributes;
-    } catch {
-      // Ignore parse errors
-    }
-  }
   const hasAttributes =
     parsedAttributes && Object.keys(parsedAttributes).length > 0;
 

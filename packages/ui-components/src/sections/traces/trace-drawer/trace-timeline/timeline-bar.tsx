@@ -11,7 +11,7 @@ import { getNodeTypeStyle } from "../../utils/node-styling";
 import type { TimelineBarProps } from "./timeline-types";
 import { TIMELINE_CONSTANTS } from "./timeline-types";
 
-const { ROW_HEIGHT, MIN_BAR_WIDTH, DEPTH_INDENT, BAR_HEIGHT_RATIO } = TIMELINE_CONSTANTS;
+const { ROW_HEIGHT, MIN_BAR_WIDTH, BAR_HEIGHT_RATIO } = TIMELINE_CONSTANTS;
 
 /**
  * Format duration for display on the bar.

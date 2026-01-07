@@ -119,14 +119,47 @@ function spanHasChildren(
 }
 
 /**
+ * Validate and sanitize a span for timeline rendering.
+ * Returns null if span is invalid and should be skipped.
+ */
+function sanitizeSpan(span: SpanData): SpanData | null {
+  // Validate required fields
+  if (!span || typeof span.id !== "string" || !span.id) {
+    return null;
+  }
+
+  // Ensure timestamp is a valid number
+  const timestamp =
+    typeof span.timestamp === "number" && Number.isFinite(span.timestamp)
+      ? span.timestamp
+      : Date.now();
+
+  // Ensure duration is a valid non-negative number
+  const duration =
+    typeof span.duration === "number" && Number.isFinite(span.duration) && span.duration >= 0
+      ? span.duration
+      : 0;
+
+  // Ensure name is a string
+  const name = typeof span.name === "string" ? span.name : String(span.id);
+
+  return {
+    ...span,
+    timestamp,
+    duration,
+    name,
+  };
+}
+
+/**
  * Compute timeline layouts from span data.
  *
  * @param spans Array of span data to visualize
  * @returns Computed layouts, metrics, and ruler ticks
  */
 export function computeTimelineLayout(spans: SpanData[]): UseTimelineLayoutResult {
-  // Handle empty spans
-  if (spans.length === 0) {
+  // Handle empty or invalid input
+  if (!Array.isArray(spans) || spans.length === 0) {
     return {
       layouts: [],
       metrics: {
@@ -141,15 +174,36 @@ export function computeTimelineLayout(spans: SpanData[]): UseTimelineLayoutResul
     };
   }
 
-  // Build lookup structures
-  const spanLookup = buildSpanLookup(spans);
-  const childrenMap = buildChildrenMap(spans);
+  // Sanitize spans, filtering out invalid ones
+  const sanitizedSpans = spans
+    .map(sanitizeSpan)
+    .filter((span): span is SpanData => span !== null);
+
+  // Handle case where all spans were invalid
+  if (sanitizedSpans.length === 0) {
+    return {
+      layouts: [],
+      metrics: {
+        totalDurationMs: 0,
+        startTimeMs: 0,
+        endTimeMs: 0,
+        spanCount: 0,
+        maxDepth: 0,
+        typeBreakdown: {},
+      },
+      rulerTicks: [],
+    };
+  }
+
+  // Build lookup structures using sanitized spans
+  const spanLookup = buildSpanLookup(sanitizedSpans);
+  const childrenMap = buildChildrenMap(sanitizedSpans);
 
   // Calculate time bounds
   let minTimestamp = Infinity;
   let maxEndTime = -Infinity;
 
-  for (const span of spans) {
+  for (const span of sanitizedSpans) {
     const startTime = span.timestamp;
     const endTime = span.timestamp + Math.max(0, span.duration);
 
@@ -239,7 +293,7 @@ export function computeTimelineLayout(spans: SpanData[]): UseTimelineLayoutResul
   traverse(undefined, 0);
 
   // Also handle orphan spans (parent ID exists but parent not in trace)
-  for (const span of spans) {
+  for (const span of sanitizedSpans) {
     if (span.parentId && !spanLookup.has(span.parentId)) {
       // This is an orphan - parent is missing
       const hasChildren = spanHasChildren(span.id, childrenMap);
@@ -315,7 +369,7 @@ export function computeTimelineLayout(spans: SpanData[]): UseTimelineLayoutResul
     totalDurationMs,
     startTimeMs: minTimestamp,
     endTimeMs: maxEndTime,
-    spanCount: spans.length,
+    spanCount: sanitizedSpans.length,
     maxDepth,
     typeBreakdown,
   };
