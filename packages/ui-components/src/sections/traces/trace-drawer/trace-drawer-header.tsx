@@ -34,5 +34,9 @@ export const TraceDrawerCloseButton = ({
 };
 
 export const TraceDrawerHeader = ({ children }: { children: ReactNode }) => {
-  return <Box p={2}>{children}</Box>;
+  return (
+    <Box p={2} sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider" }}>
+      {children}
+    </Box>
+  );
 };
