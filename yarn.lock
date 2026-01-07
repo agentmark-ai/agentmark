@@ -79,7 +79,7 @@ __metadata:
     "@agentmark-ai/prompt-core": "npm:*"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
-    "@agentmark-ai/ui-components": "npm:0.1.0"
+    "@agentmark-ai/ui-components": "npm:0.2.0"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -310,7 +310,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.1.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.2.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
