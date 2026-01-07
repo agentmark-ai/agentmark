@@ -304,7 +304,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         }
         // Display trace link (only for text or object prompts)
         if (streamTraceId && (promptHeader === 'Text' || promptHeader === 'Object')) {
-          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${streamTraceId}`);
+          const { getAppPort } = await import('../config.js');
+          const appPort = getAppPort();
+          console.log(`\n📊 View trace: http://localhost:${appPort}/traces?traceId=${streamTraceId}`);
         }
         console.log('');
       } else {
@@ -355,7 +357,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         }
         // Display trace link (only for text or object prompts)
         if ((resp as any).traceId && (promptHeader === 'Text' || promptHeader === 'Object')) {
-          console.log(`\n📊 View trace: http://localhost:3000/traces?traceId=${(resp as any).traceId}`);
+          const { getAppPort } = await import('../config.js');
+          const appPort = getAppPort();
+          console.log(`\n📊 View trace: http://localhost:${appPort}/traces?traceId=${(resp as any).traceId}`);
         }
         console.log('');
       }
