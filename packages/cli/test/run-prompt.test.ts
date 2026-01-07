@@ -49,6 +49,13 @@ vi.mock('fs', async () => {
     existsSync: vi.fn().mockReturnValue(true),
   };
 });
+vi.mock('fs-extra', async () => {
+  const actual = await vi.importActual<any>('fs-extra');
+  return {
+    ...actual,
+    existsSync: vi.fn().mockReturnValue(true),
+  };
+});
 
 // Mock path.resolve to return the same path
 vi.mock('path', async () => {

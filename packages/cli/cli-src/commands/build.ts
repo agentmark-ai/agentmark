@@ -76,7 +76,6 @@ async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
 
 /**
  * Build command - compiles all .prompt.mdx files to pre-built AST JSON files.
- * Also copies dataset files (.jsonl) to the output directory.
  */
 const build = async (options: BuildOptions = {}) => {
   const cwd = process.cwd();
@@ -110,16 +109,11 @@ const build = async (options: BuildOptions = {}) => {
   const promptFilesAbsolute = await findFiles(sourceDir, /\.prompt\.mdx$/);
   const promptFiles = promptFilesAbsolute.map((f) => path.relative(sourceDir, f));
 
-  // Find all dataset files
-  const datasetFilesAbsolute = await findFiles(sourceDir, /\.jsonl$/);
-  const datasetFiles = datasetFilesAbsolute.map((f) => path.relative(sourceDir, f));
-
-  console.log(`\nFound ${promptFiles.length} prompt(s) and ${datasetFiles.length} dataset(s)`);
+  console.log(`\nFound ${promptFiles.length} prompt(s)`);
 
   // Track build results
-  const results: { prompts: string[]; datasets: string[]; errors: string[] } = {
+  const results: { prompts: string[]; errors: string[] } = {
     prompts: [],
-    datasets: [],
     errors: [],
   };
 
@@ -182,22 +176,6 @@ const build = async (options: BuildOptions = {}) => {
     }
   }
 
-  // Copy dataset files
-  for (const datasetFile of datasetFiles) {
-    const sourcePath = path.join(sourceDir, datasetFile);
-    const outputPath = path.join(outDir, datasetFile);
-
-    try {
-      await fs.ensureDir(path.dirname(outputPath));
-      await fs.copy(sourcePath, outputPath);
-      results.datasets.push(datasetFile);
-      console.log(`  ✓ ${datasetFile} (dataset)`);
-    } catch (error: any) {
-      results.errors.push(`${datasetFile}: ${error.message}`);
-      console.error(`  ✗ ${datasetFile}: ${error.message}`);
-    }
-  }
-
   // Write manifest
   const manifest = {
     version: "1.0",
@@ -206,7 +184,6 @@ const build = async (options: BuildOptions = {}) => {
       path: p,
       outputPath: p.replace(/\.mdx$/, ".json"),
     })),
-    datasets: results.datasets,
   };
 
   await fs.writeJson(path.join(outDir, "manifest.json"), manifest, { spaces: 2 });
@@ -214,12 +191,11 @@ const build = async (options: BuildOptions = {}) => {
   // Summary
   console.log("\n" + "─".repeat(50));
   console.log("Build complete!");
-  console.log(`  Prompts:  ${results.prompts.length} built`);
-  console.log(`  Datasets: ${results.datasets.length} copied`);
+  console.log(`  Prompts: ${results.prompts.length} built`);
   if (results.errors.length > 0) {
-    console.log(`  Errors:   ${results.errors.length}`);
+    console.log(`  Errors:  ${results.errors.length}`);
   }
-  console.log(`  Output:   ${outDir}`);
+  console.log(`  Output:  ${outDir}`);
 
   if (results.errors.length > 0) {
     process.exit(1);

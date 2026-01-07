@@ -1,5 +1,5 @@
 import path from "path";
-import fs from "fs";
+import fs from "fs-extra";
 import type { Root } from "mdast";
 import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
 
@@ -318,9 +318,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         } else if ((resp as any).type === 'image') {
           const outputs = (resp as any).result as Array<{ mimeType: string; base64: string }>;
           const outDir = path.join(process.cwd(), '.agentmark-outputs');
-          try { fs.mkdirSync(outDir, { recursive: true }); } catch {
-            // Ignore errors when creating output directory
-          }
+          fs.ensureDirSync(outDir);
           const saved: string[] = [];
           const timestamp = Date.now();
           outputs.forEach((img, idx) => {
@@ -333,9 +331,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         } else if ((resp as any).type === 'speech') {
           const audio = (resp as any).result as { mimeType?: string; base64: string; format?: string };
           const outDir = path.join(process.cwd(), '.agentmark-outputs');
-          try { fs.mkdirSync(outDir, { recursive: true }); } catch {
-            // Ignore errors when creating output directory
-          }
+          fs.ensureDirSync(outDir);
           const timestamp = Date.now();
           const ext = audio.format || (audio.mimeType?.split('/')[1] || 'mp3');
           const filePath = path.join(outDir, `audio-${timestamp}.${ext}`);

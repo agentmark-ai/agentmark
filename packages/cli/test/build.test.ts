@@ -87,7 +87,7 @@ Parse the comma-separated list into an array.
     await fs.remove(testDir);
   });
 
-  it('builds all prompts and datasets', async () => {
+  it('builds all prompts', async () => {
     // Run build command
     execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
 
@@ -98,8 +98,8 @@ Parse the comma-separated list into an array.
     expect(await fs.pathExists(path.join(outputDir, 'greeting.prompt.json'))).toBe(true);
     expect(await fs.pathExists(path.join(outputDir, 'parser.prompt.json'))).toBe(true);
 
-    // Check dataset was copied
-    expect(await fs.pathExists(path.join(outputDir, 'test-data.jsonl'))).toBe(true);
+    // Datasets should NOT be copied
+    expect(await fs.pathExists(path.join(outputDir, 'test-data.jsonl'))).toBe(false);
 
     // Check manifest was created
     expect(await fs.pathExists(path.join(outputDir, 'manifest.json'))).toBe(true);
@@ -125,7 +125,7 @@ Parse the comma-separated list into an array.
     expect(Array.isArray(greetingPrompt.ast.children)).toBe(true);
   });
 
-  it('creates manifest with all prompts and datasets', async () => {
+  it('creates manifest with all prompts', async () => {
     execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
 
     const manifest = await fs.readJson(path.join(outputDir, 'manifest.json'));
@@ -138,8 +138,8 @@ Parse the comma-separated list into an array.
     expect(manifest.prompts.map((p: any) => p.path)).toContain('greeting.prompt.mdx');
     expect(manifest.prompts.map((p: any) => p.path)).toContain('parser.prompt.mdx');
 
-    // Check datasets list
-    expect(manifest.datasets).toContain('test-data.jsonl');
+    // Manifest should not include datasets
+    expect(manifest.datasets).toBeUndefined();
   });
 
   it('supports custom output directory via --out flag', async () => {
