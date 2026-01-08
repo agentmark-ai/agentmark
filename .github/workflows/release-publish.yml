@@ -1,0 +1,70 @@
+name: Publish Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build all packages
+        run: yarn build
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push git tags
+        run: |
+          for pkg_json in packages/*/package.json; do
+            pkg_name=$(jq -r '.name' "$pkg_json")
+            pkg_version=$(jq -r '.version' "$pkg_json")
+            is_private=$(jq -r '.private // false' "$pkg_json")
+
+            # Skip private packages
+            [ "$is_private" = "true" ] && continue
+
+            tag="${pkg_name}@${pkg_version}"
+            if ! git rev-parse "$tag" >/dev/null 2>&1; then
+              echo "Creating tag: $tag"
+              git tag "$tag"
+            fi
+          done
+          git push --tags
+
+      - name: Publish to npm
+        run: npx nx release publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
+      - name: Create GitHub Releases
+        run: npx nx release changelog --create-release=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

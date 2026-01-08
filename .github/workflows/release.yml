@@ -1,41 +1,109 @@
-name: Publish Packages to NPM
+name: Prepare Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      preid:
+        description: 'Prerelease identifier (e.g., alpha, beta, rc) - only used if version plans contain prerelease bumps'
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: 'Dry run (no actual changes)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  build:
+  prepare:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
- 
+          fetch-depth: 0
+
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Setup Node.js environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 21
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Install
-        run: yarn
+      - name: Install dependencies
+        run: yarn install --immutable
 
-      - name: Build
-        run: yarn build
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create Release Pull Request or Publish to npm
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: yarn run version
-          publish: yarn release
+      - name: Check for version plans
+        id: check-plans
+        run: |
+          PLAN_COUNT=$(find .nx/version-plans -name "*.md" -type f 2>/dev/null | wc -l)
+          echo "plan_count=$PLAN_COUNT" >> $GITHUB_OUTPUT
+          if [ "$PLAN_COUNT" -eq 0 ]; then
+            echo "::warning::No version plan files found in .nx/version-plans/"
+            echo "has_plans=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found $PLAN_COUNT version plan file(s)"
+            echo "has_plans=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if no version plans
+        if: steps.check-plans.outputs.has_plans == 'false'
+        run: |
+          echo "No version plans found. Nothing to release."
+          echo "To create a version plan, run: yarn release:plan"
+          exit 0
+
+      - name: Dry run (preview changes)
+        if: inputs.dry_run == true && steps.check-plans.outputs.has_plans == 'true'
+        run: |
+          PREID_ARG=""
+          if [ -n "${{ inputs.preid }}" ]; then
+            PREID_ARG="--preid=${{ inputs.preid }}"
+          fi
+          npx nx release version $PREID_ARG --dry-run
+
+      - name: Create Release PR
+        if: inputs.dry_run == false && steps.check-plans.outputs.has_plans == 'true'
+        run: |
+          BRANCH_NAME="release/version-plans-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b $BRANCH_NAME
+
+          PREID_ARG=""
+          if [ -n "${{ inputs.preid }}" ]; then
+            PREID_ARG="--preid=${{ inputs.preid }}"
+          fi
+
+          npx nx release version $PREID_ARG --skip-publish
+          npx nx release changelog --skip-publish
+
+          yarn install
+
+          git add .
+          git commit -m "chore(release): version packages"
+          git push origin $BRANCH_NAME
+
+          gh pr create \
+            --title "chore(release): Version Packages" \
+            --body "## Release PR
+
+          This PR was automatically created by the release workflow using version plans.
+
+          - **Preid:** \`${{ inputs.preid || 'none' }}\`
+          - **Version plans processed:** ${{ steps.check-plans.outputs.plan_count }}
+
+          **Merge to publish packages to npm.**" \
+            --base main \
+            --head $BRANCH_NAME
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
