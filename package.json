@@ -13,13 +13,20 @@
     "test": "turbo test",
     "build": "turbo build",
     "lint": "turbo lint",
-    "release": "changeset publish",
-    "version": "changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false && yarn && changeset tag"
+    "release": "nx release publish",
+    "release:version": "nx release version",
+    "release:dry-run": "nx release --dry-run",
+    "release:plan": "nx release plan",
+    "release:plan:check": "nx release plan:check --base=origin/main --head=HEAD"
   },
   "packageManager": "yarn@4.5.3",
   "devDependencies": {
-    "@changesets/cli": "^2.27.9",
+    "@nx/js": "20.8.3",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
     "eslint": "^9.39.1",
+    "nx": "^20.4.0",
     "tsup": "^8",
     "turbo": "latest",
     "typescript": "^5"
