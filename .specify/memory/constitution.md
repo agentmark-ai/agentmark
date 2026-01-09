@@ -1,13 +1,13 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: N/A → 1.0.0 (initial ratification)
-Modified Principles: N/A (new constitution)
+Version Change: 1.0.0 → 1.1.0
+Modified Principles:
+  - III. Type Safety: Added Strict Typing Requirements subsection
+  - IV. Testability: Added Test Coverage Requirements and Test Anti-patterns subsections
 Added Sections:
-  - Core Principles (5 principles)
-  - Technology Standards
-  - Development Workflow
-  - Governance
+  - Technology Standards > Security Standards (SQL/Database Query Safety, Input Validation)
+  - Development Workflow > Code Review Requirements > Security Review Checklist
 Removed Sections: N/A
 Templates Requiring Updates:
   - .specify/templates/plan-template.md: ✅ compatible (Constitution Check section exists)
@@ -54,8 +54,16 @@ All inputs and outputs MUST be type-safe and schema-validated:
 - Runtime validation MUST catch schema violations before LLM invocation
 - Props passed to prompts MUST match declared input schemas
 
+#### Strict Typing Requirements
+
+- The `any` type MUST NOT be used except in type guards or legacy interop boundaries
+- All public module exports MUST include explicit type exports for consumers
+- Internal types used in public APIs MUST be exported alongside functions
+- Type assertions (`as`) SHOULD be avoided; prefer type guards or schema validation
+
 **Rationale**: Type safety catches errors early, enables IDE autocomplete, and ensures reliable
-prompt execution at scale.
+prompt execution at scale. Strict typing enables static analysis to catch bugs before runtime
+and ensures consumers can properly type their code against library interfaces.
 
 ### IV. Testability
 
@@ -66,8 +74,22 @@ Every prompt and agent workflow MUST be independently testable:
 - CLI supports running experiments directly for rapid iteration
 - Test props enable local execution without external dependencies
 
+#### Test Coverage Requirements
+
+- Security-critical code paths (SQL queries, auth, input validation) MUST have explicit unit tests
+- Edge cases for invalid inputs MUST be tested (NaN, negative numbers, empty strings, injection attempts)
+- Integration tests MUST verify actual behavior, not just mock interactions
+- Mock-heavy tests MUST be supplemented with at least one integration test per endpoint
+
+#### Test Anti-patterns
+
+- Tests MUST NOT only verify that mocks were called correctly without testing real behavior
+- Cursor/pagination logic MUST be tested with round-trip serialization
+- Query-building code MUST be tested with actual database queries, not just string assertions
+
 **Rationale**: Testability enables confidence in prompt changes and supports continuous
-integration workflows for AI applications.
+integration workflows for AI applications. Mock-heavy tests create false confidence;
+security and data-access code requires integration tests that verify actual behavior.
 
 ### V. Composability
 
@@ -82,6 +104,35 @@ Prompts and components MUST be composable and reusable:
 to build shared prompt libraries.
 
 ## Technology Standards
+
+### Security Standards
+
+#### SQL/Database Query Safety
+
+- All database queries MUST use parameterized queries or prepared statements
+- Direct string interpolation in SQL queries is FORBIDDEN, even for numeric values
+- Values from user input, query parameters, or environment variables MUST be passed as parameters
+- Query builders MUST validate inputs before construction (e.g., reject NaN, negative limits)
+
+**Rationale**: SQL injection remains a top OWASP vulnerability. Even "safe" numeric
+interpolation can produce invalid queries (NaN, Infinity) or enable attacks through
+type coercion bugs.
+
+#### Input Validation
+
+- All external inputs (env vars, query params, API responses) MUST be validated before use
+- Numeric parsing MUST include NaN/Infinity checks with explicit fallbacks
+- Type coercion failures MUST default to safe values, not propagate invalid state
+
+**Example**:
+```typescript
+// ❌ Unsafe
+const timeout = parseInt(process.env.TIMEOUT_MS || '5000', 10);
+
+// ✅ Safe
+const parsed = parseInt(process.env.TIMEOUT_MS || '', 10);
+const timeout = Number.isNaN(parsed) ? DEFAULT_TIMEOUT : parsed;
+```
 
 ### Language Support
 
@@ -111,6 +162,14 @@ to build shared prompt libraries.
 - Prompt changes SHOULD include updated test datasets
 - Breaking changes MUST include migration documentation
 - New features MUST include documentation updates
+
+#### Security Review Checklist
+
+- [ ] No direct string interpolation in SQL/shell commands
+- [ ] All numeric inputs validated for NaN/Infinity
+- [ ] All public types exported
+- [ ] Edge case tests for invalid inputs
+- [ ] At least one integration test for new endpoints
 
 ### Testing Gates
 
@@ -148,4 +207,4 @@ plans. Amendments follow this process:
 - MINOR: New principle or significant guidance expansion
 - PATCH: Clarifications, typos, non-semantic refinements
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-10 | **Last Amended**: 2025-12-10
+**Version**: 1.1.0 | **Ratified**: 2025-12-10 | **Last Amended**: 2026-01-09
