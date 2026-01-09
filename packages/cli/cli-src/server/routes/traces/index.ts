@@ -215,7 +215,50 @@ export const getRequests = async () => {
   return rows;
 };
 
-export const getTraces = async () => {
+export interface TraceFilterOptions {
+  status?: string;
+  name?: string;
+  latency_gt?: number;
+  latency_lt?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export const getTraces = async (options: TraceFilterOptions = {}) => {
+  const { status, name, latency_gt, latency_lt, limit, offset } = options;
+
+  // Build WHERE conditions for the final query
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (status !== undefined) {
+    conditions.push('t.status = ?');
+    params.push(status);
+  }
+  if (name !== undefined) {
+    conditions.push('m.name LIKE ?');
+    params.push(`%${name}%`);
+  }
+  if (latency_gt !== undefined) {
+    conditions.push('m.latency > ?');
+    params.push(latency_gt);
+  }
+  if (latency_lt !== undefined) {
+    conditions.push('m.latency < ?');
+    params.push(latency_lt);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Add pagination
+  let limitClause = '';
+  if (limit !== undefined) {
+    limitClause = `LIMIT ${limit}`;
+    if (offset !== undefined) {
+      limitClause += ` OFFSET ${offset}`;
+    }
+  }
+
   const sql = `
     WITH
 trace_costs_and_tokens AS (
@@ -258,7 +301,7 @@ trace_metadata AS (
     FROM traces t
     LEFT JOIN traces c
         ON c.SpanId = t.ParentSpanId
-    WHERE c.SpanId IS NULL    
+    WHERE c.SpanId IS NULL
     GROUP BY t.TraceId
 )
 
@@ -277,10 +320,12 @@ SELECT
 FROM traces_cte t
 LEFT JOIN trace_costs_and_tokens c ON t.id = c.id
 LEFT JOIN trace_metadata m ON t.id = m.id
-ORDER BY t.start DESC;
+${whereClause}
+ORDER BY t.start DESC
+${limitClause};
   `;
 
-  const rows = db.prepare(sql).all();
+  const rows = db.prepare(sql).all(...params);
   return rows;
 };
 
@@ -694,4 +739,172 @@ ORDER BY t.start DESC;
 
   const rows = db.prepare(sql).all(runId);
   return rows;
+};
+
+export interface SpanFilterOptions {
+  traceId?: string;
+  type?: string;
+  status?: string;
+  name?: string;
+  model?: string;
+  minDuration?: number;
+  maxDuration?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export const searchSpans = async (options: SpanFilterOptions = {}) => {
+  const { traceId, type, status, name, model, minDuration, maxDuration, limit, offset } = options;
+
+  // Build WHERE conditions
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (traceId !== undefined) {
+    conditions.push('TraceId = ?');
+    params.push(traceId);
+  }
+  if (type !== undefined) {
+    conditions.push('Type = ?');
+    params.push(type);
+  }
+  if (status !== undefined) {
+    // Map status to StatusCode format
+    const statusCode = status === '2' ? '2' : status === '1' ? '1' : '0';
+    conditions.push("(StatusCode = ? OR StatusCode = ? || '.0')");
+    params.push(statusCode, statusCode);
+  }
+  if (name !== undefined) {
+    conditions.push('SpanName LIKE ?');
+    params.push(`%${name}%`);
+  }
+  if (model !== undefined) {
+    conditions.push('Model LIKE ?');
+    params.push(`%${model}%`);
+  }
+  if (minDuration !== undefined) {
+    conditions.push('Duration >= ?');
+    params.push(minDuration);
+  }
+  if (maxDuration !== undefined) {
+    conditions.push('Duration <= ?');
+    params.push(maxDuration);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Add pagination
+  let limitClause = '';
+  if (limit !== undefined) {
+    limitClause = `LIMIT ${limit}`;
+    if (offset !== undefined) {
+      limitClause += ` OFFSET ${offset}`;
+    }
+  }
+
+  const sql = `
+    SELECT
+      SpanId AS id,
+      SpanName AS name,
+      Duration AS duration,
+      ParentSpanId AS parent_id,
+      CAST(Timestamp AS REAL) AS timestamp,
+      TraceId AS trace_id,
+      CASE
+            WHEN StatusCode = '2.0' THEN '2'
+            WHEN StatusCode = '2' THEN '2'
+            WHEN StatusCode = '1.0' THEN '1'
+            WHEN StatusCode = '1' THEN '1'
+            ELSE '0'
+      END AS status_code,
+      StatusMessage AS status_message,
+      SpanAttributes AS attributes,
+      Type AS type,
+      Model AS model,
+      InputTokens AS inputTokens,
+      OutputTokens AS outputTokens,
+      TotalTokens AS totalTokens,
+      ReasoningTokens AS reasoningTokens,
+      Cost AS cost,
+      Input AS input,
+      Output AS output,
+      OutputObject AS outputObject,
+      ToolCalls AS toolCalls,
+      FinishReason AS finishReason,
+      Settings AS settings,
+      SessionId AS sessionId,
+      SessionName AS sessionName,
+      UserId AS userId,
+      TraceName AS traceName,
+      PromptName AS promptName,
+      Props AS props,
+      SpanKind AS spanKind,
+      ServiceName AS serviceName,
+      Metadata AS metadata
+    FROM traces
+    ${whereClause}
+    ORDER BY CAST(Timestamp AS REAL) DESC
+    ${limitClause}
+  `;
+
+  const rows = db.prepare(sql).all(...params) as any[];
+
+  return rows.map((row) => {
+    // Parse SpanAttributes JSON
+    let spanAttributes: any = {};
+    try {
+      if (row.attributes) {
+        spanAttributes =
+          typeof row.attributes === "string"
+            ? JSON.parse(row.attributes)
+            : row.attributes;
+      }
+    } catch {
+      // If parsing fails, keep empty object
+    }
+
+    // Map all flat fields to data object matching SpanData type
+    const data: any = {
+      type: row.type || undefined,
+      model: row.model || undefined,
+      inputTokens: row.inputTokens ?? undefined,
+      outputTokens: row.outputTokens ?? undefined,
+      totalTokens: row.totalTokens ?? undefined,
+      reasoningTokens: row.reasoningTokens ?? undefined,
+      cost: row.cost ?? undefined,
+      input: row.input || undefined,
+      output: row.output || undefined,
+      outputObject: row.outputObject || undefined,
+      toolCalls: row.toolCalls || undefined,
+      finishReason: row.finishReason || undefined,
+      settings: row.settings || undefined,
+      sessionId: row.sessionId || undefined,
+      sessionName: row.sessionName || undefined,
+      userId: row.userId || undefined,
+      traceName: row.traceName || undefined,
+      promptName: row.promptName || undefined,
+      props: row.props || undefined,
+      attributes: JSON.stringify(spanAttributes),
+      statusMessage: row.status_message || undefined,
+      status: row.status_code,
+      spanKind: row.spanKind || undefined,
+      serviceName: row.serviceName || undefined,
+      duration: row.duration || 0,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+    };
+
+    // Convert timestamp from nanoseconds to milliseconds
+    const timestampMs = row.timestamp ? Math.floor(row.timestamp / 1000000) : 0;
+
+    return {
+      id: row.id,
+      name: row.name,
+      duration: row.duration || 0,
+      parentId: row.parent_id || undefined,
+      timestamp: timestampMs,
+      traceId: row.trace_id,
+      status: row.status_code,
+      data,
+    };
+  });
 };

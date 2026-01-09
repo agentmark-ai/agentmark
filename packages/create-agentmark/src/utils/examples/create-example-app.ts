@@ -33,6 +33,13 @@ const setupMCPServer = (client: string, targetPath: string) => {
         servers: {
           "agentmark-docs": {
             url: "https://docs.agentmark.co/mcp"
+          },
+          "agentmark-traces": {
+            command: "npx",
+            args: ["@agentmark-ai/mcp-server"],
+            env: {
+              AGENTMARK_URL: "http://localhost:9418"
+            }
           }
         }
       };
@@ -57,6 +64,13 @@ const setupMCPServer = (client: string, targetPath: string) => {
         context_servers: {
           "agentmark-docs": {
             url: "https://docs.agentmark.co/mcp"
+          },
+          "agentmark-traces": {
+            command: "npx",
+            args: ["@agentmark-ai/mcp-server"],
+            env: {
+              AGENTMARK_URL: "http://localhost:9418"
+            }
           }
         }
       };
@@ -81,6 +95,13 @@ const setupMCPServer = (client: string, targetPath: string) => {
         mcpServers: {
           "agentmark-docs": {
             url: "https://docs.agentmark.co/mcp"
+          },
+          "agentmark-traces": {
+            command: "npx",
+            args: ["@agentmark-ai/mcp-server"],
+            env: {
+              AGENTMARK_URL: "http://localhost:9418"
+            }
           }
         }
       };
@@ -104,6 +125,13 @@ const setupMCPServer = (client: string, targetPath: string) => {
           "agentmark-docs": {
             type: "http",
             url: "https://docs.agentmark.co/mcp"
+          },
+          "agentmark-traces": {
+            command: "npx",
+            args: ["@agentmark-ai/mcp-server"],
+            env: {
+              AGENTMARK_URL: "http://localhost:9418"
+            }
           }
         }
       };
