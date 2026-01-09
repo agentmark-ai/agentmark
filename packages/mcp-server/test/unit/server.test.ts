@@ -16,7 +16,6 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
 
 // We only mock the data source for unit tests of error handling logic
 // Integration tests in integration.test.ts use real implementations
