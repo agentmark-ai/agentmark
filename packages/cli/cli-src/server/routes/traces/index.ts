@@ -250,12 +250,14 @@ export const getTraces = async (options: TraceFilterOptions = {}) => {
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  // Add pagination
+  // Add pagination with parameterized queries
   let limitClause = '';
-  if (limit !== undefined) {
-    limitClause = `LIMIT ${limit}`;
-    if (offset !== undefined) {
-      limitClause += ` OFFSET ${offset}`;
+  if (limit !== undefined && Number.isFinite(limit) && limit > 0) {
+    limitClause = 'LIMIT ?';
+    params.push(Math.floor(limit));
+    if (offset !== undefined && Number.isFinite(offset) && offset >= 0) {
+      limitClause += ' OFFSET ?';
+      params.push(Math.floor(offset));
     }
   }
 
@@ -793,12 +795,14 @@ export const searchSpans = async (options: SpanFilterOptions = {}) => {
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  // Add pagination
+  // Add pagination with parameterized queries
   let limitClause = '';
-  if (limit !== undefined) {
-    limitClause = `LIMIT ${limit}`;
-    if (offset !== undefined) {
-      limitClause += ` OFFSET ${offset}`;
+  if (limit !== undefined && Number.isFinite(limit) && limit > 0) {
+    limitClause = 'LIMIT ?';
+    params.push(Math.floor(limit));
+    if (offset !== undefined && Number.isFinite(offset) && offset >= 0) {
+      limitClause += ' OFFSET ?';
+      params.push(Math.floor(offset));
     }
   }
 

@@ -378,9 +378,8 @@ describe('Config', () => {
     const { getConfig } = await import('../src/config.js');
     const config = getConfig();
 
-    // parseInt('invalid') returns NaN - this is current behavior
-    // In production, the HttpDataSource handles this with default timeout
-    expect(config.timeoutMs).toBeNaN();
+    // Invalid timeout should fall back to default
+    expect(config.timeoutMs).toBe(30000);
 
     // Restore
     if (originalTimeout) {

@@ -7,9 +7,10 @@ export interface MCPServerConfig {
 const DEFAULT_TIMEOUT_MS = 30000;
 
 export function getConfig(): MCPServerConfig {
+  const parsedTimeout = parseInt(process.env.AGENTMARK_TIMEOUT_MS || '', 10);
   return {
     url: process.env.AGENTMARK_URL || 'http://localhost:9418',
     apiKey: process.env.AGENTMARK_API_KEY,
-    timeoutMs: parseInt(process.env.AGENTMARK_TIMEOUT_MS || String(DEFAULT_TIMEOUT_MS), 10),
+    timeoutMs: Number.isNaN(parsedTimeout) ? DEFAULT_TIMEOUT_MS : parsedTimeout,
   };
 }
