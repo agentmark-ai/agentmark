@@ -90,7 +90,7 @@
 ### Implementation for User Story 2
 
 - [x] T022 [US2] ~~Implement searchSpans method~~ (Consolidated into getSpans - same method handles all filters)
-- [x] T023 [US2] Ensure traceId is required parameter for get_spans in packages/mcp-server/src/server.ts
+- [x] T023 [US2] ~~Ensure traceId is required parameter for get_spans~~ (N/A - get_spans consolidated into get_trace which requires traceId)
 - [x] T024 [US2] ~~Create Zod schema for SearchSpansInput~~ (Uses SpanFilter schema from T017)
 - [x] T025 [US2] ~~Register search_spans MCP tool~~ (Consolidated into get_spans tool)
 - [x] T026 [US2] Add server-side filter mapping for supported fields (type, status, name, model) in packages/mcp-server/src/data-source/http-data-source.ts

@@ -82,12 +82,13 @@ export interface TraceData {
 }
 
 /**
- * Options for listing traces
+ * Options for listing traces with pagination
  */
 export interface ListTracesOptions {
   limit?: number;
   sessionId?: string;
   datasetRunId?: string;
+  cursor?: string;
 }
 
 /**
@@ -116,12 +117,29 @@ export interface GetSpansOptions {
 }
 
 /**
+ * Options for getting a trace with span filtering and pagination
+ */
+export interface GetTraceOptions {
+  filters?: SpanFilter[];
+  limit?: number;
+  cursor?: string;
+}
+
+/**
  * Paginated result wrapper
  */
 export interface PaginatedResult<T> {
   items: T[];
   cursor?: string;
   hasMore: boolean;
+}
+
+/**
+ * Trace result with paginated spans
+ */
+export interface TraceResult {
+  trace: TraceData;
+  spans: PaginatedResult<SpanData>;
 }
 
 /**
@@ -147,7 +165,6 @@ export interface ErrorResponse {
  * Data source interface - abstraction for local or cloud backends
  */
 export interface DataSource {
-  listTraces(options?: ListTracesOptions): Promise<TraceListItem[]>;
-  getTrace(traceId: string): Promise<TraceData | null>;
-  getSpans(options: GetSpansOptions): Promise<PaginatedResult<SpanData>>;
+  listTraces(options?: ListTracesOptions): Promise<PaginatedResult<TraceListItem>>;
+  getTrace(traceId: string, options?: GetTraceOptions): Promise<TraceResult | null>;
 }

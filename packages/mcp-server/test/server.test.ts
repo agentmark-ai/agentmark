@@ -4,12 +4,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 // Create mock data source with vi.fn() for each method
 const mockListTraces = vi.fn();
 const mockGetTrace = vi.fn();
-const mockGetSpans = vi.fn();
 
 const mockDataSource = {
   listTraces: mockListTraces,
   getTrace: mockGetTrace,
-  getSpans: mockGetSpans,
 };
 
 // Mock the data source module
@@ -24,59 +22,54 @@ describe('MCP Server', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Set up default mock responses
-    mockListTraces.mockResolvedValue([
-      {
-        id: 'trace-1',
-        name: 'Test Trace',
-        status: '0',
-        latency: 100,
-        cost: 0.001,
-        tokens: 500,
-        start: 1704067200000,
-        end: 1704067201000,
-      },
-    ]);
-
-    mockGetTrace.mockResolvedValue({
-      id: 'trace-1',
-      name: 'Test Trace',
-      spans: [
-        {
-          id: 'span-1',
-          name: 'Test Span',
-          duration: 100,
-          timestamp: 1704067200000,
-          traceId: 'trace-1',
-          status: '0',
-          data: { type: 'GENERATION' },
-        },
-      ],
-      data: {
-        id: 'trace-1',
-        name: 'Test Trace',
-        status: '0',
-        latency: 100,
-        cost: 0.001,
-        tokens: 500,
-        start: 1704067200000,
-        end: 1704067201000,
-      },
-    });
-
-    mockGetSpans.mockResolvedValue({
+    // Set up default mock responses - PaginatedResult structure
+    mockListTraces.mockResolvedValue({
       items: [
         {
-          id: 'span-1',
-          name: 'Test Span',
-          duration: 100,
-          timestamp: 1704067200000,
-          traceId: 'trace-1',
+          id: 'trace-1',
+          name: 'Test Trace',
           status: '0',
-          data: { type: 'GENERATION' },
+          latency: 100,
+          cost: 0.001,
+          tokens: 500,
+          start: 1704067200000,
+          end: 1704067201000,
         },
       ],
       hasMore: false,
+    });
+
+    // TraceResult structure with trace and paginated spans
+    mockGetTrace.mockResolvedValue({
+      trace: {
+        id: 'trace-1',
+        name: 'Test Trace',
+        spans: [],
+        data: {
+          id: 'trace-1',
+          name: 'Test Trace',
+          status: '0',
+          latency: 100,
+          cost: 0.001,
+          tokens: 500,
+          start: 1704067200000,
+          end: 1704067201000,
+        },
+      },
+      spans: {
+        items: [
+          {
+            id: 'span-1',
+            name: 'Test Span',
+            duration: 100,
+            timestamp: 1704067200000,
+            traceId: 'trace-1',
+            status: '0',
+            data: { type: 'GENERATION' },
+          },
+        ],
+        hasMore: false,
+      },
     });
   });
 
@@ -115,15 +108,14 @@ describe('MCP Server', () => {
       registerTools(server, mockDataSource);
     });
 
-    it('should register three MCP tools', () => {
+    it('should register two MCP tools', () => {
       expect(registeredTools.has('list_traces')).toBe(true);
       expect(registeredTools.has('get_trace')).toBe(true);
-      expect(registeredTools.has('get_spans')).toBe(true);
-      expect(registeredTools.size).toBe(3);
+      expect(registeredTools.size).toBe(2);
     });
 
     describe('list_traces tool', () => {
-      it('should return formatted trace list', async () => {
+      it('should return paginated trace list', async () => {
         const handler = registeredTools.get('list_traces')!.handler;
         const result = await handler({ limit: 10 });
 
@@ -131,21 +123,38 @@ describe('MCP Server', () => {
           limit: 10,
           sessionId: undefined,
           datasetRunId: undefined,
+          cursor: undefined,
         });
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.items).toHaveLength(1);
         expect(parsed.items[0].id).toBe('trace-1');
-        expect(parsed.total).toBe(1);
+        expect(parsed.hasMore).toBe(false);
       });
 
-      it('should enforce max limit of 200', async () => {
+      it('should pass cursor for pagination', async () => {
         const handler = registeredTools.get('list_traces')!.handler;
-        await handler({ limit: 500 });
+        await handler({ cursor: 'abc123' });
 
         expect(mockListTraces).toHaveBeenCalledWith(
-          expect.objectContaining({ limit: 200 })
+          expect.objectContaining({ cursor: 'abc123' })
         );
+      });
+
+      it('should return cursor when hasMore is true', async () => {
+        mockListTraces.mockResolvedValueOnce({
+          items: [{ id: 'trace-1' }, { id: 'trace-2' }],
+          hasMore: true,
+          cursor: 'next-page-cursor',
+        });
+
+        const handler = registeredTools.get('list_traces')!.handler;
+        const result = await handler({ limit: 2 });
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.items).toHaveLength(2);
+        expect(parsed.hasMore).toBe(true);
+        expect(parsed.cursor).toBe('next-page-cursor');
       });
 
       it('should pass sessionId filter', async () => {
@@ -188,15 +197,56 @@ describe('MCP Server', () => {
     });
 
     describe('get_trace tool', () => {
-      it('should return full trace details', async () => {
+      it('should return trace with paginated spans', async () => {
         const handler = registeredTools.get('get_trace')!.handler;
         const result = await handler({ traceId: 'trace-1' });
 
-        expect(mockGetTrace).toHaveBeenCalledWith('trace-1');
+        expect(mockGetTrace).toHaveBeenCalledWith('trace-1', {
+          filters: undefined,
+          limit: undefined,
+          cursor: undefined,
+        });
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.trace.id).toBe('trace-1');
-        expect(parsed.trace.spans).toHaveLength(1);
+        expect(parsed.spans.items).toHaveLength(1);
+        expect(parsed.spans.hasMore).toBe(false);
+      });
+
+      it('should pass filters, limit, and cursor to data source', async () => {
+        const handler = registeredTools.get('get_trace')!.handler;
+        const filters = [{ field: 'status', operator: 'eq', value: '2' }];
+        await handler({ traceId: 'trace-1', filters, limit: 10, cursor: 'abc123' });
+
+        expect(mockGetTrace).toHaveBeenCalledWith('trace-1', {
+          filters,
+          limit: 10,
+          cursor: 'abc123',
+        });
+      });
+
+      it('should return paginated spans with cursor', async () => {
+        mockGetTrace.mockResolvedValueOnce({
+          trace: {
+            id: 'trace-1',
+            name: 'Test Trace',
+            spans: [],
+            data: { id: 'trace-1', name: 'Test Trace', status: '0', latency: 100, cost: 0.001, tokens: 500, start: 0, end: 0 },
+          },
+          spans: {
+            items: [{ id: 'span-1' }, { id: 'span-2' }],
+            hasMore: true,
+            cursor: 'next-page-cursor',
+          },
+        });
+
+        const handler = registeredTools.get('get_trace')!.handler;
+        const result = await handler({ traceId: 'trace-1', limit: 2 });
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.spans.items).toHaveLength(2);
+        expect(parsed.spans.hasMore).toBe(true);
+        expect(parsed.spans.cursor).toBe('next-page-cursor');
       });
 
       it('should return NOT_FOUND error for missing trace', async () => {
@@ -218,130 +268,6 @@ describe('MCP Server', () => {
         expect(result.isError).toBe(true);
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.details.traceId).toBe('trace-1');
-      });
-    });
-
-    describe('get_spans tool', () => {
-      it('should return paginated spans for a trace', async () => {
-        const handler = registeredTools.get('get_spans')!.handler;
-        const result = await handler({ traceId: 'trace-1' });
-
-        // When calling handler directly (bypassing Zod), defaults aren't applied
-        // The HttpDataSource will use its own default of 50
-        expect(mockGetSpans).toHaveBeenCalledWith({
-          traceId: 'trace-1',
-          filters: undefined,
-          limit: undefined,
-          cursor: undefined,
-        });
-
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed.items).toHaveLength(1);
-        expect(parsed.hasMore).toBe(false);
-      });
-
-      it('should pass filters to data source', async () => {
-        const handler = registeredTools.get('get_spans')!.handler;
-        const filters = [{ field: 'status', operator: 'eq', value: '2' }];
-        await handler({ traceId: 'trace-1', filters });
-
-        expect(mockGetSpans).toHaveBeenCalledWith(
-          expect.objectContaining({
-            traceId: 'trace-1',
-            filters,
-          })
-        );
-      });
-
-      it('should pass limit and cursor for pagination', async () => {
-        const handler = registeredTools.get('get_spans')!.handler;
-        await handler({ traceId: 'trace-1', limit: 10, cursor: 'abc123' });
-
-        expect(mockGetSpans).toHaveBeenCalledWith(
-          expect.objectContaining({
-            limit: 10,
-            cursor: 'abc123',
-          })
-        );
-      });
-
-      it('should return paginated results with cursor', async () => {
-        mockGetSpans.mockResolvedValueOnce({
-          items: [{ id: 'span-1' }, { id: 'span-2' }],
-          hasMore: true,
-          cursor: 'next-page-cursor',
-        });
-
-        const handler = registeredTools.get('get_spans')!.handler;
-        const result = await handler({ traceId: 'trace-1', limit: 2 });
-
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed.items).toHaveLength(2);
-        expect(parsed.hasMore).toBe(true);
-        expect(parsed.cursor).toBe('next-page-cursor');
-      });
-
-      it('should filter by duration (slow spans)', async () => {
-        const handler = registeredTools.get('get_spans')!.handler;
-        const filters = [{ field: 'duration', operator: 'gt', value: 1000 }];
-        await handler({ traceId: 'trace-1', filters });
-
-        expect(mockGetSpans).toHaveBeenCalledWith(
-          expect.objectContaining({
-            filters: [{ field: 'duration', operator: 'gt', value: 1000 }],
-          })
-        );
-      });
-
-      it('should filter by data.type for span types', async () => {
-        const handler = registeredTools.get('get_spans')!.handler;
-        const filters = [{ field: 'data.type', operator: 'eq', value: 'GENERATION' }];
-        await handler({ traceId: 'trace-1', filters });
-
-        expect(mockGetSpans).toHaveBeenCalledWith(
-          expect.objectContaining({
-            filters: [{ field: 'data.type', operator: 'eq', value: 'GENERATION' }],
-          })
-        );
-      });
-
-      it('should return error response on data source failure', async () => {
-        mockGetSpans.mockRejectedValueOnce(new Error('Query failed'));
-        const handler = registeredTools.get('get_spans')!.handler;
-        const result = await handler({ traceId: 'trace-1' });
-
-        expect(result.isError).toBe(true);
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed.code).toBe('INVALID_QUERY');
-        expect(parsed.error).toBe('Query failed');
-      });
-
-      it('should allow cross-trace search when traceId is omitted', async () => {
-        mockGetSpans.mockResolvedValueOnce({
-          items: [
-            { id: 'span-1', traceId: 'trace-1', status: '2' },
-            { id: 'span-2', traceId: 'trace-2', status: '2' },
-          ],
-          hasMore: false,
-        });
-
-        const handler = registeredTools.get('get_spans')!.handler;
-        const filters = [{ field: 'status', operator: 'eq', value: '2' }];
-        const result = await handler({ filters });
-
-        // traceId should be undefined when not provided
-        expect(mockGetSpans).toHaveBeenCalledWith(
-          expect.objectContaining({
-            traceId: undefined,
-            filters,
-          })
-        );
-
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed.items).toHaveLength(2);
-        // Verify spans from different traces are returned
-        expect(parsed.items[0].traceId).toBe('trace-1');
-        expect(parsed.items[1].traceId).toBe('trace-2');
       });
     });
 

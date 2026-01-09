@@ -18,7 +18,7 @@ describe('HttpDataSource', () => {
   });
 
   describe('listTraces', () => {
-    it('should fetch traces from /v1/traces', async () => {
+    it('should fetch traces from /v1/traces and return paginated result', async () => {
       const mockTraces = [
         {
           id: 'trace-1',
@@ -45,11 +45,12 @@ describe('HttpDataSource', () => {
           headers: { 'Content-Type': 'application/json' },
         })
       );
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('trace-1');
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe('trace-1');
+      expect(result.hasMore).toBe(false);
     });
 
-    it('should apply limit parameter', async () => {
+    it('should apply limit parameter and return hasMore when more results exist', async () => {
       const mockTraces = Array.from({ length: 100 }, (_, i) => ({
         id: `trace-${i}`,
         name: `Test Trace ${i}`,
@@ -68,7 +69,55 @@ describe('HttpDataSource', () => {
 
       const result = await dataSource.listTraces({ limit: 10 });
 
-      expect(result).toHaveLength(10);
+      expect(result.items).toHaveLength(10);
+      expect(result.hasMore).toBe(true);
+      expect(result.cursor).toBeDefined();
+    });
+
+    it('should use cursor to paginate results', async () => {
+      const mockTraces = Array.from({ length: 25 }, (_, i) => ({
+        id: `trace-${i}`,
+        name: `Test Trace ${i}`,
+        status: '0',
+        latency: 100,
+        cost: 0.001,
+        tokens: 500,
+        start: 1704067200000,
+        end: 1704067201000,
+      }));
+
+      // First page
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: mockTraces }),
+      });
+
+      const firstResult = await dataSource.listTraces({ limit: 10 });
+      expect(firstResult.items).toHaveLength(10);
+      expect(firstResult.items[0].id).toBe('trace-0');
+      expect(firstResult.hasMore).toBe(true);
+
+      // Second page using cursor
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: mockTraces }),
+      });
+
+      const secondResult = await dataSource.listTraces({ limit: 10, cursor: firstResult.cursor });
+      expect(secondResult.items).toHaveLength(10);
+      expect(secondResult.items[0].id).toBe('trace-10');
+      expect(secondResult.hasMore).toBe(true);
+
+      // Third page
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: mockTraces }),
+      });
+
+      const thirdResult = await dataSource.listTraces({ limit: 10, cursor: secondResult.cursor });
+      expect(thirdResult.items).toHaveLength(5);
+      expect(thirdResult.items[0].id).toBe('trace-20');
+      expect(thirdResult.hasMore).toBe(false);
     });
 
     it('should fetch by sessionId when provided', async () => {
@@ -112,9 +161,9 @@ describe('HttpDataSource', () => {
 
       const result = await dataSource.listTraces({ sessionId: 'session-123' });
 
-      expect(result).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
       // Should extract values from nested data field
-      expect(result[0]).toEqual({
+      expect(result.items[0]).toEqual({
         id: 'trace-1',
         name: 'Session Trace',
         status: '2',
@@ -143,26 +192,44 @@ describe('HttpDataSource', () => {
   });
 
   describe('getTrace', () => {
-    it('should fetch a single trace by ID', async () => {
-      const mockTrace = {
+    const mockTrace = {
+      id: 'trace-1',
+      name: 'Test Trace',
+      spans: [],
+      data: {
         id: 'trace-1',
         name: 'Test Trace',
-        spans: [],
-        data: {
-          id: 'trace-1',
-          name: 'Test Trace',
-          status: '0',
-          latency: 100,
-          cost: 0.001,
-          tokens: 500,
-          start: 1704067200000,
-          end: 1704067201000,
-        },
-      };
+        status: '0',
+        latency: 100,
+        cost: 0.001,
+        tokens: 500,
+        start: 1704067200000,
+        end: 1704067201000,
+      },
+    };
 
+    const mockSpans = [
+      {
+        id: 'span-1',
+        name: 'Generation Span',
+        duration: 100,
+        timestamp: 1704067200000,
+        traceId: 'trace-1',
+        status: '0',
+        data: { type: 'GENERATION', model: 'claude-3-opus' },
+      },
+    ];
+
+    it('should fetch trace and spans by ID', async () => {
+      // First call - get trace
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ trace: mockTrace }),
+      });
+      // Second call - get spans
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ spans: mockSpans }),
       });
 
       const result = await dataSource.getTrace('trace-1');
@@ -171,8 +238,56 @@ describe('HttpDataSource', () => {
         'http://localhost:9418/v1/traces/trace-1',
         expect.any(Object)
       );
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/v1/spans?traceId=trace-1'),
+        expect.any(Object)
+      );
       expect(result).not.toBeNull();
-      expect(result?.id).toBe('trace-1');
+      expect(result?.trace.id).toBe('trace-1');
+      expect(result?.spans.items).toHaveLength(1);
+    });
+
+    it('should pass filters to span fetch', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace: mockTrace }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ spans: [mockSpans[0]] }),
+      });
+
+      await dataSource.getTrace('trace-1', {
+        filters: [{ field: 'status', operator: 'eq', value: '2' }],
+      });
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        expect.stringContaining('status=2'),
+        expect.any(Object)
+      );
+    });
+
+    it('should pass limit and cursor to span fetch', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace: mockTrace }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ spans: mockSpans }),
+      });
+
+      const cursor = Buffer.from(JSON.stringify({ offset: 10 })).toString('base64');
+      await dataSource.getTrace('trace-1', { limit: 5, cursor });
+
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        expect.stringContaining('limit=5'),
+        expect.any(Object)
+      );
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        expect.stringContaining('offset=10'),
+        expect.any(Object)
+      );
     });
 
     it('should return null for non-existent trace', async () => {
@@ -198,7 +313,23 @@ describe('HttpDataSource', () => {
     });
   });
 
-  describe('getSpans', () => {
+  describe('getTrace span filtering', () => {
+    const mockTrace = {
+      id: 'trace-1',
+      name: 'Test Trace',
+      spans: [],
+      data: {
+        id: 'trace-1',
+        name: 'Test Trace',
+        status: '0',
+        latency: 100,
+        cost: 0.001,
+        tokens: 500,
+        start: 1704067200000,
+        end: 1704067201000,
+      },
+    };
+
     const createMockSpans = () => [
       {
         id: 'span-1',
@@ -229,414 +360,148 @@ describe('HttpDataSource', () => {
       },
     ];
 
-    it('should fetch spans from /v1/spans with traceId', async () => {
+    // Helper to mock both trace and spans fetch
+    const mockTraceFetch = (spans = createMockSpans()) => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ spans: createMockSpans() }),
+        json: async () => ({ trace: mockTrace }),
       });
-
-      const result = await dataSource.getSpans({ traceId: 'trace-1' });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/v1/spans?traceId=trace-1'),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(3);
-      expect(result.hasMore).toBe(false);
-    });
-
-    it('should filter spans by status using server-side filtering', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ spans: [createMockSpans()[1]] }), // Only error span
+        json: async () => ({ spans }),
       });
+    };
 
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
+    it('should filter spans by status', async () => {
+      mockTraceFetch([createMockSpans()[1]]);
+
+      const result = await dataSource.getTrace('trace-1', {
         filters: [{ field: 'status', operator: 'eq', value: '2' }],
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('status=2'),
         expect.any(Object)
       );
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].id).toBe('span-2');
+      expect(result?.spans.items).toHaveLength(1);
+      expect(result?.spans.items[0].id).toBe('span-2');
     });
 
-    it('should filter spans by data.type using server-side filtering', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[0]] }), // Only GENERATION
-      });
+    it('should filter spans by data.type', async () => {
+      mockTraceFetch([createMockSpans()[0]]);
 
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
+      const result = await dataSource.getTrace('trace-1', {
         filters: [{ field: 'data.type', operator: 'eq', value: 'GENERATION' }],
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('type=GENERATION'),
         expect.any(Object)
       );
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].id).toBe('span-1');
+      expect(result?.spans.items).toHaveLength(1);
+      expect(result?.spans.items[0].id).toBe('span-1');
     });
 
     it('should filter spans by name with contains operator', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[0]] }), // Only "Generation" in name
-      });
+      mockTraceFetch([createMockSpans()[0]]);
 
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
+      const result = await dataSource.getTrace('trace-1', {
         filters: [{ field: 'name', operator: 'contains', value: 'Generation' }],
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('name=Generation'),
         expect.any(Object)
       );
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].id).toBe('span-1');
+      expect(result?.spans.items).toHaveLength(1);
     });
 
-    it('should filter spans by data.model with contains operator', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[0]] }), // Only claude model
-      });
+    it('should filter spans by data.model', async () => {
+      mockTraceFetch([createMockSpans()[0]]);
 
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
+      const result = await dataSource.getTrace('trace-1', {
         filters: [{ field: 'data.model', operator: 'contains', value: 'claude' }],
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('model=claude'),
         expect.any(Object)
       );
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].id).toBe('span-1');
+      expect(result?.spans.items).toHaveLength(1);
     });
 
-    it('should filter spans by duration with gt operator using server-side minDuration', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[2]] }), // Server returns filtered result
-      });
+    it('should filter spans by duration with gt operator', async () => {
+      mockTraceFetch([createMockSpans()[2]]);
 
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
+      const result = await dataSource.getTrace('trace-1', {
         filters: [{ field: 'duration', operator: 'gt', value: 100 }],
       });
 
-      // Should send minDuration to server
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('minDuration=100'),
         expect.any(Object)
       );
-      expect(result.items).toHaveLength(1);
+      expect(result?.spans.items).toHaveLength(1);
     });
 
-    it('should filter spans by duration with gte operator using server-side minDuration', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans().slice(0, 2) }),
-      });
+    it('should filter spans by duration with lt operator', async () => {
+      mockTraceFetch([createMockSpans()[1]]);
 
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
-        filters: [{ field: 'duration', operator: 'gte', value: 100 }],
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('minDuration=100'),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(2);
-    });
-
-    it('should filter spans by duration with lt operator using server-side maxDuration', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[1]] }),
-      });
-
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
+      const result = await dataSource.getTrace('trace-1', {
         filters: [{ field: 'duration', operator: 'lt', value: 100 }],
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('maxDuration=100'),
         expect.any(Object)
       );
-      expect(result.items).toHaveLength(1);
-    });
-
-    it('should filter spans by duration with lte operator using server-side maxDuration', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans().slice(0, 2) }),
-      });
-
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
-        filters: [{ field: 'duration', operator: 'lte', value: 100 }],
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('maxDuration=100'),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(2);
-    });
-
-    it('should apply limit parameter with server-side pagination', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans().slice(0, 2) }),
-      });
-
-      const result = await dataSource.getSpans({ traceId: 'trace-1', limit: 2 });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=2'),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(2);
-      expect(result.hasMore).toBe(true);
+      expect(result?.spans.items).toHaveLength(1);
     });
 
     it('should enforce MAX_LIMIT of 200 when limit exceeds it', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [] }),
-      });
+      mockTraceFetch([]);
 
-      await dataSource.getSpans({ traceId: 'trace-1', limit: 500 });
+      await dataSource.getTrace('trace-1', { limit: 500 });
 
-      // Should clamp to MAX_LIMIT (200)
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('limit=200'),
         expect.any(Object)
       );
     });
 
     it('should return cursor for pagination when hasMore is true', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans().slice(0, 2) }),
-      });
+      mockTraceFetch(createMockSpans().slice(0, 2));
 
-      const result = await dataSource.getSpans({ traceId: 'trace-1', limit: 2 });
+      const result = await dataSource.getTrace('trace-1', { limit: 2 });
 
-      expect(result.hasMore).toBe(true);
-      expect(result.cursor).toBeDefined();
-      expect(typeof result.cursor).toBe('string');
-    });
-
-    it('should use cursor to get next page', async () => {
-      // First page
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans().slice(0, 2) }),
-      });
-
-      const firstResult = await dataSource.getSpans({ traceId: 'trace-1', limit: 2 });
-      expect(firstResult.items).toHaveLength(2);
-      expect(firstResult.cursor).toBeDefined();
-
-      // Second page using cursor
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[2]] }),
-      });
-
-      const secondResult = await dataSource.getSpans({
-        traceId: 'trace-1',
-        limit: 2,
-        cursor: firstResult.cursor,
-      });
-
-      expect(mockFetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('offset=2'),
-        expect.any(Object)
-      );
-      expect(secondResult.items).toHaveLength(1);
-      expect(secondResult.hasMore).toBe(false);
-    });
-
-    it('should combine multiple filters with AND logic using server-side params', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [createMockSpans()[0], createMockSpans()[2]] }), // Server returns filtered
-      });
-
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
-        filters: [
-          { field: 'status', operator: 'eq', value: '0' },
-          { field: 'duration', operator: 'gte', value: 100 },
-        ],
-      });
-
-      // Should send both filters to server
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('status=0'),
-        expect.any(Object)
-      );
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('minDuration=100'),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(2);
-    });
-
-    it('should handle empty spans response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: [] }),
-      });
-
-      const result = await dataSource.getSpans({ traceId: 'trace-1' });
-
-      expect(result.items).toEqual([]);
-      expect(result.hasMore).toBe(false);
-    });
-
-    it('should handle invalid cursor gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans() }),
-      });
-
-      // Invalid base64 cursor should reset to offset 0
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
-        cursor: 'not-valid-base64!!!',
-      });
-
-      expect(result.items).toHaveLength(3);
-    });
-
-    it('should handle malformed JSON in cursor gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: createMockSpans() }),
-      });
-
-      // Valid base64 but invalid JSON should reset to offset 0
-      const invalidJsonCursor = Buffer.from('not json').toString('base64');
-      const result = await dataSource.getSpans({
-        traceId: 'trace-1',
-        cursor: invalidJsonCursor,
-      });
-
-      expect(result.items).toHaveLength(3);
+      expect(result?.spans.hasMore).toBe(true);
+      expect(result?.spans.cursor).toBeDefined();
     });
 
     it('should throw error for unsupported filter field', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace: mockTrace }),
+      });
+
       await expect(
-        dataSource.getSpans({
-          traceId: 'trace-1',
+        dataSource.getTrace('trace-1', {
           filters: [{ field: 'data.metadata.nested.value', operator: 'eq', value: 'found' }],
         })
       ).rejects.toThrow("Unsupported filter: field 'data.metadata.nested.value' with operator 'eq'");
     });
 
     it('should throw error for unsupported operator on duration field', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace: mockTrace }),
+      });
+
       await expect(
-        dataSource.getSpans({
-          traceId: 'trace-1',
+        dataSource.getTrace('trace-1', {
           filters: [{ field: 'duration', operator: 'eq', value: 100 }],
         })
       ).rejects.toThrow("Unsupported operator 'eq' for field 'duration'. Use gt, gte, lt, or lte.");
-    });
-
-    it('should throw error for unsupported operator on supported field', async () => {
-      await expect(
-        dataSource.getSpans({
-          traceId: 'trace-1',
-          filters: [{ field: 'status', operator: 'contains', value: '2' }],
-        })
-      ).rejects.toThrow("Unsupported filter: field 'status' with operator 'contains'");
-    });
-
-    // Cross-trace search tests (traceId omitted)
-    it('should fetch spans without traceId for cross-trace search', async () => {
-      const crossTraceSpans = [
-        { id: 'span-1', traceId: 'trace-1', name: 'Span from trace 1', status: '2' },
-        { id: 'span-2', traceId: 'trace-2', name: 'Span from trace 2', status: '2' },
-        { id: 'span-3', traceId: 'trace-3', name: 'Span from trace 3', status: '0' },
-      ];
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: crossTraceSpans }),
-      });
-
-      const result = await dataSource.getSpans({});
-
-      // Should NOT include traceId in URL params
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.not.stringContaining('traceId='),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(3);
-    });
-
-    it('should filter across all traces when traceId is omitted', async () => {
-      const errorSpans = [
-        { id: 'span-1', traceId: 'trace-1', status: '2' },
-        { id: 'span-2', traceId: 'trace-2', status: '2' },
-      ];
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ spans: errorSpans }),
-      });
-
-      const result = await dataSource.getSpans({
-        filters: [{ field: 'status', operator: 'eq', value: '2' }],
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('status=2'),
-        expect.any(Object)
-      );
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.not.stringContaining('traceId='),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(2);
-      // Spans come from different traces
-      expect(result.items[0].traceId).toBe('trace-1');
-      expect(result.items[1].traceId).toBe('trace-2');
-    });
-
-    it('should paginate cross-trace search results', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          spans: [
-            { id: 'span-1', traceId: 'trace-1' },
-            { id: 'span-2', traceId: 'trace-2' },
-          ],
-        }),
-      });
-
-      const result = await dataSource.getSpans({ limit: 2 });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=2'),
-        expect.any(Object)
-      );
-      expect(result.items).toHaveLength(2);
-      expect(result.hasMore).toBe(true);
-      expect(result.cursor).toBeDefined();
     });
   });
 
@@ -740,13 +605,20 @@ describe('HttpDataSource', () => {
 
       const result = await dataSource.listTraces();
 
-      expect(result).toEqual([]);
+      expect(result.items).toEqual([]);
+      expect(result.hasMore).toBe(false);
     });
 
     it('should URL-encode special characters in trace ID', async () => {
+      // First call - get trace
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ trace: { id: 'trace/with/slashes', name: 'Test', spans: [], data: {} } }),
+      });
+      // Second call - get spans
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ spans: [] }),
       });
 
       await dataSource.getTrace('trace/with/slashes');
@@ -783,8 +655,8 @@ describe('HttpDataSource', () => {
 
       const result = await dataSource.listTraces();
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual({
         id: 'minimal-trace',
         name: '',
         status: '0',
@@ -797,9 +669,14 @@ describe('HttpDataSource', () => {
         datasetPath: undefined,
         statusMessage: undefined,
       });
+      expect(result.hasMore).toBe(false);
     });
 
-    it('should handle spans with missing data field', async () => {
+    it('should handle spans with missing data field in getTrace', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace: { id: 'trace-1', name: 'Test', spans: [], data: {} } }),
+      });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -809,21 +686,25 @@ describe('HttpDataSource', () => {
         }),
       });
 
-      const result = await dataSource.getSpans({ traceId: 'trace-1' });
+      const result = await dataSource.getTrace('trace-1');
 
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].id).toBe('span-1');
+      expect(result?.spans.items).toHaveLength(1);
+      expect(result?.spans.items[0].id).toBe('span-1');
     });
 
-    it('should handle empty filters array', async () => {
+    it('should handle empty filters array in getTrace', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace: { id: 'trace-1', name: 'Test', spans: [], data: {} } }),
+      });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ spans: [{ id: 'span-1' }, { id: 'span-2' }] }),
       });
 
-      const result = await dataSource.getSpans({ traceId: 'trace-1', filters: [] });
+      const result = await dataSource.getTrace('trace-1', { filters: [] });
 
-      expect(result.items).toHaveLength(2);
+      expect(result?.spans.items).toHaveLength(2);
     });
   });
 });

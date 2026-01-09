@@ -11,7 +11,7 @@
 
 - Q: Should the server support multiple data source types or be tightly coupled to one? → A: Pluggable data sources - support both local traces and AM Cloud integration. MCP server initialized on `agentmark init`.
 - Q: How should the system handle errors (data source unavailable, malformed queries, corrupted data)? → A: Graceful degradation - return partial results where possible, clear error messages.
-- Q: What MCP tools should be exposed? → A: Three tools: `list_traces`, `get_trace`, `get_spans` (with filtering and pagination).
+- Q: What MCP tools should be exposed? → A: Two tools: `list_traces` (find traces with pagination), `get_trace` (trace details with span filtering and pagination). Original design called for 3 tools but `get_spans` was consolidated into `get_trace`.
 - Q: How should API authentication work for cloud? → A: Simple approach - single `AGENTMARK_URL` env var for data source, optional `AGENTMARK_API_KEY` env var for auth. If API key provided, include in requests; if not, no auth. No URL pattern detection or modes.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -75,7 +75,7 @@ As a developer monitoring system health, I want to list recent traces with optio
 **Acceptance Scenarios**:
 
 1. **Given** traces exist, **When** I request recent traces without filters, **Then** the most recent traces are returned in reverse chronological order
-2. **Given** traces exist, **When** I specify a time range, **Then** only traces within that range are returned
+2. **Given** traces exist, **When** I specify a sessionId or datasetRunId filter, **Then** only traces matching that filter are returned
 3. **Given** many traces exist, **When** I request recent traces, **Then** results are paginated or limited to a reasonable default count
 
 ---
@@ -127,7 +127,7 @@ As a developer working with traces that have many spans, I want to paginate thro
 
 ### Functional Requirements
 
-- **FR-001**: System MUST expose three MCP tools: `list_traces` (find traces), `get_trace` (trace summary), `get_spans` (spans with filtering and pagination, optional traceId for cross-trace search)
+- **FR-001**: System MUST expose two MCP tools: `list_traces` (find traces with pagination), `get_trace` (trace summary with span filtering and pagination via filters/cursor parameters)
 - **FR-002**: System MUST support filtering spans by the following standard attributes:
   - `status` (eq operator) - span status code ("0"=ok, "1"=warning, "2"=error)
   - `duration` (gt, gte, lt, lte operators) - span duration in milliseconds
@@ -150,7 +150,7 @@ As a developer working with traces that have many spans, I want to paginate thro
   - `contains` (case-insensitive substring): supported for `name`, `data.model`
 - **FR-013**: System MUST support pluggable data sources through an abstraction layer (HttpDataSource handles both local and AM Cloud via same API)
 - **FR-014**: System MUST provide initialization documentation as part of `agentmark init` workflow (README instructions for MCP server configuration)
-- **FR-015**: System MUST expose each tool capability as a separate MCP tool (three tools: list_traces, get_trace, get_spans)
+- **FR-015**: System MUST expose each tool capability as a separate MCP tool (two tools: list_traces, get_trace)
 - **FR-016**: System MUST implement graceful degradation - return partial results where possible and clear error messages for failures
 
 ### Key Entities
@@ -160,7 +160,7 @@ As a developer working with traces that have many spans, I want to paginate thro
 - **Span Attribute**: A key-value pair attached to a span. Keys are strings, values can be strings, numbers, booleans, or arrays. Used for custom context like user IDs, request parameters, or business data.
 - **Search Query**: A structured request specifying attribute filters, comparison operators, and result options (pagination, sorting).
 - **Paginated Result**: A response containing a subset of matching results along with metadata for navigating to additional pages (total count, cursor/offset, page size).
-- **MCP Tools**: Three exposed tools - `list_traces` (find recent traces with optional session/dataset filtering), `get_trace` (retrieve trace summary with status, latency, cost, tokens), `get_spans` (retrieve spans with filtering by any field and pagination). The `get_spans` tool accepts an optional `traceId` parameter - when provided, it scopes to one trace; when omitted, it searches across all traces. Supports filters with operators (eq, gt, gte, lt, lte, contains) enabling search by status, duration, type, model, traceId, or custom attributes.
+- **MCP Tools**: Two exposed tools - `list_traces` (find recent traces with optional session/dataset filtering and pagination), `get_trace` (retrieve trace summary with status, latency, cost, tokens, plus span filtering and pagination). The `get_trace` tool accepts filters and cursor parameters for span operations. Supports filters with operators (eq, gt, gte, lt, lte, contains) enabling search by status, duration, type, model, or custom attributes.
 
 ## Success Criteria *(mandatory)*
 

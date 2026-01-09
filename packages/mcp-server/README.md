@@ -112,52 +112,29 @@ For local development, this MCP server connects to the AgentMark CLI local API s
 
 ### `list_traces`
 
-List recent traces with metadata including IDs, names, status, latency, cost, and token counts.
+List recent traces with metadata including IDs, names, status, latency, cost, and token counts. Supports cursor-based pagination.
 
 **Parameters:**
 - `limit` (optional): Maximum traces to return (default: 50, max: 200)
 - `sessionId` (optional): Filter by session ID
 - `datasetRunId` (optional): Filter by dataset run ID
+- `cursor` (optional): Pagination cursor from previous response
 
 **Returns:**
 ```json
 {
   "items": [...],
-  "total": 42,
-  "hasMore": false
+  "cursor": "eyJvZmZzZXQiOjUwfQ==",
+  "hasMore": true
 }
 ```
 
 ### `get_trace`
 
-Get trace summary including status, latency, cost, and token counts. Use this to understand overall trace health before drilling into spans.
+Get trace summary with filtered/paginated spans. Includes trace metadata (status, latency, cost, tokens) and spans matching your filters.
 
 **Parameters:**
 - `traceId` (required): The trace ID to retrieve
-
-**Returns:**
-```json
-{
-  "trace": {
-    "id": "trace-123",
-    "name": "my-trace",
-    "spans": [...],
-    "data": {
-      "status": "0",
-      "latency": 1234,
-      "cost": 0.05,
-      "tokens": 500
-    }
-  }
-}
-```
-
-### `get_spans`
-
-Get spans with filtering and pagination. Provide `traceId` to scope to one trace, or omit for cross-trace search. Use filters to find specific spans (errors, slow operations, specific types).
-
-**Parameters:**
-- `traceId` (optional): Scope to a specific trace. Omit for cross-trace search.
 - `filters` (optional): Array of filter objects with `field`, `operator`, and `value`
 - `limit` (optional): Results per page (default: 50, max: 200)
 - `cursor` (optional): Pagination cursor from previous response
@@ -174,18 +151,20 @@ Get spans with filtering and pagination. Provide `traceId` to scope to one trace
 
 **Note:** Duration filters use `>=` for `gt`/`gte` and `<=` for `lt`/`lte` at the database level.
 
-**Example - Find error spans:**
+**Example - Get trace with error spans:**
 ```json
 {
+  "traceId": "trace-123",
   "filters": [
     { "field": "status", "operator": "eq", "value": "2" }
   ]
 }
 ```
 
-**Example - Find slow LLM generations:**
+**Example - Find slow LLM generations in a trace:**
 ```json
 {
+  "traceId": "trace-123",
   "filters": [
     { "field": "data.type", "operator": "eq", "value": "GENERATION" },
     { "field": "duration", "operator": "gt", "value": 5000 }
@@ -193,23 +172,26 @@ Get spans with filtering and pagination. Provide `traceId` to scope to one trace
 }
 ```
 
-**Example - Cross-trace search for Claude models:**
-```json
-{
-  "filters": [
-    { "field": "data.model", "operator": "contains", "value": "claude" }
-  ]
-}
-```
-
 **Returns:**
 ```json
 {
-  "items": [...],
-  "cursor": "eyJvZmZzZXQiOjUwfQ==",
-  "hasMore": true
+  "trace": {
+    "id": "trace-123",
+    "name": "my-trace",
+    "spans": [],
+    "data": {
+      "status": "0",
+      "latency": 1234,
+      "cost": 0.05,
+      "tokens": 500
+    }
+  },
+  "spans": {
+    "items": [...],
+    "cursor": "eyJvZmZzZXQiOjUwfQ==",
+    "hasMore": true
+  }
 }
-```
 
 ## Error Handling
 

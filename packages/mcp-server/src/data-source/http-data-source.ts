@@ -4,7 +4,8 @@ import type {
   TraceData,
   SpanData,
   ListTracesOptions,
-  GetSpansOptions,
+  GetTraceOptions,
+  TraceResult,
   PaginatedResult,
 } from './types.js';
 
@@ -134,8 +135,23 @@ export class HttpDataSource implements DataSource {
     };
   }
 
-  async listTraces(options?: ListTracesOptions): Promise<TraceListItem[]> {
-    let traces: TraceListItem[];
+  async listTraces(options?: ListTracesOptions): Promise<PaginatedResult<TraceListItem>> {
+    const { limit = DEFAULT_LIMIT, cursor } = options || {};
+    const effectiveLimit = Math.min(limit, MAX_LIMIT);
+
+    // Decode cursor for pagination offset
+    let offset = 0;
+    if (cursor) {
+      try {
+        const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
+        offset = decoded.offset || 0;
+      } catch {
+        // Invalid cursor, start from beginning
+        offset = 0;
+      }
+    }
+
+    let allTraces: TraceListItem[];
 
     if (options?.sessionId) {
       // Use session-specific endpoint
@@ -143,39 +159,51 @@ export class HttpDataSource implements DataSource {
         `/v1/sessions/${encodeURIComponent(options.sessionId)}/traces`
       );
       // Session traces come in full format, extract summary
-      traces = result.traces.map((t) => this.mapToTraceListItem(t, true));
+      allTraces = result.traces.map((t) => this.mapToTraceListItem(t, true));
     } else if (options?.datasetRunId) {
       // Use run-specific endpoint
       const result = await this.fetch<ApiTracesResponse>(
         `/v1/runs/${encodeURIComponent(options.datasetRunId)}/traces`
       );
-      traces = result.traces.map((t) => this.mapToTraceListItem(t));
+      allTraces = result.traces.map((t) => this.mapToTraceListItem(t));
     } else {
       // Use general traces endpoint
       const result = await this.fetch<ApiTracesResponse>('/v1/traces');
-      traces = result.traces.map((t) => this.mapToTraceListItem(t));
+      allTraces = result.traces.map((t) => this.mapToTraceListItem(t));
     }
 
-    // Apply limit if specified
-    if (options?.limit && options.limit > 0) {
-      traces = traces.slice(0, options.limit);
+    // Apply client-side pagination (API doesn't support limit/offset for traces)
+    const paginatedTraces = allTraces.slice(offset, offset + effectiveLimit);
+    const hasMore = offset + effectiveLimit < allTraces.length;
+
+    // Generate next cursor if there are more results
+    let nextCursor: string | undefined;
+    if (hasMore) {
+      nextCursor = Buffer.from(
+        JSON.stringify({ offset: offset + effectiveLimit })
+      ).toString('base64');
     }
 
-    return traces;
+    return {
+      items: paginatedTraces,
+      cursor: nextCursor,
+      hasMore,
+    };
   }
 
-  async getTrace(traceId: string): Promise<TraceData | null> {
+  async getTrace(traceId: string, options?: GetTraceOptions): Promise<TraceResult | null> {
     try {
-      const result = await this.fetch<ApiTraceResponse>(
+      // Fetch trace data
+      const traceResult = await this.fetch<ApiTraceResponse>(
         `/v1/traces/${encodeURIComponent(traceId)}`
       );
 
-      if (!result.trace) {
+      if (!traceResult.trace) {
         return null;
       }
 
-      const t = result.trace;
-      return {
+      const t = traceResult.trace;
+      const traceData: TraceData = {
         id: t.id,
         name: t.name || '',
         spans: t.spans || [],
@@ -190,6 +218,14 @@ export class HttpDataSource implements DataSource {
           end: t.data?.end || 0,
           status_message: t.data?.status_message,
         },
+      };
+
+      // Fetch filtered/paginated spans
+      const spans = await this.fetchSpans(traceId, options);
+
+      return {
+        trace: traceData,
+        spans,
       };
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -207,8 +243,12 @@ export class HttpDataSource implements DataSource {
     }
   }
 
-  async getSpans(options: GetSpansOptions): Promise<PaginatedResult<SpanData>> {
-    const { traceId, filters = [], limit = DEFAULT_LIMIT, cursor } = options;
+  /**
+   * Fetch spans with filtering and pagination
+   * @internal
+   */
+  private async fetchSpans(traceId: string, options?: GetTraceOptions): Promise<PaginatedResult<SpanData>> {
+    const { filters = [], limit = DEFAULT_LIMIT, cursor } = options || {};
     const effectiveLimit = Math.min(limit, MAX_LIMIT);
 
     // Decode cursor for pagination offset
@@ -225,11 +265,7 @@ export class HttpDataSource implements DataSource {
 
     // Build query params for server-side filtering
     const params = new URLSearchParams();
-
-    // traceId is optional - when provided, scopes to one trace; when omitted, searches across all traces
-    if (traceId) {
-      params.set('traceId', traceId);
-    }
+    params.set('traceId', traceId);
 
     // Map filters to server-side query params
     for (const filter of filters) {
@@ -244,12 +280,8 @@ export class HttpDataSource implements DataSource {
       } else if (filter.field === 'duration') {
         // Map duration filters to minDuration/maxDuration
         if (filter.operator === 'gt' || filter.operator === 'gte') {
-          // For gt, we use the value as minDuration (API uses >=)
-          // For gte, same behavior
           params.set('minDuration', String(filter.value));
         } else if (filter.operator === 'lt' || filter.operator === 'lte') {
-          // For lt, we use the value as maxDuration (API uses <=)
-          // For lte, same behavior
           params.set('maxDuration', String(filter.value));
         } else {
           throw new Error(`Unsupported operator '${filter.operator}' for field 'duration'. Use gt, gte, lt, or lte.`);

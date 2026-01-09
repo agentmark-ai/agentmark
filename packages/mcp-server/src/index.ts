@@ -11,6 +11,8 @@ export type {
   ComparisonOperator,
   SpanFilter,
   GetSpansOptions,
+  GetTraceOptions,
+  TraceResult,
   PaginatedResult,
   ErrorCode,
   ErrorResponse,
