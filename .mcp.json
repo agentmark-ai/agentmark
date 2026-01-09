@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agentmark-traces": {
+      "command": "node",
+      "args": ["packages/mcp-server/dist/bin.js"],
+      "env": {
+        "AGENTMARK_URL": "http://localhost:9418"
+      }
+    }
+  }
+}
