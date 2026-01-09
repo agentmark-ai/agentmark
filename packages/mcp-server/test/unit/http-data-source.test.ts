@@ -1,7 +1,28 @@
+/**
+ * HttpDataSource Unit Tests
+ *
+ * Per the constitution (IV. Testability - Test Value Requirements):
+ * These tests provide ACTUAL VALUE because they test real logic:
+ *
+ * 1. URL construction - Tests that correct endpoints are called
+ * 2. Cursor encoding/decoding - Tests pagination round-trips
+ * 3. Data mapping - Tests transformation of API responses
+ * 4. Error handling - Tests error classification and messages
+ * 5. Filter mapping - Tests that filters become correct query params
+ * 6. MAX_LIMIT enforcement - Tests business rule enforcement
+ *
+ * Why mocking fetch is acceptable here:
+ * - We can't make real HTTP calls in unit tests (they'd be flaky/slow)
+ * - The REAL logic being tested is inside HttpDataSource
+ * - Integration tests in integration.test.ts cover actual HTTP
+ *
+ * These are NOT low-value mock tests because we're testing the
+ * code's LOGIC, not just "did it call the mock with X".
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { HttpDataSource } from '../src/data-source/http-data-source.js';
+import { HttpDataSource } from '../../src/data-source/http-data-source.js';
 
-// Mock fetch globally
+// Mock fetch globally - acceptable because we test logic, not HTTP itself
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
@@ -593,6 +614,92 @@ describe('HttpDataSource', () => {
           },
         })
       );
+    });
+  });
+
+  describe('cursor round-trip serialization', () => {
+    /**
+     * Per constitution: "Cursor/pagination logic MUST be tested with round-trip serialization"
+     * These tests verify that cursors work correctly through multiple pages.
+     */
+    it('should produce cursor that correctly advances to next page', async () => {
+      const allTraces = Array.from({ length: 30 }, (_, i) => ({
+        id: `trace-${i}`,
+        name: `Trace ${i}`,
+        status: '0',
+      }));
+
+      // Page 1
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: allTraces }),
+      });
+      const page1 = await dataSource.listTraces({ limit: 10 });
+
+      // Verify cursor is valid base64 JSON
+      expect(page1.cursor).toBeDefined();
+      const decoded1 = JSON.parse(Buffer.from(page1.cursor!, 'base64').toString('utf-8'));
+      expect(decoded1.offset).toBe(10);
+
+      // Page 2 - using cursor from page 1
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: allTraces }),
+      });
+      const page2 = await dataSource.listTraces({ limit: 10, cursor: page1.cursor });
+
+      // Verify we got different traces
+      expect(page2.items[0].id).toBe('trace-10'); // Should start at offset 10
+      expect(page2.items[9].id).toBe('trace-19');
+
+      // Verify next cursor advances further
+      const decoded2 = JSON.parse(Buffer.from(page2.cursor!, 'base64').toString('utf-8'));
+      expect(decoded2.offset).toBe(20);
+    });
+
+    it('should handle invalid cursor gracefully by starting from beginning', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: [{ id: 'trace-0' }, { id: 'trace-1' }] }),
+      });
+
+      // Invalid base64
+      const result1 = await dataSource.listTraces({ cursor: 'not-valid-base64!!!' });
+      expect(result1.items[0].id).toBe('trace-0');
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: [{ id: 'trace-0' }, { id: 'trace-1' }] }),
+      });
+
+      // Valid base64 but invalid JSON
+      const result2 = await dataSource.listTraces({
+        cursor: Buffer.from('not json').toString('base64'),
+      });
+      expect(result2.items[0].id).toBe('trace-0');
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: [{ id: 'trace-0' }, { id: 'trace-1' }] }),
+      });
+
+      // Valid JSON but missing offset
+      const result3 = await dataSource.listTraces({
+        cursor: Buffer.from('{"wrong":"format"}').toString('base64'),
+      });
+      expect(result3.items[0].id).toBe('trace-0');
+    });
+
+    it('should return undefined cursor when no more pages', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ traces: [{ id: 'trace-0' }] }),
+      });
+
+      const result = await dataSource.listTraces({ limit: 10 });
+
+      expect(result.hasMore).toBe(false);
+      expect(result.cursor).toBeUndefined();
     });
   });
 

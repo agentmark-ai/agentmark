@@ -12,7 +12,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run test/unit",
+    "test:integration": "RUN_INTEGRATION_TESTS=true vitest run test/integration"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",

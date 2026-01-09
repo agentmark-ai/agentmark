@@ -1,10 +1,10 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.0.0 → 1.1.0
+Version Change: 1.1.0 → 1.2.0
 Modified Principles:
   - III. Type Safety: Added Strict Typing Requirements subsection
-  - IV. Testability: Added Test Coverage Requirements and Test Anti-patterns subsections
+  - IV. Testability: Added Test Value Requirements, Test Organization, Integration Test Requirements
 Added Sections:
   - Technology Standards > Security Standards (SQL/Database Query Safety, Input Validation)
   - Development Workflow > Code Review Requirements > Security Review Checklist
@@ -74,6 +74,71 @@ Every prompt and agent workflow MUST be independently testable:
 - CLI supports running experiments directly for rapid iteration
 - Test props enable local execution without external dependencies
 
+#### Test Value Requirements
+
+Tests MUST provide actual value by testing real behavior:
+
+- **Test outcomes, not implementation**: Verify what the code does, not how it does it
+- **Test real logic**: URL construction, data transformation, error classification, cursor encoding
+- **Avoid mock-only tests**: Tests that only verify "mock was called with X" are LOW VALUE
+- **Mocking is acceptable when**: Testing logic that uses the mock (e.g., mock HTTP to test URL construction)
+
+**Example - Low Value Test** (just verifies mock wiring):
+```typescript
+// ❌ Only checks that mock was called - catches no real bugs
+it('should call dataSource', async () => {
+  await handler({});
+  expect(mockDataSource.listTraces).toHaveBeenCalled();
+});
+```
+
+**Example - High Value Test** (tests real logic):
+```typescript
+// ✅ Tests actual error classification logic
+it('should classify timeout errors as TIMEOUT', async () => {
+  mockDataSource.listTraces.mockRejectedValue(new Error('Request timeout'));
+  const result = await handler({});
+  expect(JSON.parse(result.content[0].text).code).toBe('TIMEOUT');
+});
+```
+
+#### Test Organization
+
+Tests MUST be separated by type with clear directory structure:
+
+```
+test/
+├── unit/           # Fast, isolated tests (no external dependencies)
+│   ├── *.test.ts   # Test files for pure logic
+│   └── ...
+└── integration/    # Tests requiring external services
+    ├── *.test.ts   # Test files requiring servers, databases, etc.
+    └── ...
+```
+
+**Separation Rules**:
+- **Unit tests** (`test/unit/`): Run with `npm test`, no servers or databases required
+- **Integration tests** (`test/integration/`): Run with `npm run test:integration`, may require services
+- Tests MUST NOT be placed in wrong directory (unit tests requiring servers, integration tests that don't)
+- Each test file SHOULD contain only one type of test
+
+**Package.json Convention**:
+```json
+{
+  "scripts": {
+    "test": "vitest run test/unit",
+    "test:integration": "RUN_INTEGRATION_TESTS=true vitest run test/integration"
+  }
+}
+```
+
+#### Integration Test Requirements
+
+- Integration tests MUST run in CI (not be silently skipped)
+- CI MUST start required services before running integration tests
+- Integration tests SHOULD fail fast with clear error messages when services unavailable
+- Integration tests MUST NOT silently skip when dependencies missing (creates false confidence)
+
 #### Test Coverage Requirements
 
 - Security-critical code paths (SQL queries, auth, input validation) MUST have explicit unit tests
@@ -86,10 +151,14 @@ Every prompt and agent workflow MUST be independently testable:
 - Tests MUST NOT only verify that mocks were called correctly without testing real behavior
 - Cursor/pagination logic MUST be tested with round-trip serialization
 - Query-building code MUST be tested with actual database queries, not just string assertions
+- Unit tests MUST NOT be placed in integration test directories (they won't run by default)
+- Tests MUST NOT use `skipIf` for missing services without CI ensuring services exist
 
 **Rationale**: Testability enables confidence in prompt changes and supports continuous
 integration workflows for AI applications. Mock-heavy tests create false confidence;
 security and data-access code requires integration tests that verify actual behavior.
+Clear test separation ensures fast feedback during development while maintaining
+comprehensive coverage in CI.
 
 ### V. Composability
 
@@ -207,4 +276,4 @@ plans. Amendments follow this process:
 - MINOR: New principle or significant guidance expansion
 - PATCH: Clarifications, typos, non-semantic refinements
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-10 | **Last Amended**: 2026-01-09
+**Version**: 1.2.0 | **Ratified**: 2025-12-10 | **Last Amended**: 2026-01-09
