@@ -1,0 +1,31 @@
+---
+name: text-with-tools-prompt
+text_config:
+  model_name: claude-sonnet-4-20250514
+  tools:
+    search:
+      description: Search the web
+      parameters:
+        type: object
+        properties:
+          query:
+            type: string
+            description: Search query
+        required:
+          - query
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful assistant with search capabilities.
+</System>
+
+<User>
+{props.userMessage}
+</User>

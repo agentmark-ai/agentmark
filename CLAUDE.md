@@ -7,6 +7,9 @@ Auto-generated from all feature plans. Last updated: 2025-12-11
 - SQLite (CLI/local) and ClickHouse (Cloud) - solution must be database-agnostic (001-auto-graph-nodes)
 - TypeScript 5.x + @xyflow/react 12.9.0, dagre 0.8.5, React 19.1.0, MUI 7.x (001-auto-graph-nodes)
 - N/A (frontend-only transformation; reads existing span data) (001-auto-graph-nodes)
+- TypeScript 5.6.2+ (005-claude-agent-sdk-adapter)
+- N/A (stateless adapter) (005-claude-agent-sdk-adapter)
+- TypeScript 5.6.2+ + @anthropic-ai/claude-agent-sdk, @opentelemetry/api, @opentelemetry/sdk-trace-base, zod (005-claude-agent-sdk-adapter)
 
 - TypeScript 5.x + @xyflow/react 12.9.0 (React Flow), dagre 0.8.5, React 19.1.0, MUI 7.x (001-auto-graph-nodes)
 
@@ -26,9 +29,9 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 005-claude-agent-sdk-adapter: Added TypeScript 5.6.2+ + @anthropic-ai/claude-agent-sdk, @opentelemetry/api, @opentelemetry/sdk-trace-base, zod
+- 005-claude-agent-sdk-adapter: Added TypeScript 5.6.2+
 - 001-auto-graph-nodes: Added TypeScript 5.x + @xyflow/react 12.9.0, dagre 0.8.5, React 19.1.0, MUI 7.x
-- 001-auto-graph-nodes: Added TypeScript 5.x + @xyflow/react 12.9.0, dagre 0.8.5, React 19.1.0, MUI 7.x
-- 001-auto-graph-nodes: Added TypeScript 5.x + @xyflow/react 12.9.0 (React Flow), dagre 0.8.5, React 19.1.0, MUI 7.x
 
 
 <!-- MANUAL ADDITIONS START -->

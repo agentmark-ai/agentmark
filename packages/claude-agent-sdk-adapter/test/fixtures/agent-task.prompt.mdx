@@ -1,0 +1,21 @@
+---
+name: agent-task
+text_config:
+  model_name: claude-sonnet-4-20250514
+  max_calls: 10
+input_schema:
+  type: object
+  properties:
+    task:
+      type: string
+  required:
+    - task
+---
+
+<System>
+You are an autonomous coding assistant. Complete the task given by the user.
+</System>
+
+<User>
+{props.task}
+</User>

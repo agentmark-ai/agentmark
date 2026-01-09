@@ -1,0 +1,27 @@
+---
+name: text-prompt
+text_config:
+  model_name: claude-sonnet-4-20250514
+test_settings:
+  dataset: text.dataset.jsonl
+  evals: [exact_match]
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful assistant.
+</System>
+
+<User>
+{props.userMessage}
+</User>
+
+<Assistant>
+Here's your response!
+</Assistant>

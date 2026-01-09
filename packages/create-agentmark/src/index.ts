@@ -60,18 +60,6 @@ const main = async () => {
     language = response.language;
   }
 
-  config.builtInModels = ['gpt-4o'];
-
-  // Prompt only for the OpenAI API key
-  let apiKey = "";
-  const { providedApiKey } = await prompts({
-    name: "providedApiKey",
-    type: "password",
-    message: `Enter your OpenAI API key (or press Enter to skip):`,
-    initial: "",
-  });
-  apiKey = providedApiKey || "";
-
   // Adapter selection depends on language
   let adapter: string;
   if (language === "python") {
@@ -85,11 +73,28 @@ const main = async () => {
       message: "Which adapter would you like to use?",
       choices: [
         { title: "AI SDK (Vercel)", value: "ai-sdk" },
+        { title: "Claude Agent SDK", value: "claude-agent-sdk" },
         { title: "Mastra", value: "mastra" },
       ],
     });
     adapter = response.adapter;
   }
+
+  // Set built-in models based on adapter
+  config.builtInModels = adapter === 'claude-agent-sdk'
+    ? ['claude-sonnet-4-20250514']
+    : ['gpt-4o'];
+
+  // Prompt for API key based on adapter
+  const apiKeyName = adapter === 'claude-agent-sdk' ? 'Anthropic' : 'OpenAI';
+  let apiKey = "";
+  const { providedApiKey } = await prompts({
+    name: "providedApiKey",
+    type: "password",
+    message: `Enter your ${apiKeyName} API key (or press Enter to skip):`,
+    initial: "",
+  });
+  apiKey = providedApiKey || "";
 
   let deploymentMode = cliArgs.deploymentMode;
   if (!deploymentMode) {
