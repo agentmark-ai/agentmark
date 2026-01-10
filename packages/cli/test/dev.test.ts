@@ -211,7 +211,7 @@ describe('agentmark dev', () => {
         }
 
         // Test API server /v1/prompts endpoint
-        const listResp = await fetch(`http://localhost:${apiPort}/v1/prompts`);
+        const listResp = await fetch(`http://127.0.0.1:${apiPort}/v1/prompts`);
         if (!listResp.ok) {
           const errorText = await listResp.text();
           console.log(`Response status: ${listResp.status}, body: ${errorText}`);
@@ -222,7 +222,7 @@ describe('agentmark dev', () => {
         expect(paths.length).toBeGreaterThan(0);
 
         // Test /v1/templates dataset endpoint
-        const dsResp = await fetch(`http://localhost:${apiPort}/v1/templates?path=demo.jsonl`);
+        const dsResp = await fetch(`http://127.0.0.1:${apiPort}/v1/templates?path=demo.jsonl`);
         expect(dsResp.ok).toBe(true);
         const text = await dsResp.text();
         expect(text.trim().length).toBeGreaterThan(0);
@@ -283,7 +283,7 @@ describe('agentmark dev', () => {
         expect(stdout).not.toContain('Using custom dev-server.ts');
 
         // Verify server started
-        const serverReady = await waitForServer(`http://localhost:${apiPort}/v1/prompts`);
+        const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
         expect(serverReady).toBe(true);
       } finally {
         // Ensure process is cleaned up even if test fails
@@ -332,7 +332,7 @@ describe('agentmark dev', () => {
         await wait(SERVER_STARTUP_WAIT_MS);
 
         // Test that server is running on custom port
-        const resp = await fetch(`http://localhost:${customApiPort}/v1/prompts`);
+        const resp = await fetch(`http://127.0.0.1:${customApiPort}/v1/prompts`);
         expect(resp.ok).toBe(true);
       } finally {
         // Ensure process is cleaned up even if test fails
