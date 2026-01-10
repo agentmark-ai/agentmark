@@ -148,7 +148,7 @@ export async function getRawConfig({
       extractedFields,
     });
 
-    if (configType === "speech" && speechSettings && prompt) {
+    if (configType === "speech" && speechSettings) {
       return {
         name,
         speech_config: {
@@ -160,8 +160,8 @@ export async function getRawConfig({
         ...(agentmarkMeta && { agentmark_meta: agentmarkMeta }),
       };
     }
-    
-    if (configType === "image" && imageSettings && prompt) {
+
+    if (configType === "image" && imageSettings) {
       return {
         name,
         image_config: {
