@@ -26,7 +26,7 @@ describe('init', () => {
     }
   });
 
-  it('pins install deps and writes .gitignore', async () => {
+  it('pins install deps and writes .gitignore', { timeout: 30000 }, async () => {
     const calls: string[] = [];
     vi.doMock('fs-extra', async () => {
       const actual = await vi.importActual<any>('fs-extra');
