@@ -9,11 +9,11 @@
  *
  * REQUIREMENTS:
  * - CLI server must be running on TEST_PORT (default: 9419)
- * - Test data must be seeded (run scripts/seed-test-data.sh)
+ * - Test data must be seeded (run node ../../scripts/seed-test-data.js)
  *
  * Local development:
  *   Terminal 1: cd packages/cli && AGENTMARK_PORT=9419 npm run dev
- *   Terminal 2: ./scripts/seed-test-data.sh 9419
+ *   Terminal 2: node scripts/seed-test-data.js 9419  (from repo root)
  *   Terminal 3: npm run test:integration
  *
  * CI runs these automatically after starting the CLI server and seeding data.
@@ -24,7 +24,7 @@ import { HttpDataSource } from '../../src/data-source/http-data-source.js';
 const TEST_PORT = Number(process.env.INTEGRATION_TEST_PORT) || 9419;
 const TEST_URL = `http://localhost:${TEST_PORT}`;
 
-// Expected values from seed-test-data.sh
+// Expected values from seed-test-data.js
 // Note: CLI uses span name for trace name, not agentmark.trace.name attribute
 const SEED_TRACE_ID = 'd4cda95b652f4a1592b449d5929fda1b';
 const SEED_TRACE_NAME = 'integration-test-trace'; // Root span name becomes trace name

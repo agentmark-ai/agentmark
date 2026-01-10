@@ -208,6 +208,7 @@ __metadata:
     "@agentmark-ai/eslint-config": "npm:*"
     "@modelcontextprotocol/sdk": "npm:^1.11.0"
     "@types/node": "npm:^20"
+    cross-env: "npm:^7.0.3"
     eslint: "npm:^9"
     tsup: "npm:^8.5.1"
     typescript: "npm:^5"

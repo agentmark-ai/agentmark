@@ -39,31 +39,12 @@ jobs:
       - name: Test (Unit)
         run: yarn test
 
-      # Integration tests only run on Ubuntu (requires bash scripts and server)
+      # Integration tests run on both Ubuntu and Windows
       - name: Start API Server for Integration Tests
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          node -e "require('./packages/cli/dist/api-server.js').createApiServer(9419).then(() => console.log('API server started'))" &
-          # Wait for server to be ready (fail fast if it doesn't start)
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
-              echo "API server is ready"
-              break
-            fi
-            echo "Waiting for API server... ($i/30)"
-            sleep 1
-          done
-          if ! curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
-            echo "ERROR: API server failed to start within 30 seconds"
-            exit 1
-          fi
-        shell: bash
+        run: node scripts/start-test-server.js 9419
 
       - name: Seed Integration Test Data
-        if: matrix.os == 'ubuntu-latest'
-        run: ./packages/mcp-server/scripts/seed-test-data.sh 9419
-        shell: bash
+        run: node scripts/seed-test-data.js 9419
 
       - name: Test (Integration)
-        if: matrix.os == 'ubuntu-latest'
         run: yarn workspace @agentmark-ai/mcp-server test:integration

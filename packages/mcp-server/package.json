@@ -22,6 +22,7 @@
   "devDependencies": {
     "@agentmark-ai/eslint-config": "*",
     "@types/node": "^20",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "tsup": "^8.5.1",
     "typescript": "^5",
