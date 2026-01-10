@@ -129,7 +129,9 @@ function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
   tmpDirs.length = 0;
 }
 
-describe('agentmark dev', () => {
+// Skip on Windows: these integration tests spawn subprocesses with symlinked node_modules
+// which can be flaky on Windows CI due to symlink permissions and process management differences
+describe.skipIf(process.platform === 'win32')('agentmark dev', () => {
   const processes: ChildProcess[] = [];
   const tmpDirs: string[] = [];
 
