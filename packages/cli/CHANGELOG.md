@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- a4a1d95: Support mcp server
+
 ## 0.2.0
 
 ### Minor Changes
