@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "node ../../scripts/setup-python-venv.js -e .[dev]",
+    "postinstall": "node ../../scripts/setup-python-venv.js -e \".[dev]\"",
     "test": "node ../../scripts/run-venv.js pytest",
     "test:watch": "node ../../scripts/run-venv.js pytest --watch",
     "lint": "node ../../scripts/run-venv.js ruff check src tests || echo Skipping lint: venv not set up",
