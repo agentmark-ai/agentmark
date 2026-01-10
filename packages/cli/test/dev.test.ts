@@ -105,24 +105,52 @@ async function waitForServer(
   return false;
 }
 
+function killProcessTree(pid: number) {
+  try {
+    if (IS_WINDOWS) {
+      // On Windows, use taskkill to kill the process tree
+      try { spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)]); } catch {}
+    } else {
+      // On Unix, kill the entire process group using negative PID
+      try { process.kill(-pid, 'SIGKILL'); } catch {}
+      // Also use pkill as backup to kill any child processes
+      try { spawnSync('pkill', ['-9', '-P', String(pid)]); } catch {}
+    }
+    // Finally kill the main process directly
+    try { process.kill(pid, 'SIGKILL'); } catch {}
+  } catch {}
+}
+
+async function safeRmDir(dir: string, maxRetries = 5, delayMs = 500) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+      return;
+    } catch (e: any) {
+      if (e.code === 'EBUSY' || e.code === 'ENOTEMPTY' || e.code === 'EPERM') {
+        // Wait and retry on Windows file locking issues
+        await wait(delayMs);
+      } else {
+        throw e;
+      }
+    }
+  }
+  // Final attempt
+  try {
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  } catch {}
+}
+
 function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
   // Kill all spawned processes and their children
   for (const proc of processes) {
-    try {
-      if (proc.pid) {
-        if (IS_WINDOWS) {
-          // On Windows, use taskkill to kill the process tree
-          try { spawnSync('taskkill', ['/F', '/T', '/PID', String(proc.pid)]); } catch {}
-        } else {
-          // On Unix, kill the entire process group using negative PID
-          try { process.kill(-proc.pid, 'SIGKILL'); } catch {}
-          // Also use pkill as backup to kill any child processes
-          try { spawnSync('pkill', ['-9', '-P', String(proc.pid)]); } catch {}
-        }
-        // Finally kill the main process directly
-        try { process.kill(proc.pid, 'SIGKILL'); } catch {}
-      }
-    } catch {}
+    if (proc.pid) {
+      killProcessTree(proc.pid);
+    }
   }
   processes.length = 0;
 
@@ -237,16 +265,14 @@ describe('agentmark dev', () => {
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
-          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-          try { spawnSync('pkill', ['-9', '-P', String(child.pid)]); } catch {}
-          try { process.kill(child.pid, 'SIGKILL'); } catch {}
+          killProcessTree(child.pid);
         }
+        // Wait for processes to fully terminate on Windows
+        await wait(PROCESS_CLEANUP_WAIT_MS);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+      await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
 
@@ -296,16 +322,14 @@ describe('agentmark dev', () => {
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
-          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-          try { spawnSync('pkill', ['-9', '-P', String(child.pid)]); } catch {}
-          try { process.kill(child.pid, 'SIGKILL'); } catch {}
+          killProcessTree(child.pid);
         }
+        // Wait for processes to fully terminate on Windows
+        await wait(PROCESS_CLEANUP_WAIT_MS);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+      await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
 
@@ -345,16 +369,14 @@ describe('agentmark dev', () => {
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
-          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-          try { spawnSync('pkill', ['-9', '-P', String(child.pid)]); } catch {}
-          try { process.kill(child.pid, 'SIGKILL'); } catch {}
+          killProcessTree(child.pid);
         }
+        // Wait for processes to fully terminate on Windows
+        await wait(PROCESS_CLEANUP_WAIT_MS);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+      await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
 });
