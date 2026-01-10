@@ -1,18 +1,16 @@
 import { describe, it, expect, afterEach, afterAll } from 'vitest';
-import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess } from 'node:child_process';
 import net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
-
-// Constants - Windows needs more time for process spawning and server startup
-const IS_WINDOWS = process.platform === 'win32';
-const SERVER_STARTUP_WAIT_MS = IS_WINDOWS ? 8000 : 3000; // Time for dev servers to fully start
-const PROCESS_CLEANUP_WAIT_MS = IS_WINDOWS ? 1000 : 500; // Time for processes to terminate
-const SERVER_READY_CHECK_MAX_ATTEMPTS = IS_WINDOWS ? 60 : 30;
-const SERVER_READY_CHECK_DELAY_MS = 500;
-
-// Helper functions
-function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+import {
+  IS_WINDOWS,
+  PLATFORM_TIMEOUTS,
+  getSymlinkType,
+  killProcessTree,
+  wait,
+  safeRmDir,
+} from '../cli-src/utils/platform';
 
 function createMinimalAgentMarkConfig(): string {
   return `
@@ -57,13 +55,11 @@ function setupTestDir(tempDir: string) {
   fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'test-app', type: 'module' }, null, 2));
 
   // Symlink node_modules from monorepo root to temp dir
-  // Use 'junction' on Windows (works without admin privileges), 'dir' on Unix
   const monorepoRoot = path.resolve(__dirname, '../../..');
   const nodeModulesSource = path.join(monorepoRoot, 'node_modules');
   const nodeModulesTarget = path.join(tempDir, 'node_modules');
   try {
-    const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
-    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, symlinkType);
+    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, getSymlinkType());
   } catch (e: any) {
     // Ignore if symlink already exists
     if (e.code !== 'EEXIST') throw e;
@@ -90,8 +86,8 @@ async function getFreePort(): Promise<number> {
 
 async function waitForServer(
   url: string,
-  maxAttempts = SERVER_READY_CHECK_MAX_ATTEMPTS,
-  delayMs = SERVER_READY_CHECK_DELAY_MS
+  maxAttempts = PLATFORM_TIMEOUTS.serverReadyMaxAttempts,
+  delayMs = PLATFORM_TIMEOUTS.serverReadyCheckDelay
 ): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -103,46 +99,6 @@ async function waitForServer(
     }
   }
   return false;
-}
-
-function killProcessTree(pid: number) {
-  try {
-    if (IS_WINDOWS) {
-      // On Windows, use taskkill to kill the process tree
-      try { spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)]); } catch {}
-    } else {
-      // On Unix, kill the entire process group using negative PID
-      try { process.kill(-pid, 'SIGKILL'); } catch {}
-      // Also use pkill as backup to kill any child processes
-      try { spawnSync('pkill', ['-9', '-P', String(pid)]); } catch {}
-    }
-    // Finally kill the main process directly
-    try { process.kill(pid, 'SIGKILL'); } catch {}
-  } catch {}
-}
-
-async function safeRmDir(dir: string, maxRetries = 5, delayMs = 500) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      if (fs.existsSync(dir)) {
-        fs.rmSync(dir, { recursive: true, force: true });
-      }
-      return;
-    } catch (e: any) {
-      if (e.code === 'EBUSY' || e.code === 'ENOTEMPTY' || e.code === 'EPERM') {
-        // Wait and retry on Windows file locking issues
-        await wait(delayMs);
-      } else {
-        throw e;
-      }
-    }
-  }
-  // Final attempt
-  try {
-    if (fs.existsSync(dir)) {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  } catch {}
 }
 
 function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
@@ -171,7 +127,7 @@ describe('agentmark dev', () => {
 
   afterEach(async () => {
     cleanupTestResources(processes, tmpDirs);
-    await wait(PROCESS_CLEANUP_WAIT_MS);
+    await wait(PLATFORM_TIMEOUTS.processCleanup);
   });
 
   afterAll(async () => {
@@ -236,7 +192,7 @@ describe('agentmark dev', () => {
         child.stderr?.on('data', (data) => { stderr += data.toString(); });
 
         // Wait for servers to start
-        await wait(SERVER_STARTUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
 
         // Debug: print output if servers didn't start
         if (stderr) {
@@ -268,7 +224,7 @@ describe('agentmark dev', () => {
           killProcessTree(child.pid);
         }
         // Wait for processes to fully terminate on Windows
-        await wait(PROCESS_CLEANUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
@@ -308,7 +264,7 @@ describe('agentmark dev', () => {
         let stdout = '';
         child.stdout?.on('data', (data) => { stdout += data.toString(); });
 
-        await wait(SERVER_STARTUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
 
         // Verify .agentmark/dev-entry.ts exists (created by setupTestDir simulating init)
         expect(fs.existsSync(path.join(tempDir, '.agentmark', 'dev-entry.ts'))).toBe(true);
@@ -325,7 +281,7 @@ describe('agentmark dev', () => {
           killProcessTree(child.pid);
         }
         // Wait for processes to fully terminate on Windows
-        await wait(PROCESS_CLEANUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
@@ -361,7 +317,7 @@ describe('agentmark dev', () => {
       processes.push(child);
 
       try {
-        await wait(SERVER_STARTUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
 
         // Test that server is running on custom port
         const resp = await fetch(`http://127.0.0.1:${customApiPort}/v1/prompts`);
@@ -372,7 +328,7 @@ describe('agentmark dev', () => {
           killProcessTree(child.pid);
         }
         // Wait for processes to fully terminate on Windows
-        await wait(PROCESS_CLEANUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
