@@ -4,10 +4,11 @@ import net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Constants
-const SERVER_STARTUP_WAIT_MS = 3000; // Time for dev servers to fully start
-const PROCESS_CLEANUP_WAIT_MS = 500; // Time for processes to terminate
-const SERVER_READY_CHECK_MAX_ATTEMPTS = 30;
+// Constants - Windows needs more time for process spawning and server startup
+const IS_WINDOWS = process.platform === 'win32';
+const SERVER_STARTUP_WAIT_MS = IS_WINDOWS ? 8000 : 3000; // Time for dev servers to fully start
+const PROCESS_CLEANUP_WAIT_MS = IS_WINDOWS ? 1000 : 500; // Time for processes to terminate
+const SERVER_READY_CHECK_MAX_ATTEMPTS = IS_WINDOWS ? 60 : 30;
 const SERVER_READY_CHECK_DELAY_MS = 500;
 
 // Helper functions
@@ -56,11 +57,13 @@ function setupTestDir(tempDir: string) {
   fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'test-app', type: 'module' }, null, 2));
 
   // Symlink node_modules from monorepo root to temp dir
+  // Use 'junction' on Windows (works without admin privileges), 'dir' on Unix
   const monorepoRoot = path.resolve(__dirname, '../../..');
   const nodeModulesSource = path.join(monorepoRoot, 'node_modules');
   const nodeModulesTarget = path.join(tempDir, 'node_modules');
   try {
-    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, 'dir');
+    const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
+    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, symlinkType);
   } catch (e: any) {
     // Ignore if symlink already exists
     if (e.code !== 'EEXIST') throw e;
@@ -107,11 +110,16 @@ function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
   for (const proc of processes) {
     try {
       if (proc.pid) {
-        // Kill the entire process group using negative PID (kills children too)
-        try { process.kill(-proc.pid, 'SIGKILL'); } catch {}
-        // Also use pkill as backup to kill any child processes
-        try { spawnSync('pkill', ['-9', '-P', String(proc.pid)]); } catch {}
-        // Finally kill the main process
+        if (IS_WINDOWS) {
+          // On Windows, use taskkill to kill the process tree
+          try { spawnSync('taskkill', ['/F', '/T', '/PID', String(proc.pid)]); } catch {}
+        } else {
+          // On Unix, kill the entire process group using negative PID
+          try { process.kill(-proc.pid, 'SIGKILL'); } catch {}
+          // Also use pkill as backup to kill any child processes
+          try { spawnSync('pkill', ['-9', '-P', String(proc.pid)]); } catch {}
+        }
+        // Finally kill the main process directly
         try { process.kill(proc.pid, 'SIGKILL'); } catch {}
       }
     } catch {}
@@ -129,9 +137,7 @@ function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
   tmpDirs.length = 0;
 }
 
-// Skip on Windows: these integration tests spawn subprocesses with symlinked node_modules
-// which can be flaky on Windows CI due to symlink permissions and process management differences
-describe.skipIf(process.platform === 'win32')('agentmark dev', () => {
+describe('agentmark dev', () => {
   const processes: ChildProcess[] = [];
   const tmpDirs: string[] = [];
 
