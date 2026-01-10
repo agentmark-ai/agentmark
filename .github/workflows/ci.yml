@@ -63,4 +63,4 @@ jobs:
 
       - name: Test (Integration)
         if: matrix.os == 'ubuntu-latest'
-        run: cd packages/mcp-server && yarn test:integration
+        run: yarn workspace @agentmark-ai/mcp-server test:integration
