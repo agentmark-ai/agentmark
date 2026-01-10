@@ -9,8 +9,8 @@
     "agentmark-mcp": "./dist/bin.mjs"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsup --config tsup.index.config.ts && tsup --config tsup.bin.config.ts",
+    "dev": "tsup --config tsup.index.config.ts --watch",
     "lint": "eslint .",
     "test": "vitest run test/unit",
     "test:integration": "cross-env RUN_INTEGRATION_TESTS=true vitest run test/integration"
