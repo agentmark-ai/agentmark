@@ -21,7 +21,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { HttpDataSource } from '../../src/data-source/http-data-source.js';
 
-const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
 const TEST_PORT = Number(process.env.INTEGRATION_TEST_PORT) || 9419;
 const TEST_URL = `http://localhost:${TEST_PORT}`;
 
@@ -34,14 +33,11 @@ const SEED_GENERATION_SPAN_ID = '7e0c63257de34c93';
 
 let dataSource: HttpDataSource;
 
-// Skip entire suite if RUN_INTEGRATION_TESTS is not set
-const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
-
-describeIntegration('MCP Server Integration Tests', () => {
+describe('MCP Server Integration Tests', () => {
   beforeAll(async () => {
     dataSource = new HttpDataSource(TEST_URL, 5000);
 
-    // Verify server is actually running
+    // Verify server is running - provides clear error message with fix instructions
     try {
       const response = await fetch(`${TEST_URL}/v1/traces`, {
         signal: AbortSignal.timeout(2000),
@@ -52,9 +48,8 @@ describeIntegration('MCP Server Integration Tests', () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(
-        `Integration test setup failed: CLI server not responding on ${TEST_URL}\n` +
-        `Error: ${message}\n` +
-        `Make sure the CLI server is running: cd packages/cli && AGENTMARK_PORT=${TEST_PORT} npm run dev`
+        `CLI server not responding on ${TEST_URL}: ${message}\n` +
+        `Start it with: cd packages/cli && AGENTMARK_PORT=${TEST_PORT} npm run dev`
       );
     }
   });
