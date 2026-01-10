@@ -139,7 +139,7 @@ describe('run-prompt', () => {
     if (!runPrompt) {
       runPrompt = (await import('../cli-src/commands/run-prompt')).default;
     }
-    await runPrompt(tempPath as any, { server: 'http://localhost:9417' });
+    await runPrompt(tempPath as any, { server: 'http://127.0.0.1:9417' });
     // Ensure the header printed
     const headerPrinted = logSpy.mock.calls.some(c => String(c[0]).includes('=== Text Prompt Results ==='));
     expect(headerPrinted).toBe(true);
@@ -153,7 +153,7 @@ describe('run-prompt', () => {
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
     currentRunner = { async runPrompt(){ return { type: 'image', result: [{ mimeType: 'image/png', base64: Buffer.from('png').toString('base64') }] }; } } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await runPrompt(tempPath as any, { server: 'http://localhost:9417' });
+    await runPrompt(tempPath as any, { server: 'http://127.0.0.1:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Saved 1 image/);
   });
@@ -163,7 +163,7 @@ describe('run-prompt', () => {
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
     currentRunner = { async runPrompt(){ return { type: 'speech', result: { mimeType: 'audio/mpeg', base64: Buffer.from('mp3').toString('base64'), format: 'mp3' } }; } } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await runPrompt(tempPath as any, { server: 'http://localhost:9417' });
+    await runPrompt(tempPath as any, { server: 'http://127.0.0.1:9417' });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Saved audio to:/);
   });
@@ -179,7 +179,7 @@ describe('run-prompt', () => {
       }
     } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await runPrompt(tempPath, { props: '{"name": "test", "value": 123}', server: 'http://localhost:9417' });
+    await runPrompt(tempPath, { props: '{"name": "test", "value": 123}', server: 'http://127.0.0.1:9417' });
     expect(receivedCustomProps).toEqual({ name: 'test', value: 123 });
     const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
     expect(out).toMatch(/Running prompt with custom props/);
@@ -198,7 +198,7 @@ describe('run-prompt', () => {
       }
     } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await runPrompt(tempPath, { propsFile: propsPath, server: 'http://localhost:9417' });
+    await runPrompt(tempPath, { propsFile: propsPath, server: 'http://127.0.0.1:9417' });
     expect(receivedCustomProps).toEqual({ foo: 'bar', num: 42 });
     try { unlinkSync(propsPath); } catch {}
   });
@@ -216,7 +216,7 @@ describe('run-prompt', () => {
       }
     } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await runPrompt(tempPath, { propsFile: propsPath, server: 'http://localhost:9417' });
+    await runPrompt(tempPath, { propsFile: propsPath, server: 'http://127.0.0.1:9417' });
     expect(receivedCustomProps).toEqual({ key: 'value', count: 10 });
     try { unlinkSync(propsPath); } catch {}
   });
@@ -226,7 +226,7 @@ describe('run-prompt', () => {
     writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
     currentRunner = { async runPrompt(){ return { type: 'text', result: 'ok' }; } } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await expect(runPrompt(tempPath, { props: '{invalid json}', server: 'http://localhost:9417' })).rejects.toThrow('Invalid JSON');
+    await expect(runPrompt(tempPath, { props: '{invalid json}', server: 'http://127.0.0.1:9417' })).rejects.toThrow('Invalid JSON');
   });
 
   it('throws error for unsupported file extension', async () => {
@@ -234,7 +234,7 @@ describe('run-prompt', () => {
     writeFileSync(tempPath, 'not a valid file');
     currentRunner = { async runPrompt(){ return { type: 'text', result: 'ok' }; } } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await expect(runPrompt(tempPath, { server: 'http://localhost:9417' })).rejects.toThrow('File must be an .mdx or .json file');
+    await expect(runPrompt(tempPath, { server: 'http://127.0.0.1:9417' })).rejects.toThrow('File must be an .mdx or .json file');
     try { unlinkSync(tempPath); } catch {}
   });
 
@@ -247,7 +247,7 @@ describe('run-prompt', () => {
     writeFileSync(tempPath, JSON.stringify(builtPrompt));
     currentRunner = { async runPrompt(){ return { type: 'text', result: 'from json' }; } } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await runPrompt(tempPath, { server: 'http://localhost:9417' });
+    await runPrompt(tempPath, { server: 'http://127.0.0.1:9417' });
     const headerPrinted = logSpy.mock.calls.some(c => String(c[0]).includes('=== Text Prompt Results ==='));
     expect(headerPrinted).toBe(true);
     try { unlinkSync(tempPath); } catch {}
@@ -258,7 +258,7 @@ describe('run-prompt', () => {
     writeFileSync(tempPath, JSON.stringify({ metadata: { name: 'test' } }));
     currentRunner = { async runPrompt(){ return { type: 'text', result: 'ok' }; } } as any;
     runPrompt = (await import('../cli-src/commands/run-prompt')).default;
-    await expect(runPrompt(tempPath, { server: 'http://localhost:9417' })).rejects.toThrow('missing "ast" field');
+    await expect(runPrompt(tempPath, { server: 'http://127.0.0.1:9417' })).rejects.toThrow('missing "ast" field');
     try { unlinkSync(tempPath); } catch {}
   });
 });

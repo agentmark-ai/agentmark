@@ -1,13 +1,16 @@
 import fs from 'fs';
 
+// Normalize line endings to LF for cross-platform compatibility
+const normalizeLineEndings = (content: string) => content.replace(/\r\n/g, '\n');
+
 export const getInput = (basePath: string) => {
   const input = fs.readFileSync(`${basePath}/input.mdx`, 'utf-8');
-  return input;
+  return normalizeLineEndings(input);
 }
 
 export const getOutput = (basePath: string) => {
   const input = fs.readFileSync(`${basePath}/output.mdx`, 'utf-8');
-  return input;
+  return normalizeLineEndings(input);
 }
 
 export const getNode = (basePath: string) => {

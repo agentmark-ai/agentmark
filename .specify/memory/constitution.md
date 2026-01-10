@@ -1,13 +1,10 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.1.0 → 1.2.0
-Modified Principles:
-  - III. Type Safety: Added Strict Typing Requirements subsection
-  - IV. Testability: Added Test Value Requirements, Test Organization, Integration Test Requirements
+Version Change: 1.2.0 → 1.3.0
+Modified Principles: N/A
 Added Sections:
-  - Technology Standards > Security Standards (SQL/Database Query Safety, Input Validation)
-  - Development Workflow > Code Review Requirements > Security Review Checklist
+  - VI. Cross-Platform Compatibility (new core principle)
 Removed Sections: N/A
 Templates Requiring Updates:
   - .specify/templates/plan-template.md: ✅ compatible (Constitution Check section exists)
@@ -172,6 +169,28 @@ Prompts and components MUST be composable and reusable:
 **Rationale**: Composability reduces duplication, encourages best practices, and enables teams
 to build shared prompt libraries.
 
+### VI. Cross-Platform Compatibility
+
+All development workflows MUST work on Windows, macOS, and Linux:
+
+- npm/yarn scripts MUST use cross-platform syntax (no Unix-only commands)
+- Environment variables MUST be set using `cross-env` or equivalent
+- File operations MUST use cross-platform tools (`shx`, Node.js fs, or platform-conditional logic)
+- Path handling MUST work with both forward and backward slashes
+- CI workflows MUST include Windows in the test matrix
+- Shell scripts MAY require Git Bash on Windows if documented
+
+#### Script Requirements
+
+- `chmod` commands MUST be platform-conditional (no-op on Windows)
+- `rm -rf` MUST use `shx rm -rf` or Node.js `fs.rmSync`
+- Python venv paths MUST detect platform (`.venv/bin/` vs `.venv/Scripts/`)
+- Inline environment variables (`VAR=value command`) MUST use `cross-env`
+
+**Rationale**: Cross-platform compatibility ensures all contributors can participate regardless
+of their operating system. Windows developers represent a significant portion of the community
+and MUST NOT be blocked from contributing.
+
 ## Technology Standards
 
 ### Security Standards
@@ -276,4 +295,4 @@ plans. Amendments follow this process:
 - MINOR: New principle or significant guidance expansion
 - PATCH: Clarifications, typos, non-semantic refinements
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-10 | **Last Amended**: 2026-01-09
+**Version**: 1.3.0 | **Ratified**: 2025-12-10 | **Last Amended**: 2026-01-10

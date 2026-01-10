@@ -9,11 +9,11 @@
     "agentmark-mcp": "./dist/bin.mjs"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsup --config tsup.index.config.ts && tsup --config tsup.bin.config.ts",
+    "dev": "tsup --config tsup.index.config.ts --watch",
     "lint": "eslint .",
     "test": "vitest run test/unit",
-    "test:integration": "RUN_INTEGRATION_TESTS=true vitest run test/integration"
+    "test:integration": "cross-env RUN_INTEGRATION_TESTS=true vitest run test/integration"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@agentmark-ai/eslint-config": "*",
     "@types/node": "^20",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "tsup": "^8.5.1",
     "typescript": "^5",

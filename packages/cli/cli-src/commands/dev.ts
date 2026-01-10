@@ -6,6 +6,7 @@ import { createApiServer } from "../api-server";
 import { createTunnel, type TunnelInfo } from "../tunnel";
 import { loadLocalConfig, getTunnelSubdomain, setAppPort } from "../config";
 import type { LocalConfig } from "../config";
+import { IS_WINDOWS, killProcessTree, getPythonPaths } from "../utils/platform";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -32,14 +33,12 @@ function detectProjectLanguage(cwd: string): ProjectLanguage {
  * Checks .venv and venv directories in the project root.
  */
 function findPythonExecutable(cwd: string): string {
-  const isWindows = process.platform === 'win32';
-  const binDir = isWindows ? 'Scripts' : 'bin';
-  const pythonName = isWindows ? 'python.exe' : 'python';
+  const { binDir, pythonExe, pythonCmd } = getPythonPaths();
 
   // Check common virtual environment directories
   const venvDirs = ['.venv', 'venv'];
   for (const venvDir of venvDirs) {
-    const venvPython = path.join(cwd, venvDir, binDir, pythonName);
+    const venvPython = path.join(cwd, venvDir, binDir, pythonExe);
     if (fs.existsSync(venvPython)) {
       console.log(`Using virtual environment: ${venvDir}/`);
       return venvPython;
@@ -47,7 +46,7 @@ function findPythonExecutable(cwd: string): string {
   }
 
   // Fallback to system Python
-  return isWindows ? 'python' : 'python3';
+  return pythonCmd;
 }
 
 function isPortFree(port: number): Promise<boolean> {
@@ -154,47 +153,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     process.exit(1);
   }
 
-  const killProcessTree = (pid: number) => {
-    try {
-      // Kill all child processes first
-      try {
-        const result = spawn('pkill', ['-TERM', '-P', String(pid)], { stdio: 'pipe' });
-        result.on('close', () => {
-          // After children are killed, kill the parent
-          try {
-            process.kill(pid, 'SIGTERM');
-          } catch {
-            // Ignore errors (process may already be dead)
-          }
-          // Force kill after delay if still alive
-          setTimeout(() => {
-            try {
-              process.kill(pid, 'SIGKILL');
-            } catch {
-              // Ignore errors (process may already be dead)
-            }
-          }, 200);
-        });
-      } catch {
-        // If pkill fails, just kill the parent process
-        try {
-          process.kill(pid, 'SIGTERM');
-          setTimeout(() => {
-            try {
-              process.kill(pid, 'SIGKILL');
-            } catch {
-              // Ignore errors (process may already be dead)
-            }
-          }, 200);
-        } catch {
-          // Ignore errors (process may already be dead)
-        }
-      }
-    } catch {
-      // Ignore errors (process may already be dead)
-    }
-  };
-
   // Track shutdown state to suppress exit messages during intentional shutdown
   let isShuttingDown = false;
 
@@ -273,6 +231,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     uiServer = spawn('npm', ['start', '--', '-p', `${actualAppPort}`], {
       stdio: 'pipe',
       cwd: nextCwd,
+      shell: IS_WINDOWS, // Required for Windows to resolve npm.cmd
       env: {
         ...process.env,
         NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiPort)

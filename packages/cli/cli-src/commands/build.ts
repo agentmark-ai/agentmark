@@ -106,8 +106,9 @@ const build = async (options: BuildOptions = {}) => {
   const { compressAst } = await import("@agentmark-ai/templatedx");
 
   // Find all prompt files
+  // Normalize paths to forward slashes for cross-platform manifest consistency
   const promptFilesAbsolute = await findFiles(sourceDir, /\.prompt\.mdx$/);
-  const promptFiles = promptFilesAbsolute.map((f) => path.relative(sourceDir, f));
+  const promptFiles = promptFilesAbsolute.map((f) => path.relative(sourceDir, f).replace(/\\/g, '/'));
 
   console.log(`\nFound ${promptFiles.length} prompt(s)`);
 
