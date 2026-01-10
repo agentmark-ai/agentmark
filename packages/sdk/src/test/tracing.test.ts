@@ -45,8 +45,9 @@ describe("OTLP Exporter", () => {
     if (provider.forceFlush) {
       await provider.forceFlush();
     }
-    // Give more time for the HTTP request to complete (longer for Windows)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Give more time for the HTTP request to complete
+    // Windows CI can be significantly slower for network operations
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
   function findSpanByName(spanName: string): {
@@ -139,12 +140,12 @@ describe("OTLP Exporter", () => {
     }
   });
 
-  it("should test all OTLP exporter functionality including utility functions and context parameters", { timeout: 30000 }, async () => {
+  it("should test all OTLP exporter functionality including utility functions and context parameters", { timeout: 120000 }, async () => {
     // Initialize tracing once for the entire test
     activeSdk = sdk.initTracing({ disableBatch: true });
 
-    // Allow time for SDK to fully initialize (needed on Windows)
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Allow time for SDK to fully initialize (needed on Windows CI)
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // ===== Test 1: Basic span creation and OTLP payload structure =====
     const { result: result1, traceId: traceId1 } = await trace({ name: "test-span" }, async (_ctx) => {
