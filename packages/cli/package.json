@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./runner-server": "./dist/runner-server.js"
+    "./runner-server": "./dist/runner-server.js",
+    "./api-server": "./dist/api-server.js",
+    "./database": "./dist/server/database/index.js"
   },
   "scripts": {
     "dev": "next dev",

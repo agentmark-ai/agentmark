@@ -30,5 +30,28 @@ jobs:
       - name: Build
         run: yarn build
 
-      - name: Test
+      - name: Test (Unit)
         run: yarn test
+
+      - name: Start API Server for Integration Tests
+        run: |
+          node -e "require('./packages/cli/dist/api-server.js').createApiServer(9419).then(() => console.log('API server started'))" &
+          # Wait for server to be ready (fail fast if it doesn't start)
+          for i in {1..30}; do
+            if curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
+              echo "API server is ready"
+              break
+            fi
+            echo "Waiting for API server... ($i/30)"
+            sleep 1
+          done
+          if ! curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
+            echo "ERROR: API server failed to start within 30 seconds"
+            exit 1
+          fi
+
+      - name: Seed Integration Test Data
+        run: ./packages/mcp-server/scripts/seed-test-data.sh 9419
+
+      - name: Test (Integration)
+        run: cd packages/mcp-server && yarn test:integration

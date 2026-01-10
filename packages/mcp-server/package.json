@@ -1,0 +1,39 @@
+{
+  "name": "@agentmark-ai/mcp-server",
+  "version": "0.0.0",
+  "description": "MCP server for AgentMark trace debugging",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "bin": {
+    "agentmark-mcp": "./dist/bin.mjs"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "test": "vitest run test/unit",
+    "test:integration": "RUN_INTEGRATION_TESTS=true vitest run test/integration"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@agentmark-ai/eslint-config": "*",
+    "@types/node": "^20",
+    "eslint": "^9",
+    "tsup": "^8.5.1",
+    "typescript": "^5",
+    "vitest": "^3.1.4"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ]
+}

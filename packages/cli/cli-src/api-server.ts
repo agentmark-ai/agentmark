@@ -13,6 +13,7 @@ import {
   getSessions,
   getTracesBySessionId,
   getTracesByRunId,
+  searchSpans,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
 
@@ -457,9 +458,38 @@ ${promptsList}
     }
   });
 
-  app.get("/v1/traces", async (_req: Request, res: Response) => {
+  app.get("/v1/traces", async (req: Request, res: Response) => {
     try {
-      const traces = await getTraces();
+      // Parse query parameters for filtering
+      const options: {
+        status?: string;
+        name?: string;
+        latency_gt?: number;
+        latency_lt?: number;
+        limit?: number;
+        offset?: number;
+      } = {};
+
+      if (req.query.status) {
+        options.status = String(req.query.status);
+      }
+      if (req.query.name) {
+        options.name = String(req.query.name);
+      }
+      if (req.query.latency_gt) {
+        options.latency_gt = Number(req.query.latency_gt);
+      }
+      if (req.query.latency_lt) {
+        options.latency_lt = Number(req.query.latency_lt);
+      }
+      if (req.query.limit) {
+        options.limit = Number(req.query.limit);
+      }
+      if (req.query.offset) {
+        options.offset = Number(req.query.offset);
+      }
+
+      const traces = await getTraces(options);
       return res.json({ traces });
     } catch (error) {
       console.error("Error getting traces:", error);
@@ -495,6 +525,57 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting trace graph:", error);
       return res.status(500).json({ error: "Failed to get trace graph" });
+    }
+  });
+
+  app.get("/v1/spans", async (req: Request, res: Response) => {
+    try {
+      // Parse query parameters for filtering
+      const options: {
+        traceId?: string;
+        type?: string;
+        status?: string;
+        name?: string;
+        model?: string;
+        minDuration?: number;
+        maxDuration?: number;
+        limit?: number;
+        offset?: number;
+      } = {};
+
+      if (req.query.traceId) {
+        options.traceId = String(req.query.traceId);
+      }
+      if (req.query.type) {
+        options.type = String(req.query.type);
+      }
+      if (req.query.status) {
+        options.status = String(req.query.status);
+      }
+      if (req.query.name) {
+        options.name = String(req.query.name);
+      }
+      if (req.query.model) {
+        options.model = String(req.query.model);
+      }
+      if (req.query.minDuration) {
+        options.minDuration = Number(req.query.minDuration);
+      }
+      if (req.query.maxDuration) {
+        options.maxDuration = Number(req.query.maxDuration);
+      }
+      if (req.query.limit) {
+        options.limit = Number(req.query.limit);
+      }
+      if (req.query.offset) {
+        options.offset = Number(req.query.offset);
+      }
+
+      const spans = await searchSpans(options);
+      return res.json({ spans });
+    } catch (error) {
+      console.error("Error searching spans:", error);
+      return res.status(500).json({ error: "Failed to search spans" });
     }
   });
 
