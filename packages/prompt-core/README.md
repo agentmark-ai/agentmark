@@ -88,7 +88,7 @@ We plan on providing support for AgentMark across a variety of languages.
 |----------|---------------|
 | TypeScript | ✅ Supported |
 | JavaScript | ✅ Supported |
-| Python | ⚠️ Coming Soon |
+| Python | ✅ Supported |
 | Others | Need something else? [Open an issue](https://github.com/agentmark-ai/agentmark/issues) |
 
 ## Type Safety
