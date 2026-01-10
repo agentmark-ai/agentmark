@@ -155,39 +155,49 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   }
 
   const killProcessTree = (pid: number) => {
+    const isWindows = process.platform === 'win32';
     try {
-      // Kill all child processes first
-      try {
-        const result = spawn('pkill', ['-TERM', '-P', String(pid)], { stdio: 'pipe' });
-        result.on('close', () => {
-          // After children are killed, kill the parent
+      if (isWindows) {
+        // On Windows, use taskkill to kill the process tree
+        try {
+          spawn('taskkill', ['/F', '/T', '/PID', String(pid)], { stdio: 'pipe' });
+        } catch {
+          // Ignore errors (process may already be dead)
+        }
+      } else {
+        // Kill all child processes first
+        try {
+          const result = spawn('pkill', ['-TERM', '-P', String(pid)], { stdio: 'pipe' });
+          result.on('close', () => {
+            // After children are killed, kill the parent
+            try {
+              process.kill(pid, 'SIGTERM');
+            } catch {
+              // Ignore errors (process may already be dead)
+            }
+            // Force kill after delay if still alive
+            setTimeout(() => {
+              try {
+                process.kill(pid, 'SIGKILL');
+              } catch {
+                // Ignore errors (process may already be dead)
+              }
+            }, 200);
+          });
+        } catch {
+          // If pkill fails, just kill the parent process
           try {
             process.kill(pid, 'SIGTERM');
+            setTimeout(() => {
+              try {
+                process.kill(pid, 'SIGKILL');
+              } catch {
+                // Ignore errors (process may already be dead)
+              }
+            }, 200);
           } catch {
             // Ignore errors (process may already be dead)
           }
-          // Force kill after delay if still alive
-          setTimeout(() => {
-            try {
-              process.kill(pid, 'SIGKILL');
-            } catch {
-              // Ignore errors (process may already be dead)
-            }
-          }, 200);
-        });
-      } catch {
-        // If pkill fails, just kill the parent process
-        try {
-          process.kill(pid, 'SIGTERM');
-          setTimeout(() => {
-            try {
-              process.kill(pid, 'SIGKILL');
-            } catch {
-              // Ignore errors (process may already be dead)
-            }
-          }, 200);
-        } catch {
-          // Ignore errors (process may already be dead)
         }
       }
     } catch {
@@ -273,6 +283,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     uiServer = spawn('npm', ['start', '--', '-p', `${actualAppPort}`], {
       stdio: 'pipe',
       cwd: nextCwd,
+      shell: true, // Required for Windows to resolve npm.cmd
       env: {
         ...process.env,
         NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiPort)
