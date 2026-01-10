@@ -14,9 +14,7 @@
     "start": "next start",
     "build:app": "next build",
     "lint": "eslint --config cli-src/eslint.config.mjs cli-src",
-    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && node ../../scripts/cross-platform-chmod.js 755 dist/index.js && yarn build:app",
-    "prepack": "node ../../scripts/cross-platform-chmod.js 755 dist/index.js || true",
-    "prepare": "node ../../scripts/cross-platform-chmod.js 755 dist/index.js || true",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && yarn build:app",
     "test": "vitest run",
     "test:watch": "vitest"
   },

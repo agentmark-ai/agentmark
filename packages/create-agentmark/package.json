@@ -10,11 +10,9 @@
     "./templates": "./dist/utils/examples/templates/index.js"
   },
   "scripts": {
-    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsup && node ../../scripts/cross-platform-chmod.js 755 dist/index.js",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsup --config tsup.main.config.ts && tsup --config tsup.templates.config.ts",
     "test": "vitest run",
-    "lint": "eslint .",
-    "prepack": "node ../../scripts/cross-platform-chmod.js 755 dist/index.js || true",
-    "prepare": "node ../../scripts/cross-platform-chmod.js 755 dist/index.js || true"
+    "lint": "eslint ."
   },
   "files": [
     "dist"
