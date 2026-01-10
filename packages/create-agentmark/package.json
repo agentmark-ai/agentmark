@@ -10,11 +10,11 @@
     "./templates": "./dist/utils/examples/templates/index.js"
   },
   "scripts": {
-    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsup && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsup && node ../../scripts/cross-platform-chmod.js 755 dist/index.js",
     "test": "vitest run",
     "lint": "eslint .",
-    "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
-    "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\""
+    "prepack": "node ../../scripts/cross-platform-chmod.js 755 dist/index.js || true",
+    "prepare": "node ../../scripts/cross-platform-chmod.js 755 dist/index.js || true"
   },
   "files": [
     "dist"

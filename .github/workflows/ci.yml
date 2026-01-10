@@ -8,7 +8,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Check out code
@@ -18,7 +21,7 @@ jobs:
 
       - name: Enable Corepack
         run: corepack enable
- 
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
@@ -33,11 +36,13 @@ jobs:
       - name: Test (Unit)
         run: yarn test
 
+      # Integration tests only run on Ubuntu (requires bash scripts and server)
       - name: Start API Server for Integration Tests
+        if: matrix.os == 'ubuntu-latest'
         run: |
           node -e "require('./packages/cli/dist/api-server.js').createApiServer(9419).then(() => console.log('API server started'))" &
           # Wait for server to be ready (fail fast if it doesn't start)
-          for i in {1..30}; do
+          for i in $(seq 1 30); do
             if curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
               echo "API server is ready"
               break
@@ -49,9 +54,13 @@ jobs:
             echo "ERROR: API server failed to start within 30 seconds"
             exit 1
           fi
+        shell: bash
 
       - name: Seed Integration Test Data
+        if: matrix.os == 'ubuntu-latest'
         run: ./packages/mcp-server/scripts/seed-test-data.sh 9419
+        shell: bash
 
       - name: Test (Integration)
+        if: matrix.os == 'ubuntu-latest'
         run: cd packages/mcp-server && yarn test:integration

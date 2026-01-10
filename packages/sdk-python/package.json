@@ -3,13 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "python3 -m venv .venv && .venv/bin/pip install -q -e '.[dev]'",
-    "test": ".venv/bin/pytest",
-    "test:watch": ".venv/bin/pytest --watch",
-    "lint": "test -f .venv/bin/ruff && .venv/bin/ruff check src tests || echo 'Skipping lint: venv not set up'",
-    "lint:fix": ".venv/bin/ruff check --fix src tests",
-    "typecheck": ".venv/bin/mypy src --strict",
-    "format": ".venv/bin/ruff format src tests",
-    "clean": "rm -rf .venv dist *.egg-info .pytest_cache .mypy_cache .ruff_cache"
+    "postinstall": "node ../../scripts/setup-python-venv.js -e .[dev]",
+    "test": "node ../../scripts/run-venv.js pytest",
+    "test:watch": "node ../../scripts/run-venv.js pytest --watch",
+    "lint": "node ../../scripts/run-venv.js ruff check src tests || echo Skipping lint: venv not set up",
+    "lint:fix": "node ../../scripts/run-venv.js ruff check --fix src tests",
+    "typecheck": "node ../../scripts/run-venv.js mypy src --strict",
+    "format": "node ../../scripts/run-venv.js ruff format src tests",
+    "clean": "shx rm -rf .venv dist *.egg-info .pytest_cache .mypy_cache .ruff_cache"
   }
 }
