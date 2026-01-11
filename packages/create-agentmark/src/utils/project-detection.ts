@@ -7,13 +7,14 @@ import fs from 'fs-extra';
 import path from 'path';
 import {
   type ProjectInfo,
-  type PackageManagerConfig,
   type ConflictFile,
   type PythonVenvInfo,
-  PACKAGE_MANAGERS,
-  DEFAULT_PACKAGE_MANAGER,
   CONFLICT_FILES,
 } from './types.js';
+import { detectPackageManager } from './package-manager.js';
+
+// Re-export for backwards compatibility
+export { detectPackageManager };
 
 const IS_WINDOWS = process.platform === 'win32';
 
@@ -33,27 +34,6 @@ export function detectTypeScriptProject(targetPath: string): boolean {
 export function detectPythonProject(targetPath: string): boolean {
   const indicators = ['pyproject.toml', 'requirements.txt', 'setup.py', '.venv', 'venv'];
   return indicators.some((file) => fs.existsSync(path.join(targetPath, file)));
-}
-
-/**
- * Detect the package manager in use by checking for lock files.
- * Priority order: yarn > pnpm > bun > npm (based on spec order).
- */
-export function detectPackageManager(targetPath: string): PackageManagerConfig {
-  // Check lock files in priority order
-  const lockFiles = ['yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'package-lock.json'];
-
-  for (const lockFile of lockFiles) {
-    if (fs.existsSync(path.join(targetPath, lockFile))) {
-      const config = PACKAGE_MANAGERS[lockFile];
-      if (config) {
-        return config;
-      }
-    }
-  }
-
-  // Default to npm if no lock file found
-  return DEFAULT_PACKAGE_MANAGER;
 }
 
 /**

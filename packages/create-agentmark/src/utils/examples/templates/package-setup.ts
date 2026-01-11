@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import { execSync, execFileSync } from "child_process";
 import { getAdapterConfig } from "./adapters.js";
 import { mergePackageJson } from "../../file-merge.js";
+import { DEFAULT_PACKAGE_MANAGER } from "../../types.js";
 import type { ProjectInfo, ConflictResolution, PackageManagerConfig } from "../../types.js";
 
 export const setupPackageJson = (
@@ -97,28 +98,19 @@ export const installDependencies = (
   const adapterConfig = getAdapterConfig(adapter, modelProvider);
 
   // Use detected package manager or default to npm
-  const pm = packageManager || { name: 'npm', installCmd: 'npm install', addCmd: 'npm install', addDevCmd: 'npm install --save-dev', lockFile: 'package-lock.json' };
-  const pmName = pm.name;
+  const pm = packageManager || DEFAULT_PACKAGE_MANAGER;
+
+  // npm needs --legacy-peer-deps due to some transitive dependency conflicts
+  const npmSuffix = pm.name === 'npm' ? ' --legacy-peer-deps' : '';
 
   try {
     // Dev dependencies to install
     const devDeps = ['typescript', 'ts-node', '@types/node', '@agentmark-ai/cli'];
 
-    // Install dev dependencies using detected package manager
-    let devDepsCmd: string;
-    if (pmName === 'npm') {
-      devDepsCmd = `npm install --save-dev ${devDeps.join(' ')} --legacy-peer-deps`;
-    } else if (pmName === 'yarn') {
-      devDepsCmd = `yarn add --dev ${devDeps.join(' ')}`;
-    } else if (pmName === 'pnpm') {
-      devDepsCmd = `pnpm add --save-dev ${devDeps.join(' ')}`;
-    } else if (pmName === 'bun') {
-      devDepsCmd = `bun add --dev ${devDeps.join(' ')}`;
-    } else {
-      devDepsCmd = `npm install --save-dev ${devDeps.join(' ')} --legacy-peer-deps`;
-    }
+    // Install dev dependencies using detected package manager config
+    const devDepsCmd = `${pm.addDevCmd} ${devDeps.join(' ')}${npmSuffix}`;
 
-    console.log(`Using ${pmName} to install dependencies...`);
+    console.log(`Using ${pm.name} to install dependencies...`);
 
     execSync(devDepsCmd, {
       stdio: "inherit",
@@ -141,19 +133,8 @@ export const installDependencies = (
       ...adapterConfig.dependencies,
     ];
 
-    // Install regular dependencies using detected package manager
-    let depsCmd: string;
-    if (pmName === 'npm') {
-      depsCmd = `npm install ${deps.join(' ')} --legacy-peer-deps`;
-    } else if (pmName === 'yarn') {
-      depsCmd = `yarn add ${deps.join(' ')}`;
-    } else if (pmName === 'pnpm') {
-      depsCmd = `pnpm add ${deps.join(' ')}`;
-    } else if (pmName === 'bun') {
-      depsCmd = `bun add ${deps.join(' ')}`;
-    } else {
-      depsCmd = `npm install ${deps.join(' ')} --legacy-peer-deps`;
-    }
+    // Install regular dependencies using detected package manager config
+    const depsCmd = `${pm.addCmd} ${deps.join(' ')}${npmSuffix}`;
 
     execSync(depsCmd, { stdio: "inherit", cwd: targetPath });
 
