@@ -12,6 +12,9 @@
   "scripts": {
     "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsup --config tsup.main.config.ts && tsup --config tsup.templates.config.ts",
     "test": "vitest run",
+    "test:unit": "vitest run test/unit/",
+    "test:integration": "vitest run test/integration/",
+    "test:watch": "vitest",
     "lint": "eslint ."
   },
   "files": [
