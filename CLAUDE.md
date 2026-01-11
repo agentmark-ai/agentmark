@@ -34,6 +34,7 @@ TypeScript 5.x: Follow standard conventions
 - 006-existing-repo-init: Added TypeScript 5.x (Node.js 18+) + fs-extra, prompts (already in use by create-agentmark)
 - 004-windows-compatibility: Added TypeScript 5.x, Node.js 18+, Python 3.8+ + cross-env (env vars), shx (shell commands), rimraf (rm -rf)
 - 003-mcp-trace-server: Added TypeScript 5.x (ES2020 target, Node16 module resolution) + @modelcontextprotocol/sdk ^1.11.0, zod ^3.25.0
+- 001-auto-graph-nodes: Added TypeScript 5.x + @xyflow/react 12.9.0, dagre 0.8.5, React 19.1.0, MUI 7.x
 
 
 <!-- MANUAL ADDITIONS START -->
