@@ -155,8 +155,8 @@ export const createExampleApp = async (
   deploymentMode: "cloud" | "static" = "cloud"
 ) => {
   try {
-    const modelProvider = 'openai';
-    const model = 'gpt-4o';
+    const modelProvider = adapter === 'claude-agent-sdk' ? 'anthropic' : 'openai';
+    const model = adapter === 'claude-agent-sdk' ? 'claude-sonnet-4-20250514' : 'gpt-4o';
     console.log("Creating Agent Mark example app...");
 
     // Keep ./ prefix for display in messages
@@ -180,7 +180,7 @@ export const createExampleApp = async (
     );
 
     // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
+    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey, adapter));
 
     // Create .gitignore
     const gitignore = ['node_modules', '.env', '*.agentmark-outputs/', '.agentmark', 'dist'].join('\n');

@@ -8,29 +8,34 @@ import { getAnimalDataset, getCustomerQueryDataset, getPartyDataset, getStoryDat
 export const createExamplePrompts = (model: string, targetPath: string = ".", adapter: string = "ai-sdk") => {
   // Ensure the templates directory exists
   fs.ensureDirSync(`${targetPath}/agentmark`);
-  
-  // Create animal drawing prompt and dataset (skip for mastra adapter)
-  if (adapter !== "mastra") {
+
+  const noImageSupport = ["mastra", "claude-agent-sdk"];
+  const noSpeechSupport = ["mastra", "claude-agent-sdk"];
+  const skipImagePrompts = noImageSupport.includes(adapter);
+  const skipSpeechPrompts = noSpeechSupport.includes(adapter);
+
+  // Create animal drawing prompt and dataset (uses image_config - skip for unsupported adapters)
+  if (!skipImagePrompts) {
     const animalDrawingPrompt = getAnimalDrawingPrompt();
     fs.writeFileSync(`${targetPath}/agentmark/animal-drawing.prompt.mdx`, animalDrawingPrompt);
     const animalDataset = getAnimalDataset();
     fs.writeFileSync(`${targetPath}/agentmark/animal.jsonl`, animalDataset);
   }
-  
+
   // Create customer support prompt and dataset
   const customerSupportPrompt = getCustomerSupportPrompt(model);
   fs.writeFileSync(`${targetPath}/agentmark/customer-support-agent.prompt.mdx`, customerSupportPrompt);
   const customerQueryDataset = getCustomerQueryDataset();
   fs.writeFileSync(`${targetPath}/agentmark/customer-query.jsonl`, customerQueryDataset);
-  
+
   // Create party planner prompt and dataset
   const partyPlannerPrompt = getPartyPlannerPrompt(model);
   fs.writeFileSync(`${targetPath}/agentmark/party-planner.prompt.mdx`, partyPlannerPrompt);
   const partyDataset = getPartyDataset();
   fs.writeFileSync(`${targetPath}/agentmark/party.jsonl`, partyDataset);
-  
-  // Create story teller prompt and dataset (skip for mastra adapter)
-  if (adapter !== "mastra") {
+
+  // Create story teller prompt and dataset (uses speech_config - skip for unsupported adapters)
+  if (!skipSpeechPrompts) {
     const storyTellerPrompt = getStoryTellerPrompt();
     fs.writeFileSync(`${targetPath}/agentmark/story-teller.prompt.mdx`, storyTellerPrompt);
     const storyDataset = getStoryDataset();

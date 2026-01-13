@@ -5,9 +5,11 @@ export const getClientConfigContent = (options: { provider: string; languageMode
   const adapterConfig = getAdapterConfig(adapter, provider);
   const { modelRegistry, toolRegistry } = adapterConfig.classes;
 
-  const providerImport = `import { ${provider} } from '@ai-sdk/${provider}';`;
+  // Claude Agent SDK doesn't use @ai-sdk provider imports
+  const isClaudeAgentSdk = adapter === "claude-agent-sdk";
+  const providerImport = isClaudeAgentSdk ? '' : `import { ${provider} } from '@ai-sdk/${provider}';`;
 
-  const extraModelRegs = provider === 'openai'
+  const extraModelRegs = provider === 'openai' && !isClaudeAgentSdk
     ? `.registerModels(["dall-e-3"], (name: string) => ${provider}.image(name))
     .registerModels(["tts-1-hd"], (name: string) => ${provider}.speech(name))`
     : '';
@@ -32,6 +34,62 @@ import { FileLoader } from "@agentmark-ai/loader-file";`;
     ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })
     : new FileLoader('./dist/agentmark');`;
 
+  // Claude Agent SDK model registry setup is different
+  const modelRegistrySetup = isClaudeAgentSdk
+    ? `function createModelRegistry() {
+  // Claude Agent SDK accepts model names directly.
+  // Use createDefault() for simple pass-through of model names.
+  const modelRegistry = ${modelRegistry}.createDefault();
+
+  // To configure specific models (e.g., extended thinking), use:
+  // const modelRegistry = new ${modelRegistry}()
+  //   .registerModels(/claude-.*-thinking/, (name) => ({
+  //     model: name,
+  //     maxThinkingTokens: 10000,  // Enable extended thinking
+  //   }))
+  //   .registerModels("claude-sonnet-4-20250514", (name) => ({ model: name }));
+
+  return modelRegistry;
+}`
+    : `function createModelRegistry() {
+  const modelRegistry = new ${modelRegistry}()
+    .registerModels(${JSON.stringify(languageModels)}, (name: string) => ${provider}(name))
+    ${extraModelRegs};
+  return modelRegistry;
+}`;
+
+  // Claude Agent SDK adapter options
+  const adapterOptionsImport = isClaudeAgentSdk
+    ? `
+// Claude Agent SDK adapter options
+// See: https://github.com/anthropics/claude-agent-sdk
+const adapterOptions = {
+  // Permission mode controls tool access:
+  // - 'default': Requires user approval for each tool use
+  // - 'acceptEdits': Auto-approve file edits only
+  // - 'bypassPermissions': Auto-approve all tools (use for automated pipelines)
+  // - 'plan': Planning mode only, no tool execution
+  permissionMode: 'bypassPermissions' as const,
+
+  // Maximum conversation turns before stopping
+  maxTurns: 20,
+
+  // Optional: Set working directory for file operations
+  // cwd: process.cwd(),
+
+  // Optional: Budget limit in USD
+  // maxBudgetUsd: 10.00,
+
+  // Optional: Restrict which tools the agent can use
+  // allowedTools: ['Read', 'Write', 'Glob'],
+  // disallowedTools: ['Bash'],
+};`
+    : '';
+
+  const createClientCall = isClaudeAgentSdk
+    ? `return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader, modelRegistry, toolRegistry, evalRegistry, adapterOptions });`
+    : `return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader, modelRegistry, toolRegistry, evalRegistry });`;
+
   return `// agentmark.client.ts
 import path from 'node:path';
 import dotenv from 'dotenv';
@@ -40,13 +98,9 @@ import { createAgentMarkClient, ${modelRegistry}, ${toolRegistry}, EvalRegistry 
 ${loaderImport}
 import AgentMarkTypes, { Tools } from './agentmark.types';
 ${providerImport}
+${adapterOptionsImport}
 
-function createModelRegistry() {
-  const modelRegistry = new ${modelRegistry}()
-    .registerModels(${JSON.stringify(languageModels)}, (name: string) => ${provider}(name))
-    ${extraModelRegs};
-  return modelRegistry;
-}
+${modelRegistrySetup}
 
 function createToolRegistry() {
   const toolRegistry = new ${toolRegistry}<Tools>()
@@ -93,7 +147,7 @@ ${loaderSetup}
   const modelRegistry = createModelRegistry();
   const toolRegistry = createToolRegistry();
   const evalRegistry = createEvalRegistry();
-  return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader, modelRegistry, toolRegistry, evalRegistry });
+  ${createClientCall}
 }
 
 export const client = createClient();
