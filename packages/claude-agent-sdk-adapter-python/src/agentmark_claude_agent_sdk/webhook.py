@@ -131,23 +131,24 @@ class ClaudeAgentWebhookHandler:
         # Look for yaml/frontmatter child nodes
         children = prompt_ast.get("children", [])
         for child in children:
-            if isinstance(child, dict):
-                if child.get("type") == "yaml" and "value" in child:
-                    try:
-                        import yaml
+            if isinstance(child, dict) and child.get("type") == "yaml" and "value" in child:
+                try:
+                    import yaml
 
-                        return yaml.safe_load(child["value"]) or {}
-                    except Exception:
-                        return {}
+                    return yaml.safe_load(child["value"]) or {}
+                except Exception:
+                    return {}
 
         return {}
 
-    async def _execute_query(self, adapted: Any, output_type: str = "text") -> list[dict[str, Any]]:
+    async def _execute_query(
+        self, adapted: Any, _output_type: str = "text"
+    ) -> list[dict[str, Any]]:
         """Execute query and collect all results.
 
         Args:
             adapted: Adapted prompt parameters.
-            output_type: Expected output type.
+            _output_type: Expected output type (unused, for interface consistency).
 
         Returns:
             List of message results from query.
@@ -168,13 +169,13 @@ class ClaudeAgentWebhookHandler:
         return results
 
     async def _stream_query(
-        self, adapted: Any, output_type: str = "text"
+        self, adapted: Any, _output_type: str = "text"
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream query results.
 
         Args:
             adapted: Adapted prompt parameters.
-            output_type: Expected output type.
+            _output_type: Expected output type (unused, for interface consistency).
 
         Yields:
             Message results from query.

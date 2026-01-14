@@ -267,8 +267,8 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
 
     async def user_prompt_submit_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         nonlocal parent_context
 
@@ -299,7 +299,7 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
     async def pre_tool_use_hook(
         input_data: dict[str, Any],
         tool_use_id: str | None,
-        options: dict[str, Any],
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         attributes = _get_common_attributes(config, input_data.get("session_id"))
 
@@ -332,7 +332,7 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
     async def post_tool_use_hook(
         input_data: dict[str, Any],
         tool_use_id: str | None,
-        options: dict[str, Any],
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         if tool_use_id and tool_use_id in ctx.active_tool_spans:
             tool_span = ctx.active_tool_spans[tool_use_id]
@@ -354,7 +354,7 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
     async def post_tool_use_failure_hook(
         input_data: dict[str, Any],
         tool_use_id: str | None,
-        options: dict[str, Any],
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         if tool_use_id and tool_use_id in ctx.active_tool_spans:
             tool_span = ctx.active_tool_spans[tool_use_id]
@@ -369,8 +369,8 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
 
     async def stop_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         session_span = ctx.root_span
 
@@ -406,8 +406,8 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
 
     async def subagent_start_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         attributes = _get_common_attributes(config, input_data.get("session_id"))
 
@@ -434,8 +434,8 @@ def create_otel_hooks(config: OtelHooksConfig) -> OtelHooksResult:
 
     async def subagent_stop_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         agent_id = input_data.get("agent_id")
         agent_key = agent_id or input_data.get("session_id")
@@ -534,11 +534,11 @@ def combine_with_otel_hooks(otel_hooks: HooksConfig, *other_hooks: HooksConfig) 
 
     # Get all event names from all hook configs
     all_event_names: set[str] = set()
-    for event_name in otel_hooks.keys():
+    for event_name in otel_hooks:
         all_event_names.add(event_name)
     for hooks in other_hooks:
         if hooks:
-            for event_name in hooks.keys():
+            for event_name in hooks:
                 all_event_names.add(event_name)
 
     # Start with OTEL hooks (they run first)

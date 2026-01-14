@@ -109,8 +109,8 @@ def create_telemetry_hooks(
 
     async def session_start_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "session_start",
@@ -124,8 +124,8 @@ def create_telemetry_hooks(
 
     async def session_end_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "session_end",
@@ -137,7 +137,7 @@ def create_telemetry_hooks(
     async def pre_tool_use_hook(
         input_data: dict[str, Any],
         tool_use_id: str | None,
-        options: dict[str, Any],
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "tool_start",
@@ -153,7 +153,7 @@ def create_telemetry_hooks(
     async def post_tool_use_hook(
         input_data: dict[str, Any],
         tool_use_id: str | None,
-        options: dict[str, Any],
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "tool_end",
@@ -169,7 +169,7 @@ def create_telemetry_hooks(
     async def post_tool_use_failure_hook(
         input_data: dict[str, Any],
         tool_use_id: str | None,
-        options: dict[str, Any],
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "tool_error",
@@ -184,8 +184,8 @@ def create_telemetry_hooks(
 
     async def stop_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "agent_stop",
@@ -199,8 +199,8 @@ def create_telemetry_hooks(
 
     async def subagent_start_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "subagent_start",
@@ -214,8 +214,8 @@ def create_telemetry_hooks(
 
     async def subagent_stop_hook(
         input_data: dict[str, Any],
-        tool_use_id: str | None,
-        options: dict[str, Any],
+        _tool_use_id: str | None,
+        _options: dict[str, Any],
     ) -> dict[str, Any]:
         await emit_event(
             "subagent_stop",

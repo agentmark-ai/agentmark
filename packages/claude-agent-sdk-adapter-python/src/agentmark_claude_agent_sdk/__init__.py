@@ -160,7 +160,7 @@ def create_claude_agent_client(
     except ImportError:
         raise ImportError(
             "agentmark-prompt-core is required. Install with: pip install agentmark-prompt-core"
-        )
+        ) from None
 
     if model_registry is None:
         model_registry = create_default_model_registry()
