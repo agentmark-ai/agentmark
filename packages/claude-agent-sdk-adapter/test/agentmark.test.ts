@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import {
@@ -569,6 +569,142 @@ describe("Claude Agent SDK Adapter Integration", () => {
       });
 
       expect(result.query.options.mcpServers).toBeUndefined();
+    });
+  });
+
+  describe("ClaudeAgentAdapter - Unsupported Options Warning", () => {
+    it("should warn when unsupported text_config options are present", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const modelRegistry = ClaudeAgentModelRegistry.createDefault();
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+
+      // Mock text config with unsupported options
+      const mockTextConfig = {
+        name: "test-prompt",
+        messages: [{ role: "user" as const, content: "test" }],
+        text_config: {
+          model_name: "claude-sonnet-4-20250514",
+          temperature: 0.7,
+          max_tokens: 1000,
+          top_p: 0.9,
+        },
+      };
+
+      await adapter.adaptText(
+        mockTextConfig,
+        {},
+        { props: {}, path: undefined, template: {} }
+      );
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[claude-agent-sdk-adapter]")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("temperature")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("max_tokens")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("top_p")
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it("should warn when unsupported object_config options are present", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const modelRegistry = ClaudeAgentModelRegistry.createDefault();
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+
+      // Mock object config with unsupported options
+      const mockObjectConfig = {
+        name: "test-object-prompt",
+        messages: [{ role: "user" as const, content: "test" }],
+        object_config: {
+          model_name: "claude-sonnet-4-20250514",
+          schema: { type: "object", properties: {} },
+          frequency_penalty: 0.5,
+          seed: 12345,
+        },
+      };
+
+      await adapter.adaptObject(
+        mockObjectConfig,
+        {},
+        { props: {}, path: undefined, template: {} }
+      );
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[claude-agent-sdk-adapter]")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("frequency_penalty")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("seed")
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it("should not warn when only supported options are present", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const modelRegistry = ClaudeAgentModelRegistry.createDefault();
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+
+      // Mock text config with only supported options
+      const mockTextConfig = {
+        name: "test-prompt",
+        messages: [{ role: "user" as const, content: "test" }],
+        text_config: {
+          model_name: "claude-sonnet-4-20250514",
+          max_calls: 5,
+        },
+      };
+
+      await adapter.adaptText(
+        mockTextConfig,
+        {},
+        { props: {}, path: undefined, template: {} }
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    it("should include prompt name in warning message", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const modelRegistry = ClaudeAgentModelRegistry.createDefault();
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+
+      const mockTextConfig = {
+        name: "my-special-prompt",
+        messages: [{ role: "user" as const, content: "test" }],
+        text_config: {
+          model_name: "claude-sonnet-4-20250514",
+          temperature: 0.5,
+        },
+      };
+
+      await adapter.adaptText(
+        mockTextConfig,
+        {},
+        { props: {}, path: undefined, template: {} }
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('prompt "my-special-prompt"')
+      );
+
+      warnSpy.mockRestore();
     });
   });
 });

@@ -26,6 +26,52 @@ import type {
 } from "./types";
 
 /**
+ * Config options supported by Claude Agent SDK adapter for text prompts.
+ * Other options will trigger a warning when present.
+ */
+const SUPPORTED_TEXT_OPTIONS = new Set([
+  "model_name", // Used via model registry
+  "max_calls",  // Mapped to maxTurns
+  "tools",      // Converted to MCP servers
+]);
+
+/**
+ * Config options supported by Claude Agent SDK adapter for object prompts.
+ * Includes all text options plus schema-related options.
+ */
+const SUPPORTED_OBJECT_OPTIONS = new Set([
+  ...SUPPORTED_TEXT_OPTIONS,
+  "schema",             // Used for outputFormat
+  "schema_name",        // Passed through for schema naming (optional)
+  "schema_description", // Passed through for schema description (optional)
+]);
+
+/**
+ * Check for unsupported config options and emit warnings.
+ *
+ * @param settings - The settings object from the prompt config
+ * @param supportedOptions - Set of supported option names
+ * @param promptName - Name of the prompt for the warning message
+ * @param configType - Type of config (text_config or object_config) for the warning message
+ */
+function warnUnsupportedOptions(
+  settings: Record<string, unknown>,
+  supportedOptions: Set<string>,
+  promptName: string,
+  configType: "text_config" | "object_config"
+): void {
+  const unsupportedOptions = Object.keys(settings).filter(
+    (key) => !supportedOptions.has(key)
+  );
+
+  if (unsupportedOptions.length > 0) {
+    console.warn(
+      `[claude-agent-sdk-adapter] Warning: The following ${configType} options in prompt "${promptName}" are not supported by Claude Agent SDK and will be ignored: ${unsupportedOptions.join(", ")}`
+    );
+  }
+}
+
+/**
  * AgentMark adapter for Claude Agent SDK.
  *
  * This adapter bridges AgentMark's prompt framework with Anthropic's Claude Agent SDK,
@@ -229,6 +275,10 @@ export class ClaudeAgentAdapter<
     metadata: PromptMetadata
   ): Promise<ClaudeAgentTextParams> {
     const { model_name, ...settings } = input.text_config;
+
+    // Warn about unsupported config options
+    warnUnsupportedOptions(settings, SUPPORTED_TEXT_OPTIONS, input.name, "text_config");
+
     const modelConfig = this.modelRegistry.getModelConfig(model_name, options);
     const systemPrompt = this.extractSystemPrompt(input.messages);
     const userPrompt = this.messagesToPrompt(input.messages);
@@ -266,6 +316,10 @@ export class ClaudeAgentAdapter<
     metadata: PromptMetadata
   ): Promise<ClaudeAgentObjectParams<T[K]["output"]>> {
     const { model_name, schema, ...settings } = input.object_config;
+
+    // Warn about unsupported config options
+    warnUnsupportedOptions(settings, SUPPORTED_OBJECT_OPTIONS, input.name, "object_config");
+
     const modelConfig = this.modelRegistry.getModelConfig(model_name, options);
     const systemPrompt = this.extractSystemPrompt(input.messages);
     const userPrompt = this.messagesToPrompt(input.messages);
