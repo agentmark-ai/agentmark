@@ -172,7 +172,8 @@ dependencies = ["fastapi", "uvicorn"]
 `
       );
       fs.writeFileSync(path.join(tempDir, 'requirements.txt'), 'fastapi\nuvicorn\n');
-      fs.mkdirSync(path.join(tempDir, '.venv', 'bin'), { recursive: true });
+      const binDir = process.platform === 'win32' ? 'Scripts' : 'bin';
+      fs.mkdirSync(path.join(tempDir, '.venv', binDir), { recursive: true });
 
       const projectInfo = detectProjectInfo(tempDir);
 
