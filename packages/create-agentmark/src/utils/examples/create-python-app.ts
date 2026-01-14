@@ -3,6 +3,9 @@ import * as path from "path";
 import {
   createExamplePrompts,
 } from "./templates/index.js";
+import { appendGitignore, appendEnv } from "../file-merge.js";
+import { shouldMergeFile } from "../conflict-resolution.js";
+import type { ProjectInfo, ConflictResolution } from "../types.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -341,11 +344,19 @@ export const createPythonApp = async (
   client: string,
   targetPath: string = ".",
   apiKey: string = "",
-  deploymentMode: "cloud" | "static" = "cloud"
+  deploymentMode: "cloud" | "static" = "cloud",
+  projectInfo: ProjectInfo | null = null,
+  resolutions: ConflictResolution[] = []
 ) => {
   try {
     const model = 'gpt-4o';
-    console.log("Creating AgentMark Python app with Pydantic AI...");
+    const isExistingProject = projectInfo?.isExistingProject ?? false;
+
+    if (isExistingProject) {
+      console.log("Adding AgentMark to existing Python project...");
+    } else {
+      console.log("Creating AgentMark Python app with Pydantic AI...");
+    }
 
     const folderName = targetPath;
 
@@ -358,34 +369,79 @@ export const createPythonApp = async (
     createExamplePrompts(model, targetPath, "pydantic-ai");
     console.log(`Example prompts and datasets created in ${folderName}/agentmark/`);
 
-    // Create pyproject.toml
-    const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
-    fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName));
+    // Create pyproject.toml (skip for existing projects)
+    if (!isExistingProject) {
+      const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
+      fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName));
+    } else {
+      console.log("⏭️  Skipped pyproject.toml (existing project)");
+    }
 
-    // Create agentmark_client.py
+    // Create agentmark_client.py (always create - this is AgentMark-specific)
     fs.writeFileSync(`${targetPath}/agentmark_client.py`, getAgentmarkClientContent(deploymentMode));
 
-    // Create main.py
-    fs.writeFileSync(`${targetPath}/main.py`, getMainPyContent());
+    // Create main.py (skip for existing projects)
+    if (!isExistingProject) {
+      fs.writeFileSync(`${targetPath}/main.py`, getMainPyContent());
+    } else {
+      console.log("⏭️  Skipped main.py (existing project)");
+    }
 
-    // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvContent(apiKey));
+    // Create or append to .env file
+    if (shouldMergeFile('.env', projectInfo, resolutions)) {
+      const envVars: Record<string, string> = {};
+      if (apiKey) {
+        envVars['OPENAI_API_KEY'] = apiKey;
+      } else {
+        envVars['OPENAI_API_KEY'] = 'your-openai-api-key';
+      }
+      const result = appendEnv(targetPath, envVars);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .env: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Skipped existing .env vars: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      fs.writeFileSync(`${targetPath}/.env`, getEnvContent(apiKey));
+    }
 
-    // Create .gitignore
-    fs.writeFileSync(`${targetPath}/.gitignore`, getGitignoreContent());
+    // Create or append to .gitignore
+    const gitignoreEntries = [
+      '__pycache__/', '*.py[cod]', '*$py.class', '.venv/', 'venv/', '.env',
+      '*.agentmark-outputs/', '.agentmark/', '.idea/', '.vscode/', '*.swp',
+      'dist/', 'build/', '*.egg-info/', '.pytest_cache/', '.coverage', 'htmlcov/'
+    ];
+    if (shouldMergeFile('.gitignore', projectInfo, resolutions)) {
+      const result = appendGitignore(targetPath, gitignoreEntries);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .gitignore: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Already in .gitignore: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      fs.writeFileSync(`${targetPath}/.gitignore`, getGitignoreContent());
+    }
 
     // Create .agentmark directory with dev_server.py
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
     fs.writeFileSync(path.join(agentmarkInternalDir, 'dev_server.py'), getDevServerContent());
 
-    // Install Python dependencies
-    console.log("Setting up Python environment...");
-    console.log("Note: You'll need to set up a virtual environment and install dependencies.");
-    console.log("");
+    // Python environment setup notes
+    const pythonVenv = projectInfo?.pythonVenv;
+    if (pythonVenv) {
+      console.log(`\n📦 Detected existing Python venv: ${pythonVenv.name}`);
+      console.log("   Remember to activate it before running AgentMark commands.");
+    } else if (!isExistingProject) {
+      console.log("Setting up Python environment...");
+      console.log("Note: You'll need to set up a virtual environment and install dependencies.");
+      console.log("");
+    }
 
     // Success message
-    console.log("\nAgentMark Python initialization completed successfully!");
+    console.log("\n✅ AgentMark Python initialization completed successfully!");
 
     console.log(
       `
@@ -404,12 +460,22 @@ export const createPythonApp = async (
     console.log('═'.repeat(70));
 
     console.log('\n Get Started:');
-    if (folderName !== "." && folderName !== "./") {
+    if (folderName !== "." && folderName !== "./" && !isExistingProject) {
       console.log(`  $ cd ${folderName}`);
     }
-    console.log('  $ python -m venv .venv');
-    console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
-    console.log('  $ pip install -e ".[dev]"');
+
+    // Show venv activation or creation based on detection
+    if (pythonVenv) {
+      const activateCmd = process.platform === 'win32'
+        ? `${pythonVenv.name}\\Scripts\\activate`
+        : `source ${pythonVenv.name}/bin/activate`;
+      console.log(`  $ ${activateCmd}`);
+      console.log('  $ pip install agentmark-pydantic-ai agentmark-prompt-core python-dotenv "pydantic-ai[openai]"');
+    } else {
+      console.log('  $ python -m venv .venv');
+      console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
+      console.log('  $ pip install -e ".[dev]"');
+    }
     console.log('  $ npm run dev\n');
 
     console.log('─'.repeat(70));
