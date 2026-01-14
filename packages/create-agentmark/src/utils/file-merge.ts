@@ -74,11 +74,19 @@ export function mergePackageJson(
       if (scripts[scriptName]) {
         // Conflict - use namespaced script name
         const namespacedName = `agentmark:${scriptName}`;
-        scripts[namespacedName] = scriptCmd;
-        result.added.push(`script: ${namespacedName} (namespaced due to conflict)`);
-        result.warnings.push(
-          `Script "${scriptName}" already exists. Added as "${namespacedName}" instead.`
-        );
+        if (scripts[namespacedName]) {
+          // Both the original and namespaced version exist - skip with warning
+          result.skipped.push(`script: ${scriptName}`);
+          result.warnings.push(
+            `Script "${scriptName}" and "${namespacedName}" both already exist. Skipping.`
+          );
+        } else {
+          scripts[namespacedName] = scriptCmd;
+          result.added.push(`script: ${namespacedName} (namespaced due to conflict)`);
+          result.warnings.push(
+            `Script "${scriptName}" already exists. Added as "${namespacedName}" instead.`
+          );
+        }
       } else {
         scripts[scriptName] = scriptCmd;
         result.added.push(`script: ${scriptName}`);

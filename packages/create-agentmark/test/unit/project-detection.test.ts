@@ -11,7 +11,6 @@ import {
   detectProjectInfo,
   isCurrentDirectory,
 } from '../../src/utils/project-detection.js';
-import { DEFAULT_PACKAGE_MANAGER, PACKAGE_MANAGERS } from '../../src/utils/types.js';
 
 describe('project-detection', () => {
   let tempDir: string;
@@ -147,6 +146,31 @@ describe('project-detection', () => {
 
       const result = detectPythonVenv(tempDir);
       expect(result?.name).toBe('.venv');
+    });
+
+    it('should ignore VIRTUAL_ENV pointing outside target directory', () => {
+      // Create a venv in a sibling directory (outside target)
+      const siblingDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sibling-venv-'));
+      const binDir = process.platform === 'win32' ? 'Scripts' : 'bin';
+      fs.mkdirSync(path.join(siblingDir, binDir), { recursive: true });
+
+      // Set VIRTUAL_ENV to the sibling directory
+      const originalVenv = process.env.VIRTUAL_ENV;
+      process.env.VIRTUAL_ENV = siblingDir;
+
+      try {
+        // Should return null because VIRTUAL_ENV is outside tempDir
+        const result = detectPythonVenv(tempDir);
+        expect(result).toBe(null);
+      } finally {
+        // Restore original VIRTUAL_ENV
+        if (originalVenv === undefined) {
+          delete process.env.VIRTUAL_ENV;
+        } else {
+          process.env.VIRTUAL_ENV = originalVenv;
+        }
+        fs.removeSync(siblingDir);
+      }
     });
   });
 

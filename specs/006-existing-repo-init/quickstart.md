@@ -136,9 +136,13 @@ my-nextjs-app/
 │   └── index.tsx         # Unchanged
 ├── agentmark/            # NEW
 │   ├── party-planner.prompt.mdx
-│   └── party-planner.jsonl
+│   ├── party.jsonl
+│   ├── customer-support-agent.prompt.mdx
+│   ├── customer-query.jsonl
+│   └── ...               # Additional example prompts
 ├── agentmark.json        # NEW
 ├── agentmark.client.ts   # NEW
+├── agentmark.types.ts    # NEW: Auto-generated types
 ├── .agentmark/           # NEW
 │   └── dev-entry.ts
 ├── .gitignore            # Modified: AgentMark entries added

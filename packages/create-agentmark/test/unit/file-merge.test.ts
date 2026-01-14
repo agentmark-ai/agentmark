@@ -127,6 +127,27 @@ describe('file-merge', () => {
       expect(updated.scripts['agentmark:dev']).toBe('agentmark dev'); // Namespaced
     });
 
+    it('should skip script when both original and namespaced versions exist', () => {
+      fs.writeJsonSync(path.join(tempDir, 'package.json'), {
+        scripts: { dev: 'next dev', 'agentmark:dev': 'custom agentmark dev' },
+      });
+
+      const result = mergePackageJson(
+        tempDir,
+        {},
+        {},
+        { dev: 'agentmark dev' }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.skipped).toContain('script: dev');
+      expect(result.warnings.some((w) => w.includes('both already exist'))).toBe(true);
+
+      const updated = fs.readJsonSync(path.join(tempDir, 'package.json'));
+      expect(updated.scripts.dev).toBe('next dev'); // Original preserved
+      expect(updated.scripts['agentmark:dev']).toBe('custom agentmark dev'); // Original preserved
+    });
+
     it('should preserve name, version, and other metadata', () => {
       const existing = {
         name: 'my-app',

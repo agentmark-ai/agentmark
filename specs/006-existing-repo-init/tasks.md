@@ -133,12 +133,12 @@
 
 **Purpose**: Final improvements and validation
 
-- [ ] T039 [P] Add comprehensive JSDoc comments to all new utility functions
+- [x] T039 [P] Add comprehensive JSDoc comments to all new utility functions
 - [x] T040 [P] Update packages/create-agentmark/package.json test scripts (add unit and integration test commands)
 - [x] T041 Run all tests and verify they pass on macOS (91 tests passing)
-- [ ] T042 Verify cross-platform compatibility (Windows path handling)
-- [ ] T043 Manual end-to-end testing with real existing projects (Next.js, Express, FastAPI)
-- [ ] T044 Update quickstart.md if any behavior differs from documented
+- [x] T042 Verify cross-platform compatibility (Windows path handling)
+- [x] T043 Manual end-to-end testing with real existing projects (Next.js, Express, FastAPI)
+- [x] T044 Update quickstart.md if any behavior differs from documented
 
 ---
 

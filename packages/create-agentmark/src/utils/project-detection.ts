@@ -51,7 +51,6 @@ export function detectPythonVenv(targetPath: string): PythonVenvInfo | null {
       const binPath = path.join(venvPath, binDir);
 
       if (fs.existsSync(binPath)) {
-        const pythonExe = IS_WINDOWS ? 'python.exe' : 'python';
         const pipExe = IS_WINDOWS ? 'pip.exe' : 'pip';
 
         return {
@@ -69,6 +68,22 @@ export function detectPythonVenv(targetPath: string): PythonVenvInfo | null {
   // Check VIRTUAL_ENV environment variable
   const envVenv = process.env.VIRTUAL_ENV;
   if (envVenv && fs.existsSync(envVenv)) {
+    // Check if VIRTUAL_ENV is inside the target directory
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedVenv = path.resolve(envVenv);
+    const isInsideTarget = resolvedVenv.startsWith(resolvedTarget + path.sep) ||
+      resolvedVenv === resolvedTarget;
+
+    if (!isInsideTarget) {
+      // VIRTUAL_ENV points outside target directory - likely from another project
+      // Don't use it as it could give incorrect instructions
+      console.warn(
+        `⚠️  Note: VIRTUAL_ENV (${envVenv}) points outside the target directory. ` +
+        `It will not be used for this initialization.`
+      );
+      return null;
+    }
+
     const binDir = IS_WINDOWS ? 'Scripts' : 'bin';
     const pipExe = IS_WINDOWS ? 'pip.exe' : 'pip';
     const name = path.basename(envVenv);

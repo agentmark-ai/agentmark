@@ -18,6 +18,8 @@ export interface PackageManagerConfig {
   addCmd: string;
   /** Command to add a dev dependency */
   addDevCmd: string;
+  /** Command prefix for running scripts (e.g., 'npm run', 'yarn') */
+  runCmd: string;
 }
 
 /** Package manager configurations indexed by lock file name */
@@ -28,6 +30,7 @@ export const PACKAGE_MANAGERS: Record<string, PackageManagerConfig> = {
     installCmd: 'yarn install',
     addCmd: 'yarn add',
     addDevCmd: 'yarn add --dev',
+    runCmd: 'yarn',
   },
   'pnpm-lock.yaml': {
     name: 'pnpm',
@@ -35,6 +38,7 @@ export const PACKAGE_MANAGERS: Record<string, PackageManagerConfig> = {
     installCmd: 'pnpm install',
     addCmd: 'pnpm add',
     addDevCmd: 'pnpm add --save-dev',
+    runCmd: 'pnpm',
   },
   'bun.lockb': {
     name: 'bun',
@@ -42,6 +46,7 @@ export const PACKAGE_MANAGERS: Record<string, PackageManagerConfig> = {
     installCmd: 'bun install',
     addCmd: 'bun add',
     addDevCmd: 'bun add --dev',
+    runCmd: 'bun run',
   },
   'package-lock.json': {
     name: 'npm',
@@ -49,6 +54,7 @@ export const PACKAGE_MANAGERS: Record<string, PackageManagerConfig> = {
     installCmd: 'npm install',
     addCmd: 'npm install',
     addDevCmd: 'npm install --save-dev',
+    runCmd: 'npm run',
   },
 };
 

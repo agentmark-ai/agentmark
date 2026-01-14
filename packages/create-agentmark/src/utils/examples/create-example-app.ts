@@ -12,9 +12,8 @@ import {
   getAdapterConfig,
 } from "./templates/index.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark-ai/shared-utils";
-import { mergePackageJson, appendGitignore, appendEnv } from "../file-merge.js";
-import { shouldSkipFile, shouldMergeFile } from "../conflict-resolution.js";
-import { detectPackageManager as detectPM } from "../package-manager.js";
+import { appendGitignore, appendEnv } from "../file-merge.js";
+import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
@@ -244,7 +243,7 @@ export const createExampleApp = async (
 
     // Setup package.json and install dependencies
     const packageManager = projectInfo?.packageManager ?? null;
-    setupPackageJson(targetPath, deploymentMode, projectInfo, resolutions);
+    setupPackageJson(targetPath, deploymentMode, projectInfo);
     installDependencies(modelProvider, targetPath, adapter, deploymentMode, packageManager);
 
     // Generate types file using the type generation library
@@ -341,8 +340,7 @@ main().catch((err) => {
     console.log('═'.repeat(70));
 
     // Use detected package manager for instructions
-    const pmName = packageManager?.name ?? 'npm';
-    const runCmd = pmName === 'yarn' ? 'yarn' : pmName === 'pnpm' ? 'pnpm' : pmName === 'bun' ? 'bun run' : 'npm run';
+    const runCmd = packageManager?.runCmd ?? 'npm run';
 
     // Check if dev script was namespaced
     const pkgJsonPath = path.join(targetPath, 'package.json');

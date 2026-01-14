@@ -1,15 +1,14 @@
 import fs from "fs-extra";
-import { execSync, execFileSync } from "child_process";
+import { execSync } from "child_process";
 import { getAdapterConfig } from "./adapters.js";
 import { mergePackageJson } from "../../file-merge.js";
 import { DEFAULT_PACKAGE_MANAGER } from "../../types.js";
-import type { ProjectInfo, ConflictResolution, PackageManagerConfig } from "../../types.js";
+import type { ProjectInfo, PackageManagerConfig } from "../../types.js";
 
 export const setupPackageJson = (
   targetPath: string = ".",
   deploymentMode: "cloud" | "static" = "cloud",
-  projectInfo: ProjectInfo | null = null,
-  _resolutions: ConflictResolution[] = []
+  projectInfo: ProjectInfo | null = null
 ) => {
   const packageJsonPath = `${targetPath}/package.json`;
   const isExistingProject = projectInfo?.isExistingProject ?? false;

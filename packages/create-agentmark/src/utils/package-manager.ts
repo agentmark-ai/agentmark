@@ -133,16 +133,5 @@ export function getRunScriptCmd(
   packageManager: PackageManagerConfig,
   script: string
 ): string {
-  switch (packageManager.name) {
-    case 'npm':
-      return `npm run ${script}`;
-    case 'yarn':
-      return `yarn ${script}`;
-    case 'pnpm':
-      return `pnpm ${script}`;
-    case 'bun':
-      return `bun run ${script}`;
-    default:
-      return `npm run ${script}`;
-  }
+  return `${packageManager.runCmd} ${script}`;
 }
