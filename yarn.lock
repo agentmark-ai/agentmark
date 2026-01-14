@@ -72,6 +72,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark-ai/claude-agent-sdk-adapter-python@workspace:packages/claude-agent-sdk-adapter-python":
+  version: 0.0.0-use.local
+  resolution: "@agentmark-ai/claude-agent-sdk-adapter-python@workspace:packages/claude-agent-sdk-adapter-python"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark-ai/claude-agent-sdk-adapter@workspace:packages/claude-agent-sdk-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/claude-agent-sdk-adapter@workspace:packages/claude-agent-sdk-adapter"

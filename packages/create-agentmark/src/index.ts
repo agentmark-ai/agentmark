@@ -63,9 +63,16 @@ const main = async () => {
   // Adapter selection depends on language
   let adapter: string;
   if (language === "python") {
-    // Python only has Pydantic AI adapter
-    adapter = "pydantic-ai";
-    console.log("Using Pydantic AI adapter for Python.");
+    const response = await prompts({
+      name: "adapter",
+      type: "select",
+      message: "Which adapter would you like to use?",
+      choices: [
+        { title: "Pydantic AI", value: "pydantic-ai" },
+        { title: "Claude Agent SDK", value: "claude-agent-sdk" },
+      ],
+    });
+    adapter = response.adapter;
   } else {
     const response = await prompts({
       name: "adapter",
@@ -132,7 +139,7 @@ const main = async () => {
   });
 
   if (language === "python") {
-    await createPythonApp(client, targetPath, apiKey, deploymentMode);
+    await createPythonApp(client, targetPath, apiKey, deploymentMode, adapter);
   } else {
     await createExampleApp(client, targetPath, apiKey, adapter, deploymentMode);
   }
