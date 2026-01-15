@@ -97,9 +97,19 @@ describe("FileLoader", () => {
     fs.writeFileSync(path.join(testDir, "test-data.jsonl"), datasetContent);
   });
 
-  afterEach(() => {
-    // Cleanup test directory
-    fs.rmSync(testDir, { recursive: true, force: true });
+  afterEach(async () => {
+    // Cleanup test directory with retry for Windows file locking issues
+    const maxRetries = 3;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        fs.rmSync(testDir, { recursive: true, force: true });
+        return;
+      } catch (err: any) {
+        if (i === maxRetries - 1) throw err;
+        // Wait briefly for Windows to release file handles
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
   });
 
   describe("load", () => {

@@ -5,16 +5,16 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./runner-server": "./dist/runner-server.js"
+    "./runner-server": "./dist/runner-server.js",
+    "./api-server": "./dist/api-server.js",
+    "./database": "./dist/server/database/index.js"
   },
   "scripts": {
     "dev": "next dev",
     "start": "next start",
     "build:app": "next build",
     "lint": "eslint --config cli-src/eslint.config.mjs cli-src",
-    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && node -e \"require('fs').chmodSync('dist/index.js', '755')\" && yarn build:app",
-    "prepack": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
-    "prepare": "node -e \"try { require('fs').chmodSync('dist/index.js', '755') } catch {}\"",
+    "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && yarn build:app",
     "test": "vitest run",
     "test:watch": "vitest"
   },

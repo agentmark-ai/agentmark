@@ -1,68 +1,115 @@
 import fs from "fs-extra";
-import { execSync, execFileSync } from "child_process";
+import { execSync } from "child_process";
 import { getAdapterConfig } from "./adapters.js";
+import { mergePackageJson } from "../../file-merge.js";
+import { DEFAULT_PACKAGE_MANAGER } from "../../types.js";
+import type { ProjectInfo, PackageManagerConfig } from "../../types.js";
 
-export const setupPackageJson = (targetPath: string = ".", deploymentMode: "cloud" | "static" = "cloud") => {
+export const setupPackageJson = (
+  targetPath: string = ".",
+  deploymentMode: "cloud" | "static" = "cloud",
+  projectInfo: ProjectInfo | null = null
+) => {
   const packageJsonPath = `${targetPath}/package.json`;
+  const isExistingProject = projectInfo?.isExistingProject ?? false;
 
   if (!fs.existsSync(packageJsonPath)) {
     console.log("Creating package.json...");
     execSync("npm init -y", { cwd: targetPath });
   }
 
-  // Update the created package.json with additional information
-  const pkgJson = fs.readJsonSync(packageJsonPath);
-  pkgJson.name =
-    pkgJson.name === "test" || !pkgJson.name
-      ? "agentmark-example-app"
-      : pkgJson.name;
-  pkgJson.description =
-    pkgJson.description || "A simple Node.js app using the Agentmark SDK";
+  // For existing projects, use merge logic
+  if (isExistingProject && fs.existsSync(packageJsonPath)) {
+    // Build scripts to add - with namespacing for conflicts
+    const scriptsToAdd: Record<string, string> = {
+      "demo": "npx tsx index.ts",
+      "dev": "agentmark dev",
+      "prompt": "agentmark run-prompt",
+      "experiment": "agentmark run-experiment",
+    };
 
-  // All platforms use "agentmark dev" which runs their respective dev-entry.ts
-  const devScript = "agentmark dev";
+    if (deploymentMode === "static") {
+      scriptsToAdd["build"] = "agentmark build --out dist/agentmark";
+    }
 
-  // Base scripts for all modes
-  const scripts: Record<string, string> = {
-    ...pkgJson.scripts,
-    "demo": "npx tsx index.ts",
-    "dev": devScript,
-    "prompt": "agentmark run-prompt",
-    "experiment": "agentmark run-experiment",
-  };
+    // Use mergePackageJson for existing projects
+    const result = mergePackageJson(targetPath, {}, {}, scriptsToAdd);
 
-  // For static/self-hosted mode, add the build script
-  if (deploymentMode === "static") {
-    scripts["build"] = "agentmark build --out dist/agentmark";
+    if (result.added.length > 0) {
+      console.log(`✅ Added to package.json: ${result.added.join(', ')}`);
+    }
+    if (result.skipped.length > 0) {
+      console.log(`⏭️  Skipped existing in package.json: ${result.skipped.join(', ')}`);
+    }
+    if (result.warnings.length > 0) {
+      result.warnings.forEach((w) => console.log(`⚠️  ${w}`));
+    }
+  } else {
+    // Update the created package.json with additional information
+    const pkgJson = fs.readJsonSync(packageJsonPath);
+    pkgJson.name =
+      pkgJson.name === "test" || !pkgJson.name
+        ? "agentmark-example-app"
+        : pkgJson.name;
+    pkgJson.description =
+      pkgJson.description || "A simple Node.js app using the Agentmark SDK";
+
+    // All platforms use "agentmark dev" which runs their respective dev-entry.ts
+    const devScript = "agentmark dev";
+
+    // Base scripts for all modes
+    const scripts: Record<string, string> = {
+      ...pkgJson.scripts,
+      "demo": "npx tsx index.ts",
+      "dev": devScript,
+      "prompt": "agentmark run-prompt",
+      "experiment": "agentmark run-experiment",
+    };
+
+    // For static/self-hosted mode, add the build script
+    if (deploymentMode === "static") {
+      scripts["build"] = "agentmark build --out dist/agentmark";
+    }
+
+    pkgJson.scripts = scripts;
+
+    // Add overrides to fix vulnerabilities in transitive dependencies
+    // localtunnel (used by @agentmark-ai/cli) depends on axios@0.21.4 which has vulnerabilities
+    pkgJson.overrides = {
+      ...pkgJson.overrides,
+      "axios": "^1.7.9"
+    };
+
+    fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
   }
-
-  pkgJson.scripts = scripts;
-
-  // Add overrides to fix vulnerabilities in transitive dependencies
-  // localtunnel (used by @agentmark-ai/cli) depends on axios@0.21.4 which has vulnerabilities
-  pkgJson.overrides = {
-    ...pkgJson.overrides,
-    "axios": "^1.7.9"
-  };
-
-  fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
 };
 
 export const installDependencies = (
   modelProvider: string,
   targetPath: string = ".",
   adapter: string = "ai-sdk",
-  deploymentMode: "cloud" | "static" = "cloud"
+  deploymentMode: "cloud" | "static" = "cloud",
+  packageManager: PackageManagerConfig | null = null
 ) => {
   console.log("Installing required packages...");
   console.log("This might take a moment...");
 
   const adapterConfig = getAdapterConfig(adapter, modelProvider);
 
+  // Use detected package manager or default to npm
+  const pm = packageManager || DEFAULT_PACKAGE_MANAGER;
+
+  // npm needs --legacy-peer-deps due to some transitive dependency conflicts
+  const npmSuffix = pm.name === 'npm' ? ' --legacy-peer-deps' : '';
+
   try {
-    // Install TypeScript, ts-node, CLI, and other dev dependencies
-    // CLI needs to be a devDep so dev-entry.ts can import from @agentmark-ai/cli/runner-server
-    const devDepsCmd = "npm install --save-dev typescript ts-node @types/node @agentmark-ai/cli --legacy-peer-deps";
+    // Dev dependencies to install
+    const devDeps = ['typescript', 'ts-node', '@types/node', '@agentmark-ai/cli'];
+
+    // Install dev dependencies using detected package manager config
+    const devDepsCmd = `${pm.addDevCmd} ${devDeps.join(' ')}${npmSuffix}`;
+
+    console.log(`Using ${pm.name} to install dependencies...`);
 
     execSync(devDepsCmd, {
       stdio: "inherit",
@@ -76,18 +123,19 @@ export const installDependencies = (
       ? ["@agentmark-ai/loader-api", "@agentmark-ai/loader-file"]
       : ["@agentmark-ai/loader-api"];
 
-    const installArgs = [
-      "install",
+    const deps = [
       "dotenv",
       "@agentmark-ai/prompt-core",
       "@agentmark-ai/sdk",
       adapterConfig.package,
       ...loaderPackages,
       ...adapterConfig.dependencies,
-      "--legacy-peer-deps",
     ];
 
-    execFileSync("npm", installArgs, { stdio: "inherit", cwd: targetPath });
+    // Install regular dependencies using detected package manager config
+    const depsCmd = `${pm.addCmd} ${deps.join(' ')}${npmSuffix}`;
+
+    execSync(depsCmd, { stdio: "inherit", cwd: targetPath });
 
     console.log("Packages installed successfully!");
   } catch (error) {

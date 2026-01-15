@@ -25,6 +25,16 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  "fixtures/speech-prop-only.prompt.mdx": {
+    kind: "speech";
+    input: { text: string };
+    output: {};
+  };
+  "fixtures/image-prop-only.prompt.mdx": {
+    kind: "image";
+    input: { text: string };
+    output: {};
+  };
   "fixtures/mathDataset.prompt.mdx": {
     kind: "object";
     input: { userMessage: string };
@@ -111,6 +121,32 @@ describe("AgentMark Integration", () => {
       "Please read this text aloud."
     );
     expect(result.speech_config.speed).toBe(1.0);
+  });
+
+  it("should handle SpeechPrompt with only a prop expression (bug #291)", async () => {
+    const speechPrompt = await agentMark.loadSpeechPrompt("fixtures/speech-prop-only.prompt.mdx");
+    const result = await speechPrompt.format({
+      props: {
+        text: "Hello, this is a test speech with only a prop.",
+      },
+    });
+    expect(result.speech_config.model_name).toBe("test-model");
+    expect(result.speech_config.text).toBe(
+      "Hello, this is a test speech with only a prop."
+    );
+  });
+
+  it("should handle ImagePrompt with only a prop expression (bug #291)", async () => {
+    const imagePrompt = await agentMark.loadImagePrompt("fixtures/image-prop-only.prompt.mdx");
+    const result = await imagePrompt.format({
+      props: {
+        text: "A beautiful sunset over the ocean.",
+      },
+    });
+    expect(result.image_config.model_name).toBe("test-model");
+    expect(result.image_config.prompt).toBe(
+      "A beautiful sunset over the ocean."
+    );
   });
 
   it("should enforce type safety on prompt paths", () => {

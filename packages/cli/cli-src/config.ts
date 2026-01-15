@@ -6,6 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import os from 'os';
 
 // Configuration constants
 const CONFIG_EXPIRATION_DAYS = 30;
@@ -27,7 +28,7 @@ let cachedConfigPath: string | null = null;
 function getConfigPath(): string {
   // Use temp directory during tests to avoid polluting the project
   if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
-    const tmpDir = process.env.TMPDIR || '/tmp';
+    const tmpDir = os.tmpdir();
     return path.join(tmpDir, '.agentmark-dev-config.json');
   }
 
@@ -47,7 +48,7 @@ function getConfigPath(): string {
     return path.join(configDir, 'dev-config.json');
   } catch {
     // Fallback to temp directory if can't write to project
-    const tmpDir = process.env.TMPDIR || '/tmp';
+    const tmpDir = os.tmpdir();
     return path.join(tmpDir, '.agentmark-dev-config.json');
   }
 }

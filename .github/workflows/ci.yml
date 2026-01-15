@@ -1,5 +1,8 @@
 name: CI/CD
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -8,7 +11,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Check out code
@@ -18,11 +24,16 @@ jobs:
 
       - name: Enable Corepack
         run: corepack enable
- 
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 21
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Install
         run: yarn install
@@ -30,8 +41,18 @@ jobs:
       - name: Build
         run: yarn build
 
-      - name: Test
+      - name: Test (Unit)
         run: yarn test
+
+      # Integration tests run on both Ubuntu and Windows
+      - name: Start API Server for Integration Tests
+        run: node scripts/start-test-server.js 9419
+
+      - name: Seed Integration Test Data
+        run: node scripts/seed-test-data.js 9419
+
+      - name: Test (Integration)
+        run: yarn workspace @agentmark-ai/mcp-server test:integration
 
       - name: Check version plans
         if: github.event_name == 'pull_request'
