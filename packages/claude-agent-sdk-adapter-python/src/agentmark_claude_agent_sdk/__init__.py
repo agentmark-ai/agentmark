@@ -45,16 +45,10 @@ from .hooks import (
     GenAIAttributes,
     HookEventName,
     HooksConfig,
-    # OTEL hooks
-    OtelHooksResult,
     SpanNames,
-    SpanStatusCode,
     # Telemetry hooks
     TelemetryEvent,
     TelemetryEventHandler,
-    combine_with_otel_hooks,
-    complete_session,
-    create_otel_hooks,
     create_telemetry_hooks,
     merge_hooks,
 )
@@ -78,6 +72,7 @@ from .tool_registry import (
 from .types import (
     AgentMarkToolDefinition,
     ClaudeAgentAdapterOptions,
+    ClaudeAgentErrorResult,
     ClaudeAgentObjectParams,
     ClaudeAgentQueryOptions,
     ClaudeAgentQueryParams,
@@ -88,18 +83,24 @@ from .types import (
     # Hook types
     HookInput,
     HookOutput,
+    # Type guards for hook input
+    is_post_tool_use_failure_input,
+    is_post_tool_use_input,
+    is_pre_tool_use_input,
+    is_stop_input,
+    is_subagent_start_input,
+    is_subagent_stop_input,
+    is_user_prompt_submit_input,
     # MCP types
     McpServerConfig,
     # Model/tool types
     ModelConfig,
-    OtelHooksConfig,
     OutputFormat,
     # Permission and output types
     PermissionMode,
     SystemPromptPreset,
     # Telemetry types
     TelemetryConfig,
-    TelemetryContext,
     TracedTelemetryContext,
 )
 
@@ -196,6 +197,7 @@ __all__ = [
     "ClaudeAgentQueryOptions",
     "ClaudeAgentAdapterOptions",
     "ClaudeAgentResult",
+    "ClaudeAgentErrorResult",
     "TracedTelemetryContext",
     # Model/tool types
     "ModelConfig",
@@ -208,10 +210,16 @@ __all__ = [
     "HookInput",
     "HookOutput",
     "HookCallback",
+    # Type guards for hook input
+    "is_user_prompt_submit_input",
+    "is_pre_tool_use_input",
+    "is_post_tool_use_input",
+    "is_post_tool_use_failure_input",
+    "is_stop_input",
+    "is_subagent_start_input",
+    "is_subagent_stop_input",
     # Telemetry config types
     "TelemetryConfig",
-    "OtelHooksConfig",
-    "TelemetryContext",
     # MCP types
     "McpServerConfig",
     # MCP bridge utilities
@@ -225,15 +233,10 @@ __all__ = [
     "HookEventName",
     "create_telemetry_hooks",
     "merge_hooks",
-    # OTEL hooks
-    "OtelHooksResult",
+    # OTEL constants
     "GenAIAttributes",
     "AgentMarkAttributes",
     "SpanNames",
-    "SpanStatusCode",
-    "create_otel_hooks",
-    "complete_session",
-    "combine_with_otel_hooks",
     "TRACER_SCOPE_NAME",
     # Webhook handler
     "ClaudeAgentWebhookHandler",

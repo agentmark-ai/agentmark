@@ -182,17 +182,102 @@ class ClaudeAgentObjectParams(Generic[T]):
 
 @dataclass
 class HookInput:
-    """Hook input data."""
+    """Hook input data with all known event-specific fields.
+
+    Different fields are populated depending on the hook_event_name.
+    """
 
     hook_event_name: str
+    """The hook event name (e.g., 'UserPromptSubmit', 'PreToolUse', 'Stop')."""
+
     session_id: str
+    """Session identifier."""
+
     transcript_path: str | None = None
+    """Path to the transcript file."""
+
     cwd: str | None = None
+    """Current working directory."""
+
+    prompt: str | None = None
+    """User prompt (UserPromptSubmit)."""
+
     tool_name: str | None = None
+    """Tool name (PreToolUse, PostToolUse, PostToolUseFailure)."""
+
     tool_input: Any | None = None
+    """Tool input parameters (PreToolUse)."""
+
     tool_response: Any | None = None
+    """Tool response (PostToolUse)."""
+
     error: str | None = None
+    """Error message (PostToolUseFailure)."""
+
+    reason: str | None = None
+    """Stop reason (Stop)."""
+
+    result: str | None = None
+    """Final result (Stop)."""
+
+    input_tokens: int | None = None
+    """Input token count (Stop)."""
+
+    output_tokens: int | None = None
+    """Output token count (Stop)."""
+
+    agent_type: str | None = None
+    """Agent type (SubagentStart)."""
+
+    agent_id: str | None = None
+    """Agent identifier (SubagentStart, SubagentStop)."""
+
+    subagent_type: str | None = None
+    """Subagent type (SubagentStart)."""
+
+    subagent_prompt: str | None = None
+    """Subagent prompt (SubagentStart)."""
+
+    subagent_result: str | None = None
+    """Subagent result (SubagentStop)."""
+
     extra: dict[str, Any] = field(default_factory=dict)
+    """Additional properties for forward compatibility."""
+
+
+def is_user_prompt_submit_input(input: HookInput) -> bool:
+    """Type guard for UserPromptSubmit hook input."""
+    return input.hook_event_name == "UserPromptSubmit"
+
+
+def is_pre_tool_use_input(input: HookInput) -> bool:
+    """Type guard for PreToolUse hook input."""
+    return input.hook_event_name == "PreToolUse"
+
+
+def is_post_tool_use_input(input: HookInput) -> bool:
+    """Type guard for PostToolUse hook input."""
+    return input.hook_event_name == "PostToolUse"
+
+
+def is_post_tool_use_failure_input(input: HookInput) -> bool:
+    """Type guard for PostToolUseFailure hook input."""
+    return input.hook_event_name == "PostToolUseFailure"
+
+
+def is_stop_input(input: HookInput) -> bool:
+    """Type guard for Stop hook input."""
+    return input.hook_event_name == "Stop"
+
+
+def is_subagent_start_input(input: HookInput) -> bool:
+    """Type guard for SubagentStart hook input."""
+    return input.hook_event_name == "SubagentStart"
+
+
+def is_subagent_stop_input(input: HookInput) -> bool:
+    """Type guard for SubagentStop hook input."""
+    return input.hook_event_name == "SubagentStop"
 
 
 @dataclass
@@ -262,6 +347,13 @@ class ClaudeAgentAdapterOptions:
     disallowed_tools: list[str] | None = None
     """Disallowed tools (blacklist)."""
 
+    on_warning: Callable[[str], None] | None = None
+    """Custom warning handler for unsupported config options.
+
+    If not provided, warnings are silently ignored (library code should not log by default).
+    Set to `print` or a custom function to enable warnings during development.
+    """
+
 
 # Tool function types
 ToolFunction = Callable[[dict[str, Any], dict[str, Any] | None], Any]
@@ -297,6 +389,20 @@ class ClaudeAgentResult:
     result: str | None = None
     structured_output: Any | None = None
     errors: list[str] | None = None
+
+
+@dataclass
+class ClaudeAgentErrorResult:
+    """Error result from Claude Agent SDK when subtype is not 'success'.
+
+    Used for type-safe error handling in webhook handler.
+    """
+
+    type: Literal["result"] = "result"
+    subtype: str = "error"
+    """Error subtype: 'error', 'error_during_execution', 'error_max_turns', etc."""
+    errors: list[str] | None = None
+    session_id: str | None = None
 
 
 @dataclass

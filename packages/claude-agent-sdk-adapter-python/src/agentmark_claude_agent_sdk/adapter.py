@@ -5,6 +5,7 @@ Ported from TypeScript: packages/claude-agent-sdk-adapter/src/adapter.ts
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from .mcp.agentmark_mcp_bridge import (
@@ -24,6 +25,52 @@ from .types import (
     SystemPromptPreset,
     TracedTelemetryContext,
 )
+
+# Config options supported by Claude Agent SDK adapter for text prompts.
+# Other options will trigger a warning when present.
+SUPPORTED_TEXT_OPTIONS = frozenset([
+    "model_name",  # Used via model registry
+    "max_calls",   # Mapped to maxTurns
+    "tools",       # Converted to MCP servers
+])
+
+# Config options supported by Claude Agent SDK adapter for object prompts.
+# Includes all text options plus schema-related options.
+SUPPORTED_OBJECT_OPTIONS = frozenset([
+    *SUPPORTED_TEXT_OPTIONS,
+    "schema",              # Used for outputFormat
+    "schema_name",         # Passed through for schema naming (optional)
+    "schema_description",  # Passed through for schema description (optional)
+])
+
+
+def _warn_unsupported_options(
+    settings: dict[str, Any],
+    supported_options: frozenset[str],
+    prompt_name: str,
+    config_type: str,
+    on_warning: Callable[[str], None] | None,
+) -> None:
+    """Check for unsupported config options and emit warnings via the provided handler.
+
+    Args:
+        settings: The settings object from the prompt config.
+        supported_options: Set of supported option names.
+        prompt_name: Name of the prompt for the warning message.
+        config_type: Type of config (text_config or object_config) for the warning message.
+        on_warning: Optional warning handler; if not provided, warnings are silently ignored.
+    """
+    if on_warning is None:
+        return
+
+    unsupported = [key for key in settings if key not in supported_options]
+
+    if unsupported:
+        on_warning(
+            f"[claude-agent-sdk-adapter] Warning: The following {config_type} options "
+            f'in prompt "{prompt_name}" are not supported by Claude Agent SDK and will '
+            f"be ignored: {', '.join(unsupported)}"
+        )
 
 
 class ClaudeAgentAdapter:
@@ -236,6 +283,16 @@ class ClaudeAgentAdapter:
         text_config = config.get("text_config", {})
         model_name = text_config.get("model_name", "")
         settings = {k: v for k, v in text_config.items() if k != "model_name"}
+        prompt_name = config.get("name", metadata.get("name", ""))
+
+        # Warn about unsupported config options (only if on_warning handler is provided)
+        _warn_unsupported_options(
+            settings,
+            SUPPORTED_TEXT_OPTIONS,
+            prompt_name,
+            "text_config",
+            self._adapter_options.on_warning if self._adapter_options else None,
+        )
 
         model_config_obj = self._model_registry.get_model_config(model_name, options)
         model_config = {
@@ -245,7 +302,6 @@ class ClaudeAgentAdapter:
 
         system_prompt = self._extract_system_prompt(messages)
         user_prompt = self._messages_to_prompt(messages)
-        prompt_name = config.get("name", metadata.get("name", ""))
 
         query_options, telemetry = self._build_query_options(
             model_config, system_prompt, settings, options, metadata, prompt_name
@@ -280,6 +336,16 @@ class ClaudeAgentAdapter:
         model_name = object_config.get("model_name", "")
         schema = object_config.get("schema", {})
         settings = {k: v for k, v in object_config.items() if k not in ("model_name", "schema")}
+        prompt_name = config.get("name", metadata.get("name", ""))
+
+        # Warn about unsupported config options (only if on_warning handler is provided)
+        _warn_unsupported_options(
+            settings,
+            SUPPORTED_OBJECT_OPTIONS,
+            prompt_name,
+            "object_config",
+            self._adapter_options.on_warning if self._adapter_options else None,
+        )
 
         model_config_obj = self._model_registry.get_model_config(model_name, options)
         model_config = {
@@ -289,7 +355,6 @@ class ClaudeAgentAdapter:
 
         system_prompt = self._extract_system_prompt(messages)
         user_prompt = self._messages_to_prompt(messages)
-        prompt_name = config.get("name", metadata.get("name", ""))
 
         query_options, telemetry = self._build_query_options(
             model_config, system_prompt, settings, options, metadata, prompt_name
