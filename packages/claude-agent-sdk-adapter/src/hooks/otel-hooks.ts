@@ -61,19 +61,50 @@ interface OtelApi {
  */
 export const TRACER_SCOPE_NAME = "agentmark";
 
+// Cached OpenTelemetry API reference (loaded lazily)
+let cachedOtelApi: OtelApi | null | undefined;
+let otelApiPromise: Promise<OtelApi | null> | null = null;
+
 /**
- * Get the OpenTelemetry API.
+ * Get the OpenTelemetry API asynchronously.
  * Returns null if @opentelemetry/api is not available.
+ * Results are cached after first load.
+ * @internal
+ */
+async function getOtelApiAsync(): Promise<OtelApi | null> {
+  // Return cached value if available
+  if (cachedOtelApi !== undefined) {
+    return cachedOtelApi;
+  }
+
+  // Return existing promise if load is in progress
+  if (otelApiPromise) {
+    return otelApiPromise;
+  }
+
+  // Start loading
+  otelApiPromise = (async () => {
+    try {
+      const api = await import("@opentelemetry/api");
+      cachedOtelApi = api as unknown as OtelApi;
+      return cachedOtelApi;
+    } catch {
+      cachedOtelApi = null;
+      return null;
+    }
+  })();
+
+  return otelApiPromise;
+}
+
+/**
+ * Get the OpenTelemetry API synchronously (from cache only).
+ * Returns null if not yet loaded or unavailable.
+ * Call getOtelApiAsync() first to ensure the module is loaded.
  * @internal
  */
 function getOtelApi(): OtelApi | null {
-  try {
-    // Dynamic require to avoid hard dependency
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("@opentelemetry/api") as OtelApi;
-  } catch {
-    return null;
-  }
+  return cachedOtelApi ?? null;
 }
 
 /**
@@ -179,8 +210,8 @@ interface InternalTelemetryContext extends TelemetryContext {
  * @param config - OTEL hooks configuration
  * @returns New telemetry context, or null if OTEL is not available
  */
-export function createTelemetryContext(config: OtelHooksConfig): InternalTelemetryContext | null {
-  const api = getOtelApi();
+export async function createTelemetryContext(config: OtelHooksConfig): Promise<InternalTelemetryContext | null> {
+  const api = await getOtelApiAsync();
   if (!api) return null;
 
   let tracer: Tracer | null = null;
@@ -256,7 +287,7 @@ function getCommonAttributes(
  *
  * @example
  * ```typescript
- * const { hooks, context } = createOtelHooks({
+ * const { hooks, context } = await createOtelHooks({
  *   promptName: "my-agent-task",
  *   model: "claude-sonnet-4-20250514",
  *   userId: "user-123",
@@ -271,11 +302,11 @@ function getCommonAttributes(
  * }
  * ```
  */
-export function createOtelHooks(config: OtelHooksConfig): {
+export async function createOtelHooks(config: OtelHooksConfig): Promise<{
   hooks: HooksConfig;
   context: TelemetryContext | null;
-} {
-  const ctx = createTelemetryContext(config);
+}> {
+  const ctx = await createTelemetryContext(config);
 
   // If OTEL is not available, return empty hooks
   if (!ctx) {

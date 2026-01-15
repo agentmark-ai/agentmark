@@ -47,25 +47,29 @@ const SUPPORTED_OBJECT_OPTIONS = new Set([
 ]);
 
 /**
- * Check for unsupported config options and emit warnings.
+ * Check for unsupported config options and emit warnings via the provided handler.
  *
  * @param settings - The settings object from the prompt config
  * @param supportedOptions - Set of supported option names
  * @param promptName - Name of the prompt for the warning message
  * @param configType - Type of config (text_config or object_config) for the warning message
+ * @param onWarning - Optional warning handler; if not provided, warnings are silently ignored
  */
 function warnUnsupportedOptions(
   settings: Record<string, unknown>,
   supportedOptions: Set<string>,
   promptName: string,
-  configType: "text_config" | "object_config"
+  configType: "text_config" | "object_config",
+  onWarning?: (message: string) => void
 ): void {
+  if (!onWarning) return;
+
   const unsupportedOptions = Object.keys(settings).filter(
     (key) => !supportedOptions.has(key)
   );
 
   if (unsupportedOptions.length > 0) {
-    console.warn(
+    onWarning(
       `[claude-agent-sdk-adapter] Warning: The following ${configType} options in prompt "${promptName}" are not supported by Claude Agent SDK and will be ignored: ${unsupportedOptions.join(", ")}`
     );
   }
@@ -276,8 +280,8 @@ export class ClaudeAgentAdapter<
   ): Promise<ClaudeAgentTextParams> {
     const { model_name, ...settings } = input.text_config;
 
-    // Warn about unsupported config options
-    warnUnsupportedOptions(settings, SUPPORTED_TEXT_OPTIONS, input.name, "text_config");
+    // Warn about unsupported config options (only if onWarning handler is provided)
+    warnUnsupportedOptions(settings, SUPPORTED_TEXT_OPTIONS, input.name, "text_config", this.adapterOptions?.onWarning);
 
     const modelConfig = this.modelRegistry.getModelConfig(model_name, options);
     const systemPrompt = this.extractSystemPrompt(input.messages);
@@ -317,8 +321,8 @@ export class ClaudeAgentAdapter<
   ): Promise<ClaudeAgentObjectParams<T[K]["output"]>> {
     const { model_name, schema, ...settings } = input.object_config;
 
-    // Warn about unsupported config options
-    warnUnsupportedOptions(settings, SUPPORTED_OBJECT_OPTIONS, input.name, "object_config");
+    // Warn about unsupported config options (only if onWarning handler is provided)
+    warnUnsupportedOptions(settings, SUPPORTED_OBJECT_OPTIONS, input.name, "object_config", this.adapterOptions?.onWarning);
 
     const modelConfig = this.modelRegistry.getModelConfig(model_name, options);
     const systemPrompt = this.extractSystemPrompt(input.messages);

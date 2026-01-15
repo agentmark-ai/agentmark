@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentmark-claude-agent-sdk"
-version = "0.0.0"
+version = "0.1.0"
 description = "Claude Agent SDK adapter for AgentMark - integrate AgentMark prompts with Claude Agent SDK"
 readme = "README.md"
 license = "MIT"

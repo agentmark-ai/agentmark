@@ -148,18 +148,145 @@ export type HookCallback = (
 ) => Promise<HookOutput>;
 
 /**
- * Hook input data
+ * Base hook input data shared by all hook events
  */
-export interface HookInput {
+export interface HookInputBase {
   hook_event_name: string;
   session_id: string;
   transcript_path?: string;
   cwd?: string;
+}
+
+/**
+ * Hook input for UserPromptSubmit event
+ */
+export interface UserPromptSubmitInput extends HookInputBase {
+  hook_event_name: 'UserPromptSubmit';
+  prompt?: string;
+}
+
+/**
+ * Hook input for PreToolUse event
+ */
+export interface PreToolUseInput extends HookInputBase {
+  hook_event_name: 'PreToolUse';
   tool_name?: string;
   tool_input?: unknown;
+}
+
+/**
+ * Hook input for PostToolUse event
+ */
+export interface PostToolUseInput extends HookInputBase {
+  hook_event_name: 'PostToolUse';
+  tool_name?: string;
   tool_response?: unknown;
+}
+
+/**
+ * Hook input for PostToolUseFailure event
+ */
+export interface PostToolUseFailureInput extends HookInputBase {
+  hook_event_name: 'PostToolUseFailure';
+  tool_name?: string;
   error?: string;
+}
+
+/**
+ * Hook input for Stop event
+ */
+export interface StopInput extends HookInputBase {
+  hook_event_name: 'Stop';
+  reason?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+}
+
+/**
+ * Hook input for SubagentStart event
+ */
+export interface SubagentStartInput extends HookInputBase {
+  hook_event_name: 'SubagentStart';
+  agent_type?: string;
+  agent_id?: string;
+}
+
+/**
+ * Hook input for SubagentStop event
+ */
+export interface SubagentStopInput extends HookInputBase {
+  hook_event_name: 'SubagentStop';
+  agent_id?: string;
+}
+
+/**
+ * Generic hook input for unrecognized events
+ */
+export interface GenericHookInput extends HookInputBase {
   [key: string]: unknown;
+}
+
+/**
+ * Discriminated union of all hook input types.
+ * Use type guards to narrow to specific event types.
+ */
+export type HookInput =
+  | UserPromptSubmitInput
+  | PreToolUseInput
+  | PostToolUseInput
+  | PostToolUseFailureInput
+  | StopInput
+  | SubagentStartInput
+  | SubagentStopInput
+  | GenericHookInput;
+
+/**
+ * Type guard for UserPromptSubmit hook input
+ */
+export function isUserPromptSubmitInput(input: HookInput): input is UserPromptSubmitInput {
+  return input.hook_event_name === 'UserPromptSubmit';
+}
+
+/**
+ * Type guard for PreToolUse hook input
+ */
+export function isPreToolUseInput(input: HookInput): input is PreToolUseInput {
+  return input.hook_event_name === 'PreToolUse';
+}
+
+/**
+ * Type guard for PostToolUse hook input
+ */
+export function isPostToolUseInput(input: HookInput): input is PostToolUseInput {
+  return input.hook_event_name === 'PostToolUse';
+}
+
+/**
+ * Type guard for PostToolUseFailure hook input
+ */
+export function isPostToolUseFailureInput(input: HookInput): input is PostToolUseFailureInput {
+  return input.hook_event_name === 'PostToolUseFailure';
+}
+
+/**
+ * Type guard for Stop hook input
+ */
+export function isStopInput(input: HookInput): input is StopInput {
+  return input.hook_event_name === 'Stop';
+}
+
+/**
+ * Type guard for SubagentStart hook input
+ */
+export function isSubagentStartInput(input: HookInput): input is SubagentStartInput {
+  return input.hook_event_name === 'SubagentStart';
+}
+
+/**
+ * Type guard for SubagentStop hook input
+ */
+export function isSubagentStopInput(input: HookInput): input is SubagentStopInput {
+  return input.hook_event_name === 'SubagentStop';
 }
 
 /**
@@ -196,6 +323,13 @@ export interface ClaudeAgentAdapterOptions {
   allowedTools?: string[];
   /** Disallowed tools (blacklist) */
   disallowedTools?: string[];
+  /**
+   * Custom warning handler for unsupported config options.
+   * If not provided, warnings are silently ignored (library code should not log by default).
+   * Set to `console.warn` to enable warnings during development.
+   * @param message - The warning message
+   */
+  onWarning?: (message: string) => void;
 }
 
 /**
@@ -227,6 +361,17 @@ export interface ClaudeAgentResult {
   total_cost_usd: number;
   duration_ms: number;
   errors?: string[];
+}
+
+/**
+ * Error result from Claude Agent SDK when subtype is not 'success'.
+ * Used for type-safe error handling in runner.
+ */
+export interface ClaudeAgentErrorResult {
+  type: 'result';
+  subtype: 'error' | 'error_during_execution' | 'error_max_turns' | string;
+  errors?: string[];
+  session_id?: string;
 }
 
 /**

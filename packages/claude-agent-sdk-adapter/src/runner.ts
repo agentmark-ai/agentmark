@@ -9,7 +9,7 @@ import type {
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { withTracing } from "./traced";
 import type { ClaudeAgentAdapter } from "./adapter";
-import type { ClaudeAgentTextParams, ClaudeAgentObjectParams } from "./types";
+import type { ClaudeAgentTextParams, ClaudeAgentObjectParams, ClaudeAgentErrorResult } from "./types";
 
 /**
  * Frontmatter type for AgentMark prompts
@@ -213,7 +213,7 @@ export class ClaudeAgentWebhookHandler {
                 outputTokens = message.usage?.output_tokens || 0;
               } else {
                 // Handle error subtypes: error_during_execution, error_max_turns, etc.
-                const errorResult = message as { errors?: string[]; subtype: string };
+                const errorResult = message as ClaudeAgentErrorResult;
                 controller.enqueue(
                   encoder.encode(
                     JSON.stringify({
@@ -301,7 +301,7 @@ export class ClaudeAgentWebhookHandler {
             outputTokens = message.usage?.output_tokens || 0;
           } else {
             // Handle error subtypes: error_during_execution, error_max_turns, etc.
-            const errorResult = message as { errors?: string[]; subtype: string };
+            const errorResult = message as ClaudeAgentErrorResult;
             finishReason = "error";
             finalResult = errorResult.errors?.join(", ") || `Error: ${errorResult.subtype}`;
           }

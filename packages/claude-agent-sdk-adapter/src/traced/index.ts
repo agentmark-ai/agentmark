@@ -205,17 +205,38 @@ function generateFallbackTraceId(): string {
   return result;
 }
 
+// Cached OpenTelemetry API reference
+let cachedOtelApi: OtelApi | null | undefined;
+let otelApiPromise: Promise<OtelApi | null> | null = null;
+
 /**
- * Get OpenTelemetry API if available
+ * Get OpenTelemetry API asynchronously if available.
+ * Results are cached after first load.
  */
-function getOtelApi(): OtelApi | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const api = require("@opentelemetry/api") as OtelApi;
-    return api;
-  } catch {
-    return null;
+async function getOtelApiAsync(): Promise<OtelApi | null> {
+  // Return cached value if available
+  if (cachedOtelApi !== undefined) {
+    return cachedOtelApi;
   }
+
+  // Return existing promise if load is in progress
+  if (otelApiPromise) {
+    return otelApiPromise;
+  }
+
+  // Start loading
+  otelApiPromise = (async () => {
+    try {
+      const api = await import("@opentelemetry/api");
+      cachedOtelApi = api as unknown as OtelApi;
+      return cachedOtelApi;
+    } catch {
+      cachedOtelApi = null;
+      return null;
+    }
+  })();
+
+  return otelApiPromise;
 }
 
 /**
@@ -607,32 +628,32 @@ export function withTracing<TOptions, R>(
     };
   }
 
-  const api = getOtelApi();
-
-  // If OTEL not available, return passthrough with fallback trace ID
-  if (!api) {
-    const traceId = generateFallbackTraceId();
-    return {
-      traceId,
-      async *[Symbol.asyncIterator]() {
-        yield* queryFn(queryParams);
-      },
-    };
-  }
-
-  // Create tracing context and get trace ID immediately
-  const opts = queryParams.options as Record<string, unknown> | undefined;
-  const ctx = createTracingContext(
-    api,
-    queryParams.prompt,
-    opts?.model as string | undefined,
-    telemetry
-  );
-
-  const traceId = ctx.agentSpan.spanContext().traceId;
+  // Generate trace ID upfront (will be replaced if OTEL is available)
+  let traceId = generateFallbackTraceId();
 
   // Create the async iterator that performs tracing
   async function* tracedIterator(): AsyncGenerator<R, void, unknown> {
+    // Load OTEL API asynchronously
+    const api = await getOtelApiAsync();
+
+    // If OTEL not available, passthrough without tracing
+    if (!api) {
+      yield* queryFn(queryParams);
+      return;
+    }
+
+    // Create tracing context now that we have the API
+    const opts = queryParams.options as Record<string, unknown> | undefined;
+    const ctx = createTracingContext(
+      api,
+      queryParams.prompt,
+      opts?.model as string | undefined,
+      telemetry
+    );
+
+    // Update trace ID with real OTEL trace ID
+    traceId = ctx.agentSpan.spanContext().traceId;
+
     // Create tool hooks
     const { preToolUse, postToolUse } = createToolHooks(ctx);
 
@@ -663,14 +684,26 @@ export function withTracing<TOptions, R>(
         span.setStatus({ code: SpanStatusCode.ERROR });
         span.end();
       }
+      ctx.pendingToolSpans.clear();
       ctx.agentSpan.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
       ctx.agentSpan.end();
       throw error;
+    } finally {
+      // Cleanup any remaining pending tool spans on iterator completion
+      if (ctx.pendingToolSpans.size > 0) {
+        for (const [, span] of ctx.pendingToolSpans) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: "Iterator completed with pending tools" });
+          span.end();
+        }
+        ctx.pendingToolSpans.clear();
+      }
     }
   }
 
   return {
-    traceId,
+    get traceId() {
+      return traceId;
+    },
     [Symbol.asyncIterator]() {
       return tracedIterator();
     },
