@@ -26,41 +26,10 @@ export interface CreateMcpServerOptions {
 }
 
 /**
- * Convert JSON Schema to Zod schema.
- * Handles basic types - extend as needed for more complex schemas.
+ * Convert JSON Schema to Zod schema using Zod 4's built-in fromJSONSchema.
  */
-function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodTypeAny {
-  const type = schema.type as string;
-  const properties = schema.properties as Record<string, Record<string, unknown>> | undefined;
-  const required = schema.required as string[] | undefined;
-  const items = schema.items as Record<string, unknown> | undefined;
-
-  switch (type) {
-    case 'string':
-      return z.string();
-    case 'number':
-    case 'integer':
-      return z.number();
-    case 'boolean':
-      return z.boolean();
-    case 'array':
-      if (items) {
-        return z.array(jsonSchemaToZod(items));
-      }
-      return z.array(z.unknown());
-    case 'object':
-      if (properties) {
-        const shape: Record<string, z.ZodTypeAny> = {};
-        for (const [key, propSchema] of Object.entries(properties)) {
-          const zodProp = jsonSchemaToZod(propSchema);
-          shape[key] = required?.includes(key) ? zodProp : zodProp.optional();
-        }
-        return z.object(shape);
-      }
-      return z.record(z.unknown());
-    default:
-      return z.unknown();
-  }
+function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodType {
+  return z.fromJSONSchema(schema);
 }
 
 /**
