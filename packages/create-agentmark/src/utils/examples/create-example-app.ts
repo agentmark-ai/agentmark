@@ -160,8 +160,8 @@ export const createExampleApp = async (
   resolutions: ConflictResolution[] = []
 ) => {
   try {
-    const modelProvider = 'openai';
-    const model = 'gpt-4o';
+    const modelProvider = adapter === 'claude-agent-sdk' ? 'anthropic' : 'openai';
+    const model = adapter === 'claude-agent-sdk' ? 'claude-sonnet-4-20250514' : 'gpt-4o';
     const isExistingProject = projectInfo?.isExistingProject ?? false;
 
     if (isExistingProject) {
@@ -193,10 +193,11 @@ export const createExampleApp = async (
     // Create or append to .env file
     if (shouldMergeFile('.env', projectInfo, resolutions)) {
       const envVars: Record<string, string> = {};
+      const apiKeyEnvVar = adapter === 'claude-agent-sdk' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
       if (apiKey) {
-        envVars['OPENAI_API_KEY'] = apiKey;
+        envVars[apiKeyEnvVar] = apiKey;
       } else {
-        envVars['OPENAI_API_KEY'] = 'your-openai-api-key';
+        envVars[apiKeyEnvVar] = adapter === 'claude-agent-sdk' ? 'your-anthropic-api-key' : 'your-openai-api-key';
       }
       const result = appendEnv(targetPath, envVars);
       if (result.added.length > 0) {
@@ -206,7 +207,7 @@ export const createExampleApp = async (
         console.log(`⏭️  Skipped existing .env vars: ${result.skipped.join(', ')}`);
       }
     } else {
-      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
+      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey, adapter));
     }
 
     // Create or append to .gitignore

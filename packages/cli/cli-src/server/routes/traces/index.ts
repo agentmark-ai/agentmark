@@ -285,8 +285,8 @@ traces_cte AS (
             WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
-        MIN(DatasetRunId) AS dataset_run_id,
-        MIN(DatasetPath) AS dataset_path
+        MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id,
+        MAX(NULLIF(DatasetPath, '')) AS dataset_path
     FROM traces
     GROUP BY TraceId
 ),
@@ -464,8 +464,8 @@ export const getTraceById = async (traceId: string) => {
                 WHEN StatusCode = '1' THEN '1'
                 ELSE '0'
             END) AS status,
-            MIN(DatasetRunId) AS dataset_run_id,
-            MIN(DatasetPath) AS dataset_path
+            MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id,
+            MAX(NULLIF(DatasetPath, '')) AS dataset_path
         FROM traces
         GROUP BY TraceId
     ),
@@ -698,8 +698,8 @@ traces_cte AS (
             WHEN StatusCode = '1' THEN '1'
             ELSE '0'
         END) AS status,
-        MIN(DatasetRunId) AS dataset_run_id,
-        MIN(DatasetPath) AS dataset_path
+        MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id,
+        MAX(NULLIF(DatasetPath, '')) AS dataset_path
     FROM traces
     GROUP BY TraceId
 ),

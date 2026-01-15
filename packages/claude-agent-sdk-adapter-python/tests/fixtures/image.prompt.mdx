@@ -1,0 +1,17 @@
+---
+name: image-gen
+image_config:
+  model_name: dall-e-3
+  size: 1024x1024
+input_schema:
+  type: object
+  properties:
+    description:
+      type: string
+  required:
+    - description
+---
+
+<User>
+Generate an image of: {props.description}
+</User>

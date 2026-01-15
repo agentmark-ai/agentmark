@@ -2,12 +2,15 @@ import { NormalizedSpan, OtelResource, OtelScope, OtelSpan, SpanType } from './t
 import { registry } from './registry';
 import { AiSdkTransformer } from './transformers/ai-sdk';
 import { MastraTransformer } from './transformers/mastra';
+import { AgentMarkTransformer } from './transformers/agentmark';
 import { OtlpResourceSpans, extractResourceScopeSpan } from './converters/otlp-converter';
 import { parseAgentMarkAttributes } from './extractors/agentmark-parser';
 
 // Register transformers
 registry.register('ai', new AiSdkTransformer());
 registry.register('default-tracer', new MastraTransformer());
+// Register AgentMark transformer - uses fixed scope name 'agentmark' from OTEL
+registry.register('agentmark', new AgentMarkTransformer());
 // Set AiSdkTransformer as default adapter for all scopes
 registry.setDefault(new AiSdkTransformer());
 // We can register more transformers here for other scopes (e.g. 'langchain')
@@ -25,7 +28,7 @@ export function normalizeSpan(
 
     // 2. Get transformer and classify span type
     const transformer = registry.getTransformer(scope.name || '');
-    const type = transformer 
+    const type = transformer
         ? transformer.classify(span, allAttributes)
         : SpanType.SPAN; // Default if no transformer
 
@@ -123,3 +126,4 @@ export * from './transformers/ai-sdk';
 export * from './transformers/ai-sdk/token-helpers';
 export * from './transformers/ai-sdk/version-detector';
 export * from './transformers/mastra';
+export * from './transformers/agentmark';

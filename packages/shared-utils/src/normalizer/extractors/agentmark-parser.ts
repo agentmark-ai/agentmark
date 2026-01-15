@@ -23,6 +23,10 @@ export function parseAgentMarkAttributes(
     if (get('user_id')) result.userId = String(get('user_id'));
     if (get('trace_name')) result.traceName = String(get('trace_name'));
 
+    // Prompt Context
+    if (get('prompt_name')) result.promptName = String(get('prompt_name'));
+    if (get('props')) result.props = String(get('props'));
+
     // Dataset / Evaluation Context
     if (get('dataset_run_id')) result.datasetRunId = String(get('dataset_run_id'));
     if (get('dataset_run_name')) result.datasetRunName = String(get('dataset_run_name'));

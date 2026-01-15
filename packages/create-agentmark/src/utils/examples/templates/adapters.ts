@@ -37,6 +37,15 @@ export const createAdapterConfig = (
         webhookHandler: "MastraAdapterWebhookHandler",
       },
     },
+    "claude-agent-sdk": {
+      package: "@agentmark-ai/claude-agent-sdk-adapter",
+      dependencies: ["@anthropic-ai/claude-agent-sdk@^0.1.0"],
+      classes: {
+        modelRegistry: "ClaudeAgentModelRegistry",
+        toolRegistry: "ClaudeAgentToolRegistry",
+        webhookHandler: "ClaudeAgentWebhookHandler",
+      },
+    },
   };
 };
 
