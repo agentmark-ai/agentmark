@@ -148,144 +148,96 @@ export type HookCallback = (
 ) => Promise<HookOutput>;
 
 /**
- * Base hook input data shared by all hook events
+ * Hook input data with all known event-specific fields.
+ * Different fields are populated depending on the hook_event_name.
  */
-export interface HookInputBase {
+export interface HookInput {
+  /** The hook event name (e.g., 'UserPromptSubmit', 'PreToolUse', 'Stop') */
   hook_event_name: string;
+  /** Session identifier */
   session_id: string;
+  /** Path to the transcript file */
   transcript_path?: string;
+  /** Current working directory */
   cwd?: string;
-}
-
-/**
- * Hook input for UserPromptSubmit event
- */
-export interface UserPromptSubmitInput extends HookInputBase {
-  hook_event_name: 'UserPromptSubmit';
+  /** User prompt (UserPromptSubmit) */
   prompt?: string;
-}
-
-/**
- * Hook input for PreToolUse event
- */
-export interface PreToolUseInput extends HookInputBase {
-  hook_event_name: 'PreToolUse';
+  /** Tool name (PreToolUse, PostToolUse, PostToolUseFailure) */
   tool_name?: string;
+  /** Tool input parameters (PreToolUse) */
   tool_input?: unknown;
-}
-
-/**
- * Hook input for PostToolUse event
- */
-export interface PostToolUseInput extends HookInputBase {
-  hook_event_name: 'PostToolUse';
-  tool_name?: string;
+  /** Tool response (PostToolUse) */
   tool_response?: unknown;
-}
-
-/**
- * Hook input for PostToolUseFailure event
- */
-export interface PostToolUseFailureInput extends HookInputBase {
-  hook_event_name: 'PostToolUseFailure';
-  tool_name?: string;
+  /** Error message (PostToolUseFailure) */
   error?: string;
-}
-
-/**
- * Hook input for Stop event
- */
-export interface StopInput extends HookInputBase {
-  hook_event_name: 'Stop';
+  /** Stop reason (Stop) */
   reason?: string;
+  /** Final result (Stop) */
+  result?: string;
+  /** Input token count (Stop) */
   input_tokens?: number;
+  /** Output token count (Stop) */
   output_tokens?: number;
-}
-
-/**
- * Hook input for SubagentStart event
- */
-export interface SubagentStartInput extends HookInputBase {
-  hook_event_name: 'SubagentStart';
+  /** Agent type (SubagentStart) */
   agent_type?: string;
+  /** Agent identifier (SubagentStart, SubagentStop) */
   agent_id?: string;
-}
-
-/**
- * Hook input for SubagentStop event
- */
-export interface SubagentStopInput extends HookInputBase {
-  hook_event_name: 'SubagentStop';
-  agent_id?: string;
-}
-
-/**
- * Generic hook input for unrecognized events
- */
-export interface GenericHookInput extends HookInputBase {
+  /** Subagent type (SubagentStart) */
+  subagent_type?: string;
+  /** Subagent prompt (SubagentStart) */
+  subagent_prompt?: string;
+  /** Subagent result (SubagentStop) */
+  subagent_result?: string;
+  /** Allow additional properties for forward compatibility */
   [key: string]: unknown;
 }
 
 /**
- * Discriminated union of all hook input types.
- * Use type guards to narrow to specific event types.
- */
-export type HookInput =
-  | UserPromptSubmitInput
-  | PreToolUseInput
-  | PostToolUseInput
-  | PostToolUseFailureInput
-  | StopInput
-  | SubagentStartInput
-  | SubagentStopInput
-  | GenericHookInput;
-
-/**
  * Type guard for UserPromptSubmit hook input
  */
-export function isUserPromptSubmitInput(input: HookInput): input is UserPromptSubmitInput {
+export function isUserPromptSubmitInput(input: HookInput): boolean {
   return input.hook_event_name === 'UserPromptSubmit';
 }
 
 /**
  * Type guard for PreToolUse hook input
  */
-export function isPreToolUseInput(input: HookInput): input is PreToolUseInput {
+export function isPreToolUseInput(input: HookInput): boolean {
   return input.hook_event_name === 'PreToolUse';
 }
 
 /**
  * Type guard for PostToolUse hook input
  */
-export function isPostToolUseInput(input: HookInput): input is PostToolUseInput {
+export function isPostToolUseInput(input: HookInput): boolean {
   return input.hook_event_name === 'PostToolUse';
 }
 
 /**
  * Type guard for PostToolUseFailure hook input
  */
-export function isPostToolUseFailureInput(input: HookInput): input is PostToolUseFailureInput {
+export function isPostToolUseFailureInput(input: HookInput): boolean {
   return input.hook_event_name === 'PostToolUseFailure';
 }
 
 /**
  * Type guard for Stop hook input
  */
-export function isStopInput(input: HookInput): input is StopInput {
+export function isStopInput(input: HookInput): boolean {
   return input.hook_event_name === 'Stop';
 }
 
 /**
  * Type guard for SubagentStart hook input
  */
-export function isSubagentStartInput(input: HookInput): input is SubagentStartInput {
+export function isSubagentStartInput(input: HookInput): boolean {
   return input.hook_event_name === 'SubagentStart';
 }
 
 /**
  * Type guard for SubagentStop hook input
  */
-export function isSubagentStopInput(input: HookInput): input is SubagentStopInput {
+export function isSubagentStopInput(input: HookInput): boolean {
   return input.hook_event_name === 'SubagentStop';
 }
 

@@ -161,14 +161,14 @@ export class ClaudeAgentWebhookHandler {
   /**
    * Create a streaming response by iterating over the Claude Agent SDK query.
    */
-  private createStreamingResponse(
+  private async createStreamingResponse(
     adapted: ClaudeAgentTextParams | ClaudeAgentObjectParams,
     outputType: "text" | "object"
-  ): WebhookPromptResponse {
+  ): Promise<WebhookPromptResponse> {
     // Create traced result before the stream so traceId is available immediately
     // withTracing() returns TracedResult which is both iterable and has traceId
     // adapted already has the right shape for withTracing()
-    const tracedResult = withTracing(query, adapted);
+    const tracedResult = await withTracing(query, adapted);
 
     // Get trace ID - use real OTEL trace ID when available, fallback otherwise
     const traceId = tracedResult.traceId;
@@ -283,7 +283,7 @@ export class ClaudeAgentWebhookHandler {
     // withTracing() returns TracedResult which is both iterable and has traceId
     // Tracing is automatically disabled if telemetry is not enabled
     // adapted already has the right shape for withTracing()
-    const tracedResult = withTracing(query, adapted);
+    const tracedResult = await withTracing(query, adapted);
 
     // Get trace ID from traced result
     const traceId = tracedResult.traceId;
@@ -484,7 +484,7 @@ export class ClaudeAgentWebhookHandler {
               };
 
               // Use withTracing() wrapper for telemetry
-              const tracedResult = withTracing(query, {
+              const tracedResult = await withTracing(query, {
                 query: adapted.query,
                 telemetry: telemetryContext,
               });

@@ -592,7 +592,7 @@ function mergeHooksIntoOptions<T>(
  *
  * @param queryFn - The query function from @anthropic-ai/claude-agent-sdk
  * @param input - Query parameters and optional telemetry context from adapter
- * @returns TracedResult with traceId and async iterator
+ * @returns Promise of TracedResult with traceId and async iterator
  *
  * @example
  * ```typescript
@@ -601,20 +601,22 @@ function mergeHooksIntoOptions<T>(
  *
  * // Using with adapter output (telemetry auto-configured)
  * const adapted = await prompt.format({ props, telemetry: { isEnabled: true } });
- * const result = withTracing(query, {
+ * const result = await withTracing(query, {
  *   query: { prompt: adapted.prompt, options: adapted.options },
  *   telemetry: adapted.telemetry,
  * });
+ *
+ * console.log("Trace ID:", result.traceId); // Available immediately
  *
  * for await (const message of result) {
  *   console.log(message);
  * }
  * ```
  */
-export function withTracing<TOptions, R>(
+export async function withTracing<TOptions, R>(
   queryFn: (options: { prompt: string; options?: TOptions }) => AsyncIterable<R>,
   input: TracedInput<TOptions>
-): TracedResult<R> {
+): Promise<TracedResult<R>> {
   const { query: queryParams, telemetry } = input;
 
   // If telemetry is disabled, return passthrough with fallback trace ID
@@ -628,42 +630,44 @@ export function withTracing<TOptions, R>(
     };
   }
 
-  // Generate trace ID upfront (will be replaced if OTEL is available)
-  let traceId = generateFallbackTraceId();
+  // Load OTEL API asynchronously
+  const api = await getOtelApiAsync();
+
+  // If OTEL not available, return passthrough with fallback trace ID
+  if (!api) {
+    const traceId = generateFallbackTraceId();
+    return {
+      traceId,
+      async *[Symbol.asyncIterator]() {
+        yield* queryFn(queryParams);
+      },
+    };
+  }
+
+  // Create tracing context now that we have the API
+  const opts = queryParams.options as Record<string, unknown> | undefined;
+  const ctx = createTracingContext(
+    api,
+    queryParams.prompt,
+    opts?.model as string | undefined,
+    telemetry
+  );
+
+  // Get the real trace ID immediately
+  const traceId = ctx.agentSpan.spanContext().traceId;
+
+  // Create tool hooks
+  const { preToolUse, postToolUse } = createToolHooks(ctx);
+
+  // Merge hooks into options (preserves original options type)
+  const optionsWithHooks = mergeHooksIntoOptions(
+    queryParams.options,
+    preToolUse,
+    postToolUse
+  );
 
   // Create the async iterator that performs tracing
   async function* tracedIterator(): AsyncGenerator<R, void, unknown> {
-    // Load OTEL API asynchronously
-    const api = await getOtelApiAsync();
-
-    // If OTEL not available, passthrough without tracing
-    if (!api) {
-      yield* queryFn(queryParams);
-      return;
-    }
-
-    // Create tracing context now that we have the API
-    const opts = queryParams.options as Record<string, unknown> | undefined;
-    const ctx = createTracingContext(
-      api,
-      queryParams.prompt,
-      opts?.model as string | undefined,
-      telemetry
-    );
-
-    // Update trace ID with real OTEL trace ID
-    traceId = ctx.agentSpan.spanContext().traceId;
-
-    // Create tool hooks
-    const { preToolUse, postToolUse } = createToolHooks(ctx);
-
-    // Merge hooks into options (preserves original options type)
-    const optionsWithHooks = mergeHooksIntoOptions(
-      queryParams.options,
-      preToolUse,
-      postToolUse
-    );
-
     try {
       for await (const message of queryFn({
         prompt: queryParams.prompt,
@@ -701,9 +705,7 @@ export function withTracing<TOptions, R>(
   }
 
   return {
-    get traceId() {
-      return traceId;
-    },
+    traceId,
     [Symbol.asyncIterator]() {
       return tracedIterator();
     },

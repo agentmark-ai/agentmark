@@ -26,9 +26,9 @@ const runCustomerSupport = async (customer_message: string) => {
 
   // Execute with Claude Agent SDK using withTracing for telemetry
   // The adapted object contains { query, telemetry } ready for withTracing()
-  const tracedResult = withTracing(query, adapted);
+  const tracedResult = await withTracing(query, adapted);
 
-  // traceId is available immediately, before iteration
+  // traceId is available immediately
   console.log("Trace ID:", tracedResult.traceId);
 
   let result = "";

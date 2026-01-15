@@ -573,11 +573,12 @@ describe("Claude Agent SDK Adapter Integration", () => {
   });
 
   describe("ClaudeAgentAdapter - Unsupported Options Warning", () => {
-    it("should warn when unsupported text_config options are present", async () => {
+    it("should warn when unsupported text_config options are present and onWarning is set", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       const modelRegistry = ClaudeAgentModelRegistry.createDefault();
-      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+      // Enable warnings by providing onWarning callback
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry, undefined, { onWarning: console.warn });
 
       // Mock text config with unsupported options
       const mockTextConfig = {
@@ -614,11 +615,12 @@ describe("Claude Agent SDK Adapter Integration", () => {
       warnSpy.mockRestore();
     });
 
-    it("should warn when unsupported object_config options are present", async () => {
+    it("should warn when unsupported object_config options are present and onWarning is set", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       const modelRegistry = ClaudeAgentModelRegistry.createDefault();
-      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+      // Enable warnings by providing onWarning callback
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry, undefined, { onWarning: console.warn });
 
       // Mock object config with unsupported options
       const mockObjectConfig = {
@@ -679,11 +681,12 @@ describe("Claude Agent SDK Adapter Integration", () => {
       warnSpy.mockRestore();
     });
 
-    it("should include prompt name in warning message", async () => {
+    it("should include prompt name in warning message when onWarning is set", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       const modelRegistry = ClaudeAgentModelRegistry.createDefault();
-      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry);
+      // Enable warnings by providing onWarning callback
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(modelRegistry, undefined, { onWarning: console.warn });
 
       const mockTextConfig = {
         name: "my-special-prompt",

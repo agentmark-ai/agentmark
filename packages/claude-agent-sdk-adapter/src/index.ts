@@ -115,12 +115,8 @@ export type {
   TelemetryEventHandler,
 } from "./hooks/telemetry-hooks";
 
-// Re-export OpenTelemetry hooks
+// Re-export OpenTelemetry constants
 export {
-  createOtelHooks,
-  combineWithOtelHooks,
-  createTelemetryContext,
-  completeSession,
   GenAIAttributes,
   AgentMarkAttributes,
   SpanNames,
@@ -150,9 +146,6 @@ export type {
   HookInput,
   HookOutput,
   SystemPromptPreset,
-  // OpenTelemetry types
-  OtelHooksConfig,
-  TelemetryContext,
   // MCP server configuration type (re-exported from SDK)
   McpServerConfig,
 } from "./types";

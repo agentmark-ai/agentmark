@@ -88,7 +88,7 @@ describe("withTracing", () => {
       const mockQuery = createMockQuery(messages);
 
       const received: MockMessage[] = [];
-      for await (const msg of withTracing(mockQuery, { query: { prompt: "test prompt" } })) {
+      for await (const msg of await withTracing(mockQuery, { query: { prompt: "test prompt" } })) {
         received.push(msg);
       }
 
@@ -104,7 +104,7 @@ describe("withTracing", () => {
       const mockQuery = createMockQuery(messages);
 
       const received: MockMessage[] = [];
-      for await (const msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         received.push(msg);
       }
 
@@ -119,7 +119,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test prompt" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test prompt" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -134,7 +134,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "my-agent" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "my-agent" } })) {
         // consume
       }
 
@@ -149,7 +149,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "my test prompt" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "my test prompt" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -165,7 +165,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test", options: { model: "claude-sonnet" } }, telemetry: { isEnabled: true, promptName: "test", model: "claude-sonnet" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test", options: { model: "claude-sonnet" } }, telemetry: { isEnabled: true, promptName: "test", model: "claude-sonnet" } })) {
         // consume
       }
 
@@ -183,7 +183,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -201,7 +201,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -219,7 +219,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -241,7 +241,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -267,7 +267,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -290,7 +290,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -314,7 +314,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -332,7 +332,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -347,7 +347,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -363,7 +363,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -379,7 +379,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -394,7 +394,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -409,7 +409,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      for await (const _msg of withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+      for await (const _msg of await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
         // consume
       }
 
@@ -427,7 +427,7 @@ describe("withTracing", () => {
       };
 
       await expect(async () => {
-        for await (const _msg of withTracing(errorQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+        for await (const _msg of await withTracing(errorQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
           // consume
         }
       }).rejects.toThrow("Query failed");
@@ -445,7 +445,7 @@ describe("withTracing", () => {
       };
 
       try {
-        for await (const _msg of withTracing(errorQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
+        for await (const _msg of await withTracing(errorQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } })) {
           // consume
         }
       } catch {
@@ -467,7 +467,7 @@ describe("withTracing", () => {
       };
 
       const results: CustomMessage[] = [];
-      for await (const msg of withTracing(customQuery, { query: { prompt: "test" } })) {
+      for await (const msg of await withTracing(customQuery, { query: { prompt: "test" } })) {
         results.push(msg);
       }
 
@@ -483,7 +483,7 @@ describe("withTracing", () => {
       };
 
       const results: Array<{ received: string }> = [];
-      for await (const msg of withTracing(customQuery, { query: { prompt: "test", options: { customField: "hello" } } })) {
+      for await (const msg of await withTracing(customQuery, { query: { prompt: "test", options: { customField: "hello" } } })) {
         results.push(msg);
       }
 
@@ -498,7 +498,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      const result = withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
+      const result = await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
 
       // traceId should be available immediately, before iteration
       expect(result.traceId).toBeDefined();
@@ -512,7 +512,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      const result = withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
+      const result = await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
 
       // Get trace ID first
       const traceId = result.traceId;
@@ -533,7 +533,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      const result = withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
+      const result = await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
       const traceId = result.traceId;
 
       // Iterate to complete
@@ -554,7 +554,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      const result = withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
+      const result = await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
 
       const received: MockMessage[] = [];
       for await (const msg of result) {
@@ -572,7 +572,7 @@ describe("withTracing", () => {
       ];
       const mockQuery = createMockQuery(messages);
 
-      const result = withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
+      const result = await withTracing(mockQuery, { query: { prompt: "test" }, telemetry: { isEnabled: true, promptName: "test" } });
 
       // Access traceId multiple times
       const id1 = result.traceId;
@@ -588,8 +588,8 @@ describe("withTracing", () => {
         { type: "result", subtype: "success", result: "Done" },
       ];
 
-      const result1 = withTracing(createMockQuery(messages), { prompt: "test1" });
-      const result2 = withTracing(createMockQuery(messages), { prompt: "test2" });
+      const result1 = await withTracing(createMockQuery(messages), { prompt: "test1" });
+      const result2 = await withTracing(createMockQuery(messages), { prompt: "test2" });
 
       expect(result1.traceId).not.toBe(result2.traceId);
     });
