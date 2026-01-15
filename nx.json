@@ -18,17 +18,15 @@
       "projectChangelogs": {
         "file": "{projectRoot}/CHANGELOG.md"
       },
-      "workspaceChangelog": {
-        "file": "CHANGELOG.md",
-        "createRelease": "github"
-      }
+      "workspaceChangelog": false
     },
     "version": {
-      "fallbackCurrentVersionResolver": "disk",
-      "git": {
-        "commit": false,
-        "tag": false
-      }
+      "fallbackCurrentVersionResolver": "disk"
+    },
+    "git": {
+      "commit": false,
+      "tag": false,
+      "push": false
     },
     "releaseTagPattern": "{projectName}@{version}"
   },
