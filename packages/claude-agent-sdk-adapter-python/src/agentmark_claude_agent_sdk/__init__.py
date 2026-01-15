@@ -83,14 +83,6 @@ from .types import (
     # Hook types
     HookInput,
     HookOutput,
-    # Type guards for hook input
-    is_post_tool_use_failure_input,
-    is_post_tool_use_input,
-    is_pre_tool_use_input,
-    is_stop_input,
-    is_subagent_start_input,
-    is_subagent_stop_input,
-    is_user_prompt_submit_input,
     # MCP types
     McpServerConfig,
     # Model/tool types
@@ -102,6 +94,14 @@ from .types import (
     # Telemetry types
     TelemetryConfig,
     TracedTelemetryContext,
+    # Type guards for hook input
+    is_post_tool_use_failure_input,
+    is_post_tool_use_input,
+    is_pre_tool_use_input,
+    is_stop_input,
+    is_subagent_start_input,
+    is_subagent_stop_input,
+    is_user_prompt_submit_input,
 )
 
 # Import webhook handler
