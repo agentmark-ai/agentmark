@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/mcp-server",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "MCP server for AgentMark trace debugging",
   "type": "module",
   "main": "./dist/index.mjs",
