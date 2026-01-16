@@ -21,7 +21,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && cpx \"src/global.d.ts\" dist/",
+    "build": "tsup && shx cp src/global.d.ts dist/",
     "lint": "eslint ."
   },
   "devDependencies": {
@@ -31,8 +31,8 @@
     "@types/mdx": "^2.0.13",
     "@types/node": "^22.8.1",
     "@types/react": "^18.3.12",
-    "cpx": "^1.5.0",
     "mdast-util-mdx": "^3.0.0",
+    "shx": "^0.3.4",
     "tsup": "^8.3.5",
     "typescript": "^5.6.2",
     "vitest": "^3.0.8"

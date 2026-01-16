@@ -1,0 +1,63 @@
+├─ @base-ui-components/utils
+│  ├─ ID: @base-ui-components/utils (deprecation)
+│  ├─ Issue: Package was renamed to @base-ui/utils
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: 0.1.2
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ 0.1.2
+│  │ 
+│  └─ Dependents
+│     └─ @mui/x-tree-view@npm:8.18.0 [a6bda]
+│
+├─ @modelcontextprotocol/sdk
+│  ├─ ID: 1111155
+│  ├─ Issue: Model Context Protocol (MCP) TypeScript SDK does not enable DNS rebinding protection by default
+│  ├─ URL: https://github.com/advisories/GHSA-w48q-cv73-mx4w
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: <1.24.0
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ 1.21.1
+│  │ 
+│  └─ Dependents
+│     └─ @mastra/mcp@npm:0.13.5 [e812c]
+│
+├─ @modelcontextprotocol/sdk
+│  ├─ ID: 1111906
+│  ├─ Issue: Anthropic's MCP TypeScript SDK has a ReDoS vulnerability
+│  ├─ URL: https://github.com/advisories/GHSA-8r9q-7v3j-jr4g
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: <1.25.2
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ 1.21.1
+│  │ 
+│  └─ Dependents
+│     └─ @mastra/mcp@npm:0.13.5 [e812c]
+│
+├─ ai
+│  ├─ ID: 1111095
+│  ├─ Issue: Vercel’s AI SDK's filetype whitelists can be bypassed when uploading files
+│  ├─ URL: https://github.com/advisories/GHSA-rwvc-j5jr-mgvh
+│  ├─ Severity: low
+│  ├─ Vulnerable Versions: <5.0.52
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ 4.3.19
+│  │ 
+│  └─ Dependents
+│     ├─ @agentmark-ai/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter
+│     └─ @mastra/core@npm:0.13.2 [e812c]
+│
+└─ mdast
+   ├─ ID: mdast (deprecation)
+   ├─ Issue: `mdast` was renamed to `remark`
+   ├─ Severity: moderate
+   ├─ Vulnerable Versions: 3.0.0
+   │ 
+   ├─ Tree Versions
+   │  └─ 3.0.0
+   │ 
+   └─ Dependents
+      └─ @agentmark-ai/templatedx@workspace:packages/templatedx
