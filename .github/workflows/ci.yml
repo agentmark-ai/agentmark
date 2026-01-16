@@ -10,6 +10,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run security audit
+        run: |
+          echo "## Security Audit Results" >> $GITHUB_STEP_SUMMARY
+          if yarn npm audit --all --recursive 2>&1 | tee audit-output.txt; then
+            echo "✅ No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Vulnerabilities Detected" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat audit-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+
+            # Fail on critical or high severity vulnerabilities
+            if grep -qE "Severity: (critical|high)" audit-output.txt; then
+              echo "❌ Critical or high severity vulnerabilities found - failing build" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "⚠️ Only moderate/low severity vulnerabilities found - allowing build to continue" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
   build:
     runs-on: ${{ matrix.os }}
     strategy:
