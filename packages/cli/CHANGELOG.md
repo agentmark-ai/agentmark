@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- 97abbdd: Add claude agent sdk adapter
+- a4a1d95: Support mcp server
+
+### Patch Changes
+
+- Updated dependencies [97abbdd]
+  - @agentmark-ai/shared-utils@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes

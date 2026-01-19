@@ -57,7 +57,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Enable Corepack
         run: corepack enable
@@ -90,3 +90,7 @@ jobs:
 
       - name: Test (Integration)
         run: yarn workspace @agentmark-ai/mcp-server test:integration
+
+      - name: Check version plans
+        if: github.event_name == 'pull_request'
+        run: yarn release:plan:check
