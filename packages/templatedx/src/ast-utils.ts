@@ -83,8 +83,7 @@ export const getFrontMatter = (tree: Root) => {
   const frontmatterNode = tree.children.find(
     (node) => node.type === NODE_TYPES.YAML
   );
-  // Use JSON_SCHEMA to avoid YAML 1.1 quirks like sexagesimal parsing (1:1 → 61)
-  return yaml.load(frontmatterNode?.value || '', { schema: yaml.JSON_SCHEMA });
+  return yaml.load(frontmatterNode?.value || '');
 };
 
 export function parse(mdxContent: string): Root {
