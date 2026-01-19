@@ -10,7 +10,8 @@ describe('init', () => {
       const files = fs.readdirSync(testDir);
       for (const file of files) {
         if (file.startsWith('tmp-gitignore-') || file.startsWith('tmp-examples-') ||
-            file.startsWith('tmp-client-') || file.startsWith('tmp-express-')) {
+            file.startsWith('tmp-client-') || file.startsWith('tmp-express-') ||
+            file.startsWith('tmp-claude-sdk-')) {
           const fullPath = path.join(testDir, file);
           try {
             if (fs.existsSync(fullPath)) {
@@ -131,6 +132,93 @@ describe('init', () => {
     const content = getClientConfigContent({ provider: 'anthropic', languageModels: ['claude-3'], adapter: 'ai-sdk' });
     expect(content).not.toContain('openai.image');
     expect(content).not.toContain('openai.speech');
+  });
+
+  describe('claude-agent-sdk adapter', () => {
+    it('creates client config with ClaudeAgent classes', async () => {
+      const { getClientConfigContent } = await import('../src/utils/examples/templates');
+      const content = getClientConfigContent({
+        provider: 'anthropic',
+        languageModels: ['claude-sonnet-4-20250514'],
+        adapter: 'claude-agent-sdk'
+      });
+
+      // Check imports
+      expect(content).toContain('@agentmark-ai/claude-agent-sdk-adapter');
+      expect(content).toContain('ClaudeAgentModelRegistry');
+      expect(content).toContain('ClaudeAgentToolRegistry');
+
+      // Should NOT have @ai-sdk provider import
+      expect(content).not.toContain("from '@ai-sdk/anthropic'");
+
+      // Check adapter options
+      expect(content).toContain('adapterOptions');
+      expect(content).toContain('permissionMode');
+      expect(content).toContain('bypassPermissions');
+      expect(content).toContain('maxTurns');
+
+      // Check model registry uses createDefault()
+      expect(content).toContain('ClaudeAgentModelRegistry.createDefault()');
+    });
+
+    it('creates index file with withTracing import', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('claude-agent-sdk');
+
+      // Check imports
+      expect(content).toContain("import { query } from \"@anthropic-ai/claude-agent-sdk\"");
+      expect(content).toContain("import { withTracing } from \"@agentmark-ai/claude-agent-sdk-adapter\"");
+
+      // Check usage of withTracing
+      expect(content).toContain('withTracing(query, adapted)');
+      expect(content).toContain('tracedResult.traceId');
+
+      // Check iteration over traced result
+      expect(content).toContain('for await (const message of tracedResult)');
+    });
+
+    it('has correct adapter config with dependencies', async () => {
+      const { getAdapterConfig } = await import('../src/utils/examples/templates/adapters');
+      const config = getAdapterConfig('claude-agent-sdk', 'anthropic');
+
+      expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-adapter');
+      expect(config.dependencies).toContain('@anthropic-ai/claude-agent-sdk@^0.1.0');
+      expect(config.classes.modelRegistry).toBe('ClaudeAgentModelRegistry');
+      expect(config.classes.toolRegistry).toBe('ClaudeAgentToolRegistry');
+      expect(config.classes.webhookHandler).toBe('ClaudeAgentWebhookHandler');
+    });
+
+    it('creates dev-entry.ts with ClaudeAgentWebhookHandler', async () => {
+      vi.doMock('child_process', () => ({
+        execSync: (cmd: string, options?: any) => {
+          if (cmd === 'npm init -y' && options?.cwd) {
+            const pkgPath = path.join(options.cwd, 'package.json');
+            fs.writeFileSync(pkgPath, JSON.stringify({ name: 'test-app', version: '1.0.0', scripts: {} }, null, 2));
+          }
+        },
+        execFileSync: () => {}
+      }));
+      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
+      const tmpDir = path.join(__dirname, '..', 'tmp-claude-sdk-' + Date.now());
+      fs.mkdirSync(tmpDir, { recursive: true });
+      try {
+        // createExampleApp(client, targetPath, apiKey, adapter, deploymentMode)
+        await createExampleApp('skip', tmpDir, '', 'claude-agent-sdk');
+
+        const devEntryPath = path.join(tmpDir, '.agentmark', 'dev-entry.ts');
+        expect(fs.existsSync(devEntryPath)).toBe(true);
+
+        const content = fs.readFileSync(devEntryPath, 'utf8');
+        expect(content).toContain("import { ClaudeAgentWebhookHandler } from '@agentmark-ai/claude-agent-sdk-adapter/runner'");
+        expect(content).toContain('new ClaudeAgentWebhookHandler(client');
+
+        // Check .env has ANTHROPIC_API_KEY
+        const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
+        expect(envContent).toContain('ANTHROPIC_API_KEY');
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
   });
 
   it('creates .agentmark/dev-entry.ts', async () => {
