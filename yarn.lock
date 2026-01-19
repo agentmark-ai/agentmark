@@ -35,7 +35,7 @@ __metadata:
     "@agentmark-ai/sdk": "npm:*"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
-    ai: "npm:^4.0.0"
+    ai: "npm:^5.0.52"
     cpy-cli: "npm:^5.0.0"
     react: "npm:^18.3.1"
     tsup: "npm:^8.3.5"
@@ -44,7 +44,7 @@ __metadata:
   peerDependencies:
     "@agentmark-ai/prompt-core": "*"
     "@agentmark-ai/sdk": "*"
-    ai: ^4.0.0
+    ai: ^5.0.52
   languageName: unknown
   linkType: soft
 
@@ -58,7 +58,7 @@ __metadata:
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
-    ai: "npm:^5.0.0"
+    ai: "npm:^5.0.52"
     cpy-cli: "npm:^5.0.0"
     react: "npm:^18.3.1"
     tsup: "npm:^8.3.5"
@@ -68,7 +68,7 @@ __metadata:
     "@agentmark-ai/prompt-core": "*"
     "@agentmark-ai/sdk": "*"
     "@ai-sdk/mcp": ^0.0.8
-    ai: ^5.0.0
+    ai: ^5.0.52
   languageName: unknown
   linkType: soft
 
@@ -414,16 +414,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ai-sdk/gateway@npm:2.0.12":
-  version: 2.0.12
-  resolution: "@ai-sdk/gateway@npm:2.0.12"
+"@ai-sdk/gateway@npm:2.0.24":
+  version: 2.0.24
+  resolution: "@ai-sdk/gateway@npm:2.0.24"
   dependencies:
-    "@ai-sdk/provider": "npm:2.0.0"
-    "@ai-sdk/provider-utils": "npm:3.0.17"
+    "@ai-sdk/provider": "npm:2.0.1"
+    "@ai-sdk/provider-utils": "npm:3.0.20"
     "@vercel/oidc": "npm:3.0.5"
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/da3392ece5cf64f7dc1806dd5099e19709095cc3467b579129da0432617fdcf3611197d68d0414478cc54c93d2c7103febf8123f93f3cb502f5662c4b9f43040
+  checksum: 10c0/510cd567b72207698368b8f990d71efc7bfaabbfbea2e458c4758953ae66a2fe450912f31fe337056785198358bdd258cf2c5c9a949f9b39ad5d5ad2ae50171f
   languageName: node
   linkType: hard
 
@@ -466,6 +466,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/provider-utils@npm:3.0.20":
+  version: 3.0.20
+  resolution: "@ai-sdk/provider-utils@npm:3.0.20"
+  dependencies:
+    "@ai-sdk/provider": "npm:2.0.1"
+    "@standard-schema/spec": "npm:^1.0.0"
+    eventsource-parser: "npm:^3.0.6"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/bbc92b088e76a1e98d28f8c20d02b899eb7ba23e8ba575c05383fcaf9c50e98e20ffa5a0a94a935cc1b2fee61c2411cc41de11a2a625b4c1647659603f91c29d
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/provider@npm:1.1.3, @ai-sdk/provider@npm:^1.1.3":
   version: 1.1.3
   resolution: "@ai-sdk/provider@npm:1.1.3"
@@ -481,6 +494,15 @@ __metadata:
   dependencies:
     json-schema: "npm:^0.4.0"
   checksum: 10c0/e50e520016c9fc0a8b5009cadd47dae2f1c81ec05c1792b9e312d7d15479f024ca8039525813a33425c884e3449019fed21043b1bfabd6a2626152ca9a388199
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider@npm:2.0.1":
+  version: 2.0.1
+  resolution: "@ai-sdk/provider@npm:2.0.1"
+  dependencies:
+    json-schema: "npm:^0.4.0"
+  checksum: 10c0/3ec560c5b03401a1e3b8c73875f4258cb815668367157a3caa4d30f580ff5adffbba54ee52f875161c986c5225a88cb3829f050437e0a2d7e5820b72cf08238b
   languageName: node
   linkType: hard
 
@@ -8360,7 +8382,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^4.0.0, ai@npm:^4.3.16":
+"ai@npm:^4.3.16":
   version: 4.3.19
   resolution: "ai@npm:4.3.19"
   dependencies:
@@ -8380,17 +8402,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai@npm:^5.0.0":
-  version: 5.0.97
-  resolution: "ai@npm:5.0.97"
+"ai@npm:^5.0.52":
+  version: 5.0.118
+  resolution: "ai@npm:5.0.118"
   dependencies:
-    "@ai-sdk/gateway": "npm:2.0.12"
-    "@ai-sdk/provider": "npm:2.0.0"
-    "@ai-sdk/provider-utils": "npm:3.0.17"
+    "@ai-sdk/gateway": "npm:2.0.24"
+    "@ai-sdk/provider": "npm:2.0.1"
+    "@ai-sdk/provider-utils": "npm:3.0.20"
     "@opentelemetry/api": "npm:1.9.0"
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/6fc8b184e4790f7c3ebb7f27d70201b07048bbfab10951245f1b94ab72ce3cfe4f475de96495c74f31c21b8294f17a80c72d62be90a16eafedc8c906b734cd84
+  checksum: 10c0/bad5407e6de57b5a87efa9d5a6959c5fb2dc8bec0d8513b48610912b4ce7a18a0c3b677c8567237f91595b500a3dfb317f123d43b72d01f71c96be5a6d5a8f50
   languageName: node
   linkType: hard
 
