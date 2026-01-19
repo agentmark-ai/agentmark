@@ -1,3 +1,21 @@
+## 0.4.0 (2026-01-19)
+
+### 🚀 Features
+
+- Fix: security issues ([#449](https://github.com/agentmark-ai/agentmark/pull/449))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.3.0
+- Updated @agentmark-ai/shared-utils to 0.3.0
+- Updated @agentmark-ai/shared-utils to 0.3.0
+- Updated @agentmark-ai/templatedx to 0.2.0
+- Updated @agentmark-ai/templatedx to 0.2.0
+
+### ❤️ Thank You
+
+- kashi11 @kashi11
+
 # Changelog
 
 ## 0.3.0

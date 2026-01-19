@@ -1,0 +1,38 @@
+├─ [38;5;166m@base-ui-components/[39m[38;5;173mutils[39m
+│  ├─ ID: [38;5;111m@base-ui-components/utils (deprecation)[39m
+│  ├─ Issue: Package was renamed to @base-ui/utils
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m0.1.2[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m0.1.2[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@mui/[39m[38;5;173mx-tree-view[39m[38;5;111m@[39m[38;5;111mnpm:8.18.0 [a6bda][39m
+│
+├─ [38;5;173mai[39m
+│  ├─ ID: [38;5;220m1111095[39m
+│  ├─ Issue: Vercel’s AI SDK's filetype whitelists can be bypassed when uploading files
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-rwvc-j5jr-mgvh[39m
+│  ├─ Severity: low
+│  ├─ Vulnerable Versions: [38;5;37m<5.0.52[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.3.19[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@agentmark-ai/[39m[38;5;173mai-sdk-v4-adapter[39m[38;5;111m@[39m[38;5;111mworkspace:packages/ai-sdk-v4-adapter[39m
+│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
+│
+└─ [38;5;173mtar[39m
+   ├─ ID: [38;5;220m1112255[39m
+   ├─ Issue: node-tar is Vulnerable to Arbitrary File Overwrite and Symlink Poisoning via Insufficient Path Sanitization
+   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-8qq5-rm4j-mr97[39m
+   ├─ Severity: high
+   ├─ Vulnerable Versions: [38;5;37m<=7.5.2[39m
+   │ 
+   ├─ Tree Versions
+   │  └─ [38;5;111m7.5.2[39m
+   │ 
+   └─ Dependents
+      └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.1.0[39m

@@ -1,3 +1,7 @@
+## 1.0.3 (2026-01-19)
+
+This was a version bump only for @agentmark-ai/mastra-v0-adapter to align it with other projects, there were no code changes.
+
 # Changelog
 
 ## 1.0.2
