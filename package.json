@@ -41,7 +41,6 @@
     "mdast-util-to-hast": "^13.2.1",
     "jsondiffpatch": "^0.7.2",
     "micromatch": "^4.0.8",
-    "js-yaml": "^4.1.0",
     "prismjs": "^1.30.0",
     "body-parser": "^2.2.1",
     "braces": "^3.0.3",
