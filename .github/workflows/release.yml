@@ -30,6 +30,20 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Security audit (block on critical/high)
+        run: |
+          if yarn npm audit --all --recursive 2>&1 | tee audit-output.txt; then
+            echo "✅ No vulnerabilities found"
+          else
+            if grep -qE "Severity: (critical|high)" audit-output.txt; then
+              echo "❌ Critical or high severity vulnerabilities found - blocking release"
+              cat audit-output.txt
+              exit 1
+            else
+              echo "⚠️ Only moderate/low severity vulnerabilities found - proceeding with release"
+            fi
+          fi
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"

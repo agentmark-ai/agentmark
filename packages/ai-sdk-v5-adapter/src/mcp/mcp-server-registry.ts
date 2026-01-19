@@ -6,8 +6,11 @@ import type {
 import { interpolateEnvInObject } from "@agentmark-ai/prompt-core";
 import type { Tool } from "ai";
 
+// Minimal interface for MCPClient - we only use the tools() method.
+// Using Record<string, Tool> for compatibility with ai SDK tool types.
+// The actual MCPClient from @ai-sdk/mcp is dynamically imported as a peer dependency.
 type MCPClient = {
-  tools(): Promise<Record<string, Tool<any, any>>>;
+  tools(): Promise<Record<string, Tool>>;
 };
 
 function isUrlConfig(cfg: McpServerConfig): cfg is McpUrlServerConfig {
@@ -23,7 +26,7 @@ export class McpServerRegistry {
   private readonly clients = new Map<string, Promise<MCPClient>>();
   private readonly toolsCache = new Map<
     string,
-    Record<string, Tool<any, any>>
+    Record<string, Tool>
   >();
 
   /**
@@ -79,9 +82,11 @@ export class McpServerRegistry {
 
     if (isUrlConfig(cfg)) {
       const { experimental_createMCPClient } = await import("@ai-sdk/mcp");
-      return experimental_createMCPClient({
+      // Type assertion: the actual MCPClient is compatible with our minimal interface
+      const client = await experimental_createMCPClient({
         transport: { type: "sse", url: cfg.url, headers: cfg.headers },
       });
+      return client as MCPClient;
     }
 
     if (isStdioConfig(cfg)) {
@@ -93,9 +98,11 @@ export class McpServerRegistry {
         cwd: cfg.cwd,
         env: cfg.env,
       });
-      return experimental_createMCPClient({
+      // Type assertion: the actual MCPClient is compatible with our minimal interface
+      const client = await experimental_createMCPClient({
         transport,
       });
+      return client as MCPClient;
     }
 
     throw new Error("Invalid MCP server config: expected 'url' or 'command'");
@@ -109,7 +116,7 @@ export class McpServerRegistry {
     return created;
   }
 
-  async getTool(serverName: string, toolName: string): Promise<Tool<any, any>> {
+  async getTool(serverName: string, toolName: string): Promise<Tool> {
     const cacheKey = serverName;
     const existingTools = this.toolsCache.get(cacheKey);
     if (existingTools && existingTools[toolName]) {
@@ -133,7 +140,7 @@ export class McpServerRegistry {
 
   async getAllTools(
     serverName: string
-  ): Promise<Record<string, Tool<any, any>>> {
+  ): Promise<Record<string, Tool>> {
     const cacheKey = serverName;
     const existingTools = this.toolsCache.get(cacheKey);
     if (existingTools) {

@@ -1,6 +1,15 @@
 import * as fs from "fs-extra";
 import path from "path";
-import fm from "front-matter";
+import yaml from "js-yaml";
+
+function extractFrontmatter<T = any>(content: string): { attributes: T } {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) {
+    return { attributes: {} as T };
+  }
+  const attributes = yaml.load(match[1]) as T;
+  return { attributes: attributes || ({} as T) };
+}
 
 // Lazily load json-schema-to-typescript to avoid cwd access at startup
 let _compile: ((schema: any, name: string, opts: any) => Promise<string>) | null = null;
@@ -381,7 +390,7 @@ export async function fetchPromptsFrontmatter(options: {
     return Promise.all(
       promptFiles.map(async (file) => {
         const content = await fs.readFile(file, "utf-8");
-        const { attributes } = fm<any>(content);
+        const { attributes } = extractFrontmatter(content);
 
         if (isNewFormat(attributes)) {
           return {

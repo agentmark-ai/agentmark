@@ -47,7 +47,7 @@
     "fs-extra": "^11.2.0",
     "localtunnel": "^2.0.2",
     "lodash": "^4.17.21",
-    "next": "15.5.6",
+    "next": "15.5.9",
     "next-intl": "^4.4.0",
     "prompts": "^2.4.2",
     "react": "19.1.0",
@@ -70,7 +70,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.6",
+    "eslint-config-next": "15.5.9",
     "tsup": "^8",
     "typescript": "^5",
     "vitest": "^3.0.8"
@@ -83,8 +83,5 @@
   "directories": {
     "test": "test"
   },
-  "keywords": [],
-  "overrides": {
-    "axios": "^1.7.9"
-  }
+  "keywords": []
 }

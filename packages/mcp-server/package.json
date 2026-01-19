@@ -16,7 +16,7 @@
     "test:integration": "cross-env RUN_INTEGRATION_TESTS=true vitest run test/integration"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "zod": "^3.25.0"
   },
   "devDependencies": {

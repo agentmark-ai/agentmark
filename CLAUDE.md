@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-11
 - TypeScript 5.6.2+ + @anthropic-ai/claude-agent-sdk, @opentelemetry/api, @opentelemetry/sdk-trace-base, zod (005-claude-agent-sdk-adapter)
 - TypeScript 5.x (Node.js 18+) + fs-extra, prompts (already in use by create-agentmark) (006-existing-repo-init)
 - N/A (file system operations only) (006-existing-repo-init)
+- TypeScript 5.x, Node.js 18+ + yarn 4.5.3 (workspaces), turbo (build orchestration) (007-fix-dependency-vulnerabilities)
+- N/A (dependency management only) (007-fix-dependency-vulnerabilities)
 
 ## Project Structure
 
@@ -34,6 +36,7 @@ npm test && npm run lint
 TypeScript 5.x: Follow standard conventions
 
 ## Recent Changes
+- 007-fix-dependency-vulnerabilities: Added TypeScript 5.x, Node.js 18+ + yarn 4.5.3 (workspaces), turbo (build orchestration)
 - 004-nx-release: Added Node.js 21 (GitHub Actions), TypeScript 5.x (monorepo packages) + nx ^20.4.0 (already installed), @changesets/cli (to be removed)
 - 005-claude-agent-sdk-adapter: Added TypeScript 5.6.2+ + @anthropic-ai/claude-agent-sdk, @opentelemetry/api, @opentelemetry/sdk-trace-base, zod
 - 006-existing-repo-init: Added TypeScript 5.x (Node.js 18+) + fs-extra, prompts (already in use by create-agentmark)
