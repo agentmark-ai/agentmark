@@ -16,7 +16,10 @@
     "projectsRelationship": "independent",
     "changelog": {
       "projectChangelogs": {
-        "file": "{projectRoot}/CHANGELOG.md"
+        "file": "{projectRoot}/CHANGELOG.md",
+        "renderOptions": {
+          "authors": false
+        }
       },
       "workspaceChangelog": false
     },
