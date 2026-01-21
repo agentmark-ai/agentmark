@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/mastra-v0-adapter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "*",
+    "@agentmark-ai/prompt-core": "0.1.1",
     "@agentmark-ai/sdk": "*",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",
