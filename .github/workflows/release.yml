@@ -69,10 +69,59 @@ jobs:
           echo "To create a version plan, run: yarn release:plan"
           exit 0
 
-      - name: Create Release PR
+      - name: Check for existing release PR
         if: steps.check-plans.outputs.has_plans == 'true'
+        id: check-pr
         run: |
-          BRANCH_NAME="release/version-plans-$(date +%Y%m%d-%H%M%S)"
+          # Search for existing release PR
+          EXISTING_PR=$(gh pr list --base main --state open --json number,headRefName,title --jq '.[] | select(.title | startswith("chore(release):")) | {number, branch: .headRefName}' | head -1)
+
+          if [ -n "$EXISTING_PR" ]; then
+            PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+            BRANCH_NAME=$(echo "$EXISTING_PR" | jq -r '.branch')
+            echo "Found existing release PR #$PR_NUMBER on branch $BRANCH_NAME"
+            echo "existing_pr=true" >> $GITHUB_OUTPUT
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "No existing release PR found"
+            echo "existing_pr=false" >> $GITHUB_OUTPUT
+            echo "branch_name=release/version-plans" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update existing release PR
+        if: steps.check-plans.outputs.has_plans == 'true' && steps.check-pr.outputs.existing_pr == 'true'
+        run: |
+          BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
+
+          # Fetch and checkout the existing branch
+          git fetch origin $BRANCH_NAME
+          git checkout $BRANCH_NAME
+
+          # Reset to main to get latest changes
+          git reset --hard origin/main
+
+          # Run nx release to update versions and changelogs
+          npx nx release --skip-publish
+
+          # Update lockfile
+          yarn install
+
+          # Commit and push
+          git add .
+          git commit -m "chore(release): version packages" || echo "No changes to commit"
+          git push origin $BRANCH_NAME --force
+
+          echo "Updated existing release PR #${{ steps.check-pr.outputs.pr_number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create new release PR
+        if: steps.check-plans.outputs.has_plans == 'true' && steps.check-pr.outputs.existing_pr == 'false'
+        run: |
+          BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
           git checkout -b $BRANCH_NAME
 
           npx nx release --skip-publish
