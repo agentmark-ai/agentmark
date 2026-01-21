@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ai-sdk-v4-adapter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "*",
+    "@agentmark-ai/prompt-core": "0.1.1",
     "@agentmark-ai/sdk": "*",
     "@types/node": "^22.8.1",
     "@types/react": "^18",

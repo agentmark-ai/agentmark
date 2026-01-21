@@ -30,7 +30,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@agentmark-ai/shared-utils": "*",
+    "@agentmark-ai/shared-utils": "0.3.0",
     "fs-extra": "^11.2.0",
     "prompts": "^2.4.2"
   },
