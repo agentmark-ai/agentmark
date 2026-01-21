@@ -96,6 +96,9 @@ jobs:
         run: |
           BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
 
+          # Clean up untracked files that may conflict with checkout
+          rm -f audit-output.txt
+
           # Fetch and checkout the existing branch
           git fetch origin $BRANCH_NAME
           git checkout $BRANCH_NAME
