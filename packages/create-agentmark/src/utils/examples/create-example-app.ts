@@ -211,7 +211,8 @@ export const createExampleApp = async (
     }
 
     // Create or append to .gitignore
-    const gitignoreEntries = ['node_modules/', '.env', '*.agentmark-outputs/', '.agentmark/', 'dist/'];
+    // Note: .agentmark/ removed - dev-entry.ts is now at project root for version control
+    const gitignoreEntries = ['node_modules/', '.env', '*.agentmark-outputs/', 'dist/'];
     if (shouldMergeFile('.gitignore', projectInfo, resolutions)) {
       const result = appendGitignore(targetPath, gitignoreEntries);
       if (result.added.length > 0) {
@@ -261,17 +262,17 @@ export const createExampleApp = async (
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
     }
 
-    // Create .agentmark directory and dev-entry.ts
+    // Create dev-entry.ts at project root (version controlled)
     console.log("Creating development server entry point...");
-    const agentmarkInternalDir = path.join(targetPath, '.agentmark');
-    fs.ensureDirSync(agentmarkInternalDir);
 
     // Get adapter-specific values from config
     const adapterConfig = getAdapterConfig(adapter, modelProvider);
     const { webhookHandler } = adapterConfig.classes;
 
-    const devEntryContent = `// Auto-generated webhook server entry point
-// To customize, create a dev-server.ts file in your project root
+    const devEntryPath = path.join(targetPath, 'dev-entry.ts');
+
+    const devEntryContent = `// Development webhook server entry point
+// This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { ${webhookHandler} } from '${adapterConfig.package}/runner';
@@ -292,7 +293,7 @@ async function main() {
   process.env.AGENTMARK_BASE_URL = apiServerUrl;
 
   // Now import client - it will pick up the dev environment
-  const { client } = await import('../agentmark.client.js');
+  const { client } = await import('./agentmark.client.js');
 
   // Initialize OpenTelemetry tracing to export traces to the API server
   const sdk = new AgentMarkSDK({
@@ -319,7 +320,13 @@ main().catch((err) => {
 });
 `;
 
-    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
+    // Only create dev-entry.ts if it doesn't exist (preserve existing customizations - FR-003)
+    if (fs.existsSync(devEntryPath)) {
+      console.log("⏭️  Skipped dev-entry.ts (already exists - preserving customizations)");
+    } else {
+      fs.writeFileSync(devEntryPath, devEntryContent);
+      console.log(`✅ Created dev-entry.ts at project root`);
+    }
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");

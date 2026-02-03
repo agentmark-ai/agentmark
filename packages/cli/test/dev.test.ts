@@ -27,8 +27,8 @@ export const client = new AgentMark({ prompt: {}, adapter });
 `;
 }
 
-const DEV_ENTRY_TEMPLATE = `// Auto-generated runner server entry point
-// To customize, create a dev-server.ts file in your project root
+const DEV_ENTRY_TEMPLATE = `// Development webhook server entry point
+// This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v4-adapter/runner';
@@ -50,7 +50,7 @@ main().catch((err) => {
 });
 `;
 
-function setupTestDir(tempDir: string) {
+function setupTestDir(tempDir: string, useLegacyLocation = false) {
   // Create package.json for proper module resolution
   fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'test-app', type: 'module' }, null, 2));
 
@@ -65,10 +65,15 @@ function setupTestDir(tempDir: string) {
     if (e.code !== 'EEXIST') throw e;
   }
 
-  // Create .agentmark/dev-entry.ts (created during init in real apps)
-  const agentmarkInternalDir = path.join(tempDir, '.agentmark');
-  fs.mkdirSync(agentmarkInternalDir, { recursive: true});
-  fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+  if (useLegacyLocation) {
+    // Create .agentmark/dev-entry.ts (legacy location for backward compatibility testing)
+    const agentmarkInternalDir = path.join(tempDir, '.agentmark');
+    fs.mkdirSync(agentmarkInternalDir, { recursive: true});
+    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+  } else {
+    // Create dev-entry.ts at project root (new default location, version controlled)
+    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+  }
 }
 
 async function getFreePort(): Promise<number> {
@@ -232,14 +237,14 @@ describe('agentmark dev', () => {
     }
   }, 30000); // Increase timeout for CI
 
-  it('uses default dev-entry.ts when custom dev-server.ts is missing', async () => {
-    const tempDir = path.join(__dirname, '..', 'tmp-dev-autogen-' + Date.now());
+  it('uses dev-entry.ts from project root when available', async () => {
+    const tempDir = path.join(__dirname, '..', 'tmp-dev-root-entry-' + Date.now());
     tmpDirs.push(tempDir);
 
     try {
       fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
 
-      // Setup test directory (creates .agentmark/dev-entry.ts)
+      // Setup test directory with dev-entry.ts at project root (new default location)
       setupTestDir(tempDir);
 
       // Create agentmark.client.ts but NOT custom dev-server.ts
@@ -266,11 +271,71 @@ describe('agentmark dev', () => {
 
         await wait(PLATFORM_TIMEOUTS.serverStartup);
 
-        // Verify .agentmark/dev-entry.ts exists (created by setupTestDir simulating init)
-        expect(fs.existsSync(path.join(tempDir, '.agentmark', 'dev-entry.ts'))).toBe(true);
+        // Verify dev-entry.ts exists at project root (new default location)
+        expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(true);
 
-        // Verify the output doesn't contain custom dev-server message (uses default dev-entry.ts)
+        // Verify the output doesn't contain custom dev-server or legacy location messages
         expect(stdout).not.toContain('Using custom dev-server.ts');
+        expect(stdout).not.toContain('Using legacy .agentmark/dev-entry.ts');
+
+        // Verify server started
+        const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
+        expect(serverReady).toBe(true);
+      } finally {
+        // Ensure process is cleaned up even if test fails
+        if (child.pid) {
+          killProcessTree(child.pid);
+        }
+        // Wait for processes to fully terminate on Windows
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
+      }
+    } finally {
+      // Ensure directory is cleaned up even if test setup fails
+      await safeRmDir(tempDir);
+    }
+  }, 30000); // Increase timeout for CI
+
+  it('falls back to legacy .agentmark/dev-entry.ts for backward compatibility', async () => {
+    const tempDir = path.join(__dirname, '..', 'tmp-dev-legacy-' + Date.now());
+    tmpDirs.push(tempDir);
+
+    try {
+      fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
+
+      // Setup test directory with dev-entry.ts in legacy location
+      setupTestDir(tempDir, true);
+
+      // Create agentmark.client.ts but NOT custom dev-server.ts
+      fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
+      fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
+      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
+
+      const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
+      const apiPort = await getFreePort();
+      const webhookPort = await getFreePort();
+
+      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
+        cwd: tempDir,
+        env: { ...process.env, OPENAI_API_KEY: 'test-key' },
+        stdio: 'pipe',
+        detached: true
+      });
+
+      processes.push(child);
+
+      try {
+        let stdout = '';
+        child.stdout?.on('data', (data) => { stdout += data.toString(); });
+
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
+
+        // Verify .agentmark/dev-entry.ts exists (legacy location)
+        expect(fs.existsSync(path.join(tempDir, '.agentmark', 'dev-entry.ts'))).toBe(true);
+        // Verify dev-entry.ts does NOT exist at project root
+        expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(false);
+
+        // Verify the output shows legacy location warning
+        expect(stdout).toContain('Using legacy .agentmark/dev-entry.ts');
 
         // Verify server started
         const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
