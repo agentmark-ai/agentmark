@@ -1,17 +1,16 @@
 import { describe, it, expect, afterEach, afterAll } from 'vitest';
-import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess } from 'node:child_process';
 import net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
-
-// Constants
-const SERVER_STARTUP_WAIT_MS = 3000; // Time for dev servers to fully start
-const PROCESS_CLEANUP_WAIT_MS = 500; // Time for processes to terminate
-const SERVER_READY_CHECK_MAX_ATTEMPTS = 30;
-const SERVER_READY_CHECK_DELAY_MS = 500;
-
-// Helper functions
-function wait(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+import {
+  IS_WINDOWS,
+  PLATFORM_TIMEOUTS,
+  getSymlinkType,
+  killProcessTree,
+  wait,
+  safeRmDir,
+} from '../cli-src/utils/platform';
 
 function createMinimalAgentMarkConfig(): string {
   return `
@@ -28,8 +27,8 @@ export const client = new AgentMark({ prompt: {}, adapter });
 `;
 }
 
-const DEV_ENTRY_TEMPLATE = `// Auto-generated runner server entry point
-// To customize, create a dev-server.ts file in your project root
+const DEV_ENTRY_TEMPLATE = `// Development webhook server entry point
+// This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v4-adapter/runner';
@@ -51,7 +50,7 @@ main().catch((err) => {
 });
 `;
 
-function setupTestDir(tempDir: string) {
+function setupTestDir(tempDir: string, useLegacyLocation = false) {
   // Create package.json for proper module resolution
   fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'test-app', type: 'module' }, null, 2));
 
@@ -60,16 +59,21 @@ function setupTestDir(tempDir: string) {
   const nodeModulesSource = path.join(monorepoRoot, 'node_modules');
   const nodeModulesTarget = path.join(tempDir, 'node_modules');
   try {
-    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, 'dir');
+    fs.symlinkSync(nodeModulesSource, nodeModulesTarget, getSymlinkType());
   } catch (e: any) {
     // Ignore if symlink already exists
     if (e.code !== 'EEXIST') throw e;
   }
 
-  // Create .agentmark/dev-entry.ts (created during init in real apps)
-  const agentmarkInternalDir = path.join(tempDir, '.agentmark');
-  fs.mkdirSync(agentmarkInternalDir, { recursive: true});
-  fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+  if (useLegacyLocation) {
+    // Create .agentmark/dev-entry.ts (legacy location for backward compatibility testing)
+    const agentmarkInternalDir = path.join(tempDir, '.agentmark');
+    fs.mkdirSync(agentmarkInternalDir, { recursive: true});
+    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+  } else {
+    // Create dev-entry.ts at project root (new default location, version controlled)
+    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+  }
 }
 
 async function getFreePort(): Promise<number> {
@@ -87,8 +91,8 @@ async function getFreePort(): Promise<number> {
 
 async function waitForServer(
   url: string,
-  maxAttempts = SERVER_READY_CHECK_MAX_ATTEMPTS,
-  delayMs = SERVER_READY_CHECK_DELAY_MS
+  maxAttempts = PLATFORM_TIMEOUTS.serverReadyMaxAttempts,
+  delayMs = PLATFORM_TIMEOUTS.serverReadyCheckDelay
 ): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -105,16 +109,9 @@ async function waitForServer(
 function cleanupTestResources(processes: ChildProcess[], tmpDirs: string[]) {
   // Kill all spawned processes and their children
   for (const proc of processes) {
-    try {
-      if (proc.pid) {
-        // Kill the entire process group using negative PID (kills children too)
-        try { process.kill(-proc.pid, 'SIGKILL'); } catch {}
-        // Also use pkill as backup to kill any child processes
-        try { spawnSync('pkill', ['-9', '-P', String(proc.pid)]); } catch {}
-        // Finally kill the main process
-        try { process.kill(proc.pid, 'SIGKILL'); } catch {}
-      }
-    } catch {}
+    if (proc.pid) {
+      killProcessTree(proc.pid);
+    }
   }
   processes.length = 0;
 
@@ -135,7 +132,7 @@ describe('agentmark dev', () => {
 
   afterEach(async () => {
     cleanupTestResources(processes, tmpDirs);
-    await wait(PROCESS_CLEANUP_WAIT_MS);
+    await wait(PLATFORM_TIMEOUTS.processCleanup);
   });
 
   afterAll(async () => {
@@ -200,7 +197,7 @@ describe('agentmark dev', () => {
         child.stderr?.on('data', (data) => { stderr += data.toString(); });
 
         // Wait for servers to start
-        await wait(SERVER_STARTUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
 
         // Debug: print output if servers didn't start
         if (stderr) {
@@ -211,7 +208,7 @@ describe('agentmark dev', () => {
         }
 
         // Test API server /v1/prompts endpoint
-        const listResp = await fetch(`http://localhost:${apiPort}/v1/prompts`);
+        const listResp = await fetch(`http://127.0.0.1:${apiPort}/v1/prompts`);
         if (!listResp.ok) {
           const errorText = await listResp.text();
           console.log(`Response status: ${listResp.status}, body: ${errorText}`);
@@ -222,34 +219,32 @@ describe('agentmark dev', () => {
         expect(paths.length).toBeGreaterThan(0);
 
         // Test /v1/templates dataset endpoint
-        const dsResp = await fetch(`http://localhost:${apiPort}/v1/templates?path=demo.jsonl`);
+        const dsResp = await fetch(`http://127.0.0.1:${apiPort}/v1/templates?path=demo.jsonl`);
         expect(dsResp.ok).toBe(true);
         const text = await dsResp.text();
         expect(text.trim().length).toBeGreaterThan(0);
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
-          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-          try { spawnSync('pkill', ['-9', '-P', String(child.pid)]); } catch {}
-          try { process.kill(child.pid, 'SIGKILL'); } catch {}
+          killProcessTree(child.pid);
         }
+        // Wait for processes to fully terminate on Windows
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+      await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
 
-  it('uses default dev-entry.ts when custom dev-server.ts is missing', async () => {
-    const tempDir = path.join(__dirname, '..', 'tmp-dev-autogen-' + Date.now());
+  it('uses dev-entry.ts from project root when available', async () => {
+    const tempDir = path.join(__dirname, '..', 'tmp-dev-root-entry-' + Date.now());
     tmpDirs.push(tempDir);
 
     try {
       fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
 
-      // Setup test directory (creates .agentmark/dev-entry.ts)
+      // Setup test directory with dev-entry.ts at project root (new default location)
       setupTestDir(tempDir);
 
       // Create agentmark.client.ts but NOT custom dev-server.ts
@@ -274,30 +269,88 @@ describe('agentmark dev', () => {
         let stdout = '';
         child.stdout?.on('data', (data) => { stdout += data.toString(); });
 
-        await wait(SERVER_STARTUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
 
-        // Verify .agentmark/dev-entry.ts exists (created by setupTestDir simulating init)
-        expect(fs.existsSync(path.join(tempDir, '.agentmark', 'dev-entry.ts'))).toBe(true);
+        // Verify dev-entry.ts exists at project root (new default location)
+        expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(true);
 
-        // Verify the output doesn't contain custom dev-server message (uses default dev-entry.ts)
+        // Verify the output doesn't contain custom dev-server or legacy location messages
         expect(stdout).not.toContain('Using custom dev-server.ts');
+        expect(stdout).not.toContain('Using legacy .agentmark/dev-entry.ts');
 
         // Verify server started
-        const serverReady = await waitForServer(`http://localhost:${apiPort}/v1/prompts`);
+        const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
         expect(serverReady).toBe(true);
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
-          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-          try { spawnSync('pkill', ['-9', '-P', String(child.pid)]); } catch {}
-          try { process.kill(child.pid, 'SIGKILL'); } catch {}
+          killProcessTree(child.pid);
         }
+        // Wait for processes to fully terminate on Windows
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
+      await safeRmDir(tempDir);
+    }
+  }, 30000); // Increase timeout for CI
+
+  it('falls back to legacy .agentmark/dev-entry.ts for backward compatibility', async () => {
+    const tempDir = path.join(__dirname, '..', 'tmp-dev-legacy-' + Date.now());
+    tmpDirs.push(tempDir);
+
+    try {
+      fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
+
+      // Setup test directory with dev-entry.ts in legacy location
+      setupTestDir(tempDir, true);
+
+      // Create agentmark.client.ts but NOT custom dev-server.ts
+      fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
+      fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
+      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
+
+      const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
+      const apiPort = await getFreePort();
+      const webhookPort = await getFreePort();
+
+      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
+        cwd: tempDir,
+        env: { ...process.env, OPENAI_API_KEY: 'test-key' },
+        stdio: 'pipe',
+        detached: true
+      });
+
+      processes.push(child);
+
+      try {
+        let stdout = '';
+        child.stdout?.on('data', (data) => { stdout += data.toString(); });
+
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
+
+        // Verify .agentmark/dev-entry.ts exists (legacy location)
+        expect(fs.existsSync(path.join(tempDir, '.agentmark', 'dev-entry.ts'))).toBe(true);
+        // Verify dev-entry.ts does NOT exist at project root
+        expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(false);
+
+        // Verify the output shows legacy location warning
+        expect(stdout).toContain('Using legacy .agentmark/dev-entry.ts');
+
+        // Verify server started
+        const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
+        expect(serverReady).toBe(true);
+      } finally {
+        // Ensure process is cleaned up even if test fails
+        if (child.pid) {
+          killProcessTree(child.pid);
+        }
+        // Wait for processes to fully terminate on Windows
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
+    } finally {
+      // Ensure directory is cleaned up even if test setup fails
+      await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
 
@@ -329,24 +382,22 @@ describe('agentmark dev', () => {
       processes.push(child);
 
       try {
-        await wait(SERVER_STARTUP_WAIT_MS);
+        await wait(PLATFORM_TIMEOUTS.serverStartup);
 
         // Test that server is running on custom port
-        const resp = await fetch(`http://localhost:${customApiPort}/v1/prompts`);
+        const resp = await fetch(`http://127.0.0.1:${customApiPort}/v1/prompts`);
         expect(resp.ok).toBe(true);
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
-          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-          try { spawnSync('pkill', ['-9', '-P', String(child.pid)]); } catch {}
-          try { process.kill(child.pid, 'SIGKILL'); } catch {}
+          killProcessTree(child.pid);
         }
+        // Wait for processes to fully terminate on Windows
+        await wait(PLATFORM_TIMEOUTS.processCleanup);
       }
     } finally {
       // Ensure directory is cleaned up even if test setup fails
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+      await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
 });

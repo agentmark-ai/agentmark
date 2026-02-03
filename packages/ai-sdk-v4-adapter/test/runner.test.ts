@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
+import { fileURLToPath } from "url";
+import path from "path";
 import { EvalRegistry } from "@agentmark-ai/prompt-core";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
@@ -58,7 +60,8 @@ describe("VercelAdapterWebhookHandler", () => {
       };
     });
 
-    const base = new URL("./fixtures/", import.meta.url).pathname;
+    // Use fileURLToPath for cross-platform path resolution (Windows URL pathname has leading slash)
+    const base = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
     loader = new FileLoader(base);
     const modelRegistry = new VercelAIModelRegistry();
     modelRegistry.registerModels("test-model", () => ({}) as any);

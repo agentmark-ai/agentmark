@@ -1,11 +1,26 @@
+// Check if path is a Windows absolute path (e.g., C:\, D:\)
+function isWindowsAbsolutePath(p: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(p);
+}
+
 export function resolvePath(basePath: string, targetPath: string): string {
-  if (targetPath.startsWith('/')) {
+  // Handle absolute paths (Unix or Windows)
+  if (targetPath.startsWith('/') || isWindowsAbsolutePath(targetPath)) {
     return targetPath;
   }
 
-  const baseParts = basePath.split('/').filter(Boolean);
-  const targetParts = targetPath.split('/').filter(Boolean);
-  
+  // Normalize path separators for processing
+  const normalizedBase = basePath.replace(/\\/g, '/');
+  const normalizedTarget = targetPath.replace(/\\/g, '/');
+
+  // Check if base path is a Windows absolute path
+  const windowsDrive = normalizedBase.match(/^([a-zA-Z]:)/);
+  const prefix = windowsDrive ? windowsDrive[1] : '';
+  const baseWithoutDrive = windowsDrive ? normalizedBase.slice(2) : normalizedBase;
+
+  const baseParts = baseWithoutDrive.split('/').filter(Boolean);
+  const targetParts = normalizedTarget.split('/').filter(Boolean);
+
   for (const part of targetParts) {
     if (part === '.') continue;
     if (part === '..') {
@@ -15,12 +30,29 @@ export function resolvePath(basePath: string, targetPath: string): string {
     }
   }
 
+  // Return with appropriate prefix
+  if (prefix) {
+    return prefix + '/' + baseParts.join('/');
+  }
   return '/' + baseParts.join('/');
 }
 
 export function getDirname(filePath: string): string {
-  const parts = filePath.split('/').filter(Boolean);
+  // Normalize path separators
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  // Check if path is a Windows absolute path
+  const windowsDrive = normalizedPath.match(/^([a-zA-Z]:)/);
+  const prefix = windowsDrive ? windowsDrive[1] : '';
+  const pathWithoutDrive = windowsDrive ? normalizedPath.slice(2) : normalizedPath;
+
+  const parts = pathWithoutDrive.split('/').filter(Boolean);
   parts.pop();
+
+  // Return with appropriate prefix
+  if (prefix) {
+    return prefix + '/' + parts.join('/');
+  }
   return '/' + parts.join('/');
 }
 

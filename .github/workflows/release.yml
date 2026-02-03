@@ -1,41 +1,150 @@
-name: Publish Packages to NPM
+name: Prepare Release
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  build:
+  prepare:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
- 
+          fetch-depth: 0
+
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Setup Node.js environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 21
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Install
-        run: yarn
+      - name: Install dependencies
+        run: yarn install --immutable
 
-      - name: Build
-        run: yarn build
+      - name: Security audit (block on critical/high)
+        run: |
+          if yarn npm audit --all --recursive 2>&1 | tee audit-output.txt; then
+            echo "✅ No vulnerabilities found"
+          else
+            if grep -qE "Severity: (critical|high)" audit-output.txt; then
+              echo "❌ Critical or high severity vulnerabilities found - blocking release"
+              cat audit-output.txt
+              exit 1
+            else
+              echo "⚠️ Only moderate/low severity vulnerabilities found - proceeding with release"
+            fi
+          fi
 
-      - name: Create Release Pull Request or Publish to npm
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: yarn run version
-          publish: yarn release
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check for version plans
+        id: check-plans
+        run: |
+          PLAN_COUNT=$(find .nx/version-plans -name "*.md" -type f 2>/dev/null | wc -l)
+          echo "plan_count=$PLAN_COUNT" >> $GITHUB_OUTPUT
+          if [ "$PLAN_COUNT" -eq 0 ]; then
+            echo "::warning::No version plan files found in .nx/version-plans/"
+            echo "has_plans=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found $PLAN_COUNT version plan file(s)"
+            echo "has_plans=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if no version plans
+        if: steps.check-plans.outputs.has_plans == 'false'
+        run: |
+          echo "No version plans found. Nothing to release."
+          echo "To create a version plan, run: yarn release:plan"
+          exit 0
+
+      - name: Check for existing release PR
+        if: steps.check-plans.outputs.has_plans == 'true'
+        id: check-pr
+        run: |
+          # Search for existing release PR
+          EXISTING_PR=$(gh pr list --base main --state open --json number,headRefName,title --jq '.[] | select(.title | startswith("chore(release):")) | {number, branch: .headRefName}' | head -1)
+
+          if [ -n "$EXISTING_PR" ]; then
+            PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+            BRANCH_NAME=$(echo "$EXISTING_PR" | jq -r '.branch')
+            echo "Found existing release PR #$PR_NUMBER on branch $BRANCH_NAME"
+            echo "existing_pr=true" >> $GITHUB_OUTPUT
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "No existing release PR found"
+            echo "existing_pr=false" >> $GITHUB_OUTPUT
+            echo "branch_name=release/version-plans" >> $GITHUB_OUTPUT
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update existing release PR
+        if: steps.check-plans.outputs.has_plans == 'true' && steps.check-pr.outputs.existing_pr == 'true'
+        run: |
+          BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
+
+          # Clean up untracked files that may conflict with checkout
+          rm -f audit-output.txt
+
+          # Fetch and checkout the existing branch
+          git fetch origin $BRANCH_NAME
+          git checkout $BRANCH_NAME
+
+          # Reset to main to get latest changes
+          git reset --hard origin/main
+
+          # Run nx release to update versions and changelogs
+          npx nx release --skip-publish
+
+          # Update lockfile
+          yarn install
+
+          # Commit and push
+          git add .
+          git commit -m "chore(release): version packages" || echo "No changes to commit"
+          git push origin $BRANCH_NAME --force
+
+          echo "Updated existing release PR #${{ steps.check-pr.outputs.pr_number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create new release PR
+        if: steps.check-plans.outputs.has_plans == 'true' && steps.check-pr.outputs.existing_pr == 'false'
+        run: |
+          BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
+          git checkout -b $BRANCH_NAME
+
+          npx nx release --skip-publish
+
+          yarn install
+
+          git add .
+          git commit -m "chore(release): version packages"
+          git push origin $BRANCH_NAME
+
+          gh pr create \
+            --title "chore(release): Version Packages" \
+            --body "## Release PR
+
+          This PR was automatically created by the release workflow using version plans.
+
+          - **Version plans processed:** ${{ steps.check-plans.outputs.plan_count }}
+
+          **Merge to publish packages to npm.**" \
+            --base main \
+            --head $BRANCH_NAME
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

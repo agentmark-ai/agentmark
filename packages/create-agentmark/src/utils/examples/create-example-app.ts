@@ -12,6 +12,9 @@ import {
   getAdapterConfig,
 } from "./templates/index.js";
 import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark-ai/shared-utils";
+import { appendGitignore, appendEnv } from "../file-merge.js";
+import { shouldMergeFile } from "../conflict-resolution.js";
+import type { ProjectInfo, ConflictResolution } from "../types.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -152,12 +155,20 @@ export const createExampleApp = async (
   targetPath: string = ".",
   apiKey: string = "",
   adapter: string = "ai-sdk",
-  deploymentMode: "cloud" | "static" = "cloud"
+  deploymentMode: "cloud" | "static" = "cloud",
+  projectInfo: ProjectInfo | null = null,
+  resolutions: ConflictResolution[] = []
 ) => {
   try {
-    const modelProvider = 'openai';
-    const model = 'gpt-4o';
-    console.log("Creating Agent Mark example app...");
+    const modelProvider = adapter === 'claude-agent-sdk' ? 'anthropic' : 'openai';
+    const model = adapter === 'claude-agent-sdk' ? 'claude-sonnet-4-20250514' : 'gpt-4o';
+    const isExistingProject = projectInfo?.isExistingProject ?? false;
+
+    if (isExistingProject) {
+      console.log("Adding AgentMark to existing project...");
+    } else {
+      console.log("Creating AgentMark example app...");
+    }
 
     // Keep ./ prefix for display in messages
     const folderName = targetPath;
@@ -179,25 +190,63 @@ export const createExampleApp = async (
       getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter, deploymentMode })
     );
 
-    // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey));
+    // Create or append to .env file
+    if (shouldMergeFile('.env', projectInfo, resolutions)) {
+      const envVars: Record<string, string> = {};
+      const apiKeyEnvVar = adapter === 'claude-agent-sdk' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
+      if (apiKey) {
+        envVars[apiKeyEnvVar] = apiKey;
+      } else {
+        envVars[apiKeyEnvVar] = adapter === 'claude-agent-sdk' ? 'your-anthropic-api-key' : 'your-openai-api-key';
+      }
+      const result = appendEnv(targetPath, envVars);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .env: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Skipped existing .env vars: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey, adapter));
+    }
 
-    // Create .gitignore
-    const gitignore = ['node_modules', '.env', '*.agentmark-outputs/', '.agentmark', 'dist'].join('\n');
-    fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
+    // Create or append to .gitignore
+    // Note: .agentmark/ removed - dev-entry.ts is now at project root for version control
+    const gitignoreEntries = ['node_modules/', '.env', '*.agentmark-outputs/', 'dist/'];
+    if (shouldMergeFile('.gitignore', projectInfo, resolutions)) {
+      const result = appendGitignore(targetPath, gitignoreEntries);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .gitignore: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Already in .gitignore: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      const gitignore = gitignoreEntries.join('\n');
+      fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
+    }
 
-    // Create the main application file
-    fs.writeFileSync(
-      `${targetPath}/index.ts`,
-      getIndexFileContent(adapter)
-    );
+    // Create the main application file (skip for existing projects)
+    if (!isExistingProject) {
+      fs.writeFileSync(
+        `${targetPath}/index.ts`,
+        getIndexFileContent(adapter)
+      );
+    } else {
+      console.log("⏭️  Skipped index.ts (existing project)");
+    }
 
-    // Create tsconfig.json
-    fs.writeJsonSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
+    // Create tsconfig.json (skip for existing projects)
+    if (!isExistingProject) {
+      fs.writeJsonSync(`${targetPath}/tsconfig.json`, getTsConfigContent(), { spaces: 2 });
+    } else {
+      console.log("⏭️  Skipped tsconfig.json (existing project)");
+    }
 
     // Setup package.json and install dependencies
-    setupPackageJson(targetPath, deploymentMode);
-    installDependencies(modelProvider, targetPath, adapter, deploymentMode);
+    const packageManager = projectInfo?.packageManager ?? null;
+    setupPackageJson(targetPath, deploymentMode, projectInfo);
+    installDependencies(modelProvider, targetPath, adapter, deploymentMode, packageManager);
 
     // Generate types file using the type generation library
     console.log("Generating types from prompts...");
@@ -213,17 +262,17 @@ export const createExampleApp = async (
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
     }
 
-    // Create .agentmark directory and dev-entry.ts
+    // Create dev-entry.ts at project root (version controlled)
     console.log("Creating development server entry point...");
-    const agentmarkInternalDir = path.join(targetPath, '.agentmark');
-    fs.ensureDirSync(agentmarkInternalDir);
 
     // Get adapter-specific values from config
     const adapterConfig = getAdapterConfig(adapter, modelProvider);
     const { webhookHandler } = adapterConfig.classes;
 
-    const devEntryContent = `// Auto-generated webhook server entry point
-// To customize, create a dev-server.ts file in your project root
+    const devEntryPath = path.join(targetPath, 'dev-entry.ts');
+
+    const devEntryContent = `// Development webhook server entry point
+// This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { ${webhookHandler} } from '${adapterConfig.package}/runner';
@@ -244,7 +293,7 @@ async function main() {
   process.env.AGENTMARK_BASE_URL = apiServerUrl;
 
   // Now import client - it will pick up the dev environment
-  const { client } = await import('../agentmark.client.js');
+  const { client } = await import('./agentmark.client.js');
 
   // Initialize OpenTelemetry tracing to export traces to the API server
   const sdk = new AgentMarkSDK({
@@ -271,7 +320,13 @@ main().catch((err) => {
 });
 `;
 
-    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), devEntryContent);
+    // Only create dev-entry.ts if it doesn't exist (preserve existing customizations - FR-003)
+    if (fs.existsSync(devEntryPath)) {
+      console.log("⏭️  Skipped dev-entry.ts (already exists - preserving customizations)");
+    } else {
+      fs.writeFileSync(devEntryPath, devEntryContent);
+      console.log(`✅ Created dev-entry.ts at project root`);
+    }
 
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
@@ -292,12 +347,24 @@ main().catch((err) => {
     console.log('Next Steps');
     console.log('═'.repeat(70));
 
-    // Simplified instructions - always just "npm run dev"
+    // Use detected package manager for instructions
+    const runCmd = packageManager?.runCmd ?? 'npm run';
+
+    // Check if dev script was namespaced
+    const pkgJsonPath = path.join(targetPath, 'package.json');
+    let devScriptName = 'dev';
+    if (fs.existsSync(pkgJsonPath)) {
+      const pkgJson = fs.readJsonSync(pkgJsonPath);
+      if (pkgJson.scripts?.['agentmark:dev']) {
+        devScriptName = 'agentmark:dev';
+      }
+    }
+
     console.log('\n Get Started:');
-    if (folderName !== "." && folderName !== "./") {
+    if (folderName !== "." && folderName !== "./" && !isExistingProject) {
       console.log(`  $ cd ${folderName}`);
     }
-    console.log('  $ npm run dev\n');
+    console.log(`  $ ${runCmd} ${devScriptName}\n`);
 
     console.log('─'.repeat(70));
     console.log('Resources');

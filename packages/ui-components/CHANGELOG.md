@@ -1,3 +1,15 @@
+## 0.3.1 (2026-01-28)
+
+### 🩹 Fixes
+
+- fix: Datagrid filter panel flickers ([#456](https://github.com/agentmark-ai/agentmark/pull/456))
+
+## 0.3.0 (2026-01-21)
+
+### 🚀 Features
+
+- Fix: security issues ([#449](https://github.com/agentmark-ai/agentmark/pull/449))
+
 # Changelog
 
 ## 0.2.0

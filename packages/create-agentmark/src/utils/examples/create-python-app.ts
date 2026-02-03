@@ -3,6 +3,9 @@ import * as path from "path";
 import {
   createExamplePrompts,
 } from "./templates/index.js";
+import { appendGitignore, appendEnv } from "../file-merge.js";
+import { shouldMergeFile } from "../conflict-resolution.js";
+import type { ProjectInfo, ConflictResolution } from "../types.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -132,7 +135,44 @@ const setupMCPServer = (client: string, targetPath: string) => {
   }
 };
 
-const getPyprojectContent = (projectName: string): string => {
+const getPyprojectContent = (projectName: string, adapter: string): string => {
+  if (adapter === "claude-agent-sdk") {
+    return `[project]
+name = "${projectName}"
+version = "0.1.0"
+description = "An AgentMark application using Claude Agent SDK"
+requires-python = ">=3.12"
+dependencies = [
+    "agentmark-claude-agent-sdk>=0.1.0",
+    "agentmark-prompt-core>=0.1.0",
+    "python-dotenv>=1.0.0",
+    "claude-agent-sdk>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "mypy>=1.0",
+]
+otel = [
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.mypy]
+strict = true
+`;
+  }
+
+  // Default: pydantic-ai
   return `[project]
 name = "${projectName}"
 version = "0.1.0"
@@ -166,7 +206,60 @@ strict = true
 `;
 };
 
-const getAgentmarkClientContent = (_deploymentMode: "cloud" | "static"): string => {
+const getAgentmarkClientContent = (_deploymentMode: "cloud" | "static", adapter: string): string => {
+  if (adapter === "claude-agent-sdk") {
+    return `"""AgentMark client configuration.
+
+This file configures the AgentMark client with Claude Agent SDK adapter.
+Customize the model registry and tool registry as needed.
+"""
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+from agentmark.prompt_core import FileLoader
+from agentmark_claude_agent_sdk import (
+    create_claude_agent_client,
+    create_default_model_registry,
+    ClaudeAgentToolRegistry,
+)
+
+# Load environment variables
+load_dotenv()
+
+# Configure model registry with default mappings
+# Supports: claude-* models
+model_registry = create_default_model_registry()
+
+# Configure tool registry for custom tools
+tool_registry = ClaudeAgentToolRegistry()
+
+# Example tool registration:
+# tool_registry.register(
+#     "search",
+#     lambda args, ctx: f"Search results for: {args['query']}",
+#     description="Search the web",
+#     parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
+# )
+
+# Create file loader for local development
+# Uses the project root as base directory for resolving relative paths
+project_root = Path(__file__).parent.resolve()
+loader = FileLoader(base_dir=str(project_root))
+
+# Create the client
+client = create_claude_agent_client(
+    model_registry=model_registry,
+    tool_registry=tool_registry,
+    loader=loader,
+)
+
+__all__ = ["client"]
+`;
+  }
+
+  // Default: pydantic-ai
   return `"""AgentMark client configuration.
 
 This file configures the AgentMark client with Pydantic AI adapter.
@@ -216,7 +309,59 @@ __all__ = ["client"]
 `;
 };
 
-const getMainPyContent = (): string => {
+const getMainPyContent = (adapter: string): string => {
+  if (adapter === "claude-agent-sdk") {
+    return `"""Example usage of AgentMark with Claude Agent SDK.
+
+Run with: python main.py
+"""
+
+import asyncio
+import json
+from pathlib import Path
+
+from agentmark_claude_agent_sdk import run_text_prompt
+from agentmark_client import client
+
+
+async def main():
+    """Run the party planner prompt."""
+    # Load the prompt AST (in production, use the API loader)
+    prompt_path = Path("agentmark/party-planner.prompt.mdx.json")
+
+    if not prompt_path.exists():
+        print("Prompt file not found. Run 'agentmark build' first.")
+        return
+
+    with open(prompt_path) as f:
+        ast = json.load(f)
+
+    # Load and format the prompt
+    prompt = await client.load_text_prompt(ast)
+    params = await prompt.format(props={
+        "numberOfGuests": 10,
+        "theme": "80s disco",
+        "dietaryRestrictions": ["vegetarian", "gluten-free"],
+    })
+
+    # Execute the prompt
+    print("Running party planner prompt...")
+    result = await run_text_prompt(params)
+
+    print("\\n" + "=" * 50)
+    print("Party Plan:")
+    print("=" * 50)
+    print(result.output)
+    print("\\n" + "-" * 50)
+    print(f"Tokens used: {result.usage}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+`;
+  }
+
+  // Default: pydantic-ai
   return `"""Example usage of AgentMark with Pydantic AI.
 
 Run with: python main.py
@@ -267,7 +412,11 @@ if __name__ == "__main__":
 `;
 };
 
-const getDevServerContent = (): string => {
+const getDevServerContent = (adapter: string): string => {
+  const adapterPackage = adapter === "claude-agent-sdk"
+    ? "agentmark_claude_agent_sdk"
+    : "agentmark_pydantic_ai_v0";
+
   return `"""Auto-generated webhook server for AgentMark development.
 
 This server is started by 'npm run dev' (agentmark dev) and handles
@@ -281,7 +430,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentmark_pydantic_ai_v0 import create_webhook_server
+from ${adapterPackage} import create_webhook_server
 from agentmark_client import client
 
 
@@ -295,7 +444,14 @@ if __name__ == "__main__":
 `;
 };
 
-const getEnvContent = (apiKey: string): string => {
+const getEnvContent = (apiKey: string, adapter: string): string => {
+  if (adapter === "claude-agent-sdk") {
+    return `# Anthropic API Key
+ANTHROPIC_API_KEY=${apiKey}
+`;
+  }
+
+  // Default: pydantic-ai (OpenAI)
   return `# OpenAI API Key
 OPENAI_API_KEY=${apiKey}
 
@@ -341,11 +497,21 @@ export const createPythonApp = async (
   client: string,
   targetPath: string = ".",
   apiKey: string = "",
-  deploymentMode: "cloud" | "static" = "cloud"
+  deploymentMode: "cloud" | "static" = "cloud",
+  adapter: string = "pydantic-ai",
+  projectInfo: ProjectInfo | null = null,
+  resolutions: ConflictResolution[] = []
 ) => {
   try {
-    const model = 'gpt-4o';
-    console.log("Creating AgentMark Python app with Pydantic AI...");
+    const model = adapter === 'claude-agent-sdk' ? 'claude-sonnet-4-20250514' : 'gpt-4o';
+    const adapterDisplayName = adapter === 'claude-agent-sdk' ? 'Claude Agent SDK' : 'Pydantic AI';
+    const isExistingProject = projectInfo?.isExistingProject ?? false;
+
+    if (isExistingProject) {
+      console.log(`Adding AgentMark to existing Python project with ${adapterDisplayName}...`);
+    } else {
+      console.log(`Creating AgentMark Python app with ${adapterDisplayName}...`);
+    }
 
     const folderName = targetPath;
 
@@ -355,37 +521,83 @@ export const createPythonApp = async (
     setupMCPServer(client, targetPath);
 
     // Create example prompts (reuse from TypeScript)
-    createExamplePrompts(model, targetPath, "pydantic-ai");
+    createExamplePrompts(model, targetPath, adapter);
     console.log(`Example prompts and datasets created in ${folderName}/agentmark/`);
 
-    // Create pyproject.toml
-    const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
-    fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName));
+    // Create pyproject.toml (skip for existing projects)
+    if (!isExistingProject) {
+      const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
+      fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName, adapter));
+    } else {
+      console.log("⏭️  Skipped pyproject.toml (existing project)");
+    }
 
-    // Create agentmark_client.py
-    fs.writeFileSync(`${targetPath}/agentmark_client.py`, getAgentmarkClientContent(deploymentMode));
+    // Create agentmark_client.py (always create - this is AgentMark-specific)
+    fs.writeFileSync(`${targetPath}/agentmark_client.py`, getAgentmarkClientContent(deploymentMode, adapter));
 
-    // Create main.py
-    fs.writeFileSync(`${targetPath}/main.py`, getMainPyContent());
+    // Create main.py (skip for existing projects)
+    if (!isExistingProject) {
+      fs.writeFileSync(`${targetPath}/main.py`, getMainPyContent(adapter));
+    } else {
+      console.log("⏭️  Skipped main.py (existing project)");
+    }
 
-    // Create .env file
-    fs.writeFileSync(`${targetPath}/.env`, getEnvContent(apiKey));
+    // Create or append to .env file
+    if (shouldMergeFile('.env', projectInfo, resolutions)) {
+      const envVars: Record<string, string> = {};
+      const apiKeyEnvVar = adapter === 'claude-agent-sdk' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
+      if (apiKey) {
+        envVars[apiKeyEnvVar] = apiKey;
+      } else {
+        envVars[apiKeyEnvVar] = adapter === 'claude-agent-sdk' ? 'your-anthropic-api-key' : 'your-openai-api-key';
+      }
+      const result = appendEnv(targetPath, envVars);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .env: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Skipped existing .env vars: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      fs.writeFileSync(`${targetPath}/.env`, getEnvContent(apiKey, adapter));
+    }
 
-    // Create .gitignore
-    fs.writeFileSync(`${targetPath}/.gitignore`, getGitignoreContent());
+    // Create or append to .gitignore
+    const gitignoreEntries = [
+      '__pycache__/', '*.py[cod]', '*$py.class', '.venv/', 'venv/', '.env',
+      '*.agentmark-outputs/', '.agentmark/', '.idea/', '.vscode/', '*.swp',
+      'dist/', 'build/', '*.egg-info/', '.pytest_cache/', '.coverage', 'htmlcov/'
+    ];
+    if (shouldMergeFile('.gitignore', projectInfo, resolutions)) {
+      const result = appendGitignore(targetPath, gitignoreEntries);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .gitignore: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Already in .gitignore: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      fs.writeFileSync(`${targetPath}/.gitignore`, getGitignoreContent());
+    }
 
     // Create .agentmark directory with dev_server.py
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
-    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev_server.py'), getDevServerContent());
+    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev_server.py'), getDevServerContent(adapter));
 
-    // Install Python dependencies
-    console.log("Setting up Python environment...");
-    console.log("Note: You'll need to set up a virtual environment and install dependencies.");
-    console.log("");
+    // Python environment setup notes
+    const pythonVenv = projectInfo?.pythonVenv;
+    if (pythonVenv) {
+      console.log(`\n📦 Detected existing Python venv: ${pythonVenv.name}`);
+      console.log("   Remember to activate it before running AgentMark commands.");
+    } else if (!isExistingProject) {
+      console.log("Setting up Python environment...");
+      console.log("Note: You'll need to set up a virtual environment and install dependencies.");
+      console.log("");
+    }
 
     // Success message
-    console.log("\nAgentMark Python initialization completed successfully!");
+    console.log("\n✅ AgentMark Python initialization completed successfully!");
 
     console.log(
       `
@@ -404,12 +616,22 @@ export const createPythonApp = async (
     console.log('═'.repeat(70));
 
     console.log('\n Get Started:');
-    if (folderName !== "." && folderName !== "./") {
+    if (folderName !== "." && folderName !== "./" && !isExistingProject) {
       console.log(`  $ cd ${folderName}`);
     }
-    console.log('  $ python -m venv .venv');
-    console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
-    console.log('  $ pip install -e ".[dev]"');
+
+    // Show venv activation or creation based on detection
+    if (pythonVenv) {
+      const activateCmd = process.platform === 'win32'
+        ? `${pythonVenv.name}\\Scripts\\activate`
+        : `source ${pythonVenv.name}/bin/activate`;
+      console.log(`  $ ${activateCmd}`);
+      console.log('  $ pip install agentmark-pydantic-ai agentmark-prompt-core python-dotenv "pydantic-ai[openai]"');
+    } else {
+      console.log('  $ python -m venv .venv');
+      console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
+      console.log('  $ pip install -e ".[dev]"');
+    }
     console.log('  $ npm run dev\n');
 
     console.log('─'.repeat(70));

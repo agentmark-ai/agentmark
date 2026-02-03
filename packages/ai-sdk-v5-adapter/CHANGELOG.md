@@ -1,3 +1,9 @@
+## 1.1.1 (2026-01-21)
+
+### 🚀 Features
+
+- Fix: security issues ([#449](https://github.com/agentmark-ai/agentmark/pull/449))
+
 # Changelog
 
 ## 1.0.2

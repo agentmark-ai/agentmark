@@ -13,15 +13,38 @@
     "test": "turbo test",
     "build": "turbo build",
     "lint": "turbo lint",
-    "release": "changeset publish",
-    "version": "changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false && yarn && changeset tag"
+    "release": "nx release publish",
+    "release:version": "nx release version",
+    "release:dry-run": "nx release --dry-run",
+    "release:plan": "nx release plan",
+    "release:plan:check": "nx release plan:check --base=origin/main --head=HEAD"
   },
   "packageManager": "yarn@4.5.3",
   "devDependencies": {
-    "@changesets/cli": "^2.27.9",
+    "@nx/js": "20.8.3",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
+    "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
+    "nx": "^20.4.0",
+    "shx": "^0.3.4",
     "tsup": "^8",
     "turbo": "latest",
     "typescript": "^5"
+  },
+  "resolutions": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "axios": "^1.7.9",
+    "hono": "^4.11.4",
+    "qs": "^6.14.1",
+    "mdast-util-to-hast": "^13.2.1",
+    "jsondiffpatch": "^0.7.2",
+    "micromatch": "^4.0.8",
+    "prismjs": "^1.30.0",
+    "body-parser": "^2.2.1",
+    "braces": "^3.0.3",
+    "glob": "^10.4.5",
+    "tar": "^7.5.3"
   }
 }

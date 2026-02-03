@@ -16,6 +16,7 @@ import {
   searchSpans,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
+import { getTemplateDXInstance } from "@agentmark-ai/prompt-core";
 
 function safePath(): string {
   try {
@@ -385,29 +386,36 @@ ${promptsList}
         return fs.createReadStream(fullPath).pipe(res);
       }
       // Prompt: parse and return AST (no datasetUrl coupling)
-      const { parse } = await import("@agentmark-ai/templatedx");
       const fileContent = fs.readFileSync(fullPath, "utf-8");
-      const data = await parse(
-        fileContent,
-        path.dirname(fullPath),
-        async (p) => {
-          const resolved = path.isAbsolute(p)
-            ? p
-            : path.join(path.dirname(fullPath), p);
-          // Validate that the resolved path is within the base directory
-          const resolvedImportPath = path.resolve(resolved);
-          const resolvedBase = path.resolve(agentmarkTemplatesBase);
-          if (
-            !resolvedImportPath.startsWith(resolvedBase + path.sep) &&
-            resolvedImportPath !== resolvedBase
-          ) {
-            throw new Error(
-              "Access denied: import path outside allowed directory"
-            );
-          }
-          return fs.readFileSync(resolvedImportPath, "utf-8");
+
+      // Get the appropriate TemplateDX instance based on promptKind
+      const promptKind = req.query.promptKind as string | undefined;
+      const templateType = promptKind === 'image' ? 'image'
+        : promptKind === 'speech' ? 'speech'
+        : 'language'; // 'text' and 'object' both use language
+      const templateDX = getTemplateDXInstance(templateType);
+
+      // Create content loader for resolving imports
+      const contentLoader = async (p: string) => {
+        const resolved = path.isAbsolute(p)
+          ? p
+          : path.join(path.dirname(fullPath), p);
+        // Validate that the resolved path is within the base directory
+        const resolvedImportPath = path.resolve(resolved);
+        const resolvedBase = path.resolve(agentmarkTemplatesBase);
+        if (
+          !resolvedImportPath.startsWith(resolvedBase + path.sep) &&
+          resolvedImportPath !== resolvedBase
+        ) {
+          throw new Error(
+            "Access denied: import path outside allowed directory"
+          );
         }
-      );
+        return fs.readFileSync(resolvedImportPath, "utf-8");
+      };
+
+      // Parse using the TemplateDX instance (which has System/User/Assistant tags registered)
+      const data = await templateDX.parse(fileContent, path.dirname(fullPath), contentLoader);
       return res.json({ data });
     } catch (_error) {
       return res.status(404).json({ error: "File not found or invalid" });

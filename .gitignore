@@ -12,6 +12,10 @@ storybook-static
 tmp-dev*/
 .claude
 
+# Nx
+.nx/cache/
+.nx/workspace-data/
+
 # Python
 __pycache__/
 *.py[cod]

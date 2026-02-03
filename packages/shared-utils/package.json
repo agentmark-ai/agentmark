@@ -2,15 +2,15 @@
   "name": "@agentmark-ai/shared-utils",
   "main": "./dist/index.js",
   "types": "./dist/index.ts",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "scripts": {
     "build": "tsup",
     "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
-    "front-matter": "^4.0.2",
     "fs-extra": "^11.2.0",
+    "js-yaml": "^4.1.0",
     "json-schema-to-typescript": "^15.0.4",
     "yaml": "^2.7.0"
   },

@@ -19,9 +19,10 @@ function determinePromptKind(frontmatter: any): "text" | "object" | "image" | "s
 
 /**
  * Detect prompt type from raw file content by scanning frontmatter.
+ * Uses \r?\n to handle both Unix (LF) and Windows (CRLF) line endings.
  */
 function detectPromptTypeFromContent(content: string): "language" | "image" | "speech" {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!frontmatterMatch) {
     return "language";
   }
@@ -87,17 +88,27 @@ export async function setupFixtures(fixturesDir: string): Promise<void> {
 
 /**
  * Clean up generated JSON fixtures in a given fixtures directory.
+ * Uses retry logic to handle Windows file locking issues.
  */
 export function cleanupFixtures(fixturesDir: string): void {
   const files = fs.readdirSync(fixturesDir);
+  const maxRetries = 3;
 
   for (const file of files) {
     if (file.endsWith(".prompt.json")) {
       const jsonPath = path.join(fixturesDir, file);
-      try {
-        fs.unlinkSync(jsonPath);
-      } catch {
-        // Ignore errors
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          fs.unlinkSync(jsonPath);
+          break;
+        } catch {
+          // Retry on Windows file locking issues
+          if (i < maxRetries - 1) {
+            // Small sync delay using busy-wait (since this is sync function)
+            const start = Date.now();
+            while (Date.now() - start < 50) { /* wait */ }
+          }
+        }
       }
     }
   }

@@ -1,5 +1,8 @@
 name: CI/CD
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -7,22 +10,67 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  security-audit:
     runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run security audit
+        run: |
+          echo "## Security Audit Results" >> $GITHUB_STEP_SUMMARY
+          if yarn npm audit --all --recursive 2>&1 | tee audit-output.txt; then
+            echo "✅ No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Vulnerabilities Detected" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat audit-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+
+            # Fail on critical or high severity vulnerabilities
+            if grep -qE "Severity: (critical|high)" audit-output.txt; then
+              echo "❌ Critical or high severity vulnerabilities found - failing build" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "⚠️ Only moderate/low severity vulnerabilities found - allowing build to continue" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Enable Corepack
         run: corepack enable
- 
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 21
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Install
         run: yarn install
@@ -33,25 +81,16 @@ jobs:
       - name: Test (Unit)
         run: yarn test
 
+      # Integration tests run on both Ubuntu and Windows
       - name: Start API Server for Integration Tests
-        run: |
-          node -e "require('./packages/cli/dist/api-server.js').createApiServer(9419).then(() => console.log('API server started'))" &
-          # Wait for server to be ready (fail fast if it doesn't start)
-          for i in {1..30}; do
-            if curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
-              echo "API server is ready"
-              break
-            fi
-            echo "Waiting for API server... ($i/30)"
-            sleep 1
-          done
-          if ! curl -s http://localhost:9419/v1/traces > /dev/null 2>&1; then
-            echo "ERROR: API server failed to start within 30 seconds"
-            exit 1
-          fi
+        run: node scripts/start-test-server.js 9419
 
       - name: Seed Integration Test Data
-        run: ./packages/mcp-server/scripts/seed-test-data.sh 9419
+        run: node scripts/seed-test-data.js 9419
 
       - name: Test (Integration)
-        run: cd packages/mcp-server && yarn test:integration
+        run: yarn workspace @agentmark-ai/mcp-server test:integration
+
+      - name: Check version plans
+        if: github.event_name == 'pull_request'
+        run: yarn release:plan:check

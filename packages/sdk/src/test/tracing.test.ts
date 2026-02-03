@@ -46,7 +46,8 @@ describe("OTLP Exporter", () => {
       await provider.forceFlush();
     }
     // Give more time for the HTTP request to complete
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Windows CI can be significantly slower for network operations
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
   function findSpanByName(spanName: string): {
@@ -109,9 +110,11 @@ describe("OTLP Exporter", () => {
     });
 
     await new Promise<void>((resolve) => {
-      server.listen(0, () => {
+      // Use 127.0.0.1 explicitly to avoid IPv4/IPv6 mismatch on Windows
+      // (localhost can resolve to ::1 on Windows while server binds to 127.0.0.1)
+      server.listen(0, "127.0.0.1", () => {
         const address = server.address() as AddressInfo;
-        serverUrl = `http://localhost:${address.port}`;
+        serverUrl = `http://127.0.0.1:${address.port}`;
         sdk = new AgentMarkSDK({
           apiKey: "test-api-key",
           appId: "test-app-id",
@@ -137,9 +140,12 @@ describe("OTLP Exporter", () => {
     }
   });
 
-  it("should test all OTLP exporter functionality including utility functions and context parameters", { timeout: 30000 }, async () => {
+  it("should test all OTLP exporter functionality including utility functions and context parameters", { timeout: 120000 }, async () => {
     // Initialize tracing once for the entire test
     activeSdk = sdk.initTracing({ disableBatch: true });
+
+    // Allow time for SDK to fully initialize (needed on Windows CI)
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // ===== Test 1: Basic span creation and OTLP payload structure =====
     const { result: result1, traceId: traceId1 } = await trace({ name: "test-span" }, async (_ctx) => {

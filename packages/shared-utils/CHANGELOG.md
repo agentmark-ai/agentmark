@@ -1,4 +1,16 @@
+## 0.3.0 (2026-01-21)
+
+### 🚀 Features
+
+- Fix: security issues ([#449](https://github.com/agentmark-ai/agentmark/pull/449))
+
 # Changelog
+
+## 0.2.0
+
+### Minor Changes
+
+- 97abbdd: Add claude agent sdk adapter
 
 ## 0.1.1
 
