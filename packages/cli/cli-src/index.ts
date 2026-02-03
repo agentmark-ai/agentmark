@@ -13,6 +13,10 @@ import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
 import build from './commands/build';
+import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
+
+// Start async update check early (non-blocking)
+const updateCheckPromise = startUpdateCheck();
 
 // Read version from package.json
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
@@ -114,4 +118,13 @@ program
     }
   });
 
-program.parse(process.argv);
+// Parse and run command, then display update notification
+// Using parseAsync ensures notification displays after command completes
+program.parseAsync(process.argv).then(async () => {
+  try {
+    const result = await updateCheckPromise;
+    displayUpdateNotification(result);
+  } catch {
+    // Silent failure - never interrupt CLI due to update check
+  }
+});
