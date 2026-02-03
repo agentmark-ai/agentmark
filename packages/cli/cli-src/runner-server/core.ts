@@ -7,6 +7,104 @@
 import type { WebhookHandler, WebhookRequest, WebhookResponse } from './types';
 
 /**
+ * Get the API server URL for posting scores
+ */
+function getApiServerUrl(): string {
+  const port = process.env.AGENTMARK_API_PORT || '9418';
+  return `http://localhost:${port}`;
+}
+
+/**
+ * Post a single eval result as a score to the API server
+ */
+async function postScore(traceId: string, evalResult: { name: string; score?: number; label?: string; reason?: string; passed?: boolean }): Promise<void> {
+  const apiUrl = getApiServerUrl();
+
+  // Derive label from passed if not explicitly provided
+  const label = evalResult.label ?? (evalResult.passed !== undefined
+    ? (evalResult.passed ? 'PASS' : 'FAIL')
+    : 'N/A');
+
+  // Derive score from passed if not explicitly provided
+  const score = evalResult.score ?? (evalResult.passed !== undefined
+    ? (evalResult.passed ? 1 : 0)
+    : 0);
+
+  try {
+    await fetch(`${apiUrl}/v1/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resourceId: traceId,
+        score,
+        label,
+        reason: evalResult.reason || '',
+        name: evalResult.name,
+        type: 'experiment',
+      }),
+    });
+  } catch {
+    // Silently fail - score persistence is best-effort
+  }
+}
+
+/**
+ * Wraps a dataset stream to intercept eval results and post them as scores
+ */
+function wrapStreamWithScorePosting(originalStream: ReadableStream<any>): ReadableStream<any> {
+  const reader = originalStream.getReader();
+
+  return new ReadableStream({
+    async start(controller) {
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // Pass through the chunk
+          controller.enqueue(value);
+
+          // Also parse the chunk to extract eval results
+          const chunk = typeof value === 'string' ? value : decoder.decode(value, { stream: true });
+          buffer += chunk;
+
+          // Process complete lines
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+
+            if (!line.trim()) continue;
+
+            try {
+              const event = JSON.parse(line);
+
+              // Check if this is a dataset event with evals and a traceId
+              if (event.type === 'dataset' && event.traceId && event.result?.evals?.length > 0) {
+                // Post each eval result as a score (fire and forget)
+                for (const evalResult of event.result.evals) {
+                  postScore(event.traceId, evalResult);
+                }
+              }
+            } catch {
+              // Ignore JSON parse errors
+            }
+          }
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      } finally {
+        reader.releaseLock();
+      }
+    },
+  });
+}
+
+/**
  * Handles a webhook request and returns a platform-agnostic response.
  * This is the core business logic that all platform adapters use.
  *
@@ -152,9 +250,11 @@ export async function handleWebhookRequest(
       // Dataset runs always return streams
       if (response?.stream) {
         console.log('   ✓ Experiment started successfully (streaming)');
+        // Wrap the stream to intercept eval results and post them as scores
+        const wrappedStream = wrapStreamWithScorePosting(response.stream);
         return {
           type: 'stream',
-          stream: response.stream,
+          stream: wrappedStream,
           headers: response.streamHeaders || { 'AgentMark-Streaming': 'true' }
         };
       }

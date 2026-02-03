@@ -73,13 +73,6 @@ export const setupPackageJson = (
 
     pkgJson.scripts = scripts;
 
-    // Add overrides to fix vulnerabilities in transitive dependencies
-    // localtunnel (used by @agentmark-ai/cli) depends on axios@0.21.4 which has vulnerabilities
-    pkgJson.overrides = {
-      ...pkgJson.overrides,
-      "axios": "^1.7.9"
-    };
-
     fs.writeJsonSync(packageJsonPath, pkgJson, { spaces: 2 });
   }
 };
