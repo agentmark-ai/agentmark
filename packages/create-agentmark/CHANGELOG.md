@@ -1,3 +1,9 @@
+## 0.8.0 (2026-02-04)
+
+### 🚀 Features
+
+- Use cloudflared instead of local tunnel ([#459](https://github.com/agentmark-ai/agentmark/pull/459))
+
 # Changelog
 
 ## 0.7.0
