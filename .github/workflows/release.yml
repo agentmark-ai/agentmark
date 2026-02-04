@@ -125,6 +125,10 @@ jobs:
         if: steps.check-plans.outputs.has_plans == 'true' && steps.check-pr.outputs.existing_pr == 'false'
         run: |
           BRANCH_NAME="${{ steps.check-pr.outputs.branch_name }}"
+
+          # Delete remote branch if it exists (orphaned from a previously closed PR)
+          git push origin --delete $BRANCH_NAME 2>/dev/null || true
+
           git checkout -b $BRANCH_NAME
 
           npx nx release --skip-publish
