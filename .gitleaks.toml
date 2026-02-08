@@ -1,7 +1,7 @@
 [extend]
 useDefault = true
 
-[[allowlists]]
+[allowlist]
 description = "Build artifacts and vendored files (not real secrets)"
 paths = [
   '''\.yarn/releases/''',
