@@ -1,6 +1,6 @@
 # agentmark Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-12-11
+Auto-generated from all feature plans. Last updated: 2026-02-07
 
 ## Active Technologies
 - SQLite via better-sqlite3 (spans in `Metadata` JSON column) (001-auto-graph-nodes)
