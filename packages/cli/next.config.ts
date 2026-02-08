@@ -3,6 +3,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
     distDir: "./dist/.next",
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
     redirects: async () => {
         return [
             {

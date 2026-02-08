@@ -27,14 +27,15 @@ export const client = new AgentMark({ prompt: {}, adapter });
 `;
 }
 
-const DEV_ENTRY_TEMPLATE = `// Development webhook server entry point
+function getDevEntryTemplate(clientImportPath) {
+  return `// Development webhook server entry point
 // This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v4-adapter/runner';
 
 async function main() {
-  const { client } = await import('../agentmark.client.js');
+  const { client } = await import('\${clientImportPath}');
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--webhook-port='));
@@ -49,6 +50,7 @@ main().catch((err) => {
   process.exit(1);
 });
 `;
+}
 
 function setupTestDir(tempDir: string, useLegacyLocation = false) {
   // Create package.json for proper module resolution
@@ -69,10 +71,10 @@ function setupTestDir(tempDir: string, useLegacyLocation = false) {
     // Create .agentmark/dev-entry.ts (legacy location for backward compatibility testing)
     const agentmarkInternalDir = path.join(tempDir, '.agentmark');
     fs.mkdirSync(agentmarkInternalDir, { recursive: true});
-    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), getDevEntryTemplate('./agentmark.client.js'));
   } else {
     // Create dev-entry.ts at project root (new default location, version controlled)
-    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), getDevEntryTemplate('./agentmark.client.js'));
   }
 }
 
