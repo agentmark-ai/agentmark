@@ -312,4 +312,163 @@ describe('init', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  describe('tracing initialization by deployment mode', () => {
+    it('cloud mode generates tracing init pointing to AgentMark Cloud for ai-sdk', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('ai-sdk', 'cloud');
+
+      // Should import AgentMarkSDK
+      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+
+      // Should use env vars for credentials
+      expect(content).toContain('process.env.AGENTMARK_API_KEY');
+      expect(content).toContain('process.env.AGENTMARK_APP_ID');
+
+      // Should NOT have baseUrl (defaults to cloud)
+      expect(content).not.toContain('baseUrl:');
+
+      // Should have cloud-specific comment
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+
+      // Should call initTracing
+      expect(content).toContain('sdk.initTracing()');
+    });
+
+    it('static mode generates tracing init pointing to localhost for ai-sdk', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('ai-sdk', 'static');
+
+      // Should import AgentMarkSDK
+      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+
+      // Should have baseUrl pointing to localhost
+      expect(content).toContain('baseUrl: "http://localhost:9418"');
+
+      // Should have static-specific comment
+      expect(content).toContain('traces will be sent to local dev server');
+      expect(content).toContain('npm run dev');
+
+      // Should call initTracing
+      expect(content).toContain('sdk.initTracing()');
+    });
+
+    it('cloud mode generates tracing init for claude-agent-sdk', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('claude-agent-sdk', 'cloud');
+
+      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+      expect(content).toContain('process.env.AGENTMARK_API_KEY');
+      expect(content).not.toContain('baseUrl:');
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+    });
+
+    it('static mode generates tracing init for claude-agent-sdk', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('claude-agent-sdk', 'static');
+
+      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+      expect(content).toContain('baseUrl: "http://localhost:9418"');
+      expect(content).toContain('traces will be sent to local dev server');
+    });
+
+    it('cloud mode generates tracing init for mastra', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('mastra', 'cloud');
+
+      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+      expect(content).toContain('process.env.AGENTMARK_API_KEY');
+      expect(content).not.toContain('baseUrl:');
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+    });
+
+    it('static mode generates tracing init for mastra', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('mastra', 'static');
+
+      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+      expect(content).toContain('baseUrl: "http://localhost:9418"');
+      expect(content).toContain('traces will be sent to local dev server');
+    });
+
+    it('defaults to cloud mode when deploymentMode not specified', async () => {
+      const { getIndexFileContent } = await import('../src/utils/examples/templates');
+      const content = getIndexFileContent('ai-sdk');
+
+      // Should default to cloud behavior
+      expect(content).toContain('process.env.AGENTMARK_API_KEY');
+      expect(content).not.toContain('baseUrl:');
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+    });
+  });
+
+  describe('Python tracing initialization by deployment mode', () => {
+    it('cloud mode generates tracing init pointing to AgentMark Cloud for pydantic-ai', async () => {
+      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
+      const content = getMainPyContent('pydantic-ai', 'cloud');
+
+      // Should import AgentMarkSDK
+      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
+
+      // Should use env vars for credentials
+      expect(content).toContain('os.environ.get("AGENTMARK_API_KEY"');
+      expect(content).toContain('os.environ.get("AGENTMARK_APP_ID"');
+
+      // Should NOT have base_url (defaults to cloud)
+      expect(content).not.toContain('base_url=');
+
+      // Should have cloud-specific comment
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+
+      // Should call init_tracing
+      expect(content).toContain('sdk.init_tracing()');
+    });
+
+    it('static mode generates tracing init pointing to localhost for pydantic-ai', async () => {
+      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
+      const content = getMainPyContent('pydantic-ai', 'static');
+
+      // Should import AgentMarkSDK
+      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
+
+      // Should have base_url pointing to localhost
+      expect(content).toContain('base_url="http://localhost:9418"');
+
+      // Should have static-specific comment
+      expect(content).toContain('traces will be sent to local dev server');
+      expect(content).toContain('npm run dev');
+
+      // Should call init_tracing
+      expect(content).toContain('sdk.init_tracing()');
+    });
+
+    it('cloud mode generates tracing init for claude-agent-sdk Python', async () => {
+      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
+      const content = getMainPyContent('claude-agent-sdk', 'cloud');
+
+      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
+      expect(content).toContain('os.environ.get("AGENTMARK_API_KEY"');
+      expect(content).not.toContain('base_url=');
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+    });
+
+    it('static mode generates tracing init for claude-agent-sdk Python', async () => {
+      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
+      const content = getMainPyContent('claude-agent-sdk', 'static');
+
+      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
+      expect(content).toContain('base_url="http://localhost:9418"');
+      expect(content).toContain('traces will be sent to local dev server');
+    });
+
+    it('defaults to cloud mode when deploymentMode not specified for Python', async () => {
+      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
+      const content = getMainPyContent('pydantic-ai');
+
+      // Should default to cloud behavior
+      expect(content).toContain('os.environ.get("AGENTMARK_API_KEY"');
+      expect(content).not.toContain('base_url=');
+      expect(content).toContain('traces will be sent to AgentMark Cloud');
+    });
+  });
 });
