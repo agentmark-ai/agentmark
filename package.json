@@ -1,23 +1,19 @@
 {
   "name": "agentmark-monorepo",
   "license": "MIT",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
   "engines": {
     "node": ">=18"
   },
   "private": true,
   "scripts": {
-    "test": "turbo test",
-    "build": "turbo build",
-    "lint": "turbo lint",
     "release": "nx release publish",
     "release:version": "nx release version",
     "release:dry-run": "nx release --dry-run",
     "release:plan": "nx release plan",
-    "release:plan:check": "nx release plan:check --base=origin/main --head=HEAD"
+    "release:plan:check": "nx release plan:check --base=origin/main --head=HEAD",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint"
   },
   "packageManager": "yarn@4.5.3",
   "devDependencies": {
@@ -46,5 +42,9 @@
     "braces": "^3.0.3",
     "glob": "^10.4.5",
     "tar": "^7.5.3"
-  }
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

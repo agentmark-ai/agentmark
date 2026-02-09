@@ -3,7 +3,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
     distDir: "./dist/.next",
-    redirects: async () => {
+redirects: async () => {
         return [
             {
                 source: "/",
