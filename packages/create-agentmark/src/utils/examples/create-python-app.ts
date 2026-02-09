@@ -143,6 +143,7 @@ version = "0.1.0"
 description = "An AgentMark application using Claude Agent SDK"
 requires-python = ">=3.12"
 dependencies = [
+    "agentmark-sdk>=0.1.0",
     "agentmark-claude-agent-sdk>=0.1.0",
     "agentmark-prompt-core>=0.1.0",
     "python-dotenv>=1.0.0",
@@ -154,10 +155,6 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "mypy>=1.0",
-]
-otel = [
-    "opentelemetry-api>=1.20",
-    "opentelemetry-sdk>=1.20",
 ]
 
 [build-system]
@@ -179,6 +176,7 @@ version = "0.1.0"
 description = "An AgentMark application using Pydantic AI"
 requires-python = ">=3.12"
 dependencies = [
+    "agentmark-sdk>=0.1.0",
     "agentmark-pydantic-ai>=0.1.0",
     "agentmark-prompt-core>=0.1.0",
     "python-dotenv>=1.0.0",
@@ -309,7 +307,33 @@ __all__ = ["client"]
 `;
 };
 
-const getMainPyContent = (adapter: string): string => {
+export const getMainPyContent = (adapter: string, deploymentMode: "cloud" | "static" = "cloud"): string => {
+  const isCloud = deploymentMode === "cloud";
+
+  const cloudTracingInit = `
+# Initialize tracing - traces will be sent to AgentMark Cloud
+# To disable tracing, comment out sdk.init_tracing() below
+sdk = AgentMarkSDK(
+    api_key=os.environ.get("AGENTMARK_API_KEY", ""),
+    app_id=os.environ.get("AGENTMARK_APP_ID", ""),
+)
+sdk.init_tracing(disable_batch=True)
+`;
+
+  const staticTracingInit = `
+# Initialize tracing - traces will be sent to local dev server
+# Make sure to run "npm run dev" in another terminal first
+# To disable tracing, comment out sdk.init_tracing() below
+sdk = AgentMarkSDK(
+    api_key="",
+    app_id="",
+    base_url="http://localhost:9418",
+)
+sdk.init_tracing(disable_batch=True)
+`;
+
+  const tracingInit = isCloud ? cloudTracingInit : staticTracingInit;
+
   if (adapter === "claude-agent-sdk") {
     return `"""Example usage of AgentMark with Claude Agent SDK.
 
@@ -318,11 +342,13 @@ Run with: python main.py
 
 import asyncio
 import json
+import os
 from pathlib import Path
 
+from agentmark_sdk import AgentMarkSDK
 from agentmark_claude_agent_sdk import run_text_prompt
 from agentmark_client import client
-
+${tracingInit}
 
 async def main():
     """Run the party planner prompt."""
@@ -369,11 +395,13 @@ Run with: python main.py
 
 import asyncio
 import json
+import os
 from pathlib import Path
 
+from agentmark_sdk import AgentMarkSDK
 from agentmark_pydantic_ai_v0 import run_text_prompt
 from agentmark_client import client
-
+${tracingInit}
 
 async def main():
     """Run the party planner prompt."""
@@ -537,7 +565,7 @@ export const createPythonApp = async (
 
     // Create main.py (skip for existing projects)
     if (!isExistingProject) {
-      fs.writeFileSync(`${targetPath}/main.py`, getMainPyContent(adapter));
+      fs.writeFileSync(`${targetPath}/main.py`, getMainPyContent(adapter, deploymentMode));
     } else {
       console.log("⏭️  Skipped main.py (existing project)");
     }

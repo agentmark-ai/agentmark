@@ -230,7 +230,7 @@ export const createExampleApp = async (
     if (!isExistingProject) {
       fs.writeFileSync(
         `${targetPath}/index.ts`,
-        getIndexFileContent(adapter)
+        getIndexFileContent(adapter, deploymentMode)
       );
     } else {
       console.log("⏭️  Skipped index.ts (existing project)");

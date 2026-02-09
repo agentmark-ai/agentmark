@@ -11,6 +11,12 @@
       "outputs": [
         "dist/**"
       ]
+    },
+    "test": {
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "dependsOn": ["build"]
     }
   }
 }

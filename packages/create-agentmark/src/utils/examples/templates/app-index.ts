@@ -1,10 +1,39 @@
-export const getIndexFileContent = (adapter: string = "ai-sdk"): string => {
+export const getIndexFileContent = (adapter: string = "ai-sdk", deploymentMode: "cloud" | "static" = "cloud"): string => {
+  const isCloud = deploymentMode === "cloud";
+
+  const tracingImport = `import { AgentMarkSDK } from "@agentmark-ai/sdk";
+`;
+
+  const cloudTracingInit = `
+// Initialize tracing - traces will be sent to AgentMark Cloud
+// To disable tracing, comment out sdk.initTracing() below
+const sdk = new AgentMarkSDK({
+  apiKey: process.env.AGENTMARK_API_KEY ?? "",
+  appId: process.env.AGENTMARK_APP_ID ?? "",
+});
+sdk.initTracing({ disableBatch: true });
+`;
+
+  const staticTracingInit = `
+// Initialize tracing - traces will be sent to local dev server
+// Make sure to run "npm run dev" in another terminal first
+// To disable tracing, comment out sdk.initTracing() below
+const sdk = new AgentMarkSDK({
+  apiKey: "",
+  appId: "",
+  baseUrl: "http://localhost:9418",
+});
+sdk.initTracing({ disableBatch: true });
+`;
+
+  const tracingInit = isCloud ? cloudTracingInit : staticTracingInit;
+
   if (adapter === "claude-agent-sdk") {
     return `import "dotenv/config";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { withTracing } from "@agentmark-ai/claude-agent-sdk-adapter";
-import { client } from "./agentmark.client";
-
+${tracingImport}import { client } from "./agentmark.client";
+${tracingInit}
 const telemetry = {
   isEnabled: true,
   metadata: {
@@ -56,8 +85,8 @@ main();
   } else if (adapter === "mastra") {
     return `import "dotenv/config";
 import { Agent } from "@mastra/core/agent";
-import { client } from "./agentmark.client";
-
+${tracingImport}import { client } from "./agentmark.client";
+${tracingInit}
 const telemetry = {
   isEnabled: true,
   metadata: {
@@ -103,8 +132,8 @@ main();
   } else {
     return `import "dotenv/config";
 import { generateText } from "ai";
-import { client } from "./agentmark.client";
-
+${tracingImport}import { client } from "./agentmark.client";
+${tracingInit}
 const telemetry = {
   isEnabled: true,
   metadata: {
@@ -142,4 +171,4 @@ const main = async () => {
 main();
 `;
   }
-}; 
+};
