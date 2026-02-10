@@ -10,51 +10,46 @@ vi.mock('prompts', () => ({
   default: vi.fn()
 }));
 
-// Mock @repo/model-registry to provide test data
-vi.mock('@repo/model-registry', () => ({
-  getModelRegistry: () => ({
-    getProviderModels: () => ({
-      openai: {
-        label: "OpenAI",
-        languageModels: ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-5", "gpt-4-turbo", "gpt-3.5-turbo"],
-        imageModels: ["dall-e-3", "dall-e-2"],
-        speechModels: ["tts-1", "tts-1-hd"],
-      },
-      anthropic: {
-        label: "Anthropic",
-        languageModels: ["claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
-        imageModels: [],
-        speechModels: [],
-      },
-      ollama: {
-        label: "Ollama",
-        languageModels: ["llama3.1", "llama3.2", "mistral"],
-        imageModels: [],
-        speechModels: [],
-      },
-      xai: {
-        label: "xAI Grok",
-        languageModels: ["grok-3", "grok-3-mini"],
-        imageModels: [],
-        speechModels: [],
-      },
-      google: {
-        label: "Google",
-        languageModels: ["gemini-2.0-flash", "gemini-1.5-pro"],
-        imageModels: [],
-        speechModels: [],
-      },
-      groq: {
-        label: "Groq",
-        languageModels: ["llama-3.3-70b-versatile"],
-        imageModels: [],
-        speechModels: [],
-      },
-    }),
-    getPricingDictionary: () => ({
-      "gpt-4o": { promptPrice: 0.005, completionPrice: 0.015 },
-    }),
-  }),
+// Mock providers module with controlled test data
+vi.mock('../cli-src/utils/providers', () => ({
+  Providers: {
+    openai: {
+      label: "OpenAI",
+      languageModels: ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-5", "gpt-4-turbo", "gpt-3.5-turbo"],
+      imageModels: ["dall-e-3", "dall-e-2"],
+      speechModels: ["tts-1", "tts-1-hd"],
+    },
+    anthropic: {
+      label: "Anthropic",
+      languageModels: ["claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
+      imageModels: [],
+      speechModels: [],
+    },
+    ollama: {
+      label: "Ollama",
+      languageModels: ["llama3.1", "llama3.2", "mistral"],
+      imageModels: [],
+      speechModels: [],
+    },
+    xai: {
+      label: "xAI Grok",
+      languageModels: ["grok-3", "grok-3-mini"],
+      imageModels: [],
+      speechModels: [],
+    },
+    google: {
+      label: "Google",
+      languageModels: ["gemini-2.0-flash", "gemini-1.5-pro"],
+      imageModels: [],
+      speechModels: [],
+    },
+    groq: {
+      label: "Groq",
+      languageModels: ["llama-3.3-70b-versatile"],
+      imageModels: [],
+      speechModels: [],
+    },
+  },
 }));
 
 describe('pull-models', () => {
