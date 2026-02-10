@@ -35,6 +35,7 @@
     "@mui/material-nextjs": "^7.3.3",
     "@mui/x-data-grid": "^8.14.1",
     "@mui/x-date-pickers": "^8.14.1",
+    "@repo/model-registry": "workspace:*",
     "@types/lodash": "^4.14.202",
     "better-sqlite3": "^12.4.1",
     "cli-table3": "^0.6.5",
