@@ -10,6 +10,20 @@
 │  └─ Dependents
 │     └─ [38;5;166m@mui/[39m[38;5;173mx-tree-view[39m[38;5;111m@[39m[38;5;111mnpm:8.18.0 [a6bda][39m
 │
+├─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m
+│  ├─ ID: [38;5;220m1113080[39m
+│  ├─ Issue: @modelcontextprotocol/sdk has cross-client data leak via shared server/transport instance reuse
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-345p-7cg4-v4c7[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=1.10.0 <=1.25.3[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.25.2[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@agentmark-ai/[39m[38;5;173mmcp-server[39m[38;5;111m@[39m[38;5;111mworkspace:packages/mcp-server[39m
+│     └─ [38;5;166m@mastra/[39m[38;5;173mmcp[39m[38;5;111m@[39m[38;5;111mnpm:0.13.5 [e812c][39m
+│
 ├─ [38;5;173mai[39m
 │  ├─ ID: [38;5;220m1111095[39m
 │  ├─ Issue: Vercel’s AI SDK's filetype whitelists can be bypassed when uploading files
@@ -23,6 +37,19 @@
 │  └─ Dependents
 │     ├─ [38;5;166m@agentmark-ai/[39m[38;5;173mai-sdk-v4-adapter[39m[38;5;111m@[39m[38;5;111mworkspace:packages/ai-sdk-v4-adapter[39m
 │     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
+│
+├─ [38;5;173maxios[39m
+│  ├─ ID: [38;5;220m1113089[39m
+│  ├─ Issue: Axios is Vulnerable to Denial of Service via __proto__ Key in mergeConfig
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-43fc-jf86-j433[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<=1.13.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.13.2[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mnx[39m[38;5;111m@[39m[38;5;111mnpm:20.8.4 [f9974][39m
 │
 ├─ [38;5;173mglob[39m
 │  ├─ ID: [38;5;111mglob (deprecation)[39m
@@ -40,19 +67,6 @@
 │  ├─ ID: [38;5;220m1112644[39m
 │  ├─ Issue: Hono vulnerable to XSS through ErrorBoundary component
 │  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9r54-q6cx-xmh5[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.11.7[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.11.4[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1112676[39m
-│  ├─ Issue: Hono has an Arbitrary Key Read in Serve static Middleware (Cloudflare Workers Adapter)
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-w332-q679-j88p[39m
 │  ├─ Severity: moderate
 │  ├─ Vulnerable Versions: [38;5;37m<4.11.7[39m
 │  │ 
@@ -88,6 +102,19 @@
 │  └─ Dependents
 │     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
 │
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1112911[39m
+│  ├─ Issue: Hono has an Arbitrary Key Read in Serve static Middleware (Cloudflare Workers Adapter)
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-w332-q679-j88p[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<4.11.7[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.11.4[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
+│
 ├─ [38;5;173mlodash[39m
 │  ├─ ID: [38;5;220m1112455[39m
 │  ├─ Issue: Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions
@@ -107,19 +134,6 @@
 │  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9g9p-9gw9-jx7f[39m
 │  ├─ Severity: moderate
 │  ├─ Vulnerable Versions: [38;5;37m>=10.0.0 <15.5.10[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m15.5.9[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
-│
-├─ [38;5;173mnext[39m
-│  ├─ ID: [38;5;220m1112638[39m
-│  ├─ Issue: Next.js has Unbounded Memory Consumption via PPR Resume Endpoint
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-5f7q-jpqc-wp7h[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m>=15.0.0-canary.0 <15.6.0-canary.61[39m
 │  │ 
 │  ├─ Tree Versions
 │  │  └─ [38;5;111m15.5.9[39m
