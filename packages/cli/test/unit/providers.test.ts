@@ -72,4 +72,28 @@ describe("Providers", () => {
       expect(unique.size).toBe(all.length);
     }
   });
+
+  it("excludes embedding, moderation, and rerank models", () => {
+    const allModels: string[] = [];
+    for (const provider of Object.values(Providers)) {
+      allModels.push(
+        ...provider.languageModels,
+        ...provider.imageModels,
+        ...provider.speechModels
+      );
+    }
+    // Known non-promptable models should not appear
+    const excluded = [
+      "text-moderation-latest",
+      "text-moderation-stable",
+      "omni-moderation-latest",
+      "rerank-v3.5",
+      "rerank-english-v3.0",
+      "mistral-embed",
+      "codestral-embed",
+    ];
+    for (const id of excluded) {
+      expect(allModels).not.toContain(id);
+    }
+  });
 });

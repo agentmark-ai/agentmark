@@ -27,10 +27,24 @@ describe("getModelCostMappings", () => {
     expect(gpt4o.completionPrice).toBeGreaterThan(0);
   });
 
-  it("excludes models without pricing (e.g. image models)", async () => {
+  it("returns zero pricing for models without per-token pricing", async () => {
     const prices = await getModelCostMappings();
-    // dall-e models use per-image pricing, not per-token
-    expect(prices["dall-e-3"]).toBeUndefined();
+    // dall-e models use per-image pricing — fallback to zero
+    const dalle = prices["dall-e-3"];
+    expect(dalle).toBeDefined();
+    expect(dalle!.promptPrice).toBe(0);
+    expect(dalle!.completionPrice).toBe(0);
+  });
+
+  it("returns zero pricing for free-tier models", async () => {
+    const prices = await getModelCostMappings();
+    // Free models should be present with zero cost
+    const freeModels = Object.keys(prices).filter((id) => id.includes(":free"));
+    expect(freeModels.length).toBeGreaterThan(0);
+    for (const id of freeModels) {
+      expect(prices[id]!.promptPrice).toBe(0);
+      expect(prices[id]!.completionPrice).toBe(0);
+    }
   });
 
   it("caches results on subsequent calls", async () => {

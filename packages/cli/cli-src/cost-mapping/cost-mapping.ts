@@ -30,15 +30,13 @@ export const getModelCostMappings = async (): Promise<{
     return prices;
   }
   prices = Object.fromEntries(
-    Object.entries(allModels)
-      .filter(([, m]) => m.pricing)
-      .map(([id, m]) => [
-        id,
-        {
-          promptPrice: m.pricing!.inputCostPerToken * 1000,
-          completionPrice: m.pricing!.outputCostPerToken * 1000,
-        },
-      ])
+    Object.entries(allModels).map(([id, m]) => [
+      id,
+      {
+        promptPrice: (m.pricing?.inputCostPerToken ?? 0) * 1000,
+        completionPrice: (m.pricing?.outputCostPerToken ?? 0) * 1000,
+      },
+    ])
   );
   return prices;
 };

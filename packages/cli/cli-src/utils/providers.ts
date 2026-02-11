@@ -54,9 +54,6 @@ function buildProviders(): Record<
 
     switch (entry.mode) {
       case "chat":
-      case "embedding":
-      case "moderation":
-      case "rerank":
         group.languageModels.push(id);
         break;
       case "image_generation":
@@ -64,9 +61,6 @@ function buildProviders(): Record<
         break;
       case "audio_speech":
         group.speechModels.push(id);
-        break;
-      case "audio_transcription":
-        group.languageModels.push(id);
         break;
     }
   }
