@@ -30,3 +30,7 @@ __pycache__/
 
 # AgentMark local development config (contains webhook secrets)
 .agentmark/dev-config.json
+
+# Speckit
+specs/
+.specify/

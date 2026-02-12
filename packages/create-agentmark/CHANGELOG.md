@@ -1,3 +1,9 @@
+## 0.8.1 (2026-02-09)
+
+### 🩹 Fixes
+
+- Init tracing for demo ([#469](https://github.com/agentmark-ai/agentmark/pull/469))
+
 ## 0.8.0 (2026-02-04)
 
 ### 🚀 Features
