@@ -1,23 +1,12 @@
-import * as fs from "fs";
-import * as path from "path";
-
-// Load model registry JSON directly (avoids needing compiled TS from @repo/model-registry).
-const registryDir = path.dirname(
-  require.resolve("@repo/model-registry/package.json")
-);
-const modelsData = JSON.parse(
-  fs.readFileSync(path.join(registryDir, "models.json"), "utf-8")
-);
-const overridesData = JSON.parse(
-  fs.readFileSync(path.join(registryDir, "overrides.json"), "utf-8")
-);
+import modelsData from "@agentmark-ai/model-registry/models.json";
+import overridesData from "@agentmark-ai/model-registry/overrides.json";
 
 const allModels: Record<
   string,
   { pricing?: { inputCostPerToken: number; outputCostPerToken: number } }
 > = {
-  ...modelsData.models,
-  ...overridesData.models,
+  ...(modelsData as any).models,
+  ...(overridesData as any).models,
 };
 
 let prices: Record<string, { promptPrice: number; completionPrice: number }> =

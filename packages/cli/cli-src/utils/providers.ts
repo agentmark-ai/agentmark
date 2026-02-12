@@ -1,24 +1,10 @@
-import * as fs from "fs";
-import * as path from "path";
-
-// Load model registry JSON directly (avoids needing compiled TS from @repo/model-registry).
-const registryDir = path.dirname(
-  require.resolve("@repo/model-registry/package.json")
-);
-const modelsData = JSON.parse(
-  fs.readFileSync(path.join(registryDir, "models.json"), "utf-8")
-);
-const overridesData = JSON.parse(
-  fs.readFileSync(path.join(registryDir, "overrides.json"), "utf-8")
-);
-
-const PROVIDER_LABELS: Record<string, string> = JSON.parse(
-  fs.readFileSync(path.join(registryDir, "provider-labels.json"), "utf-8")
-);
+import modelsData from "@agentmark-ai/model-registry/models.json";
+import overridesData from "@agentmark-ai/model-registry/overrides.json";
+import PROVIDER_LABELS from "@agentmark-ai/model-registry/provider-labels.json";
 
 const allModels: Record<string, { provider: string; mode: string }> = {
-  ...modelsData.models,
-  ...overridesData.models,
+  ...(modelsData as any).models,
+  ...(overridesData as any).models,
 };
 
 function buildProviders(): Record<
@@ -43,7 +29,7 @@ function buildProviders(): Record<
   for (const [id, entry] of Object.entries(allModels)) {
     if (!result[entry.provider]) {
       result[entry.provider] = {
-        label: PROVIDER_LABELS[entry.provider] ?? entry.provider,
+        label: (PROVIDER_LABELS as Record<string, string>)[entry.provider] ?? entry.provider,
         languageModels: [],
         imageModels: [],
         speechModels: [],

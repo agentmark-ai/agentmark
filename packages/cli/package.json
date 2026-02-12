@@ -24,6 +24,7 @@
     "agentmark": "dist/index.js"
   },
   "dependencies": {
+    "@agentmark-ai/model-registry": "workspace:*",
     "@agentmark-ai/prompt-core": "0.1.1",
     "@agentmark-ai/shared-utils": "0.3.0",
     "@agentmark-ai/templatedx": "0.2.0",
@@ -35,7 +36,6 @@
     "@mui/material-nextjs": "^7.3.3",
     "@mui/x-data-grid": "^8.14.1",
     "@mui/x-date-pickers": "^8.14.1",
-    "@repo/model-registry": "workspace:*",
     "@types/lodash": "^4.14.202",
     "better-sqlite3": "^12.4.1",
     "cli-table3": "^0.6.5",
