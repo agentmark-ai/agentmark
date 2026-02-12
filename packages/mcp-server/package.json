@@ -3,10 +3,10 @@
   "version": "0.2.0",
   "description": "MCP server for AgentMark trace debugging",
   "type": "module",
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
-    "agentmark-mcp": "./dist/bin.mjs"
+    "agentmark-mcp": "./dist/bin.js"
   },
   "scripts": {
     "build": "tsup --config tsup.index.config.ts && tsup --config tsup.bin.config.ts",
