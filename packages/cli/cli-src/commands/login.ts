@@ -3,19 +3,18 @@
  * Feature: 013-trace-tunnel
  *
  * Implements `agentmark login` - authenticates the CLI with the platform using
- * browser-based PKCE OAuth flow.
+ * browser-based OAuth with localhost token relay.
  *
- * Per cli-commands.md contract:
+ * Flow:
  * - Check existing auth (skip if valid)
  * - Start callback server on random port
- * - Generate PKCE challenge
  * - Open browser to platform /auth/cli
- * - Wait for callback with auth code
- * - Exchange code for Supabase tokens
+ * - Platform handles OAuth (Google/GitHub) via Supabase
+ * - Platform redirects to localhost callback with session tokens
  * - Save credentials to ~/.agentmark/auth.json
  */
 
-import { generatePKCE, generateState } from '../auth/pkce';
+import { generateState } from '../auth/pkce';
 import { startCallbackServer } from '../auth/callback-server';
 import {
   loadCredentials,
@@ -69,19 +68,14 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
   }
 
   try {
-    // Step 2: Start callback server
-    const { port, waitForCallback, close } = await startCallbackServer(
-      generateState()
-    );
-
-    // Step 3: Generate PKCE challenge
-    const { challenge, verifier } = generatePKCE();
+    // Step 2: Generate state for CSRF protection
     const state = generateState();
+
+    // Step 3: Start callback server
+    const { port, waitForCallback, close } = await startCallbackServer(state);
 
     // Step 4: Build auth URL
     const authUrl = new URL(`${platformUrl}/auth/cli`);
-    authUrl.searchParams.set('code_challenge', challenge);
-    authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('redirect_port', port.toString());
     authUrl.searchParams.set('state', state);
 
@@ -96,44 +90,16 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
       console.log(`\nVisit this URL manually:\n${authUrl.toString()}\n`);
     }
 
-    // Step 6: Wait for callback (with 30s timeout)
-    const { code } = await waitForCallback();
+    // Step 6: Wait for callback with session tokens (30s timeout)
+    const result = await waitForCallback();
 
-    // Step 7: Exchange code for session tokens
-    const tokenUrl = `${supabaseUrl}/auth/v1/token?grant_type=pkce`;
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        apikey: supabaseAnonKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        auth_code: code,
-        code_verifier: verifier,
-      }),
-    });
-
-    if (!response.ok) {
-      close();
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to exchange auth code: ${response.status} ${errorText}`
-      );
-    }
-
-    const data = await response.json();
-
-    // Step 8: Save credentials
-    const expiresAt = new Date(
-      Date.now() + data.expires_in * 1000
-    ).toISOString();
-
+    // Step 7: Save credentials
     const credentials: CliAuthCredentials = {
-      user_id: data.user.id,
-      email: data.user.email,
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_at: expiresAt,
+      user_id: result.user_id,
+      email: result.email,
+      access_token: result.access_token,
+      refresh_token: result.refresh_token,
+      expires_at: result.expires_at,
       created_at: new Date().toISOString(),
     };
 

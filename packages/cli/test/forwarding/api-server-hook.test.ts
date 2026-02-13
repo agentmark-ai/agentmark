@@ -72,9 +72,8 @@ describe('API server forwarding hook', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Find available port and start server
-    const app = (await createApiServer(0)) as any;
-    server = app.listen();
+    // createApiServer already calls listen() and returns the server
+    server = (await createApiServer(0)) as Server;
     const address = server.address();
     const port = typeof address === 'object' && address ? address.port : 9418;
     baseUrl = `http://localhost:${port}`;
@@ -85,6 +84,7 @@ describe('API server forwarding hook', () => {
       await new Promise<void>((resolve) => {
         server.close(() => resolve());
       });
+      server = null as any;
     }
     setForwarder(null);
   });

@@ -46,10 +46,14 @@ export function startCallbackServer(expectedState: string): Promise<{
         return;
       }
 
-      const code = parsed.searchParams.get("code");
+      const access_token = parsed.searchParams.get("access_token");
+      const refresh_token = parsed.searchParams.get("refresh_token");
+      const user_id = parsed.searchParams.get("user_id");
+      const email = parsed.searchParams.get("email");
+      const expires_at = parsed.searchParams.get("expires_at");
       const state = parsed.searchParams.get("state");
 
-      if (!code || !state || state !== expectedState) {
+      if (!access_token || !refresh_token || !user_id || !email || !expires_at || !state || state !== expectedState) {
         res.writeHead(400, { "Content-Type": "text/html" });
         res.end(ERROR_HTML);
         return;
@@ -63,7 +67,7 @@ export function startCallbackServer(expectedState: string): Promise<{
         clearTimeout(timeoutId);
         timeoutId = null;
       }
-      callbackResolve?.({ code, state });
+      callbackResolve?.({ access_token, refresh_token, user_id, email, expires_at, state });
       closeServer();
     });
 

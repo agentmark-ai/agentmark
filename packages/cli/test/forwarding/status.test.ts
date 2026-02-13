@@ -39,7 +39,6 @@ describe('ForwardingStatusReporter', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
     consoleMock.log.mockClear();
     consoleMock.warn.mockClear();
     consoleMock.error.mockClear();
@@ -47,10 +46,17 @@ describe('ForwardingStatusReporter', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.useRealTimers();
   });
 
   describe('first send message', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should print message when first trace is sent', async () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -110,6 +116,7 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('10th send count', () => {
+    // These tests use real timers because they involve multiple async operations
     it('should print count every 10th trace sent', async () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -124,8 +131,9 @@ describe('ForwardingStatusReporter', () => {
         forwarder.enqueue({ id: i });
       }
 
-      // Wait longer to ensure all traces are processed
-      await vi.advanceTimersByTimeAsync(10000);
+      // Wait for processing and reporting (need enough time for both processing AND polling)
+      // Reporter polls every 1000ms, so we need at least 1 full poll cycle after processing
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Should print at 10th trace
       expect(consoleMock.log).toHaveBeenCalledWith(
@@ -155,7 +163,8 @@ describe('ForwardingStatusReporter', () => {
         forwarder.enqueue({ id: i });
       }
 
-      await vi.advanceTimersByTimeAsync(10000);
+      // Wait for processing and reporting
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ 10 traces sent'
@@ -182,7 +191,8 @@ describe('ForwardingStatusReporter', () => {
         forwarder.enqueue({ id: i });
       }
 
-      await vi.advanceTimersByTimeAsync(5000);
+      // Wait for processing and reporting
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Should only print first send message, not count
       expect(consoleMock.log).toHaveBeenCalledTimes(1);
@@ -193,6 +203,14 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('prefix format', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should prefix all messages with [trace-forward]', async () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -231,6 +249,14 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('polling interval', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should poll every second to check for changes', async () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -271,7 +297,8 @@ describe('ForwardingStatusReporter', () => {
         forwarder.enqueue({ id: i });
       }
 
-      await vi.advanceTimersByTimeAsync(1000);
+      // Advance time to process first batch
+      await vi.advanceTimersByTimeAsync(2000);
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ First trace sent successfully'
       );
@@ -283,7 +310,8 @@ describe('ForwardingStatusReporter', () => {
         forwarder.enqueue({ id: i });
       }
 
-      await vi.advanceTimersByTimeAsync(1000);
+      // Advance time to process second batch
+      await vi.advanceTimersByTimeAsync(2000);
 
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ 10 traces sent'
@@ -292,6 +320,14 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('multiple reporters', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should allow multiple reporters for same forwarder', async () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,
@@ -315,6 +351,14 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('reporter lifecycle', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should start monitoring on construction', () => {
       const forwarder = new TraceForwarder(mockConfig);
       new ForwardingStatusReporter(forwarder);
@@ -337,6 +381,14 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('stats tracking', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should not report same count twice', async () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,

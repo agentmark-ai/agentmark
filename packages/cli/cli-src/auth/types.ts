@@ -20,6 +20,10 @@ export interface PKCEPair {
 
 /** Callback result from localhost OAuth server */
 export interface CallbackResult {
-  code: string;
+  access_token: string;
+  refresh_token: string;
+  user_id: string;
+  email: string;
+  expires_at: string;
   state: string;
 }
