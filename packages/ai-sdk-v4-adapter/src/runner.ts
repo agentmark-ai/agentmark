@@ -16,6 +16,16 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
+function extractErrorMessage(error: unknown): string {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (typeof error === "object") {
+    const e = error as Record<string, any>;
+    return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
+  }
+  return String(error);
+}
+
 export class VercelAdapterWebhookHandler {
   constructor(private readonly client: AgentMark<any, VercelAIAdapter<any, any>>) {}
 
@@ -119,14 +129,47 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
-        return generateImage(input);
+      const promptName = frontmatter.name || 'prompt-run';
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          try {
+            const { result, traceId: resultTraceId } = await trace({ name: promptName }, async (_ctx) => {
+              return generateImage(input);
+            });
+            const imageResult = await result;
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  type: "image",
+                  result: imageResult.images.map((i: any) => ({
+                    mimeType: i.mimeType || i.mediaType,
+                    base64: i.base64,
+                  })),
+                }) + "\n"
+              )
+            );
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({ type: "done", traceId: resultTraceId }) + "\n"
+              )
+            );
+          } catch (error) {
+            const message = extractErrorMessage(error);
+            console.error("[WebhookHandler] Error during image generation:", message);
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({ type: "error", error: message }) + "\n"
+              )
+            );
+          }
+          controller.close();
+        },
       });
-      const imageResult = await result;
       return {
-        type: "image",
-        result: imageResult.images.map((i: any) => ({ mimeType: i.mimeType, base64: i.base64 })),
-        traceId
+        type: "stream",
+        stream,
+        streamHeader: { "AgentMark-Streaming": "true" },
       } as WebhookPromptResponse;
     }
 
@@ -135,14 +178,48 @@ export class VercelAdapterWebhookHandler {
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
-        return generateSpeech(input);
+      const promptName = frontmatter.name || 'prompt-run';
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          try {
+            const { result, traceId: resultTraceId } = await trace({ name: promptName }, async (_ctx) => {
+              return generateSpeech(input);
+            });
+            const speechResult = await result;
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  type: "speech",
+                  result: {
+                    mimeType: (speechResult.audio as any).mimeType || (speechResult.audio as any).mediaType,
+                    base64: speechResult.audio.base64,
+                    format: speechResult.audio.format,
+                  },
+                }) + "\n"
+              )
+            );
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({ type: "done", traceId: resultTraceId }) + "\n"
+              )
+            );
+          } catch (error) {
+            const message = extractErrorMessage(error);
+            console.error("[WebhookHandler] Error during speech generation:", message);
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({ type: "error", error: message }) + "\n"
+              )
+            );
+          }
+          controller.close();
+        },
       });
-      const speechResult = await result;
       return {
-        type: "speech",
-        result: { mimeType: speechResult.audio.mimeType, base64: speechResult.audio.base64, format: speechResult.audio.format },
-        traceId
+        type: "stream",
+        stream,
+        streamHeader: { "AgentMark-Streaming": "true" },
       } as WebhookPromptResponse;
     }
 

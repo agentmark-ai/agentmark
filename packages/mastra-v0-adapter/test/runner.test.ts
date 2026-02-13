@@ -62,6 +62,21 @@ vi.mock("@mastra/core/agent", () => {
   };
 });
 
+async function drainStream(stream: ReadableStream): Promise<any[]> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  const chunks: any[] = [];
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const text = typeof value === "string" ? value : decoder.decode(value);
+    for (const line of text.split("\n")) {
+      if (line.trim()) chunks.push(JSON.parse(line));
+    }
+  }
+  return chunks;
+}
+
 describe("MastraAdapterWebhookHandler", () => {
   let runner: MastraAdapterWebhookHandler;
   let client: MastraAgentMark<any, any, MastraAdapter<any, any>>;
@@ -245,7 +260,7 @@ describe("MastraAdapterWebhookHandler", () => {
     expect(row.result.tokens).toBe(15);
   });
 
-  it("throws error for image config", async () => {
+  it("should return streaming error response when image config is provided", async () => {
     // Create a proper AST that getFrontMatter can parse
     const ast = {
       type: "root",
@@ -262,12 +277,20 @@ describe("MastraAdapterWebhookHandler", () => {
       },
     } as any as Ast;
 
-    await expect(runner.runPrompt(ast)).rejects.toThrow(
-      "Image generation not implemented"
+    const res = await runner.runPrompt(ast);
+    expect(res.type).toBe("stream");
+    expect((res as any).streamHeader).toEqual({ "AgentMark-Streaming": "true" });
+    expect((res as any).traceId).toBe("");
+
+    const chunks = await drainStream((res as any).stream);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].type).toBe("error");
+    expect(chunks[0].error).toBe(
+      "Image generation is not implemented for Mastra adapter. Use the Vercel AI SDK adapter."
     );
   });
 
-  it("throws error for speech config", async () => {
+  it("should return streaming error response when speech config is provided", async () => {
     const ast = {
       type: "root",
       children: [
@@ -283,8 +306,16 @@ describe("MastraAdapterWebhookHandler", () => {
       },
     } as any as Ast;
 
-    await expect(runner.runPrompt(ast)).rejects.toThrow(
-      "Speech generation not implemented"
+    const res = await runner.runPrompt(ast);
+    expect(res.type).toBe("stream");
+    expect((res as any).streamHeader).toEqual({ "AgentMark-Streaming": "true" });
+    expect((res as any).traceId).toBe("");
+
+    const chunks = await drainStream((res as any).stream);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].type).toBe("error");
+    expect(chunks[0].error).toBe(
+      "Speech generation is not implemented for Mastra adapter. Use the Vercel AI SDK adapter."
     );
   });
 

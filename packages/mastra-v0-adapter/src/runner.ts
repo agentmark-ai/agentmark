@@ -283,12 +283,28 @@ export class MastraAdapterWebhookHandler {
       } as WebhookPromptResponse;
     }
 
-    if (frontmatter.image_config) {
-      throw new Error("Image generation not implemented for Mastra adapter");
-    }
-
-    if (frontmatter.speech_config) {
-      throw new Error("Speech generation not implemented for Mastra adapter");
+    if (frontmatter.image_config || frontmatter.speech_config) {
+      const errorType = frontmatter.image_config ? "Image" : "Speech";
+      const stream = new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder();
+          controller.enqueue(
+            encoder.encode(
+              JSON.stringify({
+                type: "error",
+                error: `${errorType} generation is not implemented for Mastra adapter. Use the Vercel AI SDK adapter.`,
+              }) + "\n"
+            )
+          );
+          controller.close();
+        },
+      });
+      return {
+        type: "stream",
+        stream,
+        streamHeader: { "AgentMark-Streaming": "true" },
+        traceId: "",
+      } as WebhookPromptResponse;
     }
 
     throw new Error("Invalid prompt");
@@ -518,12 +534,26 @@ export class MastraAdapterWebhookHandler {
       };
     }
 
-    if (frontmatter.image_config) {
-      throw new Error("Image generation not implemented for Mastra adapter");
-    }
-
-    if (frontmatter.speech_config) {
-      throw new Error("Speech generation not implemented for Mastra adapter");
+    if (frontmatter.image_config || frontmatter.speech_config) {
+      const errorType = frontmatter.image_config ? "Image" : "Speech";
+      const stream = new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder();
+          controller.enqueue(
+            encoder.encode(
+              JSON.stringify({
+                type: "error",
+                error: `${errorType} generation is not implemented for Mastra adapter. Use the Vercel AI SDK adapter.`,
+              }) + "\n"
+            )
+          );
+          controller.close();
+        },
+      });
+      return {
+        stream,
+        streamHeaders: { "AgentMark-Streaming": "true" as const },
+      };
     }
 
     throw new Error("Invalid prompt");
