@@ -24,7 +24,6 @@ import {
 } from '../auth/credentials';
 import { refreshAccessToken } from '../auth/token-refresh';
 import { CliAuthCredentials } from '../auth/types';
-import open from 'open';
 
 // Default platform URLs
 const DEFAULT_PLATFORM_URL = 'https://app.agentmark.co';
@@ -90,6 +89,7 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
 
     // Step 5: Open browser
     try {
+      const open = (await import('open')).default;
       await open(authUrl.toString());
     } catch (error) {
       console.log(`✗ Failed to open browser automatically.`);
