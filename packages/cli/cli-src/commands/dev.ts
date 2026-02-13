@@ -14,6 +14,7 @@ import { attemptAutoLink } from "../auth/auto-link";
 import { setForwarder } from "../api-server";
 import { loadCredentials } from "../auth/credentials";
 import { DEFAULT_PLATFORM_URL } from "../auth/constants";
+import login from "./login";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -72,13 +73,32 @@ function getConfigDaysRemaining(config: LocalConfig): number {
   return Math.ceil(30 - daysSinceCreation);
 }
 
-const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; tunnel?: boolean; noForward?: boolean } = {}) => {
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; remote?: boolean; tunnel?: boolean; forward?: boolean } = {}) => {
   const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
-  const useTunnel = options.tunnel || false;
-  const noForward = options.noForward || false;
   const cwd = getSafeCwd();
+
+  // Resolve mode flags:
+  // --remote: enables tunnel + forwarding (login + link + forwarding + tunnel)
+  // --tunnel: legacy flag, enables tunnel only (no forwarding)
+  // --no-forward: disables forwarding when used with --remote
+  let useRemote = options.remote || false;
+  const legacyTunnel = options.tunnel || false;
+  let useTunnel = useRemote || legacyTunnel;
+  let useForwarding = useRemote ? (options.forward !== false) : false;
+
+  // Inline login when --remote is used
+  if (useRemote) {
+    try {
+      await login();
+    } catch {
+      console.log('⚠️  Login failed. Continuing in local-only mode.\n');
+      useRemote = false;
+      useTunnel = legacyTunnel;
+      useForwarding = false;
+    }
+  }
 
   // Load or create local config with webhook secret
   const config = loadLocalConfig();
@@ -314,7 +334,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     let forwardingAppName = '';
     let forwardingBaseUrl = '';
 
-    if (!noForward) {
+    if (useForwarding) {
       // Check if already linked
       let forwardingConfig = loadForwardingConfig();
 
@@ -400,25 +420,31 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log(`  Webhook:       http://localhost:${webhookPort}`);
     console.log(`  App:           http://localhost:${actualAppPort}`);
 
-    if (useTunnel && tunnelInfo) {
+    if (useRemote) {
+      // Consolidated remote section
+      console.log('\n  Remote:        ✓ Connected');
+      if (tunnelInfo) {
+        console.log(`    Tunnel:      ${tunnelInfo.url}`);
+      } else {
+        console.log(`    Tunnel:      ⚠️  Failed to establish`);
+      }
+      if (forwardingStatus === 'active') {
+        console.log(`    Forwarding:  ✓ Active → ${forwardingAppName} (${forwardingBaseUrl})`);
+      } else if (forwardingStatus === 'disabled') {
+        console.log(`    Forwarding:  ○ Disabled (--no-forward)`);
+      } else if (forwardingStatus === 'expired') {
+        console.log(`    Forwarding:  ⚠️  Expired (run 'agentmark link' to refresh)`);
+      } else {
+        console.log(`    Forwarding:  ⚠️  Not linked (run 'agentmark link')`);
+      }
+    } else if (legacyTunnel && tunnelInfo) {
+      // Legacy --tunnel mode
       console.log('\n  Public Webhook:');
       console.log(`    URL:    ${tunnelInfo.url}`);
       console.log(`    Secret: ${config.webhookSecret}`);
       console.log(`    Valid:  ${getConfigDaysRemaining(config)} days remaining`);
-    }
-
-    // Show trace forwarding status
-    console.log('\n  Trace Forwarding:');
-    if (forwardingStatus === 'active') {
-      console.log(`    Status: ✓ Active`);
-      console.log(`    Target: ${forwardingAppName}`);
-      console.log(`    URL:    ${forwardingBaseUrl}`);
-    } else if (forwardingStatus === 'disabled') {
-      console.log(`    Status: ○ Disabled (--no-forward)`);
-    } else if (forwardingStatus === 'expired') {
-      console.log(`    Status: ⚠️  Expired (run 'agentmark link' to refresh)`);
     } else {
-      console.log(`    Status: ○ Inactive (run 'agentmark login' to enable)`);
+      console.log('\n  Tip: Use --remote to connect to the platform');
     }
 
     console.log('\n' + '─'.repeat(70));
