@@ -1,1 +1,0 @@
-{"ast":{"children":[{"type":"yaml","value":"text_config:\n  model_name: gpt-4o"}]},"metadata":{"name":"test-prompt","kind":"text","path":"dummy.prompt.mdx","builtAt":"2026-02-13T03:56:21.049Z"}}
