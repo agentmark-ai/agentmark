@@ -4,6 +4,9 @@
   "description": "LLM model registry with provider metadata, pricing, and capabilities",
   "main": "src/index.ts",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "jest"
   },
