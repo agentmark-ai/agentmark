@@ -85,29 +85,29 @@ export class ClaudeAgentWebhookHandler {
       options?.telemetry
     );
 
-    // Check for unsupported prompt types — return streaming error for tunnel compatibility
-    if (frontmatter.image_config || frontmatter.speech_config) {
-      const errorType = frontmatter.image_config ? "image" : "speech";
-      const stream = new ReadableStream({
-        start(controller) {
-          const encoder = new TextEncoder();
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                type: "error",
-                error: `${errorType.charAt(0).toUpperCase() + errorType.slice(1)} generation is not supported by Claude Agent SDK. Use the Vercel AI SDK adapter with ${errorType === "image" ? "an image" : "a speech"} model.`,
-              }) + "\n"
-            )
-          );
-          controller.close();
-        },
-      });
+    // Check for unsupported prompt types
+    if (frontmatter.image_config) {
       return {
-        type: "stream",
-        stream,
-        streamHeader: { "AgentMark-Streaming": "true" },
+        type: "text",
+        result:
+          "Error: Image generation is not supported by Claude Agent SDK. " +
+          "Use the Vercel AI SDK adapter with an image model.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        finishReason: "error",
         traceId: "",
-      } as WebhookPromptResponse;
+      };
+    }
+
+    if (frontmatter.speech_config) {
+      return {
+        type: "text",
+        result:
+          "Error: Speech generation is not supported by Claude Agent SDK. " +
+          "Use the Vercel AI SDK adapter with a speech model.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        finishReason: "error",
+        traceId: "",
+      };
     }
 
     // Handle object prompts

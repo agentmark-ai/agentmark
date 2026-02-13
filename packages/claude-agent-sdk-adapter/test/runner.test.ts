@@ -293,15 +293,10 @@ describe("ClaudeAgentWebhookHandler", () => {
 
         const result = await handler.runPrompt(createMockAst());
 
-        expect(result.type).toBe("stream");
-        expect(result.streamHeader).toEqual({ "AgentMark-Streaming": "true" });
-
-        const chunks = await drainStream(result.stream!);
-        const parsed = chunks.map((c) => JSON.parse(c));
-        const errorChunk = parsed.find((p: any) => p.type === "error");
-
-        expect(errorChunk).toBeDefined();
-        expect(errorChunk.error).toContain("Image generation is not supported");
+        expect(result.type).toBe("text");
+        expect(result.result).toContain("Image generation is not supported");
+        expect(result.finishReason).toBe("error");
+        expect(result.usage?.totalTokens).toBe(0);
       });
 
       it("should return error for speech_config prompts", async () => {
@@ -312,15 +307,9 @@ describe("ClaudeAgentWebhookHandler", () => {
 
         const result = await handler.runPrompt(createMockAst());
 
-        expect(result.type).toBe("stream");
-        expect(result.streamHeader).toEqual({ "AgentMark-Streaming": "true" });
-
-        const chunks = await drainStream(result.stream!);
-        const parsed = chunks.map((c) => JSON.parse(c));
-        const errorChunk = parsed.find((p: any) => p.type === "error");
-
-        expect(errorChunk).toBeDefined();
-        expect(errorChunk.error).toContain("Speech generation is not supported");
+        expect(result.type).toBe("text");
+        expect(result.result).toContain("Speech generation is not supported");
+        expect(result.finishReason).toBe("error");
       });
 
       it("should throw for unrecognized config types", async () => {

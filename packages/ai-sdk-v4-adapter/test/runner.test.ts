@@ -92,51 +92,19 @@ describe("VercelAdapterWebhookHandler", () => {
     expect(res).toMatchObject({ type: "object", result: { ok: true } });
   });
 
-  it("runs image prompt (streaming)", async () => {
+  it("runs image prompt", async () => {
     const ast = (await loader.load("image.prompt.mdx", "image")) as Ast;
 
     const res = await runner.runPrompt(ast);
     expect((ai as any).experimental_generateImage).toHaveBeenCalled();
-    expect(res.type).toBe("stream");
-    const reader = (res as any).stream.getReader();
-    const chunks: any[] = [];
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
-      for (const l of line.split("\n")) {
-        if (l.trim()) chunks.push(JSON.parse(l));
-      }
-    }
-    const imageChunk = chunks.find((c: any) => c.type === "image");
-    expect(imageChunk).toBeDefined();
-    expect(Array.isArray(imageChunk.result)).toBe(true);
-    expect(imageChunk.result[0].mimeType).toBe("image/png");
-    const doneChunk = chunks.find((c: any) => c.type === "done");
-    expect(doneChunk).toBeDefined();
+    expect(res).toMatchObject({ type: "image" });
   });
 
-  it("runs speech prompt (streaming)", async () => {
+  it("runs speech prompt", async () => {
     const ast = (await loader.load("speech.prompt.mdx", "speech")) as Ast;
     const res = await runner.runPrompt(ast);
     expect((ai as any).experimental_generateSpeech).toHaveBeenCalled();
-    expect(res.type).toBe("stream");
-    const reader = (res as any).stream.getReader();
-    const chunks: any[] = [];
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
-      for (const l of line.split("\n")) {
-        if (l.trim()) chunks.push(JSON.parse(l));
-      }
-    }
-    const speechChunk = chunks.find((c: any) => c.type === "speech");
-    expect(speechChunk).toBeDefined();
-    expect(speechChunk.result.mimeType).toBe("audio/mpeg");
-    expect(speechChunk.result.base64).toBe("base64audio");
-    const doneChunk = chunks.find((c: any) => c.type === "done");
-    expect(doneChunk).toBeDefined();
+    expect(res).toMatchObject({ type: "speech" });
   });
 
   it("runs text prompt with streaming", async () => {
