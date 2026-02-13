@@ -1,3 +1,9 @@
+## 0.3.4 (2026-02-13)
+
+### 🩹 Fixes
+
+- Export RequestTable from requests section ([#477](https://github.com/agentmark-ai/agentmark/pull/477))
+
 ## 0.3.3 (2026-02-13)
 
 ### 🩹 Fixes
