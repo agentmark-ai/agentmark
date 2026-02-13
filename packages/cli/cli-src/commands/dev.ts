@@ -7,6 +7,12 @@ import { createTunnel, type TunnelInfo } from "../tunnel";
 import { loadLocalConfig, getTunnelSubdomain, setAppPort } from "../config";
 import type { LocalConfig } from "../config";
 import { IS_WINDOWS, killProcessTree, getPythonPaths } from "../utils/platform";
+import { loadForwardingConfig, isKeyExpired, saveForwardingConfig } from "../forwarding/config";
+import { TraceForwarder } from "../forwarding/forwarder";
+import { ForwardingStatusReporter } from "../forwarding/status";
+import { attemptAutoLink } from "../auth/auto-link";
+import { setForwarder } from "../api-server";
+import { loadCredentials } from "../auth/credentials";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -65,11 +71,12 @@ function getConfigDaysRemaining(config: LocalConfig): number {
   return Math.ceil(30 - daysSinceCreation);
 }
 
-const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; tunnel?: boolean } = {}) => {
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; tunnel?: boolean; noForward?: boolean } = {}) => {
   const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
   const useTunnel = options.tunnel || false;
+  const noForward = options.noForward || false;
   const cwd = getSafeCwd();
 
   // Load or create local config with webhook secret
@@ -272,8 +279,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   // Start the AgentMark app
   startAgentMarkServer();
 
-  // Store tunnel info for cleanup
+  // Store tunnel info and forwarder for cleanup
   let tunnelInfo: TunnelInfo | null = null;
+  let forwarder: TraceForwarder | null = null;
 
   // Give servers time to start, then print summary and optionally setup tunnel
   setTimeout(async () => {
@@ -299,6 +307,89 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       }
     }
 
+    // Setup trace forwarding if not disabled
+    let forwardingStatus: 'active' | 'inactive' | 'disabled' | 'expired' = 'inactive';
+    let forwardingAppName = '';
+    let forwardingBaseUrl = '';
+
+    if (!noForward) {
+      // Check if already linked
+      let forwardingConfig = loadForwardingConfig();
+
+      // If not linked but user is logged in, attempt auto-link
+      if (!forwardingConfig) {
+        await attemptAutoLink();
+        forwardingConfig = loadForwardingConfig();
+      }
+
+      // Check if key is expired or about to expire (within 7 days)
+      if (forwardingConfig && isKeyExpired(forwardingConfig)) {
+        console.log('⚠️  Dev API key expired. Run `agentmark link` to refresh.\n');
+        forwardingStatus = 'expired';
+      } else if (forwardingConfig?.expiresAt) {
+        // Check if key is within 7 days of expiry
+        const expiryDate = new Date(forwardingConfig.expiresAt);
+        const daysUntilExpiry = (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+        if (daysUntilExpiry < 7 && daysUntilExpiry > 0) {
+          // Attempt to refresh the key
+          console.log('⚠️  Dev API key expires soon, attempting refresh...');
+          const credentials = loadCredentials();
+          if (credentials && forwardingConfig.apiKeyId) {
+            try {
+              const platformUrl = 'https://app.agentmark.co';
+              const refreshUrl = `${platformUrl}/api/cli/dev-key/${forwardingConfig.apiKeyId}/refresh`;
+              const response = await fetch(refreshUrl, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${credentials.access_token}`,
+                },
+              });
+
+              if (response.ok) {
+                const newKeyData = await response.json() as { key: string; key_id: string; expires_at: string };
+                // Update forwarding config with new key
+                saveForwardingConfig({
+                  ...forwardingConfig,
+                  apiKey: newKeyData.key,
+                  apiKeyId: newKeyData.key_id,
+                  expiresAt: newKeyData.expires_at,
+                });
+                // Reload the config for use
+                forwardingConfig = loadForwardingConfig()!;
+                console.log('✓ Dev API key refreshed\n');
+              } else {
+                console.log('⚠️  Failed to refresh key automatically. Run `agentmark link` to refresh.\n');
+              }
+            } catch (error) {
+              console.log('⚠️  Failed to refresh key automatically. Run `agentmark link` to refresh.\n');
+            }
+          }
+        }
+      }
+
+      if (forwardingConfig?.apiKey && forwardingConfig?.baseUrl && forwardingConfig?.appId) {
+        // Create forwarder and inject into API server
+        try {
+          forwarder = new TraceForwarder(forwardingConfig);
+          setForwarder(forwarder);
+
+          // Create status reporter
+          new ForwardingStatusReporter(forwarder);
+
+          forwardingStatus = 'active';
+          forwardingAppName = forwardingConfig.appName || 'Unknown App';
+          // Tenant info is available in forwardingConfig.tenantId if needed
+          forwardingBaseUrl = forwardingConfig.baseUrl;
+        } catch (error) {
+          console.error('⚠️  Failed to initialize trace forwarding:', (error as Error).message);
+          forwardingStatus = 'inactive';
+        }
+      }
+    } else {
+      forwardingStatus = 'disabled';
+    }
+
     console.log('\n' + '═'.repeat(70));
     console.log('🚀 AgentMark Development Servers Running');
     console.log('═'.repeat(70));
@@ -312,6 +403,20 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       console.log(`    URL:    ${tunnelInfo.url}`);
       console.log(`    Secret: ${config.webhookSecret}`);
       console.log(`    Valid:  ${getConfigDaysRemaining(config)} days remaining`);
+    }
+
+    // Show trace forwarding status
+    console.log('\n  Trace Forwarding:');
+    if (forwardingStatus === 'active') {
+      console.log(`    Status: ✓ Active`);
+      console.log(`    Target: ${forwardingAppName}`);
+      console.log(`    URL:    ${forwardingBaseUrl}`);
+    } else if (forwardingStatus === 'disabled') {
+      console.log(`    Status: ○ Disabled (--no-forward)`);
+    } else if (forwardingStatus === 'expired') {
+      console.log(`    Status: ⚠️  Expired (run 'agentmark link' to refresh)`);
+    } else {
+      console.log(`    Status: ○ Inactive (run 'agentmark login' to enable)`);
     }
 
     console.log('\n' + '─'.repeat(70));
@@ -336,7 +441,23 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
     console.log('\nShutting down servers...');
 
-    // Close tunnel first
+    // Flush trace forwarder first (with 5s timeout)
+    if (forwarder) {
+      try {
+        console.log('  Flushing trace buffer...');
+        const unflushed = await forwarder.flush(5000);
+        if (unflushed > 0) {
+          console.log(`  ⚠️  ${unflushed} traces could not be forwarded`);
+        } else {
+          console.log('  ✓ All buffered traces sent');
+        }
+        forwarder.stop();
+      } catch (error) {
+        console.error('  Error flushing traces:', error);
+      }
+    }
+
+    // Close tunnel
     if (tunnelInfo) {
       try {
         console.log('  Stopping tunnel...');
