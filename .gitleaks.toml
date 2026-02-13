@@ -2,10 +2,9 @@
 useDefault = true
 
 [allowlist]
-description = "Build artifacts, vendored files, public Supabase anon keys, and test fixtures"
+description = "Build artifacts, vendored files, and test fixtures"
 paths = [
   '''\.yarn/releases/''',
   '''dist/''',
-  '''packages/cli/cli-src/auth/constants\.ts''',
   '''packages/cli/test/''',
 ]
