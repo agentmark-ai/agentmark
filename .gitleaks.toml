@@ -2,8 +2,9 @@
 useDefault = true
 
 [allowlist]
-description = "Build artifacts and vendored files (not real secrets)"
+description = "Build artifacts, vendored files, and test fixtures"
 paths = [
   '''\.yarn/releases/''',
   '''dist/''',
+  '''packages/cli/test/''',
 ]

@@ -17,6 +17,18 @@ import {
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
 import { getTemplateDXInstance } from "@agentmark-ai/prompt-core";
+import type { TraceForwarder } from "./forwarding/forwarder";
+
+// Module-level forwarder instance (injected from dev command)
+let forwarderInstance: TraceForwarder | null = null;
+
+/**
+ * Sets the trace forwarder instance for this API server.
+ * Called from the dev command after forwarding is initialized.
+ */
+export function setForwarder(forwarder: TraceForwarder | null): void {
+  forwarderInstance = forwarder;
+}
 
 function safePath(): string {
   try {
@@ -427,16 +439,20 @@ ${promptsList}
       // Parse OTLP ExportTraceServiceRequest
       const body = req.body;
       if (!body || !body.resourceSpans || !Array.isArray(body.resourceSpans)) {
-        return res.status(400).json({ 
-          error: "Invalid OTLP payload: expected ExportTraceServiceRequest with resourceSpans array" 
+        return res.status(400).json({
+          error: "Invalid OTLP payload: expected ExportTraceServiceRequest with resourceSpans array"
         });
       }
 
       // Normalize OTLP spans using shared normalizer
       const normalizedSpans = normalizeOtlpSpans(body.resourceSpans as OtlpResourceSpans[]);
-      
-      // Write normalized spans to SQLite
+
+      // Write normalized spans to SQLite (always happens, regardless of forwarding)
       await exportTraces(normalizedSpans);
+
+      // Forward to platform if forwarder is configured (non-blocking, never throws)
+      forwarderInstance?.enqueue(body);
+
       return res.json({ success: true });
     } catch (error: any) {
       console.error("Error processing traces:", error);

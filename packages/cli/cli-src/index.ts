@@ -13,6 +13,9 @@ import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
 import build from './commands/build';
+import login from './commands/login';
+import logout from './commands/logout';
+import link from './commands/link';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
 // Start async update check early (non-blocking)
@@ -31,14 +34,18 @@ program
   .option("--api-port <number>", "API server port (default: 9418)")
   .option("--webhook-port <number>", "Webhook server port (default: 9417)")
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
+  .option("-r, --remote", "Connect to platform (login + link + forwarding + tunnel)")
   .option("-t, --tunnel", "Expose webhook server publicly via tunnel")
+  .option("--no-forward", "Disable trace forwarding (only relevant with --remote)")
   .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
       apiPort: options.apiPort ? parseInt(options.apiPort, 10) : undefined,
       webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
-      tunnel: options.tunnel || false
+      remote: options.remote || false,
+      tunnel: options.tunnel || false,
+      forward: options.forward, // Commander.js --no-forward sets this to false; defaults to true
     });
   });
 
@@ -113,6 +120,43 @@ program
   .action(async (options: { out?: string }) => {
     try {
       await (build as any)({ outDir: options.out });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("login")
+  .description('Authenticate with the AgentMark platform')
+  .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
+  .action(async (options: { baseUrl?: string }) => {
+    try {
+      await (login as any)(options);
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("logout")
+  .description('Clear CLI authentication and revoke dev API keys')
+  .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
+  .action(async (options: { baseUrl?: string }) => {
+    try {
+      await (logout as any)(options);
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
+
+program
+  .command("link")
+  .description('Link current project to a platform app for trace forwarding')
+  .option('--app-id <uuid>', 'App ID to link (skips interactive selection)')
+  .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
+  .action(async (options: { appId?: string; baseUrl?: string }) => {
+    try {
+      await (link as any)(options);
     } catch (error) {
       program.error((error as Error).message);
     }
