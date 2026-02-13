@@ -450,12 +450,8 @@ ${promptsList}
       // Write normalized spans to SQLite (always happens, regardless of forwarding)
       await exportTraces(normalizedSpans);
 
-      // Forward to platform if forwarder is configured (non-blocking)
-      if (forwarderInstance) {
-        // Enqueue the original OTLP payload for forwarding
-        // This is non-blocking - we return immediately
-        forwarderInstance.enqueue(body);
-      }
+      // Forward to platform if forwarder is configured (non-blocking, never throws)
+      forwarderInstance?.enqueue(body);
 
       return res.json({ success: true });
     } catch (error: any) {

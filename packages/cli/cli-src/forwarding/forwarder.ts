@@ -48,31 +48,36 @@ export class TraceForwarder {
   /**
    * Enqueues a trace payload for forwarding.
    * Drops oldest trace if queue is full.
+   * Never throws — forwarding failures are non-fatal by design.
    */
   enqueue(payload: TracePayload): void {
-    if (this.isStopped) {
-      return;
-    }
+    try {
+      if (this.isStopped) {
+        return;
+      }
 
-    // Check rate limit
-    if (!this.checkRateLimit()) {
-      console.warn('[trace-forward] ⚠️  Rate limit exceeded, buffering trace');
-    }
+      // Check rate limit
+      if (!this.checkRateLimit()) {
+        console.warn('[trace-forward] ⚠️  Rate limit exceeded, buffering trace');
+      }
 
-    // Add to queue
-    this.queue.push(payload);
+      // Add to queue
+      this.queue.push(payload);
 
-    // Drop oldest if queue exceeds max size
-    if (this.queue.length > MAX_QUEUE_SIZE) {
-      this.queue.shift();
-      console.warn('[trace-forward] ⚠️  Queue full, dropped oldest trace');
-    }
+      // Drop oldest if queue exceeds max size
+      if (this.queue.length > MAX_QUEUE_SIZE) {
+        this.queue.shift();
+        console.warn('[trace-forward] ⚠️  Queue full, dropped oldest trace');
+      }
 
-    this.stats.buffered = this.queue.length;
+      this.stats.buffered = this.queue.length;
 
-    // Start processing if not already running
-    if (!this.processingPromise) {
-      this.processingPromise = this.processQueue();
+      // Start processing if not already running
+      if (!this.processingPromise) {
+        this.processingPromise = this.processQueue();
+      }
+    } catch {
+      // Silently drop — caller (API server) must never be affected by forwarding issues
     }
   }
 

@@ -116,29 +116,42 @@ describe('ForwardingStatusReporter', () => {
   });
 
   describe('10th send count', () => {
-    // These tests use real timers because they involve multiple async operations
-    it('should print count every 10th trace sent', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        status: 200,
-      });
+    // These tests mock getStats() to control exactly what the reporter sees
+    // at each poll cycle, avoiding timing issues with real forwarder processing
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
 
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should print count every 10th trace sent', async () => {
       const forwarder = new TraceForwarder(mockConfig);
+      let sentCount = 0;
+      vi.spyOn(forwarder, 'getStats').mockImplementation(() => ({
+        sent: sentCount,
+        failed: 0,
+        buffered: 0,
+      }));
+
       new ForwardingStatusReporter(forwarder);
 
-      // Send 15 traces
-      for (let i = 1; i <= 15; i++) {
-        forwarder.enqueue({ id: i });
-      }
+      // Simulate traces arriving progressively
+      sentCount = 1;
+      await vi.advanceTimersByTimeAsync(1000);
 
-      // Wait for processing and reporting (need enough time for both processing AND polling)
-      // Reporter polls every 1000ms, so we need at least 1 full poll cycle after processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      sentCount = 10;
+      await vi.advanceTimersByTimeAsync(1000);
 
       // Should print at 10th trace
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ 10 traces sent'
       );
+
+      // Simulate more traces (up to 14)
+      sentCount = 14;
+      await vi.advanceTimersByTimeAsync(1000);
 
       // Should not print at 11-14
       expect(consoleMock.log).not.toHaveBeenCalledWith(
@@ -150,21 +163,24 @@ describe('ForwardingStatusReporter', () => {
     });
 
     it('should print count at 20, 30, etc.', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        status: 200,
-      });
-
       const forwarder = new TraceForwarder(mockConfig);
+      let sentCount = 0;
+      vi.spyOn(forwarder, 'getStats').mockImplementation(() => ({
+        sent: sentCount,
+        failed: 0,
+        buffered: 0,
+      }));
+
       new ForwardingStatusReporter(forwarder);
 
-      // Send 25 traces
-      for (let i = 1; i <= 25; i++) {
-        forwarder.enqueue({ id: i });
-      }
-
-      // Wait for processing and reporting
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      sentCount = 1;
+      await vi.advanceTimersByTimeAsync(1000);
+      sentCount = 10;
+      await vi.advanceTimersByTimeAsync(1000);
+      sentCount = 20;
+      await vi.advanceTimersByTimeAsync(1000);
+      sentCount = 25;
+      await vi.advanceTimersByTimeAsync(1000);
 
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ 10 traces sent'
@@ -178,21 +194,21 @@ describe('ForwardingStatusReporter', () => {
     });
 
     it('should not print count for non-multiple-of-10', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        status: 200,
-      });
-
       const forwarder = new TraceForwarder(mockConfig);
+      let sentCount = 0;
+      vi.spyOn(forwarder, 'getStats').mockImplementation(() => ({
+        sent: sentCount,
+        failed: 0,
+        buffered: 0,
+      }));
+
       new ForwardingStatusReporter(forwarder);
 
-      // Send 7 traces
-      for (let i = 1; i <= 7; i++) {
-        forwarder.enqueue({ id: i });
-      }
+      sentCount = 1;
+      await vi.advanceTimersByTimeAsync(1000);
 
-      // Wait for processing and reporting
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      sentCount = 7;
+      await vi.advanceTimersByTimeAsync(1000);
 
       // Should only print first send message, not count
       expect(consoleMock.log).toHaveBeenCalledTimes(1);
@@ -284,34 +300,28 @@ describe('ForwardingStatusReporter', () => {
     });
 
     it('should continue polling after first report', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        status: 200,
-      });
-
       const forwarder = new TraceForwarder(mockConfig);
+      let sentCount = 0;
+      vi.spyOn(forwarder, 'getStats').mockImplementation(() => ({
+        sent: sentCount,
+        failed: 0,
+        buffered: 0,
+      }));
+
       new ForwardingStatusReporter(forwarder);
 
-      // Send first batch
-      for (let i = 1; i <= 5; i++) {
-        forwarder.enqueue({ id: i });
-      }
-
-      // Advance time to process first batch
-      await vi.advanceTimersByTimeAsync(2000);
+      // Simulate first trace sent
+      sentCount = 1;
+      await vi.advanceTimersByTimeAsync(1000);
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ First trace sent successfully'
       );
 
       consoleMock.log.mockClear();
 
-      // Send second batch to reach 10
-      for (let i = 6; i <= 10; i++) {
-        forwarder.enqueue({ id: i });
-      }
-
-      // Advance time to process second batch
-      await vi.advanceTimersByTimeAsync(2000);
+      // Simulate reaching 10th trace
+      sentCount = 10;
+      await vi.advanceTimersByTimeAsync(1000);
 
       expect(consoleMock.log).toHaveBeenCalledWith(
         '[trace-forward] ✓ 10 traces sent'

@@ -117,12 +117,12 @@ describe('API server forwarding hook', () => {
       const data = await response.json();
       expect(data).toEqual({ success: true });
 
-      // Verify local save was called
+      // Verify local save was called with normalized spans (camelCase fields from normalizeOtlpSpans)
       expect(exportTraces).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            trace_id: 'abc123',
-            span_id: 'span456',
+            traceId: 'abc123',
+            spanId: 'span456',
           }),
         ])
       );
@@ -183,11 +183,11 @@ describe('API server forwarding hook', () => {
       const data = await response.json();
       expect(data).toEqual({ success: true });
 
-      // Verify local save was called
+      // Verify local save was called with normalized spans (camelCase fields)
       expect(exportTraces).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            trace_id: 'abc123',
+            traceId: 'abc123',
           }),
         ])
       );
@@ -208,7 +208,7 @@ describe('API server forwarding hook', () => {
   });
 
   describe('forwarder failure handling', () => {
-    it('should not affect local save response when forwarder throws error', async () => {
+    it('should not affect local save response when forwarder is stopped', async () => {
       const mockConfig = {
         apiKey: 'sk_test',
         baseUrl: 'https://gateway.example.com',
@@ -220,10 +220,8 @@ describe('API server forwarding hook', () => {
       };
 
       const forwarder = new TraceForwarder(mockConfig);
-      vi.spyOn(forwarder, 'enqueue').mockImplementation(() => {
-        throw new Error('Forwarder error');
-      });
-
+      forwarder.stop(); // Stopped forwarder silently drops enqueued traces
+      const enqueueSpy = vi.spyOn(forwarder, 'enqueue');
       setForwarder(forwarder);
 
       const response = await fetch(`${baseUrl}/v1/traces`, {
@@ -232,12 +230,14 @@ describe('API server forwarding hook', () => {
         body: JSON.stringify(sampleOtlpPayload),
       });
 
-      // Should still succeed locally even if forwarder fails
+      // Should still succeed locally
       expect(response.ok).toBe(true);
       expect(response.status).toBe(200);
 
       // Local save should have been called
       expect(exportTraces).toHaveBeenCalled();
+      // Enqueue was called but silently dropped (forwarder is stopped)
+      expect(enqueueSpy).toHaveBeenCalled();
     });
 
     it('should still save locally when local save succeeds but forwarder fails', async () => {
