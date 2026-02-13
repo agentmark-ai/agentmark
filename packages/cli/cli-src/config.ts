@@ -19,6 +19,15 @@ export interface LocalConfig {
   tunnelSubdomain?: string;
   createdAt?: string;
   appPort?: number;
+  forwarding?: {
+    appId?: string;
+    appName?: string;
+    tenantId?: string;
+    apiKey?: string;
+    apiKeyId?: string;
+    expiresAt?: string;
+    baseUrl?: string;
+  };
 }
 
 // Cache for loaded config to avoid repeated file I/O
