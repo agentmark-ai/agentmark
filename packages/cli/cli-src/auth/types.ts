@@ -27,3 +27,24 @@ export interface CallbackResult {
   expires_at: string;
   state: string;
 }
+
+/** Platform app returned by /api/cli/apps */
+export interface PlatformApp {
+  id: string;
+  name: string;
+  tenant_id: string;
+  tenant_name: string;
+  created_at: string;
+}
+
+/** Dev key response returned by /api/cli/dev-key */
+export interface DevKeyResponse {
+  key: string;
+  key_id: string;
+  app_id: string;
+  app_name: string;
+  tenant_id: string;
+  base_url: string;
+  expires_at: string;
+  scope: string;
+}

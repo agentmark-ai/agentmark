@@ -14,33 +14,14 @@ import {
   loadForwardingConfig,
   saveForwardingConfig,
 } from '../forwarding/config';
+import { PlatformApp, DevKeyResponse } from './types';
+import {
+  DEFAULT_PLATFORM_URL,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+} from './constants';
 import prompts from 'prompts';
 import os from 'os';
-
-// Default platform URLs
-const DEFAULT_PLATFORM_URL = 'https://app.agentmark.co';
-const DEFAULT_SUPABASE_URL = 'https://glxktydhywvrgobkgezp.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdseGt0eWRoeXd2cmdvYmtnZXpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ5NTM1MTEsImV4cCI6MjA0MDUyOTUxMX0.jYF8gP8vKCOePdR9sTzUiQ8H5YU1jJYBx77HGAoKdUU';
-
-interface App {
-  id: string;
-  name: string;
-  tenant_id: string;
-  tenant_name: string;
-  created_at: string;
-}
-
-interface DevKeyResponse {
-  key: string;
-  key_id: string;
-  app_id: string;
-  app_name: string;
-  tenant_id: string;
-  base_url: string;
-  expires_at: string;
-  scope: string;
-}
 
 /**
  * Attempts to auto-link the current project during dev startup.
@@ -94,7 +75,7 @@ export async function attemptAutoLink(options: {
       return false; // Failed to fetch apps - skip silently
     }
 
-    const appsData = (await appsResponse.json()) as { apps: App[] };
+    const appsData = (await appsResponse.json()) as { apps: PlatformApp[] };
     const apps = appsData.apps;
 
     if (apps.length === 0) {

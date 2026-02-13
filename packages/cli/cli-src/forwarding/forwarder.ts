@@ -21,7 +21,7 @@ interface ForwardingStats {
   buffered: number;
 }
 
-type TracePayload = any; // OTLP JSON payload
+type TracePayload = Record<string, unknown>;
 
 const MAX_QUEUE_SIZE = 100;
 const REQUEST_TIMEOUT_MS = 10_000;

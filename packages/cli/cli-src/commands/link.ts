@@ -22,39 +22,20 @@ import {
   loadForwardingConfig,
   saveForwardingConfig,
 } from '../forwarding/config';
+import { PlatformApp, DevKeyResponse } from '../auth/types';
+import {
+  DEFAULT_PLATFORM_URL,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+} from '../auth/constants';
 import prompts from 'prompts';
 import os from 'os';
-
-// Default platform URLs
-const DEFAULT_PLATFORM_URL = 'https://app.agentmark.co';
-const DEFAULT_SUPABASE_URL = 'https://glxktydhywvrgobkgezp.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdseGt0eWRoeXd2cmdvYmtnZXpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ5NTM1MTEsImV4cCI6MjA0MDUyOTUxMX0.jYF8gP8vKCOePdR9sTzUiQ8H5YU1jJYBx77HGAoKdUU';
 
 export interface LinkOptions {
   appId?: string;
   baseUrl?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
-}
-
-interface App {
-  id: string;
-  name: string;
-  tenant_id: string;
-  tenant_name: string;
-  created_at: string;
-}
-
-interface DevKeyResponse {
-  key: string;
-  key_id: string;
-  app_id: string;
-  app_name: string;
-  tenant_id: string;
-  base_url: string;
-  expires_at: string;
-  scope: string;
 }
 
 /**
@@ -106,7 +87,7 @@ export default async function link(options: LinkOptions = {}): Promise<void> {
       process.exit(1);
     }
 
-    const appsData = (await appsResponse.json()) as { apps: App[] };
+    const appsData = (await appsResponse.json()) as { apps: PlatformApp[] };
     const apps = appsData.apps;
 
     if (apps.length === 0) {

@@ -23,12 +23,11 @@ import {
 } from '../auth/credentials';
 import { refreshAccessToken } from '../auth/token-refresh';
 import { CliAuthCredentials } from '../auth/types';
-
-// Default platform URLs
-const DEFAULT_PLATFORM_URL = 'https://app.agentmark.co';
-const DEFAULT_SUPABASE_URL = 'https://glxktydhywvrgobkgezp.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdseGt0eWRoeXd2cmdvYmtnZXpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ5NTM1MTEsImV4cCI6MjA0MDUyOTUxMX0.jYF8gP8vKCOePdR9sTzUiQ8H5YU1jJYBx77HGAoKdUU';
+import {
+  DEFAULT_PLATFORM_URL,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+} from '../auth/constants';
 
 export interface LoginOptions {
   baseUrl?: string;

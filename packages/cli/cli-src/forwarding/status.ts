@@ -17,6 +17,7 @@ import type { TraceForwarder } from './forwarder';
 export class ForwardingStatusReporter {
   private forwarder: TraceForwarder;
   private lastReportedSent = 0;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(forwarder: TraceForwarder) {
     this.forwarder = forwarder;
@@ -29,7 +30,7 @@ export class ForwardingStatusReporter {
    */
   private startMonitoring(): void {
     // Poll every second to check for changes
-    setInterval(() => {
+    this.intervalId = setInterval(() => {
       const stats = this.forwarder.getStats();
 
       // Report on first send
@@ -47,5 +48,15 @@ export class ForwardingStatusReporter {
       // Note: Errors and buffer flushes are logged directly in TraceForwarder
       // We don't need to poll for those events here
     }, 1000);
+  }
+
+  /**
+   * Stops the status reporter and clears the polling interval.
+   */
+  stop(): void {
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 }

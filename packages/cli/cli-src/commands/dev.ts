@@ -13,6 +13,7 @@ import { ForwardingStatusReporter } from "../forwarding/status";
 import { attemptAutoLink } from "../auth/auto-link";
 import { setForwarder } from "../api-server";
 import { loadCredentials } from "../auth/credentials";
+import { DEFAULT_PLATFORM_URL } from "../auth/constants";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -279,9 +280,10 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   // Start the AgentMark app
   startAgentMarkServer();
 
-  // Store tunnel info and forwarder for cleanup
+  // Store tunnel info, forwarder, and status reporter for cleanup
   let tunnelInfo: TunnelInfo | null = null;
   let forwarder: TraceForwarder | null = null;
+  let statusReporter: ForwardingStatusReporter | null = null;
 
   // Give servers time to start, then print summary and optionally setup tunnel
   setTimeout(async () => {
@@ -337,7 +339,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
           const credentials = loadCredentials();
           if (credentials && forwardingConfig.apiKeyId) {
             try {
-              const platformUrl = 'https://app.agentmark.co';
+              const platformUrl = DEFAULT_PLATFORM_URL;
               const refreshUrl = `${platformUrl}/api/cli/dev-key/${forwardingConfig.apiKeyId}/refresh`;
               const response = await fetch(refreshUrl, {
                 method: 'POST',
@@ -375,7 +377,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
           setForwarder(forwarder);
 
           // Create status reporter
-          new ForwardingStatusReporter(forwarder);
+          statusReporter = new ForwardingStatusReporter(forwarder);
 
           forwardingStatus = 'active';
           forwardingAppName = forwardingConfig.appName || 'Unknown App';
@@ -440,6 +442,11 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     isShuttingDown = true;
 
     console.log('\nShutting down servers...');
+
+    // Stop status reporter polling
+    if (statusReporter) {
+      statusReporter.stop();
+    }
 
     // Flush trace forwarder first (with 5s timeout)
     if (forwarder) {
