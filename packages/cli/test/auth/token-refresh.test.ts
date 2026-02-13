@@ -9,7 +9,7 @@ vi.mock('../../cli-src/auth/credentials', () => ({
 import { refreshAccessToken } from '../../cli-src/auth/token-refresh';
 import { saveCredentials } from '../../cli-src/auth/credentials';
 
-const SUPABASE_URL = 'https://test.supabase.co';
+const SUPABASE_URL = 'https://test-supabase.example.com';
 const SUPABASE_ANON_KEY = 'test-anon-key-abc123';
 
 /** Build a valid CliAuthCredentials object for test use. */

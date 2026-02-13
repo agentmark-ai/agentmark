@@ -52,10 +52,11 @@ import {
 } from '../../cli-src/forwarding/config';
 import prompts from 'prompts';
 
-const DEFAULT_PLATFORM_URL = 'https://app.agentmark.co';
-const DEFAULT_SUPABASE_URL = 'https://glxktydhywvrgobkgezp.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdseGt0eWRoeXd2cmdvYmtnZXpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ5NTM1MTEsImV4cCI6MjA0MDUyOTUxMX0.jYF8gP8vKCOePdR9sTzUiQ8H5YU1jJYBx77HGAoKdUU';
+import {
+  DEFAULT_PLATFORM_URL,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+} from '../../cli-src/auth/constants';
 
 /** Build a valid CliAuthCredentials object for test use. */
 function makeCredentials(
@@ -352,7 +353,7 @@ describe('attemptAutoLink', () => {
     });
 
     it('should use custom Supabase URL and anon key for token refresh', async () => {
-      const customSupabaseUrl = 'https://custom.supabase.co';
+      const customSupabaseUrl = 'https://custom-supabase.example.com';
       const customAnonKey = 'custom-anon-key-xyz';
       const expiredCreds = makeCredentials({
         expires_at: new Date(Date.now() - 1000).toISOString(),
