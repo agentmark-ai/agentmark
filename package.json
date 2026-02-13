@@ -43,7 +43,7 @@
     "glob": "^10.4.5",
     "tar": "^7.5.3"
   },
-  "_workspaces_standalone": [
+  "workspaces": [
     "packages/*",
     "apps/*"
   ]
