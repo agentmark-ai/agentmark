@@ -1,78 +1,57 @@
-export const Providers = {
-  openai: {
-    label: "OpenAI",
-    languageModels: [
-      "gpt-4o",
-      "gpt-4o-mini",
-      "gpt-4",
-      "gpt-5",
-      "gpt-4-turbo",
-      "gpt-3.5-turbo",
-    ],
-    imageModels: ["dall-e-3", "dall-e-2"],
-    speechModels: ["tts-1", "tts-1-hd"],
-  },
-  anthropic: {
-    label: "Anthropic",
-    languageModels: ["claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
-    imageModels: [],
-    speechModels: [],
-  },
-  ollama: {
-    label: "Ollama",
-    languageModels: [
-      "llama3.1",
-      "llama3.2",
-      "mistral",
-      "mistral-small",
-      "mistral-small3.1",
-      "gemma",
-      "gemma2",
-      "llava",
-      "codellama",
-      "qwen",
-      "qwen2.5",
-      "deepseek-r1",
-      "tinyllama",
-    ],
-    imageModels: [],
-    speechModels: [],
-  },
-  xai: {
-    label: "xAI Grok",
-    languageModels: [
-      "grok-3",
-      "grok-3-mini",
-      "grok-3-fast",
-      "grok-3-mini-fast",
-      "grok-2-vision",
-    ],
-    imageModels: [],
-    speechModels: [],
-  },
-  google: {
-    label: "Google",
-    languageModels: [
-      "gemini-2.5-pro-preview-03-25",
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-    ],
-    imageModels: [],
-    speechModels: [],
-  },
-  groq: {
-    label: "Groq",
-    languageModels: [
-      "gemma2-9b-it",
-      "llama-3.3-70b-versatile",
-      "llama-3.1-8b-instant",
-      "llama-guard-3-8b",
-      "llama3-70b-8192",
-      "llama3-8b-8192",
-    ],
-    imageModels: [],
-    speechModels: [],
-  },
+import modelsData from "@agentmark-ai/model-registry/models.json";
+import overridesData from "@agentmark-ai/model-registry/overrides.json";
+import PROVIDER_LABELS from "@agentmark-ai/model-registry/provider-labels.json";
+
+const allModels: Record<string, { provider: string; mode: string }> = {
+  ...(modelsData as any).models,
+  ...(overridesData as any).models,
 };
+
+function buildProviders(): Record<
+  string,
+  {
+    label: string;
+    languageModels: string[];
+    imageModels: string[];
+    speechModels: string[];
+  }
+> {
+  const result: Record<
+    string,
+    {
+      label: string;
+      languageModels: string[];
+      imageModels: string[];
+      speechModels: string[];
+    }
+  > = {};
+
+  for (const [id, entry] of Object.entries(allModels)) {
+    if (!result[entry.provider]) {
+      result[entry.provider] = {
+        label: (PROVIDER_LABELS as Record<string, string>)[entry.provider] ?? entry.provider,
+        languageModels: [],
+        imageModels: [],
+        speechModels: [],
+      };
+    }
+
+    const group = result[entry.provider]!;
+
+    switch (entry.mode) {
+      case "chat":
+        group.languageModels.push(id);
+        break;
+      case "image_generation":
+        group.imageModels.push(id);
+        break;
+      case "audio_speech":
+        group.speechModels.push(id);
+        break;
+    }
+  }
+
+  return result;
+}
+
+export const Providers = buildProviders();

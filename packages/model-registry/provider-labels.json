@@ -1,0 +1,17 @@
+{
+  "openai": "OpenAI",
+  "anthropic": "Anthropic",
+  "google": "Google",
+  "vertex_ai": "Google",
+  "xai": "xAI Grok",
+  "groq": "Groq",
+  "cohere": "Cohere",
+  "mistral": "Mistral",
+  "deepseek": "DeepSeek",
+  "together_ai": "Together AI",
+  "ollama": "Ollama",
+  "fireworks_ai": "Fireworks",
+  "bedrock": "AWS Bedrock",
+  "azure": "Azure OpenAI",
+  "perplexity": "Perplexity"
+}

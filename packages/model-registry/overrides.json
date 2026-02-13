@@ -1,0 +1,102 @@
+{
+  "models": {
+    "llama3.1": {
+      "provider": "ollama",
+      "displayName": "Llama 3.1",
+      "mode": "chat",
+      "context": { "maxInputTokens": 131072, "maxOutputTokens": 131072 },
+      "capabilities": { "functionCalling": true },
+      "source": "override"
+    },
+    "llama3.2": {
+      "provider": "ollama",
+      "displayName": "Llama 3.2",
+      "mode": "chat",
+      "context": { "maxInputTokens": 131072, "maxOutputTokens": 131072 },
+      "capabilities": { "functionCalling": true, "vision": true },
+      "source": "override"
+    },
+    "mistral": {
+      "provider": "ollama",
+      "displayName": "Mistral",
+      "mode": "chat",
+      "context": { "maxInputTokens": 32768, "maxOutputTokens": 32768 },
+      "source": "override"
+    },
+    "mistral-small": {
+      "provider": "ollama",
+      "displayName": "Mistral Small",
+      "mode": "chat",
+      "context": { "maxInputTokens": 131072, "maxOutputTokens": 131072 },
+      "capabilities": { "functionCalling": true },
+      "source": "override"
+    },
+    "mistral-small3.1": {
+      "provider": "ollama",
+      "displayName": "Mistral Small 3.1",
+      "mode": "chat",
+      "context": { "maxInputTokens": 131072, "maxOutputTokens": 131072 },
+      "capabilities": { "functionCalling": true, "vision": true },
+      "source": "override"
+    },
+    "gemma": {
+      "provider": "ollama",
+      "displayName": "Gemma",
+      "mode": "chat",
+      "context": { "maxInputTokens": 8192, "maxOutputTokens": 8192 },
+      "source": "override"
+    },
+    "gemma2": {
+      "provider": "ollama",
+      "displayName": "Gemma 2",
+      "mode": "chat",
+      "context": { "maxInputTokens": 8192, "maxOutputTokens": 8192 },
+      "source": "override"
+    },
+    "llava": {
+      "provider": "ollama",
+      "displayName": "LLaVA",
+      "mode": "chat",
+      "context": { "maxInputTokens": 4096, "maxOutputTokens": 4096 },
+      "capabilities": { "vision": true },
+      "source": "override"
+    },
+    "codellama": {
+      "provider": "ollama",
+      "displayName": "Code Llama",
+      "mode": "chat",
+      "context": { "maxInputTokens": 16384, "maxOutputTokens": 16384 },
+      "source": "override"
+    },
+    "qwen": {
+      "provider": "ollama",
+      "displayName": "Qwen",
+      "mode": "chat",
+      "context": { "maxInputTokens": 32768, "maxOutputTokens": 32768 },
+      "source": "override"
+    },
+    "qwen2.5": {
+      "provider": "ollama",
+      "displayName": "Qwen 2.5",
+      "mode": "chat",
+      "context": { "maxInputTokens": 131072, "maxOutputTokens": 131072 },
+      "capabilities": { "functionCalling": true },
+      "source": "override"
+    },
+    "deepseek-r1": {
+      "provider": "ollama",
+      "displayName": "DeepSeek R1",
+      "mode": "chat",
+      "context": { "maxInputTokens": 131072, "maxOutputTokens": 131072 },
+      "capabilities": { "reasoning": true },
+      "source": "override"
+    },
+    "tinyllama": {
+      "provider": "ollama",
+      "displayName": "TinyLlama",
+      "mode": "chat",
+      "context": { "maxInputTokens": 2048, "maxOutputTokens": 2048 },
+      "source": "override"
+    }
+  }
+}

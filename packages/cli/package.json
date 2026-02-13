@@ -24,6 +24,7 @@
     "agentmark": "dist/index.js"
   },
   "dependencies": {
+    "@agentmark-ai/model-registry": "workspace:*",
     "@agentmark-ai/prompt-core": "0.1.1",
     "@agentmark-ai/shared-utils": "0.3.0",
     "@agentmark-ai/templatedx": "0.2.0",

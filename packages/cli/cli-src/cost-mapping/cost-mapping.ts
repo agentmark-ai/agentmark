@@ -1,21 +1,34 @@
-let prices: Record<string, { promptPrice: number; completionPrice: number }> = {};
+import modelsData from "@agentmark-ai/model-registry/models.json";
+import overridesData from "@agentmark-ai/model-registry/overrides.json";
 
-const pricesUrl = "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/cli-src/cost-mapping/pricing.json"
+const allModels: Record<
+  string,
+  { pricing?: { inputCostPerToken: number; outputCostPerToken: number } }
+> = {
+  ...(modelsData as any).models,
+  ...(overridesData as any).models,
+};
+
+let prices: Record<string, { promptPrice: number; completionPrice: number }> =
+  {};
+
 export const getModelCostMappings = async (): Promise<{
   [key: string]: { promptPrice: number; completionPrice: number };
 }> => {
   if (Object.keys(prices).length > 0) {
     return prices;
   }
-  // If no prices URL configured, return empty mappings
-  if (!pricesUrl) {
-    return prices;
-  }
-  const res = await fetch(pricesUrl)
-  const data = await res.json()
-  prices = data
-  return prices
-}
+  prices = Object.fromEntries(
+    Object.entries(allModels).map(([id, m]) => [
+      id,
+      {
+        promptPrice: (m.pricing?.inputCostPerToken ?? 0) * 1000,
+        completionPrice: (m.pricing?.outputCostPerToken ?? 0) * 1000,
+      },
+    ])
+  );
+  return prices;
+};
 
 export const getCostFormula = (
   inputCost: number,
