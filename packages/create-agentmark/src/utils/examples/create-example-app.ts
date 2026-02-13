@@ -350,13 +350,13 @@ main().catch((err) => {
     // Use detected package manager for instructions
     const runCmd = packageManager?.runCmd ?? 'npm run';
 
-    // Check if dev script was namespaced
+    // Check if agentmark script was namespaced
     const pkgJsonPath = path.join(targetPath, 'package.json');
-    let devScriptName = 'dev';
+    let agentmarkScriptName = 'agentmark';
     if (fs.existsSync(pkgJsonPath)) {
       const pkgJson = fs.readJsonSync(pkgJsonPath);
-      if (pkgJson.scripts?.['agentmark:dev']) {
-        devScriptName = 'agentmark:dev';
+      if (pkgJson.scripts?.['agentmark:agentmark']) {
+        agentmarkScriptName = 'agentmark:agentmark';
       }
     }
 
@@ -364,7 +364,7 @@ main().catch((err) => {
     if (folderName !== "." && folderName !== "./" && !isExistingProject) {
       console.log(`  $ cd ${folderName}`);
     }
-    console.log(`  $ ${runCmd} ${devScriptName}\n`);
+    console.log(`  $ ${runCmd} ${agentmarkScriptName} dev\n`);
 
     console.log('─'.repeat(70));
     console.log('Resources');

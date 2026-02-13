@@ -348,10 +348,10 @@ ${promptsList}
   <h2>Available Commands</h2>
 
   <h3>Run a Single Prompt</h3>
-  <div class="command">$ npm run prompt agentmark/&lt;file&gt;.prompt.mdx</div>
+  <div class="command">$ npm run agentmark run-prompt agentmark/&lt;file&gt;.prompt.mdx</div>
 
   <h3>Run Experiments with Datasets</h3>
-  <div class="command">$ npm run experiment agentmark/&lt;file&gt;.prompt.mdx</div>
+  <div class="command">$ npm run agentmark run-experiment agentmark/&lt;file&gt;.prompt.mdx</div>
 
   <h2>API Endpoints</h2>
 
