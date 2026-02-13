@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-02-12T00:46:55.077Z",
+  "generatedAt": "2026-02-13T00:49:08.562Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-02-12T00:46:55.077Z",
-      "modelCount": 1142
+      "fetchedAt": "2026-02-13T00:49:08.562Z",
+      "modelCount": 1143
     },
     "openrouter": {
-      "fetchedAt": "2026-02-12T00:46:55.077Z",
+      "fetchedAt": "2026-02-13T00:49:08.562Z",
       "modelCount": 116
     }
   },
@@ -2863,9 +2863,7 @@
         "pdfInput": true
       },
       "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty"
+        "max_tokens"
       ]
     },
     "gpt-5.2-pro": {
@@ -14489,6 +14487,26 @@
       },
       "capabilities": {
         "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "vertex_ai/zai-org/glm-5-maas": {
+      "provider": "google",
+      "displayName": "Vertex Ai/zai Org/glm 5 Maas",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.0000032,
+        "cacheReadCostPerToken": 1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "promptCaching": true,
         "reasoning": true
       }
     },
