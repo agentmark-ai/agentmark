@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-02-13T00:49:08.562Z",
+  "generatedAt": "2026-02-14T00:45:33.134Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-02-13T00:49:08.562Z",
-      "modelCount": 1143
+      "fetchedAt": "2026-02-14T00:45:33.134Z",
+      "modelCount": 1192
     },
     "openrouter": {
-      "fetchedAt": "2026-02-13T00:49:08.562Z",
+      "fetchedAt": "2026-02-14T00:45:33.134Z",
       "modelCount": 116
     }
   },
@@ -2134,7 +2134,7 @@
       }
     },
     "gpt-realtime-mini-2025-10-06": {
-      "provider": "azure",
+      "provider": "openai",
       "displayName": "Gpt Realtime Mini",
       "mode": "chat",
       "source": "litellm",
@@ -2144,7 +2144,7 @@
         "cacheReadCostPerToken": 6e-8
       },
       "context": {
-        "maxInputTokens": 32000,
+        "maxInputTokens": 128000,
         "maxOutputTokens": 4096
       },
       "capabilities": {
@@ -4216,6 +4216,41 @@
         "maxOutputTokens": 8191
       }
     },
+    "ap-northeast-1/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Ap Northeast 1/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.4e-7,
+        "outputCostPerToken": 0.00000222
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "ap-northeast-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Ap Northeast 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "ap-northeast-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Ap Northeast 1/moonshotai.kimi K2 Thinking",
@@ -4232,6 +4267,41 @@
       "capabilities": {
         "functionCalling": true,
         "reasoning": true
+      }
+    },
+    "ap-northeast-1/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap Northeast 1/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 0.0000036
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "ap-northeast-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Ap Northeast 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "moonshotai.kimi-k2-thinking": {
@@ -4258,7 +4328,7 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 7.3e-7,
+        "inputCostPerToken": 6e-7,
         "outputCostPerToken": 0.00000303
       },
       "context": {
@@ -4266,6 +4336,7 @@
         "maxOutputTokens": 262144
       },
       "capabilities": {
+        "vision": true,
         "functionCalling": true,
         "reasoning": true
       }
@@ -4298,6 +4369,41 @@
         "maxOutputTokens": 8192
       }
     },
+    "ap-south-1/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Ap South 1/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.4e-7,
+        "outputCostPerToken": 0.00000222
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "ap-south-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Ap South 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "ap-south-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Ap South 1/moonshotai.kimi K2 Thinking",
@@ -4314,6 +4420,111 @@
       "capabilities": {
         "functionCalling": true,
         "reasoning": true
+      }
+    },
+    "ap-south-1/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap South 1/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 0.0000036
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "ap-south-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Ap South 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "ap-southeast-3/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Ap Southeast 3/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.4e-7,
+        "outputCostPerToken": 0.00000222
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "ap-southeast-3/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Ap Southeast 3/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "ap-southeast-3/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap Southeast 3/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 0.0000036
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "ap-southeast-3/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Ap Southeast 3/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "ca-central-1/meta.llama3-70b-instruct-v1:0": {
@@ -4342,6 +4553,59 @@
       "context": {
         "maxInputTokens": 8192,
         "maxOutputTokens": 8192
+      }
+    },
+    "eu-north-1/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Eu North 1/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.4e-7,
+        "outputCostPerToken": 0.00000222
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "eu-north-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Eu North 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "eu-north-1/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Eu North 1/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 0.0000036
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
       }
     },
     "eu-central-1/1-month-commitment/anthropic.claude-instant-v1": {
@@ -4446,6 +4710,40 @@
         "maxOutputTokens": 8191
       }
     },
+    "eu-central-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Eu Central 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "eu-central-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Eu Central 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "eu-west-1/meta.llama3-70b-instruct-v1:0": {
       "provider": "bedrock",
       "displayName": "Eu West 1/meta.llama3 70b Instruct V1:0",
@@ -4474,6 +4772,40 @@
         "maxOutputTokens": 8192
       }
     },
+    "eu-west-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Eu West 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "eu-west-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Eu West 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "eu-west-2/meta.llama3-70b-instruct-v1:0": {
       "provider": "bedrock",
       "displayName": "Eu West 2/meta.llama3 70b Instruct V1:0",
@@ -4500,6 +4832,40 @@
       "context": {
         "maxInputTokens": 8192,
         "maxOutputTokens": 8192
+      }
+    },
+    "eu-west-2/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Eu West 2/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4.7e-7,
+        "outputCostPerToken": 0.00000186
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "eu-west-2/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Eu West 2/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.8e-7,
+        "outputCostPerToken": 0.00000186
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "eu-west-3/mistral.mistral-7b-instruct-v0:2": {
@@ -4545,6 +4911,40 @@
       "context": {
         "maxInputTokens": 32000,
         "maxOutputTokens": 8191
+      }
+    },
+    "eu-south-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Eu South 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "eu-south-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Eu South 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "invoke/anthropic.claude-3-5-sonnet-20240620-v1:0": {
@@ -4594,6 +4994,41 @@
         "maxOutputTokens": 8192
       }
     },
+    "sa-east-1/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Sa East 1/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.4e-7,
+        "outputCostPerToken": 0.00000222
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "sa-east-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Sa East 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "sa-east-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Sa East 1/moonshotai.kimi K2 Thinking",
@@ -4610,6 +5045,41 @@
       "capabilities": {
         "functionCalling": true,
         "reasoning": true
+      }
+    },
+    "sa-east-1/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Sa East 1/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 0.0000036
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "sa-east-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Sa East 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "us-east-1/1-month-commitment/anthropic.claude-instant-v1": {
@@ -4787,6 +5257,41 @@
         "maxOutputTokens": 8191
       }
     },
+    "us-east-1/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Us East 1/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6.2e-7,
+        "outputCostPerToken": 0.00000185
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "us-east-1/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Us East 1/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "us-east-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Us East 1/moonshotai.kimi K2 Thinking",
@@ -4805,6 +5310,76 @@
         "reasoning": true
       }
     },
+    "us-east-1/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Us East 1/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "us-east-1/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Us East 1/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "us-east-2/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Us East 2/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6.2e-7,
+        "outputCostPerToken": 0.00000185
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "us-east-2/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Us East 2/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "us-east-2/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Us East 2/moonshotai.kimi K2 Thinking",
@@ -4821,6 +5396,41 @@
       "capabilities": {
         "functionCalling": true,
         "reasoning": true
+      }
+    },
+    "us-east-2/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Us East 2/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "us-east-2/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Us East 2/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "us-gov-east-1/amazon.nova-pro-v1:0": {
@@ -5392,6 +6002,41 @@
         "maxOutputTokens": 8191
       }
     },
+    "us-west-2/deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Us West 2/deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6.2e-7,
+        "outputCostPerToken": 0.00000185
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "us-west-2/minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Us West 2/minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
     "us-west-2/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Us West 2/moonshotai.kimi K2 Thinking",
@@ -5408,6 +6053,41 @@
       "capabilities": {
         "functionCalling": true,
         "reasoning": true
+      }
+    },
+    "us-west-2/moonshotai.kimi-k2.5": {
+      "provider": "bedrock",
+      "displayName": "Us West 2/moonshotai.kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "us-west-2/qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Us West 2/qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     },
     "us.anthropic.claude-3-5-haiku-20241022-v1:0": {
@@ -15572,7 +16252,7 @@
       "source": "litellm"
     },
     "sora-2-pro-high-res": {
-      "provider": "azure",
+      "provider": "openai",
       "displayName": "Sora 2 Pro High Res",
       "mode": "chat",
       "source": "litellm"
@@ -18766,6 +19446,141 @@
         "maxInputTokens": 32768,
         "maxOutputTokens": 32768
       }
+    },
+    "tts-1-1106": {
+      "provider": "openai",
+      "displayName": "Tts 1 1106",
+      "mode": "audio_speech",
+      "source": "litellm"
+    },
+    "tts-1-hd-1106": {
+      "provider": "openai",
+      "displayName": "Tts 1 Hd 1106",
+      "mode": "audio_speech",
+      "source": "litellm"
+    },
+    "gpt-4o-mini-tts-2025-03-20": {
+      "provider": "openai",
+      "displayName": "Gpt 4o Mini Tts",
+      "mode": "audio_speech",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.00001
+      }
+    },
+    "gpt-4o-mini-tts-2025-12-15": {
+      "provider": "openai",
+      "displayName": "Gpt 4o Mini Tts",
+      "mode": "audio_speech",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.00001
+      }
+    },
+    "gpt-4o-mini-transcribe-2025-03-20": {
+      "provider": "openai",
+      "displayName": "Gpt 4o Mini Transcribe",
+      "mode": "audio_transcription",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000125,
+        "outputCostPerToken": 0.000005
+      },
+      "context": {
+        "maxInputTokens": 16000,
+        "maxOutputTokens": 2000
+      }
+    },
+    "gpt-4o-mini-transcribe-2025-12-15": {
+      "provider": "openai",
+      "displayName": "Gpt 4o Mini Transcribe",
+      "mode": "audio_transcription",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000125,
+        "outputCostPerToken": 0.000005
+      },
+      "context": {
+        "maxInputTokens": 16000,
+        "maxOutputTokens": 2000
+      }
+    },
+    "gpt-5-search-api": {
+      "provider": "openai",
+      "displayName": "Gpt 5 Search Api",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000125,
+        "outputCostPerToken": 0.00001,
+        "cacheReadCostPerToken": 1.25e-7
+      },
+      "context": {
+        "maxInputTokens": 272000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true,
+        "webSearch": true
+      }
+    },
+    "gpt-5-search-api-2025-10-14": {
+      "provider": "openai",
+      "displayName": "Gpt 5 Search Api",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000125,
+        "outputCostPerToken": 0.00001,
+        "cacheReadCostPerToken": 1.25e-7
+      },
+      "context": {
+        "maxInputTokens": 272000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true,
+        "webSearch": true
+      }
+    },
+    "gpt-realtime-mini-2025-12-15": {
+      "provider": "openai",
+      "displayName": "Gpt Realtime Mini",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.0000024,
+        "cacheReadCostPerToken": 6e-8
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "audioInput": true,
+        "audioOutput": true
+      }
+    },
+    "chatgpt-image-latest": {
+      "provider": "openai",
+      "displayName": "Chatgpt Image Latest",
+      "mode": "image_generation",
+      "source": "litellm"
     },
     "claude-opus-4.6": {
       "provider": "anthropic",
