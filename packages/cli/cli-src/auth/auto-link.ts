@@ -17,6 +17,7 @@ import {
 import { PlatformApp, DevKeyResponse } from './types';
 import {
   DEFAULT_PLATFORM_URL,
+  DEFAULT_API_URL,
   DEFAULT_SUPABASE_URL,
   DEFAULT_SUPABASE_ANON_KEY,
 } from './constants';
@@ -150,7 +151,7 @@ export async function attemptAutoLink(options: {
       apiKey: keyData.key,
       apiKeyId: keyData.key_id,
       expiresAt: keyData.expires_at,
-      baseUrl: keyData.base_url,
+      baseUrl: keyData.base_url || DEFAULT_API_URL,
     });
 
     console.log('✓ Trace forwarding active\n');

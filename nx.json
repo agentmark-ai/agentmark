@@ -9,7 +9,10 @@
         "**/*.test.tsx",
         "**/test/**",
         "**/tests/**",
-        "**/__tests__/**"
+        "**/__tests__/**",
+        ".github/**",
+        "yarn.lock",
+        "package.json"
       ]
     },
     "projects": ["packages/*"],

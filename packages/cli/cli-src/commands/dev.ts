@@ -425,6 +425,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       console.log('\n  Remote:        ✓ Connected');
       if (tunnelInfo) {
         console.log(`    Tunnel:      ${tunnelInfo.url}`);
+        console.log(`    Secret:      ${config.webhookSecret}`);
       } else {
         console.log(`    Tunnel:      ⚠️  Failed to establish`);
       }
@@ -452,9 +453,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log('─'.repeat(70));
     console.log('\n  Open a new terminal window and run:');
     console.log('\n  Run a prompt:');
-    console.log('  $ npm run prompt ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npm run agentmark run-prompt ./agentmark/party-planner.prompt.mdx');
     console.log('\n  Run an experiment:');
-    console.log('  $ npm run experiment ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npm run agentmark run-experiment ./agentmark/party-planner.prompt.mdx');
     console.log('\n  (Replace with any prompt file in ./agentmark/)');
 
     console.log('\n' + '═'.repeat(70));
