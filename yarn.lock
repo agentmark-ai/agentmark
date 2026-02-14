@@ -32,7 +32,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/sdk": "npm:1.0.4"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
     ai: "npm:^4.0.0"
@@ -54,7 +54,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/sdk": "npm:1.0.4"
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -84,7 +84,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/sdk": "npm:1.0.4"
     "@anthropic-ai/claude-agent-sdk": "npm:^0.1.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.57.0"
@@ -113,7 +113,7 @@ __metadata:
     "@agentmark-ai/prompt-core": "npm:0.1.1"
     "@agentmark-ai/shared-utils": "npm:0.3.0"
     "@agentmark-ai/templatedx": "npm:0.2.0"
-    "@agentmark-ai/ui-components": "npm:0.3.5"
+    "@agentmark-ai/ui-components": "npm:0.3.6"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -218,7 +218,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/sdk": "npm:1.0.4"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"
     json-schema-to-zod: "npm:^2.6.1"
@@ -301,7 +301,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/sdk@npm:*, @agentmark-ai/sdk@workspace:packages/sdk":
+"@agentmark-ai/sdk@npm:1.0.4, @agentmark-ai/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
@@ -373,7 +373,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.3.5, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.3.6, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:

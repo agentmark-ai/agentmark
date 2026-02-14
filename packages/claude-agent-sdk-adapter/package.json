@@ -47,7 +47,7 @@
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.1.1",
-    "@agentmark-ai/sdk": "*",
+    "@agentmark-ai/sdk": "1.0.4",
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.57.0",
