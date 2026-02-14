@@ -153,7 +153,7 @@ describe('credentials', () => {
       expect(fs.existsSync(getAuthFilePath())).toBe(true);
     });
 
-    it('should set file permissions to owner-only read/write (0o600)', () => {
+    it.skipIf(process.platform === 'win32')('should set file permissions to owner-only read/write (0o600)', () => {
       saveCredentials(makeCredentials());
 
       const stats = fs.statSync(getAuthFilePath());

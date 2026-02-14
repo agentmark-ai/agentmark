@@ -1,3 +1,43 @@
+## 0.6.0 (2026-02-13)
+
+### 🚀 Features
+
+- Add --remote flag for one-step platform connection (login + tunnel + forwarding) ([#477](https://github.com/agentmark-ai/agentmark/pull/477))
+
+### 🩹 Fixes
+
+- Increase API server body limit to 10mb for OTLP trace payloads ([#477](https://github.com/agentmark-ai/agentmark/pull/477))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.3.4
+
+## 0.5.3 (2026-02-13)
+
+### 🩹 Fixes
+
+- Increase API server body limit to 10mb for OTLP trace payloads ([#475](https://github.com/agentmark-ai/agentmark/pull/475))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.3.3
+
+## 0.5.2 (2026-02-13)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.3.2
+
+## 0.5.1 (2026-02-13)
+
+### 🩹 Fixes
+
+- Move model-registry to OSS as @agentmark-ai/model-registry, update CLI to use import syntax ([#471](https://github.com/agentmark-ai/agentmark/pull/471))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/model-registry to 0.2.0
+
 ## 0.5.0 (2026-02-04)
 
 ### 🚀 Features

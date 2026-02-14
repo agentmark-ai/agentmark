@@ -23,9 +23,7 @@ export const setupPackageJson = (
     // Build scripts to add - with namespacing for conflicts
     const scriptsToAdd: Record<string, string> = {
       "demo": "npx tsx index.ts",
-      "dev": "agentmark dev",
-      "prompt": "agentmark run-prompt",
-      "experiment": "agentmark run-experiment",
+      "agentmark": "agentmark",
     };
 
     if (deploymentMode === "static") {
@@ -54,16 +52,11 @@ export const setupPackageJson = (
     pkgJson.description =
       pkgJson.description || "A simple Node.js app using the Agentmark SDK";
 
-    // All platforms use "agentmark dev" which runs their respective dev-entry.ts
-    const devScript = "agentmark dev";
-
     // Base scripts for all modes
     const scripts: Record<string, string> = {
       ...pkgJson.scripts,
       "demo": "npx tsx index.ts",
-      "dev": devScript,
-      "prompt": "agentmark run-prompt",
-      "experiment": "agentmark run-experiment",
+      "agentmark": "agentmark",
     };
 
     // For static/self-hosted mode, add the build script

@@ -56,7 +56,7 @@ describe('Existing Repository Integration', () => {
         tempDir,
         { '@agentmark-ai/cli': '^1.0.0', dotenv: '^17.0.0' }, // dotenv should be skipped
         { typescript: '^5.0.0' },
-        { dev: 'agentmark dev', prompt: 'agentmark run-prompt' } // dev should be namespaced
+        { agentmark: 'agentmark' }
       );
 
       expect(result.success).toBe(true);
@@ -71,10 +71,9 @@ describe('Existing Repository Integration', () => {
       expect(updatedPkg.dependencies['@agentmark-ai/cli']).toBe('^1.0.0');
       expect(updatedPkg.devDependencies.typescript).toBe('^5.0.0');
 
-      // Script namespacing
+      // Script added (no conflict with existing scripts)
       expect(updatedPkg.scripts.dev).toBe('next dev'); // Preserved
-      expect(updatedPkg.scripts['agentmark:dev']).toBe('agentmark dev'); // Namespaced
-      expect(updatedPkg.scripts.prompt).toBe('agentmark run-prompt'); // No conflict
+      expect(updatedPkg.scripts.agentmark).toBe('agentmark'); // Added
     });
 
     it('should append to .gitignore without duplicating entries', () => {
@@ -319,9 +318,7 @@ dependencies = ["fastapi", "uvicorn"]
         { '@agentmark-ai/prompt-core': '^1.0.0', '@agentmark-ai/sdk': '^1.0.0' },
         { '@agentmark-ai/cli': '^1.0.0' },
         {
-          dev: 'agentmark dev',
-          prompt: 'agentmark run-prompt',
-          experiment: 'agentmark run-experiment',
+          agentmark: 'agentmark',
         }
       );
 
@@ -330,8 +327,7 @@ dependencies = ["fastapi", "uvicorn"]
       // Verify package.json
       const updatedPkg = fs.readJsonSync(path.join(tempDir, 'package.json'));
       expect(updatedPkg.scripts.dev).toBe('next dev'); // Preserved
-      expect(updatedPkg.scripts['agentmark:dev']).toBe('agentmark dev'); // Namespaced
-      expect(updatedPkg.scripts.prompt).toBe('agentmark run-prompt'); // Added
+      expect(updatedPkg.scripts.agentmark).toBe('agentmark'); // Added
       expect(updatedPkg.dependencies['@agentmark-ai/prompt-core']).toBe('^1.0.0');
       expect(updatedPkg.devDependencies['@agentmark-ai/cli']).toBe('^1.0.0');
       expect(updatedPkg.devDependencies.typescript).toBe('^5.0.0'); // Preserved
