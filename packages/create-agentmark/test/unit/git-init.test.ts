@@ -5,6 +5,15 @@ import os from 'os';
 import { execSync } from 'child_process';
 import { initGitRepo } from '../../src/utils/git-init.js';
 
+// Helper: create a git commit that works on CI (no global user config)
+function gitCommit(cwd: string, message: string, allowEmpty = false) {
+  const empty = allowEmpty ? '--allow-empty ' : '';
+  execSync(
+    `git -c user.name="test" -c user.email="test@test" commit ${empty}-m "${message}"`,
+    { cwd, stdio: 'ignore' },
+  );
+}
+
 describe('initGitRepo', () => {
   let tempDir: string;
 
@@ -41,7 +50,7 @@ describe('initGitRepo', () => {
   it('should skip when already inside a git repo', () => {
     // Initialize a git repo first
     execSync('git init', { cwd: tempDir, stdio: 'ignore' });
-    execSync('git commit --allow-empty -m "existing"', { cwd: tempDir, stdio: 'ignore' });
+    gitCommit(tempDir, 'existing', true);
 
     const result = initGitRepo(tempDir);
 
@@ -56,7 +65,7 @@ describe('initGitRepo', () => {
   it('should skip for a subdirectory inside an existing git repo', () => {
     // Initialize git at parent
     execSync('git init', { cwd: tempDir, stdio: 'ignore' });
-    execSync('git commit --allow-empty -m "parent"', { cwd: tempDir, stdio: 'ignore' });
+    gitCommit(tempDir, 'parent', true);
 
     // Create a subdirectory
     const subDir = path.join(tempDir, 'my-project');

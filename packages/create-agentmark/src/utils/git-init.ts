@@ -32,10 +32,10 @@ export function initGitRepo(targetPath: string): boolean {
 
     execSync("git init", { cwd: targetPath, stdio: "ignore" });
     execSync("git add -A", { cwd: targetPath, stdio: "ignore" });
-    execSync('git commit -m "Initial commit from create-agentmark"', {
-      cwd: targetPath,
-      stdio: "ignore",
-    });
+    execSync(
+      'git -c user.name="create-agentmark" -c user.email="noreply" commit -m "Initial commit from create-agentmark"',
+      { cwd: targetPath, stdio: "ignore" },
+    );
 
     console.log("✅ Initialized git repository with initial commit");
     return true;
