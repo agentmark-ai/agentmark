@@ -8568,6 +8568,17 @@ __metadata:
     tsup: "npm:^8"
     turbo: "npm:latest"
     typescript: "npm:^5"
+  dependenciesMeta:
+    "@agentmark-ai/claude-agent-sdk-adapter-python":
+      built: false
+    "@agentmark-ai/prompt-core-python":
+      built: false
+    "@agentmark-ai/pydantic-ai-v0-adapter":
+      built: false
+    "@agentmark-ai/sdk-python":
+      built: false
+    "@agentmark-ai/templatedx-python":
+      built: false
   languageName: unknown
   linkType: soft
 
