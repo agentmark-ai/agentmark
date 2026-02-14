@@ -6,6 +6,7 @@ import {
 import { appendGitignore, appendEnv } from "../file-merge.js";
 import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
+import { initGitRepo } from "../git-init.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -622,6 +623,11 @@ export const createPythonApp = async (
       console.log("Setting up Python environment...");
       console.log("Note: You'll need to set up a virtual environment and install dependencies.");
       console.log("");
+    }
+
+    // Initialize git repo for new projects
+    if (!isExistingProject) {
+      initGitRepo(targetPath);
     }
 
     // Success message

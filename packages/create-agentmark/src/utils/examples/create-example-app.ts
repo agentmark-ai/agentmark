@@ -15,6 +15,7 @@ import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark-ai/
 import { appendGitignore, appendEnv } from "../file-merge.js";
 import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
+import { initGitRepo } from "../git-init.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -326,6 +327,11 @@ main().catch((err) => {
     } else {
       fs.writeFileSync(devEntryPath, devEntryContent);
       console.log(`✅ Created dev-entry.ts at project root`);
+    }
+
+    // Initialize git repo for new projects
+    if (!isExistingProject) {
+      initGitRepo(targetPath);
     }
 
     // Success message
