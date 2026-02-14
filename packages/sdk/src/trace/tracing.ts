@@ -50,7 +50,6 @@ export const initialize = ({
 
   const sdk = new NodeSDK({
     resource,
-    traceExporter: otlpExporter,
     sampler: new AgentmarkSampler(),
     spanProcessors: [spanProcessor],
   });
