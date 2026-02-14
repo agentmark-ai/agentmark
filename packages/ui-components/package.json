@@ -41,7 +41,10 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@eslint/eslintrc": "^3",
+    "@iconify/react": "^6.0.2",
     "@storybook/addon-a11y": "^9.1.17",
     "@storybook/addon-docs": "^9.1.17",
     "@storybook/addon-vitest": "^9.1.17",
@@ -74,6 +77,7 @@
     "@uiw/react-codemirror": "^4.25.2",
     "@xyflow/react": "^12.9.0",
     "dagre": "^0.8.5",
+    "date-fns": "^4.1.0",
     "numeral": "^2.0.6",
     "react-hook-form": "^7.65.0",
     "react-lazy-load-image-component": "^1.6.3",

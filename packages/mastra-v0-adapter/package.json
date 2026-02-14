@@ -37,8 +37,10 @@
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.1.1",
     "@agentmark-ai/sdk": "*",
+    "@agentmark-ai/templatedx": "*",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",
+    "@types/mdast": "^4.0.0",
     "tsup": "^8.0.1",
     "typescript": "^5.5.4",
     "vitest": "^3.0.8"
