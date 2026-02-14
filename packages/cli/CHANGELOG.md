@@ -1,3 +1,18 @@
+## 0.8.0 (2026-02-14)
+
+### 🚀 Features
+
+- Add --remote flag for one-step platform connection (login + tunnel + forwarding) ([#486](https://github.com/agentmark-ai/agentmark/pull/486))
+
+### 🩹 Fixes
+
+- Increase API server body limit to 10mb for OTLP trace payloads ([#486](https://github.com/agentmark-ai/agentmark/pull/486))
+- Show webhook secret in --remote banner, simplify generated npm scripts to single `agentmark` command, and fix duplicate trace exporter in SDK. ([#479](https://github.com/agentmark-ai/agentmark/pull/479))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.3.6
+
 ## 0.7.0 (2026-02-14)
 
 ### 🚀 Features

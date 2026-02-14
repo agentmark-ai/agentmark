@@ -37,7 +37,7 @@
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.1.1",
-    "@agentmark-ai/sdk": "*",
+    "@agentmark-ai/sdk": "1.0.4",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "ai": "^4.0.0",
