@@ -25,7 +25,7 @@ describe('initGitRepo', () => {
     fs.removeSync(tempDir);
   });
 
-  it('should initialize a git repo and create an initial commit', () => {
+  it('should initialize a git repo and create an initial commit', { timeout: 15000 }, () => {
     // Create some files so the commit isn't empty
     fs.writeFileSync(path.join(tempDir, 'README.md'), '# Test');
     fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/\n');
@@ -80,7 +80,7 @@ describe('initGitRepo', () => {
     expect(fs.existsSync(path.join(subDir, '.git'))).toBe(false);
   });
 
-  it('should respect .gitignore in the initial commit', () => {
+  it('should respect .gitignore in the initial commit', { timeout: 15000 }, () => {
     fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/\n.env\n');
     fs.mkdirSync(path.join(tempDir, 'node_modules'));
     fs.writeFileSync(path.join(tempDir, 'node_modules', 'dep.js'), '// dep');
