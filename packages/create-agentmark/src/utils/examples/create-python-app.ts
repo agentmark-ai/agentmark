@@ -6,6 +6,7 @@ import {
 import { appendGitignore, appendEnv } from "../file-merge.js";
 import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
+import { initGitRepo } from "../git-init.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -322,7 +323,7 @@ sdk.init_tracing(disable_batch=True)
 
   const staticTracingInit = `
 # Initialize tracing - traces will be sent to local dev server
-# Make sure to run "npm run dev" in another terminal first
+# Make sure to run "npm run agentmark dev" in another terminal first
 # To disable tracing, comment out sdk.init_tracing() below
 sdk = AgentMarkSDK(
     api_key="",
@@ -447,7 +448,7 @@ const getDevServerContent = (adapter: string): string => {
 
   return `"""Auto-generated webhook server for AgentMark development.
 
-This server is started by 'npm run dev' (agentmark dev) and handles
+This server is started by 'npm run agentmark dev' (agentmark dev) and handles
 prompt execution requests from the CLI.
 """
 
@@ -624,6 +625,11 @@ export const createPythonApp = async (
       console.log("");
     }
 
+    // Initialize git repo for new projects
+    if (!isExistingProject) {
+      initGitRepo(targetPath);
+    }
+
     // Success message
     console.log("\n✅ AgentMark Python initialization completed successfully!");
 
@@ -660,7 +666,7 @@ export const createPythonApp = async (
       console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
       console.log('  $ pip install -e ".[dev]"');
     }
-    console.log('  $ npm run dev\n');
+    console.log('  $ npm run agentmark dev\n');
 
     console.log('─'.repeat(70));
     console.log('Resources');
