@@ -43,6 +43,13 @@
     "glob": "^10.4.5",
     "tar": "^7.5.3"
   },
+  "dependenciesMeta": {
+    "@agentmark-ai/pydantic-ai-v0-adapter": { "built": false },
+    "@agentmark-ai/claude-agent-sdk-adapter-python": { "built": false },
+    "@agentmark-ai/prompt-core-python": { "built": false },
+    "@agentmark-ai/sdk-python": { "built": false },
+    "@agentmark-ai/templatedx-python": { "built": false }
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
