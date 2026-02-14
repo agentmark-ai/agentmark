@@ -16,7 +16,7 @@ sdk.initTracing({ disableBatch: true });
 
   const staticTracingInit = `
 // Initialize tracing - traces will be sent to local dev server
-// Make sure to run "npm run dev" in another terminal first
+// Make sure to run "npm run agentmark dev" in another terminal first
 // To disable tracing, comment out sdk.initTracing() below
 const sdk = new AgentMarkSDK({
   apiKey: "",
