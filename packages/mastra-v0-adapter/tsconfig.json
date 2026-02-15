@@ -8,9 +8,7 @@
 		"module": "ESNext",
 		"target": "ES2019",
 		"lib": [
-			"ESNext",
-			"DOM",
-			"DOM.AsyncIterable"
+			"ESNext"
 		],
 		"resolveJsonModule": true,
 		"strict": true,
