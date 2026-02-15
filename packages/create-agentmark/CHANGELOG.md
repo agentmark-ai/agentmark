@@ -1,3 +1,9 @@
+## 0.8.3 (2026-02-14)
+
+### 🩹 Fixes
+
+- Show webhook secret in --remote banner, simplify generated npm scripts to single `agentmark` command, and fix duplicate trace exporter in SDK. ([#479](https://github.com/agentmark-ai/agentmark/pull/479))
+
 ## 0.8.2 (2026-02-13)
 
 ### 🩹 Fixes
