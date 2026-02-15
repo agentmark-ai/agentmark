@@ -21,12 +21,13 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && npx cpy ../../README.md ../../logo.svg ./",
+    "build": "tsup && cpy ../../README.md ../../logo.svg ./",
     "lint": "eslint ."
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.1.1",
+    "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "cpy-cli": "^5.0.0",
