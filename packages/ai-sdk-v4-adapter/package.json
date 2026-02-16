@@ -31,13 +31,15 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && npx cpy ../../README.md ../../logo.svg ./",
+    "build": "tsup && cpy ../../README.md ../../logo.svg ./",
     "lint": "eslint ."
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.1.1",
-    "@agentmark-ai/sdk": "1.0.4",
+    "@agentmark-ai/sdk": "*",
+    "@agentmark-ai/templatedx": "*",
+    "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "ai": "^4.0.0",

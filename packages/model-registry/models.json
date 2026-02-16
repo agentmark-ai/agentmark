@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-02-14T00:45:33.134Z",
+  "generatedAt": "2026-02-15T00:50:12.234Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-02-14T00:45:33.134Z",
+      "fetchedAt": "2026-02-15T00:50:12.234Z",
       "modelCount": 1192
     },
     "openrouter": {
-      "fetchedAt": "2026-02-14T00:45:33.134Z",
+      "fetchedAt": "2026-02-15T00:50:12.234Z",
       "modelCount": 116
     }
   },
@@ -3134,7 +3134,7 @@
       "capabilities": {
         "vision": true,
         "functionCalling": true,
-        "parallelFunctionCalling": true,
+        "parallelFunctionCalling": false,
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,

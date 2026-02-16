@@ -31,11 +31,12 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsup && npx cpy ../../README.md ../../assets ./",
+    "build": "tsup && cpy ../../README.md ../../assets ./",
     "lint": "eslint ."
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
+    "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
     "cpy-cli": "^5.0.0",

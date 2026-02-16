@@ -346,7 +346,7 @@ describe('link command', () => {
         app_id: app.id,
         app_name: app.name,
         tenant_id: app.tenant_id,
-        base_url: 'https://gateway.agentmark.co',
+        base_url: 'https://api.agentmark.co',
         expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
         scope: 'traces:write',
       };
