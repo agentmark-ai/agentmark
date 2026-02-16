@@ -12,7 +12,8 @@
         "**/__tests__/**",
         ".github/**",
         "yarn.lock",
-        "package.json"
+        "package.json",
+        "**/models.json"
       ]
     },
     "projects": ["packages/*"],
