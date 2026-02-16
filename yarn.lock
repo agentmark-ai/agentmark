@@ -115,11 +115,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/cli@workspace:packages/cli"
   dependencies:
-    "@agentmark-ai/model-registry": "npm:0.2.0"
+    "@agentmark-ai/model-registry": "npm:0.2.1"
     "@agentmark-ai/prompt-core": "npm:0.1.1"
     "@agentmark-ai/shared-utils": "npm:0.3.0"
     "@agentmark-ai/templatedx": "npm:0.2.0"
-    "@agentmark-ai/ui-components": "npm:0.3.6"
+    "@agentmark-ai/ui-components": "npm:0.3.7"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -261,7 +261,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/model-registry@npm:0.2.0, @agentmark-ai/model-registry@workspace:packages/model-registry":
+"@agentmark-ai/model-registry@npm:0.2.1, @agentmark-ai/model-registry@workspace:packages/model-registry":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/model-registry@workspace:packages/model-registry"
   dependencies:
@@ -384,7 +384,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.3.6, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.3.7, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
