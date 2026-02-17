@@ -47,7 +47,7 @@
     "express-rate-limit": "^8.2.1",
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
-    "next": "15.5.9",
+    "next": "15.5.10",
     "next-intl": "^4.4.0",
     "open": "^11.0.0",
     "prompts": "^2.4.2",
@@ -70,7 +70,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.9",
+    "eslint-config-next": "15.5.10",
     "tsup": "^8",
     "typescript": "^5",
     "vitest": "^3.0.8"
