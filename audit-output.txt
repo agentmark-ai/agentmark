@@ -24,28 +24,14 @@
 │  └─ Dependents
 │     └─ [38;5;173mshelljs[39m[38;5;111m@[39m[38;5;111mnpm:0.8.5[39m
 │
-├─ [38;5;173mnext[39m
-│  ├─ ID: [38;5;220m1112593[39m
-│  ├─ Issue: Next.js self-hosted applications vulnerable to DoS via Image Optimizer remotePatterns configuration
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9g9p-9gw9-jx7f[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m>=10.0.0 <15.5.10[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m15.5.9[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
-│
-└─ [38;5;173mnext[39m
-   ├─ ID: [38;5;220m1112648[39m
-   ├─ Issue: Next.js HTTP request deserialization can lead to DoS when using insecure React Server Components
-   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-h25m-26qc-wcjf[39m
-   ├─ Severity: high
-   ├─ Vulnerable Versions: [38;5;37m>=15.5.1-canary.0 <15.5.10[39m
+└─ [38;5;173mtar[39m
+   ├─ ID: [38;5;111mtar (deprecation)[39m
+   ├─ Issue: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+   ├─ Severity: moderate
+   ├─ Vulnerable Versions: [38;5;37m7.5.7[39m
    │ 
    ├─ Tree Versions
-   │  └─ [38;5;111m15.5.9[39m
+   │  └─ [38;5;111m7.5.7[39m
    │ 
    └─ Dependents
-      └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
+      └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m

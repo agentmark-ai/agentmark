@@ -1,3 +1,9 @@
+## 0.8.1 (2026-02-17)
+
+### 🩹 Fixes
+
+- Sync: update from upstream monorepo ([#492](https://github.com/agentmark-ai/agentmark/pull/492))
+
 ## 0.8.0 (2026-02-14)
 
 ### 🚀 Features
