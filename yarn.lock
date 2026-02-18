@@ -59,7 +59,7 @@ __metadata:
     "@agentmark-ai/sdk": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
-    "@ai-sdk/openai": "npm:^3.0.30"
+    "@ai-sdk/openai": "npm:^2.0.0"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -468,15 +468,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/openai@npm:^3.0.30":
-  version: 3.0.30
-  resolution: "@ai-sdk/openai@npm:3.0.30"
+"@ai-sdk/openai@npm:^2.0.0":
+  version: 2.0.91
+  resolution: "@ai-sdk/openai@npm:2.0.91"
   dependencies:
-    "@ai-sdk/provider": "npm:3.0.8"
-    "@ai-sdk/provider-utils": "npm:4.0.15"
+    "@ai-sdk/provider": "npm:2.0.1"
+    "@ai-sdk/provider-utils": "npm:3.0.21"
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/db37c8a41c043145bd80e51ec452442fde29a56d65631eca37e3b7b6555588ff772a5c2eb314610a4bd0ba211a12fae8ef38977336d3b0f5f44a6ab58ab99f7d
+  checksum: 10c0/52f4148ef6234c6b8a9459ef8f61fced1ef7994cdfda9271b112d97a04d19d51b3c52a9ff9ebe22b212a61eea0045ac9603e66a2d64cf4ab84e56ada94089e1c
   languageName: node
   linkType: hard
 
@@ -519,19 +519,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ai-sdk/provider-utils@npm:4.0.15":
-  version: 4.0.15
-  resolution: "@ai-sdk/provider-utils@npm:4.0.15"
-  dependencies:
-    "@ai-sdk/provider": "npm:3.0.8"
-    "@standard-schema/spec": "npm:^1.1.0"
-    eventsource-parser: "npm:^3.0.6"
-  peerDependencies:
-    zod: ^3.25.76 || ^4.1.8
-  checksum: 10c0/e26e33c2af0270bd84e58b13e597308304d95541a23033fcc7f95a80da0ab7f9c72e9ef40e81a36e08304e5dad27d70021bbfd143bc2ac14f333fce0678a6ea2
-  languageName: node
-  linkType: hard
-
 "@ai-sdk/provider@npm:1.1.3, @ai-sdk/provider@npm:^1.1.3":
   version: 1.1.3
   resolution: "@ai-sdk/provider@npm:1.1.3"
@@ -556,15 +543,6 @@ __metadata:
   dependencies:
     json-schema: "npm:^0.4.0"
   checksum: 10c0/3ec560c5b03401a1e3b8c73875f4258cb815668367157a3caa4d30f580ff5adffbba54ee52f875161c986c5225a88cb3829f050437e0a2d7e5820b72cf08238b
-  languageName: node
-  linkType: hard
-
-"@ai-sdk/provider@npm:3.0.8":
-  version: 3.0.8
-  resolution: "@ai-sdk/provider@npm:3.0.8"
-  dependencies:
-    json-schema: "npm:^0.4.0"
-  checksum: 10c0/c68637c0139a6ce8af17bac1d7d539f531860026237c5c971dcecda2daa8b1e42d8c05e1e664ece60c15edb325c0253fd5b091ee54d32f870a750a493acbb0b7
   languageName: node
   linkType: hard
 
@@ -6772,7 +6750,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@standard-schema/spec@npm:^1.0.0, @standard-schema/spec@npm:^1.1.0":
+"@standard-schema/spec@npm:^1.0.0":
   version: 1.1.0
   resolution: "@standard-schema/spec@npm:1.1.0"
   checksum: 10c0/d90f55acde4b2deb983529c87e8025fa693de1a5e8b49ecc6eb84d1fd96328add0e03d7d551442156c7432fd78165b2c26ff561b970a9a881f046abb78d6a526
