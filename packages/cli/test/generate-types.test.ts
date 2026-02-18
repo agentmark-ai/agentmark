@@ -34,7 +34,7 @@ describe('generate-types', () => {
         path.join(promptsDir, 'test.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 input_schema:
   type: object
   properties:
@@ -53,7 +53,7 @@ Test prompt
       expect(prompts[0]).toMatchObject({
         path: 'test.prompt.mdx',
         version: '1.0',
-        text_config: { model_name: 'gpt-4o' }
+        text_config: { model_name: 'openai/gpt-4o' }
       });
     });
 
@@ -65,7 +65,7 @@ Test prompt
         path.join(promptsDir, 'text.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 input_schema:
   type: object
   properties:
@@ -93,7 +93,7 @@ Hello {{name}}
         path.join(promptsDir, 'object.prompt.mdx'),
         `---
 object_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
   schema:
     type: object
     properties:
@@ -125,7 +125,7 @@ Query: {{query}}
         path.join(promptsDir, 'image.prompt.mdx'),
         `---
 image_config:
-  model_name: dall-e-3
+  model_name: openai/dall-e-3
 input_schema:
   type: object
   properties:
@@ -185,7 +185,7 @@ input_schema:
         path.join(promptsDir, 'with-tools.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
   tools:
     search_web:
       parameters:
@@ -217,7 +217,7 @@ Search tool test
         path.join(promptsDir, 'nested', 'deep', 'nested.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 Nested prompt
 `
@@ -243,7 +243,7 @@ Nested prompt
         path.join(promptsDir, 'no-input.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 No input schema
 `
@@ -263,7 +263,7 @@ No input schema
         path.join(promptsDir, 'no-output.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 No output schema
 `
@@ -283,7 +283,7 @@ No output schema
         path.join(promptsDir, 'my-test.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 Test
 `
@@ -304,7 +304,7 @@ Test
         path.join(promptsDir, 'snake_case_prompt.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 Snake case
 `
@@ -314,7 +314,7 @@ Snake case
         path.join(promptsDir, 'camelCasePrompt.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 Camel case
 `
@@ -324,7 +324,7 @@ Camel case
         path.join(promptsDir, 'kebab-case-prompt.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 Kebab case
 `
@@ -362,7 +362,7 @@ Kebab case
         path.join(promptsDir, 'first.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 First
 `
@@ -372,7 +372,7 @@ First
         path.join(promptsDir, 'second.prompt.mdx'),
         `---
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 Second
 `

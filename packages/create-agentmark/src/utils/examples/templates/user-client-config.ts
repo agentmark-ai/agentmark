@@ -1,18 +1,13 @@
 import { getAdapterConfig } from "./adapters.js";
 
-export const getClientConfigContent = (options: { provider: string; languageModels: string[]; adapter: string; deploymentMode?: "cloud" | "static" }) => {
-  const { provider, languageModels, adapter, deploymentMode = "cloud" } = options;
+export const getClientConfigContent = (options: { provider: string; adapter: string; deploymentMode?: "cloud" | "static" }) => {
+  const { provider, adapter, deploymentMode = "cloud" } = options;
   const adapterConfig = getAdapterConfig(adapter, provider);
   const { modelRegistry, toolRegistry } = adapterConfig.classes;
 
   // Claude Agent SDK doesn't use @ai-sdk provider imports
   const isClaudeAgentSdk = adapter === "claude-agent-sdk";
   const providerImport = isClaudeAgentSdk ? '' : `import { ${provider} } from '@ai-sdk/${provider}';`;
-
-  const extraModelRegs = provider === 'openai' && !isClaudeAgentSdk
-    ? `.registerModels(["dall-e-3"], (name: string) => ${provider}.image(name))
-    .registerModels(["tts-1-hd"], (name: string) => ${provider}.speech(name))`
-    : '';
 
   // Import loaders from dedicated packages
   const loaderImport = deploymentMode === "cloud"
@@ -53,8 +48,7 @@ import { FileLoader } from "@agentmark-ai/loader-file";`;
 }`
     : `function createModelRegistry() {
   const modelRegistry = new ${modelRegistry}()
-    .registerModels(${JSON.stringify(languageModels)}, (name: string) => ${provider}(name))
-    ${extraModelRegs};
+    .registerProviders({ ${provider} });
   return modelRegistry;
 }`;
 

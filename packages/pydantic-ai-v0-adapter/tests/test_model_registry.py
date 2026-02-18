@@ -133,6 +133,190 @@ class TestPydanticAIModelRegistry:
         assert registry.get_model("other") == "default:other"
 
 
+class TestProviderAutoResolution:
+    """Tests for provider auto-resolution via register_providers()."""
+
+    def test_should_transform_slash_to_colon_when_string_provider_registered(
+        self,
+    ) -> None:
+        """String provider: 'openai/gpt-4o' -> 'openai:gpt-4o'."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+
+        result = registry.get_model("openai/gpt-4o")
+
+        assert result == "openai:gpt-4o"
+
+    def test_should_use_provider_prefix_when_it_differs_from_provider_name(
+        self,
+    ) -> None:
+        """String provider with different prefix: 'my-ai/model-x' -> 'custom-prefix:model-x'."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"my-ai": "custom-prefix"})
+
+        result = registry.get_model("my-ai/model-x")
+
+        assert result == "custom-prefix:model-x"
+
+    def test_should_call_provider_function_when_callable_provider_registered(
+        self,
+    ) -> None:
+        """Callable provider dispatches to the function with model ID."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"custom": lambda model_id: f"custom-{model_id}"})
+
+        result = registry.get_model("custom/my-model")
+
+        assert result == "custom-my-model"
+
+    def test_should_pass_only_model_id_to_callable_provider(self) -> None:
+        """Callable provider receives the part after the slash, not the full name."""
+        captured_ids: list[str] = []
+
+        def tracking_provider(model_id: str) -> str:
+            captured_ids.append(model_id)
+            return f"tracked:{model_id}"
+
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"tracker": tracking_provider})
+
+        registry.get_model("tracker/some-model-v2")
+
+        assert captured_ids == ["some-model-v2"]
+
+    def test_should_fall_through_to_default_when_provider_not_registered(
+        self,
+    ) -> None:
+        """Unregistered provider falls through to default creator."""
+        registry = PydanticAIModelRegistry(
+            default_creator=lambda name, _: f"default:{name}"
+        )
+        registry.register_providers({"openai": "openai"})
+
+        # 'anthropic' is not registered as a provider
+        result = registry.get_model("anthropic/claude-3")
+
+        assert result == "default:anthropic/claude-3"
+
+    def test_should_raise_when_provider_not_registered_and_no_default(
+        self,
+    ) -> None:
+        """Unregistered provider with no default raises ValueError."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+
+        with pytest.raises(ValueError, match="No model creator found for"):
+            registry.get_model("unknown/model")
+
+    def test_should_merge_providers_when_register_called_multiple_times(
+        self,
+    ) -> None:
+        """Multiple register_providers() calls merge provider dictionaries."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+        registry.register_providers({"anthropic": "anthropic"})
+
+        assert registry.get_model("openai/gpt-4o") == "openai:gpt-4o"
+        assert registry.get_model("anthropic/claude-3") == "anthropic:claude-3"
+
+    def test_should_override_provider_when_registered_again_with_same_key(
+        self,
+    ) -> None:
+        """Later register_providers() call overrides earlier one for same key."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "old-prefix"})
+        registry.register_providers({"openai": "new-prefix"})
+
+        result = registry.get_model("openai/gpt-4o")
+
+        assert result == "new-prefix:gpt-4o"
+
+    def test_should_bypass_provider_resolution_when_no_slash_in_name(
+        self,
+    ) -> None:
+        """Bare model names (no slash) skip provider resolution entirely."""
+        registry = PydanticAIModelRegistry(
+            default_creator=lambda name, _: f"default:{name}"
+        )
+        registry.register_providers({"openai": "openai"})
+
+        result = registry.get_model("gpt-4o")
+
+        assert result == "default:gpt-4o"
+
+    def test_should_support_method_chaining_with_register_models(self) -> None:
+        """register_providers() chains with register_models() and set_default()."""
+        registry = (
+            PydanticAIModelRegistry()
+            .register_providers({"openai": "openai"})
+            .register_models("special-model", lambda name, _: f"special:{name}")
+            .set_default(lambda name, _: f"fallback:{name}")
+        )
+
+        assert registry.get_model("openai/gpt-4o") == "openai:gpt-4o"
+        assert registry.get_model("special-model") == "special:special-model"
+        assert registry.get_model("unknown") == "fallback:unknown"
+
+    def test_should_raise_when_provider_name_is_empty(self) -> None:
+        """Empty provider name in slash format raises ValueError."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"": "empty"})
+
+        with pytest.raises(ValueError, match="Invalid model name format"):
+            registry.get_model("/gpt-4o")
+
+    def test_should_raise_when_model_id_is_empty(self) -> None:
+        """Empty model ID in slash format raises ValueError."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+
+        with pytest.raises(ValueError, match="Invalid model name format"):
+            registry.get_model("openai/")
+
+    def test_should_prefer_exact_match_over_provider_resolution(self) -> None:
+        """Exact match takes priority over provider auto-resolution."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+        registry.register_models(
+            "openai/gpt-4o", lambda name, _: f"exact:{name}"
+        )
+
+        result = registry.get_model("openai/gpt-4o")
+
+        assert result == "exact:openai/gpt-4o"
+
+    def test_should_prefer_pattern_match_over_provider_resolution(self) -> None:
+        """Pattern match takes priority over provider auto-resolution."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+        registry.register_models(
+            re.compile(r"^openai/"), lambda name, _: f"pattern:{name}"
+        )
+
+        result = registry.get_model("openai/gpt-4o")
+
+        assert result == "pattern:openai/gpt-4o"
+
+    def test_should_handle_model_id_with_multiple_slashes(self) -> None:
+        """Only the first slash separates provider from model ID."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"org": "org"})
+
+        result = registry.get_model("org/team/model-v2")
+
+        assert result == "org:team/model-v2"
+
+    def test_should_handle_callable_returning_non_string(self) -> None:
+        """Callable provider can return arbitrary objects (e.g., Model instances)."""
+        sentinel = object()
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"custom": lambda _: sentinel})
+
+        result = registry.get_model("custom/any-model")
+
+        assert result is sentinel
+
+
 class TestCreateDefaultModelRegistry:
     """Tests for the create_default_model_registry factory."""
 

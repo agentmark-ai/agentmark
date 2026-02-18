@@ -10,42 +10,42 @@ vi.mock('prompts', () => ({
   default: vi.fn()
 }));
 
-// Mock providers module with controlled test data
+// Mock providers module with controlled test data (provider-prefixed model names match production)
 vi.mock('../cli-src/utils/providers', () => ({
   Providers: {
     openai: {
       label: "OpenAI",
-      languageModels: ["gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-5", "gpt-4-turbo", "gpt-3.5-turbo"],
-      imageModels: ["dall-e-3", "dall-e-2"],
-      speechModels: ["tts-1", "tts-1-hd"],
+      languageModels: ["openai/gpt-4o", "openai/gpt-4o-mini", "openai/gpt-4", "openai/gpt-5", "openai/gpt-4-turbo", "openai/gpt-3.5-turbo"],
+      imageModels: ["openai/dall-e-3", "openai/dall-e-2"],
+      speechModels: ["openai/tts-1", "openai/tts-1-hd"],
     },
     anthropic: {
       label: "Anthropic",
-      languageModels: ["claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
+      languageModels: ["anthropic/claude-3-haiku", "anthropic/claude-3-sonnet", "anthropic/claude-3-opus"],
       imageModels: [],
       speechModels: [],
     },
     ollama: {
       label: "Ollama",
-      languageModels: ["llama3.1", "llama3.2", "mistral"],
+      languageModels: ["ollama/llama3.1", "ollama/llama3.2", "ollama/mistral"],
       imageModels: [],
       speechModels: [],
     },
     xai: {
       label: "xAI Grok",
-      languageModels: ["grok-3", "grok-3-mini"],
+      languageModels: ["xai/grok-3", "xai/grok-3-mini"],
       imageModels: [],
       speechModels: [],
     },
     google: {
       label: "Google",
-      languageModels: ["gemini-2.0-flash", "gemini-1.5-pro"],
+      languageModels: ["google/gemini-2.0-flash", "google/gemini-1.5-pro"],
       imageModels: [],
       speechModels: [],
     },
     groq: {
       label: "Groq",
-      languageModels: ["llama-3.3-70b-versatile"],
+      languageModels: ["groq/llama-3.3-70b-versatile"],
       imageModels: [],
       speechModels: [],
     },
@@ -125,7 +125,7 @@ describe('pull-models', () => {
   it('filters out already-installed models', async () => {
     // Create config with existing models
     fs.writeJSONSync(configPath, {
-      builtInModels: ['gpt-4o', 'gpt-4o-mini']
+      builtInModels: ['openai/gpt-4o', 'openai/gpt-4o-mini']
     });
 
     // Mock provider selection (OpenAI) and model selection
@@ -141,8 +141,8 @@ describe('pull-models', () => {
 
     // Verify already-installed models are not in choices
     const choiceValues = modelPromptCall.choices.map((c: any) => c.value);
-    expect(choiceValues).not.toContain('gpt-4o');
-    expect(choiceValues).not.toContain('gpt-4o-mini');
+    expect(choiceValues).not.toContain('openai/gpt-4o');
+    expect(choiceValues).not.toContain('openai/gpt-4o-mini');
   });
 
   it('displays message when all models already added', async () => {
@@ -151,9 +151,9 @@ describe('pull-models', () => {
     // Create config with ALL openai models
     fs.writeJSONSync(configPath, {
       builtInModels: [
-        'gpt-4o', 'gpt-4o-mini', 'gpt-4', 'gpt-5', 'gpt-4-turbo', 'gpt-3.5-turbo',
-        'dall-e-3', 'dall-e-2',
-        'tts-1', 'tts-1-hd'
+        'openai/gpt-4o', 'openai/gpt-4o-mini', 'openai/gpt-4', 'openai/gpt-5', 'openai/gpt-4-turbo', 'openai/gpt-3.5-turbo',
+        'openai/dall-e-3', 'openai/dall-e-2',
+        'openai/tts-1', 'openai/tts-1-hd'
       ]
     });
 
@@ -177,7 +177,7 @@ describe('pull-models', () => {
     // Mock provider and model selection
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })
-      .mockResolvedValueOnce({ models: ['gpt-4o', 'dall-e-3'] });
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o', 'openai/dall-e-3'] });
 
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -187,8 +187,8 @@ describe('pull-models', () => {
     const updatedConfig = fs.readJSONSync(configPath);
 
     // Verify models were added
-    expect(updatedConfig.builtInModels).toContain('gpt-4o');
-    expect(updatedConfig.builtInModels).toContain('dall-e-3');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
+    expect(updatedConfig.builtInModels).toContain('openai/dall-e-3');
     expect(consoleLogSpy).toHaveBeenCalledWith('Models pulled successfully.');
 
     consoleLogSpy.mockRestore();
@@ -197,14 +197,14 @@ describe('pull-models', () => {
   it('preserves existing models in config', async () => {
     // Create config with existing models
     fs.writeJSONSync(configPath, {
-      builtInModels: ['gpt-4o'],
+      builtInModels: ['openai/gpt-4o'],
       otherField: 'preserved'
     });
 
     // Mock selections
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })
-      .mockResolvedValueOnce({ models: ['gpt-4-turbo'] });
+      .mockResolvedValueOnce({ models: ['openai/gpt-4-turbo'] });
 
     await pullModels();
 
@@ -212,8 +212,8 @@ describe('pull-models', () => {
     const updatedConfig = fs.readJSONSync(configPath);
 
     // Verify both old and new models exist
-    expect(updatedConfig.builtInModels).toContain('gpt-4o');
-    expect(updatedConfig.builtInModels).toContain('gpt-4-turbo');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4-turbo');
 
     // Verify other fields preserved
     expect(updatedConfig.otherField).toBe('preserved');
@@ -250,7 +250,7 @@ describe('pull-models', () => {
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })
       .mockResolvedValueOnce({
-        models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'dall-e-3']
+        models: ['openai/gpt-4o', 'openai/gpt-4o-mini', 'openai/gpt-4-turbo', 'openai/dall-e-3']
       });
 
     await pullModels();
@@ -259,10 +259,10 @@ describe('pull-models', () => {
 
     // Verify all selected models were added
     expect(updatedConfig.builtInModels).toHaveLength(4);
-    expect(updatedConfig.builtInModels).toContain('gpt-4o');
-    expect(updatedConfig.builtInModels).toContain('gpt-4o-mini');
-    expect(updatedConfig.builtInModels).toContain('gpt-4-turbo');
-    expect(updatedConfig.builtInModels).toContain('dall-e-3');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4o-mini');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4-turbo');
+    expect(updatedConfig.builtInModels).toContain('openai/dall-e-3');
   });
 
   it('writes valid JSON to agentmark.json', async () => {
@@ -270,7 +270,7 @@ describe('pull-models', () => {
 
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })
-      .mockResolvedValueOnce({ models: ['gpt-4o'] });
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o'] });
 
     await pullModels();
 
@@ -285,27 +285,27 @@ describe('pull-models', () => {
   });
 
   it('deduplicates models when adding duplicates', async () => {
-    // Config already has gpt-4o
+    // Config already has openai/gpt-4o
     fs.writeJSONSync(configPath, {
-      builtInModels: ['gpt-4o']
+      builtInModels: ['openai/gpt-4o']
     });
 
-    // Try to add gpt-4o again along with new model
+    // Try to add openai/gpt-4o again along with new model
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })
-      .mockResolvedValueOnce({ models: ['gpt-4o', 'gpt-4-turbo'] });
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o', 'openai/gpt-4-turbo'] });
 
     await pullModels();
 
     const updatedConfig = fs.readJSONSync(configPath);
 
-    // Should only have one instance of gpt-4o
-    const gpt4oCount = updatedConfig.builtInModels.filter((m: string) => m === 'gpt-4o').length;
+    // Should only have one instance of openai/gpt-4o
+    const gpt4oCount = updatedConfig.builtInModels.filter((m: string) => m === 'openai/gpt-4o').length;
     expect(gpt4oCount).toBe(1);
 
     // Should have both models total
-    expect(updatedConfig.builtInModels).toContain('gpt-4o');
-    expect(updatedConfig.builtInModels).toContain('gpt-4-turbo');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4-turbo');
   });
 
   it('supports different providers (anthropic)', async () => {
@@ -333,7 +333,7 @@ describe('pull-models', () => {
 
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })
-      .mockResolvedValueOnce({ models: ['gpt-4o'] });
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o'] });
 
     await pullModels();
 
@@ -341,6 +341,23 @@ describe('pull-models', () => {
 
     // Should have created builtInModels array
     expect(Array.isArray(updatedConfig.builtInModels)).toBe(true);
-    expect(updatedConfig.builtInModels).toContain('gpt-4o');
+    expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
+  });
+
+  it('displays provider setup reminder after model selection', async () => {
+    fs.writeJSONSync(configPath, { builtInModels: [] });
+
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    mockPrompts
+      .mockResolvedValueOnce({ provider: 'openai' })
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o'] });
+
+    await pullModels();
+
+    // Verify provider setup reminder was shown
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('registerProviders'));
+
+    consoleLogSpy.mockRestore();
   });
 });

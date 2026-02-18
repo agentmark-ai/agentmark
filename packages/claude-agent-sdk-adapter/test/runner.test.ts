@@ -145,7 +145,7 @@ describe("ClaudeAgentWebhookHandler", () => {
       beforeEach(() => {
         vi.mocked(getFrontMatter).mockReturnValue({
           name: "test-prompt",
-          text_config: { model_name: "claude-sonnet-4-20250514" },
+          text_config: { model_name: "anthropic/claude-sonnet-4-20250514" },
         });
       });
 
@@ -249,7 +249,7 @@ describe("ClaudeAgentWebhookHandler", () => {
         vi.mocked(getFrontMatter).mockReturnValue({
           name: "object-prompt",
           object_config: {
-            model_name: "claude-sonnet-4-20250514",
+            model_name: "anthropic/claude-sonnet-4-20250514",
             output: { schema: { type: "object" } },
           },
         });
@@ -288,7 +288,7 @@ describe("ClaudeAgentWebhookHandler", () => {
       it("should return error for image_config prompts", async () => {
         vi.mocked(getFrontMatter).mockReturnValue({
           name: "image-prompt",
-          image_config: { model_name: "dall-e-3" },
+          image_config: { model_name: "openai/dall-e-3" },
         });
 
         const result = await handler.runPrompt(createMockAst());
@@ -302,7 +302,7 @@ describe("ClaudeAgentWebhookHandler", () => {
       it("should return error for speech_config prompts", async () => {
         vi.mocked(getFrontMatter).mockReturnValue({
           name: "speech-prompt",
-          speech_config: { model_name: "tts-1", voice: "alloy" },
+          speech_config: { model_name: "openai/tts-1", voice: "alloy" },
         });
 
         const result = await handler.runPrompt(createMockAst());
@@ -457,7 +457,7 @@ describe("ClaudeAgentWebhookHandler", () => {
     it("should capture structured output from result", async () => {
       vi.mocked(getFrontMatter).mockReturnValue({
         name: "object-stream",
-        object_config: { model_name: "claude-sonnet" },
+        object_config: { model_name: "anthropic/claude-sonnet" },
       });
 
       const structuredOutput = { key: "value" };
@@ -841,7 +841,7 @@ describe("ClaudeAgentWebhookHandler", () => {
     it("should reject image prompts in experiments", async () => {
       vi.mocked(getFrontMatter).mockReturnValue({
         name: "image-experiment",
-        image_config: { model_name: "dall-e-3" },
+        image_config: { model_name: "openai/dall-e-3" },
       });
 
       const result = await handler.runExperiment(createMockAst(), "run-1");
@@ -856,7 +856,7 @@ describe("ClaudeAgentWebhookHandler", () => {
     it("should reject speech prompts in experiments", async () => {
       vi.mocked(getFrontMatter).mockReturnValue({
         name: "speech-experiment",
-        speech_config: { model_name: "tts-1" },
+        speech_config: { model_name: "openai/tts-1" },
       });
 
       const result = await handler.runExperiment(createMockAst(), "run-1");
@@ -902,7 +902,7 @@ describe("ClaudeAgentWebhookHandler", () => {
     it("should use object prompt for object_config", async () => {
       vi.mocked(getFrontMatter).mockReturnValue({
         name: "object-experiment",
-        object_config: { model_name: "claude-sonnet", output: {} },
+        object_config: { model_name: "anthropic/claude-sonnet", output: {} },
         test_settings: { dataset: "./test.jsonl" },
       });
 
