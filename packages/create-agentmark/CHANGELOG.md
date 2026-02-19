@@ -1,3 +1,26 @@
+## 0.9.0 (2026-02-19)
+
+### 🚀 Features
+
+- Add seamless pull-models flow with provider/model format ([#499](https://github.com/agentmark-ai/agentmark/pull/499))
+
+  - prompt-core: validate model names against builtInModels allow-list at load time
+  - ai-sdk-v4-adapter, ai-sdk-v5-adapter: add registerProviders() and getModelFunction() for seamless provider/model string resolution; add speech model support
+  - claude-agent-sdk-adapter, mastra-v0-adapter: update model registry to use provider/model format
+  - create-agentmark: scaffold new projects with builtInModels in provider/model format and registerProviders wiring
+
+### 🩹 Fixes
+
+- Fix builtInModels derived from templates instead of hardcoded adapter switch ([#499](https://github.com/agentmark-ai/agentmark/pull/499))
+
+  - createExamplePrompts() now returns the model IDs it actually writes, making it the single source of truth for builtInModels
+  - Removes the hardcoded adapter→model switch that was missing openai/dall-e-3 and openai/tts-1-hd for ai-sdk users
+  - ai-sdk users now get all three models (gpt-4o, dall-e-3, tts-1-hd) in builtInModels on init
+- Fix agentmark.json missing from initial git commit and duplicate dev-config.json locations ([#499](https://github.com/agentmark-ai/agentmark/pull/499))
+
+  - create-agentmark: move initGitRepo() to main() so it runs after agentmark.json is written, ensuring all files land in the initial commit
+  - cli: add findProjectRoot() that walks up to find agentmark.json, anchoring .agentmark/dev-config.json there as a single source of truth regardless of which directory agentmark dev is run from
+
 ## 0.8.4 (2026-02-19)
 
 ### 🩹 Fixes
