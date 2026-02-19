@@ -1,3 +1,14 @@
+## 0.8.2 (2026-02-19)
+
+### 🩹 Fixes
+
+- Sync: update from upstream monorepo ([#495](https://github.com/agentmark-ai/agentmark/pull/495))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.1.2
+- Updated @agentmark-ai/prompt-core to 0.1.2
+
 ## 0.8.1 (2026-02-17)
 
 ### 🩹 Fixes
