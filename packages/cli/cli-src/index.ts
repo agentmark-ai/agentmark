@@ -9,6 +9,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import dev from './commands/dev';
 import generateTypes from './commands/generate-types';
+import generateSchema from './commands/generate-schema';
 import pullModels from './commands/pull-models';
 import runPrompt from './commands/run-prompt';
 import runExperiment from './commands/run-experiment';
@@ -61,6 +62,18 @@ program
       local: localPort,
       rootDir: options.rootDir
     });
+  });
+
+program
+  .command('generate-schema')
+  .description('Generate JSON Schema for .prompt.mdx frontmatter (enables IDE squiggles for model_name)')
+  .option('-o, --out <directory>', 'Output directory (default: .agentmark)')
+  .action(async (options) => {
+    try {
+      await (generateSchema as any)({ outDir: options.out });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
   });
 
 program

@@ -26,7 +26,7 @@ describe('agentmark build', () => {
       `---
 name: greeting
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 test_settings:
   props:
     name: World
@@ -48,7 +48,7 @@ Say hello to {props.name}!
       `---
 name: parser
 object_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
   schema:
     type: object
     properties:
@@ -161,7 +161,7 @@ Parse the comma-separated list into an array.
       `---
 name: nested
 text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 ---
 
 <User>Hello</User>

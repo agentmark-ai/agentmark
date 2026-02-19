@@ -37,16 +37,17 @@ function buildProviders(): Record<
     }
 
     const group = result[entry.provider]!;
+    const prefixedId = `${entry.provider}/${id}`;
 
     switch (entry.mode) {
       case "chat":
-        group.languageModels.push(id);
+        group.languageModels.push(prefixedId);
         break;
       case "image_generation":
-        group.imageModels.push(id);
+        group.imageModels.push(prefixedId);
         break;
       case "audio_speech":
-        group.speechModels.push(id);
+        group.speechModels.push(prefixedId);
         break;
     }
   }

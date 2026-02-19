@@ -2,6 +2,7 @@ import path from "path";
 import { Providers } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
+import generateSchema from "./generate-schema";
 
 const pullModels = async () => {
   let agentmarkConfig = null;
@@ -65,6 +66,45 @@ const pullModels = async () => {
     choices: modelChoices,
   });
 
+  // Detect providers that need registration
+  const selectedProviders = new Set<string>();
+  for (const model of models as string[]) {
+    if (model.includes("/")) {
+      selectedProviders.add(model.split("/")[0]);
+    }
+  }
+
+  if (selectedProviders.size > 0) {
+    const adapterType = agentmarkConfig?.adapter || "ai-sdk";
+    const providerList = Array.from(selectedProviders);
+
+    console.log("\n📦 Provider setup reminder:");
+    console.log(
+      "Make sure these providers are registered in your model registry:\n"
+    );
+
+    for (const provider of providerList) {
+      if (
+        adapterType === "ai-sdk" ||
+        adapterType === "ai-sdk-v5" ||
+        adapterType === "ai-sdk-v4"
+      ) {
+        console.log(
+          `  import { ${provider} } from "@ai-sdk/${provider}";`
+        );
+      } else if (adapterType === "mastra") {
+        console.log(`  // Register ${provider} provider for Mastra`);
+      } else if (adapterType === "claude-agent-sdk") {
+        console.log(
+          `  // Claude Agent SDK handles models natively — no registration needed`
+        );
+      }
+    }
+
+    const providerObj = providerList.map((p) => p).join(", ");
+    console.log(`\n  .registerProviders({ ${providerObj} })\n`);
+  }
+
   agentmarkConfig["builtInModels"] = [
     ...new Set([...models, ...(agentmarkConfig.builtInModels || [])]),
   ];
@@ -78,6 +118,13 @@ const pullModels = async () => {
   );
 
   console.log("Models pulled successfully.");
+
+  // Regenerate prompt schema so IDE squiggles stay in sync with new models
+  try {
+    await generateSchema({});
+  } catch {
+    // Best-effort — don't fail pull-models if schema generation has issues
+  }
 };
 
 export default pullModels;

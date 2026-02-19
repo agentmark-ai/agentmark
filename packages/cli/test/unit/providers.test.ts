@@ -30,23 +30,44 @@ describe("Providers", () => {
 
   it("categorizes chat models as languageModels", () => {
     // OpenAI should have gpt-4o as a language model
-    expect(Providers["openai"]!.languageModels).toContain("gpt-4o");
+    expect(Providers["openai"]!.languageModels).toContain("openai/gpt-4o");
   });
 
-  it("categorizes image_generation models as imageModels", () => {
-    // OpenAI should have dall-e models
+  it("categorizes image_generation models as imageModels with provider prefix", () => {
+    // OpenAI should have dall-e models in provider/model format
     expect(Providers["openai"]!.imageModels.length).toBeGreaterThan(0);
     expect(
       Providers["openai"]!.imageModels.some((m) => m.includes("dall-e"))
     ).toBe(true);
+    // Verify provider/model prefix format (e.g., "openai/dall-e-3")
+    expect(
+      Providers["openai"]!.imageModels.every((m) => m.startsWith("openai/"))
+    ).toBe(true);
   });
 
-  it("categorizes audio_speech models as speechModels", () => {
-    // OpenAI should have tts models
+  it("categorizes audio_speech models as speechModels with provider prefix", () => {
+    // OpenAI should have tts models in provider/model format
     expect(Providers["openai"]!.speechModels.length).toBeGreaterThan(0);
     expect(
       Providers["openai"]!.speechModels.some((m) => m.includes("tts"))
     ).toBe(true);
+    // Verify provider/model prefix format (e.g., "openai/tts-1")
+    expect(
+      Providers["openai"]!.speechModels.every((m) => m.startsWith("openai/"))
+    ).toBe(true);
+  });
+
+  it("all models across all providers use provider/model prefix format", () => {
+    for (const [providerKey, provider] of Object.entries(Providers)) {
+      const allModels = [
+        ...provider.languageModels,
+        ...provider.imageModels,
+        ...provider.speechModels,
+      ];
+      for (const model of allModels) {
+        expect(model).toMatch(new RegExp(`^${providerKey}/`));
+      }
+    }
   });
 
   it("has correct shape for each provider entry", () => {

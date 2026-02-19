@@ -13,7 +13,8 @@
         ".github/**",
         "yarn.lock",
         "package.json",
-        "**/models.json"
+        "**/models.json",
+        "**/vitest.config.ts"
       ]
     },
     "projects": ["packages/*"],

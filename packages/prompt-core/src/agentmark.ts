@@ -28,6 +28,18 @@ export interface AgentMarkOptions<
   adapter: A;
   templateEngine?: TemplateEngine;
   evalRegistry?: EvalRegistry;
+  /** List of allowed model names (e.g. from agentmark.json's builtInModels). When provided,
+   *  model_name fields in prompt frontmatter must be one of these values. */
+  builtInModels?: string[];
+}
+
+/** Validate that a model_name value is in the allowed list, throwing an actionable error if not. */
+function assertModelNameAllowed(modelName: string, builtInModels: string[]): void {
+  if (!builtInModels.includes(modelName)) {
+    throw new Error(
+      `model_name "${modelName}" is not in builtInModels. Run agentmark pull-models to add it.`
+    );
+  }
 }
 
 export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
@@ -35,12 +47,14 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
   protected adapter: A;
   protected templateEngine: TemplateEngine;
   protected evalRegistry?: EvalRegistry;
+  protected builtInModels?: string[];
 
-  constructor({ loader, adapter, templateEngine, evalRegistry }: AgentMarkOptions<T, A>) {
+  constructor({ loader, adapter, templateEngine, evalRegistry, builtInModels }: AgentMarkOptions<T, A>) {
     this.loader = loader;
     this.adapter = adapter;
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
     this.evalRegistry = evalRegistry;
+    this.builtInModels = builtInModels;
   }
 
   getLoader() {
@@ -72,6 +86,9 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       template: content,
     });
     TextConfigSchema.parse(textConfig);
+    if (this.builtInModels && this.builtInModels.length > 0) {
+      assertModelNameAllowed(textConfig.text_config.model_name, this.builtInModels);
+    }
     return new TextPrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -99,6 +116,9 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       template: content,
     });
     ObjectConfigSchema.parse(objectConfig);
+    if (this.builtInModels && this.builtInModels.length > 0) {
+      assertModelNameAllowed(objectConfig.object_config.model_name, this.builtInModels);
+    }
     return new ObjectPrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -126,6 +146,9 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       template: content,
     });
     ImageConfigSchema.parse(imageConfig);
+    if (this.builtInModels && this.builtInModels.length > 0) {
+      assertModelNameAllowed(imageConfig.image_config.model_name, this.builtInModels);
+    }
     return new ImagePrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -153,6 +176,9 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
       template: content,
     });
     SpeechConfigSchema.parse(speechConfig);
+    if (this.builtInModels && this.builtInModels.length > 0) {
+      assertModelNameAllowed(speechConfig.speech_config.model_name, this.builtInModels);
+    }
     return new SpeechPrompt<T, A, K>(
       content,
       this.templateEngine,
@@ -171,6 +197,7 @@ export function createAgentMark<A extends Adapter<any>>(opts: {
   loader?: Loader<DictOf<A>>;
   templateEngine?: TemplateEngine;
   evalRegistry?: EvalRegistry;
+  builtInModels?: string[];
 }): AgentMark<DictOf<A>, A> {
   return new AgentMark(opts);
 }
