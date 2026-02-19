@@ -14,7 +14,6 @@ import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark-ai/
 import { appendGitignore, appendEnv } from "../file-merge.js";
 import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
-import { initGitRepo } from "../git-init.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -158,7 +157,7 @@ export const createExampleApp = async (
   deploymentMode: "cloud" | "static" = "cloud",
   projectInfo: ProjectInfo | null = null,
   resolutions: ConflictResolution[] = []
-) => {
+): Promise<string[]> => {
   try {
     const modelProvider = adapter === 'claude-agent-sdk' ? 'anthropic' : 'openai';
     const model = adapter === 'claude-agent-sdk' ? 'anthropic/claude-sonnet-4-20250514' : 'openai/gpt-4o';
@@ -178,8 +177,8 @@ export const createExampleApp = async (
 
     setupMCPServer(client, targetPath);
 
-    // Create example prompts
-    createExamplePrompts(model, targetPath, adapter);
+    // Create example prompts — returns the model IDs actually written
+    const usedModels = createExamplePrompts(model, targetPath, adapter);
     console.log(`✅ Example prompts and datasets created in ${folderName}/agentmark/`);
 
     // Create user client config at project root
@@ -327,11 +326,6 @@ main().catch((err) => {
       console.log(`✅ Created dev-entry.ts at project root`);
     }
 
-    // Initialize git repo for new projects
-    if (!isExistingProject) {
-      initGitRepo(targetPath);
-    }
-
     // Success message
     console.log("\n✅ Agentmark initialization completed successfully!");
 
@@ -375,6 +369,8 @@ main().catch((err) => {
     console.log('─'.repeat(70));
     console.log('  Documentation: https://docs.agentmark.co');
     console.log('═'.repeat(70) + '\n');
+
+    return usedModels;
   } catch (error) {
     console.error("Error creating example app:", error);
     throw error;

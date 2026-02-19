@@ -399,6 +399,126 @@ describe('init', () => {
     });
   });
 
+  describe('builtInModels returned by createExampleApp', () => {
+    const mockFsExtra = async () => {
+      vi.doMock('fs-extra', async () => {
+        const actual = await vi.importActual<any>('fs-extra');
+        return {
+          ...actual,
+          default: {
+            ...actual,
+            existsSync: (p: string) => actual.existsSync(p),
+            readJsonSync: (p: string) => actual.readJsonSync(p),
+            writeJsonSync: actual.writeJsonSync,
+            writeFileSync: actual.writeFileSync,
+          },
+          existsSync: (p: string) => actual.existsSync(p),
+          readJsonSync: (p: string) => actual.readJsonSync(p),
+          writeJsonSync: actual.writeJsonSync,
+          writeFileSync: actual.writeFileSync,
+        };
+      });
+      vi.doMock('child_process', () => ({
+        execSync: () => {},
+        execFileSync: () => {}
+      }));
+    };
+
+    it('ai-sdk: returns language model + image model + speech model', async () => {
+      const tmpDir = path.join(__dirname, '..', 'tmp-models-aisdk-' + Date.now());
+      fs.mkdirSync(tmpDir, { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test', version: '1.0.0', scripts: {} }, null, 2));
+      await mockFsExtra();
+      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
+      try {
+        const models = await createExampleApp('skip', tmpDir, '', 'ai-sdk');
+        expect(models).toEqual(['openai/dall-e-3', 'openai/gpt-4o', 'openai/tts-1-hd']);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('claude-agent-sdk: returns only the language model', async () => {
+      const tmpDir = path.join(__dirname, '..', 'tmp-models-claude-' + Date.now());
+      fs.mkdirSync(tmpDir, { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test', version: '1.0.0', scripts: {} }, null, 2));
+      await mockFsExtra();
+      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
+      try {
+        const models = await createExampleApp('skip', tmpDir, '', 'claude-agent-sdk');
+        expect(models).toEqual(['anthropic/claude-sonnet-4-20250514']);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('mastra: returns only the language model', async () => {
+      const tmpDir = path.join(__dirname, '..', 'tmp-models-mastra-' + Date.now());
+      fs.mkdirSync(tmpDir, { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test', version: '1.0.0', scripts: {} }, null, 2));
+      await mockFsExtra();
+      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
+      try {
+        const models = await createExampleApp('skip', tmpDir, '', 'mastra');
+        expect(models).toEqual(['openai/gpt-4o']);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('builtInModels returned by createPythonApp', () => {
+    const mockFsExtra = async () => {
+      vi.doMock('fs-extra', async () => {
+        const actual = await vi.importActual<any>('fs-extra');
+        return {
+          ...actual,
+          default: {
+            ...actual,
+            existsSync: (p: string) => actual.existsSync(p),
+            readJsonSync: (p: string) => actual.readJsonSync(p),
+            writeJsonSync: actual.writeJsonSync,
+            writeFileSync: actual.writeFileSync,
+          },
+          existsSync: (p: string) => actual.existsSync(p),
+          readJsonSync: (p: string) => actual.readJsonSync(p),
+          writeJsonSync: actual.writeJsonSync,
+          writeFileSync: actual.writeFileSync,
+        };
+      });
+      vi.doMock('child_process', () => ({
+        execSync: () => {},
+        execFileSync: () => {}
+      }));
+    };
+
+    it('pydantic-ai: returns only the language model', async () => {
+      const tmpDir = path.join(__dirname, '..', 'tmp-models-pydantic-' + Date.now());
+      fs.mkdirSync(tmpDir, { recursive: true });
+      await mockFsExtra();
+      const { createPythonApp } = await import('../src/utils/examples/create-python-app');
+      try {
+        const models = await createPythonApp('skip', tmpDir, '', 'cloud', 'pydantic-ai');
+        expect(models).toEqual(['openai/gpt-4o']);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('claude-agent-sdk (Python): returns only the language model', async () => {
+      const tmpDir = path.join(__dirname, '..', 'tmp-models-pyclaude-' + Date.now());
+      fs.mkdirSync(tmpDir, { recursive: true });
+      await mockFsExtra();
+      const { createPythonApp } = await import('../src/utils/examples/create-python-app');
+      try {
+        const models = await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
+        expect(models).toEqual(['anthropic/claude-sonnet-4-20250514']);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe('Python tracing initialization by deployment mode', () => {
     it('cloud mode generates tracing init pointing to AgentMark Cloud for pydantic-ai', async () => {
       const { getMainPyContent } = await import('../src/utils/examples/create-python-app');

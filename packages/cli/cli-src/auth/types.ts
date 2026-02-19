@@ -43,6 +43,7 @@ export interface DevKeyResponse {
   key_id: string;
   app_id: string;
   app_name: string;
+  org_name: string | null;
   tenant_id: string;
   base_url: string;
   expires_at: string;

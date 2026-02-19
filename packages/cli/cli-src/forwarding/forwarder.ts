@@ -213,7 +213,7 @@ export class TraceForwarder {
       }
 
       return { success: false, status: response.status, retryAfter };
-    } catch (error) {
+    } catch {
       // Network error or timeout
       return { success: false };
     }

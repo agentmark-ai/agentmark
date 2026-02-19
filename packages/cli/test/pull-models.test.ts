@@ -189,7 +189,7 @@ describe('pull-models', () => {
     // Verify models were added
     expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
     expect(updatedConfig.builtInModels).toContain('openai/dall-e-3');
-    expect(consoleLogSpy).toHaveBeenCalledWith('Models pulled successfully.');
+    expect(consoleLogSpy).toHaveBeenCalledWith('Added 2 model(s): openai/gpt-4o, openai/dall-e-3');
 
     consoleLogSpy.mockRestore();
   });
@@ -342,6 +342,37 @@ describe('pull-models', () => {
     // Should have created builtInModels array
     expect(Array.isArray(updatedConfig.builtInModels)).toBe(true);
     expect(updatedConfig.builtInModels).toContain('openai/gpt-4o');
+  });
+
+  it('enforces min: 1 on the models multiselect prompt', async () => {
+    fs.writeJSONSync(configPath, { builtInModels: [] });
+
+    mockPrompts
+      .mockResolvedValueOnce({ provider: 'openai' })
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o'] });
+
+    await pullModels();
+
+    const modelPromptCall = mockPrompts.mock.calls[1][0];
+    expect(modelPromptCall.min).toBe(1);
+  });
+
+  it('shows count and names of added models in success message', async () => {
+    fs.writeJSONSync(configPath, { builtInModels: [] });
+
+    mockPrompts
+      .mockResolvedValueOnce({ provider: 'openai' })
+      .mockResolvedValueOnce({ models: ['openai/gpt-4o', 'openai/gpt-4-turbo'] });
+
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await pullModels();
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      'Added 2 model(s): openai/gpt-4o, openai/gpt-4-turbo'
+    );
+
+    consoleLogSpy.mockRestore();
   });
 
   it('displays provider setup reminder after model selection', async () => {

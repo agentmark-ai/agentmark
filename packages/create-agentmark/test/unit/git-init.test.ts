@@ -97,4 +97,22 @@ describe('initGitRepo', () => {
     expect(tracked).not.toContain('.env');
     expect(tracked).not.toContain('node_modules');
   });
+
+  it('should include files created before initGitRepo is called', { timeout: 15000 }, () => {
+    // Simulate the correct call order: all files written before initGitRepo
+    fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/\n.env\n');
+    fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), '// client');
+    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), '// entry');
+    // agentmark.json written last — mirrors what main() does after createExampleApp returns
+    fs.writeJsonSync(path.join(tempDir, 'agentmark.json'), { version: '2.0.0', agentmarkPath: '.' });
+
+    const result = initGitRepo(tempDir);
+    expect(result).toBe(true);
+
+    const tracked = execSync('git ls-files', { cwd: tempDir, encoding: 'utf-8' });
+    expect(tracked).toContain('agentmark.json');
+    expect(tracked).toContain('agentmark.client.ts');
+    expect(tracked).toContain('dev-entry.ts');
+    expect(tracked).toContain('.gitignore');
+  });
 });

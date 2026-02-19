@@ -22,6 +22,7 @@ export interface LocalConfig {
   forwarding?: {
     appId?: string;
     appName?: string;
+    orgName?: string;
     tenantId?: string;
     apiKey?: string;
     apiKeyId?: string;
@@ -34,6 +35,26 @@ export interface LocalConfig {
 let cachedConfig: LocalConfig | null = null;
 let cachedConfigPath: string | null = null;
 
+/**
+ * Walk up from startDir looking for a directory that contains agentmark.json.
+ * Returns that directory (the project root), or startDir if not found.
+ */
+export function findProjectRoot(startDir: string): string {
+  let current = path.resolve(startDir);
+  const fsRoot = path.parse(current).root;
+
+  while (true) {
+    if (fs.existsSync(path.join(current, 'agentmark.json'))) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current || current === fsRoot) {
+      return startDir;
+    }
+    current = parent;
+  }
+}
+
 function getConfigPath(): string {
   // Use temp directory during tests to avoid polluting the project
   if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
@@ -43,8 +64,8 @@ function getConfigPath(): string {
 
   // Use .agentmark directory in project root for config
   try {
-    const cwd = process.cwd();
-    const configDir = path.join(cwd, '.agentmark');
+    const projectRoot = findProjectRoot(process.cwd());
+    const configDir = path.join(projectRoot, '.agentmark');
 
     // Create .agentmark directory if it doesn't exist
     if (!fs.existsSync(configDir)) {
@@ -52,7 +73,7 @@ function getConfigPath(): string {
     }
 
     // Ensure .gitignore exists and includes dev-config.json
-    ensureGitignoreEntry(cwd);
+    ensureGitignoreEntry(projectRoot);
 
     return path.join(configDir, 'dev-config.json');
   } catch {

@@ -92,5 +92,5 @@ jobs:
         run: yarn workspace @agentmark-ai/mcp-server test:integration
 
       - name: Check version plans
-        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/')
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'sync/')
         run: yarn release:plan:check

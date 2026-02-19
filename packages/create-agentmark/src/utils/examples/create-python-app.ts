@@ -6,7 +6,6 @@ import {
 import { appendGitignore, appendEnv } from "../file-merge.js";
 import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
-import { initGitRepo } from "../git-init.js";
 
 const setupMCPServer = (client: string, targetPath: string) => {
   if (client === "skip") {
@@ -530,7 +529,7 @@ export const createPythonApp = async (
   adapter: string = "pydantic-ai",
   projectInfo: ProjectInfo | null = null,
   resolutions: ConflictResolution[] = []
-) => {
+): Promise<string[]> => {
   try {
     const model = adapter === 'claude-agent-sdk' ? 'anthropic/claude-sonnet-4-20250514' : 'openai/gpt-4o';
     const adapterDisplayName = adapter === 'claude-agent-sdk' ? 'Claude Agent SDK' : 'Pydantic AI';
@@ -549,8 +548,8 @@ export const createPythonApp = async (
 
     setupMCPServer(client, targetPath);
 
-    // Create example prompts (reuse from TypeScript)
-    createExamplePrompts(model, targetPath, adapter);
+    // Create example prompts (reuse from TypeScript) — returns the model IDs actually written
+    const usedModels = createExamplePrompts(model, targetPath, adapter);
     console.log(`Example prompts and datasets created in ${folderName}/agentmark/`);
 
     // Create pyproject.toml (skip for existing projects)
@@ -625,11 +624,6 @@ export const createPythonApp = async (
       console.log("");
     }
 
-    // Initialize git repo for new projects
-    if (!isExistingProject) {
-      initGitRepo(targetPath);
-    }
-
     // Success message
     console.log("\n✅ AgentMark Python initialization completed successfully!");
 
@@ -673,6 +667,8 @@ export const createPythonApp = async (
     console.log('─'.repeat(70));
     console.log('  Documentation: https://docs.agentmark.co');
     console.log('═'.repeat(70) + '\n');
+
+    return usedModels;
   } catch (error) {
     console.error("Error creating Python app:", error);
     throw error;
