@@ -1,3 +1,14 @@
+## 1.0.4 (2026-02-19)
+
+### 🩹 Fixes
+
+- Sync: update from upstream monorepo ([#495](https://github.com/agentmark-ai/agentmark/pull/495))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.1.2
+- Updated @agentmark-ai/sdk to 1.0.5
+
 ## 1.0.3 (2026-01-21)
 
 This was a version bump only for @agentmark-ai/mastra-v0-adapter to align it with other projects, there were no code changes.

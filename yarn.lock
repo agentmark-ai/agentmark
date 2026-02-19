@@ -31,8 +31,8 @@ __metadata:
   resolution: "@agentmark-ai/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
+    "@agentmark-ai/sdk": "npm:1.0.5"
     "@agentmark-ai/templatedx": "npm:*"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
@@ -55,8 +55,8 @@ __metadata:
   resolution: "@agentmark-ai/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
+    "@agentmark-ai/sdk": "npm:1.0.5"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@ai-sdk/openai": "npm:^2.0.0"
@@ -88,8 +88,8 @@ __metadata:
   resolution: "@agentmark-ai/claude-agent-sdk-adapter@workspace:packages/claude-agent-sdk-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
+    "@agentmark-ai/sdk": "npm:1.0.5"
     "@agentmark-ai/templatedx": "npm:*"
     "@anthropic-ai/claude-agent-sdk": "npm:^0.1.0"
     "@opentelemetry/api": "npm:^1.9.0"
@@ -117,7 +117,7 @@ __metadata:
   resolution: "@agentmark-ai/cli@workspace:packages/cli"
   dependencies:
     "@agentmark-ai/model-registry": "npm:0.2.0"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
     "@agentmark-ai/shared-utils": "npm:0.3.0"
     "@agentmark-ai/templatedx": "npm:0.2.0"
     "@agentmark-ai/ui-components": "npm:0.3.6"
@@ -186,7 +186,7 @@ __metadata:
   resolution: "@agentmark-ai/fallback-adapter@workspace:packages/fallback-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -225,8 +225,8 @@ __metadata:
   resolution: "@agentmark-ai/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
-    "@agentmark-ai/sdk": "npm:*"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
+    "@agentmark-ai/sdk": "npm:1.0.5"
     "@agentmark-ai/templatedx": "npm:*"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"
@@ -281,7 +281,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/prompt-core@npm:0.1.1, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
+"@agentmark-ai/prompt-core@npm:0.1.2, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/prompt-core@workspace:packages/prompt-core"
   dependencies:
@@ -312,12 +312,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/sdk@npm:*, @agentmark-ai/sdk@workspace:packages/sdk":
+"@agentmark-ai/sdk@npm:1.0.5, @agentmark-ai/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
     "@agentmark-ai/loader-api": "npm:0.1.0"
-    "@agentmark-ai/prompt-core": "npm:0.1.1"
+    "@agentmark-ai/prompt-core": "npm:0.1.2"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.208.0"
     "@opentelemetry/resources": "npm:^2.2.0"

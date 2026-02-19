@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/pydantic-ai-v0-adapter",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "postinstall": "node ../../scripts/setup-python-venv.js -e ../templatedx-python -e ../prompt-core-python -e \".[dev]\"",
