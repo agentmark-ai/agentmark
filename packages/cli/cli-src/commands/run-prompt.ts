@@ -306,7 +306,17 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         if (streamTraceId && (promptHeader === 'Text' || promptHeader === 'Object')) {
           const { getAppPort } = await import('../config.js');
           const appPort = getAppPort();
-          console.log(`\n📊 View trace: http://localhost:${appPort}/traces?traceId=${streamTraceId}`);
+          const { loadForwardingConfig } = await import('../forwarding/config.js');
+          const fwdCfg = loadForwardingConfig();
+          if (fwdCfg?.orgName && fwdCfg?.appName) {
+            const { DEFAULT_PLATFORM_URL } = await import('../auth/constants.js');
+            const remoteUrl = `${DEFAULT_PLATFORM_URL}/orgs/${fwdCfg.orgName}/apps/${fwdCfg.appName}/traces?tab=traces&traceId=${streamTraceId}`;
+            console.log(`\n📊 View trace (local):  http://localhost:${appPort}/traces?traceId=${streamTraceId}`);
+            console.log(`🌐 View trace (remote): ${remoteUrl}`);
+            console.log(`   ⚠️  Remote traces may take up to 1 minute to appear`);
+          } else {
+            console.log(`\n📊 View trace: http://localhost:${appPort}/traces?traceId=${streamTraceId}`);
+          }
         }
         console.log('');
       } else {
@@ -355,7 +365,18 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
         if ((resp as any).traceId && (promptHeader === 'Text' || promptHeader === 'Object')) {
           const { getAppPort } = await import('../config.js');
           const appPort = getAppPort();
-          console.log(`\n📊 View trace: http://localhost:${appPort}/traces?traceId=${(resp as any).traceId}`);
+          const { loadForwardingConfig } = await import('../forwarding/config.js');
+          const fwdCfg = loadForwardingConfig();
+          const traceId = (resp as any).traceId;
+          if (fwdCfg?.orgName && fwdCfg?.appName) {
+            const { DEFAULT_PLATFORM_URL } = await import('../auth/constants.js');
+            const remoteUrl = `${DEFAULT_PLATFORM_URL}/orgs/${fwdCfg.orgName}/apps/${fwdCfg.appName}/traces?tab=traces&traceId=${traceId}`;
+            console.log(`\n📊 View trace (local):  http://localhost:${appPort}/traces?traceId=${traceId}`);
+            console.log(`🌐 View trace (remote): ${remoteUrl}`);
+            console.log(`   ⚠️  Remote traces may take up to 1 minute to appear`);
+          } else {
+            console.log(`\n📊 View trace: http://localhost:${appPort}/traces?traceId=${traceId}`);
+          }
         }
         console.log('');
       }

@@ -64,7 +64,7 @@ export default async function logout(
       } else {
         console.log('⚠️  Failed to revoke dev API key (continuing anyway)');
       }
-    } catch (error) {
+    } catch {
       console.log('⚠️  Failed to revoke dev API key (continuing anyway)');
     }
   }

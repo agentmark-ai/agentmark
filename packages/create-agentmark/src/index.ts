@@ -6,6 +6,7 @@ import { createPythonApp } from "./utils/examples/create-python-app";
 import { detectProjectInfo, isCurrentDirectory } from "./utils/project-detection.js";
 import { displayProjectDetectionSummary, promptForResolutions } from "./utils/conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "./utils/types.js";
+import { initGitRepo } from "./utils/git-init.js";
 
 const parseArgs = () => {
   const args = process.argv.slice(2);
@@ -107,11 +108,6 @@ const main = async () => {
     adapter = response.adapter;
   }
 
-  // Set built-in models based on adapter
-  config.builtInModels = adapter === 'claude-agent-sdk'
-    ? ['anthropic/claude-sonnet-4-20250514']
-    : ['openai/gpt-4o'];
-
   // Prompt for API key based on adapter
   const apiKeyName = adapter === 'claude-agent-sdk' ? 'Anthropic' : 'OpenAI';
   let apiKey = "";
@@ -158,11 +154,13 @@ const main = async () => {
     ],
   });
 
+  let usedModels: string[];
   if (language === "python") {
-    await createPythonApp(client, targetPath, apiKey, deploymentMode, adapter, projectInfo, resolutions);
+    usedModels = await createPythonApp(client, targetPath, apiKey, deploymentMode, adapter, projectInfo, resolutions);
   } else {
-    await createExampleApp(client, targetPath, apiKey, adapter, deploymentMode, projectInfo, resolutions);
+    usedModels = await createExampleApp(client, targetPath, apiKey, adapter, deploymentMode, projectInfo, resolutions);
   }
+  config.builtInModels = usedModels;
 
   // Generate agentmark.json based on conflict resolution
   const agentmarkJsonPath = path.join(targetPath, "agentmark.json");
@@ -173,6 +171,11 @@ const main = async () => {
     fs.writeJsonSync(agentmarkJsonPath, config, { spaces: 2 });
   } else if (agentmarkJsonResolution?.action === "skip") {
     console.log("⏭️  Skipped agentmark.json (keeping existing file)");
+  }
+
+  // Initialize git repo after ALL files are written (including agentmark.json)
+  if (!projectInfo.isExistingProject) {
+    initGitRepo(targetPath);
   }
 };
 

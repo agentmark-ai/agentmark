@@ -2,7 +2,6 @@ import path from "path";
 import { Providers } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
-import generateSchema from "./generate-schema";
 
 const pullModels = async () => {
   let agentmarkConfig = null;
@@ -64,6 +63,7 @@ const pullModels = async () => {
     type: "multiselect",
     message: "Select models",
     choices: modelChoices,
+    min: 1,
   });
 
   // Detect providers that need registration
@@ -117,14 +117,7 @@ const pullModels = async () => {
     }
   );
 
-  console.log("Models pulled successfully.");
-
-  // Regenerate prompt schema so IDE squiggles stay in sync with new models
-  try {
-    await generateSchema({});
-  } catch {
-    // Best-effort — don't fail pull-models if schema generation has issues
-  }
+  console.log(`Added ${models.length} model(s): ${models.join(", ")}`);
 };
 
 export default pullModels;

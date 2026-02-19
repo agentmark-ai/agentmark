@@ -383,7 +383,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
               } else {
                 console.log('⚠️  Failed to refresh key automatically. Run `agentmark link` to refresh.\n');
               }
-            } catch (error) {
+            } catch {
               console.log('⚠️  Failed to refresh key automatically. Run `agentmark link` to refresh.\n');
             }
           }

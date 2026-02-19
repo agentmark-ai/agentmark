@@ -147,6 +147,7 @@ export async function attemptAutoLink(options: {
     saveForwardingConfig({
       appId: keyData.app_id,
       appName: keyData.app_name,
+      orgName: keyData.org_name ?? undefined,
       tenantId: keyData.tenant_id,
       apiKey: keyData.key,
       apiKeyId: keyData.key_id,
@@ -156,7 +157,7 @@ export async function attemptAutoLink(options: {
 
     console.log('✓ Trace forwarding active\n');
     return true;
-  } catch (error) {
+  } catch {
     // Silently fail on any error - don't interrupt dev startup
     return false;
   }

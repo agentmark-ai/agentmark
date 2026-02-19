@@ -84,39 +84,6 @@ describe('pull-models with real Providers (integration)', () => {
     expect(updatedConfig.builtInModels[0]).toBe(firstModel);
   });
 
-  it('regenerates prompt.schema.json with type-filtered enums per config section', async () => {
-    fs.writeJSONSync(configPath, { builtInModels: [] });
-
-    const { Providers } = await import('../cli-src/utils/providers');
-    const languageModel = Providers['openai']!.languageModels[0]!;
-    const imageModel = Providers['openai']!.imageModels[0]!;
-    const selectedModels = [languageModel, imageModel];
-
-    mockPrompts
-      .mockResolvedValueOnce({ provider: 'openai' })
-      .mockResolvedValueOnce({ models: selectedModels });
-
-    await pullModels();
-
-    // generateSchema runs automatically after pull-models writes agentmark.json
-    const schemaPath = path.join(testDir, '.agentmark', 'prompt.schema.json');
-    expect(fs.existsSync(schemaPath)).toBe(true);
-
-    const schema = fs.readJSONSync(schemaPath);
-
-    // text and object configs get only language models (chat mode)
-    expect(schema.properties.text_config.properties.model_name.enum).toEqual([languageModel]);
-    expect(schema.properties.object_config.properties.model_name.enum).toEqual([languageModel]);
-    // image config gets only image models (image_generation mode)
-    expect(schema.properties.image_config.properties.model_name.enum).toEqual([imageModel]);
-    // no speech models selected — speech_config falls back to plain string
-    expect(schema.properties.speech_config.properties.model_name.enum).toBeUndefined();
-
-    // All values are in provider/model format
-    expect(languageModel).toMatch(/^openai\//);
-    expect(imageModel).toMatch(/^openai\//);
-  });
-
   it('includes both language and image models in correct prefix format', async () => {
     fs.writeJSONSync(configPath, { builtInModels: [] });
 

@@ -84,7 +84,7 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
     try {
       const open = (await import('open')).default;
       await open(authUrl.toString());
-    } catch (error) {
+    } catch {
       console.log(`✗ Failed to open browser automatically.`);
       console.log(`\nVisit this URL manually:\n${authUrl.toString()}\n`);
     }

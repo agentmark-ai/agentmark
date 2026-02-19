@@ -172,6 +172,7 @@ export default async function link(options: LinkOptions = {}): Promise<void> {
   saveForwardingConfig({
     appId: keyData.app_id,
     appName: keyData.app_name,
+    orgName: keyData.org_name ?? undefined,
     tenantId: keyData.tenant_id,
     apiKey: keyData.key,
     apiKeyId: keyData.key_id,
