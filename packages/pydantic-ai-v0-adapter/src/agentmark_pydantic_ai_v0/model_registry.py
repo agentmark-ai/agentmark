@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
@@ -50,6 +50,7 @@ class PydanticAIModelRegistry:
         """
         self._exact_matches: dict[str, ModelFunctionCreator] = {}
         self._pattern_matches: list[tuple[re.Pattern[str], ModelFunctionCreator]] = []
+        self._providers: dict[str, str | Any] = {}
         self._default_creator = default_creator
 
     def register_models(
@@ -73,6 +74,27 @@ class PydanticAIModelRegistry:
                 self._exact_matches[name] = creator
         else:
             self._pattern_matches.append((model_pattern, creator))
+        return self
+
+    def register_providers(
+        self,
+        providers: dict[str, str | Callable[[str], Model | str]],
+    ) -> PydanticAIModelRegistry:
+        """Register providers for auto-resolution.
+
+        For string values, the provider name is used as a prefix:
+            {"openai": "openai"} -> "openai/gpt-4o" -> "openai:gpt-4o"
+
+        For callable values, the function is called with the model ID:
+            {"custom": lambda id: CustomModel(id)} -> "custom/my-model" -> CustomModel("my-model")
+
+        Args:
+            providers: Mapping of provider names to string prefixes or callables.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._providers.update(providers)
         return self
 
     def get_model(
@@ -100,6 +122,29 @@ class PydanticAIModelRegistry:
         for pattern, creator in self._pattern_matches:
             if pattern.match(model_name):
                 return creator(model_name, options)
+
+        # Provider auto-resolution
+        if "/" in model_name:
+            slash_idx = model_name.index("/")
+            provider_name = model_name[:slash_idx]
+            model_id = model_name[slash_idx + 1:]
+
+            if not provider_name or not model_id:
+                raise ValueError(
+                    f"Invalid model name format: '{model_name}'. Expected 'provider/model'."
+                )
+
+            provider = self._providers.get(provider_name)
+            if provider is not None:
+                if isinstance(provider, str):
+                    # String provider: transform "/" to ":" for Pydantic AI format
+                    return f"{provider}:{model_id}"
+                elif callable(provider):
+                    return provider(model_id)
+                else:
+                    raise ValueError(
+                        f"Provider '{provider_name}' has invalid type. Expected str or callable."
+                    )
 
         # Fall back to default
         if self._default_creator:

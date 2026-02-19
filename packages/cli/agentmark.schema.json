@@ -23,10 +23,10 @@
         },
         "builtInModels": {
             "type": "array",
-            "description": "The built in models for the agentmark",
+            "description": "Models available for use in prompts. Use provider/model format (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4-20250514') for automatic provider resolution via registerProviders().",
             "items": {
                 "type": "string",
-                "description": "The name of the built in model"
+                "description": "Model name in provider/model format (e.g., 'openai/gpt-4o')"
             }
         },
         "modelSchemas": {

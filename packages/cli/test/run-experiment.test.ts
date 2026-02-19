@@ -7,7 +7,7 @@ const MOCK_TEXT_TOKENS = 10;
 const MOCK_OBJECT_TOKENS = 15;
 const TEST_API_KEY = 'test-key';
 const MOCK_EXPECTED_OUTPUT = 'EXPECTED';
-const MOCK_MODEL_NAME = 'gpt-4o';
+const MOCK_MODEL_NAME = 'openai/gpt-4o';
 
 // Test state
 let runExperiment: any;
@@ -187,7 +187,7 @@ describe('run-experiment', () => {
     const { writeFileSync, unlinkSync } = await import('node:fs');
     const { join } = await import('node:path');
     const tempPath = join(__dirname, '..', 'dummy-dataset.mdx');
-    writeFileSync(tempPath, '---\ntext_config:\n  model_name: gpt-4o\n---');
+    writeFileSync(tempPath, '---\ntext_config:\n  model_name: openai/gpt-4o\n---');
 
     // Provide runner that streams a dataset row with two evals scoring 1.0
     // Include reasons in evals emitted by runner
@@ -311,7 +311,7 @@ describe('run-experiment', () => {
 
     // Write prompt with relative dataset path
     const yamlContent = `text_config:
-  model_name: gpt-4o
+  model_name: openai/gpt-4o
 test_settings:
   dataset: ${datasetRelativePath}`;
     writeFileSync(promptPath, `---

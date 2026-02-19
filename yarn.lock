@@ -59,6 +59,7 @@ __metadata:
     "@agentmark-ai/sdk": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
+    "@ai-sdk/openai": "npm:^2.0.0"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -464,6 +465,18 @@ __metadata:
   peerDependencies:
     zod: ^3.25.76 || ^4.1.8
   checksum: 10c0/ca6ee002b3eeab8560acca51c2a0fdf1c7afa1609cedec4c124fac19d53b1e890664bfc16280d927544d810c2da29148c6bae34f587e771194a1e89850be359b
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/openai@npm:^2.0.0":
+  version: 2.0.91
+  resolution: "@ai-sdk/openai@npm:2.0.91"
+  dependencies:
+    "@ai-sdk/provider": "npm:2.0.1"
+    "@ai-sdk/provider-utils": "npm:3.0.21"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/52f4148ef6234c6b8a9459ef8f61fced1ef7994cdfda9271b112d97a04d19d51b3c52a9ff9ebe22b212a61eea0045ac9603e66a2d64cf4ab84e56ada94089e1c
   languageName: node
   linkType: hard
 

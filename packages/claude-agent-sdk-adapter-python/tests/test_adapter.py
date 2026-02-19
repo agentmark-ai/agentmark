@@ -37,7 +37,7 @@ class TestClaudeAgentAdapterTextPrompts:
         """Should adapt text prompts for Claude Agent SDK."""
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
@@ -51,7 +51,7 @@ class TestClaudeAgentAdapterTextPrompts:
         assert result is not None
         assert "Hello, how are you?" in result.query.prompt
         assert result.query.options is not None
-        assert result.query.options.model == "claude-sonnet-4-20250514"
+        assert result.query.options.model == "anthropic/claude-sonnet-4-20250514"
         assert result.messages is not None
         assert len(result.messages) > 0
 
@@ -59,7 +59,7 @@ class TestClaudeAgentAdapterTextPrompts:
         """Should extract system prompt from messages."""
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
@@ -80,7 +80,7 @@ class TestClaudeAgentAdapterTextPrompts:
         config = {
             "name": "agent-task",
             "text_config": {
-                "model_name": "claude-sonnet-4-20250514",
+                "model_name": "anthropic/claude-sonnet-4-20250514",
                 "max_calls": 10,
             },
         }
@@ -116,7 +116,7 @@ class TestClaudeAgentAdapterObjectPrompts:
         config = {
             "name": "math",
             "object_config": {
-                "model_name": "claude-sonnet-4-20250514",
+                "model_name": "anthropic/claude-sonnet-4-20250514",
                 "schema": {
                     "type": "object",
                     "properties": {"answer": {"type": "string"}},
@@ -153,7 +153,7 @@ class TestClaudeAgentAdapterUnsupportedTypes:
         config = {
             "name": "test-image",
             "image_config": {
-                "model_name": "dall-e-3",
+                "model_name": "openai/dall-e-3",
                 "size": "1024x1024",
             },
         }
@@ -166,7 +166,7 @@ class TestClaudeAgentAdapterUnsupportedTypes:
         config = {
             "name": "test-speech",
             "speech_config": {
-                "model_name": "tts-1-hd",
+                "model_name": "openai/tts-1-hd",
                 "voice": "alloy",
             },
         }
@@ -194,7 +194,7 @@ class TestClaudeAgentAdapterOptions:
 
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [{"role": "user", "content": "test"}]
 
@@ -213,7 +213,7 @@ class TestClaudeAgentAdapterOptions:
 
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [{"role": "user", "content": "test"}]
 
@@ -232,7 +232,7 @@ class TestClaudeAgentAdapterOptions:
 
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [{"role": "user", "content": "test"}]
 
@@ -254,7 +254,7 @@ class TestClaudeAgentAdapterOptions:
 
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [{"role": "user", "content": "test"}]
 
@@ -271,7 +271,7 @@ class TestClaudeAgentAdapterOptions:
 
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [{"role": "user", "content": "test"}]
         options = {
@@ -317,7 +317,7 @@ class TestClaudeAgentAdapterToolIntegration:
         config = {
             "name": "text-with-tools-prompt",
             "text_config": {
-                "model_name": "claude-sonnet-4-20250514",
+                "model_name": "anthropic/claude-sonnet-4-20250514",
                 "tools": {
                     "search": {
                         "description": "Search the web",
@@ -345,7 +345,7 @@ class TestClaudeAgentAdapterToolIntegration:
 
         config = {
             "name": "text-prompt",
-            "text_config": {"model_name": "claude-sonnet-4-20250514"},
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
         }
         messages = [{"role": "user", "content": "test"}]
 

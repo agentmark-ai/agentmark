@@ -161,7 +161,7 @@ def text_prompt_frontmatter() -> dict[str, Any]:
     return {
         "name": "text-prompt",
         "text_config": {
-            "model_name": "claude-sonnet-4-20250514",
+            "model_name": "anthropic/claude-sonnet-4-20250514",
         },
         "test_settings": {
             "dataset": "text.dataset.jsonl",
@@ -183,7 +183,7 @@ def math_prompt_frontmatter() -> dict[str, Any]:
     return {
         "name": "math",
         "object_config": {
-            "model_name": "claude-sonnet-4-20250514",
+            "model_name": "anthropic/claude-sonnet-4-20250514",
             "schema": {
                 "type": "object",
                 "properties": {
@@ -211,7 +211,7 @@ def text_with_tools_prompt_frontmatter() -> dict[str, Any]:
     return {
         "name": "text-with-tools-prompt",
         "text_config": {
-            "model_name": "claude-sonnet-4-20250514",
+            "model_name": "anthropic/claude-sonnet-4-20250514",
             "tools": {
                 "search": {
                     "description": "Search the web",
@@ -244,7 +244,7 @@ def agent_task_prompt_frontmatter() -> dict[str, Any]:
     return {
         "name": "agent-task",
         "text_config": {
-            "model_name": "claude-sonnet-4-20250514",
+            "model_name": "anthropic/claude-sonnet-4-20250514",
             "max_calls": 10,
         },
         "input_schema": {
@@ -263,7 +263,7 @@ def image_prompt_frontmatter() -> dict[str, Any]:
     return {
         "name": "image-gen",
         "image_config": {
-            "model_name": "dall-e-3",
+            "model_name": "openai/dall-e-3",
             "size": "1024x1024",
         },
         "input_schema": {
@@ -282,7 +282,7 @@ def speech_prompt_frontmatter() -> dict[str, Any]:
     return {
         "name": "speech-gen",
         "speech_config": {
-            "model_name": "tts-1-hd",
+            "model_name": "openai/tts-1-hd",
             "voice": "alloy",
         },
         "input_schema": {

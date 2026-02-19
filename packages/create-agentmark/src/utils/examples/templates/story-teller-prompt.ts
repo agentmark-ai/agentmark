@@ -2,7 +2,7 @@ export const getStoryTellerPrompt = (): string => {
   return `---
 name: story-teller
 speech_config:
-  model_name: tts-1-hd
+  model_name: openai/tts-1-hd
   voice: "nova"
   speed: 1.0
   output_format: "mp3"

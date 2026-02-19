@@ -170,6 +170,151 @@ describe("Claude Agent SDK Adapter Integration", () => {
     });
   });
 
+  describe("ClaudeAgentModelRegistry - Provider Auto-Resolution", () => {
+    it("should return stripped model config when boolean provider is registered", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ anthropic: true });
+
+      const config = registry.getModelConfig("anthropic/claude-sonnet-4-20250514");
+      expect(config).toEqual({ model: "claude-sonnet-4-20250514" });
+    });
+
+    it("should call function provider with model id and options", () => {
+      const customProvider = vi.fn((id: string, opts?: any) => ({
+        model: id,
+        ...(opts ?? {}),
+      }));
+
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ custom: customProvider });
+
+      const options = { props: { key: "value" } };
+      const config = registry.getModelConfig("custom/my-model", options as any);
+
+      expect(customProvider).toHaveBeenCalledWith("my-model", options);
+      expect(config.model).toBe("my-model");
+    });
+
+    it("should return true from hasModel when provider is registered for prefix", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ anthropic: true });
+
+      expect(registry.hasModel("anthropic/claude-sonnet-4-20250514")).toBe(true);
+    });
+
+    it("should return false from hasModel when provider prefix is not registered and no default creator", () => {
+      const registry = new ClaudeAgentModelRegistry();
+      (registry as any).defaultCreator = undefined;
+
+      expect(registry.hasModel("unknown-provider/some-model")).toBe(false);
+    });
+
+    it("should fall through to default creator when provider is not registered", () => {
+      const defaultCreator = vi.fn((name: string) => ({ model: name }));
+      const registry = new ClaudeAgentModelRegistry(defaultCreator);
+
+      const config = registry.getModelConfig("unregistered/some-model");
+
+      expect(defaultCreator).toHaveBeenCalledWith("unregistered/some-model", undefined);
+      expect(config).toEqual({ model: "unregistered/some-model" });
+    });
+
+    it("should merge providers from multiple registerProviders calls", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ anthropic: true })
+        .registerProviders({ openai: true });
+
+      const anthropicConfig = registry.getModelConfig("anthropic/claude-sonnet-4-20250514");
+      expect(anthropicConfig).toEqual({ model: "claude-sonnet-4-20250514" });
+
+      const openaiConfig = registry.getModelConfig("openai/gpt-4o");
+      expect(openaiConfig).toEqual({ model: "gpt-4o" });
+    });
+
+    it("should not apply provider resolution to bare model names without slash", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ anthropic: true });
+
+      // Bare model name should go through default creator, not provider resolution
+      const config = registry.getModelConfig("claude-sonnet-4-20250514");
+      expect(config).toEqual({ model: "claude-sonnet-4-20250514" });
+    });
+
+    it("should prioritize exact match over provider resolution", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ anthropic: true })
+        .registerModels("anthropic/claude-sonnet-4-20250514", () => ({
+          model: "claude-sonnet-4-20250514",
+          maxThinkingTokens: 5000,
+        }));
+
+      const config = registry.getModelConfig("anthropic/claude-sonnet-4-20250514");
+      expect(config).toEqual({
+        model: "claude-sonnet-4-20250514",
+        maxThinkingTokens: 5000,
+      });
+    });
+
+    it("should prioritize pattern match over provider resolution", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ anthropic: true })
+        .registerModels(/anthropic\/claude-.*-thinking/, (name) => ({
+          model: name,
+          maxThinkingTokens: 20000,
+        }));
+
+      const config = registry.getModelConfig("anthropic/claude-opus-thinking");
+      expect(config).toEqual({
+        model: "anthropic/claude-opus-thinking",
+        maxThinkingTokens: 20000,
+      });
+    });
+
+    it("should throw error for malformed provider/model format with empty provider", () => {
+      const registry = new ClaudeAgentModelRegistry();
+      (registry as any).defaultCreator = undefined;
+
+      expect(() => registry.getModelConfig("/some-model")).toThrow(
+        /Invalid model name format/
+      );
+    });
+
+    it("should throw error for malformed provider/model format with empty model id", () => {
+      const registry = new ClaudeAgentModelRegistry();
+      (registry as any).defaultCreator = undefined;
+
+      expect(() => registry.getModelConfig("provider/")).toThrow(
+        /Invalid model name format/
+      );
+    });
+
+    it("should support later registerProviders call overriding an earlier provider", () => {
+      const firstProvider = vi.fn(() => ({ model: "first" }));
+      const secondProvider = vi.fn(() => ({ model: "second" }));
+
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ custom: firstProvider })
+        .registerProviders({ custom: secondProvider });
+
+      const config = registry.getModelConfig("custom/any-model");
+
+      expect(secondProvider).toHaveBeenCalled();
+      expect(firstProvider).not.toHaveBeenCalled();
+      expect(config.model).toBe("second");
+    });
+
+    it("should support chaining registerProviders with registerModels", () => {
+      const registry = new ClaudeAgentModelRegistry()
+        .registerProviders({ openai: true })
+        .registerModels("special-model", () => ({ model: "special" }))
+        .registerProviders({ anthropic: true });
+
+      expect(registry.hasModel("openai/gpt-4o")).toBe(true);
+      expect(registry.hasModel("anthropic/claude-sonnet-4-20250514")).toBe(true);
+      expect(registry.hasModel("special-model")).toBe(true);
+    });
+  });
+
   describe("ClaudeAgentToolRegistry", () => {
     it("should register and retrieve tools", async () => {
       type TestTools = {
@@ -285,7 +430,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
       expect(result).toBeDefined();
       expect(result.query.prompt).toContain("Hello, how are you?");
       expect(result.query.options).toBeDefined();
-      expect(result.query.options.model).toBe("claude-sonnet-4-20250514");
+      expect(result.query.options.model).toBe("anthropic/claude-sonnet-4-20250514");
       expect(result.messages).toBeDefined();
       expect(result.messages.length).toBeGreaterThan(0);
     });
@@ -363,7 +508,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
       const mockImageConfig = {
         name: "test-image",
         image_config: {
-          model_name: "dall-e-3",
+          model_name: "openai/dall-e-3",
           size: "1024x1024",
         },
       };
@@ -381,7 +526,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
       const mockSpeechConfig = {
         name: "test-speech",
         speech_config: {
-          model_name: "tts-1-hd",
+          model_name: "openai/tts-1-hd",
           voice: "alloy",
         },
       };
@@ -585,7 +730,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
         name: "test-prompt",
         messages: [{ role: "user" as const, content: "test" }],
         text_config: {
-          model_name: "claude-sonnet-4-20250514",
+          model_name: "anthropic/claude-sonnet-4-20250514",
           temperature: 0.7,
           max_tokens: 1000,
           top_p: 0.9,
@@ -627,7 +772,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
         name: "test-object-prompt",
         messages: [{ role: "user" as const, content: "test" }],
         object_config: {
-          model_name: "claude-sonnet-4-20250514",
+          model_name: "anthropic/claude-sonnet-4-20250514",
           schema: { type: "object", properties: {} },
           frequency_penalty: 0.5,
           seed: 12345,
@@ -665,7 +810,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
         name: "test-prompt",
         messages: [{ role: "user" as const, content: "test" }],
         text_config: {
-          model_name: "claude-sonnet-4-20250514",
+          model_name: "anthropic/claude-sonnet-4-20250514",
           max_calls: 5,
         },
       };
@@ -692,7 +837,7 @@ describe("Claude Agent SDK Adapter Integration", () => {
         name: "my-special-prompt",
         messages: [{ role: "user" as const, content: "test" }],
         text_config: {
-          model_name: "claude-sonnet-4-20250514",
+          model_name: "anthropic/claude-sonnet-4-20250514",
           temperature: 0.5,
         },
       };

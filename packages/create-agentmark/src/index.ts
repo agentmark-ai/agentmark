@@ -109,8 +109,8 @@ const main = async () => {
 
   // Set built-in models based on adapter
   config.builtInModels = adapter === 'claude-agent-sdk'
-    ? ['claude-sonnet-4-20250514']
-    : ['gpt-4o'];
+    ? ['anthropic/claude-sonnet-4-20250514']
+    : ['openai/gpt-4o'];
 
   // Prompt for API key based on adapter
   const apiKeyName = adapter === 'claude-agent-sdk' ? 'Anthropic' : 'OpenAI';

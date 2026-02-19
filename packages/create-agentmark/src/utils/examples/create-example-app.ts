@@ -1,6 +1,5 @@
 import fs from "fs-extra";
 import * as path from "path";
-import { Providers } from "../providers.js";
 import {
   setupPackageJson,
   installDependencies,
@@ -162,7 +161,7 @@ export const createExampleApp = async (
 ) => {
   try {
     const modelProvider = adapter === 'claude-agent-sdk' ? 'anthropic' : 'openai';
-    const model = adapter === 'claude-agent-sdk' ? 'claude-sonnet-4-20250514' : 'gpt-4o';
+    const model = adapter === 'claude-agent-sdk' ? 'anthropic/claude-sonnet-4-20250514' : 'openai/gpt-4o';
     const isExistingProject = projectInfo?.isExistingProject ?? false;
 
     if (isExistingProject) {
@@ -185,10 +184,9 @@ export const createExampleApp = async (
 
     // Create user client config at project root
     // Prefer TS for dev ergonomics
-    const langModels = Providers[modelProvider as keyof typeof Providers].languageModels.slice(0, 1);
     fs.writeFileSync(
       `${targetPath}/agentmark.client.ts`,
-      getClientConfigContent({ provider: modelProvider, languageModels: langModels, adapter, deploymentMode })
+      getClientConfigContent({ provider: modelProvider, adapter, deploymentMode })
     );
 
     // Create or append to .env file

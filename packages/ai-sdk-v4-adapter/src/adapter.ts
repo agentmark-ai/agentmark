@@ -153,6 +153,7 @@ export class VercelAIModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
   private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
   private defaultCreator?: ModelFunctionCreator;
+  private providers: Record<string, any> = {};
 
   constructor(defaultCreator?: ModelFunctionCreator) {
     this.defaultCreator = defaultCreator;
@@ -174,22 +175,66 @@ export class VercelAIModelRegistry {
     return this;
   }
 
-  getModelFunction(modelName: string): ModelFunctionCreator {
+  registerProviders(providers: Record<string, any>): this {
+    Object.assign(this.providers, providers);
+    return this;
+  }
+
+  getModelFunction(
+    modelName: string,
+    modelType?: "languageModel" | "imageModel" | "speechModel"
+  ): ModelFunctionCreator {
+    // 1. Exact match (highest priority)
     if (this.exactMatches[modelName]) {
       return this.exactMatches[modelName];
     }
 
+    // 2. Pattern match
     for (const [pattern, creator] of this.patternMatches) {
       if (pattern.test(modelName)) {
         return creator;
       }
     }
 
+    // 3. Provider auto-resolution (if model name contains "/")
+    if (modelName.includes("/")) {
+      const slashIndex = modelName.indexOf("/");
+      const providerName = modelName.substring(0, slashIndex);
+      const modelId = modelName.substring(slashIndex + 1);
+
+      if (!providerName || !modelId) {
+        throw new Error(
+          `Invalid model name format: '${modelName}'. Expected 'provider/model'.`
+        );
+      }
+
+      const provider = this.providers[providerName];
+      if (!provider) {
+        throw new Error(
+          `Provider '${providerName}' is not registered. Add .registerProviders({ ${providerName} }) to your model registry.`
+        );
+      }
+
+      const type = modelType ?? "languageModel";
+      const factory = provider[type];
+      if (typeof factory !== "function") {
+        throw new Error(
+          `Provider '${providerName}' does not support ${type} models. The model '${modelName}' cannot be created as a ${type}.`
+        );
+      }
+
+      return () => factory.call(provider, modelId);
+    }
+
+    // 4. Default creator
     if (this.defaultCreator) {
       return this.defaultCreator;
     }
 
-    throw new Error(`No model function found for: ${modelName}`);
+    // 5. Error
+    throw new Error(
+      `No model function found for: '${modelName}'. Register it with .registerModels() or use provider/model format with .registerProviders().`
+    );
   }
 }
 
@@ -219,7 +264,7 @@ export class VercelAIAdapter<
     metadata: PromptMetadata
   ): Promise<VercelAITextParams<ToolSetMap<ToolRet<R>>>> {
     const { model_name: name, ...settings } = input.text_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
     const model = modelCreator(name, options) as LanguageModel;
 
     type Ret = ToolRet<R>;
@@ -314,7 +359,7 @@ export class VercelAIAdapter<
     metadata: PromptMetadata
   ): VercelAIObjectParams<T[K]["output"]> {
     const { model_name: name, ...settings } = input.object_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
     const model = modelCreator(name, options) as LanguageModel;
 
     return {
@@ -361,7 +406,7 @@ export class VercelAIAdapter<
     options: AdaptOptions
   ): VercelAIImageParams {
     const { model_name: name, ...settings } = input.image_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const modelCreator = this.modelRegistry.getModelFunction(name, "imageModel");
     const model = modelCreator(name, options) as ImageModel;
 
     return {
@@ -383,7 +428,7 @@ export class VercelAIAdapter<
     options: AdaptOptions
   ): VercelAISpeechParams {
     const { model_name: name, ...settings } = input.speech_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name);
+    const modelCreator = this.modelRegistry.getModelFunction(name, "speechModel");
     const model = modelCreator(name, options) as SpeechModel;
 
     return {

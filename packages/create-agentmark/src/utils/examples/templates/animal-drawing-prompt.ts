@@ -2,7 +2,7 @@ export const getAnimalDrawingPrompt = (): string => {
   return `---
 name: animal-drawing
 image_config:
-  model_name: dall-e-3
+  model_name: openai/dall-e-3
   num_images: 1
   size: 1024x1024
   aspect_ratio: 1:1

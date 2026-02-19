@@ -88,7 +88,7 @@ describe('init', () => {
 
   it('uses ApiLoader in generated agentmark.client.ts', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const content = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
+    const content = getClientConfigContent({ provider: 'openai', adapter: 'ai-sdk' });
     expect(content).toContain("from \"@agentmark-ai/loader-api\"");
     expect(content).toContain("ApiLoader");
     expect(content).toContain("ApiLoader.local");
@@ -116,7 +116,7 @@ describe('init', () => {
     const tmpDir = path.join(__dirname, '..', 'tmp-client-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
     try {
-      const client = getClientConfigContent({ provider: 'openai', languageModels: ['gpt-4o'], adapter: 'ai-sdk' });
+      const client = getClientConfigContent({ provider: 'openai', adapter: 'ai-sdk' });
       fs.mkdirSync(path.join(tmpDir, 'agentmark'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'agentmark.client.ts'), client);
 
@@ -124,13 +124,10 @@ describe('init', () => {
       // Tools/Evals now inline in the client
 
       // Basic validity: importable with ts-node/tsx semantics isn't trivial in Vitest.
-      // Validate that provider and model array are wired in the file content.
+      // Validate that provider registration is wired in the file content.
       const generated = fs.readFileSync(path.join(tmpDir, 'agentmark.client.ts'), 'utf8');
-      expect(generated).toContain('registerModels(["gpt-4o"]');
+      expect(generated).toContain('registerProviders({ openai })');
       expect(generated).toContain("@ai-sdk/openai");
-      // openai extras
-      expect(generated).toContain('registerModels(["dall-e-3"], (name: string) => openai.image(name))');
-      expect(generated).toContain('registerModels(["tts-1-hd"], (name: string) => openai.speech(name))');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -138,7 +135,8 @@ describe('init', () => {
 
   it('does not add image/speech extras for non-openai providers', async () => {
     const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const content = getClientConfigContent({ provider: 'anthropic', languageModels: ['claude-3'], adapter: 'ai-sdk' });
+    const content = getClientConfigContent({ provider: 'anthropic', adapter: 'ai-sdk' });
+    expect(content).toContain('registerProviders({ anthropic })');
     expect(content).not.toContain('openai.image');
     expect(content).not.toContain('openai.speech');
   });
@@ -148,7 +146,6 @@ describe('init', () => {
       const { getClientConfigContent } = await import('../src/utils/examples/templates');
       const content = getClientConfigContent({
         provider: 'anthropic',
-        languageModels: ['claude-sonnet-4-20250514'],
         adapter: 'claude-agent-sdk'
       });
 

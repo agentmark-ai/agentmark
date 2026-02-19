@@ -532,7 +532,7 @@ export const createPythonApp = async (
   resolutions: ConflictResolution[] = []
 ) => {
   try {
-    const model = adapter === 'claude-agent-sdk' ? 'claude-sonnet-4-20250514' : 'gpt-4o';
+    const model = adapter === 'claude-agent-sdk' ? 'anthropic/claude-sonnet-4-20250514' : 'openai/gpt-4o';
     const adapterDisplayName = adapter === 'claude-agent-sdk' ? 'Claude Agent SDK' : 'Pydantic AI';
     const isExistingProject = projectInfo?.isExistingProject ?? false;
 

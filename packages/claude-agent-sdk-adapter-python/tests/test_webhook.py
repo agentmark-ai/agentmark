@@ -29,7 +29,7 @@ def create_mock_text_prompt() -> MagicMock:
     mock.format = AsyncMock(
         return_value=MagicMock(
             query=MagicMock(
-                prompt="test prompt", options=MagicMock(model="claude-sonnet-4-20250514")
+                prompt="test prompt", options=MagicMock(model="anthropic/claude-sonnet-4-20250514")
             ),
             messages=[],
             telemetry=MagicMock(is_enabled=False, prompt_name="test"),
@@ -39,7 +39,7 @@ def create_mock_text_prompt() -> MagicMock:
         return_value=MagicMock(
             query=MagicMock(
                 prompt="test prompt from test props",
-                options=MagicMock(model="claude-sonnet-4-20250514"),
+                options=MagicMock(model="anthropic/claude-sonnet-4-20250514"),
             ),
             messages=[],
             telemetry=MagicMock(is_enabled=False, prompt_name="test"),
@@ -58,7 +58,7 @@ def create_mock_object_prompt() -> MagicMock:
             query=MagicMock(
                 prompt="object prompt",
                 options=MagicMock(
-                    model="claude-sonnet-4-20250514",
+                    model="anthropic/claude-sonnet-4-20250514",
                     output_format=MagicMock(type="json_schema", schema={}),
                 ),
             ),
@@ -71,7 +71,7 @@ def create_mock_object_prompt() -> MagicMock:
             query=MagicMock(
                 prompt="object prompt from test props",
                 options=MagicMock(
-                    model="claude-sonnet-4-20250514",
+                    model="anthropic/claude-sonnet-4-20250514",
                     output_format=MagicMock(type="json_schema", schema={}),
                 ),
             ),
@@ -156,7 +156,7 @@ class TestRunPromptTextPrompts:
             "_get_frontmatter",
             return_value={
                 "name": "test-prompt",
-                "text_config": {"model_name": "claude-sonnet-4-20250514"},
+                "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
         ), patch.object(handler, "_execute_query", return_value=mock_results):
             result = await handler.run_prompt(create_mock_ast())
@@ -178,7 +178,7 @@ class TestRunPromptTextPrompts:
             "_get_frontmatter",
             return_value={
                 "name": "test-prompt",
-                "text_config": {"model_name": "claude-sonnet-4-20250514"},
+                "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
         ), patch.object(handler, "_execute_query", return_value=mock_results):
             await handler.run_prompt(create_mock_ast())
@@ -197,7 +197,7 @@ class TestRunPromptTextPrompts:
             "_get_frontmatter",
             return_value={
                 "name": "test-prompt",
-                "text_config": {"model_name": "claude-sonnet-4-20250514"},
+                "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
         ), patch.object(handler, "_execute_query", return_value=mock_results):
             await handler.run_prompt(create_mock_ast(), custom_props={"userMessage": "Hello"})
@@ -215,7 +215,7 @@ class TestRunPromptTextPrompts:
             "_get_frontmatter",
             return_value={
                 "name": "test-prompt",
-                "text_config": {"model_name": "claude-sonnet-4-20250514"},
+                "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
         ), patch.object(handler, "_execute_query", return_value=mock_results):
             result = await handler.run_prompt(create_mock_ast())
@@ -239,7 +239,7 @@ class TestRunPromptTextPrompts:
             "_get_frontmatter",
             return_value={
                 "name": "test-prompt",
-                "text_config": {"model_name": "claude-sonnet-4-20250514"},
+                "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
         ), patch.object(handler, "_execute_query", return_value=mock_results):
             result = await handler.run_prompt(create_mock_ast())
@@ -256,7 +256,7 @@ class TestRunPromptTextPrompts:
             "_get_frontmatter",
             return_value={
                 "name": "test-prompt",
-                "text_config": {"model_name": "claude-sonnet-4-20250514"},
+                "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
         ), patch.object(handler, "_execute_query", return_value=mock_results):
             result = await handler.run_prompt(create_mock_ast())
@@ -301,7 +301,7 @@ class TestRunPromptObjectPrompts:
             return_value={
                 "name": "object-prompt",
                 "object_config": {
-                    "model_name": "claude-sonnet-4-20250514",
+                    "model_name": "anthropic/claude-sonnet-4-20250514",
                     "output": {"schema": {"type": "object"}},
                 },
             },
@@ -323,7 +323,7 @@ class TestRunPromptObjectPrompts:
             return_value={
                 "name": "object-prompt",
                 "object_config": {
-                    "model_name": "claude-sonnet-4-20250514",
+                    "model_name": "anthropic/claude-sonnet-4-20250514",
                     "output": {"schema": {"type": "object"}},
                 },
             },
@@ -346,7 +346,7 @@ class TestRunPromptObjectPrompts:
             return_value={
                 "name": "object-prompt",
                 "object_config": {
-                    "model_name": "claude-sonnet-4-20250514",
+                    "model_name": "anthropic/claude-sonnet-4-20250514",
                     "output": {"schema": {"type": "object"}},
                 },
             },
@@ -377,7 +377,7 @@ class TestRunPromptUnsupportedTypes:
         with patch.object(
             handler,
             "_get_frontmatter",
-            return_value={"name": "image-prompt", "image_config": {"model_name": "dall-e-3"}},
+            return_value={"name": "image-prompt", "image_config": {"model_name": "openai/dall-e-3"}},
         ):
             result = await handler.run_prompt(create_mock_ast())
 
@@ -395,7 +395,7 @@ class TestRunPromptUnsupportedTypes:
             "_get_frontmatter",
             return_value={
                 "name": "speech-prompt",
-                "speech_config": {"model_name": "tts-1", "voice": "alloy"},
+                "speech_config": {"model_name": "openai/tts-1", "voice": "alloy"},
             },
         ):
             result = await handler.run_prompt(create_mock_ast())
@@ -571,7 +571,7 @@ class TestStreamingResponses:
             "_get_frontmatter",
             return_value={
                 "name": "object-stream",
-                "object_config": {"model_name": "claude-sonnet"},
+                "object_config": {"model_name": "anthropic/claude-sonnet"},
             },
         ), patch.object(handler, "_stream_query", return_value=mock_stream()):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
@@ -1042,7 +1042,7 @@ class TestRunExperiment:
         with patch.object(
             handler,
             "_get_frontmatter",
-            return_value={"name": "image-experiment", "image_config": {"model_name": "dall-e-3"}},
+            return_value={"name": "image-experiment", "image_config": {"model_name": "openai/dall-e-3"}},
         ):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
 
@@ -1059,7 +1059,7 @@ class TestRunExperiment:
         with patch.object(
             handler,
             "_get_frontmatter",
-            return_value={"name": "speech-experiment", "speech_config": {"model_name": "tts-1"}},
+            return_value={"name": "speech-experiment", "speech_config": {"model_name": "openai/tts-1"}},
         ):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
 
@@ -1133,7 +1133,7 @@ class TestRunExperiment:
             "_get_frontmatter",
             return_value={
                 "name": "object-experiment",
-                "object_config": {"model_name": "claude-sonnet", "output": {}},
+                "object_config": {"model_name": "anthropic/claude-sonnet", "output": {}},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
         ), patch.object(handler, "_stream_query", return_value=mock_query_results()):
