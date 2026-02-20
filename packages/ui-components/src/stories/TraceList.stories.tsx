@@ -33,6 +33,7 @@ export const Default: Story = {
                 { id: "latency", label: "Latency" },
                 { id: "cost", label: "Cost" },
                 { id: "tokens", label: "Tokens" },
+                { id: "spans", label: "Spans" },
                 { id: "timestamp", label: "Timestamp" },
               ]}
             />

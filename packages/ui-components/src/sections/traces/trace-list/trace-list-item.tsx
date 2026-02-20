@@ -50,6 +50,11 @@ const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
         </Label>
       </TableCell>
       <TableCell>
+        <Label color="default" startIcon={<Iconify icon="mdi:layers-outline" />}>
+          {fNumber(trace.spanCount || 0)}
+        </Label>
+      </TableCell>
+      <TableCell>
         {format(new Date(trace.start), "MMM d, yyyy h:mm a")}
       </TableCell>
     </TableRow>

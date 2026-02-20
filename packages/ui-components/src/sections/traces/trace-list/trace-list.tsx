@@ -42,6 +42,7 @@ export const TracesList = ({
             { id: "latency", label: t("latency") },
             { id: "cost", label: t("cost") },
             { id: "tokens", label: t("tokens") },
+            { id: "spans", label: t("spans") },
             { id: "timestamp", label: t("timestamp") },
           ]}
         />
