@@ -11,6 +11,7 @@ export const traces: Trace[] = [
     tokens: "1000",
     start: "2021-01-01T00:00:00Z",
     end: "2021-01-01T00:00:01Z",
+    spanCount: 3,
   },
   {
     id: "2",
@@ -21,6 +22,7 @@ export const traces: Trace[] = [
     tokens: "2000",
     start: "2021-01-01T00:00:00Z",
     end: "2021-01-01T00:00:02Z",
+    spanCount: 1,
   },
   {
     id: "3",
@@ -31,6 +33,7 @@ export const traces: Trace[] = [
     tokens: "3000",
     start: "2021-01-01T00:00:00Z",
     end: "2021-01-01T00:00:03Z",
+    spanCount: 5,
   },
   {
     id: "4",
@@ -41,6 +44,7 @@ export const traces: Trace[] = [
     tokens: "4000",
     start: "2021-01-01T00:00:00Z",
     end: "2021-01-01T00:00:04Z",
+    spanCount: 2,
   },
   {
     id: "5",
@@ -51,6 +55,7 @@ export const traces: Trace[] = [
     tokens: "5000",
     start: "2021-01-01T00:00:00Z",
     end: "2021-01-01T00:00:05Z",
+    spanCount: 4,
   },
 ];
 
@@ -82,7 +87,7 @@ export const traceData: TraceData[] = [
               content: [{ type: "text", text: "Customer Feedback:" }],
             },
           ]),
-          output: null,
+          output: undefined,
           outputObject: JSON.stringify({
             sentiment: "negative",
             key_topics: ["product quality", "customer service", "shipping"],

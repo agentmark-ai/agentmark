@@ -82,4 +82,5 @@ export interface Trace {
   tokens: string;
   start: string;
   end: string;
+  spanCount: number;
 }
