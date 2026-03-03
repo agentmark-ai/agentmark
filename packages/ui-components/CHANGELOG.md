@@ -1,3 +1,9 @@
+## 0.5.0 (2026-03-03)
+
+### 🚀 Features
+
+- feat: add experiments UI with list, detail, and comparison views ([#504](https://github.com/agentmark-ai/agentmark/pull/504))
+
 ## 0.4.0 (2026-03-03)
 
 ### 🚀 Features
