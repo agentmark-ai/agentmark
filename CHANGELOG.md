@@ -1,4 +1,4 @@
-# @puzzlet/agentmark
+# @agentmark-ai/agentmark
 
 ## 1.2.6
 
