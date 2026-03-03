@@ -1,3 +1,15 @@
+├─ [38;5;166m@types/[39m[38;5;173mdiff[39m
+│  ├─ ID: [38;5;111m@types/diff (deprecation)[39m
+│  ├─ Issue: This is a stub types definition. diff provides its own type definitions, so you do not need this installed.
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m8.0.0[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m8.0.0[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@agentmark-ai/[39m[38;5;173mui-components[39m[38;5;111m@[39m[38;5;111mworkspace:packages/ui-components[39m
+│
 ├─ [38;5;173mai[39m
 │  ├─ ID: [38;5;220m1111095[39m
 │  ├─ Issue: Vercel’s AI SDK's filetype whitelists can be bypassed when uploading files
@@ -13,18 +25,16 @@
 │     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
 │
 ├─ [38;5;173majv[39m
-│  ├─ ID: [38;5;220m1113214[39m
+│  ├─ ID: [38;5;220m1113714[39m
 │  ├─ Issue: ajv has ReDoS when using `$data` option
 │  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-2g4f-4pwh-qvx6[39m
 │  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<8.18.0[39m
+│  ├─ Vulnerable Versions: [38;5;37m<6.14.0[39m
 │  │ 
 │  ├─ Tree Versions
-│  │  ├─ [38;5;111m6.12.6[39m
-│  │  └─ [38;5;111m8.17.1[39m
+│  │  └─ [38;5;111m6.12.6[39m
 │  │ 
 │  └─ Dependents
-│     ├─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
 │     └─ [38;5;173meslint[39m[38;5;111m@[39m[38;5;111mnpm:9.39.2 [f9974][39m
 │
 ├─ [38;5;173mglob[39m
@@ -39,46 +49,14 @@
 │  └─ Dependents
 │     └─ [38;5;173mshelljs[39m[38;5;111m@[39m[38;5;111mnpm:0.8.5[39m
 │
-├─ [38;5;173mminimatch[39m
-│  ├─ ID: [38;5;220m1113296[39m
-│  ├─ Issue: minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-3ppc-4f35-3m26[39m
-│  ├─ Severity: high
-│  ├─ Vulnerable Versions: [38;5;37m<10.2.1[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  ├─ [38;5;111m3.1.2[39m
-│  │  ├─ [38;5;111m5.1.6[39m
-│  │  ├─ [38;5;111m9.0.3[39m
-│  │  └─ [38;5;111m9.0.5[39m
-│  │ 
-│  └─ Dependents
-│     ├─ [38;5;166m@typescript-eslint/[39m[38;5;173mtypescript-estree[39m[38;5;111m@[39m[38;5;111mnpm:8.55.0 [39ea5][39m
-│     ├─ [38;5;173meslint[39m[38;5;111m@[39m[38;5;111mnpm:9.39.2 [f9974][39m
-│     ├─ [38;5;173mfilelist[39m[38;5;111m@[39m[38;5;111mnpm:1.0.4[39m
-│     └─ [38;5;173mnx[39m[38;5;111m@[39m[38;5;111mnpm:20.8.4 [f9974][39m
-│
-├─ [38;5;173mprebuild-install[39m
-│  ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
-│  ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m7.1.3[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m7.1.3[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
-│
-└─ [38;5;173mtar[39m
-   ├─ ID: [38;5;220m1113249[39m
-   ├─ Issue: Arbitrary File Read/Write via Hardlink Target Escape Through Symlink Chain in node-tar Extraction
-   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-83g3-92jg-28cx[39m
-   ├─ Severity: high
-   ├─ Vulnerable Versions: [38;5;37m<7.5.8[39m
+└─ [38;5;173mprebuild-install[39m
+   ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
+   ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+   ├─ Severity: moderate
+   ├─ Vulnerable Versions: [38;5;37m7.1.3[39m
    │ 
    ├─ Tree Versions
-   │  └─ [38;5;111m7.5.7[39m
+   │  └─ [38;5;111m7.1.3[39m
    │ 
    └─ Dependents
-      └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m
+      └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
