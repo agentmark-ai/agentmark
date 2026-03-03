@@ -11,7 +11,6 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://agentmark-ai.github.io/templatedx">Docs</a> |
   <a href="https://github.com/agentmark-ai/agentmark">Agentmark</a> |
   <a href="https://agentmark.co">Agentmark Cloud</a>
@@ -62,7 +61,6 @@ We welcome contributions! Please check out our [contribution guidelines](https:/
 
 Join our community to collaborate, ask questions, and stay updated:
 
-- [Discord](https://discord.gg/P2NeMDtXar)
 - [Issues](https://github.com/agentmark-ai/templatedx/issues)
 - [Discussions](https://github.com/agentmark-ai/templatedx/discussions)
 

@@ -1,0 +1,5 @@
+{"input": {"text": "This is the best purchase I've ever made!"}, "expected_output": "{\"sentiment\": \"positive\"}"}
+{"input": {"text": "The product broke after one day. Very disappointed."}, "expected_output": "{\"sentiment\": \"negative\"}"}
+{"input": {"text": "It arrived on time. Standard packaging."}, "expected_output": "{\"sentiment\": \"neutral\"}"}
+{"input": {"text": "Absolutely terrible customer service."}, "expected_output": "{\"sentiment\": \"negative\"}"}
+{"input": {"text": "I'm really happy with the quality and speed of delivery."}, "expected_output": "{\"sentiment\": \"positive\"}"}
