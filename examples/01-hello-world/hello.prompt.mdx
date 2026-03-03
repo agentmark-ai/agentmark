@@ -1,0 +1,24 @@
+---
+name: hello
+text_config:
+  model_name: anthropic/claude-sonnet-4-20250514
+  max_tokens: 256
+test_settings:
+  props:
+    topic: "why Markdown is still relevant in 2026"
+input_schema:
+  type: object
+  properties:
+    topic:
+      type: string
+      description: "A topic to write a short take on"
+  required:
+    - topic
+---
+
+<System>
+You are a sharp, concise technical writer. Give a hot take in 2-3 sentences.
+No hedging, no filler. Be opinionated.
+</System>
+
+<User>Give me your take on: {props.topic}</User>

@@ -1,0 +1,35 @@
+---
+name: classify-sentiment
+object_config:
+  model_name: anthropic/claude-sonnet-4-20250514
+  schema:
+    type: object
+    properties:
+      sentiment:
+        type: string
+        enum: ["positive", "negative", "neutral"]
+    required:
+      - sentiment
+test_settings:
+  dataset: sentiment-data.jsonl
+  evals:
+    - exact_match_json
+  props:
+    text: "I love this product, it works perfectly!"
+input_schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: "Text to classify"
+  required:
+    - text
+---
+
+<System>
+Classify the sentiment of the provided text as "positive", "negative", or "neutral".
+</System>
+
+<User>
+{props.text}
+</User>

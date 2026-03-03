@@ -11,113 +11,166 @@
 </p>
 
 <p align="center">
-  <strong>Markdown for the AI Era. Develop, test, and evalaute your AI Agents.</strong>
+  <strong>The open-source platform to develop, test, and observe your AI agents.</strong>
 </p>
 
 <p align="center">
   <a href="https://www.agentmark.co">Homepage</a> |
-  <a href="https://discord.gg/P2NeMDtXar">Discord</a> |
   <a href="https://docs.agentmark.co/agentmark/">Docs</a>
 </p>
 
 ---
 
-**AgentMark makes it easy for developers to develop, test, and evaluate Agents**.
+AgentMark is a complete platform for building reliable AI agents. Define prompts in Markdown, run them with any SDK, evaluate quality with datasets, and trace every call in production.
 
-![AgentMark MDX Example](/assets/agentmark.png)
+**Prompt management** &mdash; Write prompts as `.prompt.mdx` files with type-safe inputs, tool definitions, structured outputs, conditionals, loops, and reusable components.
+
+**Observability** &mdash; Trace every LLM call with OpenTelemetry. View traces locally or forward them to AgentMark Cloud for dashboards, alerts, and collaboration.
+
+**Evaluations** &mdash; Test prompts against datasets with built-in evals. Run experiments from the CLI and gate deployments on quality thresholds.
+
+## What a prompt looks like
+
+```mdx
+---
+name: customer-support-agent
+text_config:
+  model_name: anthropic/claude-sonnet-4-20250514
+  max_calls: 2
+  tools:
+    search_knowledgebase:
+      description: Search the knowledge base for shipping, warranty, and returns info.
+      parameters:
+        type: object
+        properties:
+          query:
+            type: string
+        required: [query]
+test_settings:
+  props:
+    customer_question: "How long does shipping take?"
+input_schema:
+  type: object
+  properties:
+    customer_question:
+      type: string
+  required: [customer_question]
+---
+
+<System>
+You are a helpful customer service agent. Use the search_knowledgebase tool
+when customers ask about shipping, warranty, or returns.
+</System>
+
+<User>{props.customer_question}</User>
+```
+
+Run it:
+
+```bash
+agentmark run-prompt customer-support.prompt.mdx
+```
+
+That's it. The prompt is version-controlled, type-checked, and traceable.
+
+## Quick Start
+
+```bash
+# Scaffold a new project (interactive — picks your language and adapter)
+npm create agentmark@latest
+
+# Start the dev server (API + trace UI + hot reload)
+agentmark dev
+
+# Run a single prompt
+agentmark run-prompt my-prompt.prompt.mdx
+
+# Run an experiment against a dataset
+agentmark run-experiment my-prompt.prompt.mdx
+```
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| [Multimodal Generation](https://docs.agentmark.co/agentmark/generation_types/overview) | Generate text, objects, images, and speech from a single prompt file, supporting a wide range of model capabilities. |
-| [Datasets](https://docs.agentmark.co/agentmark/datasets/overview) | Create a collection of inputs and expected outputs to test your prompts and agents in readable JSONL format. |
-| [Evals](https://docs.agentmark.co/agentmark/testing/evals) | Assess the quality/output of your prompts with our eval support |
-| [CLI](https://docs.agentmark.co/agentmark/running_prompts/cli) | Run prompts and experiments directly from the command line or your editor for rapid iteration. |
-| [Tools and Agents](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Extend prompts with custom tools and agentic workflows. |
-| [JSON Output](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | AgentMark supports structured Object/JSON output through JSON Schema definitions. |
-| [File Attachments](https://docs.agentmark.co/agentmark/prompt_basics/file-attachments) | Attach images and files to prompts for tasks like image analysis, document processing, and more. |
-| [Type Safety](https://docs.agentmark.co/agentmark/running_prompts/type-safety) | Ensure reliable, type-checked inputs and outputs for prompts using JSON Schema and auto-generated TypeScript types. |
-| [Reusable Components](https://docs.agentmark.co/agentmark/prompt_basics/reusable-components) | Import and reuse components across your prompts.|
-| [Conditionals](https://docs.agentmark.co/agentmark/prompt_basics/conditionals), [Loops](https://docs.agentmark.co/agentmark/prompt_basics/loops), [Props](https://docs.agentmark.co/agentmark/prompt_basics/props), [Filter Functions](https://docs.agentmark.co/agentmark/prompt_basics/filter_functions) | Add logic, dynamic data, and transformations to your prompts with powerful JSX-like syntax. |
-| [MCP Servers](https://docs.agentmark.co/agentmark/prompt_basics/mcp) | AgentMark supports calling Model Context Protocol (MCP) tools directly from your prompts. | 
+| [Multimodal Generation](https://docs.agentmark.co/agentmark/generation_types/overview) | Generate text, structured objects, images, and speech from a single prompt file. |
+| [Tools and Agents](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Define tools inline and build agentic loops with `max_calls`. |
+| [Structured Output](https://docs.agentmark.co/agentmark/prompt_basics/tools-and-agents) | Type-safe JSON output via JSON Schema definitions. |
+| [Datasets & Evals](https://docs.agentmark.co/agentmark/datasets/overview) | Test prompts against JSONL datasets with built-in and custom evaluators. |
+| [Tracing](https://docs.agentmark.co/agentmark/running_prompts/cli) | OpenTelemetry-based tracing for every LLM call — local and cloud. |
+| [Type Safety](https://docs.agentmark.co/agentmark/running_prompts/type-safety) | Auto-generate TypeScript types from your prompts. JSON Schema validation in your IDE. |
+| [Reusable Components](https://docs.agentmark.co/agentmark/prompt_basics/reusable-components) | Import and compose prompt fragments across files. |
+| [Conditionals & Loops](https://docs.agentmark.co/agentmark/prompt_basics/conditionals) | Dynamic prompts with `<If>`, `<ForEach>`, props, and filter functions. |
+| [File Attachments](https://docs.agentmark.co/agentmark/prompt_basics/file-attachments) | Attach images and documents for vision and document processing tasks. |
+| [MCP Servers](https://docs.agentmark.co/agentmark/prompt_basics/mcp) | Call Model Context Protocol tools directly from prompts. |
+| [MCP Trace Server](https://www.npmjs.com/package/@agentmark-ai/mcp-server) | Debug traces from Claude Code, Cursor, or any MCP client. |
 
-## Quick Start
+## SDK Adapters
 
-### Intialize AgentMark
+AgentMark doesn't call LLM APIs directly. Instead, adapters format your prompt for the SDK you already use.
 
-Get started by first initializing your AgentMark app.
+| Adapter | Language | Package |
+|---------|----------|---------|
+| [Vercel AI SDK v5](https://docs.agentmark.co/agentmark/running_prompts/vercel) | TypeScript | `@agentmark-ai/ai-sdk-v5-adapter` |
+| [Vercel AI SDK v4](https://docs.agentmark.co/agentmark/running_prompts/vercel) | TypeScript | `@agentmark-ai/ai-sdk-v4-adapter` |
+| [Mastra](https://docs.agentmark.co/agentmark/running_prompts/mastra) | TypeScript | `@agentmark-ai/mastra-v0-adapter` |
+| [Claude Agent SDK](https://docs.agentmark.co/agentmark/running_prompts/claude-agent-sdk) | TypeScript | `@agentmark-ai/claude-agent-sdk-adapter` |
+| [Claude Agent SDK](https://docs.agentmark.co/agentmark/running_prompts/claude-agent-sdk) | Python | `agentmark-claude-agent-sdk` |
+| [Pydantic AI](https://docs.agentmark.co/agentmark/running_prompts/pydantic-ai) | Python | `agentmark-pydantic-ai` |
+| [Fallback](https://docs.agentmark.co/agentmark/running_prompts/default) | TypeScript | `@agentmark-ai/fallback-adapter` |
 
-Install:
-`npm create agentmark@latest`
-
-### Run Prompts
-
-We offer a few ways to run prompts with AgentMark.
-
-1. Use our AgentMark CLI:
-
-Run `.prompt.mdx` files directly from the command line using our CLI. This is the quickest way to test and execute your prompts.
-
-```bash
-# Run a prompt with test props (default)
-agentmark run-prompt your-prompt.prompt.mdx
-
-# Run a prompt with a dataset
-agentmark run-experiment your-prompt.prompt.mdx
-```
-
-2. Run AgentMark files with your favorite SDK
-
-AgentMark doesn't support any models or calling any LLM providers. Instead, we format the input of your prompt through an adapter to match the input of the SDK you're using.
-
-| Adapter   | Description |
-|-----------|-------------|
-| [Vercel](https://docs.agentmark.co/agentmark/running_prompts/vercel) | The Vercel AI SDK. |
-| [Mastra](https://docs.agentmark.co/agentmark/running_prompts/mastra) | The Mastra SDK |
-| [LlamaIndex](https://docs.agentmark.co/agentmark/running_prompts/llamaindex) | The LLamaIndex SDK |
-| [Default](https://docs.agentmark.co/agentmark/running_prompts/default)   | Turns prompts into raw JSON, adapt manually to your needs |
-
-Want to add support for another adapter? Open an [issue](https://github.com/agentmark-ai/agentmark/issues).
+Want another adapter? [Open an issue](https://github.com/agentmark-ai/agentmark/issues).
 
 ## Language Support
 
-We plan on providing support for AgentMark across a variety of languages.
+| Language | Status |
+|----------|--------|
+| TypeScript / JavaScript | Supported |
+| Python | Supported |
+| Others | [Open an issue](https://github.com/agentmark-ai/agentmark/issues) |
 
-| Language | Support Status |
-|----------|---------------|
-| TypeScript | ✅ Supported |
-| JavaScript | ✅ Supported |
-| Python | ✅ Supported |
-| Others | Need something else? [Open an issue](https://github.com/agentmark-ai/agentmark/issues) |
+## Packages
 
-## Type Safety
+| Package | Description |
+|---------|-------------|
+| [`@agentmark-ai/cli`](./packages/cli) | CLI for local development, prompt running, experiments, and building. |
+| [`@agentmark-ai/sdk`](./packages/sdk) | SDK for tracing and cloud platform integration. |
+| [`@agentmark-ai/prompt-core`](./packages/prompt-core) | Core prompt parsing and formatting engine. |
+| [`@agentmark-ai/templatedx`](./packages/templatedx) | MDX-based template engine with JSX components, conditionals, and loops. |
+| [`@agentmark-ai/mcp-server`](./packages/mcp-server) | MCP server for trace debugging in Claude Code, Cursor, and more. |
+| [`@agentmark-ai/model-registry`](./packages/model-registry) | Centralized LLM model metadata and pricing. |
+| [`create-agentmark`](./packages/create-agentmark) | Project scaffolding tool. |
 
-AgentMark Studio supports type safety out of the box. Read more about it [here](https://docs.agentmark.co/platform/further_reference/type-safety).
+## Examples
 
-## Contributing
+See the [`examples/`](./examples) directory for complete, runnable examples:
 
-We welcome contributions! Please check out our [contribution guidelines](https://github.com/agentmark-ai/agentmark/blob/main/CONTRIBUTING.md) for more information.
+- **[Hello World](./examples/01-hello-world)** — Simplest possible prompt
+- **[Structured Output](./examples/02-structured-output)** — Extract typed JSON with a schema
+- **[Tool Use](./examples/03-tool-use)** — Agent with tool calling
+- **[Reusable Components](./examples/04-reusable-components)** — Import and compose prompts
+- **[Evaluations](./examples/05-evaluations)** — Test prompts against datasets
+- **[Production Tracing](./examples/06-production-tracing)** — Trace LLM calls with the SDK
 
 ## Cloud Platform
 
-[AgentMark Cloud](agentmark.co) extends this OSS project, and allows you to:
+[AgentMark Cloud](https://agentmark.co) extends the open-source project with:
 
-1. Collaborate with teammates on prompts and datasets
-2. Run experiments
-3. Persist your telemetry data
-4. Annotate and evaluate your data
-5. Setup alerts for quality, latency, cost, and more
-6. View high-level metrics for your agents
-7. Setup two-way syncing with your Git repo
+- Collaborative prompt editing and version history
+- Persistent trace storage with search and filtering
+- Dashboards for cost, latency, and quality metrics
+- Annotations and human evaluation workflows
+- Alerts for quality regressions, cost spikes, and latency
+- Two-way Git sync
+
+## Contributing
+
+We welcome contributions! See our [contribution guidelines](./CONTRIBUTING.md).
 
 ## Community
 
-Join our community to collaborate, ask questions, and stay updated:
-
-- [Discord](https://discord.gg/P2NeMDtXar)
-- [Issues](https://github.com/agentmark-ai/agentmark/issues)
+- [GitHub Issues](https://github.com/agentmark-ai/agentmark/issues)
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/agentmark-ai/agentmark/blob/main/LICENSE.md).
+[MIT License](./LICENSE.md)

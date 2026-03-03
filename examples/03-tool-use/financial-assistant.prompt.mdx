@@ -1,0 +1,50 @@
+---
+name: financial-assistant
+text_config:
+  model_name: anthropic/claude-sonnet-4-20250514
+  max_calls: 3
+  tools:
+    calculate:
+      description: Evaluate a mathematical expression and return the result.
+      parameters:
+        type: object
+        properties:
+          expression:
+            type: string
+            description: The math expression to evaluate (e.g. "2 + 2", "sqrt(144)")
+        required:
+          - expression
+    lookup_conversion_rate:
+      description: Look up the conversion rate between two currencies.
+      parameters:
+        type: object
+        properties:
+          from_currency:
+            type: string
+            description: Source currency code (e.g. USD, EUR, GBP)
+          to_currency:
+            type: string
+            description: Target currency code
+        required:
+          - from_currency
+          - to_currency
+test_settings:
+  props:
+    question: "If I have 150 EUR, how much is that in USD and GBP?"
+input_schema:
+  type: object
+  properties:
+    question:
+      type: string
+      description: "A question that may require calculation or currency lookup"
+  required:
+    - question
+---
+
+<System>
+You are a helpful financial assistant. Use the available tools to answer
+questions accurately. Always show your work — explain which tools you called
+and what they returned.
+</System>
+
+<User>{props.question}</User>

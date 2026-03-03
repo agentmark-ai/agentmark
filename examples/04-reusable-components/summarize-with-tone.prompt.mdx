@@ -1,0 +1,38 @@
+---
+name: summarize-with-tone
+text_config:
+  model_name: anthropic/claude-sonnet-4-20250514
+  max_tokens: 512
+test_settings:
+  props:
+    text: "Quantum computing uses quantum-mechanical phenomena such as superposition and entanglement to perform computation. Unlike classical computers that use bits, quantum computers use qubits, which can represent both 0 and 1 simultaneously. This enables them to solve certain classes of problems exponentially faster than classical computers."
+    tone: "casual"
+input_schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: "The text to summarize"
+    tone:
+      type: string
+      enum: ["formal", "casual", "neutral"]
+      description: "The writing tone for the summary"
+  required:
+    - text
+    - tone
+---
+
+import ToneGuidelines from './components/tone-guidelines.mdx';
+
+<System>
+You are a summarization expert. Summarize the provided text in 2-3 sentences.
+
+Writing style:
+<ToneGuidelines tone={props.tone} />
+</System>
+
+<User>
+Summarize this text:
+
+{props.text}
+</User>

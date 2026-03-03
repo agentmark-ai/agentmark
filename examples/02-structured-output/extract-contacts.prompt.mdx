@@ -1,0 +1,43 @@
+---
+name: extract-contacts
+object_config:
+  model_name: anthropic/claude-sonnet-4-20250514
+  schema:
+    type: object
+    properties:
+      contacts:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+          required:
+            - name
+    required:
+      - contacts
+test_settings:
+  props:
+    text: "Please reach out to John Doe at john@acme.com or 555-0100. You can also contact Jane Smith at jane.smith@example.org."
+input_schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: "Text containing contact information to extract"
+  required:
+    - text
+---
+
+<System>
+Extract all contact information (name, email, phone) from the provided text.
+Return only contacts that are explicitly mentioned. If a field is not present, omit it.
+</System>
+
+<User>
+{props.text}
+</User>
