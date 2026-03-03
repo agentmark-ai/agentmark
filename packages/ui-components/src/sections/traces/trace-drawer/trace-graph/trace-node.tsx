@@ -1,7 +1,9 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Tooltip, Typography, useTheme } from "@mui/material";
 import { Iconify } from "@/components";
+import type { SpanData } from "../../types";
+import { SpanNodeTooltip } from "./span-node-tooltip";
 
 type TraceNodeData = {
   label: string;
@@ -17,6 +19,8 @@ type TraceNodeData = {
   currentSpanIndex?: number;
   /** Callback when node is clicked (receives nodeId for cycling) */
   onNodeCycleClick?: (nodeId: string) => void;
+  /** Span data for the hover tooltip */
+  spanData?: SpanData;
 };
 
 function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
@@ -45,6 +49,10 @@ function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
   const positionText = showPositionIndicator
     ? `(${(data.currentSpanIndex ?? 0) + 1}/${spanCount})`
     : "";
+
+  const tooltipContent = data.spanData ? (
+    <SpanNodeTooltip span={data.spanData} />
+  ) : null;
 
   // Render icon-only circular node for start/end
   if (isStartOrEnd) {
@@ -88,7 +96,68 @@ function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
     );
   }
 
-  // Render regular rectangular node
+  // Render regular rectangular node, wrapped in tooltip when span data is available
+  const nodeBox = (
+    <Box
+      sx={{
+        minWidth: 160,
+        maxWidth: 220,
+        backgroundColor: theme.palette.background.paper,
+        borderRadius: 2,
+        border: `2px solid ${borderColor}`,
+        display: "flex",
+        alignItems: "center",
+        padding: 2,
+        boxShadow: theme.shadows[3],
+        cursor: "pointer",
+        gap: 1.5,
+        "&:hover": {
+          boxShadow: theme.shadows[6],
+          borderColor: borderColor,
+        },
+        transition: "box-shadow 0.2s ease-in-out",
+      }}
+      onClick={handleClick}
+    >
+      {data.icon && (
+        <Iconify
+          icon={data.icon}
+          width={24}
+          height={24}
+          color={borderColor}
+          style={{ flexShrink: 0 }}
+        />
+      )}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            color: theme.palette.text.primary,
+            display: "block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+          title={data.label}
+        >
+          {data.label}
+        </Typography>
+        {showPositionIndicator && (
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: "0.7rem",
+              color: theme.palette.text.secondary,
+            }}
+          >
+            {positionText}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+
   return (
     <>
       <Handle
@@ -97,64 +166,34 @@ function TraceNodeComponent(props: NodeProps<Node<TraceNodeData>>) {
         style={{ visibility: "hidden" }}
       />
 
-      <Box
-        sx={{
-          minWidth: 120,
-          maxWidth: 180,
-          backgroundColor: theme.palette.background.paper,
-          borderRadius: 2,
-          border: `2px solid ${borderColor}`,
-          display: "flex",
-          alignItems: "center",
-          padding: 1.5,
-          boxShadow: theme.shadows[2],
-          cursor: "pointer",
-          gap: 1,
-          "&:hover": {
-            boxShadow: theme.shadows[4],
-            borderColor: borderColor,
-          },
-          transition: "box-shadow 0.2s ease-in-out",
-        }}
-        onClick={handleClick}
-      >
-        {data.icon && (
-          <Iconify
-            icon={data.icon}
-            width={20}
-            height={20}
-            color={borderColor}
-            style={{ flexShrink: 0 }}
-          />
-        )}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 600,
-              color: theme.palette.text.primary,
-              display: "block",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            title={data.label}
-          >
-            {data.label}
-          </Typography>
-          {showPositionIndicator && (
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: "0.65rem",
-                color: theme.palette.text.secondary,
-              }}
-            >
-              {positionText}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      {tooltipContent ? (
+        <Tooltip
+          title={tooltipContent}
+          placement="top"
+          arrow
+          enterDelay={300}
+          slotProps={{
+            tooltip: {
+              sx: {
+                bgcolor: "grey.900",
+                border: "1px solid",
+                borderColor: "grey.700",
+                borderRadius: 1,
+                p: 1,
+                maxWidth: 340,
+                boxShadow: 4,
+              },
+            },
+            arrow: {
+              sx: { color: "grey.900" },
+            },
+          }}
+        >
+          {nodeBox}
+        </Tooltip>
+      ) : (
+        nodeBox
+      )}
 
       <Handle
         type="source"

@@ -59,7 +59,7 @@ function getConfigPath(): string {
   // Use temp directory during tests to avoid polluting the project
   if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
     const tmpDir = os.tmpdir();
-    return path.join(tmpDir, '.agentmark-dev-config.json');
+    return path.join(tmpDir, `.agentmark-dev-config-${process.pid}.json`);
   }
 
   // Use .agentmark directory in project root for config

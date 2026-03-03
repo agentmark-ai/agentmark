@@ -91,7 +91,7 @@ describe("E2E: Seamless Pull-Models Flow (Claude Agent SDK)", () => {
   it("should give explicit registration precedence over provider", () => {
     const registry = new ClaudeAgentModelRegistry();
     registry.registerProviders({ anthropic: true });
-    registry.registerModels("anthropic/claude-3-5-haiku-20241022", (name) => ({
+    registry.registerModels("anthropic/claude-3-5-haiku-20241022", (_name) => ({
       model: "custom-override",
       custom: true,
     }));

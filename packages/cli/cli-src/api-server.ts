@@ -16,6 +16,7 @@ import {
   searchSpans,
 } from "./server/routes/traces";
 import { createScore, getScoresByResourceId } from "./server/routes/scores";
+import { getExperiments, getExperimentById } from "./server/routes/experiments";
 import { getTemplateDXInstance } from "@agentmark-ai/prompt-core";
 import type { TraceForwarder } from "./forwarding/forwarder";
 
@@ -656,6 +657,33 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting traces for session:", error);
       return res.status(500).json({ error: "Failed to get traces for session" });
+    }
+  });
+
+  app.get("/v1/experiments", async (_req: Request, res: Response) => {
+    try {
+      const experiments = await getExperiments();
+      return res.json({ experiments });
+    } catch (error) {
+      console.error("Error getting experiments:", error);
+      return res.status(500).json({ error: "Failed to get experiments" });
+    }
+  });
+
+  app.get("/v1/experiments/:experimentId", async (req: Request, res: Response) => {
+    try {
+      const { experimentId } = req.params;
+      if (!experimentId) {
+        return res.status(400).json({ error: "experimentId parameter is required" });
+      }
+      const result = await getExperimentById(experimentId);
+      if (!result) {
+        return res.status(404).json({ error: "Experiment not found" });
+      }
+      return res.json(result);
+    } catch (error) {
+      console.error("Error getting experiment:", error);
+      return res.status(500).json({ error: "Failed to get experiment" });
     }
   });
 

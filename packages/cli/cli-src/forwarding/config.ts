@@ -17,7 +17,7 @@ export type ForwardingConfig = NonNullable<LocalConfig['forwarding']>;
  */
 function getConfigPath(): string {
   if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
-    return path.join(os.tmpdir(), '.agentmark-dev-config.json');
+    return path.join(os.tmpdir(), `.agentmark-dev-config-${process.pid}.json`);
   }
 
   const cwd = process.cwd();

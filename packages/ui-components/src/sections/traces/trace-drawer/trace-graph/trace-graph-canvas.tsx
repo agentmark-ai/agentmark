@@ -16,6 +16,7 @@ import { useGraphData } from "./use-graph-data";
 import "@xyflow/react/dist/style.css";
 import { useTraceDrawerContext } from "../trace-drawer-provider";
 import type { SpanForGrouping } from "../../utils/span-grouping";
+import type { SpanData } from "../../types";
 
 const nodeTypes = {
   traceNode: TraceNode,
@@ -52,6 +53,23 @@ export function TraceGraphCanvas({
       }))
     );
   }, [traces, graphData]);
+
+  // Build a lookup from spanId → SpanData so nodes can render rich hover tooltips
+  const spanLookup = useMemo((): Map<string, SpanData> => {
+    const map = new Map<string, SpanData>();
+    traces.forEach((trace) => {
+      trace.spans.forEach((span) => {
+        if (map.has(span.id)) {
+          console.warn(
+            "[TraceGraphCanvas] Duplicate span ID in lookup — tooltip data may be incorrect:",
+            span.id
+          );
+        }
+        map.set(span.id, span);
+      });
+    });
+    return map;
+  }, [traces]);
 
   const { nodes: rawNodes, edges: rawEdges } = useTraceGraph(
     graphData,
@@ -109,6 +127,7 @@ export function TraceGraphCanvas({
     onNodeClick,
     onNodeCycleClick,
     nodeSpanIndices,
+    spanLookup,
   });
 
   const [nodes, setNodes] = useState<Node[]>(reactFlowNodes);
