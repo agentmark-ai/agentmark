@@ -85,7 +85,7 @@ For AM Cloud integration, add your API key:
       "command": "npx",
       "args": ["@agentmark-ai/mcp-server"],
       "env": {
-        "AGENTMARK_URL": "https://api.agentmark.ai",
+        "AGENTMARK_URL": "https://api.agentmark.co",
         "AGENTMARK_API_KEY": "your-api-key"
       }
     }

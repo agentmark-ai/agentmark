@@ -9,7 +9,7 @@ We pledge to create a welcoming and inclusive environment for everyone.
 - Assume positive intent.
 
 ## Enforcement
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to [hello@puzzlet.ai](mailto:hello@puzzlet.ai).
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to [hello@agentmark.co](mailto:hello@agentmark.co).
 
 ## Attribution
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org).

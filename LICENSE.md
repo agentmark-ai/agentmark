@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2024 Puzzlet.ai, Magu Studios Inc.
+Copyright (c) 2024 AgentMark.co, Magu Studios Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
