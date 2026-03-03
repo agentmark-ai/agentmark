@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 
 /**
- * The config module uses os.tmpdir() + '/.agentmark-dev-config.json' in test
+ * The config module uses os.tmpdir() + '/.agentmark-dev-config-{pid}.json' in test
  * environments (when VITEST env var is set). Both config.ts and
  * forwarding/config.ts share this same file path.
  *
@@ -19,7 +19,7 @@ import os from 'os';
 
 import { isKeyExpired, type ForwardingConfig } from '../../cli-src/forwarding/config';
 
-const CONFIG_PATH = path.join(os.tmpdir(), '.agentmark-dev-config.json');
+const CONFIG_PATH = path.join(os.tmpdir(), `.agentmark-dev-config-${process.pid}.json`);
 
 function removeConfigFile(): void {
   try {

@@ -2,8 +2,8 @@ import { Node, Edge } from "@xyflow/react";
 import dagre from "dagre";
 
 export const NODE_DIMENSIONS = {
-  width: 160,
-  height: 60,
+  width: 220,
+  height: 80,
 } as const;
 
 /** Dimensions for start/end marker nodes (smaller circular) */

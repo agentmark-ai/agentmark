@@ -7,6 +7,7 @@ import {
   getBranchColor,
   applyDagreLayout,
 } from "@/sections/traces/utils";
+import type { SpanData } from "../../types";
 
 export interface GraphNode {
   id: string;
@@ -35,6 +36,8 @@ export interface UseGraphDataProps {
   onNodeCycleClick?: (nodeId: string) => void;
   /** Map of node ID to current span index (for position indicator) */
   nodeSpanIndices?: Map<string, number>;
+  /** Lookup map from spanId to full SpanData, used to populate hover tooltips */
+  spanLookup?: Map<string, SpanData>;
 }
 
 export interface UseGraphDataResult {
@@ -48,6 +51,7 @@ export function useGraphData({
   onNodeClick,
   onNodeCycleClick,
   nodeSpanIndices,
+  spanLookup,
 }: UseGraphDataProps): UseGraphDataResult {
   const theme = useTheme();
 
@@ -75,6 +79,32 @@ export function useGraphData({
       const { color, icon } = getNodeTypeStyle(rawNode?.nodeType, theme);
       const currentSpanIndex = nodeSpanIndices?.get(node.id);
 
+      // Resolve span data for tooltip: prefer the primary spanId, fall back to
+      // the first entry in spanIds if the primary lookup misses.
+      let spanData: SpanData | undefined;
+      if (spanLookup) {
+        const primaryId = rawNode?.spanId;
+        if (primaryId) {
+          spanData = spanLookup.get(primaryId);
+          if (!spanData && rawNode?.spanIds) {
+            for (const sid of rawNode.spanIds) {
+              spanData = spanLookup.get(sid);
+              if (spanData) break;
+            }
+          }
+          if (!spanData) {
+            // Span ID is present in the graph but missing from the loaded spans —
+            // likely a data-pipeline inconsistency (partial hydration, ID mismatch).
+            console.warn(
+              "[useGraphData] Span ID not found in lookup for node",
+              node.id,
+              "spanId:",
+              primaryId
+            );
+          }
+        }
+      }
+
       return {
         ...node,
         type: "traceNode",
@@ -89,12 +119,13 @@ export function useGraphData({
           spanIds: rawNode?.spanIds,
           currentSpanIndex,
           onNodeCycleClick,
+          spanData,
         },
       };
     });
 
     return styledNodes;
-  }, [rawNodes, rawEdges, theme, onNodeClick, onNodeCycleClick, nodeSpanIndices]);
+  }, [rawNodes, rawEdges, theme, onNodeClick, onNodeCycleClick, nodeSpanIndices, spanLookup]);
 
   const reactFlowEdges: Edge[] = useMemo(() => {
     const edges: Edge[] = [];
