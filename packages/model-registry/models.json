@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-03T00:47:31.783Z",
+  "generatedAt": "2026-03-04T00:44:52.848Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-03T00:47:31.783Z",
-      "modelCount": 1224
+      "fetchedAt": "2026-03-04T00:44:52.848Z",
+      "modelCount": 1228
     },
     "openrouter": {
-      "fetchedAt": "2026-03-03T00:47:31.783Z",
-      "modelCount": 118
+      "fetchedAt": "2026-03-04T00:44:52.848Z",
+      "modelCount": 120
     }
   },
   "models": {
@@ -9464,6 +9464,38 @@
         "top_p"
       ]
     },
+    "gemini-3.1-flash-lite-preview": {
+      "provider": "google",
+      "displayName": "Google: Gemini 3.1 Flash Lite Preview",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.5e-7,
+        "outputCostPerToken": 0.0000015,
+        "cacheReadCostPerToken": 2.5e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioInput": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ]
+    },
     "deep-research-pro-preview-12-2025": {
       "provider": "google",
       "displayName": "Deep Research Pro Preview 12 2025",
@@ -13269,6 +13301,32 @@
         "webSearch": true
       }
     },
+    "pplx-embed-v1-0.6b": {
+      "provider": "perplexity",
+      "displayName": "Pplx Embed V1 0.6b",
+      "mode": "embedding",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-9,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 32768
+      }
+    },
+    "pplx-embed-v1-4b": {
+      "provider": "perplexity",
+      "displayName": "Pplx Embed V1 4b",
+      "mode": "embedding",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-8,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 32768
+      }
+    },
     "rerank-english-v2.0": {
       "provider": "cohere",
       "displayName": "Rerank English V2.0",
@@ -15410,6 +15468,33 @@
       "context": {
         "maxInputTokens": 65536,
         "maxOutputTokens": 32768
+      }
+    },
+    "vertex_ai/gemini-3.1-flash-lite-preview": {
+      "provider": "google",
+      "displayName": "Vertex Ai/gemini 3.1 Flash Lite Preview",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.5e-7,
+        "outputCostPerToken": 0.0000015,
+        "cacheReadCostPerToken": 2.5e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioInput": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "vertex_ai/deep-research-pro-preview-12-2025": {
@@ -20213,6 +20298,30 @@
         "promptCaching": true,
         "reasoning": true,
         "pdfInput": true
+      }
+    },
+    "gpt-5.3-chat": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-5.3 Chat",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.00000175,
+        "outputCostPerToken": 0.000014
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 16384
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
       }
     },
     "claude-sonnet-4.6": {
