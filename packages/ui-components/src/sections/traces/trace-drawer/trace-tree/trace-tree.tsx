@@ -27,6 +27,7 @@ const renderTree = (node: any, findCostAndTokens: any) => {
             tokens={tokens}
             latency={node.data.duration}
             cost={cost}
+            scores={node.data.scores}
           />
         }
       >

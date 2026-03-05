@@ -73,6 +73,29 @@ export interface SpanSummary {
   status: string | null;
   input: string | null;
   output: string | null;
+  metadata: Record<string, string> | null;
+}
+
+/**
+ * Safely coerces an object's values to strings.
+ * Handles non-string values (numbers, booleans, objects) that may
+ * come through the [key: string]: any index signature on SpanData.data.
+ */
+function safeStringify(v: unknown): string {
+  if (typeof v === 'string') return v;
+  try {
+    return JSON.stringify(v) ?? '';
+  } catch {
+    return '[unserializable]';
+  }
+}
+
+function toStringRecord(obj: Record<string, unknown>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    result[k] = safeStringify(v);
+  }
+  return result;
 }
 
 /**
@@ -92,5 +115,29 @@ export function extractSpanSummary(span: SpanData): SpanSummary {
     status: getSpanStatus(d),
     input: truncateText(d.input),
     output: truncateText(d.output),
+    metadata: d.metadata && typeof d.metadata === 'object' && Object.keys(d.metadata).length > 0
+      ? toStringRecord(d.metadata as Record<string, unknown>)
+      : null,
+  };
+}
+
+/**
+ * Formats metadata entries for display in a tooltip.
+ * Returns at most maxEntries entries with truncated values,
+ * plus the count of remaining entries.
+ */
+export function formatMetadataEntries(
+  metadata: Record<string, string>,
+  maxEntries = 5
+): { entries: Array<{ key: string; value: string }>; remaining: number } {
+  const keys = Object.keys(metadata);
+  const displayKeys = keys.slice(0, maxEntries);
+  const entries = displayKeys.map((key) => ({
+    key,
+    value: truncateText(metadata[key], 100) ?? '',
+  }));
+  return {
+    entries,
+    remaining: Math.max(0, keys.length - maxEntries),
   };
 }
