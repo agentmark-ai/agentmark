@@ -1,3 +1,16 @@
+├─ [38;5;166m@hono/[39m[38;5;173mnode-server[39m
+│  ├─ ID: [38;5;220m1113974[39m
+│  ├─ Issue: @hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-wc8c-qw6v-h7f6[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<1.19.10[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.19.9[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
 ├─ [38;5;166m@types/[39m[38;5;173mdiff[39m
 │  ├─ ID: [38;5;111m@types/diff (deprecation)[39m
 │  ├─ Issue: This is a stub types definition. diff provides its own type definitions, so you do not need this installed.
@@ -49,14 +62,27 @@
 │  └─ Dependents
 │     └─ [38;5;173mshelljs[39m[38;5;111m@[39m[38;5;111mnpm:0.8.5[39m
 │
-└─ [38;5;173mprebuild-install[39m
-   ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
-   ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
-   ├─ Severity: moderate
-   ├─ Vulnerable Versions: [38;5;37m7.1.3[39m
+├─ [38;5;173mprebuild-install[39m
+│  ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
+│  ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m7.1.3[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.1.3[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
+│
+└─ [38;5;173mtar[39m
+   ├─ ID: [38;5;220m1113992[39m
+   ├─ Issue: tar has Hardlink Path Traversal via Drive-Relative Linkpath
+   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-qffp-2rhf-9h96[39m
+   ├─ Severity: high
+   ├─ Vulnerable Versions: [38;5;37m<=7.5.9[39m
    │ 
    ├─ Tree Versions
-   │  └─ [38;5;111m7.1.3[39m
+   │  └─ [38;5;111m7.5.9[39m
    │ 
    └─ Dependents
-      └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
+      └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m

@@ -1,3 +1,9 @@
+## 0.5.0 (2026-03-05)
+
+### 🚀 Features
+
+- feat(traces): add metadata display to span tooltip, eval score chips in trace tree, and runtime type coercion for metadata values ([#510](https://github.com/agentmark-ai/agentmark/pull/510))
+
 ## 0.4.0 (2026-03-03)
 
 ### 🚀 Features
