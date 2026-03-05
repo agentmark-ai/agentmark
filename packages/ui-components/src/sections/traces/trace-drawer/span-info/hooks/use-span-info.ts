@@ -5,19 +5,23 @@ interface UseSpanInfoProps {
   span?: SpanData;
 }
 
+export function computeHasIOData(span?: SpanData): boolean {
+  return !!span?.data?.input || !!span?.data?.output || !!span?.data?.toolCalls?.length;
+}
+
 export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
   const [activeTab, setActiveTab] = useState<string>("attributes");
   const [tabs, setTabs] = useState<{ value: string; label: string }[]>([]);
 
-  const isLLMCall = useMemo(() => {
-    return span?.data?.type === "GENERATION" || !!span?.data?.model;
-  }, [span?.data?.type, span?.data?.model]);
+  const hasIOData = useMemo(() => {
+    return computeHasIOData(span);
+  }, [span?.data?.input, span?.data?.output, span?.data?.toolCalls]);
 
   useEffect(() => {
     if (span?.id) {
       const newTabs = [];
 
-      if (isLLMCall) {
+      if (hasIOData) {
         newTabs.push({
           value: "inputOutput",
           label: "Input/Output",
@@ -36,27 +40,27 @@ export const useSpanInfo = ({ span }: UseSpanInfoProps) => {
       });
       setTabs(newTabs);
     }
-  }, [span?.id, isLLMCall]);
+  }, [span?.id, hasIOData]);
 
   useEffect(() => {
     const isTabValid =
-      (activeTab === "inputOutput" && isLLMCall) ||
+      (activeTab === "inputOutput" && hasIOData) ||
       activeTab === "evaluation" ||
       activeTab === "attributes";
 
     if (!isTabValid) {
-      if (isLLMCall) {
+      if (hasIOData) {
         setActiveTab("inputOutput");
       } else {
         setActiveTab("evaluation");
       }
     }
-  }, [activeTab, isLLMCall]);
+  }, [activeTab, hasIOData]);
 
   return {
     activeTab,
     setActiveTab,
     tabs,
-    isLLMCall,
+    hasIOData,
   };
 };

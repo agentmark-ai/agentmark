@@ -1,6 +1,6 @@
 import { Box, Divider, Typography } from "@mui/material";
 import type { SpanData } from "../../types";
-import { extractSpanSummary } from "./span-node-tooltip-utils";
+import { extractSpanSummary, formatMetadataEntries } from "./span-node-tooltip-utils";
 
 interface SpanNodeTooltipProps {
   span: SpanData;
@@ -123,6 +123,34 @@ export function SpanNodeTooltip({ span }: SpanNodeTooltipProps) {
           )}
         </>
       )}
+
+      {s.metadata && (() => {
+        const { entries, remaining } = formatMetadataEntries(s.metadata);
+        return (
+          <>
+            <Divider sx={{ my: 0.75, borderColor: "grey.700" }} />
+            <Typography
+              variant="caption"
+              sx={{ color: "grey.400", display: "block", mb: 0.25 }}
+            >
+              Metadata
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+              {entries.map((entry) => (
+                <Row key={entry.key} label={entry.key} value={entry.value} />
+              ))}
+            </Box>
+            {remaining > 0 && (
+              <Typography
+                variant="caption"
+                sx={{ color: "grey.400", mt: 0.25, display: "block" }}
+              >
+                +{remaining} more
+              </Typography>
+            )}
+          </>
+        );
+      })()}
     </Box>
   );
 }

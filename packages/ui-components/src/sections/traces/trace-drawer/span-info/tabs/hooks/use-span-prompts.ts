@@ -16,11 +16,21 @@ interface UseSpanPromptsResult {
 const extractPromptsFromSpan = (span: any): LLMPrompt[] => {
   if (!span?.data?.input) return [];
 
+  const rawInput = span.data.input;
+
   try {
-    const parsed = JSON.parse(span.data.input);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(rawInput);
+    // Case 1: already an array of LLMPrompt objects
+    if (Array.isArray(parsed)) return parsed;
+    // Case 2: object with a messages array (e.g. { messages: [...] })
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.messages)) {
+      return parsed.messages;
+    }
+    // Case 3: parsed to a non-array value — wrap as user message
+    return [{ role: 'user', content: typeof parsed === 'string' ? parsed : rawInput }];
   } catch {
-    return [];
+    // Case 4: not valid JSON (plain string) — wrap as user message
+    return [{ role: 'user', content: rawInput }];
   }
 };
 

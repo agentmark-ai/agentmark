@@ -1,9 +1,10 @@
-import { Stack, Typography, Box, Tooltip } from "@mui/material";
+import { Stack, Typography, Box, Tooltip, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Iconify } from "@/components";
 import { Label } from "@/components";
 import { fCurrency, fNumber } from "@/utils/format-number";
 import { useTraceDrawerContext } from "../trace-drawer-provider";
+import type { ScoreData } from "../../types";
 
 interface TraceLabelProps {
   label: string;
@@ -11,6 +12,7 @@ interface TraceLabelProps {
   tokens: string;
   latency: string;
   cost: string;
+  scores?: ScoreData[];
 }
 
 export const TraceLabel = ({
@@ -19,9 +21,12 @@ export const TraceLabel = ({
   tokens,
   latency,
   cost,
+  scores,
 }: TraceLabelProps) => {
   const theme = useTheme();
   const { t } = useTraceDrawerContext();
+
+  const hasScores = scores && scores.length > 0;
 
   return (
     <Stack spacing={0.3}>
@@ -75,6 +80,30 @@ export const TraceLabel = ({
           </Tooltip>
         )}
       </Stack>
+      {hasScores && (
+        <Stack direction={"row"} spacing={0.5} flexWrap="wrap">
+          {scores.map((score) => (
+            <Tooltip
+              key={score.id}
+              title={score.reason || `${score.name}: ${typeof score.score === "number" && isFinite(score.score) ? score.score.toFixed(2) : String(score.score)}`}
+            >
+              <Chip
+                label={`${score.name}: ${typeof score.score === "number" && isFinite(score.score) ? score.score.toFixed(2) : String(score.score)}`}
+                size="small"
+                sx={{
+                  height: 18,
+                  fontSize: "0.65rem",
+                  fontWeight: 600,
+                  bgcolor: theme.palette.grey[800],
+                  color: theme.palette.common.white,
+                  "& .MuiChip-label": { px: 0.75 },
+                  cursor: "default",
+                }}
+              />
+            </Tooltip>
+          ))}
+        </Stack>
+      )}
     </Stack>
   );
 };
