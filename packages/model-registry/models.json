@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-04T00:44:52.848Z",
+  "generatedAt": "2026-03-05T00:46:26.583Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-04T00:44:52.848Z",
-      "modelCount": 1228
+      "fetchedAt": "2026-03-05T00:46:26.583Z",
+      "modelCount": 1230
     },
     "openrouter": {
-      "fetchedAt": "2026-03-04T00:44:52.848Z",
+      "fetchedAt": "2026-03-05T00:46:26.583Z",
       "modelCount": 120
     }
   },
@@ -11079,6 +11079,30 @@
         "pdfInput": true
       }
     },
+    "gpt-5.3-chat-latest": {
+      "provider": "openai",
+      "displayName": "Gpt 5.3 Chat Latest",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000175,
+        "outputCostPerToken": 0.000014,
+        "cacheReadCostPerToken": 1.75e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 16384
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
     "gpt-5-pro-2025-10-06": {
       "provider": "openai",
       "displayName": "Gpt 5 Pro",
@@ -14421,6 +14445,24 @@
       "pricing": {
         "inputCostPerToken": 1.5e-7,
         "outputCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 262144
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "Qwen/Qwen3.5-397B-A17B": {
+      "provider": "together_ai",
+      "displayName": "Qwen/Qwen3.5 397B A17B",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.0000036
       },
       "context": {
         "maxInputTokens": 262144
