@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-06T00:49:42.606Z",
+  "generatedAt": "2026-03-07T00:44:12.999Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-06T00:49:42.606Z",
-      "modelCount": 1232
+      "fetchedAt": "2026-03-07T00:44:12.999Z",
+      "modelCount": 1234
     },
     "openrouter": {
-      "fetchedAt": "2026-03-06T00:49:42.606Z",
+      "fetchedAt": "2026-03-07T00:44:12.999Z",
       "modelCount": 122
     }
   },
@@ -2324,7 +2324,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "gpt-5.1-chat-2025-11-13": {
@@ -2678,7 +2679,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       },
       "supportedParameters": [
         "max_tokens"
@@ -2813,7 +2815,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       },
       "supportedParameters": [
         "max_tokens"
@@ -2840,7 +2843,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "gpt-5.2-chat": {
@@ -11052,7 +11056,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "gpt-5.2-chat-latest": {
@@ -11076,7 +11081,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "gpt-5.3-chat-latest": {
@@ -11100,7 +11106,8 @@
         "structuredOutput": true,
         "promptCaching": true,
         "reasoning": true,
-        "pdfInput": true
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "gpt-5.4": {
@@ -11154,6 +11161,61 @@
         "promptCaching": true,
         "reasoning": true,
         "pdfInput": true
+      }
+    },
+    "gpt-5.4-pro": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-5.4 Pro",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00003,
+        "outputCostPerToken": 0.00018,
+        "cacheReadCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 1050000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": false,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty"
+      ]
+    },
+    "gpt-5.4-pro-2026-03-05": {
+      "provider": "openai",
+      "displayName": "Gpt 5.4 Pro",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00003,
+        "outputCostPerToken": 0.00018,
+        "cacheReadCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 1050000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": false,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true,
+        "webSearch": true
       }
     },
     "gpt-5-pro-2025-10-06": {
@@ -20393,30 +20455,6 @@
         "promptCaching": true,
         "reasoning": true,
         "pdfInput": true
-      }
-    },
-    "gpt-5.4-pro": {
-      "provider": "openai",
-      "displayName": "OpenAI: GPT-5.4 Pro",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty"
-      ],
-      "pricing": {
-        "inputCostPerToken": 0.00003,
-        "outputCostPerToken": 0.00018
-      },
-      "context": {
-        "maxInputTokens": 1050000,
-        "maxOutputTokens": 128000
-      },
-      "capabilities": {
-        "vision": true,
-        "functionCalling": true,
-        "structuredOutput": true
       }
     },
     "gpt-5.3-chat": {
