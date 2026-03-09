@@ -37,7 +37,7 @@
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.2.0",
     "@agentmark-ai/sdk": "1.0.6",
-    "@agentmark-ai/templatedx": "*",
+    "@agentmark-ai/templatedx": "0.3.0",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",
     "@types/mdast": "^4.0.0",

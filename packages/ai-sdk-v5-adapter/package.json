@@ -38,7 +38,7 @@
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.2.0",
     "@agentmark-ai/sdk": "1.0.6",
-    "@agentmark-ai/templatedx": "*",
+    "@agentmark-ai/templatedx": "0.3.0",
     "@ai-sdk/mcp": "^0.0.8",
     "@ai-sdk/openai": "^2.0.0",
     "@types/mdast": "^4.0.0",

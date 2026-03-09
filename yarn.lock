@@ -33,7 +33,7 @@ __metadata:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.2.0"
     "@agentmark-ai/sdk": "npm:1.0.6"
-    "@agentmark-ai/templatedx": "npm:*"
+    "@agentmark-ai/templatedx": "npm:0.3.0"
     "@ai-sdk/openai": "npm:^1.0.0"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
@@ -58,7 +58,7 @@ __metadata:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.2.0"
     "@agentmark-ai/sdk": "npm:1.0.6"
-    "@agentmark-ai/templatedx": "npm:*"
+    "@agentmark-ai/templatedx": "npm:0.3.0"
     "@ai-sdk/mcp": "npm:^0.0.8"
     "@ai-sdk/openai": "npm:^2.0.0"
     "@types/mdast": "npm:^4.0.0"
@@ -91,7 +91,7 @@ __metadata:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.2.0"
     "@agentmark-ai/sdk": "npm:1.0.6"
-    "@agentmark-ai/templatedx": "npm:*"
+    "@agentmark-ai/templatedx": "npm:0.3.0"
     "@anthropic-ai/claude-agent-sdk": "npm:^0.1.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.57.0"
@@ -120,8 +120,8 @@ __metadata:
     "@agentmark-ai/model-registry": "npm:0.2.0"
     "@agentmark-ai/prompt-core": "npm:0.2.0"
     "@agentmark-ai/shared-utils": "npm:0.3.0"
-    "@agentmark-ai/templatedx": "npm:0.2.0"
-    "@agentmark-ai/ui-components": "npm:0.4.0"
+    "@agentmark-ai/templatedx": "npm:0.3.0"
+    "@agentmark-ai/ui-components": "npm:0.5.0"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -228,7 +228,7 @@ __metadata:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.2.0"
     "@agentmark-ai/sdk": "npm:1.0.6"
-    "@agentmark-ai/templatedx": "npm:*"
+    "@agentmark-ai/templatedx": "npm:0.3.0"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"
     "@types/mdast": "npm:^4.0.0"
@@ -287,7 +287,7 @@ __metadata:
   resolution: "@agentmark-ai/prompt-core@workspace:packages/prompt-core"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/templatedx": "npm:0.2.0"
+    "@agentmark-ai/templatedx": "npm:0.3.0"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -313,7 +313,23 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/sdk@npm:1.0.6, @agentmark-ai/sdk@workspace:packages/sdk":
+"@agentmark-ai/sdk@npm:1.0.6":
+  version: 1.0.6
+  resolution: "@agentmark-ai/sdk@npm:1.0.6"
+  dependencies:
+    "@opentelemetry/api": "npm:^1.9.0"
+    "@opentelemetry/exporter-trace-otlp-http": "npm:^0.208.0"
+    "@opentelemetry/resources": "npm:^2.2.0"
+    "@opentelemetry/sdk-node": "npm:^0.205.0"
+    "@opentelemetry/sdk-trace-base": "npm:^2.2.0"
+    "@opentelemetry/semantic-conventions": "npm:^1.28.0"
+  peerDependencies:
+    "@agentmark-ai/loader-api": ">=0.0.0"
+  checksum: 10c0/b291c05cdacdf37cedcbd28172f92a8499a53325bff652993d927f158b4fa5bbfbcba4b16c251999308fae4b149ab1136d5a6a9dd1f6a72255d003ef93147f5b
+  languageName: node
+  linkType: hard
+
+"@agentmark-ai/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
@@ -358,7 +374,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/templatedx@npm:*, @agentmark-ai/templatedx@npm:0.2.0, @agentmark-ai/templatedx@workspace:packages/templatedx":
+"@agentmark-ai/templatedx@npm:0.3.0, @agentmark-ai/templatedx@workspace:packages/templatedx":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/templatedx@workspace:packages/templatedx"
   dependencies:
@@ -386,7 +402,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.4.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.5.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
