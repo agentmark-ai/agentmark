@@ -16,7 +16,7 @@ export interface DefaultObjectPrompt<
 > extends ObjectPrompt<T, A, K> {
   format({
     props,
-  }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptObject"]>>;
+  }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptObject"]>>>;
 }
 
 export interface DefaultAgentmark<T extends PromptShape<T>>

@@ -58,6 +58,7 @@ class PydanticAIObjectParams(Generic[T]):
     user_prompt: str
     output_type: type[T]
     model_settings: ModelSettings | None = None
+    tools: list[Tool[Any]] = field(default_factory=list)
     tool_context: dict[str, Any] = field(default_factory=dict)
 
     # AgentMark metadata for tracing/telemetry

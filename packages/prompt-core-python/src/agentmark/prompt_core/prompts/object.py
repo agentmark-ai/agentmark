@@ -1,5 +1,6 @@
 """Object prompt class."""
 
+import inspect
 from typing import Any
 
 from ..schemas import ObjectConfigSchema
@@ -25,4 +26,8 @@ class ObjectPrompt(BasePrompt[ObjectConfigSchema]):
         """
         compiled = await self._compile(props)
         adapt_options = self._build_adapt_options(options)
-        return self._adapter.adapt_object(compiled, adapt_options, self._metadata(props))
+        result = self._adapter.adapt_object(compiled, adapt_options, self._metadata(props))
+        # Support both sync and async adapters
+        if inspect.iscoroutine(result):
+            result = await result
+        return result

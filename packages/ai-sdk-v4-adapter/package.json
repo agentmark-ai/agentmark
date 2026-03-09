@@ -39,6 +39,7 @@
     "@agentmark-ai/prompt-core": "0.2.0",
     "@agentmark-ai/sdk": "1.0.6",
     "@agentmark-ai/templatedx": "*",
+    "@ai-sdk/openai": "^1.0.0",
     "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",

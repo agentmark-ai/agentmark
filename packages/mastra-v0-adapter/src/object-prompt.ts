@@ -41,7 +41,7 @@ export class MastraObjectPrompt<
     const { props, options } = params || {};
     const input = await this.compile(props);
 
-    const adaptedAgent = this.adapter.adaptObject(input, options ?? {});
+    const adaptedAgent = await this.adapter.adaptObject(input, options ?? {});
 
     const formatMessages = async <M extends Partial<T[K]["input"]>>(msgParams?: {
       props?: FormatMessagesProps<T, UsedProps, M, K>;

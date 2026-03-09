@@ -226,7 +226,7 @@ class PydanticAIAdapter:
             _raw_messages=list(config.messages),  # type: ignore[arg-type]
         )
 
-    def adapt_object(
+    async def adapt_object(
         self,
         config: ObjectConfigSchema,
         options: AdaptOptions,
@@ -259,12 +259,20 @@ class PydanticAIAdapter:
 
         tool_context: dict[str, Any] = options.get("toolContext", {})
 
+        # Build tools if specified
+        tools = (
+            await self._build_tools(object_config.tools, tool_context)
+            if object_config.tools
+            else []
+        )
+
         return PydanticAIObjectParams(
             model=model,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             output_type=output_type,
             model_settings=model_settings,
+            tools=tools,
             tool_context=tool_context,
             prompt_name=config.name,
             agentmark_meta=config.agentmark_meta,

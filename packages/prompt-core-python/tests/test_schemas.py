@@ -12,6 +12,7 @@ from agentmark.prompt_core.schemas import (
     SpeechSettingsSchema,
     TextConfigSchema,
     TextSettingsSchema,
+    ToolChoiceSchema,
 )
 
 
@@ -82,6 +83,32 @@ class TestObjectConfigSchema:
         )
         assert config.name == "test"
         assert config.object_config.schema_ == {"type": "object", "properties": {}}
+
+
+class TestObjectSettingsSchemaTools:
+    """Tests for ObjectSettingsSchema tools and tool_choice fields."""
+
+    def test_object_settings_with_tools(self) -> None:
+        """Test object settings with tools field."""
+        settings = ObjectSettingsSchema(
+            model_name="gpt-4",
+            schema={"type": "object", "properties": {}},
+            tools={
+                "get_weather": {"description": "Get weather", "parameters": {"type": "object"}},
+                "search": "Search the web",
+            },
+        )
+        assert settings.tools is not None
+        assert "get_weather" in settings.tools
+        assert settings.tools["search"] == "Search the web"
+
+    def test_object_settings_tools_default_none(self) -> None:
+        """Test that tools defaults to None."""
+        settings = ObjectSettingsSchema(
+            model_name="gpt-4",
+            schema={"type": "object"},
+        )
+        assert settings.tools is None
 
 
 class TestImageConfigSchema:

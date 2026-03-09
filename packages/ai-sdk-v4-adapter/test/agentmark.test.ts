@@ -9,6 +9,10 @@ type TestPromptTypes = {
     input: { userMessage: string };
     output: { answer: string };
   };
+  "math-with-tools.prompt.mdx": {
+    input: { userMessage: string };
+    output: { answer: string };
+  };
   "image.prompt.mdx": {
     input: { userMessage: string };
     output: never;
@@ -104,6 +108,52 @@ describe("AgentMark Integration", () => {
         name: "test-model",
         generate: expect.any(Function),
       });
+    });
+
+    it("should adapt object prompts with tools for Vercel AI SDK v4", async () => {
+      const fixturesDir = path.resolve(__dirname, "./fixtures");
+      const fileLoader = new FileLoader(fixturesDir);
+      const mockModelFn = vi.fn().mockImplementation((modelName) => ({
+        name: modelName,
+        generate: vi.fn(),
+      }));
+      const modelRegistry = new VercelAIModelRegistry();
+      modelRegistry.registerModels("test-model", mockModelFn);
+
+      const agentMark = createAgentMarkClient<TestPromptTypes>({
+        loader: fileLoader,
+        modelRegistry,
+      });
+
+      const prompt = await agentMark.loadObjectPrompt("math-with-tools.prompt.mdx");
+      const result = await prompt.format({
+        props: {
+          userMessage: "What is 5 * 3?",
+        },
+      });
+
+      // Schema should still be present (structured output works)
+      expect(result.schema).toBeDefined();
+
+      // Tools should be populated
+      expect(result.tools).toBeDefined();
+      expect(result.tools).toHaveProperty("calculator");
+      expect(result.tools.calculator).toHaveProperty("description", "Perform calculations");
+      expect(result.tools.calculator).toHaveProperty("parameters");
+      expect(result.tools.calculator).toHaveProperty("execute");
+      expect(typeof result.tools.calculator.execute).toBe("function");
+
+      // Model should still be resolved
+      expect(result.model).toBeDefined();
+
+      // Messages should still be correct
+      expect(result.messages).toHaveLength(2);
+      expect(result.messages[0].role).toBe("system");
+      expect(result.messages[0].content).toBe(
+        "You are a helpful math tutor. Use the calculator tool when needed."
+      );
+      expect(result.messages[1].role).toBe("user");
+      expect(result.messages[1].content).toBe("What is 5 * 3?");
     });
 
     it("should handle custom runtime config in Vercel adapter", async () => {

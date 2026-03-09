@@ -53,7 +53,7 @@ export abstract class BasePrompt<
 
   formatWithTestProps(
     options?: AdaptOptions
-  ): Promise<ReturnType<A[`adapt${Capitalize<PK>}`]>> {
+  ): Promise<Awaited<ReturnType<A[`adapt${Capitalize<PK>}`]>>> {
     return this.format({
       props: this.testSettings?.props || {},
       ...(options ?? {}),
@@ -63,7 +63,7 @@ export abstract class BasePrompt<
   async formatWithDataset(
     options?: FormatWithDatasetOptions
   ): Promise<
-    ReadableStream<DatasetStreamChunk<ReturnType<A[`adapt${Capitalize<PK>}`]>> | DatasetErrorChunk>
+    ReadableStream<DatasetStreamChunk<Awaited<ReturnType<A[`adapt${Capitalize<PK>}`]>>> | DatasetErrorChunk>
   > {
     if (
       !this.loader ||
@@ -190,7 +190,7 @@ export class ObjectPrompt<
   async format({
     props,
     ...options
-  }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptObject"]>> {
+  }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptObject"]>>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptObject(compiled, options, this.metadata(props));
   }
@@ -215,7 +215,7 @@ export class TextPrompt<
   async format({
     props,
     ...options
-  }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptText"]>> {
+  }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptText"]>>> {
     const compiled = await this.compile(props);
     return this.adapter.adaptText<K>(compiled, options, this.metadata(props));
   }
