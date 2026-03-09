@@ -63,6 +63,8 @@ export interface VercelAIObjectParams<T> {
   schemaName?: string;
   schemaDescription?: string;
   experimental_telemetry?: any;
+  tools?: Record<string, any>;
+  maxSteps?: number;
 }
 
 export interface VercelAIImageParams {
@@ -353,14 +355,61 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptObject<K extends KeysWithKind<T, "object"> & string>(
+  async adaptObject<K extends KeysWithKind<T, "object"> & string>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): VercelAIObjectParams<T[K]["output"]> {
+  ): Promise<VercelAIObjectParams<T[K]["output"]>> {
     const { model_name: name, ...settings } = input.object_config;
     const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
     const model = modelCreator(name, options) as LanguageModel;
+
+    type Ret = ToolRet<R>;
+    let toolsObj: ToolSetMap<Ret> | undefined;
+
+    if (input.object_config.tools) {
+      toolsObj = {} as ToolSetMap<Ret>;
+
+      for (const [keyAny, defAny] of Object.entries(input.object_config.tools)) {
+        const key = keyAny as keyof Ret;
+
+        if (typeof defAny === "string") {
+          if (defAny.startsWith("mcp://")) {
+            const { server, tool } = parseMcpUri(defAny);
+            if (tool === "*") {
+              const allTools = await this.mcpRegistry.getAllTools(server);
+              for (const [toolName, toolImpl] of Object.entries(allTools)) {
+                (toolsObj as any)[toolName] = toolImpl as any;
+              }
+              continue;
+            }
+            const resolvedTool = await this.mcpRegistry.getTool(server, tool);
+            (toolsObj as any)[key] = resolvedTool as any;
+            continue;
+          }
+          throw new Error(
+            `Invalid tool entry for '${String(
+              key
+            )}': expected MCP URI string or inline tool definition`
+          );
+        }
+
+        const def = defAny as { description?: string; parameters: Record<string, any> };
+
+        const impl = this.toolsRegistry?.has(key)
+          ? this.toolsRegistry.get(key)
+          : (_: any) =>
+              Promise.reject(new Error(`Tool ${String(key)} not registered`));
+
+        (toolsObj as any)[key] = {
+          parameters: jsonSchema(def.parameters),
+          description: def.description ?? "",
+          execute: ((args) => impl(args, options.toolContext)) as ToolWithExec<
+            Ret[typeof key]
+          >["execute"],
+        } satisfies ToolWithExec<Ret[typeof key]>;
+      }
+    }
 
     return {
       output: 'object' as const,
@@ -388,6 +437,11 @@ export class VercelAIAdapter<
       ...(settings?.schema_description !== undefined
         ? { schemaDescription: settings.schema_description }
         : {}),
+      ...(settings?.max_calls !== undefined
+        ? { maxSteps: settings.max_calls }
+        : toolsObj
+          ? { maxSteps: 10 }
+          : {}),
       ...(options.telemetry
         ? {
             experimental_telemetry: getTelemetryConfig(
@@ -398,6 +452,7 @@ export class VercelAIAdapter<
             ),
           }
         : {}),
+      ...(toolsObj ? { tools: toolsObj } : {}),
     };
   }
 

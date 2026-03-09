@@ -142,6 +142,23 @@ class TestPydanticAIAdapter:
 
         assert result.tool_context == tool_context
 
+    async def test_adapt_object_with_tools(
+        self,
+        adapter_with_tools: PydanticAIAdapter,
+        tools_object_ast: dict[str, Any],
+    ) -> None:
+        """Test adapting an object prompt with tools."""
+        from agentmark.prompt_core import AgentMark
+
+        am = AgentMark(adapter=adapter_with_tools)
+        prompt = await am.load_object_prompt(tools_object_ast)
+        result = await prompt.format(props={"userMessage": "Add 2 and 3"})
+
+        assert isinstance(result, PydanticAIObjectParams)
+        assert len(result.tools) == 1
+        assert result.tools[0].name == "add"
+        assert result.output_type is not None
+
     async def test_adapt_image_raises(
         self, adapter: PydanticAIAdapter, image_ast: dict[str, Any]
     ) -> None:

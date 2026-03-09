@@ -109,6 +109,7 @@ async def run_object_prompt(
         system_prompt=system_prompt,
         model_settings=params.model_settings,
         output_type=params.output_type,
+        tools=params.tools,
     )
 
     # Run

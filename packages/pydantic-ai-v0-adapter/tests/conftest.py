@@ -78,6 +78,63 @@ def tool_registry() -> PydanticAIToolRegistry:
 
 
 @pytest.fixture
+def tools_object_ast() -> dict[str, Any]:
+    """Create an object AST fixture with tools defined."""
+    return {
+        "type": "root",
+        "children": [
+            {
+                "type": "yaml",
+                "value": """name: tools_object_prompt
+object_config:
+  model_name: test-model
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+    required: [answer]
+  tools:
+    add:
+      description: Add two numbers
+      parameters:
+        type: object
+        properties:
+          a:
+            type: integer
+          b:
+            type: integer
+        required: [a, b]""",
+            },
+            {
+                "type": "mdxJsxFlowElement",
+                "name": "System",
+                "attributes": [],
+                "children": [
+                    {
+                        "type": "paragraph",
+                        "children": [{"type": "text", "value": "You are a calculator."}],
+                    }
+                ],
+            },
+            {
+                "type": "mdxJsxFlowElement",
+                "name": "User",
+                "attributes": [],
+                "children": [
+                    {
+                        "type": "paragraph",
+                        "children": [
+                            {"type": "mdxTextExpression", "value": "props.userMessage"}
+                        ],
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
 def tools_text_ast() -> dict[str, Any]:
     """Create a text AST fixture with tools defined."""
     return {

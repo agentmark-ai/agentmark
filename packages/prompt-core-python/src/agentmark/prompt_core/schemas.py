@@ -112,6 +112,7 @@ class ObjectSettingsSchema(BaseModel):
     stop_sequences: list[str] | None = None
     seed: int | None = None
     max_retries: int | None = None
+    tools: dict[str, str | dict[str, Any]] | None = None
     schema_: Annotated[dict[str, Any], Field(alias="schema")]
     schema_name: str | None = None
     schema_description: str | None = None

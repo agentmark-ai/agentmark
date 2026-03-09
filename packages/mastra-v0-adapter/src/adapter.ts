@@ -75,8 +75,8 @@ export class MastraAdapter<
     };
   }
 
-  adaptObject(input: ObjectConfig, options: AdaptOptions) {
-    const baseAgent = this.adaptObjectAgent(input, options);
+  async adaptObject(input: ObjectConfig, options: AdaptOptions) {
+    const baseAgent = await this.adaptObjectAgent(input, options);
 
     return {
       ...baseAgent,
@@ -163,13 +163,61 @@ export class MastraAdapter<
     };
   }
 
-  private adaptObjectAgent(
+  private async adaptObjectAgent(
     input: ObjectConfig,
     options?: AdaptOptions
-  ): AgentConfig {
-    const { model_name } = input.object_config;
+  ): Promise<AgentConfig> {
+    const { model_name, tools } = input.object_config;
     const modelCreator = this.modelRegistry?.getModelFunction(model_name);
     const model = modelCreator(model_name, options ?? {});
+
+    const toolsObj = {} as any;
+
+    if (tools) {
+      for (const [name, value] of Object.entries(tools)) {
+        if (typeof value === "string") {
+          if (value.startsWith("mcp://")) {
+            const { server, tool } = parseMcpUri(value);
+            const mcp = this.getMcpManager();
+            if (!mcp) {
+              throw new Error(
+                `MCP server '${server}' not configured`
+              );
+            }
+            const namespacedTools = await mcp.getNamespacedTools();
+            const keyUnderscore = `${server}_${tool}`;
+            const keyDot = `${server}.${tool}`;
+            const resolved =
+              (namespacedTools as any)[keyUnderscore] ??
+              (namespacedTools as any)[keyDot];
+            if (!resolved) {
+              throw new Error(
+                `MCP tool not found: ${server}/${tool}`
+              );
+            }
+            toolsObj[name] = resolved as any;
+            continue;
+          }
+          throw new Error(
+            `Invalid tool entry for '${String(
+              name
+            )}': expected MCP URI string or inline tool definition`
+          );
+        }
+        const { description, parameters } = value;
+        if (!this.toolRegistry?.has(name)) {
+          throw new Error(`Tool ${name} not registered`);
+        }
+        const tool = this.toolRegistry.get(name);
+        toolsObj[name] = {
+          id: name,
+          description,
+          outputSchema: undefined as any,
+          inputSchema: resolveSerializedZodOutput(parseSchema(parameters)),
+          execute: (args: any) => tool(args, options?.toolContext),
+        };
+      }
+    }
 
     const instructions = extractInstructions(input.messages);
 
@@ -177,6 +225,7 @@ export class MastraAdapter<
       name: input.name,
       instructions: instructions!,
       model,
+      tools: toolsObj,
     };
   }
 
@@ -280,6 +329,12 @@ export class MastraAdapter<
               input.agentmark_meta
             ),
           }
+        : {}),
+      ...(settings.max_retries !== undefined
+        ? { maxRetries: settings.max_retries }
+        : {}),
+      ...(settings.max_calls !== undefined
+        ? { maxSteps: settings.max_calls }
         : {}),
     };
 

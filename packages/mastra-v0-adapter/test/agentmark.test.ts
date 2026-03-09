@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark-ai/loader-file";
-import { createAgentMarkClient, MastraModelRegistry } from "../src";
+import { createAgentMarkClient, MastraModelRegistry, MastraToolRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
+    input: { userMessage: string };
+    output: { answer: string };
+  };
+  "math-with-tools.prompt.mdx": {
     input: { userMessage: string };
     output: { answer: string };
   };
@@ -155,6 +159,84 @@ describe("Mastra Adapter Integration", () => {
       "test-model",
       expect.objectContaining(runtimeConfig)
     );
+  });
+
+  it("should adapt object prompts with tools for Mastra", async () => {
+    const fixturesDir = path.resolve(__dirname, "./fixtures");
+    const fileLoader = new FileLoader(fixturesDir);
+
+    const mockModelFn = vi.fn().mockImplementation((modelName) => ({
+      name: modelName,
+      generate: vi.fn(),
+    }));
+
+    const toolRegistry = new MastraToolRegistry();
+    toolRegistry.register("calculator", (args: any) => `result: ${args.expression}`);
+
+    const modelRegistry = new MastraModelRegistry();
+    modelRegistry.registerModels("test-model", mockModelFn);
+
+    const agentMark = createAgentMarkClient<TestPromptTypes>({
+      loader: fileLoader,
+      modelRegistry,
+      toolRegistry,
+    });
+
+    const prompt = await agentMark.loadObjectPrompt("math-with-tools.prompt.mdx");
+    const agent = await prompt.formatAgent();
+
+    // Model function should be resolved
+    expect(mockModelFn).toHaveBeenCalledWith("test-model", expect.any(Object));
+
+    // Agent should have tools populated
+    expect(agent.tools).toBeDefined();
+    expect(agent.tools).toHaveProperty("calculator");
+    expect(agent.tools.calculator).toHaveProperty("description", "Perform calculations");
+    expect(agent.tools.calculator).toHaveProperty("inputSchema");
+    expect(agent.tools.calculator).toHaveProperty("execute");
+    expect(typeof agent.tools.calculator.execute).toBe("function");
+
+    // formatMessages should still work and return the output schema
+    const [messages, opts] = await agent.formatMessages({
+      props: { userMessage: "What is 5 * 3?" },
+    });
+
+    // Object prompts include all messages (system + user)
+    expect(messages).toHaveLength(2);
+    expect(messages[0].role).toBe("system");
+    expect(messages[0].content).toBe(
+      "You are a helpful math tutor. Use the calculator tool when needed."
+    );
+    expect(messages[1].role).toBe("user");
+    expect(messages[1].content).toBe("What is 5 * 3?");
+
+    // options.output should be a zod schema for the object prompt
+    expect((opts as any).output).toBeDefined();
+    expect(typeof (opts as any).output.parse).toBe("function");
+  });
+
+  it("should throw if a declared tool is not registered in object prompt", async () => {
+    const fixturesDir = path.resolve(__dirname, "./fixtures");
+    const fileLoader = new FileLoader(fixturesDir);
+
+    const mockModelFn = vi.fn().mockImplementation((modelName) => ({
+      name: modelName,
+      generate: vi.fn(),
+    }));
+
+    const modelRegistry = new MastraModelRegistry();
+    modelRegistry.registerModels("test-model", mockModelFn);
+
+    const agentMark = createAgentMarkClient<TestPromptTypes>({
+      loader: fileLoader,
+      modelRegistry,
+    });
+
+    const prompt = await agentMark.loadObjectPrompt("math-with-tools.prompt.mdx");
+
+    await expect(
+      prompt.formatAgent({ props: { userMessage: "test?" } })
+    ).rejects.toThrow(/Tool calculator not registered/);
   });
 
   it("should throw if a declared tool is not registered", async () => {

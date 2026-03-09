@@ -7,6 +7,7 @@ import {
   generateText,
   streamObject,
   streamText,
+  Output,
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
 } from "ai";
@@ -55,6 +56,88 @@ export class VercelAdapterWebhookHandler {
         : await prompt.formatWithTestProps({ telemetry });
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
+
+      const hasTools = input.tools && Object.keys(input.tools).length > 0;
+
+      if (hasTools) {
+        // Tools present: use generateText/streamText with experimental_output
+        const { schema, output: _output, schemaName: _sn, schemaDescription: _sd, ...textParams } = input;
+        const experimental_output = Output.object({ schema });
+
+        if (shouldStream) {
+          const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+            return streamText({ ...textParams, experimental_output });
+          });
+          const streamResult = await result;
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder();
+              try {
+                for await (const partialObject of streamResult.experimental_partialOutputStream) {
+                  controller.enqueue(
+                    encoder.encode(
+                      JSON.stringify({
+                        type: "object",
+                        result: partialObject,
+                      }) + "\n"
+                    )
+                  );
+                }
+                const usageData = await streamResult.usage;
+                if (usageData) {
+                  controller.enqueue(
+                    encoder.encode(
+                      JSON.stringify({
+                        type: "object",
+                        usage: {
+                          ...usageData,
+                          promptTokens: usageData.inputTokens,
+                          completionTokens: usageData.outputTokens,
+                        },
+                      }) + "\n"
+                    )
+                  );
+                }
+              } catch (err) {
+                const message = extractErrorMessage(err);
+                console.error("[WebhookHandler] Error during streaming:", message);
+                controller.enqueue(
+                  encoder.encode(
+                    JSON.stringify({ type: "error", error: message }) + "\n"
+                  )
+                );
+              }
+              controller.close();
+            },
+          });
+          return {
+            type: "stream",
+            stream,
+            streamHeader: { "AgentMark-Streaming": "true" },
+            traceId,
+          } as WebhookPromptResponse;
+        }
+
+        // Non-streaming with tools
+        const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          return generateText({ ...textParams, experimental_output });
+        });
+        const textResult = await result;
+        const output = await (textResult as any).resolvedOutput ?? (textResult as any).experimental_output;
+        return {
+          type: "object",
+          result: output,
+          usage: {
+            ...(textResult as any).usage,
+            promptTokens: (textResult as any).usage?.inputTokens,
+            completionTokens: (textResult as any).usage?.outputTokens,
+          },
+          finishReason: (textResult as any).finishReason,
+          traceId,
+        } as WebhookPromptResponse;
+      }
+
+      // No tools: existing generateObject/streamObject path
       if (shouldStream) {
         const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
           return streamObject(input);
@@ -396,25 +479,63 @@ export class VercelAdapterWebhookHandler {
             const { value: item, done } = await reader.read();
             if (done) break;
             if (item.type === "error") continue;
-            const { result, traceId } = await trace({
-              name: `experiment-${datasetRunName}-${index}`,
-              datasetRunId: experimentRunId,
-              datasetRunName: datasetRunName,
-              datasetItemName: `${index}`,
-              datasetExpectedOutput: item.dataset.expected_output,
-              datasetPath: resolvedDatasetPath
-            }, async (_ctx) => {
-              return (await import("ai")).generateObject({
-                ...item.formatted,
-                experimental_telemetry: {
-                  ...(item.formatted.experimental_telemetry ?? {}),
-                  metadata: {
-                    ...(item.formatted.experimental_telemetry?.metadata ?? {}),
+            const formatted = item.formatted as any;
+            const hasTools = formatted.tools && Object.keys(formatted.tools).length > 0;
+
+            let object: any;
+            let usage: any;
+            let traceId: string;
+
+            if (hasTools) {
+              const { schema, output: _output, schemaName: _sn, schemaDescription: _sd, ...textParams } = formatted;
+              const experimental_output = Output.object({ schema });
+              const traceResult = await trace({
+                name: `experiment-${datasetRunName}-${index}`,
+                datasetRunId: experimentRunId,
+                datasetRunName: datasetRunName,
+                datasetItemName: `${index}`,
+                datasetExpectedOutput: item.dataset.expected_output,
+                datasetPath: resolvedDatasetPath
+              }, async (_ctx) => {
+                return generateText({
+                  ...textParams,
+                  experimental_output,
+                  experimental_telemetry: {
+                    ...(textParams?.experimental_telemetry ?? {}),
+                    metadata: {
+                      ...(textParams?.experimental_telemetry?.metadata ?? {}),
+                    },
                   },
-                },
+                });
               });
-            });
-            const { object, usage } = await result;
+              const textResult = await traceResult.result;
+              object = await (textResult as any).resolvedOutput ?? (textResult as any).experimental_output;
+              usage = (textResult as any).usage;
+              traceId = traceResult.traceId;
+            } else {
+              const traceResult = await trace({
+                name: `experiment-${datasetRunName}-${index}`,
+                datasetRunId: experimentRunId,
+                datasetRunName: datasetRunName,
+                datasetItemName: `${index}`,
+                datasetExpectedOutput: item.dataset.expected_output,
+                datasetPath: resolvedDatasetPath
+              }, async (_ctx) => {
+                return (await import("ai")).generateObject({
+                  ...formatted,
+                  experimental_telemetry: {
+                    ...(formatted.experimental_telemetry ?? {}),
+                    metadata: {
+                      ...(formatted.experimental_telemetry?.metadata ?? {}),
+                    },
+                  },
+                });
+              });
+              const objResult = await traceResult.result;
+              object = objResult.object;
+              usage = objResult.usage;
+              traceId = traceResult.traceId;
+            }
 
             let evalResults: any[] = [];
             if (
@@ -431,7 +552,7 @@ export class VercelAdapterWebhookHandler {
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
                   const r = await e.fn({
-                    input: item.formatted.messages,
+                    input: formatted.messages,
                     output: object,
                     expectedOutput: item.dataset.expected_output,
                   });
