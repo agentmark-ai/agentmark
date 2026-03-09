@@ -266,20 +266,19 @@ class ClaudeAgentAdapter:
         self,
         config: dict[str, Any],
         options: dict[str, Any],
-        messages: list[dict[str, Any]],
         metadata: dict[str, Any],
     ) -> ClaudeAgentTextParams:
         """Adapt a text configuration for Claude Agent SDK.
 
         Args:
-            config: Text configuration from AgentMark prompt.
+            config: Text configuration from AgentMark prompt (includes messages).
             options: Adapt options including telemetry settings.
-            messages: Chat messages.
             metadata: Prompt metadata including props.
 
         Returns:
             Configuration for Claude Agent SDK query() with telemetry context.
         """
+        messages = config.get("messages", [])
         text_config = config.get("text_config", {})
         model_name = text_config.get("model_name", "")
         settings = {k: v for k, v in text_config.items() if k != "model_name"}
@@ -318,20 +317,19 @@ class ClaudeAgentAdapter:
         self,
         config: dict[str, Any],
         options: dict[str, Any],
-        messages: list[dict[str, Any]],
         metadata: dict[str, Any],
     ) -> ClaudeAgentObjectParams[Any]:
         """Adapt an object configuration for Claude Agent SDK with structured output.
 
         Args:
-            config: Object configuration from AgentMark prompt.
+            config: Object configuration from AgentMark prompt (includes messages).
             options: Adapt options including telemetry settings.
-            messages: Chat messages.
             metadata: Prompt metadata including props.
 
         Returns:
             Configuration for Claude Agent SDK query() with outputFormat and telemetry context.
         """
+        messages = config.get("messages", [])
         object_config = config.get("object_config", {})
         model_name = object_config.get("model_name", "")
         schema = object_config.get("schema", {})
