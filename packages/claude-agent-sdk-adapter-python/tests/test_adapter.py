@@ -38,15 +38,15 @@ class TestClaudeAgentAdapterTextPrompts:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Hello, how are you?"},
+            ],
         }
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Hello, how are you?"},
-        ]
         options: dict[str, Any] = {}
         metadata = {"name": "text-prompt"}
 
-        result = await adapter.adapt_text(config, options, messages, metadata)
+        result = await adapter.adapt_text(config, options, metadata)
 
         assert result is not None
         assert "Hello, how are you?" in result.query.prompt
@@ -60,15 +60,15 @@ class TestClaudeAgentAdapterTextPrompts:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "test"},
+            ],
         }
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "test"},
-        ]
         options: dict[str, Any] = {}
         metadata = {"name": "text-prompt"}
 
-        result = await adapter.adapt_text(config, options, messages, metadata)
+        result = await adapter.adapt_text(config, options, metadata)
 
         # System prompt should be in options, not in the prompt string
         assert result.query.options.system_prompt == "You are a helpful assistant."
@@ -83,15 +83,15 @@ class TestClaudeAgentAdapterTextPrompts:
                 "model_name": "anthropic/claude-sonnet-4-20250514",
                 "max_calls": 10,
             },
+            "messages": [
+                {"role": "system", "content": "You are an assistant."},
+                {"role": "user", "content": "Write a function"},
+            ],
         }
-        messages = [
-            {"role": "system", "content": "You are an assistant."},
-            {"role": "user", "content": "Write a function"},
-        ]
         options: dict[str, Any] = {}
         metadata = {"name": "agent-task"}
 
-        result = await adapter.adapt_text(config, options, messages, metadata)
+        result = await adapter.adapt_text(config, options, metadata)
 
         assert result.query.options.max_turns == 10
 
@@ -123,15 +123,15 @@ class TestClaudeAgentAdapterObjectPrompts:
                     "required": ["answer"],
                 },
             },
+            "messages": [
+                {"role": "system", "content": "You are a math tutor."},
+                {"role": "user", "content": "What is 2+2?"},
+            ],
         }
-        messages = [
-            {"role": "system", "content": "You are a math tutor."},
-            {"role": "user", "content": "What is 2+2?"},
-        ]
         options: dict[str, Any] = {}
         metadata = {"name": "math"}
 
-        result = await adapter.adapt_object(config, options, messages, metadata)
+        result = await adapter.adapt_object(config, options, metadata)
 
         assert result is not None
         assert "What is 2+2?" in result.query.prompt
@@ -195,10 +195,10 @@ class TestClaudeAgentAdapterOptions:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
 
-        result = await adapter.adapt_text(config, {}, messages, {"name": "text-prompt"})
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
 
         assert result.query.options.permission_mode == "bypassPermissions"
 
@@ -214,10 +214,10 @@ class TestClaudeAgentAdapterOptions:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
 
-        result = await adapter.adapt_text(config, {}, messages, {"name": "text-prompt"})
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
 
         assert result.query.options.max_turns == 50
 
@@ -233,10 +233,10 @@ class TestClaudeAgentAdapterOptions:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
 
-        result = await adapter.adapt_text(config, {}, messages, {"name": "text-prompt"})
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
 
         assert result.query.options.cwd == "/custom/path"
 
@@ -255,10 +255,10 @@ class TestClaudeAgentAdapterOptions:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
 
-        result = await adapter.adapt_text(config, {}, messages, {"name": "text-prompt"})
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
 
         assert result.query.options.allowed_tools == ["Read", "Write"]
         assert result.query.options.disallowed_tools == ["Bash"]
@@ -272,8 +272,8 @@ class TestClaudeAgentAdapterOptions:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
         options = {
             "telemetry": {
                 "isEnabled": True,
@@ -282,7 +282,7 @@ class TestClaudeAgentAdapterOptions:
             }
         }
 
-        result = await adapter.adapt_text(config, options, messages, {"name": "text-prompt"})
+        result = await adapter.adapt_text(config, options, {"name": "text-prompt"})
 
         # Telemetry context is now returned for withTracing() wrapper to use
         assert result.telemetry is not None
@@ -329,10 +329,10 @@ class TestClaudeAgentAdapterToolIntegration:
                     }
                 },
             },
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
 
-        result = await adapter.adapt_text(config, {}, messages, {"name": "text-with-tools-prompt"})
+        result = await adapter.adapt_text(config, {}, {"name": "text-with-tools-prompt"})
 
         assert result.query.options.mcp_servers is not None
         assert "prompt-tools" in result.query.options.mcp_servers
@@ -346,9 +346,9 @@ class TestClaudeAgentAdapterToolIntegration:
         config = {
             "name": "text-prompt",
             "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
         }
-        messages = [{"role": "user", "content": "test"}]
 
-        result = await adapter.adapt_text(config, {}, messages, {"name": "text-prompt"})
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
 
         assert result.query.options.mcp_servers is None
