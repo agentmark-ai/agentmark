@@ -56,6 +56,11 @@ function validateAllJsxElements(
       return;
     }
 
+    // Check if it's a lowercase tag (treat as XML passthrough - preserved as-is in output)
+    if (componentName[0] === componentName[0].toLowerCase() && componentName[0] !== componentName[0].toUpperCase()) {
+      return;
+    }
+
     // If none of the above, it's unsupported
     throw new Error(
       `Unsupported tag '<${componentName}>'. ` +
