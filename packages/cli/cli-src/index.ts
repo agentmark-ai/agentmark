@@ -17,6 +17,7 @@ import build from './commands/build';
 import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
+import createDeployCommand from './commands/deploy';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
 // Start async update check early (non-blocking)
@@ -35,8 +36,7 @@ program
   .option("--api-port <number>", "API server port (default: 9418)")
   .option("--webhook-port <number>", "Webhook server port (default: 9417)")
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
-  .option("-r, --remote", "Connect to platform (login + link + forwarding + tunnel)")
-  .option("-t, --tunnel", "Expose webhook server publicly via tunnel")
+  .option("-r, --remote", "Connect to platform (WebSocket + forwarding)")
   .option("--no-forward", "Disable trace forwarding (only relevant with --remote)")
   .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
@@ -45,7 +45,6 @@ program
       webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
       remote: options.remote || false,
-      tunnel: options.tunnel || false,
       forward: options.forward, // Commander.js --no-forward sets this to false; defaults to true
     });
   });
@@ -174,6 +173,8 @@ program
       program.error((error as Error).message);
     }
   });
+
+program.addCommand(createDeployCommand());
 
 // Parse and run command, then display update notification
 // Using parseAsync ensures notification displays after command completes

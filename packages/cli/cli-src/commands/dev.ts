@@ -3,9 +3,7 @@ import path from "path";
 import fs from "fs";
 import net from "net";
 import { createApiServer } from "../api-server";
-import { createTunnel, type TunnelInfo } from "../tunnel";
-import { loadLocalConfig, getTunnelSubdomain, setAppPort } from "../config";
-import type { LocalConfig } from "../config";
+import { loadLocalConfig, setAppPort } from "../config";
 import { IS_WINDOWS, killProcessTree, getPythonPaths } from "../utils/platform";
 import { loadForwardingConfig, isKeyExpired, saveForwardingConfig } from "../forwarding/config";
 import { TraceForwarder } from "../forwarding/forwarder";
@@ -13,7 +11,10 @@ import { ForwardingStatusReporter } from "../forwarding/status";
 import { attemptAutoLink } from "../auth/auto-link";
 import { setForwarder } from "../api-server";
 import { loadCredentials } from "../auth/credentials";
-import { DEFAULT_PLATFORM_URL } from "../auth/constants";
+import { DEFAULT_PLATFORM_URL, DEFAULT_API_URL } from "../auth/constants";
+import { WebSocketClient } from "@agentmark-ai/connect";
+import type { JobMessage, JobCancelMessage } from "@agentmark-ai/connect";
+import { JobHandler } from "../connect/job-handler";
 import login from "./login";
 
 function getSafeCwd(): string {
@@ -66,26 +67,16 @@ function isPortFree(port: number): Promise<boolean> {
   });
 }
 
-function getConfigDaysRemaining(config: LocalConfig): number {
-  if (!config.createdAt) return 30;
-  const createdDate = new Date(config.createdAt);
-  const daysSinceCreation = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-  return Math.ceil(30 - daysSinceCreation);
-}
-
-const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; remote?: boolean; tunnel?: boolean; forward?: boolean } = {}) => {
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; remote?: boolean; forward?: boolean } = {}) => {
   const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
   const cwd = getSafeCwd();
 
   // Resolve mode flags:
-  // --remote: enables tunnel + forwarding (login + link + forwarding + tunnel)
-  // --tunnel: legacy flag, enables tunnel only (no forwarding)
-  // --no-forward: disables forwarding when used with --remote
+  // --remote: enables platform connection (WebSocket + forwarding)
+  // --no-forward: disables trace forwarding when used with --remote
   let useRemote = options.remote || false;
-  const legacyTunnel = options.tunnel || false;
-  let useTunnel = useRemote || legacyTunnel;
   let useForwarding = useRemote ? (options.forward !== false) : false;
 
   // Inline login when --remote is used
@@ -95,24 +86,12 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     } catch {
       console.log('⚠️  Login failed. Continuing in local-only mode.\n');
       useRemote = false;
-      useTunnel = legacyTunnel;
       useForwarding = false;
     }
   }
 
-  // Load or create local config with webhook secret
-  const config = loadLocalConfig();
-
-  // Set webhook secret from local config if not already set
-  // This is the source of truth for local development
-  if (!process.env.AGENTMARK_WEBHOOK_SECRET && config.webhookSecret) {
-    process.env.AGENTMARK_WEBHOOK_SECRET = config.webhookSecret;
-  }
-
-  // For local-only mode, skip signature verification for convenience
-  if (!useTunnel) {
-    process.env.AGENTMARK_WEBHOOK_SECRET = '';
-  }
+  // Load or create local config (ensures .agentmark dir exists)
+  loadLocalConfig();
 
   // Detect project language
   const projectLanguage = detectProjectLanguage(cwd);
@@ -179,13 +158,14 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   }
 
   // Start API server directly
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let apiServerInstance: any;
   try {
     console.log(`Starting...`);
     apiServerInstance = await createApiServer(apiPort);
-  } catch (error: any) {
-    console.error('Failed to start API server:', error.message);
-    console.error(error.stack);
+  } catch (error: unknown) {
+    console.error('Failed to start API server:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error) console.error(error.stack);
     process.exit(1);
   }
 
@@ -300,33 +280,18 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   // Start the AgentMark app
   startAgentMarkServer();
 
-  // Store tunnel info, forwarder, and status reporter for cleanup
-  let tunnelInfo: TunnelInfo | null = null;
+  // Store forwarder, status reporter, and WebSocket client for cleanup
   let forwarder: TraceForwarder | null = null;
   let statusReporter: ForwardingStatusReporter | null = null;
+  let wsClient: WebSocketClient | null = null;
 
-  // Give servers time to start, then print summary and optionally setup tunnel
+  // Give servers time to start, then print summary
   setTimeout(async () => {
     // Verify webhook server is still running before showing success message
     if (webhookServer.exitCode !== null) {
       console.error('\n❌ Webhook server failed to start');
       console.error('The API server is running, but the webhook server did not start successfully');
       return;
-    }
-
-    // Setup tunnel if requested
-    if (useTunnel) {
-      try {
-        const subdomain = getTunnelSubdomain();
-        tunnelInfo = await createTunnel(webhookPort, subdomain);
-      } catch (error: any) {
-        const errorMsg = error?.message || String(error);
-        console.error('\n⚠️  Could not establish tunnel:', errorMsg);
-        if (errorMsg.includes('Download') || errorMsg.includes('consent')) {
-          console.error('   Run again with --tunnel to retry download.');
-        }
-        console.error('   Continuing in local-only mode...\n');
-      }
     }
 
     // Setup trace forwarding if not disabled
@@ -412,6 +377,60 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       forwardingStatus = 'disabled';
     }
 
+    // Setup WebSocket connection to platform
+    let connectStatus: 'connected' | 'connecting' | 'inactive' | 'error' = 'inactive';
+
+    if (useRemote) {
+      // Load forwarding config for apiKey and appId
+      const connectConfig = loadForwardingConfig();
+
+      if (connectConfig?.apiKey && connectConfig?.appId) {
+        const wsUrl = (process.env.AGENTMARK_WS_URL || `wss://${new URL(DEFAULT_API_URL).host}`) + '/v1/connect';
+        const localWebhookUrl = `http://localhost:${webhookPort}`;
+
+        try {
+          wsClient = new WebSocketClient(
+            {
+              url: wsUrl,
+              apiKey: connectConfig.apiKey,
+              appId: connectConfig.appId,
+              language: projectLanguage,
+            },
+            {
+              onConnected: () => {
+                connectStatus = 'connected';
+                console.log('  [connect] Connected to AgentMark platform');
+              },
+              onDisconnected: (reason) => {
+                if (!isShuttingDown) {
+                  console.log(`  [connect] Disconnected${reason ? `: ${reason}` : ''} (reconnecting...)`);
+                }
+              },
+              onJob: (message) => {
+                jobHandler.handleMessage(message as JobMessage | JobCancelMessage);
+              },
+              onError: (err) => {
+                if (!isShuttingDown) {
+                  console.error(`  [connect] Error: ${err.message}`);
+                }
+              },
+            },
+          );
+
+          const jobHandler = new JobHandler(wsClient, localWebhookUrl);
+          wsClient.setActiveJobsProvider(() => jobHandler.getActiveJobIds());
+          wsClient.connect();
+          connectStatus = 'connecting';
+        } catch (error) {
+          console.error('  Failed to initialize WebSocket connection:', (error as Error).message);
+          connectStatus = 'error';
+        }
+      } else {
+        console.log('  Not linked to platform (run `agentmark link` to connect)');
+        connectStatus = 'inactive';
+      }
+    }
+
     console.log('\n' + '═'.repeat(70));
     console.log('🚀 AgentMark Development Servers Running');
     console.log('═'.repeat(70));
@@ -423,12 +442,21 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     if (useRemote) {
       // Consolidated remote section
       console.log('\n  Remote:        ✓ Connected');
-      if (tunnelInfo) {
-        console.log(`    Tunnel:      ${tunnelInfo.url}`);
-        console.log(`    Secret:      ${config.webhookSecret}`);
+
+      // WebSocket connect status
+      // TypeScript narrows connectStatus based on synchronous assignments only.
+      // The 'connected' value is set by the async onConnected callback, so we
+      // widen back to the full union to allow this runtime-valid comparison.
+      if ((connectStatus as 'connected' | 'connecting' | 'inactive' | 'error') === 'connected') {
+        console.log(`    Connect:     ✓ WebSocket active`);
+      } else if (connectStatus === 'connecting') {
+        console.log(`    Connect:     … WebSocket connecting`);
+      } else if (connectStatus === 'error') {
+        console.log(`    Connect:     ⚠️  WebSocket failed (falling back to local)`);
       } else {
-        console.log(`    Tunnel:      ⚠️  Failed to establish`);
+        console.log(`    Connect:     ○ Not linked (run 'agentmark link')`);
       }
+
       if (forwardingStatus === 'active') {
         console.log(`    Forwarding:  ✓ Active → ${forwardingAppName} (${forwardingBaseUrl})`);
       } else if (forwardingStatus === 'disabled') {
@@ -438,14 +466,8 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       } else {
         console.log(`    Forwarding:  ⚠️  Not linked (run 'agentmark link')`);
       }
-    } else if (legacyTunnel && tunnelInfo) {
-      // Legacy --tunnel mode
-      console.log('\n  Public Webhook:');
-      console.log(`    URL:    ${tunnelInfo.url}`);
-      console.log(`    Secret: ${config.webhookSecret}`);
-      console.log(`    Valid:  ${getConfigDaysRemaining(config)} days remaining`);
     } else {
-      console.log('\n  Tip: Use --remote to connect to the platform');
+      console.log('\n  Running in local mode (use --remote to connect to the platform)');
     }
 
     console.log('\n' + '─'.repeat(70));
@@ -491,14 +513,10 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       }
     }
 
-    // Close tunnel
-    if (tunnelInfo) {
-      try {
-        console.log('  Stopping tunnel...');
-        await tunnelInfo.disconnect();
-      } catch (error) {
-        console.error('  Error disconnecting tunnel:', error);
-      }
+    // Close WebSocket connection
+    if (wsClient) {
+      console.log('  Closing WebSocket connection...');
+      wsClient.close();
     }
 
     // Close API server with force close on all connections
