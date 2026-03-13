@@ -104,21 +104,6 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
     }
   }
 
-  // Load webhook secret BEFORE changing directory
-  // (so we get it from the project root, not the prompt directory)
-  let webhookSecret = process.env.AGENTMARK_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    try {
-      const { loadLocalConfig } = await import('../config.js');
-      const config = loadLocalConfig();
-      if (config && config.webhookSecret) {
-        webhookSecret = config.webhookSecret;
-      }
-    } catch {
-      // No config file, continue without signature
-    }
-  }
-
   // If current cwd is invalid, switch to the prompt's directory to stabilize deps that use process.cwd()
   try { process.chdir(path.dirname(resolvedFilepath)); } catch {
     // Ignore errors when changing directory
@@ -156,14 +141,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
       // Prefer streaming when available for better UX
       const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath: promptName, options: { shouldStream: true } } });
 
-      // Add webhook signature if secret is available
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-      if (webhookSecret) {
-        const { createSignature } = await import('@agentmark-ai/shared-utils');
-        const signature = await createSignature(webhookSecret, body);
-        headers['x-agentmark-signature-256'] = signature;
-      }
 
       let res;
       try {

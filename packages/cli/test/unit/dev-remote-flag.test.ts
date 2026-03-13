@@ -2,14 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
  * Unit tests for the --remote flag in agentmark dev
- * Feature: 013-trace-tunnel
  *
  * Tests:
- * - Flag resolution: --remote, --tunnel, --no-forward combinations
+ * - Flag resolution: --remote, --no-forward combinations
  * - Inline login is called when --remote is used
  * - Graceful degradation when login fails
  * - Forwarding is only enabled with --remote
- * - Legacy --tunnel flag backward compatibility
  */
 
 // ── Hoisted mocks (available inside vi.mock factories) ─────────────────────
@@ -19,7 +17,6 @@ const {
   mockSpawn,
   mockCreateApiServer,
   mockSetForwarder,
-  mockCreateTunnel,
   mockLoadLocalConfig,
   mockLoadForwardingConfig,
   mockAttemptAutoLink,
@@ -41,10 +38,6 @@ const {
       closeAllConnections: vi.fn(),
     }),
     mockSetForwarder: vi.fn(),
-    mockCreateTunnel: vi.fn().mockResolvedValue({
-      url: 'https://test.trycloudflare.com',
-      disconnect: vi.fn(),
-    }),
     mockLoadLocalConfig: vi.fn().mockReturnValue({
       webhookSecret: 'test-secret',
       createdAt: new Date().toISOString(),
@@ -71,13 +64,8 @@ vi.mock('../../cli-src/api-server', () => ({
   setForwarder: (...args: any[]) => mockSetForwarder(...args),
 }));
 
-vi.mock('../../cli-src/tunnel', () => ({
-  createTunnel: (...args: any[]) => mockCreateTunnel(...args),
-}));
-
 vi.mock('../../cli-src/config', () => ({
   loadLocalConfig: (...args: any[]) => mockLoadLocalConfig(...args),
-  getTunnelSubdomain: vi.fn().mockReturnValue('test-subdomain'),
   setAppPort: vi.fn(),
 }));
 
@@ -111,6 +99,7 @@ vi.mock('../../cli-src/auth/credentials', () => ({
 
 vi.mock('../../cli-src/auth/constants', () => ({
   DEFAULT_PLATFORM_URL: 'https://app.agentmark.co',
+  DEFAULT_API_URL: 'https://api.agentmark.co',
 }));
 
 vi.mock('../../cli-src/utils/platform', () => ({
@@ -207,10 +196,6 @@ describe('dev --remote flag', () => {
       createdAt: new Date().toISOString(),
     });
     mockLoadForwardingConfig.mockReturnValue(null);
-    mockCreateTunnel.mockResolvedValue({
-      url: 'https://test.trycloudflare.com',
-      disconnect: vi.fn(),
-    });
   });
 
   afterEach(() => {
@@ -221,37 +206,26 @@ describe('dev --remote flag', () => {
   });
 
   describe('flag resolution', () => {
-    it('default: no tunnel, no forwarding', async () => {
+    it('default: no forwarding', async () => {
       await runDevWithTimeout({});
 
       expect(mockLogin).not.toHaveBeenCalled();
-      expect(mockCreateTunnel).not.toHaveBeenCalled();
       expect(mockAttemptAutoLink).not.toHaveBeenCalled();
     });
 
-    it('--remote: calls login, enables tunnel and forwarding', async () => {
+    it('--remote: calls login, enables forwarding', async () => {
       await runDevWithTimeout({ remote: true });
 
       expect(mockLogin).toHaveBeenCalledOnce();
-      expect(mockCreateTunnel).toHaveBeenCalledOnce();
       expect(mockAttemptAutoLink).toHaveBeenCalledOnce();
     });
 
-    it('--remote --no-forward (forward=false): calls login, tunnel but no forwarding', async () => {
+    it('--remote --no-forward (forward=false): calls login but no forwarding', async () => {
       await runDevWithTimeout({ remote: true, forward: false });
 
       expect(mockLogin).toHaveBeenCalledOnce();
-      expect(mockCreateTunnel).toHaveBeenCalledOnce();
       expect(mockAttemptAutoLink).not.toHaveBeenCalled();
       expect(mockSetForwarder).not.toHaveBeenCalled();
-    });
-
-    it('--tunnel (legacy): tunnel only, no login, no forwarding', async () => {
-      await runDevWithTimeout({ tunnel: true });
-
-      expect(mockLogin).not.toHaveBeenCalled();
-      expect(mockCreateTunnel).toHaveBeenCalledOnce();
-      expect(mockAttemptAutoLink).not.toHaveBeenCalled();
     });
   });
 
@@ -265,18 +239,12 @@ describe('dev --remote flag', () => {
       expect(consoleMock.log).toHaveBeenCalledWith(
         expect.stringContaining('Login failed')
       );
-      // No tunnel or forwarding after login failure
-      expect(mockCreateTunnel).not.toHaveBeenCalled();
+      // No forwarding after login failure
       expect(mockAttemptAutoLink).not.toHaveBeenCalled();
     });
 
     it('does not call login when --remote is not set', async () => {
       await runDevWithTimeout({});
-      expect(mockLogin).not.toHaveBeenCalled();
-    });
-
-    it('does not call login for legacy --tunnel flag', async () => {
-      await runDevWithTimeout({ tunnel: true });
       expect(mockLogin).not.toHaveBeenCalled();
     });
   });
@@ -321,11 +289,11 @@ describe('dev --remote flag', () => {
   });
 
   describe('banner output', () => {
-    it('shows --remote tip when running locally', async () => {
+    it('shows local mode message when running locally', async () => {
       await runDevWithTimeout({});
 
       expect(consoleMock.log).toHaveBeenCalledWith(
-        expect.stringContaining('Tip: Use --remote')
+        expect.stringContaining('local mode')
       );
     });
 
@@ -334,14 +302,6 @@ describe('dev --remote flag', () => {
 
       expect(consoleMock.log).toHaveBeenCalledWith(
         expect.stringContaining('Remote:')
-      );
-    });
-
-    it('shows legacy Public Webhook section for --tunnel', async () => {
-      await runDevWithTimeout({ tunnel: true });
-
-      expect(consoleMock.log).toHaveBeenCalledWith(
-        expect.stringContaining('Public Webhook:')
       );
     });
   });

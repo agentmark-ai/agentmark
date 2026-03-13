@@ -1,22 +1,17 @@
 /**
  * Local development configuration management.
- * Stores persistent settings like webhook secrets and tunnel preferences.
+ * Stores persistent settings like forwarding preferences and app port.
  */
 
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import os from 'os';
 
 // Configuration constants
 const CONFIG_EXPIRATION_DAYS = 30;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
-const WEBHOOK_SECRET_BYTES = 32;
-const SUBDOMAIN_RANDOM_BYTES = 4;
 
 export interface LocalConfig {
-  webhookSecret?: string;
-  tunnelSubdomain?: string;
   createdAt?: string;
   appPort?: number;
   forwarding?: {
@@ -101,7 +96,7 @@ function ensureGitignoreEntry(projectRoot: string): void {
       // Add entry with a comment
       const newContent = gitignoreContent +
         (gitignoreContent.endsWith('\n') ? '' : '\n') +
-        '\n# AgentMark local development config (contains webhook secrets)\n' +
+        '\n# AgentMark local development config\n' +
         entry + '\n';
 
       fs.writeFileSync(gitignorePath, newContent, 'utf-8');
@@ -112,24 +107,8 @@ function ensureGitignoreEntry(projectRoot: string): void {
 }
 
 /**
- * Generates a secure random webhook secret
- */
-function generateWebhookSecret(): string {
-  return crypto.randomBytes(WEBHOOK_SECRET_BYTES).toString('hex');
-}
-
-/**
- * Generates a random subdomain for tunneling
- */
-function generateSubdomain(): string {
-  // Use a memorable format: agentmark-{random}
-  const randomPart = crypto.randomBytes(SUBDOMAIN_RANDOM_BYTES).toString('hex');
-  return `agentmark-${randomPart}`;
-}
-
-/**
  * Loads the local development configuration.
- * Creates a new config with generated secrets if none exists.
+ * Creates a new config if none exists.
  * Results are cached to avoid repeated file I/O.
  */
 export function loadLocalConfig(): LocalConfig {
@@ -174,12 +153,10 @@ export function loadLocalConfig(): LocalConfig {
 }
 
 /**
- * Creates a new configuration with generated secrets
+ * Creates a new configuration
  */
 function createNewConfig(): LocalConfig {
   const config: LocalConfig = {
-    webhookSecret: generateWebhookSecret(),
-    tunnelSubdomain: generateSubdomain(),
     createdAt: new Date().toISOString(),
   };
 
@@ -198,28 +175,6 @@ function saveLocalConfig(config: LocalConfig): void {
   } catch (error) {
     console.error('Error saving local config:', error);
   }
-}
-
-/**
- * Gets the webhook secret, using local config or env var
- */
-export function getWebhookSecret(): string {
-  // First check if user has set their own secret (not empty string)
-  if (process.env.AGENTMARK_WEBHOOK_SECRET && process.env.AGENTMARK_WEBHOOK_SECRET.trim() !== '') {
-    return process.env.AGENTMARK_WEBHOOK_SECRET;
-  }
-
-  // Otherwise use the locally generated one
-  const config = loadLocalConfig();
-  return config.webhookSecret!;
-}
-
-/**
- * Gets the tunnel subdomain preference
- */
-export function getTunnelSubdomain(): string | undefined {
-  const config = loadLocalConfig();
-  return config.tunnelSubdomain;
 }
 
 /**

@@ -117,6 +117,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/cli@workspace:packages/cli"
   dependencies:
+    "@agentmark-ai/connect": "npm:0.1.0"
     "@agentmark-ai/model-registry": "npm:0.2.0"
     "@agentmark-ai/prompt-core": "npm:0.2.0"
     "@agentmark-ai/shared-utils": "npm:0.3.0"
@@ -167,6 +168,19 @@ __metadata:
     yaml: "npm:^2.7.0"
   bin:
     agentmark: dist/index.js
+  languageName: unknown
+  linkType: soft
+
+"@agentmark-ai/connect@npm:0.1.0, @agentmark-ai/connect@workspace:packages/connect":
+  version: 0.0.0-use.local
+  resolution: "@agentmark-ai/connect@workspace:packages/connect"
+  dependencies:
+    "@types/node": "npm:^20.0.0"
+    "@types/ws": "npm:^8.5.13"
+    tsup: "npm:^8.3.5"
+    typescript: "npm:^5.6.3"
+    vitest: "npm:^3.1.4"
+    ws: "npm:^8.18.0"
   languageName: unknown
   linkType: soft
 
@@ -7917,6 +7931,15 @@ __metadata:
   version: 2.0.11
   resolution: "@types/unist@npm:2.0.11"
   checksum: 10c0/24dcdf25a168f453bb70298145eb043cfdbb82472db0bc0b56d6d51cd2e484b9ed8271d4ac93000a80da568f2402e9339723db262d0869e2bf13bc58e081768d
+  languageName: node
+  linkType: hard
+
+"@types/ws@npm:^8.5.13":
+  version: 8.18.1
+  resolution: "@types/ws@npm:8.18.1"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/61aff1129143fcc4312f083bc9e9e168aa3026b7dd6e70796276dcfb2c8211c4292603f9c4864fae702f2ed86e4abd4d38aa421831c2fd7f856c931a481afbab
   languageName: node
   linkType: hard
 

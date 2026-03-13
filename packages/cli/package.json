@@ -24,6 +24,7 @@
     "agentmark": "dist/index.js"
   },
   "dependencies": {
+    "@agentmark-ai/connect": "0.1.0",
     "@agentmark-ai/model-registry": "0.2.0",
     "@agentmark-ai/prompt-core": "0.2.0",
     "@agentmark-ai/shared-utils": "0.3.0",

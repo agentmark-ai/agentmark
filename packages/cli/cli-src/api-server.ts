@@ -41,7 +41,6 @@ function safePath(): string {
 
 export async function createApiServer(port: number) {
   const app = express();
-  // Trust first proxy hop (for tunnels like ngrok, cloudflare, etc.)
   app.set('trust proxy', 1);
   app.use(express.json({ limit: '10mb' }));
   app.use(cors());

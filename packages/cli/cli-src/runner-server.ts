@@ -10,12 +10,6 @@ import rateLimit from 'express-rate-limit';
 import { createServer, Server } from 'node:http';
 import { handleWebhookRequest } from './runner-server/core';
 import type { WebhookHandler } from './runner-server/types';
-import {
-  verifyWebhookSignature,
-  shouldSkipVerification,
-  type SignatureVerificationOptions
-} from './runner-server/middleware/signature-verification';
-import { getWebhookSecret } from './config';
 
 // Set up rate limiter: 100 requests per 15 minutes per IP
 const limiter = rateLimit({
@@ -33,11 +27,6 @@ export interface WebhookServerOptions {
   handler: WebhookHandler;
   apiServerUrl?: string;
   templatesDirectory?: string;
-  /**
-   * Webhook signature verification options.
-   * If not provided, will check AGENTMARK_WEBHOOK_SECRET env var.
-   */
-  signatureVerification?: SignatureVerificationOptions;
 }
 
 /**
@@ -45,7 +34,6 @@ export interface WebhookServerOptions {
  */
 function createMiddleware(
   handler: WebhookHandler,
-  signatureOptions?: SignatureVerificationOptions
 ): RequestHandler {
   return async (req: Request, res: Response) => {
     try {
@@ -55,33 +43,6 @@ function createMiddleware(
       console.log(`\n[${timestamp}] ${req.method} ${req.path} - ${clientIp}`);
 
       const body = req.body || {};
-
-      // Verify signature if configured
-      if (signatureOptions && !shouldSkipVerification(signatureOptions)) {
-        const headerName = signatureOptions.headerName || 'x-agentmark-signature-256';
-        const signature = req.headers[headerName.toLowerCase()] as string;
-
-        if (!signature) {
-          console.error('   ❌ 401 Missing signature header');
-          console.error(`      Expected header: ${headerName}`);
-          console.error('      Ensure the client is sending a signed request with AGENTMARK_WEBHOOK_SECRET.');
-          return res.status(401).json({
-            message: `Missing signature header: Expected ${headerName} header for webhook verification`
-          });
-        }
-
-        const bodyString = typeof body === 'string' ? body : JSON.stringify(body);
-        const isValid = await verifyWebhookSignature(bodyString, signature, signatureOptions.secret);
-
-        if (!isValid) {
-          console.error('   ❌ 401 Invalid webhook signature');
-          console.error('      The signature in the request header does not match.');
-          return res.status(401).json({
-            message: 'Invalid webhook signature - signature verification failed'
-          });
-        }
-        console.log('   ✓ Signature verified');
-      }
 
       // Call platform-agnostic core handler
       const result = await handleWebhookRequest(body, handler);
@@ -162,22 +123,10 @@ function createMiddleware(
  * @returns HTTP server instance
  */
 export async function createWebhookServer(options: WebhookServerOptions): Promise<Server> {
-  const { port = 9417, handler, signatureVerification } = options;
-
-  // Setup signature verification options
-  let sigOptions = signatureVerification;
-  if (!sigOptions) {
-    // Check for env var
-    const secret = getWebhookSecret();
-    if (secret) {
-      sigOptions = { secret };
-    }
-  }
+  const { port = 9417, handler } = options;
 
   const app = express();
 
-  // Trust first proxy hop (for tunnels like ngrok, cloudflare, etc.)
-  // Using 1 instead of true limits trust to single proxy, more secure for dev
   app.set('trust proxy', 1);
 
   // Parse JSON bodies (up to 10mb)
@@ -388,7 +337,7 @@ ${promptsList}
   });
 
   // Mount the webhook handler middleware at POST /
-  app.post('/', limiter, createMiddleware(handler, sigOptions));
+  app.post('/', limiter, createMiddleware(handler));
 
   // Create HTTP server and start listening
   const server = createServer(app);

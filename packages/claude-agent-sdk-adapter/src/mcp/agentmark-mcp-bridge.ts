@@ -26,10 +26,39 @@ export interface CreateMcpServerOptions {
 }
 
 /**
- * Convert JSON Schema to Zod schema using Zod 4's built-in fromJSONSchema.
+ * Convert a single JSON Schema node to a Zod type.
+ * Supports the common scalar types, array, and nested objects.
+ */
+function schemaNodeToZod(schema: Record<string, unknown>): z.ZodTypeAny {
+  switch (schema.type) {
+    case 'string':  return z.string();
+    case 'number':  return z.number();
+    case 'integer': return z.number();
+    case 'boolean': return z.boolean();
+    case 'array':   return z.array(z.unknown());
+    case 'object':  return jsonSchemaToZod(schema);
+    default:        return z.unknown();
+  }
+}
+
+/**
+ * Convert a JSON Schema object definition to a Zod schema.
+ * Uses a manual conversion that is compatible with both Zod v3 and v4,
+ * avoiding `z.fromJSONSchema` which is a v4-only API and causes DTS
+ * build failures in monorepos where the workspace hoist resolves to v3.
  */
 function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodType {
-  return z.fromJSONSchema(schema);
+  if (schema.type === 'object' && typeof schema.properties === 'object' && schema.properties !== null) {
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    const required = Array.isArray(schema.required) ? (schema.required as string[]) : [];
+    const shape: Record<string, z.ZodTypeAny> = {};
+    for (const [key, prop] of Object.entries(props)) {
+      const base = schemaNodeToZod(prop);
+      shape[key] = required.includes(key) ? base : base.optional();
+    }
+    return z.object(shape);
+  }
+  return z.record(z.string(), z.unknown());
 }
 
 /**
