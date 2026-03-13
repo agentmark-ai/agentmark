@@ -1,3 +1,9 @@
+## 0.3.0 (2026-03-09)
+
+### 🚀 Features
+
+- feat(templatedx): support lowercase XML tags as passthrough in prompt content ([#515](https://github.com/agentmark-ai/agentmark/pull/515))
+
 ## 0.2.0 (2026-01-21)
 
 ### 🚀 Features
