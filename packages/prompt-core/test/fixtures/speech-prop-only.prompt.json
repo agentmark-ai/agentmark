@@ -1,0 +1,243 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: speech-prop-only\nspeech_config:\n  model_name: test-model\n  voice: \"nova\"\n  speed: 1.0\n  output_format: \"mp3\"",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 8,
+            "column": 4,
+            "offset": 122
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "System",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "Instructions",
+                "position": {
+                  "start": {
+                    "line": 11,
+                    "column": 1,
+                    "offset": 133
+                  },
+                  "end": {
+                    "line": 11,
+                    "column": 13,
+                    "offset": 145
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 11,
+                "column": 1,
+                "offset": 133
+              },
+              "end": {
+                "line": 11,
+                "column": 13,
+                "offset": 145
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 10,
+            "column": 1,
+            "offset": 124
+          },
+          "end": {
+            "line": 12,
+            "column": 10,
+            "offset": 155
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "SpeechPrompt",
+        "attributes": [],
+        "children": [
+          {
+            "type": "mdxFlowExpression",
+            "value": "props.text",
+            "position": {
+              "start": {
+                "line": 14,
+                "column": 15,
+                "offset": 171
+              },
+              "end": {
+                "line": 14,
+                "column": 27,
+                "offset": 183
+              }
+            },
+            "data": {
+              "estree": {
+                "type": "Program",
+                "start": 172,
+                "end": 182,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "MemberExpression",
+                      "start": 172,
+                      "end": 182,
+                      "object": {
+                        "type": "Identifier",
+                        "start": 172,
+                        "end": 177,
+                        "name": "props",
+                        "loc": {
+                          "start": {
+                            "line": 14,
+                            "column": 15,
+                            "offset": 172
+                          },
+                          "end": {
+                            "line": 14,
+                            "column": 20,
+                            "offset": 177
+                          }
+                        },
+                        "range": [
+                          172,
+                          177
+                        ]
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "start": 178,
+                        "end": 182,
+                        "name": "text",
+                        "loc": {
+                          "start": {
+                            "line": 14,
+                            "column": 21,
+                            "offset": 178
+                          },
+                          "end": {
+                            "line": 14,
+                            "column": 25,
+                            "offset": 182
+                          }
+                        },
+                        "range": [
+                          178,
+                          182
+                        ]
+                      },
+                      "computed": false,
+                      "optional": false,
+                      "loc": {
+                        "start": {
+                          "line": 14,
+                          "column": 15,
+                          "offset": 172
+                        },
+                        "end": {
+                          "line": 14,
+                          "column": 25,
+                          "offset": 182
+                        }
+                      },
+                      "range": [
+                        172,
+                        182
+                      ]
+                    },
+                    "start": 172,
+                    "end": 182,
+                    "loc": {
+                      "start": {
+                        "line": 14,
+                        "column": 15,
+                        "offset": 172
+                      },
+                      "end": {
+                        "line": 14,
+                        "column": 25,
+                        "offset": 182
+                      }
+                    },
+                    "range": [
+                      172,
+                      182
+                    ]
+                  }
+                ],
+                "sourceType": "module",
+                "comments": [],
+                "loc": {
+                  "start": {
+                    "line": 14,
+                    "column": 15,
+                    "offset": 172
+                  },
+                  "end": {
+                    "line": 14,
+                    "column": 25,
+                    "offset": 182
+                  }
+                },
+                "range": [
+                  172,
+                  182
+                ]
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 14,
+            "column": 1,
+            "offset": 157
+          },
+          "end": {
+            "line": 14,
+            "column": 42,
+            "offset": 198
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 15,
+        "column": 1,
+        "offset": 199
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/speech-prop-only.prompt.mdx",
+    "kind": "speech",
+    "name": "speech-prop-only",
+    "builtAt": "2026-03-16T14:58:16.056Z"
+  }
+}

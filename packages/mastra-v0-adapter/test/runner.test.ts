@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { fileURLToPath } from "url";
 import path from "path";
-import { EvalRegistry } from "@agentmark-ai/prompt-core";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { MastraAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark-ai/templatedx";
 import type { MastraAgentMark } from "../src/mastra-agentmark";
 import type { MastraAdapter } from "../src/adapter";
+import type { PromptShape } from "@agentmark-ai/prompt-core";
 import { createAgentMarkClient, MastraModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
@@ -64,7 +65,7 @@ vi.mock("@mastra/core/agent", () => {
 
 describe("MastraAdapterWebhookHandler", () => {
   let runner: MastraAdapterWebhookHandler;
-  let client: MastraAgentMark<any, any, MastraAdapter<any, any>>;
+  let client: MastraAgentMark<PromptShape<Record<string, never>>, MastraAdapter<PromptShape<Record<string, never>>>>;
   let loader: FileLoader;
 
   // Build pre-compiled fixtures before tests run
@@ -80,25 +81,25 @@ describe("MastraAdapterWebhookHandler", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const evals = new EvalRegistry();
-    // Simple eval: pass if TEXT equals expected_output when expected_output is a string
-    evals.register("exact_match", async ({ output, expectedOutput }) => {
-      const out =
-        typeof output === "string" ? output : JSON.stringify(output);
-      const exp =
-        typeof expectedOutput === "string"
-          ? expectedOutput
-          : JSON.stringify(expectedOutput);
-      const isMatch = out === exp;
-      return {
-        score: isMatch ? 1 : 0,
-        label: isMatch ? "correct" : "incorrect",
-        reason: isMatch
-          ? "Output matches expected"
-          : "Output does not match expected",
-        passed: isMatch,
-      };
-    });
+    const evals: EvalRegistry = {
+      exact_match: async ({ output, expectedOutput }) => {
+        const out =
+          typeof output === "string" ? output : JSON.stringify(output);
+        const exp =
+          typeof expectedOutput === "string"
+            ? expectedOutput
+            : JSON.stringify(expectedOutput);
+        const isMatch = out === exp;
+        return {
+          score: isMatch ? 1 : 0,
+          label: isMatch ? "correct" : "incorrect",
+          reason: isMatch
+            ? "Output matches expected"
+            : "Output does not match expected",
+          passed: isMatch,
+        };
+      },
+    };
 
     // Use fileURLToPath for cross-platform path resolution (Windows URL pathname has leading slash)
     const base = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");

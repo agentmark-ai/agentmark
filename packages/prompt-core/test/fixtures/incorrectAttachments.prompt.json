@@ -1,0 +1,578 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: math\nobject_config:\n  model_name: test-model\n  temperature: 0.5\n  schema:\n    type: object\n    properties:\n      answer:\n        type: string\n    required: [\"answer\"]",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 12,
+            "column": 4,
+            "offset": 180
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "System",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "You are a helpful math tutor.",
+                "position": {
+                  "start": {
+                    "line": 15,
+                    "column": 1,
+                    "offset": 191
+                  },
+                  "end": {
+                    "line": 15,
+                    "column": 30,
+                    "offset": 220
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 15,
+                "column": 1,
+                "offset": 191
+              },
+              "end": {
+                "line": 15,
+                "column": 30,
+                "offset": 220
+              }
+            }
+          },
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "ImageAttachment",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "image",
+                "value": "https://example.com/image.png",
+                "position": {
+                  "start": {
+                    "line": 16,
+                    "column": 18,
+                    "offset": 238
+                  },
+                  "end": {
+                    "line": 16,
+                    "column": 55,
+                    "offset": 275
+                  }
+                }
+              }
+            ],
+            "children": [],
+            "position": {
+              "start": {
+                "line": 16,
+                "column": 1,
+                "offset": 221
+              },
+              "end": {
+                "line": 16,
+                "column": 58,
+                "offset": 278
+              }
+            }
+          },
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "FileAttachment",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "data",
+                "value": "https://example.com/document.pdf",
+                "position": {
+                  "start": {
+                    "line": 17,
+                    "column": 17,
+                    "offset": 295
+                  },
+                  "end": {
+                    "line": 17,
+                    "column": 56,
+                    "offset": 334
+                  }
+                }
+              },
+              {
+                "type": "mdxJsxAttribute",
+                "name": "mimeType",
+                "value": {
+                  "type": "mdxJsxAttributeValueExpression",
+                  "value": "props.fileMimeType",
+                  "data": {
+                    "estree": {
+                      "type": "Program",
+                      "start": 345,
+                      "end": 363,
+                      "body": [
+                        {
+                          "type": "ExpressionStatement",
+                          "expression": {
+                            "type": "MemberExpression",
+                            "start": 345,
+                            "end": 363,
+                            "loc": {
+                              "start": {
+                                "line": 17,
+                                "column": 66,
+                                "offset": 345
+                              },
+                              "end": {
+                                "line": 17,
+                                "column": 84,
+                                "offset": 363
+                              }
+                            },
+                            "object": {
+                              "type": "Identifier",
+                              "start": 345,
+                              "end": 350,
+                              "loc": {
+                                "start": {
+                                  "line": 17,
+                                  "column": 66,
+                                  "offset": 345
+                                },
+                                "end": {
+                                  "line": 17,
+                                  "column": 71,
+                                  "offset": 350
+                                }
+                              },
+                              "name": "props",
+                              "range": [
+                                345,
+                                350
+                              ]
+                            },
+                            "property": {
+                              "type": "Identifier",
+                              "start": 351,
+                              "end": 363,
+                              "loc": {
+                                "start": {
+                                  "line": 17,
+                                  "column": 72,
+                                  "offset": 351
+                                },
+                                "end": {
+                                  "line": 17,
+                                  "column": 84,
+                                  "offset": 363
+                                }
+                              },
+                              "name": "fileMimeType",
+                              "range": [
+                                351,
+                                363
+                              ]
+                            },
+                            "computed": false,
+                            "optional": false,
+                            "range": [
+                              345,
+                              363
+                            ]
+                          },
+                          "start": 345,
+                          "end": 363,
+                          "loc": {
+                            "start": {
+                              "line": 17,
+                              "column": 66,
+                              "offset": 345
+                            },
+                            "end": {
+                              "line": 17,
+                              "column": 84,
+                              "offset": 363
+                            }
+                          },
+                          "range": [
+                            345,
+                            363
+                          ]
+                        }
+                      ],
+                      "sourceType": "module",
+                      "comments": [],
+                      "loc": {
+                        "start": {
+                          "line": 17,
+                          "column": 66,
+                          "offset": 345
+                        },
+                        "end": {
+                          "line": 17,
+                          "column": 84,
+                          "offset": 363
+                        }
+                      },
+                      "range": [
+                        345,
+                        363
+                      ]
+                    }
+                  }
+                },
+                "position": {
+                  "start": {
+                    "line": 17,
+                    "column": 57,
+                    "offset": 335
+                  },
+                  "end": {
+                    "line": 17,
+                    "column": 86,
+                    "offset": 364
+                  }
+                }
+              }
+            ],
+            "children": [],
+            "position": {
+              "start": {
+                "line": 17,
+                "column": 1,
+                "offset": 279
+              },
+              "end": {
+                "line": 17,
+                "column": 89,
+                "offset": 367
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 14,
+            "column": 1,
+            "offset": 182
+          },
+          "end": {
+            "line": 18,
+            "column": 10,
+            "offset": 377
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "User",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "hello!!!!",
+                "position": {
+                  "start": {
+                    "line": 21,
+                    "column": 3,
+                    "offset": 388
+                  },
+                  "end": {
+                    "line": 21,
+                    "column": 12,
+                    "offset": 397
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 21,
+                "column": 3,
+                "offset": 388
+              },
+              "end": {
+                "line": 21,
+                "column": 12,
+                "offset": 397
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 20,
+            "column": 1,
+            "offset": 379
+          },
+          "end": {
+            "line": 22,
+            "column": 8,
+            "offset": 405
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "Assistant",
+        "attributes": [],
+        "children": [
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "ImageAttachment",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "image",
+                "value": "https://example.com/image.png",
+                "position": {
+                  "start": {
+                    "line": 25,
+                    "column": 20,
+                    "offset": 438
+                  },
+                  "end": {
+                    "line": 25,
+                    "column": 57,
+                    "offset": 475
+                  }
+                }
+              }
+            ],
+            "children": [],
+            "position": {
+              "start": {
+                "line": 25,
+                "column": 3,
+                "offset": 421
+              },
+              "end": {
+                "line": 25,
+                "column": 60,
+                "offset": 478
+              }
+            }
+          },
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "FileAttachment",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "data",
+                "value": "https://example.com/document.pdf",
+                "position": {
+                  "start": {
+                    "line": 26,
+                    "column": 19,
+                    "offset": 497
+                  },
+                  "end": {
+                    "line": 26,
+                    "column": 58,
+                    "offset": 536
+                  }
+                }
+              },
+              {
+                "type": "mdxJsxAttribute",
+                "name": "mimeType",
+                "value": {
+                  "type": "mdxJsxAttributeValueExpression",
+                  "value": "props.fileMimeType",
+                  "data": {
+                    "estree": {
+                      "type": "Program",
+                      "start": 547,
+                      "end": 565,
+                      "body": [
+                        {
+                          "type": "ExpressionStatement",
+                          "expression": {
+                            "type": "MemberExpression",
+                            "start": 547,
+                            "end": 565,
+                            "loc": {
+                              "start": {
+                                "line": 26,
+                                "column": 68,
+                                "offset": 547
+                              },
+                              "end": {
+                                "line": 26,
+                                "column": 86,
+                                "offset": 565
+                              }
+                            },
+                            "object": {
+                              "type": "Identifier",
+                              "start": 547,
+                              "end": 552,
+                              "loc": {
+                                "start": {
+                                  "line": 26,
+                                  "column": 68,
+                                  "offset": 547
+                                },
+                                "end": {
+                                  "line": 26,
+                                  "column": 73,
+                                  "offset": 552
+                                }
+                              },
+                              "name": "props",
+                              "range": [
+                                547,
+                                552
+                              ]
+                            },
+                            "property": {
+                              "type": "Identifier",
+                              "start": 553,
+                              "end": 565,
+                              "loc": {
+                                "start": {
+                                  "line": 26,
+                                  "column": 74,
+                                  "offset": 553
+                                },
+                                "end": {
+                                  "line": 26,
+                                  "column": 86,
+                                  "offset": 565
+                                }
+                              },
+                              "name": "fileMimeType",
+                              "range": [
+                                553,
+                                565
+                              ]
+                            },
+                            "computed": false,
+                            "optional": false,
+                            "range": [
+                              547,
+                              565
+                            ]
+                          },
+                          "start": 547,
+                          "end": 565,
+                          "loc": {
+                            "start": {
+                              "line": 26,
+                              "column": 68,
+                              "offset": 547
+                            },
+                            "end": {
+                              "line": 26,
+                              "column": 86,
+                              "offset": 565
+                            }
+                          },
+                          "range": [
+                            547,
+                            565
+                          ]
+                        }
+                      ],
+                      "sourceType": "module",
+                      "comments": [],
+                      "loc": {
+                        "start": {
+                          "line": 26,
+                          "column": 68,
+                          "offset": 547
+                        },
+                        "end": {
+                          "line": 26,
+                          "column": 86,
+                          "offset": 565
+                        }
+                      },
+                      "range": [
+                        547,
+                        565
+                      ]
+                    }
+                  }
+                },
+                "position": {
+                  "start": {
+                    "line": 26,
+                    "column": 59,
+                    "offset": 537
+                  },
+                  "end": {
+                    "line": 26,
+                    "column": 88,
+                    "offset": 566
+                  }
+                }
+              }
+            ],
+            "children": [],
+            "position": {
+              "start": {
+                "line": 26,
+                "column": 3,
+                "offset": 481
+              },
+              "end": {
+                "line": 26,
+                "column": 91,
+                "offset": 569
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 24,
+            "column": 1,
+            "offset": 407
+          },
+          "end": {
+            "line": 27,
+            "column": 13,
+            "offset": 582
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 28,
+        "column": 1,
+        "offset": 583
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/incorrectAttachments.prompt.mdx",
+    "kind": "object",
+    "name": "math",
+    "builtAt": "2026-03-16T14:58:16.048Z"
+  }
+}

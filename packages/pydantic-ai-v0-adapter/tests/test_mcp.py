@@ -13,7 +13,6 @@ from agentmark_pydantic_ai_v0 import (
     McpServerRegistry,
     PydanticAIAdapter,
     PydanticAIModelRegistry,
-    PydanticAIToolRegistry,
 )
 
 
@@ -26,15 +25,12 @@ def mock_model_registry() -> PydanticAIModelRegistry:
 
 
 @pytest.fixture
-def tool_registry() -> PydanticAIToolRegistry:
-    """Create a tool registry with a test tool."""
-    registry = PydanticAIToolRegistry()
+def sample_tools() -> list[Any]:
+    """Create a list of sample native tools."""
+    def sum_tool(a: int, b: int) -> int:
+        return a + b
 
-    def add_tool(args: dict[str, Any], ctx: dict[str, Any] | None) -> int:
-        return args["a"] + args["b"]
-
-    registry.register("sum", add_tool)
-    return registry
+    return [Tool(function=sum_tool, name="sum", description="Add two numbers")]
 
 
 @pytest.fixture
@@ -174,6 +170,7 @@ class TestMcpToolResolution:
         self,
         mock_model_registry: PydanticAIModelRegistry,
         mock_mcp_registry: McpServerRegistry,
+        sample_tools: list[Any],
         mcp_text_ast: dict[str, Any],
     ) -> None:
         """Test resolving a single MCP tool from URI."""
@@ -181,6 +178,7 @@ class TestMcpToolResolution:
 
         adapter = PydanticAIAdapter(
             model_registry=mock_model_registry,
+            tools=sample_tools,
             mcp_registry=mock_mcp_registry,
         )
 
@@ -188,9 +186,9 @@ class TestMcpToolResolution:
         prompt = await am.load_text_prompt(mcp_text_ast)
         result = await prompt.format(props={"userMessage": "Search for AI"})
 
-        # Should have resolved the MCP tool
+        # Should have resolved the MCP tool (keeps original name from server)
         tool_names = [t.name for t in result.tools]
-        assert "search" in tool_names or "web-search" in tool_names
+        assert "web-search" in tool_names
 
     async def test_resolve_mcp_wildcard(
         self,
@@ -204,7 +202,7 @@ class TestMcpToolResolution:
         )
 
         # Test wildcard resolution directly
-        tools = await adapter._resolve_mcp_tools("all", "mcp://server-1/*")
+        tools = await adapter._resolve_mcp_tools("mcp://server-1/*")
 
         assert len(tools) == 2
         tool_names = [t.name for t in tools]
@@ -251,19 +249,19 @@ class TestMcpToolResolution:
         with pytest.raises(ValueError, match="server-1.*not registered"):
             await prompt.format(props={"userMessage": "test"})
 
-    async def test_mixed_mcp_and_inline_tools(
+    async def test_mixed_mcp_and_native_tools(
         self,
         mock_model_registry: PydanticAIModelRegistry,
         mock_mcp_registry: McpServerRegistry,
-        tool_registry: PydanticAIToolRegistry,
+        sample_tools: list[Any],
         mcp_text_ast: dict[str, Any],
     ) -> None:
-        """Test mixing MCP tools with inline tool definitions."""
+        """Test mixing MCP tools with native tool definitions."""
         from agentmark.prompt_core import AgentMark
 
         adapter = PydanticAIAdapter(
             model_registry=mock_model_registry,
-            tool_registry=tool_registry,
+            tools=sample_tools,
             mcp_registry=mock_mcp_registry,
         )
 
@@ -271,12 +269,12 @@ class TestMcpToolResolution:
         prompt = await am.load_text_prompt(mcp_text_ast)
         result = await prompt.format(props={"userMessage": "test"})
 
-        # Should have both MCP and inline tools
-        assert len(result.tools) >= 2
+        # Should have both MCP and native tools
+        assert len(result.tools) == 2
         tool_names = [t.name for t in result.tools]
-        # MCP tool (either aliased as 'search' or original 'web-search')
-        assert "search" in tool_names or "web-search" in tool_names
-        # Inline tool
+        # MCP tool (keeps original name from MCP server)
+        assert "web-search" in tool_names
+        # Native tool
         assert "sum" in tool_names
 
 

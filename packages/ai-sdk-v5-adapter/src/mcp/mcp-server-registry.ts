@@ -113,6 +113,10 @@ export class McpServerRegistry {
     if (existing) return existing;
     const created = this.createClient(serverName);
     this.clients.set(serverName, created);
+    created.catch((err: unknown) => {
+      console.error(`[McpServerRegistry] Failed to connect to MCP server '${serverName}':`, err);
+      this.clients.delete(serverName);
+    });
     return created;
   }
 
@@ -123,9 +127,15 @@ export class McpServerRegistry {
       return existingTools[toolName];
     }
 
-    const client = await this.getClient(serverName);
-    const allTools = await client.tools();
-    this.toolsCache.set(cacheKey, allTools);
+    let allTools: Record<string, Tool>;
+    try {
+      const client = await this.getClient(serverName);
+      allTools = await client.tools();
+      this.toolsCache.set(cacheKey, allTools);
+    } catch (err) {
+      this.toolsCache.delete(cacheKey);
+      throw err;
+    }
 
     const tool = allTools[toolName];
     if (!tool) {
@@ -147,9 +157,14 @@ export class McpServerRegistry {
       return existingTools;
     }
 
-    const client = await this.getClient(serverName);
-    const allTools = await client.tools();
-    this.toolsCache.set(cacheKey, allTools);
-    return allTools;
+    try {
+      const client = await this.getClient(serverName);
+      const allTools = await client.tools();
+      this.toolsCache.set(cacheKey, allTools);
+      return allTools;
+    } catch (err) {
+      this.toolsCache.delete(cacheKey);
+      throw err;
+    }
   }
 }

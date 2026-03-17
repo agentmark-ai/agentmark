@@ -285,20 +285,6 @@ export interface ClaudeAgentAdapterOptions {
 }
 
 /**
- * Tool definition for AgentMark tools to be bridged to MCP
- */
-export interface AgentMarkToolDefinition {
-  /** Tool name */
-  name: string;
-  /** Tool description */
-  description: string;
-  /** JSON Schema for parameters */
-  parameters: Record<string, unknown>;
-  /** Tool execution function */
-  execute: (args: unknown) => Promise<unknown>;
-}
-
-/**
  * Result from Claude Agent SDK execution
  */
 export interface ClaudeAgentResult {

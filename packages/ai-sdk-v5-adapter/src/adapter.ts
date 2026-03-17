@@ -14,12 +14,15 @@ import type {
   ImageModel,
   Schema,
   Tool,
-  ToolCallOptions,
   SpeechModel,
   ModelMessage,
+  TelemetrySettings,
+  StopCondition,
+  ToolSet,
 } from "ai";
 import { jsonSchema, stepCountIs } from "ai";
 import { parseMcpUri } from "@agentmark-ai/prompt-core";
+import type { McpServers } from "@agentmark-ai/prompt-core";
 import { McpServerRegistry } from "./mcp/mcp-server-registry";
 
 // Convert RichChatMessage[] to ModelMessage[] for AI SDK v5 compatibility
@@ -52,20 +55,6 @@ function convertMessages(messages: RichChatMessage[]): ModelMessage[] {
   });
 }
 
-type ToolInputOutput<R> = R extends {
-  __tools: { output: infer O; input: infer I };
-}
-  ? { input: I; output: O }
-  : never;
-
-type Prettify<T> = {
-  [K in keyof T]: T[K];
-} & {};
-
-type ToolSetMap<O extends Record<string, any>> = Prettify<{
-  [K in keyof O["output"]]: Tool<O["input"][K]["args"], O["output"][K]>;
-}>;
-
 export type VercelAITextParams<TS extends Record<string, Tool>> = {
   model: LanguageModel;
   messages: ModelMessage[];
@@ -78,11 +67,11 @@ export type VercelAITextParams<TS extends Record<string, Tool>> = {
   seed?: number;
   stopSequences?: string[];
   tools: TS;
-  experimental_telemetry?: any;
-  stopWhen?: any;
+  experimental_telemetry?: TelemetrySettings;
+  stopWhen?: StopCondition<ToolSet> | StopCondition<ToolSet>[];
 };
 
-export interface VercelAIObjectParams<T> {
+export interface VercelAIObjectParams<T, TTools extends Record<string, Tool> = Record<string, Tool>> {
   output?: "object";
   model: LanguageModel;
   messages: ModelMessage[];
@@ -96,9 +85,9 @@ export interface VercelAIObjectParams<T> {
   seed?: number;
   schemaName?: string;
   schemaDescription?: string;
-  experimental_telemetry?: any;
-  tools?: Record<string, any>;
-  stopWhen?: any;
+  experimental_telemetry?: TelemetrySettings;
+  tools?: Record<string, TTools[keyof TTools]>;
+  stopWhen?: StopCondition<ToolSet> | StopCondition<ToolSet>[];
 }
 
 export interface VercelAIImageParams {
@@ -124,11 +113,17 @@ export type ModelFunctionCreator = (
   options?: AdaptOptions
 ) => LanguageModel | ImageModel | SpeechModel;
 
+type AIProvider = {
+  languageModel?: (modelId: string) => LanguageModel;
+  imageModel?: (modelId: string) => ImageModel;
+  speechModel?: (modelId: string) => SpeechModel;
+};
+
 const getTelemetryConfig = (
   telemetry: AdaptOptions["telemetry"],
-  props: Record<string, any>,
+  props: Record<string, unknown>,
   promptName: string,
-  agentmarkMeta?: Record<string, any>
+  agentmarkMeta?: Record<string, unknown>
 ) => {
   return {
     ...telemetry,
@@ -141,55 +136,11 @@ const getTelemetryConfig = (
   };
 };
 
-type Merge<A, B> = {
-  [K in keyof A | keyof B]: K extends keyof B
-    ? B[K]
-    : K extends keyof A
-    ? A[K]
-    : never;
-};
-
-export class VercelAIToolRegistry<
-  TD extends { [K in keyof TD]: { args: any } },
-  RM extends Partial<Record<keyof TD, any>> = {}
-> {
-  declare readonly __tools: { input: TD; output: RM };
-
-  private map: {
-    [K in keyof TD]?: (
-      args: TD[K]["args"],
-      toolOptions?: ToolCallOptions
-    ) => any;
-  } = {};
-
-  register<K extends keyof TD, R>(
-    name: K,
-    fn: (args: TD[K]["args"], toolOptions?: ToolCallOptions) => R
-  ): VercelAIToolRegistry<TD, Merge<RM, { [P in K]: R }>> {
-    this.map[name] = fn;
-    return this as unknown as VercelAIToolRegistry<
-      TD,
-      Merge<RM, { [P in K]: R }>
-    >;
-  }
-
-  get<K extends keyof TD & keyof RM>(name: K) {
-    return this.map[name] as (
-      args: TD[K]["args"],
-      toolOptions?: ToolCallOptions
-    ) => RM[K];
-  }
-
-  has<K extends keyof TD>(name: K): name is K & keyof RM {
-    return name in this.map;
-  }
-}
-
 export class VercelAIModelRegistry {
   private exactMatches: Record<string, ModelFunctionCreator> = {};
   private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
   private defaultCreator?: ModelFunctionCreator;
-  private providers: Record<string, any> = {};
+  private providers: Record<string, AIProvider> = {};
 
   constructor(defaultCreator?: ModelFunctionCreator) {
     this.defaultCreator = defaultCreator;
@@ -211,7 +162,7 @@ export class VercelAIModelRegistry {
     return this;
   }
 
-  registerProviders(providers: Record<string, any>): this {
+  registerProviders(providers: Record<string, AIProvider>): this {
     Object.assign(this.providers, providers);
     return this;
   }
@@ -259,7 +210,8 @@ export class VercelAIModelRegistry {
         );
       }
 
-      return () => factory.call(provider, modelId);
+      const boundFactory = (factory as (modelId: string) => LanguageModel).bind(provider);
+      return () => boundFactory(modelId);
     }
 
     // 4. Default creator
@@ -276,95 +228,75 @@ export class VercelAIModelRegistry {
 
 export class VercelAIAdapter<
   T extends PromptShape<T>,
-  R extends VercelAIToolRegistry<any, any> = VercelAIToolRegistry<any, any>
+  TTools extends Record<string, Tool> = Record<string, Tool>
 > {
   declare readonly __dict: T;
   readonly __name = "vercel-ai-v5";
 
-  private readonly toolsRegistry: R | undefined;
+  private readonly tools: TTools | undefined;
   private readonly mcpRegistry: McpServerRegistry;
 
   constructor(
     private modelRegistry: VercelAIModelRegistry,
-    toolRegistry?: R,
-    mcpRegistry?: McpServerRegistry
+    tools?: TTools,
+    mcpServers?: McpServers
   ) {
     this.modelRegistry = modelRegistry;
-    this.toolsRegistry = toolRegistry;
-    this.mcpRegistry = mcpRegistry ?? new McpServerRegistry();
+    this.tools = tools;
+    this.mcpRegistry = new McpServerRegistry();
+    if (mcpServers) {
+      this.mcpRegistry.registerServers(mcpServers);
+    }
+  }
+
+  private async resolveTools(
+    toolNames: string[]
+  ): Promise<Record<string, TTools[keyof TTools]>> {
+    const toolsObj: Record<string, TTools[keyof TTools]> = {};
+
+    for (const toolName of toolNames) {
+      if (toolName.startsWith("mcp://")) {
+        const { server, tool } = parseMcpUri(toolName);
+        if (tool === "*") {
+          const allTools = await this.mcpRegistry.getAllTools(server);
+          for (const [name, toolImpl] of Object.entries(allTools)) {
+            // MCP tools bypass TTools compile-time constraints; they are dynamically typed
+            // and trusted from the registry without schema validation at runtime.
+            toolsObj[name] = toolImpl as unknown as TTools[keyof TTools];
+          }
+          continue;
+        }
+        const resolvedTool = await this.mcpRegistry.getTool(server, tool);
+        // MCP tools bypass TTools compile-time constraints; dynamically typed from registry.
+        toolsObj[tool] = resolvedTool as unknown as TTools[keyof TTools];
+        continue;
+      }
+
+      if (this.tools && toolName in this.tools) {
+        toolsObj[toolName] = this.tools[toolName] as TTools[keyof TTools];
+      } else {
+        const available = this.tools ? Object.keys(this.tools).join(", ") : "(none)";
+        throw new Error(
+          `Tool '${toolName}' referenced in prompt config was not found in the provided tools record. Available tools: ${available}`
+        );
+      }
+    }
+
+    return toolsObj;
   }
 
   async adaptText<_K extends KeysWithKind<T, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): Promise<VercelAITextParams<ToolSetMap<ToolInputOutput<R>>>> {
+  ): Promise<VercelAITextParams<TTools>> {
     const { model_name: name, ...settings } = input.text_config;
     const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
     const model = modelCreator(name, options) as LanguageModel;
 
-    type Ret = ToolInputOutput<R>;
-
-    let toolsObj: ToolSetMap<Ret> | undefined;
-
-    if (input.text_config.tools) {
-      toolsObj = {} as ToolSetMap<Ret>;
-
-      for (const [keyAny, defAny] of Object.entries(input.text_config.tools)) {
-        const key = keyAny as keyof Ret;
-
-        if (typeof defAny === "string") {
-          if (defAny.startsWith("mcp://")) {
-            const { server, tool } = parseMcpUri(defAny);
-            if (tool === "*") {
-              const allTools = await this.mcpRegistry.getAllTools(server);
-              for (const [toolName, toolImpl] of Object.entries(allTools)) {
-                (toolsObj as any)[toolName] = toolImpl as any;
-              }
-              continue;
-            }
-            const resolvedTool = await this.mcpRegistry.getTool(server, tool);
-            (toolsObj as any)[key] = resolvedTool as any;
-            continue;
-          }
-          throw new Error(
-            `Invalid tool entry for '${String(
-              key
-            )}': expected MCP URI string or inline tool definition`
-          );
-        }
-
-        const def = defAny as {
-          description?: string;
-          parameters: Record<string, any>;
-        };
-
-        const impl = this.toolsRegistry?.has(key)
-          ? this.toolsRegistry.get(key)
-          : (_: any) =>
-              Promise.reject(new Error(`Tool ${String(key)} not registered`));
-
-        (toolsObj as any)[key] = {
-          type: "function" as const,
-          inputSchema: jsonSchema(def.parameters),
-          description: def.description ?? "",
-          execute: (input: any, toolCallOptions: ToolCallOptions) => {
-            // Merge original experimental_context with options.toolContext
-            const toolOptions: ToolCallOptions = {
-              ...toolCallOptions,
-              experimental_context: {
-                ...((toolCallOptions.experimental_context as Record<
-                  string,
-                  unknown
-                >) ?? {}),
-                ...((options.toolContext as Record<string, unknown>) ?? {}),
-              } as unknown,
-            };
-            return impl(input, toolOptions);
-          },
-        } as Tool<any, any>;
-      }
-    }
+    const toolsObj = input.text_config.tools
+      ? await this.resolveTools(input.text_config.tools as string[])
+      : {} as Record<string, TTools[keyof TTools]>;
 
     return {
       model,
@@ -400,7 +332,7 @@ export class VercelAIAdapter<
             ),
           }
         : {}),
-      tools: toolsObj ?? ({} as ToolSetMap<Ret>),
+      tools: toolsObj as unknown as TTools,
     };
   }
 
@@ -408,71 +340,14 @@ export class VercelAIAdapter<
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): Promise<VercelAIObjectParams<T[K]["output"]>> {
+  ): Promise<VercelAIObjectParams<T[K]["output"], TTools>> {
     const { model_name: name, ...settings } = input.object_config;
     const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
     const model = modelCreator(name, options) as LanguageModel;
 
-    type Ret = ToolInputOutput<R>;
-    let toolsObj: ToolSetMap<Ret> | undefined;
-
-    if (input.object_config.tools) {
-      toolsObj = {} as ToolSetMap<Ret>;
-
-      for (const [keyAny, defAny] of Object.entries(input.object_config.tools)) {
-        const key = keyAny as keyof Ret;
-
-        if (typeof defAny === "string") {
-          if (defAny.startsWith("mcp://")) {
-            const { server, tool } = parseMcpUri(defAny);
-            if (tool === "*") {
-              const allTools = await this.mcpRegistry.getAllTools(server);
-              for (const [toolName, toolImpl] of Object.entries(allTools)) {
-                (toolsObj as any)[toolName] = toolImpl as any;
-              }
-              continue;
-            }
-            const resolvedTool = await this.mcpRegistry.getTool(server, tool);
-            (toolsObj as any)[key] = resolvedTool as any;
-            continue;
-          }
-          throw new Error(
-            `Invalid tool entry for '${String(
-              key
-            )}': expected MCP URI string or inline tool definition`
-          );
-        }
-
-        const def = defAny as {
-          description?: string;
-          parameters: Record<string, any>;
-        };
-
-        const impl = this.toolsRegistry?.has(key)
-          ? this.toolsRegistry.get(key)
-          : (_: any) =>
-              Promise.reject(new Error(`Tool ${String(key)} not registered`));
-
-        (toolsObj as any)[key] = {
-          type: "function" as const,
-          inputSchema: jsonSchema(def.parameters),
-          description: def.description ?? "",
-          execute: (input: any, toolCallOptions: ToolCallOptions) => {
-            const toolOptions: ToolCallOptions = {
-              ...toolCallOptions,
-              experimental_context: {
-                ...((toolCallOptions.experimental_context as Record<
-                  string,
-                  unknown
-                >) ?? {}),
-                ...((options.toolContext as Record<string, unknown>) ?? {}),
-              } as unknown,
-            };
-            return impl(input, toolOptions);
-          },
-        } as Tool<any, any>;
-      }
-    }
+    const toolsObj = input.object_config.tools
+      ? await this.resolveTools(input.object_config.tools as string[])
+      : undefined;
 
     return {
       output: "object" as const,

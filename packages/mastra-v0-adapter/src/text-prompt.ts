@@ -15,22 +15,10 @@ import {
   IfShapeIsUndefined,
 } from "./types";
 import { AgentConfig, AgentGenerateOptions } from "@mastra/core/agent";
-import { MastraToolRegistry } from "./tool-registry";
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-
-type ToolRet<R> = R extends { __tools: { output: infer O } } ? O : never;
-type ToolInput<R> = R extends { __tools: { input: infer I } } ? I : never;
-
-type CreateTool<
-  InputSchema extends z.ZodType,
-  OutputSchema extends z.ZodType
-> = ReturnType<typeof createTool<InputSchema, OutputSchema>>;
 
 export class MastraTextPrompt<
   T extends PromptShape<T> | undefined,
-  TR extends MastraToolRegistry<any, any>,
-  A extends MastraAdapter<T, TR>,
+  A extends MastraAdapter<T>,
   K extends IfShapeIsUndefined<T, any, KeysWithKind<T, "text"> & string>
 > extends TextPrompt<any, A, K> {
   constructor(
@@ -50,15 +38,7 @@ export class MastraTextPrompt<
     props?: FormatAgentProps<T, UsedProps, K>;
     options?: AdaptOptions;
   }): Promise<
-    AgentConfig<
-      any,
-      {
-        [key in keyof ToolInput<TR>]: CreateTool<
-          z.ZodType<ToolInput<TR>[key]["args"]>,
-          z.ZodType<ToolRet<TR>[key]>
-        >;
-      }
-    > & {
+    AgentConfig & {
       formatMessages: <M extends Partial<T[K]["input"]>>(msgParams?: {
         props?: FormatMessagesProps<T, UsedProps, M, K>;
       }) => Promise<
@@ -128,7 +108,7 @@ export class MastraTextPrompt<
         expected_output?: string;
       };
       formatted: Awaited<
-        ReturnType<MastraTextPrompt<T, TR, A, K>["formatAgent"]>
+        ReturnType<MastraTextPrompt<T, A, K>["formatAgent"]>
       >;
       evals: string[];
     }>

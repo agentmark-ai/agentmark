@@ -1,0 +1,295 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: math\ntext_config:\n  model_name: test-model\ninput_schema:\n  type: object\n  properties:\n    userMessage:\n      type: string\n  required:\n    - userMessage",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 12,
+            "column": 4,
+            "offset": 165
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "System",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "You are a helpful math tutor.",
+                "position": {
+                  "start": {
+                    "line": 15,
+                    "column": 1,
+                    "offset": 176
+                  },
+                  "end": {
+                    "line": 15,
+                    "column": 30,
+                    "offset": 205
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 15,
+                "column": 1,
+                "offset": 176
+              },
+              "end": {
+                "line": 15,
+                "column": 30,
+                "offset": 205
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 14,
+            "column": 1,
+            "offset": 167
+          },
+          "end": {
+            "line": 16,
+            "column": 10,
+            "offset": 215
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "User",
+        "attributes": [],
+        "children": [
+          {
+            "type": "mdxFlowExpression",
+            "value": "props.userMessage",
+            "position": {
+              "start": {
+                "line": 19,
+                "column": 1,
+                "offset": 224
+              },
+              "end": {
+                "line": 19,
+                "column": 20,
+                "offset": 243
+              }
+            },
+            "data": {
+              "estree": {
+                "type": "Program",
+                "start": 225,
+                "end": 242,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "MemberExpression",
+                      "start": 225,
+                      "end": 242,
+                      "object": {
+                        "type": "Identifier",
+                        "start": 225,
+                        "end": 230,
+                        "name": "props",
+                        "loc": {
+                          "start": {
+                            "line": 19,
+                            "column": 1,
+                            "offset": 225
+                          },
+                          "end": {
+                            "line": 19,
+                            "column": 6,
+                            "offset": 230
+                          }
+                        },
+                        "range": [
+                          225,
+                          230
+                        ]
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "start": 231,
+                        "end": 242,
+                        "name": "userMessage",
+                        "loc": {
+                          "start": {
+                            "line": 19,
+                            "column": 7,
+                            "offset": 231
+                          },
+                          "end": {
+                            "line": 19,
+                            "column": 18,
+                            "offset": 242
+                          }
+                        },
+                        "range": [
+                          231,
+                          242
+                        ]
+                      },
+                      "computed": false,
+                      "optional": false,
+                      "loc": {
+                        "start": {
+                          "line": 19,
+                          "column": 1,
+                          "offset": 225
+                        },
+                        "end": {
+                          "line": 19,
+                          "column": 18,
+                          "offset": 242
+                        }
+                      },
+                      "range": [
+                        225,
+                        242
+                      ]
+                    },
+                    "start": 225,
+                    "end": 242,
+                    "loc": {
+                      "start": {
+                        "line": 19,
+                        "column": 1,
+                        "offset": 225
+                      },
+                      "end": {
+                        "line": 19,
+                        "column": 18,
+                        "offset": 242
+                      }
+                    },
+                    "range": [
+                      225,
+                      242
+                    ]
+                  }
+                ],
+                "sourceType": "module",
+                "comments": [],
+                "loc": {
+                  "start": {
+                    "line": 19,
+                    "column": 1,
+                    "offset": 225
+                  },
+                  "end": {
+                    "line": 19,
+                    "column": 18,
+                    "offset": 242
+                  }
+                },
+                "range": [
+                  225,
+                  242
+                ]
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 18,
+            "column": 1,
+            "offset": 217
+          },
+          "end": {
+            "line": 20,
+            "column": 8,
+            "offset": 251
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "Assistant",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "Here's your answer!",
+                "position": {
+                  "start": {
+                    "line": 23,
+                    "column": 1,
+                    "offset": 265
+                  },
+                  "end": {
+                    "line": 23,
+                    "column": 20,
+                    "offset": 284
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 23,
+                "column": 1,
+                "offset": 265
+              },
+              "end": {
+                "line": 23,
+                "column": 20,
+                "offset": 284
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 22,
+            "column": 1,
+            "offset": 253
+          },
+          "end": {
+            "line": 24,
+            "column": 13,
+            "offset": 297
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 24,
+        "column": 14,
+        "offset": 298
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/text.prompt.mdx",
+    "kind": "text",
+    "name": "math",
+    "builtAt": "2026-03-16T14:58:16.058Z"
+  }
+}

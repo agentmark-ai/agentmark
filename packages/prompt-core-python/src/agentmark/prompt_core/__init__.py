@@ -5,14 +5,13 @@ from .agentmark import AgentMark, create_agentmark
 from .eval_registry import EvalRegistry
 from .loaders import FileDatasetReader, FileDatasetStream, FileLoader
 from .mcp import (
-    InlineToolDefinition,
     McpServerConfig,
     McpServers,
     McpStdioServerConfig,
     McpUrlServerConfig,
     NormalizedTool,
     interpolate_env_in_object,
-    normalize_tools_map,
+    normalize_tools_list,
     parse_mcp_uri,
 )
 from .prompts import (
@@ -130,12 +129,11 @@ __all__ = [
     # MCP utilities
     "parse_mcp_uri",
     "interpolate_env_in_object",
-    "normalize_tools_map",
+    "normalize_tools_list",
     "McpUrlServerConfig",
     "McpStdioServerConfig",
     "McpServerConfig",
     "McpServers",
-    "InlineToolDefinition",
     "NormalizedTool",
 ]
 

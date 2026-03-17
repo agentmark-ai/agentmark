@@ -18,7 +18,7 @@ import { z } from "zod";
 
 export class MastraObjectPrompt<
   T extends PromptShape<T> | undefined,
-  A extends MastraAdapter<T, any>,
+  A extends MastraAdapter<T>,
   K extends IfShapeIsUndefined<T, any, KeysWithKind<T, "object"> & string>
 > extends ObjectPrompt<any, A, K> {
   constructor(

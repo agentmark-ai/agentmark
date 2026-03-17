@@ -31,7 +31,8 @@ export type {
   FormatWithDatasetOptions,
 } from "./types";
 
-export { EvalRegistry } from "./eval-registery";
+export type { EvalRegistry } from "./eval-registery";
+export type { EvalFunction } from "./types";
 export { createPromptTelemetry } from "./runner";
 export type { WebhookDatasetResponse, WebhookDatasetChunk, WebhookPromptResponse, WebhookTextResponse, WebhookObjectResponse, WebhookImageResponse, WebhookSpeechResponse } from "./runner";
 
@@ -39,11 +40,9 @@ export type { WebhookDatasetResponse, WebhookDatasetChunk, WebhookPromptResponse
 export {
   parseMcpUri,
   interpolateEnvInObject,
-  normalizeToolsMap,
+  normalizeToolsList,
 } from "./mcp";
 export type {
-  ToolJsonSchema,
-  InlineToolDefinition,
   NormalizedTool,
   McpUrlServerConfig,
   McpStdioServerConfig,

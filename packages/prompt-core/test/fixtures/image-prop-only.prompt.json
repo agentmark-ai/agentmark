@@ -1,0 +1,191 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: image-prop-only\nimage_config:\n  model_name: test-model\n  num_images: 1\n  size: \"1024x1024\"\n  aspect_ratio: \"1:1\"",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 8,
+            "column": 4,
+            "offset": 126
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "ImagePrompt",
+        "attributes": [],
+        "children": [
+          {
+            "type": "mdxFlowExpression",
+            "value": "props.text",
+            "position": {
+              "start": {
+                "line": 10,
+                "column": 14,
+                "offset": 141
+              },
+              "end": {
+                "line": 10,
+                "column": 26,
+                "offset": 153
+              }
+            },
+            "data": {
+              "estree": {
+                "type": "Program",
+                "start": 142,
+                "end": 152,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "MemberExpression",
+                      "start": 142,
+                      "end": 152,
+                      "object": {
+                        "type": "Identifier",
+                        "start": 142,
+                        "end": 147,
+                        "name": "props",
+                        "loc": {
+                          "start": {
+                            "line": 10,
+                            "column": 14,
+                            "offset": 142
+                          },
+                          "end": {
+                            "line": 10,
+                            "column": 19,
+                            "offset": 147
+                          }
+                        },
+                        "range": [
+                          142,
+                          147
+                        ]
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "start": 148,
+                        "end": 152,
+                        "name": "text",
+                        "loc": {
+                          "start": {
+                            "line": 10,
+                            "column": 20,
+                            "offset": 148
+                          },
+                          "end": {
+                            "line": 10,
+                            "column": 24,
+                            "offset": 152
+                          }
+                        },
+                        "range": [
+                          148,
+                          152
+                        ]
+                      },
+                      "computed": false,
+                      "optional": false,
+                      "loc": {
+                        "start": {
+                          "line": 10,
+                          "column": 14,
+                          "offset": 142
+                        },
+                        "end": {
+                          "line": 10,
+                          "column": 24,
+                          "offset": 152
+                        }
+                      },
+                      "range": [
+                        142,
+                        152
+                      ]
+                    },
+                    "start": 142,
+                    "end": 152,
+                    "loc": {
+                      "start": {
+                        "line": 10,
+                        "column": 14,
+                        "offset": 142
+                      },
+                      "end": {
+                        "line": 10,
+                        "column": 24,
+                        "offset": 152
+                      }
+                    },
+                    "range": [
+                      142,
+                      152
+                    ]
+                  }
+                ],
+                "sourceType": "module",
+                "comments": [],
+                "loc": {
+                  "start": {
+                    "line": 10,
+                    "column": 14,
+                    "offset": 142
+                  },
+                  "end": {
+                    "line": 10,
+                    "column": 24,
+                    "offset": 152
+                  }
+                },
+                "range": [
+                  142,
+                  152
+                ]
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 10,
+            "column": 1,
+            "offset": 128
+          },
+          "end": {
+            "line": 10,
+            "column": 40,
+            "offset": 167
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 11,
+        "column": 1,
+        "offset": 168
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/image-prop-only.prompt.mdx",
+    "kind": "image",
+    "name": "image-prop-only",
+    "builtAt": "2026-03-16T14:58:16.045Z"
+  }
+}

@@ -3,16 +3,7 @@ name: text-with-tools
 text_config:
   model_name: test-model
   tools:
-    sum:
-      description: Add two numbers
-      parameters:
-        type: object
-        properties:
-          a:
-            type: number
-          b:
-            type: number
-        required: ["a", "b"]
+    - sum
 input_schema:
   type: object
   properties:

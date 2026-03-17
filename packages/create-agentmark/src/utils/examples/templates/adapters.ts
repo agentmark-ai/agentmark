@@ -6,7 +6,6 @@ export interface AdapterConfig {
   /** Class names used in generated code */
   classes: {
     modelRegistry: string;
-    toolRegistry: string;
     webhookHandler: string;
   };
 }
@@ -20,7 +19,6 @@ export const createAdapterConfig = (
       dependencies: ["ai@^5", `@ai-sdk/${provider}@^2`],
       classes: {
         modelRegistry: "VercelAIModelRegistry",
-        toolRegistry: "VercelAIToolRegistry",
         webhookHandler: "VercelAdapterWebhookHandler",
       },
     },
@@ -30,10 +28,10 @@ export const createAdapterConfig = (
         "@mastra/core@<0.20.0",
         "@mastra/mcp@<0.13.4",
         `@ai-sdk/${provider}@<2`,
+        "ai@^4",
       ],
       classes: {
         modelRegistry: "MastraModelRegistry",
-        toolRegistry: "MastraToolRegistry",
         webhookHandler: "MastraAdapterWebhookHandler",
       },
     },
@@ -42,7 +40,6 @@ export const createAdapterConfig = (
       dependencies: ["@anthropic-ai/claude-agent-sdk@^0.1.0"],
       classes: {
         modelRegistry: "ClaudeAgentModelRegistry",
-        toolRegistry: "ClaudeAgentToolRegistry",
         webhookHandler: "ClaudeAgentWebhookHandler",
       },
     },

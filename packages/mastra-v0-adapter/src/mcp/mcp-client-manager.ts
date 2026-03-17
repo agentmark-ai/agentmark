@@ -18,9 +18,7 @@ export class MCPClientManager {
   private getInterpolatedServers(): McpServers | undefined {
     if (!this.rawServers) return undefined;
     if (!this.interpolatedServers) {
-      this.interpolatedServers = interpolateEnvInObject(this.rawServers, {
-        strict: false,
-      });
+      this.interpolatedServers = interpolateEnvInObject(this.rawServers);
     }
     return this.interpolatedServers;
   }
@@ -29,6 +27,10 @@ export class MCPClientManager {
     if (!this.clientPromise) {
       const servers = this.getInterpolatedServers() ?? {};
       this.clientPromise = this.createClient(servers);
+      this.clientPromise.catch((err: unknown) => {
+        console.error("[MCPClientManager] Failed to connect to MCP servers:", err);
+        this.clientPromise = undefined;
+      });
     }
     return this.clientPromise;
   }
@@ -76,9 +78,10 @@ export class MCPClientManager {
     let mod: any;
     try {
       mod = await import("@mastra/mcp");
-    } catch (_err) {
+    } catch (err) {
       throw new Error(
-        "@mastra/mcp is not installed. Please add it as a dependency in your app."
+        "@mastra/mcp is not installed. Please add it as a dependency in your app.",
+        { cause: err }
       );
     }
     const mcp = new mod.MCPClient({ servers: serversForClient });
@@ -86,13 +89,19 @@ export class MCPClientManager {
   }
 
   async getNamespacedTools(): Promise<Record<string, unknown>> {
-    const client = await this.ensureClient();
     const CACHE_KEY = "__all__";
     const cached = this.toolsCache.get(CACHE_KEY);
     if (cached) return cached;
-    const tools = await client.getTools();
-    this.toolsCache.set(CACHE_KEY, tools);
-    return tools;
+
+    try {
+      const client = await this.ensureClient();
+      const tools = await client.getTools();
+      this.toolsCache.set(CACHE_KEY, tools);
+      return tools;
+    } catch (err) {
+      this.toolsCache.delete(CACHE_KEY);
+      throw err;
+    }
   }
 }
 

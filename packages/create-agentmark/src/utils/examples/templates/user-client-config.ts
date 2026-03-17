@@ -2,8 +2,9 @@ import { getAdapterConfig } from "./adapters.js";
 
 export const getClientConfigContent = (options: { provider: string; adapter: string; deploymentMode?: "cloud" | "static" }) => {
   const { provider, adapter, deploymentMode = "cloud" } = options;
+  const isMastra = adapter === "mastra";
   const adapterConfig = getAdapterConfig(adapter, provider);
-  const { modelRegistry, toolRegistry } = adapterConfig.classes;
+  const { modelRegistry } = adapterConfig.classes;
 
   // Claude Agent SDK doesn't use @ai-sdk provider imports
   const isClaudeAgentSdk = adapter === "claude-agent-sdk";
@@ -80,67 +81,116 @@ const adapterOptions = {
 };`
     : '';
 
+  // Tool import: each adapter imports tools differently
+  const toolImport = isClaudeAgentSdk
+    ? `import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import { z } from 'zod';`
+    : isMastra
+      ? `import { tool } from 'ai';
+import type { ToolsInput } from '@mastra/core/agent';
+import { z } from 'zod';`
+      : `import { tool } from 'ai';
+import type { Tool } from 'ai';
+import { z } from 'zod';`;
+
   const createClientCall = isClaudeAgentSdk
-    ? `return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader, modelRegistry, toolRegistry, evalRegistry, adapterOptions });`
-    : `return createAgentMarkClient<AgentMarkTypes, typeof toolRegistry>({ loader, modelRegistry, toolRegistry, evalRegistry });`;
+    ? `return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, evalRegistry, adapterOptions, mcpServers: { 'customer-support': customerSupportTools } });`
+    : `return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, tools, evalRegistry });`;
+
+  // AI SDK v5 uses inputSchema (Zod), Mastra uses parameters (Zod via ai v4 tool helper)
+  const toolSchemaField = isMastra
+    ? `parameters: z.object({ query: z.string().describe('The search query') })`
+    : `inputSchema: z.object({ query: z.string().describe('The search query') })`;
+
+  const toolsReturnType = isMastra ? 'ToolsInput' : 'Record<string, Tool>';
+
+  const toolsSetup = isClaudeAgentSdk
+    ? `
+// Custom tools exposed as an MCP server — the SDK's native tool mechanism.
+// The server name is used in mcpServers config; tool names are used in prompt files.
+const knowledgeBase = tool(
+  'search_knowledgebase',
+  'Search the knowledge base for relevant articles',
+  { query: z.string().describe('The search query') },
+  async ({ query }) => ({
+    content: [{ type: 'text' as const, text: JSON.stringify({
+      articles: [
+        { topic: 'shipping', content: 'Standard shipping takes 3–5 business days.' },
+        { topic: 'warranty', content: 'All products include a 1-year limited warranty.' },
+        { topic: 'returns', content: 'You can return items within 30 days of delivery.' },
+      ],
+    }) }],
+  })
+);
+
+const customerSupportTools = createSdkMcpServer({
+  name: 'customer-support',
+  tools: [knowledgeBase],
+});`
+    : `
+function createTools(): ${toolsReturnType} {
+  return {
+    search_knowledgebase: tool({
+      description: 'Search the knowledge base for relevant articles',
+      ${toolSchemaField},
+      execute: async ({ query }) => {
+        // Simulate search delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Return all three knowledge base articles
+        // The LLM will select the relevant one based on the query
+        return {
+          articles: [
+            { topic: 'shipping', content: 'Standard shipping takes 3–5 business days.' },
+            { topic: 'warranty', content: 'All products include a 1-year limited warranty.' },
+            { topic: 'returns', content: 'You can return items within 30 days of delivery.' }
+          ]
+        };
+      },
+    }),
+  };
+}`;
+
+  const toolsVariable = isClaudeAgentSdk ? '' : `  const tools = createTools();`;
 
   return `// agentmark.client.ts
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
-import { createAgentMarkClient, ${modelRegistry}, ${toolRegistry}, EvalRegistry } from "${adapterConfig.package}";
+import { createAgentMarkClient, ${modelRegistry} } from "${adapterConfig.package}";
+import type { EvalRegistry } from "${adapterConfig.package}";
 ${loaderImport}
-import AgentMarkTypes, { Tools } from './agentmark.types';
+import AgentMarkTypes from './agentmark.types';
 ${providerImport}
+${toolImport}
 ${adapterOptionsImport}
 
 ${modelRegistrySetup}
+${toolsSetup}
 
-function createToolRegistry() {
-  const toolRegistry = new ${toolRegistry}<Tools>()
-    .register('search_knowledgebase', async ({ query }) => {
-      // Simulate search delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Return all three knowledge base articles
-      // The LLM will select the relevant one based on the query
+const evalRegistry: EvalRegistry = {
+  exact_match_json: ({ output, expectedOutput }) => {
+    if (!expectedOutput) {
+      return { score: 0, label: 'error', reason: 'No expected output provided', passed: false };
+    }
+    try {
+      const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
       return {
-        articles: [
-          { topic: 'shipping', content: 'Standard shipping takes 3–5 business days.' },
-          { topic: 'warranty', content: 'All products include a 1-year limited warranty.' },
-          { topic: 'returns', content: 'You can return items within 30 days of delivery.' }
-        ]
+        score: ok ? 1 : 0,
+        label: ok ? 'correct' : 'incorrect',
+        reason: ok ? 'Exact match' : 'Mismatch',
+        passed: ok
       };
-    });
-  return toolRegistry;
-}
-
-function createEvalRegistry() {
-  const evalRegistry = new EvalRegistry()
-    .register('exact_match_json', ({ output, expectedOutput }) => {
-      if (!expectedOutput) {
-        return { score: 0, label: 'error', reason: 'No expected output provided', passed: false };
-      }
-      try {
-        const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
-        return {
-          score: ok ? 1 : 0,
-          label: ok ? 'correct' : 'incorrect',
-          reason: ok ? 'Exact match' : 'Mismatch',
-          passed: ok
-        };
-      } catch (e) {
-        return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON', passed: false };
-      }
-    });
-  return evalRegistry;
-}
+    } catch (e) {
+      return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON', passed: false };
+    }
+  },
+};
 
 function createClient() {
 ${loaderSetup}
   const modelRegistry = createModelRegistry();
-  const toolRegistry = createToolRegistry();
-  const evalRegistry = createEvalRegistry();
+${toolsVariable}
   ${createClientCall}
 }
 

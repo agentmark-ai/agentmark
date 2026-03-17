@@ -44,7 +44,7 @@ print(result.output)
 
 - **Type-safe integration**: Full type safety from AgentMark prompts to Pydantic AI
 - **Model registry**: Flexible model name resolution with pattern matching
-- **Tool registry**: Register tool execution functions for AgentMark-defined tools
+- **Native tools**: Pass pydantic-ai Tool objects or callables directly
 - **MCP support**: Model Context Protocol integration for external tool servers
 - **Structured output**: Automatic JSON Schema to Pydantic model conversion
 - **Runner utilities**: Convenience functions for common execution patterns
@@ -58,7 +58,7 @@ from agentmark_pydantic_ai_v0 import create_pydantic_ai_client
 
 client = create_pydantic_ai_client(
     model_registry=None,      # Optional custom model registry
-    tool_registry=None,       # Optional tool registry
+    tools=None,               # Optional list of native Tool objects or callables
     mcp_registry=None,        # Optional MCP server registry
     eval_registry=None,       # Optional eval registry
     loader=None,              # Optional prompt loader
@@ -83,21 +83,26 @@ registry.register_models(
 )
 ```
 
-### Tool Registry
+### Tools
+
+Tools are passed as native pydantic-ai `Tool` objects or plain callables:
 
 ```python
-from agentmark_pydantic_ai_v0 import PydanticAIToolRegistry
+from pydantic_ai import Tool
 
-registry = PydanticAIToolRegistry()
+# Using callables (name is inferred from function name)
+def search(query: str) -> str:
+    return search_web(query)
 
-# Register sync tool
-registry.register("search", lambda args, ctx: search_web(args["query"]))
+client = create_pydantic_ai_client(tools=[search])
 
-# Register async tool
-async def fetch_data(args, ctx):
-    return await api.get(args["url"])
-registry.register("fetch", fetch_data)
+# Using Tool objects for more control
+tool = Tool(function=search, name="search", description="Search the web")
+client = create_pydantic_ai_client(tools=[tool])
 ```
+
+The MDX config references tools by name. Only tools whose names match entries
+in the MDX `tools` list will be included at adapt time.
 
 ### MCP Server Registry
 
@@ -128,8 +133,9 @@ Then in your AgentMark prompt, reference MCP tools:
 
 ```yaml
 tools:
-  search: mcp://search-server/web-search    # Single tool
-  all_tools: mcp://search-server/*          # All tools from server
+  - mcp://search-server/web-search    # Single MCP tool
+  - mcp://search-server/*             # All tools from MCP server
+  - search                            # Native tool by name
 ```
 
 ### Runner Utilities

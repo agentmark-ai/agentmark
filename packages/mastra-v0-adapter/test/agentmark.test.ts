@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark-ai/loader-file";
-import { createAgentMarkClient, MastraModelRegistry, MastraToolRegistry } from "../src";
+import { createAgentMarkClient, MastraModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
@@ -170,8 +170,13 @@ describe("Mastra Adapter Integration", () => {
       generate: vi.fn(),
     }));
 
-    const toolRegistry = new MastraToolRegistry();
-    toolRegistry.register("calculator", (args: any) => `result: ${args.expression}`);
+    const calculatorTool = {
+      id: "calculator",
+      description: "Perform calculations",
+      inputSchema: {} as any,
+      outputSchema: undefined as any,
+      execute: vi.fn(async (args: any) => `result: ${args.expression}`),
+    };
 
     const modelRegistry = new MastraModelRegistry();
     modelRegistry.registerModels("test-model", mockModelFn);
@@ -179,7 +184,7 @@ describe("Mastra Adapter Integration", () => {
     const agentMark = createAgentMarkClient<TestPromptTypes>({
       loader: fileLoader,
       modelRegistry,
-      toolRegistry,
+      tools: { calculator: calculatorTool },
     });
 
     const prompt = await agentMark.loadObjectPrompt("math-with-tools.prompt.mdx");
@@ -188,13 +193,10 @@ describe("Mastra Adapter Integration", () => {
     // Model function should be resolved
     expect(mockModelFn).toHaveBeenCalledWith("test-model", expect.any(Object));
 
-    // Agent should have tools populated
+    // Agent should have the calculator tool passed through
     expect(agent.tools).toBeDefined();
     expect(agent.tools).toHaveProperty("calculator");
-    expect(agent.tools.calculator).toHaveProperty("description", "Perform calculations");
-    expect(agent.tools.calculator).toHaveProperty("inputSchema");
-    expect(agent.tools.calculator).toHaveProperty("execute");
-    expect(typeof agent.tools.calculator.execute).toBe("function");
+    expect(agent.tools.calculator).toBe(calculatorTool);
 
     // formatMessages should still work and return the output schema
     const [messages, opts] = await agent.formatMessages({
@@ -215,7 +217,7 @@ describe("Mastra Adapter Integration", () => {
     expect(typeof (opts as any).output.parse).toBe("function");
   });
 
-  it("should throw if a declared tool is not registered in object prompt", async () => {
+  it("should throw error when tool not provided in object prompt", async () => {
     const fixturesDir = path.resolve(__dirname, "./fixtures");
     const fileLoader = new FileLoader(fixturesDir);
 
@@ -230,16 +232,16 @@ describe("Mastra Adapter Integration", () => {
     const agentMark = createAgentMarkClient<TestPromptTypes>({
       loader: fileLoader,
       modelRegistry,
+      // No tools provided
     });
 
     const prompt = await agentMark.loadObjectPrompt("math-with-tools.prompt.mdx");
-
     await expect(
       prompt.formatAgent({ props: { userMessage: "test?" } })
-    ).rejects.toThrow(/Tool calculator not registered/);
+    ).rejects.toThrow("not found in the provided tools record");
   });
 
-  it("should throw if a declared tool is not registered", async () => {
+  it("should throw error when tool not provided in text prompt", async () => {
     const fixturesDir = path.resolve(__dirname, "./fixtures");
     const fileLoader = new FileLoader(fixturesDir);
 
@@ -254,15 +256,15 @@ describe("Mastra Adapter Integration", () => {
     const agentMark = createAgentMarkClient<TestPromptTypes>({
       loader: fileLoader,
       modelRegistry,
+      // No tools provided
     });
 
     const textPrompt = await agentMark.loadTextPrompt(
       "text-with-tools.prompt.mdx"
     );
-
     await expect(
       textPrompt.formatAgent({ props: { userMessage: "sum?" } })
-    ).rejects.toThrow(/Tool sum not registered/);
+    ).rejects.toThrow("not found in the provided tools record");
   });
 });
 

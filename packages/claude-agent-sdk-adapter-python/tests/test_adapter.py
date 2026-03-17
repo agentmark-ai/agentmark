@@ -14,7 +14,6 @@ from agentmark_claude_agent_sdk.model_registry import (
     ClaudeAgentModelRegistry,
     create_default_model_registry,
 )
-from agentmark_claude_agent_sdk.tool_registry import ClaudeAgentToolRegistry
 from agentmark_claude_agent_sdk.types import ClaudeAgentAdapterOptions
 
 
@@ -292,55 +291,63 @@ class TestClaudeAgentAdapterOptions:
         assert result.telemetry.metadata.get("userId") == "user-123"
 
 
-class TestClaudeAgentAdapterToolIntegration:
-    """Test suite for ClaudeAgentAdapter tool registry integration."""
+class TestClaudeAgentAdapterToolsAsStringArray:
+    """Test suite for ClaudeAgentAdapter with tools as string array."""
 
     @pytest.fixture
     def model_registry(self) -> ClaudeAgentModelRegistry:
         """Create default model registry."""
         return create_default_model_registry()
 
-    async def test_includes_mcp_servers_when_tools_registered(
+    async def test_adds_tools_from_prompt_to_allowed_tools(
         self, model_registry: ClaudeAgentModelRegistry
     ) -> None:
-        """Should include MCP servers when tools are defined and registered."""
-        tool_registry = ClaudeAgentToolRegistry().register(
-            "search",
-            lambda args, _ctx: {"results": [args["query"]]},
-        )
-
-        adapter = ClaudeAgentAdapter(
-            model_registry=model_registry,
-            tool_registry=tool_registry,
-        )
+        """Should add tools from prompt to allowedTools when tools are string array."""
+        adapter = ClaudeAgentAdapter(model_registry=model_registry)
 
         config = {
             "name": "text-with-tools-prompt",
             "text_config": {
                 "model_name": "anthropic/claude-sonnet-4-20250514",
-                "tools": {
-                    "search": {
-                        "description": "Search the web",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {"query": {"type": "string"}},
-                            "required": ["query"],
-                        },
-                    }
-                },
+                "tools": ["search", "mcp://my-server/tool"],
             },
             "messages": [{"role": "user", "content": "test"}],
         }
 
         result = await adapter.adapt_text(config, {}, {"name": "text-with-tools-prompt"})
 
-        assert result.query.options.mcp_servers is not None
-        assert "prompt-tools" in result.query.options.mcp_servers
+        assert result.query.options.allowed_tools is not None
+        assert "search" in result.query.options.allowed_tools
+        assert "mcp://my-server/tool" in result.query.options.allowed_tools
 
-    async def test_not_includes_mcp_servers_when_no_tools_registered(
+    async def test_merges_prompt_tools_with_adapter_allowed_tools(
         self, model_registry: ClaudeAgentModelRegistry
     ) -> None:
-        """Should not include MCP servers when no tools registered."""
+        """Should merge prompt tools with adapter allowedTools."""
+        adapter = ClaudeAgentAdapter(
+            model_registry=model_registry,
+            adapter_options=ClaudeAgentAdapterOptions(allowed_tools=["Read", "Write"]),
+        )
+
+        config = {
+            "name": "text-prompt",
+            "text_config": {
+                "model_name": "anthropic/claude-sonnet-4-20250514",
+                "tools": ["search", "mcp://server/tool"],
+            },
+            "messages": [{"role": "user", "content": "test"}],
+        }
+
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
+
+        assert result.query.options.allowed_tools == [
+            "Read", "Write", "search", "mcp://server/tool"
+        ]
+
+    async def test_not_includes_allowed_tools_when_no_tools_defined(
+        self, model_registry: ClaudeAgentModelRegistry
+    ) -> None:
+        """Should not include allowedTools when no tools are defined."""
         adapter = ClaudeAgentAdapter(model_registry=model_registry)
 
         config = {
@@ -351,4 +358,66 @@ class TestClaudeAgentAdapterToolIntegration:
 
         result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
 
-        assert result.query.options.mcp_servers is None
+        assert result.query.options.allowed_tools is None
+
+    async def test_passes_mcp_servers_from_constructor(
+        self, model_registry: ClaudeAgentModelRegistry
+    ) -> None:
+        """Should pass mcpServers from constructor to query options."""
+        mcp_servers = {
+            "my-server": {"type": "url", "url": "http://localhost:3000"},
+        }
+
+        adapter = ClaudeAgentAdapter(
+            model_registry=model_registry,
+            mcp_servers=mcp_servers,
+        )
+
+        config = {
+            "name": "text-prompt",
+            "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
+            "messages": [{"role": "user", "content": "test"}],
+        }
+
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
+
+        assert result.query.options.mcp_servers is not None
+        assert "my-server" in result.query.options.mcp_servers
+
+
+class TestClaudeAgentAdapterNonStringTools:
+    """Test that non-string tool entries raise a clear error."""
+
+    @pytest.fixture
+    def adapter(self) -> ClaudeAgentAdapter:
+        return ClaudeAgentAdapter(model_registry=create_default_model_registry())
+
+    async def test_raises_type_error_for_dict_tool_entry(
+        self, adapter: ClaudeAgentAdapter
+    ) -> None:
+        """Should raise TypeError when a tool entry is a dict (inline schema), not a string."""
+        config = {
+            "name": "text-prompt",
+            "text_config": {
+                "model_name": "anthropic/claude-sonnet-4-20250514",
+                "tools": [{"type": "function", "name": "my_tool"}],  # non-string entry
+            },
+            "messages": [{"role": "user", "content": "test"}],
+        }
+        with pytest.raises(TypeError, match=r"Tool entries must be string references"):
+            await adapter.adapt_text(config, {}, {"name": "text-prompt"})
+
+    async def test_raises_type_error_for_integer_tool_entry(
+        self, adapter: ClaudeAgentAdapter
+    ) -> None:
+        """Should raise TypeError when a tool entry is an integer."""
+        config = {
+            "name": "text-prompt",
+            "text_config": {
+                "model_name": "anthropic/claude-sonnet-4-20250514",
+                "tools": [42],
+            },
+            "messages": [{"role": "user", "content": "test"}],
+        }
+        with pytest.raises(TypeError, match=r"Tool entries must be string references"):
+            await adapter.adapt_text(config, {}, {"name": "text-prompt"})

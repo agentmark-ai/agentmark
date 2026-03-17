@@ -139,10 +139,7 @@ export type EvalFunction = (
   params: EvalParams
 ) => Promise<EvalResult> | EvalResult;
 
-export interface IEvalRegistry {
-  register: (name: string | string[], evalFn: EvalFunction) => void;
-  get: (name: string) => EvalFunction | undefined;
-}
+
 
 export type DatasetStreamChunk<T> = {
   dataset: {

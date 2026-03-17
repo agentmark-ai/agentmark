@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 
@@ -92,20 +91,3 @@ class ModelFunctionCreator(Protocol):
             A Pydantic AI Model instance or model string (e.g., "openai:gpt-4o").
         """
         ...
-
-
-# Tool function types - matching Python prompt-core patterns
-ToolFunction = Callable[[dict[str, Any], dict[str, Any] | None], Any]
-AsyncToolFunction = Callable[[dict[str, Any], dict[str, Any] | None], Awaitable[Any]]
-
-
-@dataclass
-class RegisteredTool:
-    """A registered tool with its execution function.
-
-    Stored in the tool registry and used to build Pydantic AI Tool instances.
-    """
-
-    name: str
-    execute: ToolFunction | AsyncToolFunction
-    takes_ctx: bool = False

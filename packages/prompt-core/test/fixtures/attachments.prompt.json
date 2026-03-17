@@ -1,0 +1,1205 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: math\nobject_config:\n  model_name: test-model\n  temperature: 0.5\n  schema:\n    type: object\n    properties:\n      answer:\n        type: string\n    required: [\"answer\"]",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 12,
+            "column": 4,
+            "offset": 180
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "System",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "You are an observer that comments on images and files.",
+                "position": {
+                  "start": {
+                    "line": 15,
+                    "column": 1,
+                    "offset": 191
+                  },
+                  "end": {
+                    "line": 15,
+                    "column": 55,
+                    "offset": 245
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 15,
+                "column": 1,
+                "offset": 191
+              },
+              "end": {
+                "line": 15,
+                "column": 55,
+                "offset": 245
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 14,
+            "column": 1,
+            "offset": 182
+          },
+          "end": {
+            "line": 16,
+            "column": 10,
+            "offset": 255
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "User",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "hello!!!!",
+                "position": {
+                  "start": {
+                    "line": 19,
+                    "column": 3,
+                    "offset": 266
+                  },
+                  "end": {
+                    "line": 19,
+                    "column": 12,
+                    "offset": 275
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 19,
+                "column": 3,
+                "offset": 266
+              },
+              "end": {
+                "line": 19,
+                "column": 12,
+                "offset": 275
+              }
+            }
+          },
+          {
+            "type": "mdxFlowExpression",
+            "value": "props.userMessage",
+            "position": {
+              "start": {
+                "line": 20,
+                "column": 3,
+                "offset": 278
+              },
+              "end": {
+                "line": 20,
+                "column": 22,
+                "offset": 297
+              }
+            },
+            "data": {
+              "estree": {
+                "type": "Program",
+                "start": 279,
+                "end": 296,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "MemberExpression",
+                      "start": 279,
+                      "end": 296,
+                      "object": {
+                        "type": "Identifier",
+                        "start": 279,
+                        "end": 284,
+                        "name": "props",
+                        "loc": {
+                          "start": {
+                            "line": 20,
+                            "column": 3,
+                            "offset": 279
+                          },
+                          "end": {
+                            "line": 20,
+                            "column": 8,
+                            "offset": 284
+                          }
+                        },
+                        "range": [
+                          279,
+                          284
+                        ]
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "start": 285,
+                        "end": 296,
+                        "name": "userMessage",
+                        "loc": {
+                          "start": {
+                            "line": 20,
+                            "column": 9,
+                            "offset": 285
+                          },
+                          "end": {
+                            "line": 20,
+                            "column": 20,
+                            "offset": 296
+                          }
+                        },
+                        "range": [
+                          285,
+                          296
+                        ]
+                      },
+                      "computed": false,
+                      "optional": false,
+                      "loc": {
+                        "start": {
+                          "line": 20,
+                          "column": 3,
+                          "offset": 279
+                        },
+                        "end": {
+                          "line": 20,
+                          "column": 20,
+                          "offset": 296
+                        }
+                      },
+                      "range": [
+                        279,
+                        296
+                      ]
+                    },
+                    "start": 279,
+                    "end": 296,
+                    "loc": {
+                      "start": {
+                        "line": 20,
+                        "column": 3,
+                        "offset": 279
+                      },
+                      "end": {
+                        "line": 20,
+                        "column": 20,
+                        "offset": 296
+                      }
+                    },
+                    "range": [
+                      279,
+                      296
+                    ]
+                  }
+                ],
+                "sourceType": "module",
+                "comments": [],
+                "loc": {
+                  "start": {
+                    "line": 20,
+                    "column": 3,
+                    "offset": 279
+                  },
+                  "end": {
+                    "line": 20,
+                    "column": 20,
+                    "offset": 296
+                  }
+                },
+                "range": [
+                  279,
+                  296
+                ]
+              }
+            }
+          },
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "ImageAttachment",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "image",
+                "value": {
+                  "type": "mdxJsxAttributeValueExpression",
+                  "value": "props.imageLink",
+                  "data": {
+                    "estree": {
+                      "type": "Program",
+                      "start": 324,
+                      "end": 339,
+                      "body": [
+                        {
+                          "type": "ExpressionStatement",
+                          "expression": {
+                            "type": "MemberExpression",
+                            "start": 324,
+                            "end": 339,
+                            "loc": {
+                              "start": {
+                                "line": 21,
+                                "column": 26,
+                                "offset": 324
+                              },
+                              "end": {
+                                "line": 21,
+                                "column": 41,
+                                "offset": 339
+                              }
+                            },
+                            "object": {
+                              "type": "Identifier",
+                              "start": 324,
+                              "end": 329,
+                              "loc": {
+                                "start": {
+                                  "line": 21,
+                                  "column": 26,
+                                  "offset": 324
+                                },
+                                "end": {
+                                  "line": 21,
+                                  "column": 31,
+                                  "offset": 329
+                                }
+                              },
+                              "name": "props",
+                              "range": [
+                                324,
+                                329
+                              ]
+                            },
+                            "property": {
+                              "type": "Identifier",
+                              "start": 330,
+                              "end": 339,
+                              "loc": {
+                                "start": {
+                                  "line": 21,
+                                  "column": 32,
+                                  "offset": 330
+                                },
+                                "end": {
+                                  "line": 21,
+                                  "column": 41,
+                                  "offset": 339
+                                }
+                              },
+                              "name": "imageLink",
+                              "range": [
+                                330,
+                                339
+                              ]
+                            },
+                            "computed": false,
+                            "optional": false,
+                            "range": [
+                              324,
+                              339
+                            ]
+                          },
+                          "start": 324,
+                          "end": 339,
+                          "loc": {
+                            "start": {
+                              "line": 21,
+                              "column": 26,
+                              "offset": 324
+                            },
+                            "end": {
+                              "line": 21,
+                              "column": 41,
+                              "offset": 339
+                            }
+                          },
+                          "range": [
+                            324,
+                            339
+                          ]
+                        }
+                      ],
+                      "sourceType": "module",
+                      "comments": [],
+                      "loc": {
+                        "start": {
+                          "line": 21,
+                          "column": 26,
+                          "offset": 324
+                        },
+                        "end": {
+                          "line": 21,
+                          "column": 41,
+                          "offset": 339
+                        }
+                      },
+                      "range": [
+                        324,
+                        339
+                      ]
+                    }
+                  }
+                },
+                "position": {
+                  "start": {
+                    "line": 21,
+                    "column": 20,
+                    "offset": 317
+                  },
+                  "end": {
+                    "line": 21,
+                    "column": 43,
+                    "offset": 340
+                  }
+                }
+              }
+            ],
+            "children": [],
+            "position": {
+              "start": {
+                "line": 21,
+                "column": 3,
+                "offset": 300
+              },
+              "end": {
+                "line": 21,
+                "column": 46,
+                "offset": 343
+              }
+            }
+          },
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "FileAttachment",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "data",
+                "value": "https://example.com/document.pdf",
+                "position": {
+                  "start": {
+                    "line": 22,
+                    "column": 19,
+                    "offset": 362
+                  },
+                  "end": {
+                    "line": 22,
+                    "column": 58,
+                    "offset": 401
+                  }
+                }
+              },
+              {
+                "type": "mdxJsxAttribute",
+                "name": "mimeType",
+                "value": {
+                  "type": "mdxJsxAttributeValueExpression",
+                  "value": "props.fileMimeType",
+                  "data": {
+                    "estree": {
+                      "type": "Program",
+                      "start": 412,
+                      "end": 430,
+                      "body": [
+                        {
+                          "type": "ExpressionStatement",
+                          "expression": {
+                            "type": "MemberExpression",
+                            "start": 412,
+                            "end": 430,
+                            "loc": {
+                              "start": {
+                                "line": 22,
+                                "column": 68,
+                                "offset": 412
+                              },
+                              "end": {
+                                "line": 22,
+                                "column": 86,
+                                "offset": 430
+                              }
+                            },
+                            "object": {
+                              "type": "Identifier",
+                              "start": 412,
+                              "end": 417,
+                              "loc": {
+                                "start": {
+                                  "line": 22,
+                                  "column": 68,
+                                  "offset": 412
+                                },
+                                "end": {
+                                  "line": 22,
+                                  "column": 73,
+                                  "offset": 417
+                                }
+                              },
+                              "name": "props",
+                              "range": [
+                                412,
+                                417
+                              ]
+                            },
+                            "property": {
+                              "type": "Identifier",
+                              "start": 418,
+                              "end": 430,
+                              "loc": {
+                                "start": {
+                                  "line": 22,
+                                  "column": 74,
+                                  "offset": 418
+                                },
+                                "end": {
+                                  "line": 22,
+                                  "column": 86,
+                                  "offset": 430
+                                }
+                              },
+                              "name": "fileMimeType",
+                              "range": [
+                                418,
+                                430
+                              ]
+                            },
+                            "computed": false,
+                            "optional": false,
+                            "range": [
+                              412,
+                              430
+                            ]
+                          },
+                          "start": 412,
+                          "end": 430,
+                          "loc": {
+                            "start": {
+                              "line": 22,
+                              "column": 68,
+                              "offset": 412
+                            },
+                            "end": {
+                              "line": 22,
+                              "column": 86,
+                              "offset": 430
+                            }
+                          },
+                          "range": [
+                            412,
+                            430
+                          ]
+                        }
+                      ],
+                      "sourceType": "module",
+                      "comments": [],
+                      "loc": {
+                        "start": {
+                          "line": 22,
+                          "column": 68,
+                          "offset": 412
+                        },
+                        "end": {
+                          "line": 22,
+                          "column": 86,
+                          "offset": 430
+                        }
+                      },
+                      "range": [
+                        412,
+                        430
+                      ]
+                    }
+                  }
+                },
+                "position": {
+                  "start": {
+                    "line": 22,
+                    "column": 59,
+                    "offset": 402
+                  },
+                  "end": {
+                    "line": 22,
+                    "column": 88,
+                    "offset": 431
+                  }
+                }
+              }
+            ],
+            "children": [],
+            "position": {
+              "start": {
+                "line": 22,
+                "column": 3,
+                "offset": 346
+              },
+              "end": {
+                "line": 22,
+                "column": 91,
+                "offset": 434
+              }
+            }
+          },
+          {
+            "type": "mdxJsxFlowElement",
+            "name": "ForEach",
+            "attributes": [
+              {
+                "type": "mdxJsxAttribute",
+                "name": "arr",
+                "value": {
+                  "type": "mdxJsxAttributeValueExpression",
+                  "value": "[\"image/jpeg\", \"image/png\"]",
+                  "data": {
+                    "estree": {
+                      "type": "Program",
+                      "start": 451,
+                      "end": 478,
+                      "body": [
+                        {
+                          "type": "ExpressionStatement",
+                          "expression": {
+                            "type": "ArrayExpression",
+                            "start": 451,
+                            "end": 478,
+                            "loc": {
+                              "start": {
+                                "line": 23,
+                                "column": 16,
+                                "offset": 451
+                              },
+                              "end": {
+                                "line": 23,
+                                "column": 43,
+                                "offset": 478
+                              }
+                            },
+                            "elements": [
+                              {
+                                "type": "Literal",
+                                "start": 452,
+                                "end": 464,
+                                "loc": {
+                                  "start": {
+                                    "line": 23,
+                                    "column": 17,
+                                    "offset": 452
+                                  },
+                                  "end": {
+                                    "line": 23,
+                                    "column": 29,
+                                    "offset": 464
+                                  }
+                                },
+                                "value": "image/jpeg",
+                                "raw": "\"image/jpeg\"",
+                                "range": [
+                                  452,
+                                  464
+                                ]
+                              },
+                              {
+                                "type": "Literal",
+                                "start": 466,
+                                "end": 477,
+                                "loc": {
+                                  "start": {
+                                    "line": 23,
+                                    "column": 31,
+                                    "offset": 466
+                                  },
+                                  "end": {
+                                    "line": 23,
+                                    "column": 42,
+                                    "offset": 477
+                                  }
+                                },
+                                "value": "image/png",
+                                "raw": "\"image/png\"",
+                                "range": [
+                                  466,
+                                  477
+                                ]
+                              }
+                            ],
+                            "range": [
+                              451,
+                              478
+                            ]
+                          },
+                          "start": 451,
+                          "end": 478,
+                          "loc": {
+                            "start": {
+                              "line": 23,
+                              "column": 16,
+                              "offset": 451
+                            },
+                            "end": {
+                              "line": 23,
+                              "column": 43,
+                              "offset": 478
+                            }
+                          },
+                          "range": [
+                            451,
+                            478
+                          ]
+                        }
+                      ],
+                      "sourceType": "module",
+                      "comments": [],
+                      "loc": {
+                        "start": {
+                          "line": 23,
+                          "column": 16,
+                          "offset": 451
+                        },
+                        "end": {
+                          "line": 23,
+                          "column": 43,
+                          "offset": 478
+                        }
+                      },
+                      "range": [
+                        451,
+                        478
+                      ]
+                    }
+                  }
+                },
+                "position": {
+                  "start": {
+                    "line": 23,
+                    "column": 12,
+                    "offset": 446
+                  },
+                  "end": {
+                    "line": 23,
+                    "column": 45,
+                    "offset": 479
+                  }
+                }
+              }
+            ],
+            "children": [
+              {
+                "type": "mdxFlowExpression",
+                "value": "(item) => (\n    <>\n      <ImageAttachment image=\"https://example.com/loop.png\" mimeType={item}/>\n    </ >\n  )",
+                "position": {
+                  "start": {
+                    "line": 24,
+                    "column": 5,
+                    "offset": 485
+                  },
+                  "end": {
+                    "line": 28,
+                    "column": 7,
+                    "offset": 604
+                  }
+                },
+                "data": {
+                  "estree": {
+                    "type": "Program",
+                    "start": 486,
+                    "end": 603,
+                    "body": [
+                      {
+                        "type": "ExpressionStatement",
+                        "expression": {
+                          "type": "ArrowFunctionExpression",
+                          "start": 486,
+                          "end": 603,
+                          "id": null,
+                          "expression": true,
+                          "generator": false,
+                          "async": false,
+                          "params": [
+                            {
+                              "type": "Identifier",
+                              "start": 487,
+                              "end": 491,
+                              "name": "item",
+                              "loc": {
+                                "start": {
+                                  "line": 24,
+                                  "column": 6,
+                                  "offset": 487
+                                },
+                                "end": {
+                                  "line": 24,
+                                  "column": 10,
+                                  "offset": 491
+                                }
+                              },
+                              "range": [
+                                487,
+                                491
+                              ]
+                            }
+                          ],
+                          "body": {
+                            "type": "JSXFragment",
+                            "start": 504,
+                            "end": 597,
+                            "openingFragment": {
+                              "type": "JSXOpeningFragment",
+                              "start": 504,
+                              "end": 506,
+                              "attributes": [],
+                              "selfClosing": false,
+                              "loc": {
+                                "start": {
+                                  "line": 25,
+                                  "column": 6,
+                                  "offset": 504
+                                },
+                                "end": {
+                                  "line": 25,
+                                  "column": 8,
+                                  "offset": 506
+                                }
+                              },
+                              "range": [
+                                504,
+                                506
+                              ]
+                            },
+                            "closingFragment": {
+                              "type": "JSXClosingFragment",
+                              "start": 593,
+                              "end": 597,
+                              "loc": {
+                                "start": {
+                                  "line": 27,
+                                  "column": 6,
+                                  "offset": 593
+                                },
+                                "end": {
+                                  "line": 27,
+                                  "column": 10,
+                                  "offset": 597
+                                }
+                              },
+                              "range": [
+                                593,
+                                597
+                              ]
+                            },
+                            "children": [
+                              {
+                                "type": "JSXText",
+                                "start": 506,
+                                "end": 515,
+                                "value": "\n      ",
+                                "raw": "\n      ",
+                                "loc": {
+                                  "start": {
+                                    "line": 25,
+                                    "column": 8,
+                                    "offset": 506
+                                  },
+                                  "end": {
+                                    "line": 26,
+                                    "column": 8,
+                                    "offset": 515
+                                  }
+                                },
+                                "range": [
+                                  506,
+                                  515
+                                ]
+                              },
+                              {
+                                "type": "JSXElement",
+                                "start": 515,
+                                "end": 586,
+                                "openingElement": {
+                                  "type": "JSXOpeningElement",
+                                  "start": 515,
+                                  "end": 586,
+                                  "attributes": [
+                                    {
+                                      "type": "JSXAttribute",
+                                      "start": 532,
+                                      "end": 568,
+                                      "name": {
+                                        "type": "JSXIdentifier",
+                                        "start": 532,
+                                        "end": 537,
+                                        "name": "image",
+                                        "loc": {
+                                          "start": {
+                                            "line": 26,
+                                            "column": 25,
+                                            "offset": 532
+                                          },
+                                          "end": {
+                                            "line": 26,
+                                            "column": 30,
+                                            "offset": 537
+                                          }
+                                        },
+                                        "range": [
+                                          532,
+                                          537
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "Literal",
+                                        "start": 538,
+                                        "end": 568,
+                                        "value": "https://example.com/loop.png",
+                                        "raw": "\"https://example.com/loop.png\"",
+                                        "loc": {
+                                          "start": {
+                                            "line": 26,
+                                            "column": 31,
+                                            "offset": 538
+                                          },
+                                          "end": {
+                                            "line": 26,
+                                            "column": 61,
+                                            "offset": 568
+                                          }
+                                        },
+                                        "range": [
+                                          538,
+                                          568
+                                        ]
+                                      },
+                                      "loc": {
+                                        "start": {
+                                          "line": 26,
+                                          "column": 25,
+                                          "offset": 532
+                                        },
+                                        "end": {
+                                          "line": 26,
+                                          "column": 61,
+                                          "offset": 568
+                                        }
+                                      },
+                                      "range": [
+                                        532,
+                                        568
+                                      ]
+                                    },
+                                    {
+                                      "type": "JSXAttribute",
+                                      "start": 569,
+                                      "end": 584,
+                                      "name": {
+                                        "type": "JSXIdentifier",
+                                        "start": 569,
+                                        "end": 577,
+                                        "name": "mimeType",
+                                        "loc": {
+                                          "start": {
+                                            "line": 26,
+                                            "column": 62,
+                                            "offset": 569
+                                          },
+                                          "end": {
+                                            "line": 26,
+                                            "column": 70,
+                                            "offset": 577
+                                          }
+                                        },
+                                        "range": [
+                                          569,
+                                          577
+                                        ]
+                                      },
+                                      "value": {
+                                        "type": "JSXExpressionContainer",
+                                        "start": 578,
+                                        "end": 584,
+                                        "expression": {
+                                          "type": "Identifier",
+                                          "start": 579,
+                                          "end": 583,
+                                          "name": "item",
+                                          "loc": {
+                                            "start": {
+                                              "line": 26,
+                                              "column": 72,
+                                              "offset": 579
+                                            },
+                                            "end": {
+                                              "line": 26,
+                                              "column": 76,
+                                              "offset": 583
+                                            }
+                                          },
+                                          "range": [
+                                            579,
+                                            583
+                                          ]
+                                        },
+                                        "loc": {
+                                          "start": {
+                                            "line": 26,
+                                            "column": 71,
+                                            "offset": 578
+                                          },
+                                          "end": {
+                                            "line": 26,
+                                            "column": 77,
+                                            "offset": 584
+                                          }
+                                        },
+                                        "range": [
+                                          578,
+                                          584
+                                        ]
+                                      },
+                                      "loc": {
+                                        "start": {
+                                          "line": 26,
+                                          "column": 62,
+                                          "offset": 569
+                                        },
+                                        "end": {
+                                          "line": 26,
+                                          "column": 77,
+                                          "offset": 584
+                                        }
+                                      },
+                                      "range": [
+                                        569,
+                                        584
+                                      ]
+                                    }
+                                  ],
+                                  "name": {
+                                    "type": "JSXIdentifier",
+                                    "start": 516,
+                                    "end": 531,
+                                    "name": "ImageAttachment",
+                                    "loc": {
+                                      "start": {
+                                        "line": 26,
+                                        "column": 9,
+                                        "offset": 516
+                                      },
+                                      "end": {
+                                        "line": 26,
+                                        "column": 24,
+                                        "offset": 531
+                                      }
+                                    },
+                                    "range": [
+                                      516,
+                                      531
+                                    ]
+                                  },
+                                  "selfClosing": true,
+                                  "loc": {
+                                    "start": {
+                                      "line": 26,
+                                      "column": 8,
+                                      "offset": 515
+                                    },
+                                    "end": {
+                                      "line": 26,
+                                      "column": 79,
+                                      "offset": 586
+                                    }
+                                  },
+                                  "range": [
+                                    515,
+                                    586
+                                  ]
+                                },
+                                "closingElement": null,
+                                "children": [],
+                                "loc": {
+                                  "start": {
+                                    "line": 26,
+                                    "column": 8,
+                                    "offset": 515
+                                  },
+                                  "end": {
+                                    "line": 26,
+                                    "column": 79,
+                                    "offset": 586
+                                  }
+                                },
+                                "range": [
+                                  515,
+                                  586
+                                ]
+                              },
+                              {
+                                "type": "JSXText",
+                                "start": 586,
+                                "end": 593,
+                                "value": "\n    ",
+                                "raw": "\n    ",
+                                "loc": {
+                                  "start": {
+                                    "line": 26,
+                                    "column": 79,
+                                    "offset": 586
+                                  },
+                                  "end": {
+                                    "line": 27,
+                                    "column": 6,
+                                    "offset": 593
+                                  }
+                                },
+                                "range": [
+                                  586,
+                                  593
+                                ]
+                              }
+                            ],
+                            "loc": {
+                              "start": {
+                                "line": 25,
+                                "column": 6,
+                                "offset": 504
+                              },
+                              "end": {
+                                "line": 27,
+                                "column": 10,
+                                "offset": 597
+                              }
+                            },
+                            "range": [
+                              504,
+                              597
+                            ]
+                          },
+                          "loc": {
+                            "start": {
+                              "line": 24,
+                              "column": 5,
+                              "offset": 486
+                            },
+                            "end": {
+                              "line": 28,
+                              "column": 5,
+                              "offset": 603
+                            }
+                          },
+                          "range": [
+                            486,
+                            603
+                          ]
+                        },
+                        "start": 486,
+                        "end": 603,
+                        "loc": {
+                          "start": {
+                            "line": 24,
+                            "column": 5,
+                            "offset": 486
+                          },
+                          "end": {
+                            "line": 28,
+                            "column": 5,
+                            "offset": 603
+                          }
+                        },
+                        "range": [
+                          486,
+                          603
+                        ]
+                      }
+                    ],
+                    "sourceType": "module",
+                    "comments": [],
+                    "loc": {
+                      "start": {
+                        "line": 24,
+                        "column": 5,
+                        "offset": 486
+                      },
+                      "end": {
+                        "line": 28,
+                        "column": 5,
+                        "offset": 603
+                      }
+                    },
+                    "range": [
+                      486,
+                      603
+                    ]
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 23,
+                "column": 3,
+                "offset": 437
+              },
+              "end": {
+                "line": 29,
+                "column": 11,
+                "offset": 615
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 18,
+            "column": 1,
+            "offset": 257
+          },
+          "end": {
+            "line": 30,
+            "column": 8,
+            "offset": 623
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 31,
+        "column": 1,
+        "offset": 624
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/attachments.prompt.mdx",
+    "kind": "object",
+    "name": "math",
+    "builtAt": "2026-03-16T14:58:16.043Z"
+  }
+}

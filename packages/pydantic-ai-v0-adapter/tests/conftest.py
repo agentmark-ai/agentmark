@@ -11,7 +11,6 @@ import pytest
 if TYPE_CHECKING:
     from agentmark_pydantic_ai_v0 import (
         PydanticAIModelRegistry,
-        PydanticAIToolRegistry,
     )
 
 
@@ -63,18 +62,15 @@ def mock_model_registry() -> PydanticAIModelRegistry:
 
 
 @pytest.fixture
-def tool_registry() -> PydanticAIToolRegistry:
-    """Create a tool registry with a sample tool."""
-    from agentmark_pydantic_ai_v0 import PydanticAIToolRegistry
+def sample_tools() -> list[Any]:
+    """Create a list of sample native tools."""
+    from pydantic_ai import Tool
 
-    registry = PydanticAIToolRegistry()
+    def add(a: int, b: int) -> int:
+        """Add two numbers."""
+        return a + b
 
-    def add_tool(args: dict[str, Any], ctx: dict[str, Any] | None) -> int:
-        """Sample tool that adds two numbers."""
-        return args["a"] + args["b"]
-
-    registry.register("add", add_tool)
-    return registry
+    return [Tool(function=add, name="add", description="Add two numbers")]
 
 
 @pytest.fixture
@@ -95,16 +91,7 @@ object_config:
         type: string
     required: [answer]
   tools:
-    add:
-      description: Add two numbers
-      parameters:
-        type: object
-        properties:
-          a:
-            type: integer
-          b:
-            type: integer
-        required: [a, b]""",
+    - add""",
             },
             {
                 "type": "mdxJsxFlowElement",
@@ -146,16 +133,7 @@ def tools_text_ast() -> dict[str, Any]:
 text_config:
   model_name: test-model
   tools:
-    add:
-      description: Add two numbers
-      parameters:
-        type: object
-        properties:
-          a:
-            type: integer
-          b:
-            type: integer
-        required: [a, b]""",
+    - add""",
             },
             {
                 "type": "mdxJsxFlowElement",

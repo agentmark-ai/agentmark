@@ -18,8 +18,7 @@ from agentmark.prompt_core.mcp import parse_mcp_uri
 
 from .mcp import McpServerRegistry
 from .model_registry import PydanticAIModelRegistry
-from .tool_registry import PydanticAIToolRegistry
-from .types import PydanticAIObjectParams, PydanticAITextParams, RegisteredTool
+from .types import PydanticAIObjectParams, PydanticAITextParams
 
 if TYPE_CHECKING:
     from agentmark.prompt_core.schemas import (
@@ -127,7 +126,7 @@ class PydanticAIAdapter:
     Implements the Adapter protocol from prompt-core. This adapter follows
     the same patterns as the TypeScript VercelAIAdapter:
     - Model registry for model name → instance mapping
-    - Tool registry for type-safe tool execution
+    - Native tools passed directly (filtered by MDX config tool names)
     - MCP registry for Model Context Protocol server integration
     - adapt_* methods for each prompt type
 
@@ -135,16 +134,21 @@ class PydanticAIAdapter:
     adapt_speech raise NotImplementedError.
 
     Example:
+        from pydantic_ai import Tool
+
         # Create registries
         model_registry = create_default_model_registry()
-        tool_registry = PydanticAIToolRegistry()
         mcp_registry = McpServerRegistry()
         mcp_registry.register("search", {"url": "http://localhost:8000/mcp"})
+
+        # Define native tools
+        def add(a: int, b: int) -> int:
+            return a + b
 
         # Create adapter
         adapter = PydanticAIAdapter(
             model_registry=model_registry,
-            tool_registry=tool_registry,
+            tools=[add],
             mcp_registry=mcp_registry,
         )
 
@@ -160,18 +164,20 @@ class PydanticAIAdapter:
     def __init__(
         self,
         model_registry: PydanticAIModelRegistry,
-        tool_registry: PydanticAIToolRegistry | None = None,
+        tools: list[Tool[Any] | Callable[..., Any]] | None = None,
         mcp_registry: McpServerRegistry | None = None,
     ) -> None:
         """Initialize the adapter.
 
         Args:
             model_registry: Registry for model name resolution.
-            tool_registry: Optional tool registry for tool execution.
+            tools: Optional list of native pydantic-ai Tool objects or callables.
+                These are filtered at adapt time by matching names from the MDX
+                config's tools list.
             mcp_registry: Optional MCP server registry for MCP tool resolution.
         """
         self._model_registry = model_registry
-        self._tool_registry = tool_registry
+        self._tools = tools or []
         self._mcp_registry = mcp_registry
 
     @property
@@ -209,7 +215,7 @@ class PydanticAIAdapter:
         # Build tools if specified (async for MCP support)
         tool_context: dict[str, Any] = options.get("toolContext", {})
         tools = (
-            await self._build_tools(text_config.tools, tool_context)
+            await self._build_tools(text_config.tools)
             if text_config.tools
             else []
         )
@@ -261,7 +267,7 @@ class PydanticAIAdapter:
 
         # Build tools if specified
         tools = (
-            await self._build_tools(object_config.tools, tool_context)
+            await self._build_tools(object_config.tools)
             if object_config.tools
             else []
         )
@@ -316,86 +322,80 @@ class PydanticAIAdapter:
             "Use OpenAI SDK or another TTS library directly."
         )
 
-    async def _build_tools(
-        self,
-        tools_config: dict[str, str | dict[str, Any]],
-        tool_context: dict[str, Any],
-    ) -> list[Tool[Any]]:
-        """Build Pydantic AI Tool instances from config.
-
-        Supports both inline tool definitions and MCP URIs.
+    def _get_tool_name(self, tool: Tool[Any] | Callable[..., Any]) -> str:
+        """Get the name of a tool, whether it's a Tool instance or callable.
 
         Args:
-            tools_config: Tool definitions from AgentMark config.
-            tool_context: Context dict passed to tool execution functions.
+            tool: A pydantic-ai Tool object or a callable.
+
+        Returns:
+            The tool name.
+        """
+        if isinstance(tool, Tool):
+            return tool.name
+        # For callables, use __name__ attribute
+        return getattr(tool, "__name__", str(tool))
+
+    async def _build_tools(
+        self,
+        tool_names: list[str],
+    ) -> list[Tool[Any]]:
+        """Build Pydantic AI Tool instances from config tool name list.
+
+        The MDX config tools field is now a simple list of tool name strings
+        and MCP URIs. This method filters the native tools provided to the
+        adapter constructor by matching names, and resolves any MCP URIs.
+
+        Args:
+            tool_names: List of tool name strings and/or MCP URIs from
+                the AgentMark MDX config.
 
         Returns:
             List of Pydantic AI Tool instances.
         """
         tools: list[Tool[Any]] = []
 
-        for name, definition in tools_config.items():
-            # Handle MCP URIs (e.g., "mcp://server/tool" or "mcp://server/*")
-            if isinstance(definition, str):
-                if definition.startswith("mcp://"):
-                    mcp_tools = await self._resolve_mcp_tools(name, definition)
-                    tools.extend(mcp_tools)
-                    continue
-                raise ValueError(f"Invalid tool definition for '{name}': {definition}")
+        # Build a lookup of native tools by name
+        native_tools_by_name: dict[str, Tool[Any] | Callable[..., Any]] = {
+            self._get_tool_name(t): t for t in self._tools
+        }
 
-            # Inline tool definition from AgentMark config
-            description = definition.get("description", "")
-
-            # Get execution function from registry
-            if self._tool_registry and self._tool_registry.has(name):
-                registered = self._tool_registry.get(name)
-                if registered:
-                    # Create closure to capture the correct tool and context
-                    def make_executor(
-                        reg_tool: RegisteredTool, ctx: dict[str, Any]
-                    ) -> Callable[..., Any]:
-                        def executor(**kwargs: Any) -> Any:
-                            return reg_tool.execute(kwargs, ctx)
-
-                        return executor
-
-                    tool = Tool(
-                        function=make_executor(registered, tool_context),
-                        name=name,
-                        description=description,
-                        takes_ctx=registered.takes_ctx,
-                    )
-                    tools.append(tool)
-            else:
-                # No registered executor - create placeholder that raises
-                tool_name = name  # Capture in closure
-
-                def make_placeholder(captured_name: str) -> Callable[..., Any]:
-                    def placeholder(**_kwargs: Any) -> Any:
-                        raise RuntimeError(
-                            f"Tool '{captured_name}' not registered in tool registry"
-                        )
-
-                    return placeholder
-
-                tool = Tool(
-                    function=make_placeholder(tool_name),
-                    name=name,
-                    description=description,
+        for entry in tool_names:
+            if not isinstance(entry, str):
+                raise TypeError(
+                    f"[pydantic-ai-adapter] Tool entries must be string references "
+                    f"(tool names or mcp:// URIs), got {type(entry).__name__}: {entry!r}"
                 )
-                tools.append(tool)
+            # Handle MCP URIs (e.g., "mcp://server/tool" or "mcp://server/*")
+            if entry.startswith("mcp://"):
+                mcp_tools = await self._resolve_mcp_tools(entry)
+                tools.extend(mcp_tools)
+                continue
+
+            # Look up native tool by name
+            native_tool = native_tools_by_name.get(entry)
+            if native_tool is not None:
+                if isinstance(native_tool, Tool):
+                    tools.append(native_tool)
+                else:
+                    # Wrap callable in a Tool
+                    tools.append(Tool(function=native_tool, name=entry))
+            else:
+                available = ", ".join(native_tools_by_name.keys()) or "(none)"
+                raise ValueError(
+                    f"Tool '{entry}' referenced in prompt config was not found in the "
+                    f"provided tools list. Available tools: {available}"
+                )
 
         return tools
 
     async def _resolve_mcp_tools(
         self,
-        alias: str,
         mcp_uri: str,
     ) -> list[Tool[Any]]:
         """Resolve MCP URI to Pydantic AI Tool instances.
 
         Args:
-            alias: The tool alias from config (used as key).
             mcp_uri: MCP URI (e.g., "mcp://server/tool" or "mcp://server/*").
 
         Returns:
@@ -426,16 +426,8 @@ class PydanticAIAdapter:
             all_tools = await self._mcp_registry.get_all_tools(server_name)
             return list(all_tools.values())
 
-        # Single tool lookup
+        # Single tool lookup — tool keeps its original name from the MCP server
         tool = await self._mcp_registry.get_tool(server_name, tool_name)
-        # The alias might differ from the actual tool name
-        # Create a new tool with the alias as name if different
-        if alias != tool_name:
-            tool = Tool(
-                function=tool.function,
-                name=alias,
-                description=tool.description,
-            )
         return [tool]
 
     def _schema_to_pydantic_model(
