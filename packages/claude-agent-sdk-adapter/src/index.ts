@@ -1,31 +1,29 @@
 import type { PromptShape, Loader } from "@agentmark-ai/prompt-core";
-import { AgentMark, EvalRegistry } from "@agentmark-ai/prompt-core";
+import { AgentMark } from "@agentmark-ai/prompt-core";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
 import { ClaudeAgentAdapter } from "./adapter";
 import { ClaudeAgentModelRegistry } from "./model-registry";
-import { ClaudeAgentToolRegistry } from "./tool-registry";
-import type { ClaudeAgentAdapterOptions } from "./types";
+import type { ClaudeAgentAdapterOptions, McpServerConfig } from "./types";
 
 /**
  * Type alias for AgentMark client with Claude Agent SDK adapter
  */
 export type ClaudeAgentMark<
   D extends PromptShape<D>,
-  T extends ClaudeAgentToolRegistry<any, any>
-> = AgentMark<D, ClaudeAgentAdapter<D, T>>;
+> = AgentMark<D, ClaudeAgentAdapter<D>>;
 
 /**
  * Options for creating an AgentMark client with Claude Agent SDK adapter
  */
 export interface CreateClientOptions<
   D extends PromptShape<D>,
-  T extends ClaudeAgentToolRegistry<any, any>
 > {
   /** Loader for prompts (file, API, etc.) */
   loader?: Loader<D>;
   /** Model registry for model configuration */
   modelRegistry?: ClaudeAgentModelRegistry;
-  /** Tool registry for custom tools */
-  toolRegistry?: T;
+  /** MCP servers configuration for tool access */
+  mcpServers?: Record<string, McpServerConfig>;
   /** Eval registry for evaluations */
   evalRegistry?: EvalRegistry;
   /** Adapter-level options */
@@ -71,17 +69,16 @@ export interface CreateClientOptions<
  */
 export function createAgentMarkClient<
   D extends PromptShape<D> = PromptShape<Record<string, { input: unknown; output: unknown }>>,
-  T extends ClaudeAgentToolRegistry<any, any> = ClaudeAgentToolRegistry<any, any>
 >(
-  opts: CreateClientOptions<D, T> = {}
-): ClaudeAgentMark<D, T> {
-  const adapter = new ClaudeAgentAdapter<D, T>(
+  opts: CreateClientOptions<D> = {}
+): ClaudeAgentMark<D> {
+  const adapter = new ClaudeAgentAdapter<D>(
     opts.modelRegistry ?? ClaudeAgentModelRegistry.createDefault(),
-    opts.toolRegistry,
+    opts.mcpServers,
     opts.adapterOptions
   );
 
-  return new AgentMark<D, ClaudeAgentAdapter<D, T>>({
+  return new AgentMark<D, ClaudeAgentAdapter<D>>({
     loader: opts.loader as Loader<D>,
     adapter,
     evalRegistry: opts.evalRegistry,
@@ -91,17 +88,6 @@ export function createAgentMarkClient<
 // Re-export core classes
 export { ClaudeAgentAdapter } from "./adapter";
 export { ClaudeAgentModelRegistry } from "./model-registry";
-export { ClaudeAgentToolRegistry } from "./tool-registry";
-
-// Re-export MCP bridge utilities
-export {
-  createAgentMarkMcpServer,
-  toClaudeAgentMcpServer,
-} from "./mcp/agentmark-mcp-bridge";
-export type {
-  AgentMarkMcpServerConfig,
-  CreateMcpServerOptions,
-} from "./mcp/agentmark-mcp-bridge";
 
 // Re-export telemetry hooks
 export {
@@ -123,8 +109,8 @@ export {
   TRACER_SCOPE_NAME,
 } from "./hooks/otel-hooks";
 
-// Re-export EvalRegistry from prompt-core
-export { EvalRegistry };
+// Re-export EvalRegistry type from prompt-core
+export type { EvalRegistry };
 
 // Re-export tracing wrapper
 export { withTracing } from "./traced";
@@ -137,7 +123,6 @@ export type {
   ClaudeAgentQueryOptions,
   ClaudeAgentAdapterOptions,
   ClaudeAgentResult,
-  AgentMarkToolDefinition,
   ModelConfig,
   ModelConfigCreator,
   TelemetryConfig,
@@ -152,3 +137,4 @@ export type {
 
 // Re-export FormatWithDatasetOptions from prompt-core
 export type { FormatWithDatasetOptions } from "@agentmark-ai/prompt-core";
+

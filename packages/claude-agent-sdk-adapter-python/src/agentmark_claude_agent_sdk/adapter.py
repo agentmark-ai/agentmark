@@ -8,13 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from .mcp.agentmark_mcp_bridge import (
-    AgentMarkToolDefinition,
-    create_agentmark_mcp_server,
-    to_claude_agent_mcp_server,
-)
 from .model_registry import ClaudeAgentModelRegistry
-from .tool_registry import ClaudeAgentToolRegistry
 from .types import (
     ClaudeAgentAdapterOptions,
     ClaudeAgentObjectParams,
@@ -31,7 +25,7 @@ from .types import (
 SUPPORTED_TEXT_OPTIONS = frozenset([
     "model_name",  # Used via model registry
     "max_calls",   # Mapped to maxTurns
-    "tools",       # Converted to MCP servers
+    "tools",       # Tool name strings and MCP URIs
 ])
 
 # Config options supported by Claude Agent SDK adapter for object prompts.
@@ -93,7 +87,6 @@ class ClaudeAgentAdapter:
 
         adapter = ClaudeAgentAdapter(
             model_registry=create_default_model_registry(),
-            tool_registry=tool_registry,
             adapter_options=ClaudeAgentAdapterOptions(permission_mode='bypassPermissions'),
         )
     """
@@ -103,18 +96,18 @@ class ClaudeAgentAdapter:
     def __init__(
         self,
         model_registry: ClaudeAgentModelRegistry,
-        tool_registry: ClaudeAgentToolRegistry | None = None,
+        mcp_servers: dict[str, Any] | None = None,
         adapter_options: ClaudeAgentAdapterOptions | None = None,
     ) -> None:
         """Initialize the adapter.
 
         Args:
             model_registry: Registry for model configurations.
-            tool_registry: Optional registry for tool executors.
+            mcp_servers: Optional MCP servers configuration (native SDK format).
             adapter_options: Optional adapter-level options.
         """
         self._model_registry = model_registry
-        self._tool_registry = tool_registry
+        self._mcp_servers = mcp_servers
         self._adapter_options = adapter_options
 
     def _messages_to_prompt(self, messages: list[dict[str, Any]]) -> str:
@@ -159,39 +152,6 @@ class ClaudeAgentAdapter:
                     return "\n".join(texts) if texts else None
         return None
 
-    def _convert_prompt_tools_to_agentmark_tools(
-        self, tools: dict[str, dict[str, Any]]
-    ) -> list[AgentMarkToolDefinition]:
-        """Convert tools defined in prompt frontmatter to AgentMark tool definitions.
-
-        Only includes tools that have a registered executor in the tool registry.
-        """
-        if not self._tool_registry:
-            return []
-
-        result = []
-        for name, tool_def in tools.items():
-            if not self._tool_registry.has(name):
-                continue
-
-            executor = self._tool_registry.get(name)
-            if executor is None:
-                continue
-
-            async def execute_wrapper(args: dict[str, Any], _executor: Any = executor) -> Any:
-                return await _executor.execute(args, None)
-
-            result.append(
-                AgentMarkToolDefinition(
-                    name=name,
-                    description=tool_def.get("description", ""),
-                    parameters=tool_def.get("parameters", {}),
-                    execute=execute_wrapper,
-                )
-            )
-
-        return result
-
     def _build_query_options(
         self,
         model_config: dict[str, Any],
@@ -205,16 +165,21 @@ class ClaudeAgentAdapter:
 
         Returns both the query options and telemetry context (if telemetry enabled).
         """
-        # Build MCP servers for AgentMark tools
-        mcp_servers: dict[str, Any] = {}
+        # Start with MCP servers passed to the adapter constructor
+        mcp_servers: dict[str, Any] = dict(self._mcp_servers) if self._mcp_servers else {}
 
-        # Add tools defined in the prompt's frontmatter
+        # Process tools list from prompt frontmatter (now list of strings)
+        # Tool names and MCP URIs are added to allowedTools
+        prompt_allowed_tools: list[str] = []
         tools = settings.get("tools")
-        if tools and isinstance(tools, dict):
-            prompt_tools = self._convert_prompt_tools_to_agentmark_tools(tools)
-            if prompt_tools:
-                mcp_server = create_agentmark_mcp_server("prompt-tools", prompt_tools)
-                mcp_servers["prompt-tools"] = to_claude_agent_mcp_server(mcp_server)
+        if isinstance(tools, list):
+            for tool_entry in tools:
+                if not isinstance(tool_entry, str):
+                    raise TypeError(
+                        f"[claude-agent-sdk-adapter] Tool entries must be string references "
+                        f"(tool names or mcp:// URIs), got {type(tool_entry).__name__}: {tool_entry!r}"
+                    )
+                prompt_allowed_tools.append(tool_entry)
 
         # Build telemetry context for withTracing() wrapper (only if telemetry enabled)
         telemetry: TracedTelemetryContext | None = None
@@ -241,6 +206,12 @@ class ClaudeAgentAdapter:
         elif system_prompt:
             system_prompt_config = system_prompt
 
+        # Merge allowedTools from adapter options and prompt tools
+        merged_allowed_tools = [
+            *(self._adapter_options.allowed_tools or [] if self._adapter_options else []),
+            *prompt_allowed_tools,
+        ]
+
         # Build query options
         query_options = ClaudeAgentQueryOptions(
             model=model_config.get("model"),
@@ -254,7 +225,7 @@ class ClaudeAgentAdapter:
             max_budget_usd=self._adapter_options.max_budget_usd if self._adapter_options else None,
             mcp_servers=mcp_servers if mcp_servers else None,
             system_prompt=system_prompt_config,
-            allowed_tools=self._adapter_options.allowed_tools if self._adapter_options else None,
+            allowed_tools=merged_allowed_tools if merged_allowed_tools else None,
             disallowed_tools=self._adapter_options.disallowed_tools
             if self._adapter_options
             else None,

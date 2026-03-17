@@ -9,7 +9,7 @@ import { experimental_createMCPClient } from "ai";
 import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
 
 type MCPClient = {
-  tools(): Promise<Record<string, Tool<any, any>>>;
+  tools(): Promise<Record<string, Tool>>;
 };
 
 function isUrlConfig(cfg: McpServerConfig): cfg is McpUrlServerConfig {
@@ -25,7 +25,7 @@ export class McpServerRegistry {
   private readonly clients = new Map<string, Promise<MCPClient>>();
   private readonly toolsCache = new Map<
     string,
-    Record<string, Tool<any, any>>
+    Record<string, Tool>
   >();
 
   /**
@@ -105,22 +105,32 @@ export class McpServerRegistry {
     if (existing) return existing;
     const created = this.createClient(serverName);
     this.clients.set(serverName, created);
+    created.catch((err: unknown) => {
+      console.error(`[McpServerRegistry] Failed to connect to MCP server '${serverName}':`, err);
+      this.clients.delete(serverName);
+    });
     return created;
   }
 
   async getTool(
     serverName: string,
     toolName: string
-  ): Promise<Tool<any, any>> {
+  ): Promise<Tool> {
     const cacheKey = serverName;
     const existingTools = this.toolsCache.get(cacheKey);
     if (existingTools && existingTools[toolName]) {
       return existingTools[toolName];
     }
 
-    const client = await this.getClient(serverName);
-    const allTools = await client.tools();
-    this.toolsCache.set(cacheKey, allTools);
+    let allTools: Record<string, Tool>;
+    try {
+      const client = await this.getClient(serverName);
+      allTools = await client.tools();
+      this.toolsCache.set(cacheKey, allTools);
+    } catch (err) {
+      this.toolsCache.delete(cacheKey);
+      throw err;
+    }
 
     const tool = allTools[toolName];
     if (!tool) {
@@ -135,16 +145,21 @@ export class McpServerRegistry {
 
   async getAllTools(
     serverName: string
-  ): Promise<Record<string, Tool<any, any>>> {
+  ): Promise<Record<string, Tool>> {
     const cacheKey = serverName;
     const existingTools = this.toolsCache.get(cacheKey);
     if (existingTools) {
       return existingTools;
     }
 
-    const client = await this.getClient(serverName);
-    const allTools = await client.tools();
-    this.toolsCache.set(cacheKey, allTools);
-    return allTools;
+    try {
+      const client = await this.getClient(serverName);
+      const allTools = await client.tools();
+      this.toolsCache.set(cacheKey, allTools);
+      return allTools;
+    } catch (err) {
+      this.toolsCache.delete(cacheKey);
+      throw err;
+    }
   }
 }

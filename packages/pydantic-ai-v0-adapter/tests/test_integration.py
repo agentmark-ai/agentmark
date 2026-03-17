@@ -11,7 +11,6 @@ from agentmark_pydantic_ai_v0 import (
     PydanticAIModelRegistry,
     PydanticAIObjectParams,
     PydanticAITextParams,
-    PydanticAIToolRegistry,
     create_pydantic_ai_client,
 )
 
@@ -51,23 +50,25 @@ class TestCreatePydanticAIClient:
         client = create_pydantic_ai_client(model_registry=custom_registry)
         assert client.adapter is not None
 
-    def test_custom_tool_registry(self) -> None:
-        """Test using a custom tool registry."""
-        tool_registry = PydanticAIToolRegistry()
-        tool_registry.register("test_tool", lambda args, ctx: "result")
+    def test_custom_tools(self) -> None:
+        """Test using custom native tools."""
+        from pydantic_ai import Tool
 
-        client = create_pydantic_ai_client(tool_registry=tool_registry)
+        def test_tool(x: str) -> str:
+            return "result"
+
+        client = create_pydantic_ai_client(
+            tools=[Tool(function=test_tool, name="test_tool")]
+        )
         assert client.adapter is not None
 
     def test_custom_eval_registry(self) -> None:
         """Test using a custom eval registry."""
         from agentmark.prompt_core import EvalRegistry
 
-        eval_registry = EvalRegistry()
-        eval_registry.register(
-            "custom_eval",
-            lambda params: {"score": 1.0},
-        )
+        eval_registry: EvalRegistry = {
+            "custom_eval": lambda params: {"score": 1.0},
+        }
 
         client = create_pydantic_ai_client(eval_registry=eval_registry)
         assert client.eval_registry is eval_registry
@@ -154,12 +155,12 @@ class TestToolIntegration:
     def client_with_tools(
         self,
         mock_model_registry: PydanticAIModelRegistry,
-        tool_registry: PydanticAIToolRegistry,
+        sample_tools: list[Any],
     ) -> Any:
-        """Create a client with tool registry."""
+        """Create a client with native tools."""
         return create_pydantic_ai_client(
             model_registry=mock_model_registry,
-            tool_registry=tool_registry,
+            tools=sample_tools,
         )
 
     async def test_tool_execution(
@@ -181,12 +182,12 @@ class TestToolIntegration:
         tool_result = tool.function(a=5, b=3)
         assert tool_result == 8
 
-    async def test_unregistered_tool_raises_on_execution(
+    async def test_unmatched_tool_raises_error(
         self,
         mock_model_registry: PydanticAIModelRegistry,
     ) -> None:
-        """Test that unregistered tools raise RuntimeError when executed."""
-        # Create client without registering the 'add' tool
+        """Test that tools not in the native list raise an error."""
+        # Create client without providing any native tools
         client = create_pydantic_ai_client(model_registry=mock_model_registry)
 
         tools_ast = {
@@ -198,8 +199,7 @@ class TestToolIntegration:
 text_config:
   model_name: test-model
   tools:
-    unregistered_tool:
-      description: This tool is not registered""",
+    - unregistered_tool""",
                 },
                 {
                     "type": "mdxJsxFlowElement",
@@ -216,12 +216,8 @@ text_config:
         }
 
         prompt = await client.load_text_prompt(tools_ast)
-        result = await prompt.format(props={})
-
-        # Tool should be present but raise when executed
-        assert len(result.tools) == 1
-        with pytest.raises(RuntimeError, match="not registered"):
-            result.tools[0].function()
+        with pytest.raises(ValueError, match="not found in the provided tools list"):
+            await prompt.format(props={})
 
 
 class TestModelRegistryIntegration:

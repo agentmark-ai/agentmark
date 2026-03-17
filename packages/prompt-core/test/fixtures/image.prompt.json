@@ -1,0 +1,93 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: image\nimage_config:\n  model_name: test-model\n  num_images: 1\n  size: 1024x1024\n  aspect_ratio: 1:1\n  seed: 12345\ninput_schema:\n  type: image\n  properties:\n    userMessage:\n      type: string\n  required:\n    - userMessage",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 16,
+            "column": 4,
+            "offset": 234
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "ImagePrompt",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "This is a test for the image prompt to be drawn.",
+                "position": {
+                  "start": {
+                    "line": 19,
+                    "column": 1,
+                    "offset": 250
+                  },
+                  "end": {
+                    "line": 19,
+                    "column": 49,
+                    "offset": 298
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 19,
+                "column": 1,
+                "offset": 250
+              },
+              "end": {
+                "line": 19,
+                "column": 49,
+                "offset": 298
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 18,
+            "column": 1,
+            "offset": 236
+          },
+          "end": {
+            "line": 20,
+            "column": 15,
+            "offset": 313
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 21,
+        "column": 1,
+        "offset": 314
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/image.prompt.mdx",
+    "kind": "image",
+    "name": "image",
+    "builtAt": "2026-03-16T14:58:16.046Z"
+  }
+}

@@ -355,28 +355,6 @@ class ClaudeAgentAdapterOptions:
     """
 
 
-# Tool function types
-ToolFunction = Callable[[dict[str, Any], dict[str, Any] | None], Any]
-AsyncToolFunction = Callable[[dict[str, Any], dict[str, Any] | None], Awaitable[Any]]
-
-
-@dataclass
-class AgentMarkToolDefinition:
-    """Tool definition for AgentMark tools to be bridged to MCP."""
-
-    name: str
-    """Tool name."""
-
-    description: str
-    """Tool description."""
-
-    parameters: dict[str, Any]
-    """JSON Schema for parameters."""
-
-    execute: ToolFunction | AsyncToolFunction
-    """Tool execution function."""
-
-
 @dataclass
 class ClaudeAgentResult:
     """Result from Claude Agent SDK execution."""
@@ -519,16 +497,6 @@ class TelemetryEvent:
     """Event-specific data."""
 
 
-# MCP Server configuration types
-@dataclass
-class McpServerConfig:
-    """MCP server configuration."""
-
-    name: str
-    """Server name."""
-
-    version: str = "1.0.0"
-    """Server version."""
-
-    tools: list[AgentMarkToolDefinition] = field(default_factory=list)
-    """Tools provided by the server."""
+# MCP Server configuration type alias
+# Users pass native Claude Agent SDK MCP server config dicts
+McpServerConfig = dict[str, Any]

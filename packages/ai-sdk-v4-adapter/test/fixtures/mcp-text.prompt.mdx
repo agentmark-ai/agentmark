@@ -3,15 +3,8 @@ name: mcp-text
 text_config:
   model_name: test-model
   tools:
-    search: mcp://server-1/web-search
-    sum:
-      description: Add two numbers
-      parameters:
-        type: object
-        properties:
-          a: { type: number }
-          b: { type: number }
-        required: [a, b]
+    - mcp://server-1/web-search
+    - sum
 input_schema:
   type: object
   properties:

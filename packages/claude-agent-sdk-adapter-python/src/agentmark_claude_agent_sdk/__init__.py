@@ -53,24 +53,13 @@ from .hooks import (
     merge_hooks,
 )
 
-# Import MCP bridge utilities
-from .mcp import (
-    create_agentmark_mcp_server,
-    has_tools,
-    to_claude_agent_mcp_server,
-)
 from .model_registry import (
     ClaudeAgentModelRegistry,
     create_default_model_registry,
 )
-from .tool_registry import (
-    ClaudeAgentToolRegistry,
-    RegisteredToolExecutor,
-)
 
 # Import types
 from .types import (
-    AgentMarkToolDefinition,
     ClaudeAgentAdapterOptions,
     ClaudeAgentErrorResult,
     ClaudeAgentObjectParams,
@@ -85,7 +74,7 @@ from .types import (
     HookOutput,
     # MCP types
     McpServerConfig,
-    # Model/tool types
+    # Model types
     ModelConfig,
     OutputFormat,
     # Permission and output types
@@ -116,7 +105,7 @@ from .webhook import (
 
 def create_claude_agent_client(
     model_registry: ClaudeAgentModelRegistry | None = None,
-    tool_registry: ClaudeAgentToolRegistry | None = None,
+    mcp_servers: dict[str, Any] | None = None,
     adapter_options: ClaudeAgentAdapterOptions | None = None,
     eval_registry: Any | None = None,
     loader: Any | None = None,
@@ -128,7 +117,7 @@ def create_claude_agent_client(
     Args:
         model_registry: Model registry for model configuration.
             Defaults to create_default_model_registry().
-        tool_registry: Optional tool registry for custom tools.
+        mcp_servers: Optional MCP servers configuration (native SDK format).
         adapter_options: Optional adapter-level options.
         eval_registry: Optional evaluation registry.
         loader: Optional prompt loader.
@@ -168,7 +157,7 @@ def create_claude_agent_client(
 
     adapter = ClaudeAgentAdapter(
         model_registry=model_registry,
-        tool_registry=tool_registry,
+        mcp_servers=mcp_servers,
         adapter_options=adapter_options,
     )
 
@@ -188,8 +177,6 @@ __all__ = [
     "ClaudeAgentAdapter",
     "ClaudeAgentModelRegistry",
     "create_default_model_registry",
-    "ClaudeAgentToolRegistry",
-    "RegisteredToolExecutor",
     # Core types
     "ClaudeAgentTextParams",
     "ClaudeAgentObjectParams",
@@ -199,9 +186,8 @@ __all__ = [
     "ClaudeAgentResult",
     "ClaudeAgentErrorResult",
     "TracedTelemetryContext",
-    # Model/tool types
+    # Model types
     "ModelConfig",
-    "AgentMarkToolDefinition",
     # Permission and output types
     "PermissionMode",
     "SystemPromptPreset",
@@ -222,10 +208,6 @@ __all__ = [
     "TelemetryConfig",
     # MCP types
     "McpServerConfig",
-    # MCP bridge utilities
-    "create_agentmark_mcp_server",
-    "to_claude_agent_mcp_server",
-    "has_tools",
     # Telemetry hooks
     "TelemetryEvent",
     "TelemetryEventHandler",

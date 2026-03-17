@@ -1,0 +1,295 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: mathDatasetOps\nobject_config:\n  model_name: test-model\n  temperature: 0.5\n  schema:\n    type: object\n    properties:\n      answer:\n        type: string\n    required: [\"answer\"]\ntest_settings:\n  dataset: datasets/mathOps.dataset.jsonl\n  props: \n    userMessage: \"What is the integral of x^2?\"",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 16,
+            "column": 4,
+            "offset": 305
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "System",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "You are a helpful math tutor.",
+                "position": {
+                  "start": {
+                    "line": 19,
+                    "column": 1,
+                    "offset": 316
+                  },
+                  "end": {
+                    "line": 19,
+                    "column": 30,
+                    "offset": 345
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 19,
+                "column": 1,
+                "offset": 316
+              },
+              "end": {
+                "line": 19,
+                "column": 30,
+                "offset": 345
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 18,
+            "column": 1,
+            "offset": 307
+          },
+          "end": {
+            "line": 20,
+            "column": 10,
+            "offset": 355
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "User",
+        "attributes": [],
+        "children": [
+          {
+            "type": "mdxFlowExpression",
+            "value": "props.userMessage",
+            "position": {
+              "start": {
+                "line": 23,
+                "column": 1,
+                "offset": 364
+              },
+              "end": {
+                "line": 23,
+                "column": 20,
+                "offset": 383
+              }
+            },
+            "data": {
+              "estree": {
+                "type": "Program",
+                "start": 365,
+                "end": 382,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "MemberExpression",
+                      "start": 365,
+                      "end": 382,
+                      "object": {
+                        "type": "Identifier",
+                        "start": 365,
+                        "end": 370,
+                        "name": "props",
+                        "loc": {
+                          "start": {
+                            "line": 23,
+                            "column": 1,
+                            "offset": 365
+                          },
+                          "end": {
+                            "line": 23,
+                            "column": 6,
+                            "offset": 370
+                          }
+                        },
+                        "range": [
+                          365,
+                          370
+                        ]
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "start": 371,
+                        "end": 382,
+                        "name": "userMessage",
+                        "loc": {
+                          "start": {
+                            "line": 23,
+                            "column": 7,
+                            "offset": 371
+                          },
+                          "end": {
+                            "line": 23,
+                            "column": 18,
+                            "offset": 382
+                          }
+                        },
+                        "range": [
+                          371,
+                          382
+                        ]
+                      },
+                      "computed": false,
+                      "optional": false,
+                      "loc": {
+                        "start": {
+                          "line": 23,
+                          "column": 1,
+                          "offset": 365
+                        },
+                        "end": {
+                          "line": 23,
+                          "column": 18,
+                          "offset": 382
+                        }
+                      },
+                      "range": [
+                        365,
+                        382
+                      ]
+                    },
+                    "start": 365,
+                    "end": 382,
+                    "loc": {
+                      "start": {
+                        "line": 23,
+                        "column": 1,
+                        "offset": 365
+                      },
+                      "end": {
+                        "line": 23,
+                        "column": 18,
+                        "offset": 382
+                      }
+                    },
+                    "range": [
+                      365,
+                      382
+                    ]
+                  }
+                ],
+                "sourceType": "module",
+                "comments": [],
+                "loc": {
+                  "start": {
+                    "line": 23,
+                    "column": 1,
+                    "offset": 365
+                  },
+                  "end": {
+                    "line": 23,
+                    "column": 18,
+                    "offset": 382
+                  }
+                },
+                "range": [
+                  365,
+                  382
+                ]
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 22,
+            "column": 1,
+            "offset": 357
+          },
+          "end": {
+            "line": 24,
+            "column": 8,
+            "offset": 391
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "Assistant",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "Here's your answer!",
+                "position": {
+                  "start": {
+                    "line": 27,
+                    "column": 1,
+                    "offset": 405
+                  },
+                  "end": {
+                    "line": 27,
+                    "column": 20,
+                    "offset": 424
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 27,
+                "column": 1,
+                "offset": 405
+              },
+              "end": {
+                "line": 27,
+                "column": 20,
+                "offset": 424
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 26,
+            "column": 1,
+            "offset": 393
+          },
+          "end": {
+            "line": 28,
+            "column": 13,
+            "offset": 437
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 28,
+        "column": 14,
+        "offset": 438
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/mathDataset.prompt.mdx",
+    "kind": "object",
+    "name": "mathDatasetOps",
+    "builtAt": "2026-03-16T14:58:16.054Z"
+  }
+}

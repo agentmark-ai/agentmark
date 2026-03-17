@@ -4,14 +4,9 @@ import { FileLoader } from "@agentmark-ai/loader-file";
 import {
   createAgentMarkClient,
   ClaudeAgentModelRegistry,
-  ClaudeAgentToolRegistry,
   ClaudeAgentAdapter,
 } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
-
-type TestTools = {
-  search: { args: { query: string } };
-};
 
 type TestPromptTypes = {
   "math.prompt.mdx": {
@@ -25,7 +20,6 @@ type TestPromptTypes = {
   "text-with-tools.prompt.mdx": {
     input: { userMessage: string };
     output: never;
-    tools: TestTools;
   };
   "agent-task.prompt.mdx": {
     input: { task: string };
@@ -315,100 +309,6 @@ describe("Claude Agent SDK Adapter Integration", () => {
     });
   });
 
-  describe("ClaudeAgentToolRegistry", () => {
-    it("should register and retrieve tools", async () => {
-      type TestTools = {
-        search: { args: { query: string } };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("search", async ({ query }) => ({ results: [query] }));
-
-      expect(registry.has("search")).toBe(true);
-      expect(registry.size).toBe(1);
-    });
-
-    it("should execute registered tools", async () => {
-      type TestTools = {
-        add: { args: { a: number; b: number } };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("add", async ({ a, b }) => ({ sum: a + b }));
-
-      const executor = registry.get("add");
-      const result = await executor({ a: 5, b: 3 });
-      expect(result).toEqual({ sum: 8 });
-    });
-
-    it("should get all tool names", () => {
-      type TestTools = {
-        tool1: { args: Record<string, never> };
-        tool2: { args: Record<string, never> };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("tool1", async () => ({}))
-        .register("tool2", async () => ({}));
-
-      const names = registry.getToolNames();
-      expect(names).toEqual(["tool1", "tool2"]);
-    });
-
-    it("should return false for unregistered tools", () => {
-      type TestTools = {
-        search: { args: { query: string } };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>();
-
-      expect(registry.has("search")).toBe(false);
-    });
-
-    it("should handle tool executor that throws", async () => {
-      type TestTools = {
-        failing: { args: Record<string, never> };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("failing", async () => {
-          throw new Error("Tool execution failed");
-        });
-
-      const executor = registry.get("failing");
-      await expect(executor({})).rejects.toThrow("Tool execution failed");
-    });
-
-    it("should allow chained registration", () => {
-      type TestTools = {
-        tool1: { args: Record<string, never> };
-        tool2: { args: Record<string, never> };
-        tool3: { args: Record<string, never> };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("tool1", async () => ({}))
-        .register("tool2", async () => ({}))
-        .register("tool3", async () => ({}));
-
-      expect(registry.size).toBe(3);
-    });
-
-    it("should handle async executor with complex return type", async () => {
-      type TestTools = {
-        complex: { args: { data: string[] } };
-      };
-      const registry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("complex", async ({ data }) => {
-          await new Promise(resolve => setTimeout(resolve, 1));
-          return {
-            processed: data.map(d => d.toUpperCase()),
-            count: data.length,
-            timestamp: Date.now(),
-          };
-        });
-
-      const executor = registry.get("complex");
-      const result = await executor({ data: ["a", "b", "c"] });
-      expect(result).toHaveProperty("processed");
-      expect(result).toHaveProperty("count", 3);
-    });
-  });
-
   describe("ClaudeAgentAdapter - Text Prompts", () => {
     it("should adapt text prompts for Claude Agent SDK", async () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
@@ -673,32 +573,58 @@ describe("Claude Agent SDK Adapter Integration", () => {
     });
   });
 
-  describe("ClaudeAgentAdapter - Tool Registry Integration", () => {
-    it("should include MCP servers when tools are defined in prompt and registered", async () => {
+  describe("ClaudeAgentAdapter - Tools as String Array", () => {
+    it("should add tools from prompt to allowedTools when tools are string array", async () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
       const fileLoader = new FileLoader(fixturesDir);
       const modelRegistry = ClaudeAgentModelRegistry.createDefault();
 
-      const toolRegistry = new ClaudeAgentToolRegistry<TestTools>()
-        .register("search", async ({ query }) => ({ results: [query] }));
-
-      const agentMark = createAgentMarkClient<TestPromptTypes, typeof toolRegistry>({
+      const agentMark = createAgentMarkClient<TestPromptTypes>({
         loader: fileLoader,
         modelRegistry,
-        toolRegistry,
       });
 
-      // Use prompt with tools defined in frontmatter
+      // Use prompt with tools defined as string array in frontmatter
       const textPrompt = await agentMark.loadTextPrompt("text-with-tools.prompt.mdx");
       const result = await textPrompt.format({
         props: { userMessage: "test" },
       });
 
-      expect(result.query.options.mcpServers).toBeDefined();
-      expect(result.query.options.mcpServers?.["prompt-tools"]).toBeDefined();
+      // Tools should appear in allowedTools
+      expect(result.query.options.allowedTools).toBeDefined();
+      expect(result.query.options.allowedTools).toContain("search");
+      expect(result.query.options.allowedTools).toContain("mcp://my-server/tool");
     });
 
-    it("should not include MCP servers when no tools registered", async () => {
+    it("should merge prompt tools with adapter allowedTools", async () => {
+      const modelRegistry = ClaudeAgentModelRegistry.createDefault();
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(
+        modelRegistry,
+        undefined,
+        { allowedTools: ["Read", "Write"] }
+      );
+
+      const mockTextConfig = {
+        name: "test-prompt",
+        messages: [{ role: "user" as const, content: "test" }],
+        text_config: {
+          model_name: "anthropic/claude-sonnet-4-20250514",
+          tools: ["search", "mcp://server/tool"],
+        },
+      };
+
+      const result = await adapter.adaptText(
+        mockTextConfig,
+        {},
+        { props: {}, path: undefined, template: {} }
+      );
+
+      expect(result.query.options.allowedTools).toEqual([
+        "Read", "Write", "search", "mcp://server/tool"
+      ]);
+    });
+
+    it("should not include allowedTools when no tools are defined", async () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
       const fileLoader = new FileLoader(fixturesDir);
       const modelRegistry = ClaudeAgentModelRegistry.createDefault();
@@ -713,7 +639,36 @@ describe("Claude Agent SDK Adapter Integration", () => {
         props: { userMessage: "test" },
       });
 
-      expect(result.query.options.mcpServers).toBeUndefined();
+      expect(result.query.options.allowedTools).toBeUndefined();
+    });
+
+    it("should pass mcpServers from constructor to query options", async () => {
+      const modelRegistry = ClaudeAgentModelRegistry.createDefault();
+      const mcpServers = {
+        "my-server": { type: "url" as const, url: "http://localhost:3000" } as any,
+      };
+
+      const adapter = new ClaudeAgentAdapter<TestPromptTypes>(
+        modelRegistry,
+        mcpServers
+      );
+
+      const mockTextConfig = {
+        name: "test-prompt",
+        messages: [{ role: "user" as const, content: "test" }],
+        text_config: {
+          model_name: "anthropic/claude-sonnet-4-20250514",
+        },
+      };
+
+      const result = await adapter.adaptText(
+        mockTextConfig,
+        {},
+        { props: {}, path: undefined, template: {} }
+      );
+
+      expect(result.query.options.mcpServers).toBeDefined();
+      expect(result.query.options.mcpServers?.["my-server"]).toBeDefined();
     });
   });
 

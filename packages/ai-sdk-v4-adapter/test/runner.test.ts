@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { fileURLToPath } from "url";
 import path from "path";
-import { EvalRegistry } from "@agentmark-ai/prompt-core";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark-ai/templatedx";
-import type { AgentMark } from "@agentmark-ai/prompt-core";
+import type { PromptShape } from "@agentmark-ai/prompt-core";
 import type { VercelAIAdapter } from "../src/adapter";
 import * as ai from "ai";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
@@ -30,7 +30,7 @@ vi.mock("ai", async () => {
 
 describe("VercelAdapterWebhookHandler", () => {
   let runner: VercelAdapterWebhookHandler;
-  let client: AgentMark<any, VercelAIAdapter<any, any>>;
+  let client: ReturnType<typeof createAgentMarkClient<PromptShape<Record<string, never>>>>;
   let loader: FileLoader;
 
   // Build pre-compiled fixtures before tests run
@@ -46,19 +46,19 @@ describe("VercelAdapterWebhookHandler", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const evals = new EvalRegistry();
-    // Simple eval: pass if TEXT equals expected_output when expected_output is a string
-    evals.register("exact_match", async ({ output, expectedOutput }) => {
-      const out = typeof output === 'string' ? output : JSON.stringify(output);
-      const exp = typeof expectedOutput === 'string' ? expectedOutput : JSON.stringify(expectedOutput);
-      const isMatch = out === exp;
-      return {
-        score: isMatch ? 1 : 0,
-        label: isMatch ? 'correct' : 'incorrect',
-        reason: isMatch ? 'Output matches expected' : 'Output does not match expected',
-        passed: isMatch
-      };
-    });
+    const evals: EvalRegistry = {
+      exact_match: async ({ output, expectedOutput }) => {
+        const out = typeof output === 'string' ? output : JSON.stringify(output);
+        const exp = typeof expectedOutput === 'string' ? expectedOutput : JSON.stringify(expectedOutput);
+        const isMatch = out === exp;
+        return {
+          score: isMatch ? 1 : 0,
+          label: isMatch ? 'correct' : 'incorrect',
+          reason: isMatch ? 'Output matches expected' : 'Output does not match expected',
+          passed: isMatch
+        };
+      },
+    };
 
     // Use fileURLToPath for cross-platform path resolution (Windows URL pathname has leading slash)
     const base = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");

@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import {
   parseMcpUri,
   interpolateEnvInObject,
-  normalizeToolsMap,
+  normalizeToolsList,
 } from "../src/mcp";
 import { TextSettingsConfig } from "../src/schemas";
 
@@ -69,45 +69,48 @@ describe("MCP helpers", () => {
     });
   });
 
-  describe("normalizeToolsMap", () => {
-    it("normalizes MCP and inline tools", () => {
-      const out = normalizeToolsMap({
-        search: "mcp://server-1/web-search",
-        sum: { description: "Add", parameters: {} },
-      });
+  describe("normalizeToolsList", () => {
+    it("normalizes MCP URIs and plain tool names", () => {
+      const out = normalizeToolsList([
+        "mcp://server-1/web-search",
+        "get_weather",
+      ]);
       expect(out).toEqual([
-        { alias: "search", kind: "mcp", value: "mcp://server-1/web-search" },
-        { alias: "sum", kind: "inline", value: { description: "Add", parameters: {} } },
+        { name: "mcp://server-1/web-search", kind: "mcp", server: "server-1", tool: "web-search" },
+        { name: "get_weather", kind: "plain" },
       ]);
     });
 
-    it("throws for invalid entries", () => {
+    it("handles empty array", () => {
+      expect(normalizeToolsList([])).toEqual([]);
+    });
+
+    it("throws for non-string entries", () => {
       // @ts-expect-error invalid on purpose
-      expect(() => normalizeToolsMap({ bad: 123 })).toThrow();
+      expect(() => normalizeToolsList([123])).toThrow();
     });
   });
 });
 
-describe("TextSettingsConfig tools union", () => {
-  it("accepts string (MCP URI) and inline objects", () => {
+describe("TextSettingsConfig tools array", () => {
+  it("accepts an array of tool name strings and MCP URIs", () => {
     const parsed = TextSettingsConfig.parse({
       model_name: "m",
-      tools: {
-        search: "mcp://server/tool",
-        inline: { description: "X", parameters: {} },
-      },
+      tools: ["mcp://server/tool", "get_weather"],
     });
     expect(parsed.tools).toBeDefined();
-    expect(parsed.tools!.search).toBe("mcp://server/tool");
-    // @ts-expect-error runtime check
-    expect(parsed.tools!.inline.description).toBe("X");
+    expect(parsed.tools).toEqual(["mcp://server/tool", "get_weather"]);
   });
 
-  it("rejects invalid tool shapes", () => {
+  it("rejects non-array tools", () => {
     expect(() =>
       TextSettingsConfig.parse({ model_name: "m", tools: { bad: 1 } })
     ).toThrow();
   });
+
+  it("rejects arrays with non-string elements", () => {
+    expect(() =>
+      TextSettingsConfig.parse({ model_name: "m", tools: [123] })
+    ).toThrow();
+  });
 });
-
-

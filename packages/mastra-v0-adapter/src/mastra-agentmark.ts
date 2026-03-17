@@ -4,6 +4,7 @@ import {
   type PromptShape,
   type KeysWithKind,
   type AgentMarkOptions,
+  type AdaptOptions,
   type TextConfig,
   type ObjectConfig,
 } from "@agentmark-ai/prompt-core";
@@ -11,13 +12,12 @@ import { TextConfigSchema } from "@agentmark-ai/prompt-core";
 import { MastraTextPrompt } from "./text-prompt";
 import { MastraObjectPrompt } from "./object-prompt";
 import { MastraAdapter } from "./adapter";
-import { MastraToolRegistry } from "./tool-registry";
 import { IfShapeIsUndefined } from "./types";
+import type { ToolsInput } from "@mastra/core/agent";
 
 export class MastraAgentMark<
   T extends PromptShape<T> | undefined,
-  TR extends MastraToolRegistry<any, any>,
-  A extends MastraAdapter<T, TR>
+  A extends MastraAdapter<T, ToolsInput>
 > extends AgentMark<any, A> {
   constructor(opts: AgentMarkOptions<any, A>) {
     super(opts);
@@ -27,8 +27,8 @@ export class MastraAgentMark<
     K extends IfShapeIsUndefined<T, any, KeysWithKind<T, "text"> & string>
   >(
     pathOrPreloaded: K | Root,
-    options?: any
-  ): Promise<MastraTextPrompt<T, TR, A, K>> {
+    options?: AdaptOptions
+  ): Promise<MastraTextPrompt<T, A, K>> {
     let content: unknown;
     const pathProvided = typeof pathOrPreloaded === "string";
 
@@ -42,7 +42,7 @@ export class MastraAgentMark<
       template: content,
     });
     TextConfigSchema.parse(textConfig);
-    return new MastraTextPrompt<T, TR, A, K>(
+    return new MastraTextPrompt<T, A, K>(
       content,
       this.templateEngine,
       this.getAdapter(),
@@ -56,7 +56,7 @@ export class MastraAgentMark<
     K extends IfShapeIsUndefined<T, any, KeysWithKind<T, "object"> & string>
   >(
     pathOrPreloaded: K | Root,
-    options?: any
+    options?: AdaptOptions
   ): Promise<MastraObjectPrompt<T, A, K>> {
     let content: unknown;
     const pathProvided = typeof pathOrPreloaded === "string";

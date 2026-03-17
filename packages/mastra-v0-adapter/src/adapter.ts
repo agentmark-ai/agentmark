@@ -8,8 +8,7 @@ import type {
   RichChatMessage,
 } from "@agentmark-ai/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
-import { MastraToolRegistry } from "./tool-registry";
-import { AgentConfig, AgentGenerateOptions } from "@mastra/core/agent";
+import { AgentConfig, AgentGenerateOptions, ToolsInput } from "@mastra/core/agent";
 import { resolveSerializedZodOutput } from "@mastra/core/utils";
 import { parseSchema } from "json-schema-to-zod";
 import { parseMcpUri } from "@agentmark-ai/prompt-core";
@@ -18,9 +17,9 @@ import { MCPClientManager } from "./mcp/mcp-client-manager";
 
 function getTelemetryConfig(
   telemetry: AdaptOptions["telemetry"],
-  props: Record<string, any>,
+  props: Record<string, unknown>,
   promptName: string,
-  agentmarkMeta?: Record<string, any>
+  agentmarkMeta?: Record<string, unknown>
 ) {
   return telemetry
     ? {
@@ -45,7 +44,7 @@ const extractMessages = (messages: TextConfig["messages"]) => {
 
 export class MastraAdapter<
   T extends PromptShape<T> | undefined,
-  TR extends MastraToolRegistry<any, any> = MastraToolRegistry<any, any>
+  TTools extends ToolsInput = ToolsInput
 > implements Adapter<any>
 {
   declare readonly __dict: T;
@@ -54,7 +53,7 @@ export class MastraAdapter<
 
   constructor(
     private modelRegistry: MastraModelRegistry,
-    private toolRegistry?: TR,
+    private tools?: TTools,
     private mcpServers?: McpServers
   ) {}
 
@@ -100,58 +99,81 @@ export class MastraAdapter<
     throw new Error("Not implemented");
   }
 
+  private async resolveTools(
+    toolNames: string[]
+  ): Promise<Record<string, TTools[keyof TTools]>> {
+    const toolsObj: Record<string, TTools[keyof TTools]> = {};
+
+    for (const toolName of toolNames) {
+      if (toolName.startsWith("mcp://")) {
+        const { server, tool } = parseMcpUri(toolName);
+        const mcp = this.getMcpManager();
+        if (!mcp) {
+          throw new Error(
+            `MCP server '${server}' not configured`
+          );
+        }
+        if (tool === "*") {
+          const namespacedTools = await mcp.getNamespacedTools();
+          const prefix1 = `${server}_`;
+          const prefix2 = `${server}.`;
+          let matched = 0;
+          for (const [key, toolImpl] of Object.entries(namespacedTools)) {
+            if (key.startsWith(prefix1) || key.startsWith(prefix2)) {
+              // Reconstruct the mcp:// URI as the key (consistent with single-tool behavior)
+              const sep = key.startsWith(prefix1) ? prefix1 : prefix2;
+              const toolKey = `mcp://${server}/${key.slice(sep.length)}`;
+              toolsObj[toolKey] = toolImpl as unknown as TTools[keyof TTools];
+              matched++;
+            }
+          }
+          if (matched === 0) {
+            console.warn(
+              `[MastraAdapter] Wildcard expansion for mcp://${server}/* yielded zero tools. ` +
+              `Check that the server name '${server}' matches the registered MCP server. ` +
+              `Available namespaced keys: ${Object.keys(namespacedTools).join(", ") || "(none)"}`
+            );
+          }
+          continue;
+        }
+        const namespacedTools = await mcp.getNamespacedTools();
+        const keyUnderscore = `${server}_${tool}`;
+        const keyDot = `${server}.${tool}`;
+        const resolved =
+          namespacedTools[keyUnderscore] ??
+          namespacedTools[keyDot];
+        if (!resolved) {
+          throw new Error(
+            `MCP tool not found: ${server}/${tool}`
+          );
+        }
+        // MCP tools bypass TTools compile-time constraints; they are dynamically typed
+        // and trusted from the registry without schema validation at runtime.
+        toolsObj[toolName] = resolved as unknown as TTools[keyof TTools];
+        continue;
+      }
+
+      if (this.tools && toolName in this.tools) {
+        toolsObj[toolName] = this.tools[toolName] as TTools[keyof TTools];
+      } else {
+        const available = this.tools ? Object.keys(this.tools).join(", ") : "(none)";
+        throw new Error(
+          `Tool '${toolName}' referenced in prompt config was not found in the provided tools record. Available tools: ${available}`
+        );
+      }
+    }
+
+    return toolsObj;
+  }
+
   private async adaptTextAgent(input: TextConfig, options?: AdaptOptions) {
     const { model_name, tools } = input.text_config;
     const modelCreator = this.modelRegistry?.getModelFunction(model_name);
     const model = modelCreator(model_name, options ?? {});
 
-    const toolsObj = {} as any;
-
-    if (tools) {
-      for (const [name, value] of Object.entries(tools)) {
-        if (typeof value === "string") {
-          if (value.startsWith("mcp://")) {
-            const { server, tool } = parseMcpUri(value);
-            const mcp = this.getMcpManager();
-            if (!mcp) {
-              throw new Error(
-                `MCP server '${server}' not configured`
-              );
-            }
-            const namespacedTools = await mcp.getNamespacedTools();
-            const keyUnderscore = `${server}_${tool}`;
-            const keyDot = `${server}.${tool}`;
-            const resolved =
-              (namespacedTools as any)[keyUnderscore] ??
-              (namespacedTools as any)[keyDot];
-            if (!resolved) {
-              throw new Error(
-                `MCP tool not found: ${server}/${tool}`
-              );
-            }
-            toolsObj[name] = resolved as any;
-            continue;
-          }
-          throw new Error(
-            `Invalid tool entry for '${String(
-              name
-            )}': expected MCP URI string or inline tool definition`
-          );
-        }
-        const { description, parameters } = value;
-        if (!this.toolRegistry?.has(name)) {
-          throw new Error(`Tool ${name} not registered`);
-        }
-        const tool = this.toolRegistry.get(name);
-        toolsObj[name] = {
-          id: name,
-          description,
-          outputSchema: undefined as any,
-          inputSchema: resolveSerializedZodOutput(parseSchema(parameters)),
-          execute: (args: any) => tool(args, options?.toolContext),
-        };
-      }
-    }
+    const toolsObj = tools
+      ? await this.resolveTools(tools as string[])
+      : {};
 
     const instructions = extractInstructions(input.messages);
 
@@ -171,53 +193,9 @@ export class MastraAdapter<
     const modelCreator = this.modelRegistry?.getModelFunction(model_name);
     const model = modelCreator(model_name, options ?? {});
 
-    const toolsObj = {} as any;
-
-    if (tools) {
-      for (const [name, value] of Object.entries(tools)) {
-        if (typeof value === "string") {
-          if (value.startsWith("mcp://")) {
-            const { server, tool } = parseMcpUri(value);
-            const mcp = this.getMcpManager();
-            if (!mcp) {
-              throw new Error(
-                `MCP server '${server}' not configured`
-              );
-            }
-            const namespacedTools = await mcp.getNamespacedTools();
-            const keyUnderscore = `${server}_${tool}`;
-            const keyDot = `${server}.${tool}`;
-            const resolved =
-              (namespacedTools as any)[keyUnderscore] ??
-              (namespacedTools as any)[keyDot];
-            if (!resolved) {
-              throw new Error(
-                `MCP tool not found: ${server}/${tool}`
-              );
-            }
-            toolsObj[name] = resolved as any;
-            continue;
-          }
-          throw new Error(
-            `Invalid tool entry for '${String(
-              name
-            )}': expected MCP URI string or inline tool definition`
-          );
-        }
-        const { description, parameters } = value;
-        if (!this.toolRegistry?.has(name)) {
-          throw new Error(`Tool ${name} not registered`);
-        }
-        const tool = this.toolRegistry.get(name);
-        toolsObj[name] = {
-          id: name,
-          description,
-          outputSchema: undefined as any,
-          inputSchema: resolveSerializedZodOutput(parseSchema(parameters)),
-          execute: (args: any) => tool(args, options?.toolContext),
-        };
-      }
-    }
+    const toolsObj = tools
+      ? await this.resolveTools(tools as string[])
+      : {};
 
     const instructions = extractInstructions(input.messages);
 

@@ -77,17 +77,7 @@ export const TextSettingsConfig = z.object({
       }),
     ])
     .optional(),
-  tools: z
-    .record(
-      z.union([
-        z.string(),
-        z.object({
-          description: z.string(),
-          parameters: z.record(z.any()),
-        }),
-      ])
-    )
-    .optional(),
+  tools: z.array(z.string()).optional(),
 });
 
 export type TextSettings = z.infer<typeof TextSettingsConfig>;
@@ -112,17 +102,7 @@ export const ObjectSettingsConfig = z.object({
   stop_sequences: z.array(z.string()).optional(),
   seed: z.number().optional(),
   max_retries: z.number().optional(),
-  tools: z
-    .record(
-      z.union([
-        z.string(),
-        z.object({
-          description: z.string(),
-          parameters: z.record(z.any()),
-        }),
-      ])
-    )
-    .optional(),
+  tools: z.array(z.string()).optional(),
   schema: z.record(z.any()),
   schema_name: z.string().optional(),
   schema_description: z.string().optional(),

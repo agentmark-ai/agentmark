@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import path from "path";
+import type { Tool } from "ai";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
@@ -120,9 +121,17 @@ describe("AgentMark Integration", () => {
       const modelRegistry = new VercelAIModelRegistry();
       modelRegistry.registerModels("test-model", mockModelFn);
 
+      const mockCalculatorTool = {
+        type: "function" as const,
+        description: "Perform calculations",
+        inputSchema: { type: "object" as const, properties: { expression: { type: "string" as const } } },
+        execute: vi.fn(async () => "42"),
+      };
+
       const agentMark = createAgentMarkClient<TestPromptTypes>({
         loader: fileLoader,
         modelRegistry,
+        tools: { calculator: mockCalculatorTool as unknown as Tool },
       });
 
       const prompt = await agentMark.loadObjectPrompt("math-with-tools.prompt.mdx");
@@ -135,13 +144,10 @@ describe("AgentMark Integration", () => {
       // Schema should still be present (structured output works)
       expect(result.schema).toBeDefined();
 
-      // Tools should be populated
+      // Tools should be populated with the native tool passed through
       expect(result.tools).toBeDefined();
       expect(result.tools).toHaveProperty("calculator");
-      expect(result.tools.calculator).toHaveProperty("description", "Perform calculations");
-      expect(result.tools.calculator).toHaveProperty("inputSchema");
-      expect(result.tools.calculator).toHaveProperty("execute");
-      expect(typeof result.tools.calculator.execute).toBe("function");
+      expect(result.tools!.calculator).toBe(mockCalculatorTool);
 
       // Model should still be resolved
       expect(result.model).toBeDefined();

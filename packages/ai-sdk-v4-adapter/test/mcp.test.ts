@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark-ai/loader-file";
-import { createAgentMarkClient, VercelAIModelRegistry, McpServerRegistry } from "../src";
+import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 vi.mock("../src/mcp/mcp-server-registry", () => {
@@ -70,23 +70,28 @@ describe("Vercel adapter MCP integration", () => {
   });
 
   it("resolves MCP tools from URIs and returns them in tools map", async () => {
-    const mcpRegistry = new McpServerRegistry().register("server-1", {
-      url: "https://example.com/sse",
-    });
+    const mockSumTool = {
+      description: "Add two numbers",
+      parameters: {} as any,
+      execute: vi.fn(async () => 42),
+    };
 
     const agentMark = createAgentMarkClient<TestPromptTypes>({
       loader: fileLoader,
       modelRegistry,
-      mcpRegistry,
+      tools: { sum: mockSumTool as any },
+      mcpServers: { "server-1": { url: "https://example.com/sse" } },
     });
 
     const prompt = await agentMark.loadTextPrompt("mcp-text.prompt.mdx");
     const result = await prompt.format({ props: { userMessage: "hi" } });
 
     expect(result.tools).toBeDefined();
-    expect(result.tools.search).toBeDefined();
-    expect(typeof result.tools.search.execute).toBe("function");
-    expect(result.tools.sum).toBeDefined();
+    // MCP tool resolved by tool name from URI
+    expect((result.tools as any)["web-search"]).toBeDefined();
+    expect(typeof (result.tools as any)["web-search"].execute).toBe("function");
+    // Plain tool resolved by name
+    expect((result.tools as any).sum).toBe(mockSumTool);
   });
 });
 

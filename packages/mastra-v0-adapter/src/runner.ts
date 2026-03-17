@@ -3,6 +3,8 @@ import type { Ast } from "@agentmark-ai/templatedx";
 import type { MastraAgentMark } from "./mastra-agentmark";
 import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
+import type { ToolsInput } from "@mastra/core/agent";
+import type { PromptShape } from "@agentmark-ai/prompt-core";
 import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
 import { trace } from "@agentmark-ai/sdk";
@@ -20,15 +22,17 @@ function extractErrorMessage(error: unknown): string {
   if (!error) return "Unknown error";
   if (typeof error === "string") return error;
   if (typeof error === "object") {
-    const e = error as Record<string, any>;
+    const e = error as Record<string, any>;  // pre-existing pattern for error unwrapping
     return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
   }
   return String(error);
 }
 
-export class MastraAdapterWebhookHandler {
+export class MastraAdapterWebhookHandler<
+  T extends PromptShape<T> | undefined = PromptShape<Record<string, never>>
+> {
   constructor(
-    private readonly client: MastraAgentMark<any, any, MastraAdapter<any, any>>
+    private readonly client: MastraAgentMark<T, MastraAdapter<T, ToolsInput>>
   ) {}
 
   async runPrompt(
@@ -365,7 +369,7 @@ export class MastraAdapterWebhookHandler {
                 const evalNames = item.evals;
                 const evaluators = evalNames
                   .map((name: string) => {
-                    const fn = evalRegistry.get(name);
+                    const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                     return fn ? { name, fn } : undefined;
                   })
                   .filter(Boolean) as Array<{ name: string; fn: any }>;
@@ -468,7 +472,7 @@ export class MastraAdapterWebhookHandler {
               ) {
                 const evaluators = item.evals
                   .map((name: string) => {
-                    const fn = evalRegistry.get(name);
+                    const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                     return fn ? { name, fn } : undefined;
                   })
                   .filter(Boolean) as Array<{ name: string; fn: any }>;

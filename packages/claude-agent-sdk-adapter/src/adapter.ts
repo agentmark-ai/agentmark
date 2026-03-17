@@ -11,11 +11,6 @@ import type {
   RichChatMessage,
 } from "@agentmark-ai/prompt-core";
 import { ClaudeAgentModelRegistry } from "./model-registry";
-import { ClaudeAgentToolRegistry } from "./tool-registry";
-import {
-  createAgentMarkMcpServer,
-  toClaudeAgentMcpServer,
-} from "./mcp/agentmark-mcp-bridge";
 import type {
   ClaudeAgentTextParams,
   ClaudeAgentObjectParams,
@@ -32,7 +27,7 @@ import type {
 const SUPPORTED_TEXT_OPTIONS = new Set([
   "model_name", // Used via model registry
   "max_calls",  // Mapped to maxTurns
-  "tools",      // Converted to MCP servers
+  "tools",      // Tool name strings and MCP URIs
 ]);
 
 /**
@@ -93,14 +88,12 @@ function warnUnsupportedOptions(
  *
  * const adapter = new ClaudeAgentAdapter(
  *   ClaudeAgentModelRegistry.createDefault(),
- *   toolRegistry,
  *   { permissionMode: 'bypassPermissions' }
  * );
  * ```
  */
 export class ClaudeAgentAdapter<
   T extends PromptShape<T>,
-  R extends ClaudeAgentToolRegistry<any, any> = ClaudeAgentToolRegistry<any, any>
 > implements Adapter<T>
 {
   declare readonly __dict: T;
@@ -108,7 +101,7 @@ export class ClaudeAgentAdapter<
 
   constructor(
     private modelRegistry: ClaudeAgentModelRegistry,
-    private toolRegistry?: R,
+    private mcpServers?: Record<string, McpServerConfig>,
     private adapterOptions?: ClaudeAgentAdapterOptions
   ) {}
 
@@ -163,26 +156,6 @@ export class ClaudeAgentAdapter<
   }
 
   /**
-   * Convert tools defined in prompt frontmatter to AgentMark tool definitions.
-   * Only includes tools that have a registered executor in the tool registry.
-   */
-  private convertPromptToolsToAgentMarkTools(
-    tools: Record<string, { description: string; parameters: Record<string, unknown> }>
-  ): Array<{ name: string; description: string; parameters: Record<string, unknown>; execute: (args: unknown) => Promise<unknown> }> {
-    return Object.entries(tools)
-      .filter(([name]) => this.toolRegistry?.has(name))
-      .map(([name, toolDef]) => {
-        const executor = this.toolRegistry!.get(name as never) as unknown as (args: unknown) => unknown;
-        return {
-          name,
-          description: toolDef.description,
-          parameters: toolDef.parameters,
-          execute: async (args: unknown) => executor(args),
-        };
-      });
-  }
-
-  /**
    * Build common query options from config and adapter settings.
    * Returns both the query options and telemetry context (if telemetry enabled).
    */
@@ -194,19 +167,23 @@ export class ClaudeAgentAdapter<
     metadata: PromptMetadata,
     promptName: string
   ): { queryOptions: ClaudeAgentQueryOptions; telemetry?: TracedTelemetryContext } {
-    // Build MCP servers for AgentMark tools
-    // Use McpServerConfig type for compatibility with Claude Agent SDK
-    const mcpServers: Record<string, McpServerConfig> = {};
+    // Start with MCP servers passed to the adapter constructor
+    const mcpServers: Record<string, McpServerConfig> = this.mcpServers
+      ? { ...this.mcpServers }
+      : {};
 
-    // Add tools defined in the prompt's frontmatter
-    // Tool executors are matched from the tool registry
-    if (settings.tools && typeof settings.tools === 'object') {
-      const promptTools = this.convertPromptToolsToAgentMarkTools(
-        settings.tools as Record<string, { description: string; parameters: Record<string, unknown> }>
-      );
-      if (promptTools.length > 0) {
-        const mcpServer = createAgentMarkMcpServer("prompt-tools", promptTools);
-        mcpServers["prompt-tools"] = toClaudeAgentMcpServer(mcpServer) as unknown as McpServerConfig;
+    // Process tools list from prompt frontmatter (now string[])
+    // Tool names and MCP URIs are added to allowedTools
+    const promptAllowedTools: string[] = [];
+    if (Array.isArray(settings.tools)) {
+      for (const toolEntry of settings.tools) {
+        if (typeof toolEntry !== "string") {
+          throw new TypeError(
+            `[claude-agent-sdk-adapter] Tool entries must be strings (tool names or mcp:// URIs), ` +
+            `but got ${typeof toolEntry}: ${JSON.stringify(toolEntry)}`
+          );
+        }
+        promptAllowedTools.push(toolEntry);
       }
     }
 
@@ -236,6 +213,12 @@ export class ClaudeAgentAdapter<
       systemPromptConfig = systemPrompt;
     }
 
+    // Merge allowedTools from adapter options and prompt tools
+    const mergedAllowedTools = [
+      ...(this.adapterOptions?.allowedTools ?? []),
+      ...promptAllowedTools,
+    ];
+
     const queryOptions: ClaudeAgentQueryOptions = {
       model: modelConfig.model,
       ...(modelConfig.maxThinkingTokens && {
@@ -254,8 +237,8 @@ export class ClaudeAgentAdapter<
       }),
       ...(Object.keys(mcpServers).length > 0 && { mcpServers }),
       ...(systemPromptConfig && { systemPrompt: systemPromptConfig }),
-      ...(this.adapterOptions?.allowedTools && {
-        allowedTools: this.adapterOptions.allowedTools,
+      ...(mergedAllowedTools.length > 0 && {
+        allowedTools: mergedAllowedTools,
       }),
       ...(this.adapterOptions?.disallowedTools && {
         disallowedTools: this.adapterOptions.disallowedTools,

@@ -21,7 +21,7 @@ class TestEndToEndPipeline:
         """Create a fully configured AgentMark instance."""
         return create_agentmark(
             adapter=DefaultAdapter(),
-            eval_registry=EvalRegistry(),
+            eval_registry={},
         )
 
     async def test_text_prompt_full_pipeline(self, agentmark: AgentMark) -> None:
@@ -350,13 +350,11 @@ class TestEvalRegistryIntegration:
 
     def test_eval_registry_with_agentmark(self) -> None:
         """Test that EvalRegistry integrates properly with AgentMark."""
-        registry = EvalRegistry()
 
-        # Register a simple eval function
         def length_check(_params: dict) -> dict:
             return {"passed": True, "score": 1.0}
 
-        registry.register("length_check", length_check)
+        registry: EvalRegistry = {"length_check": length_check}
 
         agentmark = create_agentmark(
             adapter=DefaultAdapter(),
@@ -364,5 +362,5 @@ class TestEvalRegistryIntegration:
         )
 
         assert agentmark.eval_registry is registry
-        assert agentmark.eval_registry.has("length_check")
+        assert "length_check" in agentmark.eval_registry
         assert agentmark.eval_registry.get("length_check") is length_check

@@ -89,18 +89,15 @@ class TestObjectSettingsSchemaTools:
     """Tests for ObjectSettingsSchema tools and tool_choice fields."""
 
     def test_object_settings_with_tools(self) -> None:
-        """Test object settings with tools field."""
+        """Test object settings with tools field (list of tool name strings)."""
         settings = ObjectSettingsSchema(
             model_name="gpt-4",
             schema={"type": "object", "properties": {}},
-            tools={
-                "get_weather": {"description": "Get weather", "parameters": {"type": "object"}},
-                "search": "Search the web",
-            },
+            tools=["get_weather", "search"],
         )
         assert settings.tools is not None
         assert "get_weather" in settings.tools
-        assert settings.tools["search"] == "Search the web"
+        assert "search" in settings.tools
 
     def test_object_settings_tools_default_none(self) -> None:
         """Test that tools defaults to None."""

@@ -12,7 +12,6 @@ from agentmark_pydantic_ai_v0 import (
     PydanticAIModelRegistry,
     PydanticAIObjectParams,
     PydanticAITextParams,
-    PydanticAIToolRegistry,
 )
 
 
@@ -30,12 +29,12 @@ class TestPydanticAIAdapter:
     def adapter_with_tools(
         self,
         mock_model_registry: PydanticAIModelRegistry,
-        tool_registry: PydanticAIToolRegistry,
+        sample_tools: list[Any],
     ) -> PydanticAIAdapter:
-        """Create an adapter with both model and tool registries."""
+        """Create an adapter with both model registry and native tools."""
         return PydanticAIAdapter(
             model_registry=mock_model_registry,
-            tool_registry=tool_registry,
+            tools=sample_tools,
         )
 
     def test_adapter_name(self, adapter: PydanticAIAdapter) -> None:
@@ -379,3 +378,30 @@ class TestSchemaConversion:
         # Enum values should be valid
         instance = model(status="active")
         assert instance.status.value == "active"
+
+
+class TestPydanticAIAdapterNonStringTools:
+    """Test that non-string tool entries raise a clear error."""
+
+    @pytest.fixture
+    def adapter(self, mock_model_registry: "PydanticAIModelRegistry") -> PydanticAIAdapter:
+        return PydanticAIAdapter(model_registry=mock_model_registry)
+
+    async def test_raises_type_error_for_dict_tool_entry(
+        self, adapter: PydanticAIAdapter
+    ) -> None:
+        """Should raise TypeError when a tool entry is a dict, not a string.
+
+        Tests _build_tools directly since the framework-level schema validation
+        (list[str]) catches issues before they reach the adapter in the normal flow.
+        The adapter must also guard this internally for callers who bypass the schema.
+        """
+        with pytest.raises(TypeError, match=r"Tool entries must be string references"):
+            await adapter._build_tools([{"type": "function", "name": "bad_tool"}])  # type: ignore[arg-type]
+
+    async def test_raises_type_error_for_integer_tool_entry(
+        self, adapter: PydanticAIAdapter
+    ) -> None:
+        """Should raise TypeError when a tool entry is an integer."""
+        with pytest.raises(TypeError, match=r"Tool entries must be string references"):
+            await adapter._build_tools([99])  # type: ignore[arg-type]

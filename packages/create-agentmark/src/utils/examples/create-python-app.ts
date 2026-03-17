@@ -209,7 +209,7 @@ const getAgentmarkClientContent = (_deploymentMode: "cloud" | "static", adapter:
     return `"""AgentMark client configuration.
 
 This file configures the AgentMark client with Claude Agent SDK adapter.
-Customize the model registry and tool registry as needed.
+Customize the model registry as needed.
 """
 
 import os
@@ -220,7 +220,6 @@ from agentmark.prompt_core import FileLoader
 from agentmark_claude_agent_sdk import (
     create_claude_agent_client,
     create_default_model_registry,
-    ClaudeAgentToolRegistry,
 )
 
 # Load environment variables
@@ -230,26 +229,15 @@ load_dotenv()
 # Supports: claude-* models
 model_registry = create_default_model_registry()
 
-# Configure tool registry for custom tools
-tool_registry = ClaudeAgentToolRegistry()
-
-# Example tool registration:
-# tool_registry.register(
-#     "search",
-#     lambda args, ctx: f"Search results for: {args['query']}",
-#     description="Search the web",
-#     parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
-# )
-
 # Create file loader for local development
 # Uses the project root as base directory for resolving relative paths
 project_root = Path(__file__).parent.resolve()
 loader = FileLoader(base_dir=str(project_root))
 
 # Create the client
+# Claude Agent SDK handles tools natively through the SDK
 client = create_claude_agent_client(
     model_registry=model_registry,
-    tool_registry=tool_registry,
     loader=loader,
 )
 
@@ -261,7 +249,7 @@ __all__ = ["client"]
   return `"""AgentMark client configuration.
 
 This file configures the AgentMark client with Pydantic AI adapter.
-Customize the model registry and tool registry as needed.
+Customize the model registry and tools as needed.
 """
 
 import os
@@ -272,7 +260,6 @@ from agentmark.prompt_core import FileLoader
 from agentmark_pydantic_ai_v0 import (
     create_pydantic_ai_client,
     create_default_model_registry,
-    PydanticAIToolRegistry,
 )
 
 # Load environment variables
@@ -282,14 +269,12 @@ load_dotenv()
 # Supports: gpt-*, claude-*, gemini-*, etc.
 model_registry = create_default_model_registry()
 
-# Configure tool registry for custom tools
-tool_registry = PydanticAIToolRegistry()
-
-# Example tool registration:
-# @tool_registry.register("search")
-# async def search_web(args: dict, ctx: dict | None) -> str:
-#     query = args["query"]
+# Define tools as native pydantic-ai Tool objects or callables
+# Example:
+# def search(query: str) -> str:
 #     return f"Search results for: {query}"
+# tools = [search]
+tools = []
 
 # Create file loader for local development
 # Uses the project root as base directory for resolving relative paths
@@ -299,7 +284,7 @@ loader = FileLoader(base_dir=str(project_root))
 # Create the client
 client = create_pydantic_ai_client(
     model_registry=model_registry,
-    tool_registry=tool_registry,
+    tools=tools,
     loader=loader,
 )
 

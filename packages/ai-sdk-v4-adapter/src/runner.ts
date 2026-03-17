@@ -1,7 +1,8 @@
 import { getFrontMatter } from "@agentmark-ai/templatedx";
 import type { Ast } from "@agentmark-ai/templatedx";
-import type { AgentMark } from "@agentmark-ai/prompt-core";
+import type { AgentMark, PromptShape } from "@agentmark-ai/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
+import type { Tool } from "ai";
 import { generateObject, generateText, streamObject, streamText, Output, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
 import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
@@ -16,8 +17,10 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
-export class VercelAdapterWebhookHandler {
-  constructor(private readonly client: AgentMark<any, VercelAIAdapter<any, any>>) {}
+export class VercelAdapterWebhookHandler<
+  T extends PromptShape<T> = PromptShape<Record<string, never>>
+> {
+  constructor(private readonly client: AgentMark<T, VercelAIAdapter<T, Record<string, Tool>>>) {}
 
   async runPrompt(promptAst: Ast, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
@@ -252,7 +255,7 @@ export class VercelAdapterWebhookHandler {
               const evalNames = item.evals;
               const evaluators = evalNames
                 .map((name: string) => {
-                  const fn = evalRegistry.get(name);
+                  const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                   return fn ? { name, fn } : undefined;
                 })
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
@@ -355,7 +358,7 @@ export class VercelAdapterWebhookHandler {
             if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
               const evaluators = item.evals
                 .map((name: string) => {
-                  const fn = evalRegistry.get(name);
+                  const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                   return fn ? { name, fn } : undefined;
                 })
                 .filter(Boolean) as Array<{ name: string; fn: any }>;

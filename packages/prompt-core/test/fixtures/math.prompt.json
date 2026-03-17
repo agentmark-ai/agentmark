@@ -1,0 +1,295 @@
+{
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "yaml",
+        "value": "name: math\nobject_config:\n  model_name: test-model\n  temperature: 0.5\n  schema:\n    type: object\n    properties:\n      answer:\n        type: string\n    required: [\"answer\"]",
+        "position": {
+          "start": {
+            "line": 1,
+            "column": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 12,
+            "column": 4,
+            "offset": 180
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "System",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "You are a helpful math tutor.",
+                "position": {
+                  "start": {
+                    "line": 15,
+                    "column": 1,
+                    "offset": 191
+                  },
+                  "end": {
+                    "line": 15,
+                    "column": 30,
+                    "offset": 220
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 15,
+                "column": 1,
+                "offset": 191
+              },
+              "end": {
+                "line": 15,
+                "column": 30,
+                "offset": 220
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 14,
+            "column": 1,
+            "offset": 182
+          },
+          "end": {
+            "line": 16,
+            "column": 10,
+            "offset": 230
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "User",
+        "attributes": [],
+        "children": [
+          {
+            "type": "mdxFlowExpression",
+            "value": "props.userMessage",
+            "position": {
+              "start": {
+                "line": 19,
+                "column": 1,
+                "offset": 239
+              },
+              "end": {
+                "line": 19,
+                "column": 20,
+                "offset": 258
+              }
+            },
+            "data": {
+              "estree": {
+                "type": "Program",
+                "start": 240,
+                "end": 257,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "MemberExpression",
+                      "start": 240,
+                      "end": 257,
+                      "object": {
+                        "type": "Identifier",
+                        "start": 240,
+                        "end": 245,
+                        "name": "props",
+                        "loc": {
+                          "start": {
+                            "line": 19,
+                            "column": 1,
+                            "offset": 240
+                          },
+                          "end": {
+                            "line": 19,
+                            "column": 6,
+                            "offset": 245
+                          }
+                        },
+                        "range": [
+                          240,
+                          245
+                        ]
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "start": 246,
+                        "end": 257,
+                        "name": "userMessage",
+                        "loc": {
+                          "start": {
+                            "line": 19,
+                            "column": 7,
+                            "offset": 246
+                          },
+                          "end": {
+                            "line": 19,
+                            "column": 18,
+                            "offset": 257
+                          }
+                        },
+                        "range": [
+                          246,
+                          257
+                        ]
+                      },
+                      "computed": false,
+                      "optional": false,
+                      "loc": {
+                        "start": {
+                          "line": 19,
+                          "column": 1,
+                          "offset": 240
+                        },
+                        "end": {
+                          "line": 19,
+                          "column": 18,
+                          "offset": 257
+                        }
+                      },
+                      "range": [
+                        240,
+                        257
+                      ]
+                    },
+                    "start": 240,
+                    "end": 257,
+                    "loc": {
+                      "start": {
+                        "line": 19,
+                        "column": 1,
+                        "offset": 240
+                      },
+                      "end": {
+                        "line": 19,
+                        "column": 18,
+                        "offset": 257
+                      }
+                    },
+                    "range": [
+                      240,
+                      257
+                    ]
+                  }
+                ],
+                "sourceType": "module",
+                "comments": [],
+                "loc": {
+                  "start": {
+                    "line": 19,
+                    "column": 1,
+                    "offset": 240
+                  },
+                  "end": {
+                    "line": 19,
+                    "column": 18,
+                    "offset": 257
+                  }
+                },
+                "range": [
+                  240,
+                  257
+                ]
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 18,
+            "column": 1,
+            "offset": 232
+          },
+          "end": {
+            "line": 20,
+            "column": 8,
+            "offset": 266
+          }
+        }
+      },
+      {
+        "type": "mdxJsxFlowElement",
+        "name": "Assistant",
+        "attributes": [],
+        "children": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "value": "Here's your answer!",
+                "position": {
+                  "start": {
+                    "line": 23,
+                    "column": 1,
+                    "offset": 280
+                  },
+                  "end": {
+                    "line": 23,
+                    "column": 20,
+                    "offset": 299
+                  }
+                }
+              }
+            ],
+            "position": {
+              "start": {
+                "line": 23,
+                "column": 1,
+                "offset": 280
+              },
+              "end": {
+                "line": 23,
+                "column": 20,
+                "offset": 299
+              }
+            }
+          }
+        ],
+        "position": {
+          "start": {
+            "line": 22,
+            "column": 1,
+            "offset": 268
+          },
+          "end": {
+            "line": 24,
+            "column": 13,
+            "offset": 312
+          }
+        }
+      }
+    ],
+    "position": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 24,
+        "column": 14,
+        "offset": 313
+      }
+    }
+  },
+  "metadata": {
+    "path": "fixtures/math.prompt.mdx",
+    "kind": "object",
+    "name": "math",
+    "builtAt": "2026-03-16T14:58:16.052Z"
+  }
+}

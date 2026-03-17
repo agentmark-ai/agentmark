@@ -507,7 +507,7 @@ export class ClaudeAgentWebhookHandler {
                 const evalNames = item.evals as string[];
                 const evaluators = evalNames
                   .map((name: string) => {
-                    const fn = evalRegistry.get(name);
+                    const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                     return fn ? { name, fn } : undefined;
                   })
                   .filter(Boolean) as Array<{ name: string; fn: (params: { input: unknown; output: unknown; expectedOutput?: string }) => Promise<{ score: number; label: string; reason: string; passed: boolean }> | { score: number; label: string; reason: string; passed: boolean } }>;

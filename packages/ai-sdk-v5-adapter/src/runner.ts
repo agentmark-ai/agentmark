@@ -1,7 +1,8 @@
 import { getFrontMatter } from "@agentmark-ai/templatedx";
 import type { Ast } from "@agentmark-ai/templatedx";
-import type { AgentMark } from "@agentmark-ai/prompt-core";
+import type { AgentMark, PromptShape } from "@agentmark-ai/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
+import type { Tool } from "ai";
 import {
   generateObject,
   generateText,
@@ -37,9 +38,11 @@ function extractErrorMessage(error: unknown): string {
   return String(error);
 }
 
-export class VercelAdapterWebhookHandler {
+export class VercelAdapterWebhookHandler<
+  T extends PromptShape<T> = PromptShape<Record<string, never>>
+> {
   constructor(
-    private readonly client: AgentMark<any, VercelAIAdapter<any, any>>
+    private readonly client: AgentMark<T, VercelAIAdapter<T, Record<string, Tool>>>
   ) {}
 
   async runPrompt(
@@ -423,7 +426,7 @@ export class VercelAdapterWebhookHandler {
               const evalNames = item.evals;
               const evaluators = evalNames
                 .map((name: string) => {
-                  const fn = evalRegistry.get(name);
+                  const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                   return fn ? { name, fn } : undefined;
                 })
                 .filter(Boolean) as Array<{ name: string; fn: any }>;
@@ -545,7 +548,7 @@ export class VercelAdapterWebhookHandler {
             ) {
               const evaluators = item.evals
                 .map((name: string) => {
-                  const fn = evalRegistry.get(name);
+                  const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                   return fn ? { name, fn } : undefined;
                 })
                 .filter(Boolean) as Array<{ name: string; fn: any }>;

@@ -6,7 +6,7 @@ import pytest
 
 from agentmark.prompt_core.mcp import (
     interpolate_env_in_object,
-    normalize_tools_map,
+    normalize_tools_list,
     parse_mcp_uri,
 )
 
@@ -115,54 +115,40 @@ class TestInterpolateEnvInObject:
         assert result == input_obj
 
 
-class TestNormalizeToolsMap:
-    """Tests for normalize_tools_map."""
+class TestNormalizeToolsList:
+    """Tests for normalize_tools_list."""
 
     def test_empty_input(self) -> None:
         """Test with empty/None input."""
-        assert normalize_tools_map(None) == []
-        assert normalize_tools_map({}) == []
+        assert normalize_tools_list(None) == []
+        assert normalize_tools_list([]) == []
 
     def test_mcp_uri_string(self) -> None:
         """Test with MCP URI string."""
-        tools = {"search": "mcp://server/search"}
-        result = normalize_tools_map(tools)
-        assert result == [{"alias": "search", "kind": "mcp", "value": "mcp://server/search"}]
+        tools = ["mcp://server/search"]
+        result = normalize_tools_list(tools)
+        assert result == [{"name": "mcp://server/search", "kind": "mcp"}]
 
-    def test_inline_tool_definition(self) -> None:
-        """Test with inline tool definition."""
-        tools = {
-            "custom": {
-                "description": "A custom tool",
-                "parameters": {"type": "object"},
-            }
-        }
-        result = normalize_tools_map(tools)
-        assert len(result) == 1
-        assert result[0]["alias"] == "custom"
-        assert result[0]["kind"] == "inline"
-        assert result[0]["value"]["description"] == "A custom tool"
+    def test_plain_tool_name(self) -> None:
+        """Test with plain tool name string."""
+        tools = ["search"]
+        result = normalize_tools_list(tools)
+        assert result == [{"name": "search", "kind": "tool"}]
 
     def test_mixed_tools(self) -> None:
         """Test with mixed tool types."""
-        tools = {
-            "search": "mcp://server/search",
-            "custom": {
-                "description": "A custom tool",
-                "parameters": {"type": "object"},
-            },
-        }
-        result = normalize_tools_map(tools)
+        tools = ["mcp://server/search", "custom"]
+        result = normalize_tools_list(tools)
         assert len(result) == 2
 
-        mcp_tool = next(t for t in result if t["alias"] == "search")
-        assert mcp_tool["kind"] == "mcp"
+        mcp_tool = next(t for t in result if t["kind"] == "mcp")
+        assert mcp_tool["name"] == "mcp://server/search"
 
-        inline_tool = next(t for t in result if t["alias"] == "custom")
-        assert inline_tool["kind"] == "inline"
+        plain_tool = next(t for t in result if t["kind"] == "tool")
+        assert plain_tool["name"] == "custom"
 
     def test_invalid_tool_entry(self) -> None:
-        """Test with invalid tool entry."""
-        tools = {"bad": {"invalid": "structure"}}
-        with pytest.raises(ValueError, match="Invalid tool entry"):
-            normalize_tools_map(tools)  # type: ignore[arg-type]
+        """Test with invalid tool entry (non-string)."""
+        tools = [42]  # type: ignore[list-item]
+        with pytest.raises(ValueError, match="expected string"):
+            normalize_tools_list(tools)

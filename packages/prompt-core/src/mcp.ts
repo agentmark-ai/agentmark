@@ -1,14 +1,8 @@
-export type ToolJsonSchema = Record<string, any>;
-
-export type InlineToolDefinition = {
-  description: string;
-  parameters: ToolJsonSchema;
-};
-
 export type NormalizedTool = {
-  alias: string;
-  kind: "mcp" | "inline";
-  value: string | InlineToolDefinition;
+  name: string;
+  kind: "mcp" | "plain";
+  server?: string;
+  tool?: string;
 };
 
 export type McpUrlServerConfig = {
@@ -93,27 +87,22 @@ export function interpolateEnvInObject<T>(
   return visit(input) as T;
 }
 
-export function normalizeToolsMap(
-  tools: Record<string, string | InlineToolDefinition>
+export function normalizeToolsList(
+  tools: string[]
 ): NormalizedTool[] {
   const result: NormalizedTool[] = [];
-  for (const [alias, value] of Object.entries(tools ?? {})) {
-    if (typeof value === "string") {
-      result.push({ alias, kind: "mcp", value });
-      continue;
+  for (const entry of tools ?? []) {
+    if (typeof entry !== "string") {
+      throw new Error(
+        `Invalid tool entry: expected a string (tool name or MCP URI), got ${typeof entry}`
+      );
     }
-    if (
-      value &&
-      typeof value === "object" &&
-      typeof value.description === "string" &&
-      value.parameters
-    ) {
-      result.push({ alias, kind: "inline", value });
-      continue;
+    if (entry.startsWith("mcp://")) {
+      const { server, tool } = parseMcpUri(entry);
+      result.push({ name: entry, kind: "mcp", server, tool });
+    } else {
+      result.push({ name: entry, kind: "plain" });
     }
-    throw new Error(
-      `Invalid tool entry for alias '${alias}': expected MCP URI string or inline tool definition`
-    );
   }
   return result;
 }

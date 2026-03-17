@@ -3,7 +3,7 @@
   "children": [
     {
       "type": "yaml",
-      "value": "name: mcp-tools\ntext_config:\n  model_name: test-model\n  tools:\n    search: mcp://server-1/web-search\n    sum:\n      description: Add two numbers\n      parameters:\n        type: object\n        properties:\n          a:\n            type: integer\n          b:\n            type: integer\n        required:\n          - a\n          - b"
+      "value": "name: mcp-tools\ntext_config:\n  model_name: test-model\n  tools:\n    - mcp://server-1/web-search\n    - sum"
     },
     {
       "type": "mdxJsxFlowElement",

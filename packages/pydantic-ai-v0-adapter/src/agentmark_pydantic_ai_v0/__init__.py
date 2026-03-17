@@ -32,7 +32,7 @@ MCP (Model Context Protocol) Example:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from agentmark.prompt_core import AgentMark, EvalRegistry
 
@@ -47,19 +47,19 @@ from .runner import (
     stream_text_prompt,
 )
 from .server import create_webhook_server
-from .tool_registry import PydanticAIToolRegistry
 from .types import (
     AdaptOptions,
-    AsyncToolFunction,
     ModelFunctionCreator,
     PydanticAIObjectParams,
     PydanticAITextParams,
-    RegisteredTool,
-    ToolFunction,
 )
 from .webhook import PydanticAIWebhookHandler
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from pydantic_ai import Tool
+
     from agentmark.prompt_core.types import Loader
 
 
@@ -70,17 +70,13 @@ __all__ = [
     "PydanticAIAdapter",
     # Registries
     "PydanticAIModelRegistry",
-    "PydanticAIToolRegistry",
     "McpServerRegistry",
     "create_default_model_registry",
     # Types
     "PydanticAITextParams",
     "PydanticAIObjectParams",
     "ModelFunctionCreator",
-    "RegisteredTool",
     "AdaptOptions",
-    "ToolFunction",
-    "AsyncToolFunction",
     # Runner utilities
     "run_text_prompt",
     "run_object_prompt",
@@ -95,7 +91,7 @@ __all__ = [
 
 def create_pydantic_ai_client(
     model_registry: PydanticAIModelRegistry | None = None,
-    tool_registry: PydanticAIToolRegistry | None = None,
+    tools: list[Tool[Any] | Callable[..., Any]] | None = None,
     mcp_registry: McpServerRegistry | None = None,
     eval_registry: EvalRegistry | None = None,
     loader: Loader | None = None,
@@ -108,7 +104,9 @@ def create_pydantic_ai_client(
     Args:
         model_registry: Registry mapping model names to Pydantic AI models.
             If None, uses create_default_model_registry().
-        tool_registry: Optional registry for tool execution functions.
+        tools: Optional list of native pydantic-ai Tool objects or callables.
+            These are filtered at adapt time by matching names from the MDX
+            config's tools list.
         mcp_registry: Optional MCP server registry for MCP tool resolution.
         eval_registry: Optional registry for evaluation functions.
         loader: Optional loader for loading prompts from paths.
@@ -125,10 +123,10 @@ def create_pydantic_ai_client(
         registry.register_models("my-model", lambda n, _: f"openai:{n}")
         client = create_pydantic_ai_client(model_registry=registry)
 
-        # With tools
-        tool_registry = PydanticAIToolRegistry()
-        tool_registry.register("search", lambda args, ctx: search_web(args["query"]))
-        client = create_pydantic_ai_client(tool_registry=tool_registry)
+        # With native tools
+        def search(query: str) -> str:
+            return search_web(query)
+        client = create_pydantic_ai_client(tools=[search])
 
         # With MCP servers
         mcp_registry = McpServerRegistry()
@@ -138,9 +136,9 @@ def create_pydantic_ai_client(
         # Full example
         client = create_pydantic_ai_client(
             model_registry=create_default_model_registry(),
-            tool_registry=tool_registry,
+            tools=[search],
             mcp_registry=mcp_registry,
-            eval_registry=EvalRegistry(),
+            eval_registry={},
         )
     """
     if model_registry is None:
@@ -148,7 +146,7 @@ def create_pydantic_ai_client(
 
     adapter = PydanticAIAdapter(
         model_registry=model_registry,
-        tool_registry=tool_registry,
+        tools=tools,
         mcp_registry=mcp_registry,
     )
 

@@ -152,7 +152,9 @@ describe('init', () => {
       // Check imports
       expect(content).toContain('@agentmark-ai/claude-agent-sdk-adapter');
       expect(content).toContain('ClaudeAgentModelRegistry');
-      expect(content).toContain('ClaudeAgentToolRegistry');
+
+      // Tool registry has been removed — tools are no longer imported as a registry class
+      expect(content).not.toContain('ClaudeAgentToolRegistry');
 
       // Should NOT have @ai-sdk provider import
       expect(content).not.toContain("from '@ai-sdk/anthropic'");
@@ -190,7 +192,6 @@ describe('init', () => {
       expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-adapter');
       expect(config.dependencies).toContain('@anthropic-ai/claude-agent-sdk@^0.1.0');
       expect(config.classes.modelRegistry).toBe('ClaudeAgentModelRegistry');
-      expect(config.classes.toolRegistry).toBe('ClaudeAgentToolRegistry');
       expect(config.classes.webhookHandler).toBe('ClaudeAgentWebhookHandler');
     });
 

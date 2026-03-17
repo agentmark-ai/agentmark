@@ -27,19 +27,11 @@ McpServerConfig = McpUrlServerConfig | McpStdioServerConfig
 McpServers = dict[str, McpServerConfig]
 
 
-class InlineToolDefinition(TypedDict):
-    """Inline tool definition."""
-
-    description: str
-    parameters: dict[str, Any]
-
-
 class NormalizedTool(TypedDict):
     """Normalized tool entry."""
 
-    alias: str
-    kind: str  # "mcp" | "inline"
-    value: str | InlineToolDefinition
+    name: str
+    kind: str  # "mcp" | "tool"
 
 
 def parse_mcp_uri(uri: str) -> dict[str, str]:
@@ -111,39 +103,30 @@ def interpolate_env_in_object(input_obj: Any, strict: bool = True) -> Any:
     return visit(input_obj)
 
 
-def normalize_tools_map(
-    tools: dict[str, str | InlineToolDefinition] | None,
+def normalize_tools_list(
+    tools: list[str] | None,
 ) -> list[NormalizedTool]:
-    """Normalize a tools map to a list of NormalizedTool.
+    """Normalize a tools list to a list of NormalizedTool.
 
     Args:
-        tools: Dict mapping alias to MCP URI string or inline tool definition
+        tools: List of tool name strings or MCP URI strings.
 
     Returns:
-        List of normalized tool entries
+        List of normalized tool entries.
 
     Raises:
-        ValueError: If tool entry is invalid
+        ValueError: If tool entry is not a string.
     """
     result: list[NormalizedTool] = []
 
-    for alias, value in (tools or {}).items():
-        if isinstance(value, str):
-            result.append({"alias": alias, "kind": "mcp", "value": value})
-        elif (
-            isinstance(value, dict)
-            and isinstance(value.get("description"), str)
-            and value.get("parameters") is not None
-        ):
-            inline_def = InlineToolDefinition(
-                description=value["description"],
-                parameters=value["parameters"],
-            )
-            result.append({"alias": alias, "kind": "inline", "value": inline_def})
-        else:
+    for entry in tools or []:
+        if not isinstance(entry, str):
             raise ValueError(
-                f"Invalid tool entry for alias '{alias}': "
-                "expected MCP URI string or inline tool definition"
+                f"Invalid tool entry: expected string, got {type(entry).__name__}"
             )
+        if entry.startswith("mcp://"):
+            result.append({"name": entry, "kind": "mcp"})
+        else:
+            result.append({"name": entry, "kind": "tool"})
 
     return result
