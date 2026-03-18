@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-13T00:45:55.908Z",
+  "generatedAt": "2026-03-18T00:48:04.616Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-13T00:45:55.908Z",
+      "fetchedAt": "2026-03-18T00:48:04.616Z",
       "modelCount": 1143
     },
     "openrouter": {
-      "fetchedAt": "2026-03-13T00:45:55.908Z",
-      "modelCount": 120
+      "fetchedAt": "2026-03-18T00:48:04.616Z",
+      "modelCount": 122
     }
   },
   "models": {
@@ -2919,9 +2919,7 @@
         "pdfInput": true
       },
       "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty"
+        "max_tokens"
       ]
     },
     "gpt-5.3-codex": {
@@ -3027,9 +3025,7 @@
         "pdfInput": true
       },
       "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty"
+        "max_tokens"
       ]
     },
     "gpt-5.4-2026-03-05": {
@@ -3081,9 +3077,7 @@
         "webSearch": true
       },
       "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty"
+        "max_tokens"
       ]
     },
     "gpt-5.4-pro-2026-03-05": {
@@ -9052,8 +9046,7 @@
       "context": {
         "maxInputTokens": 1000000,
         "maxOutputTokens": 8192
-      },
-      "deprecationDate": null
+      }
     },
     "gpt-3.5-turbo-1106": {
       "provider": "openai",
@@ -18803,6 +18796,50 @@
         "promptCaching": true,
         "reasoning": true,
         "pdfInput": true
+      }
+    },
+    "gpt-5.4-nano": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-5.4 Nano",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 2e-7,
+        "outputCostPerToken": 0.00000125
+      },
+      "context": {
+        "maxInputTokens": 400000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "gpt-5.4-mini": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-5.4 Mini",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 7.5e-7,
+        "outputCostPerToken": 0.0000045
+      },
+      "context": {
+        "maxInputTokens": 400000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
       }
     },
     "claude-sonnet-4.6": {
