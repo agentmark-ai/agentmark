@@ -162,6 +162,10 @@ const main = async () => {
   }
   config.builtInModels = usedModels;
 
+  if (deploymentMode === "cloud") {
+    config.handler = "handler.ts";
+  }
+
   // Generate agentmark.json based on conflict resolution
   const agentmarkJsonPath = path.join(targetPath, "agentmark.json");
   const agentmarkJsonResolution = resolutions.find((r) => r.path === "agentmark.json");

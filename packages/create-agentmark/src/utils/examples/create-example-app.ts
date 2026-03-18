@@ -197,6 +197,10 @@ export const createExampleApp = async (
       } else {
         envVars[apiKeyEnvVar] = adapter === 'claude-agent-sdk' ? 'your-anthropic-api-key' : 'your-openai-api-key';
       }
+      if (deploymentMode === 'cloud') {
+        envVars['AGENTMARK_API_KEY'] = 'your_agentmark_api_key';
+        envVars['AGENTMARK_APP_ID'] = 'your_agentmark_app_id';
+      }
       const result = appendEnv(targetPath, envVars);
       if (result.added.length > 0) {
         console.log(`✅ Added to .env: ${result.added.join(', ')}`);
@@ -205,7 +209,7 @@ export const createExampleApp = async (
         console.log(`⏭️  Skipped existing .env vars: ${result.skipped.join(', ')}`);
       }
     } else {
-      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey, adapter));
+      fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey, adapter, deploymentMode));
     }
 
     // Create or append to .gitignore
@@ -258,6 +262,63 @@ export const createExampleApp = async (
       console.log("You can generate types later by running: npx agentmark generate-types --root-dir agentmark");
       // Create a placeholder types file
       fs.writeFileSync(`${targetPath}/agentmark.types.ts`, `// Auto-generated types from AgentMark\n// Run 'npx agentmark generate-types --root-dir agentmark' to generate types\nexport default interface AgentmarkTypes {}\n`);
+    }
+
+    // Create handler.ts for cloud deployments (managed code execution)
+    if (deploymentMode === "cloud") {
+      const handlerAdapterConfig = getAdapterConfig(adapter, modelProvider);
+      const { webhookHandler: handlerClass } = handlerAdapterConfig.classes;
+
+      const handlerContent = `import { ${handlerClass} } from '${handlerAdapterConfig.package}/runner';
+import { AgentMarkSDK } from '@agentmark-ai/sdk';
+import { client } from './agentmark.client';
+
+// Initialize tracing — sends traces to AgentMark Cloud
+const sdk = new AgentMarkSDK({
+  apiKey: process.env.AGENTMARK_API_KEY ?? '',
+  appId: process.env.AGENTMARK_APP_ID ?? '',
+  baseUrl: process.env.AGENTMARK_BASE_URL,
+});
+sdk.initTracing({ disableBatch: true });
+
+const adapter = new ${handlerClass}(client as any);
+
+export default async function handler(request: {
+  type: 'prompt-run' | 'dataset-run';
+  data: {
+    ast: unknown;
+    customProps?: Record<string, unknown>;
+    options?: { shouldStream?: boolean };
+    experimentId?: string;
+    datasetPath?: string;
+  };
+}) {
+  if (request.type === 'prompt-run') {
+    return adapter.runPrompt(request.data.ast, {
+      shouldStream: request.data.options?.shouldStream,
+      customProps: request.data.customProps,
+    });
+  }
+
+  if (request.type === 'dataset-run') {
+    return adapter.runExperiment(
+      request.data.ast,
+      request.data.experimentId ?? '',
+      request.data.datasetPath,
+    );
+  }
+
+  throw new Error(\`Unknown request type: \${request.type}\`);
+}
+`;
+
+      const handlerPath = path.join(targetPath, 'handler.ts');
+      if (fs.existsSync(handlerPath)) {
+        console.log("⏭️  Skipped handler.ts (already exists - preserving customizations)");
+      } else {
+        fs.writeFileSync(handlerPath, handlerContent);
+        console.log(`✅ Created handler.ts for cloud deployment`);
+      }
     }
 
     // Create dev-entry.ts at project root (version controlled)
