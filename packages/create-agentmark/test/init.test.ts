@@ -296,9 +296,10 @@ describe('init', () => {
       expect(content).toContain("await import('./agentmark.client.js')");
       expect(content).not.toContain("await import('../agentmark.client.js')");
 
-      // Check .env has cloud deployment instructions and API key placeholder
+      // Check .env has cloud deployment env vars and API key placeholder
       const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
-      expect(envContent).toContain('AGENTMARK_BASE_URL');
+      expect(envContent).toContain('AGENTMARK_API_KEY');
+      expect(envContent).toContain('AGENTMARK_APP_ID');
       expect(envContent).toContain('OPENAI_API_KEY');
 
       // Check .gitignore does NOT contain .agentmark/ (dev-entry.ts is now version controlled at root)
