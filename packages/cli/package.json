@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/cli",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {
@@ -26,7 +26,7 @@
   "dependencies": {
     "@agentmark-ai/connect": "0.1.0",
     "@agentmark-ai/model-registry": "0.2.0",
-    "@agentmark-ai/prompt-core": "0.2.0",
+    "@agentmark-ai/prompt-core": "0.3.0",
     "@agentmark-ai/shared-utils": "0.3.0",
     "@agentmark-ai/templatedx": "0.2.0",
     "@emotion/cache": "^11.14.0",
