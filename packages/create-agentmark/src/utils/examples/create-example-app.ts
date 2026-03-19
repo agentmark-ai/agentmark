@@ -286,7 +286,7 @@ const adapter = new ${handlerClass}(client as any);
 export default async function handler(request: {
   type: 'prompt-run' | 'dataset-run';
   data: {
-    ast: unknown;
+    ast: any;
     customProps?: Record<string, unknown>;
     options?: { shouldStream?: boolean };
     experimentId?: string;

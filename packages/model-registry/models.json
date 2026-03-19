@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-18T00:48:04.616Z",
+  "generatedAt": "2026-03-19T00:48:43.575Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-18T00:48:04.616Z",
-      "modelCount": 1143
+      "fetchedAt": "2026-03-19T00:48:43.575Z",
+      "modelCount": 1146
     },
     "openrouter": {
-      "fetchedAt": "2026-03-18T00:48:04.616Z",
+      "fetchedAt": "2026-03-19T00:48:43.575Z",
       "modelCount": 122
     }
   },
@@ -15330,6 +15330,68 @@
         "webSearch": true
       }
     },
+    "grok-4.20-multi-agent-beta-0309": {
+      "provider": "xai",
+      "displayName": "Grok 4.20 Multi Agent Beta 0309",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006,
+        "cacheReadCostPerToken": 2e-7
+      },
+      "context": {
+        "maxInputTokens": 2000000,
+        "maxOutputTokens": 2000000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "reasoning": true,
+        "webSearch": true
+      }
+    },
+    "grok-4.20-beta-0309-reasoning": {
+      "provider": "xai",
+      "displayName": "Grok 4.20 Beta 0309 Reasoning",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006,
+        "cacheReadCostPerToken": 2e-7
+      },
+      "context": {
+        "maxInputTokens": 2000000,
+        "maxOutputTokens": 2000000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "reasoning": true,
+        "webSearch": true
+      }
+    },
+    "grok-4.20-beta-0309-non-reasoning": {
+      "provider": "xai",
+      "displayName": "Grok 4.20 Beta 0309 Non Reasoning",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006,
+        "cacheReadCostPerToken": 2e-7
+      },
+      "context": {
+        "maxInputTokens": 2000000,
+        "maxOutputTokens": 2000000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "webSearch": true
+      }
+    },
     "grok-beta": {
       "provider": "xai",
       "displayName": "Grok Beta",
@@ -19661,7 +19723,6 @@
       },
       "capabilities": {
         "vision": true,
-        "functionCalling": true,
         "structuredOutput": true
       }
     },
@@ -19679,16 +19740,15 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 3e-8,
-        "outputCostPerToken": 1.1e-7
+        "inputCostPerToken": 8e-8,
+        "outputCostPerToken": 1.6e-7
       },
       "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 65536
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 16384
       },
       "capabilities": {
         "vision": true,
-        "functionCalling": true,
         "structuredOutput": true
       }
     },
@@ -19770,7 +19830,6 @@
         "max_tokens",
         "presence_penalty",
         "temperature",
-        "top_k",
         "top_p"
       ],
       "pricing": {

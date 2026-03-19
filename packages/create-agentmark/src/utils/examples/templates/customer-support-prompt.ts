@@ -5,15 +5,7 @@ text_config:
   model_name: ${model}
   max_calls: 2
   tools:
-    search_knowledgebase:
-      description: Search the company knowledgebase for information about shipping, warranty, and returns policies.
-      parameters:
-        type: object
-        properties:
-          query:
-            type: string
-            description: The search query to find relevant information
-        required: [query]
+    - search_knowledgebase
 test_settings:
   dataset: customer-query.jsonl
   props:
