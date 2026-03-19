@@ -23,6 +23,9 @@
     "dist",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "build:package": "yarn build",
