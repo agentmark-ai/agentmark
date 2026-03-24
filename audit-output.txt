@@ -1,3 +1,16 @@
+├─ [38;5;166m@hono/[39m[38;5;173mnode-server[39m
+│  ├─ ID: [38;5;220m1114170[39m
+│  ├─ Issue: @hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-wc8c-qw6v-h7f6[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<1.19.10[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.19.9[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
 ├─ [38;5;166m@types/[39m[38;5;173mdiff[39m
 │  ├─ ID: [38;5;111m@types/diff (deprecation)[39m
 │  ├─ Issue: This is a stub types definition. diff provides its own type definitions, so you do not need this installed.
@@ -37,6 +50,46 @@
 │  └─ Dependents
 │     └─ [38;5;173meslint[39m[38;5;111m@[39m[38;5;111mnpm:9.39.2 [f9974][39m
 │
+├─ [38;5;173mexpress-rate-limit[39m
+│  ├─ ID: [38;5;220m1114194[39m
+│  ├─ Issue: express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-46wh-pxpv-q5gq[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=8.2.0 <8.2.2[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m8.2.1[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
+├─ [38;5;173mflatted[39m
+│  ├─ ID: [38;5;220m1114526[39m
+│  ├─ Issue: flatted vulnerable to unbounded recursion DoS in parse() revive phase
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-25h7-pfq9-p65f[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<3.4.0[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m3.3.3[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mflat-cache[39m[38;5;111m@[39m[38;5;111mnpm:4.0.1[39m
+│
+├─ [38;5;173mflatted[39m
+│  ├─ ID: [38;5;220m1114934[39m
+│  ├─ Issue: Prototype Pollution via parse() in NodeJS flatted
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-rf6f-7fwh-wjgh[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<=3.4.1[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m3.3.3[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mflat-cache[39m[38;5;111m@[39m[38;5;111mnpm:4.0.1[39m
+│
 ├─ [38;5;173mglob[39m
 │  ├─ ID: [38;5;111mglob (deprecation)[39m
 │  ├─ Issue: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
@@ -49,14 +102,79 @@
 │  └─ Dependents
 │     └─ [38;5;173mshelljs[39m[38;5;111m@[39m[38;5;111mnpm:0.8.5[39m
 │
-└─ [38;5;173mprebuild-install[39m
-   ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
-   ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
-   ├─ Severity: moderate
-   ├─ Vulnerable Versions: [38;5;37m7.1.3[39m
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1114341[39m
+│  ├─ Issue: Hono vulnerable to Prototype Pollution possible through __proto__ key allowed in parseBody({ dot: true })
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-v8w9-8mx6-g223[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<4.12.7[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.12.4[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
+│
+├─ [38;5;173mnext[39m
+│  ├─ ID: [38;5;220m1114897[39m
+│  ├─ Issue: Next.js: HTTP request smuggling in rewrites
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-ggv3-7p47-pfv8[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=9.5.0 <15.5.13[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m15.5.10[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
+│
+├─ [38;5;173mnext[39m
+│  ├─ ID: [38;5;220m1114940[39m
+│  ├─ Issue: Next.js: Unbounded next/image disk cache growth can exhaust storage
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-3x4c-7xq6-9pq8[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=10.0.0 <15.5.14[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m15.5.10[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
+│
+├─ [38;5;173mprebuild-install[39m
+│  ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
+│  ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m7.1.3[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.1.3[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
+│
+├─ [38;5;173mtar[39m
+│  ├─ ID: [38;5;220m1114200[39m
+│  ├─ Issue: tar has Hardlink Path Traversal via Drive-Relative Linkpath
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-qffp-2rhf-9h96[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<=7.5.9[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.5.9[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m
+│
+└─ [38;5;173mtar[39m
+   ├─ ID: [38;5;220m1114302[39m
+   ├─ Issue: node-tar Symlink Path Traversal via Drive-Relative Linkpath
+   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9ppj-qmqm-q256[39m
+   ├─ Severity: high
+   ├─ Vulnerable Versions: [38;5;37m<=7.5.10[39m
    │ 
    ├─ Tree Versions
-   │  └─ [38;5;111m7.1.3[39m
+   │  └─ [38;5;111m7.5.9[39m
    │ 
    └─ Dependents
-      └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
+      └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m

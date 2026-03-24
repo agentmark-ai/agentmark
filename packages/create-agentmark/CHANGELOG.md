@@ -1,3 +1,9 @@
+## 0.10.1 (2026-03-24)
+
+### 🩹 Fixes
+
+- Update example templates: simplify tool definitions to string array format, fix ast type from unknown to any. ([#526](https://github.com/agentmark-ai/agentmark/pull/526))
+
 ## 0.10.0 (2026-03-18)
 
 ### 🚀 Features
