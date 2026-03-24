@@ -48,7 +48,7 @@
     "express-rate-limit": "^8.2.1",
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
-    "next": "15.5.10",
+    "next": "15.5.14",
     "next-intl": "^4.4.0",
     "open": "^11.0.0",
     "prompts": "^2.4.2",
