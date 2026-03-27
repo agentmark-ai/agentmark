@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ai-sdk-v5-adapter",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -36,8 +36,8 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "0.3.0",
-    "@agentmark-ai/sdk": "1.0.7",
+    "@agentmark-ai/prompt-core": "0.4.0",
+    "@agentmark-ai/sdk": "1.0.8",
     "@agentmark-ai/templatedx": "*",
     "@ai-sdk/mcp": "^0.0.8",
     "@ai-sdk/openai": "^2.0.0",

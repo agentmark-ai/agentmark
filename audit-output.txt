@@ -50,6 +50,45 @@
 │  └─ Dependents
 │     └─ [38;5;173meslint[39m[38;5;111m@[39m[38;5;111mnpm:9.39.2 [f9974][39m
 │
+├─ [38;5;173mbrace-expansion[39m
+│  ├─ ID: [38;5;220m1115496[39m
+│  ├─ Issue: brace-expansion: Zero-step sequence causes process hang and memory exhaustion
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-f886-m6hf-6m8v[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<1.1.13[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.1.12[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mminimatch[39m[38;5;111m@[39m[38;5;111mnpm:3.1.5[39m
+│
+├─ [38;5;173mbrace-expansion[39m
+│  ├─ ID: [38;5;220m1115497[39m
+│  ├─ Issue: brace-expansion: Zero-step sequence causes process hang and memory exhaustion
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-f886-m6hf-6m8v[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=2.0.0 <2.0.3[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m2.0.2[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mminimatch[39m[38;5;111m@[39m[38;5;111mnpm:9.0.9[39m
+│
+├─ [38;5;173mbrace-expansion[39m
+│  ├─ ID: [38;5;220m1115499[39m
+│  ├─ Issue: brace-expansion: Zero-step sequence causes process hang and memory exhaustion
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-f886-m6hf-6m8v[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <5.0.5[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m5.0.4[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mminimatch[39m[38;5;111m@[39m[38;5;111mnpm:9.0.7[39m
+│
 ├─ [38;5;173mexpress-rate-limit[39m
 │  ├─ ID: [38;5;220m1114194[39m
 │  ├─ Issue: express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network
@@ -78,7 +117,7 @@
 │     └─ [38;5;173mflat-cache[39m[38;5;111m@[39m[38;5;111mnpm:4.0.1[39m
 │
 ├─ [38;5;173mflatted[39m
-│  ├─ ID: [38;5;220m1114934[39m
+│  ├─ ID: [38;5;220m1115357[39m
 │  ├─ Issue: Prototype Pollution via parse() in NodeJS flatted
 │  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-rf6f-7fwh-wjgh[39m
 │  ├─ Severity: high
@@ -101,6 +140,84 @@
 │  │ 
 │  └─ Dependents
 │     └─ [38;5;173mshelljs[39m[38;5;111m@[39m[38;5;111mnpm:0.8.5[39m
+│
+├─ [38;5;173mhandlebars[39m
+│  ├─ ID: [38;5;220m1115469[39m
+│  ├─ Issue: Handlebars.js has Prototype Pollution Leading to XSS through Partial Template Injection
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-2qvq-rjwj-gvw9[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <4.7.9[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.7.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mts-jest[39m[38;5;111m@[39m[38;5;111mnpm:29.4.6 [37ca5][39m
+│
+├─ [38;5;173mhandlebars[39m
+│  ├─ ID: [38;5;220m1115514[39m
+│  ├─ Issue: Handlebars.js has JavaScript Injection in CLI Precompiler via Unescaped Names and Options
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-xjpj-3mr7-gcpf[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <=4.7.8[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.7.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mts-jest[39m[38;5;111m@[39m[38;5;111mnpm:29.4.6 [37ca5][39m
+│
+├─ [38;5;173mhandlebars[39m
+│  ├─ ID: [38;5;220m1115515[39m
+│  ├─ Issue: Handlebars.js has JavaScript Injection via AST Type Confusion when passing an object as dynamic partial
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-xhpv-hc6g-r9c6[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <=4.7.8[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.7.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mts-jest[39m[38;5;111m@[39m[38;5;111mnpm:29.4.6 [37ca5][39m
+│
+├─ [38;5;173mhandlebars[39m
+│  ├─ ID: [38;5;220m1115516[39m
+│  ├─ Issue: Handlebars.js has Denial of Service via Malformed Decorator Syntax in Template Compilation
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9cx6-37pm-9jff[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <=4.7.8[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.7.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mts-jest[39m[38;5;111m@[39m[38;5;111mnpm:29.4.6 [37ca5][39m
+│
+├─ [38;5;173mhandlebars[39m
+│  ├─ ID: [38;5;220m1115517[39m
+│  ├─ Issue: Handlebars.js has JavaScript Injection via AST Type Confusion by tampering @partial-block
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-3mfm-83xf-c92r[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <=4.7.8[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.7.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mts-jest[39m[38;5;111m@[39m[38;5;111mnpm:29.4.6 [37ca5][39m
+│
+├─ [38;5;173mhandlebars[39m
+│  ├─ ID: [38;5;220m1115518[39m
+│  ├─ Issue: Handlebars.js has JavaScript Injection via AST Type Confusion
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-2w6w-674q-4c4q[39m
+│  ├─ Severity: critical
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <=4.7.8[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.7.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mts-jest[39m[38;5;111m@[39m[38;5;111mnpm:29.4.6 [37ca5][39m
 │
 ├─ [38;5;173mhono[39m
 │  ├─ ID: [38;5;220m1114341[39m
@@ -141,6 +258,62 @@
 │  └─ Dependents
 │     └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
 │
+├─ [38;5;173mpicomatch[39m
+│  ├─ ID: [38;5;220m1115490[39m
+│  ├─ Issue: Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-3v7f-55p6-f55p[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<2.3.2[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m2.3.1[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mmicromatch[39m[38;5;111m@[39m[38;5;111mnpm:4.0.8[39m
+│
+├─ [38;5;173mpicomatch[39m
+│  ├─ ID: [38;5;220m1115492[39m
+│  ├─ Issue: Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-3v7f-55p6-f55p[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <4.0.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  ├─ [38;5;111m4.0.2[39m
+│  │  └─ [38;5;111m4.0.3[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@nx/[39m[38;5;173mjs[39m[38;5;111m@[39m[38;5;111mnpm:20.8.3 [f9974][39m
+│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [7dc72][39m
+│
+├─ [38;5;173mpicomatch[39m
+│  ├─ ID: [38;5;220m1115493[39m
+│  ├─ Issue: Picomatch has a ReDoS vulnerability via extglob quantifiers
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-c2c7-rcm5-vvqj[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<2.3.2[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m2.3.1[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mmicromatch[39m[38;5;111m@[39m[38;5;111mnpm:4.0.8[39m
+│
+├─ [38;5;173mpicomatch[39m
+│  ├─ ID: [38;5;220m1115495[39m
+│  ├─ Issue: Picomatch has a ReDoS vulnerability via extglob quantifiers
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-c2c7-rcm5-vvqj[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <4.0.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  ├─ [38;5;111m4.0.2[39m
+│  │  └─ [38;5;111m4.0.3[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@nx/[39m[38;5;173mjs[39m[38;5;111m@[39m[38;5;111mnpm:20.8.3 [f9974][39m
+│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [7dc72][39m
+│
 ├─ [38;5;173mprebuild-install[39m
 │  ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
 │  ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
@@ -166,15 +339,41 @@
 │  └─ Dependents
 │     └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m
 │
-└─ [38;5;173mtar[39m
-   ├─ ID: [38;5;220m1114302[39m
-   ├─ Issue: node-tar Symlink Path Traversal via Drive-Relative Linkpath
-   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9ppj-qmqm-q256[39m
-   ├─ Severity: high
-   ├─ Vulnerable Versions: [38;5;37m<=7.5.10[39m
+├─ [38;5;173mtar[39m
+│  ├─ ID: [38;5;220m1114302[39m
+│  ├─ Issue: node-tar Symlink Path Traversal via Drive-Relative Linkpath
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-9ppj-qmqm-q256[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<=7.5.10[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.5.9[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m
+│
+├─ [38;5;173myaml[39m
+│  ├─ ID: [38;5;220m1115368[39m
+│  ├─ Issue: yaml is vulnerable to Stack Overflow via deeply nested YAML collections
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-48c2-rrv3-qjmp[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=1.0.0 <1.10.3[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.10.2[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mcosmiconfig[39m[38;5;111m@[39m[38;5;111mnpm:7.1.0[39m
+│
+└─ [38;5;173myaml[39m
+   ├─ ID: [38;5;220m1115369[39m
+   ├─ Issue: yaml is vulnerable to Stack Overflow via deeply nested YAML collections
+   ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-48c2-rrv3-qjmp[39m
+   ├─ Severity: moderate
+   ├─ Vulnerable Versions: [38;5;37m>=2.0.0 <2.8.3[39m
    │ 
    ├─ Tree Versions
-   │  └─ [38;5;111m7.5.9[39m
+   │  └─ [38;5;111m2.8.2[39m
    │ 
    └─ Dependents
-      └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m
+      └─ [38;5;166m@agentmark-ai/[39m[38;5;173mcli[39m[38;5;111m@[39m[38;5;111mworkspace:packages/cli[39m
