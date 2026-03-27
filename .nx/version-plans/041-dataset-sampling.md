@@ -1,0 +1,12 @@
+---
+'@agentmark-ai/prompt-core': minor
+'@agentmark-ai/cli': minor
+'@agentmark-ai/ai-sdk-v4-adapter': minor
+'@agentmark-ai/ai-sdk-v5-adapter': minor
+'@agentmark-ai/claude-agent-sdk-adapter': minor
+'@agentmark-ai/mastra-v0-adapter': minor
+---
+
+Add dataset sampling support: percentage-based sampling with seed reproducibility,
+specific row selection via indices/ranges, and train/test split for experiments.
+New CLI flags: --sample, --rows, --split, --seed on run-experiment command.

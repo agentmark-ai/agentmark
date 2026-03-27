@@ -448,6 +448,7 @@ class ClaudeAgentWebhookHandler:
         prompt_ast: dict[str, Any],
         dataset_run_name: str,
         dataset_path: str | None = None,
+        sampling: dict[str, Any] | None = None,
     ) -> ExperimentResult:
         """Run an experiment against a dataset.
 
@@ -503,6 +504,7 @@ class ClaudeAgentWebhookHandler:
         run_name = dataset_run_name
         prompt_name = frontmatter.get("name")
         is_object_prompt = bool(frontmatter.get("object_config"))
+        sampling_opts = sampling
 
         async def experiment_stream() -> AsyncGenerator[bytes, None]:
             # Emit experiment metadata
@@ -530,6 +532,7 @@ class ClaudeAgentWebhookHandler:
                 # Format with dataset
                 dataset = await prompt.format_with_dataset(
                     dataset_path=resolved_dataset_path,
+                    sampling=sampling_opts,
                     telemetry={"isEnabled": True},
                 )
 

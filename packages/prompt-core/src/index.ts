@@ -9,6 +9,8 @@ export type { AgentMarkOptions } from "./agentmark";
 
 export { TextConfigSchema, ObjectConfigSchema } from "./schemas";
 
+export { applySampling, parseRowSelection, parseSplitSpec, validateSamplingOptions } from './sampling';
+
 export type {
   TextConfig,
   ImageConfig,
@@ -29,6 +31,7 @@ export type {
   DatasetStreamChunk,
   DatasetErrorChunk,
   FormatWithDatasetOptions,
+  SamplingOptions,
 } from "./types";
 
 export type { EvalRegistry } from "./eval-registery";

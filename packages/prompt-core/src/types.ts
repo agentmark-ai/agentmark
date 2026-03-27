@@ -156,9 +156,25 @@ export type DatasetErrorChunk = {
   type: "error";
 }
 
+export type SamplingOptions = {
+  /** Percentage of rows to sample (1-100). Mutually exclusive with rows and split. */
+  sample?: number;
+  /** Specific row indices to select (0-based, sorted, deduplicated). Mutually exclusive with sample and split. */
+  rows?: number[];
+  /** Train/test split configuration. Mutually exclusive with sample and rows. */
+  split?: {
+    portion: 'train' | 'test';
+    percentage: number;
+  };
+  /** Seed for deterministic random sampling/splitting. */
+  seed?: number;
+};
+
 export type FormatWithDatasetOptions = AdaptOptions & {
   /** Override the dataset path specified in the prompt's frontmatter */
   datasetPath?: string;
   /** Format mode: 'ndjson' streams as data arrives (default), 'json' buffers all rows before streaming */
   format?: 'ndjson' | 'json';
+  /** Sampling options to filter dataset rows */
+  sampling?: SamplingOptions;
 }

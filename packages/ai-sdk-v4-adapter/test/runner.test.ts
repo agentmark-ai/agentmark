@@ -297,4 +297,21 @@ describe("VercelAdapterWebhookHandler", () => {
     expect(row.result.expectedOutput.mimeType).toBe("audio/mpeg");
     expect(row.result.actualOutput.mimeType).toBe("audio/mpeg");
   });
+
+  it("passes sampling options through runExperiment and returns only sampled rows", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    // Dataset has 2 rows; { rows: [0] } should return only row 0
+    const { stream } = await runner.runExperiment(ast, "run-sampling", undefined, { rows: [0] });
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
+      const trimmed = line.trim();
+      if (trimmed) rows.push(JSON.parse(trimmed));
+    }
+    expect(rows.length).toBe(1);
+    expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
+  });
 });

@@ -316,5 +316,23 @@ describe("MastraAdapterWebhookHandler", () => {
     });
     expect(res).toMatchObject({ type: "text", result: "TEXT" });
   });
+
+  it("passes sampling options through runExperiment and returns only sampled rows", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    // Dataset has 2 rows; { rows: [0] } should return only row 0
+    const { stream } = await runner.runExperiment(ast, "run-sampling", undefined, { rows: [0] });
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
+      const trimmed = line.trim();
+      if (trimmed) rows.push(JSON.parse(trimmed));
+    }
+    const dsRows = rows.filter((r) => r.type === "dataset");
+    expect(dsRows.length).toBe(1);
+    expect(dsRows[0].result.input.userMessage).toBe("What is 2+2?");
+  });
 });
 
