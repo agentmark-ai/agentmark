@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from ..sampling import SamplingOptions, apply_sampling
 from ..types import (
     AdaptOptions,
     DatasetStream,
@@ -139,6 +140,7 @@ class BasePrompt[C](ABC):
     async def format_with_dataset(
         self,
         dataset_path: str | None = None,
+        sampling: SamplingOptions | None = None,
         **options: Any,
     ) -> DatasetStream:
         """Format the prompt for each row in a dataset.
@@ -190,16 +192,22 @@ class BasePrompt[C](ABC):
         # Get evals from test settings
         evals = self._test_settings.get("evals", []) if self._test_settings else []
 
-        # Process each item and yield formatted results
-        results: list[dict[str, Any]] = []
+        # Buffer all rows so we can apply sampling (and support positional splits)
+        all_rows: list[dict[str, Any]] = []
         reader = dataset_stream.get_reader()
-
         while True:
             read_result = await reader.read()
             if read_result.get("done"):
                 break
+            all_rows.append(read_result.get("value", {}))
 
-            item = read_result.get("value", {})
+        # Apply sampling if options are provided
+        rows = apply_sampling(all_rows, sampling) if sampling else all_rows
+
+        # Process each item and yield formatted results
+        results: list[dict[str, Any]] = []
+
+        for item in rows:
             input_data = item.get("input", {})
             expected_output = item.get("expected_output")
 

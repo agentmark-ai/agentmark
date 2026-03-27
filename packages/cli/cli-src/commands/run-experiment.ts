@@ -189,7 +189,7 @@ function getExperimentConfig(): ExperimentConfig {
   };
 }
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string }) {
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
   const config = getExperimentConfig();
@@ -244,13 +244,28 @@ export default async function runExperiment(filepath: string, options: { skipEva
     );
   }
 
+  // Build sampling options from CLI flags
+  let sampling: Record<string, unknown> | undefined = undefined;
+  if (options.sample !== undefined || options.rows !== undefined || options.split !== undefined) {
+    const { parseRowSelection, parseSplitSpec, validateSamplingOptions } = await import('@agentmark-ai/prompt-core');
+    const opts: { sample?: number; rows?: number[]; split?: { portion: 'train' | 'test'; percentage: number }; seed?: number } = {};
+    if (options.sample !== undefined) opts.sample = options.sample;
+    if (options.rows !== undefined) opts.rows = parseRowSelection(options.rows);
+    if (options.split !== undefined) opts.split = parseSplitSpec(options.split);
+    if (options.seed !== undefined) opts.seed = options.seed;
+    validateSamplingOptions(opts);
+    sampling = opts;
+  } else if (options.seed !== undefined) {
+    sampling = { seed: options.seed };
+  }
+
   // Only show status messages for table format
   if (format === 'table') {
     console.log("Running prompt with dataset...");
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName } });
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(sampling ? { sampling } : {}) } });
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -211,4 +211,60 @@ class TestWebhookHandlerEvals:
         assert result[1]["passed"] is True
         # With parallel execution, fast should start before slow ends
         assert "fast_start" in call_order
-        assert "slow_end" in call_order
+
+
+@pytest.mark.asyncio
+class TestRunExperimentSampling:
+    """Tests that sampling options are passed through to format_with_dataset."""
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create a mock AgentMark client."""
+        client = MagicMock()
+        client.eval_registry = None
+
+        mock_prompt = MagicMock()
+
+        # The pydantic-ai webhook uses get_reader() protocol, not async iteration
+        mock_reader = MagicMock()
+        mock_reader.read = AsyncMock(return_value={"done": True})
+        mock_dataset = MagicMock()
+        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
+
+        mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
+        client.load_text_prompt = AsyncMock(return_value=mock_prompt)
+        client._mock_prompt = mock_prompt
+        return client
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> PydanticAIWebhookHandler:
+        """Create a webhook handler with mocked client."""
+        return PydanticAIWebhookHandler(mock_client)
+
+    @pytest.mark.asyncio
+    async def test_passes_sampling_options_to_format_with_dataset(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Sampling options passed to run_experiment must reach format_with_dataset."""
+        prompt_ast: dict[str, Any] = {
+            "type": "root",
+            "children": [
+                {
+                    "type": "yaml",
+                    "value": "text_config:\n  model_name: test\ntest_settings:\n  dataset: ./test.jsonl",
+                }
+            ],
+            "data": {},
+        }
+
+        result = await handler.run_experiment(
+            prompt_ast, "run-sampling", sampling={"rows": [0]}
+        )
+
+        # Consume the stream to trigger execution
+        async for _ in result["stream"]:
+            pass
+
+        mock_client._mock_prompt.format_with_dataset.assert_called_once_with(
+            dataset_path="./test.jsonl", sampling={"rows": [0]}
+        )

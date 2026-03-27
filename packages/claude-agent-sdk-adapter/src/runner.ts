@@ -347,7 +347,8 @@ export class ClaudeAgentWebhookHandler {
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    datasetPath?: string
+    datasetPath?: string,
+    sampling?: Record<string, unknown>
   ): Promise<WebhookDatasetResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     // Generate unique experiment run ID (similar to AI SDK v5)
@@ -437,6 +438,7 @@ export class ClaudeAgentWebhookHandler {
           const dataset = await prompt.formatWithDataset({
             datasetPath: resolvedDatasetPath,
             telemetry: { isEnabled: true },
+            ...(sampling ? { sampling } : {}),
           });
 
           // Use getReader() to consume the ReadableStream

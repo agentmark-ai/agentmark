@@ -1285,3 +1285,51 @@ class TestRunExperiment:
 
         # But they should be different from each other
         assert run_id_1 != run_id_2
+
+
+@pytest.mark.asyncio
+class TestRunExperimentSampling:
+    """Tests that sampling options are passed through to format_with_dataset."""
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create mock client."""
+        return create_mock_client()
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> ClaudeAgentWebhookHandler:
+        """Create handler with mock client."""
+        return ClaudeAgentWebhookHandler(mock_client)
+
+    async def test_passes_sampling_options_to_format_with_dataset(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Should pass sampling options to format_with_dataset."""
+
+        async def empty_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            return
+            yield  # Make it a generator
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "experiment-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ):
+            result = await handler.run_experiment(
+                create_mock_ast(), "run-sampling", sampling={"rows": [0]}
+            )
+            # Drain the stream to trigger execution
+            async for _ in result.stream:
+                pass
+
+        mock_client._mock_text_prompt.format_with_dataset.assert_called_once_with(
+            dataset_path="./test.jsonl",
+            telemetry={"isEnabled": True},
+            sampling={"rows": [0]},
+        )
