@@ -1,3 +1,17 @@
+## 1.4.0 (2026-03-27)
+
+### 🚀 Features
+
+- Add dataset sampling support: percentage-based sampling with seed reproducibility, ([#529](https://github.com/agentmark-ai/agentmark/pull/529))
+
+  specific row selection via indices/ranges, and train/test split for experiments.
+  New CLI flags: --sample, --rows, --split, --seed on run-experiment command.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.4.0
+- Updated @agentmark-ai/sdk to 1.0.8
+
 ## 1.3.0 (2026-03-18)
 
 ### 🚀 Features
