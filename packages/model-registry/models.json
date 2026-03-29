@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-27T00:51:38.026Z",
+  "generatedAt": "2026-03-29T00:53:47.148Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-27T00:51:38.026Z",
+      "fetchedAt": "2026-03-29T00:53:47.148Z",
       "modelCount": 1149
     },
     "openrouter": {
-      "fetchedAt": "2026-03-27T00:51:38.026Z",
+      "fetchedAt": "2026-03-29T00:53:47.148Z",
       "modelCount": 121
     }
   },
@@ -6632,7 +6632,7 @@
         "cacheReadCostPerToken": 3e-7
       },
       "context": {
-        "maxInputTokens": 200000,
+        "maxInputTokens": 1000000,
         "maxOutputTokens": 64000
       },
       "capabilities": {
@@ -13728,7 +13728,7 @@
         "cacheReadCostPerToken": 3e-7
       },
       "context": {
-        "maxInputTokens": 200000,
+        "maxInputTokens": 1000000,
         "maxOutputTokens": 64000
       },
       "capabilities": {
@@ -18925,7 +18925,7 @@
         "cacheReadCostPerToken": 3e-7
       },
       "context": {
-        "maxInputTokens": 200000,
+        "maxInputTokens": 1000000,
         "maxOutputTokens": 64000
       },
       "capabilities": {
@@ -19976,32 +19976,6 @@
         "functionCalling": true
       }
     },
-    "command-r-08-2024": {
-      "provider": "cohere",
-      "displayName": "Cohere: Command R (08-2024)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 1.5e-7,
-        "outputCostPerToken": 6e-7
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 4000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
-    },
     "command-r-plus-08-2024": {
       "provider": "cohere",
       "displayName": "Cohere: Command R+ (08-2024)",
@@ -20018,6 +19992,32 @@
       "pricing": {
         "inputCostPerToken": 0.0000025,
         "outputCostPerToken": 0.00001
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "command-r-08-2024": {
+      "provider": "cohere",
+      "displayName": "Cohere: Command R (08-2024)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
       },
       "context": {
         "maxInputTokens": 128000,
