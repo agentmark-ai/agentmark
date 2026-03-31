@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-30T00:53:23.744Z",
+  "generatedAt": "2026-03-31T00:51:06.924Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-30T00:53:23.744Z",
+      "fetchedAt": "2026-03-31T00:51:06.924Z",
       "modelCount": 1149
     },
     "openrouter": {
-      "fetchedAt": "2026-03-30T00:53:23.744Z",
-      "modelCount": 121
+      "fetchedAt": "2026-03-31T00:51:06.924Z",
+      "modelCount": 123
     }
   },
   "models": {
@@ -18937,6 +18937,54 @@
         "pdfInput": true
       }
     },
+    "lyria-3-pro-preview": {
+      "provider": "google",
+      "displayName": "Google: Lyria 3 Pro Preview",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "audioOutput": true,
+        "structuredOutput": true
+      }
+    },
+    "lyria-3-clip-preview": {
+      "provider": "google",
+      "displayName": "Google: Lyria 3 Clip Preview",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "audioOutput": true,
+        "structuredOutput": true
+      }
+    },
     "claude-sonnet-4.6": {
       "provider": "anthropic",
       "displayName": "Anthropic: Claude Sonnet 4.6",
@@ -19976,32 +20024,6 @@
         "functionCalling": true
       }
     },
-    "command-r-plus-08-2024": {
-      "provider": "cohere",
-      "displayName": "Cohere: Command R+ (08-2024)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 0.0000025,
-        "outputCostPerToken": 0.00001
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 4000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
-    },
     "command-r-08-2024": {
       "provider": "cohere",
       "displayName": "Cohere: Command R (08-2024)",
@@ -20018,6 +20040,32 @@
       "pricing": {
         "inputCostPerToken": 1.5e-7,
         "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "command-r-plus-08-2024": {
+      "provider": "cohere",
+      "displayName": "Cohere: Command R+ (08-2024)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.00001
       },
       "context": {
         "maxInputTokens": 128000,
