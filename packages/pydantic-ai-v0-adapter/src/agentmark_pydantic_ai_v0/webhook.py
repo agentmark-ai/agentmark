@@ -252,6 +252,7 @@ class PydanticAIWebhookHandler:
         prompt_ast: dict[str, Any],
         dataset_run_name: str,
         dataset_path: str | None = None,
+        sampling: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run an experiment across a dataset.
 
@@ -289,6 +290,7 @@ class PydanticAIWebhookHandler:
                 experiment_run_id,
                 dataset_run_name,
                 resolved_dataset_path,
+                sampling,
             ),
             "streamHeaders": {"AgentMark-Streaming": "true"},
         }
@@ -300,6 +302,7 @@ class PydanticAIWebhookHandler:
         experiment_run_id: str,
         dataset_run_name: str,
         dataset_path: str | None,
+        sampling: dict[str, Any] | None = None,
     ) -> AsyncIterator[str]:
         """Stream experiment results.
 
@@ -307,13 +310,13 @@ class PydanticAIWebhookHandler:
         """
         if frontmatter.get("text_config"):
             async for chunk in self._stream_text_experiment(
-                prompt_ast, experiment_run_id, dataset_run_name, dataset_path
+                prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling
             ):
                 yield chunk
 
         elif frontmatter.get("object_config"):
             async for chunk in self._stream_object_experiment(
-                prompt_ast, experiment_run_id, dataset_run_name, dataset_path
+                prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling
             ):
                 yield chunk
 
@@ -408,10 +411,11 @@ class PydanticAIWebhookHandler:
         experiment_run_id: str,
         dataset_run_name: str,
         dataset_path: str | None,
+        sampling: dict[str, Any] | None = None,
     ) -> AsyncIterator[str]:
         """Stream text experiment results."""
         prompt = await self._client.load_text_prompt(prompt_ast)
-        dataset = await prompt.format_with_dataset(dataset_path=dataset_path)
+        dataset = await prompt.format_with_dataset(dataset_path=dataset_path, sampling=sampling)
 
         reader = dataset.get_reader()
         while True:
@@ -471,10 +475,11 @@ class PydanticAIWebhookHandler:
         experiment_run_id: str,
         dataset_run_name: str,
         dataset_path: str | None,
+        sampling: dict[str, Any] | None = None,
     ) -> AsyncIterator[str]:
         """Stream object experiment results."""
         prompt = await self._client.load_object_prompt(prompt_ast)
-        dataset = await prompt.format_with_dataset(dataset_path=dataset_path)
+        dataset = await prompt.format_with_dataset(dataset_path=dataset_path, sampling=sampling)
 
         reader = dataset.get_reader()
         while True:

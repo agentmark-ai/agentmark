@@ -112,14 +112,35 @@ program
     if (n < 0 || n > 100) throw new Error('Threshold must be between 0 and 100');
     return n;
   })
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number }) => {
+  .option('--sample <percent>', 'Sample N% of dataset rows randomly', (v) => {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 100) throw new Error('Sample must be an integer between 1 and 100');
+    return n;
+  })
+  .option('--rows <spec>', 'Select specific rows by index/range (e.g., 0,3-5,9)')
+  .option('--split <spec>', 'Train/test split (e.g., train:80, test:80)')
+  .option('--seed <number>', 'Seed for reproducible sampling/splitting', (v) => {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n)) throw new Error('Seed must be a finite integer');
+    return n;
+  })
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number }) => {
     try {
       const format = options.format || 'table';
       if (!['table', 'csv', 'json', 'jsonl'].includes(format)) {
         throw new Error('Format must be one of: table, csv, json, jsonl');
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
-      await (runExperiment as any)(filepath, { skipEval: !!options.skipEval, format, thresholdPercent, server: options.server });
+      await (runExperiment as any)(filepath, {
+        skipEval: !!options.skipEval,
+        format,
+        thresholdPercent,
+        server: options.server,
+        sample: options.sample,
+        rows: options.rows,
+        split: options.split,
+        seed: options.seed,
+      });
     } catch (error) {
       program.error((error as Error).message);
     }

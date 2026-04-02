@@ -6,8 +6,9 @@ import type {
   Loader,
   TestSettings,
   RichChatMessage,
+  SamplingOptions,
 } from "@agentmark-ai/prompt-core";
-import { TextPrompt } from "@agentmark-ai/prompt-core";
+import { TextPrompt, applySampling } from "@agentmark-ai/prompt-core";
 import type { MastraAdapter } from "./adapter";
 import {
   FormatAgentProps,
@@ -100,7 +101,7 @@ export class MastraTextPrompt<
   }
 
   async formatAgentWithDataset(
-    options?: AdaptOptions & { datasetPath?: string }
+    options?: AdaptOptions & { datasetPath?: string; sampling?: SamplingOptions }
   ): Promise<
     ReadableStream<{
       dataset: {
@@ -124,7 +125,10 @@ export class MastraTextPrompt<
 
     const dsPath = options?.datasetPath || this.testSettings?.dataset;
 
-    const datasetStream = await this.loader?.loadDataset(dsPath!);
+    const rawStream = await this.loader?.loadDataset(dsPath!);
+    const datasetStream = options?.sampling
+      ? applySampling(rawStream!, options.sampling)
+      : rawStream!;
     return new ReadableStream({
       start: async (controller) => {
         try {
@@ -144,7 +148,7 @@ export class MastraTextPrompt<
           }
           controller.close();
         } catch (error) {
-          console.error("Error processing dataset stream:", error);
+          controller.error(error);
         }
       },
       cancel: (reason) => datasetStream.cancel(reason),

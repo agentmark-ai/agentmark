@@ -301,7 +301,8 @@ export class MastraAdapterWebhookHandler<
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    datasetPath?: string
+    datasetPath?: string,
+    sampling?: Record<string, unknown>
   ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
@@ -317,6 +318,7 @@ export class MastraAdapterWebhookHandler<
       const dataset = await prompt.formatAgentWithDataset({
         datasetPath: resolvedDatasetPath,
         telemetry: { isEnabled: true },
+        ...(sampling ? { sampling } : {}),
       });
       const stream = new ReadableStream({
         async start(controller) {
@@ -424,6 +426,7 @@ export class MastraAdapterWebhookHandler<
       const dataset = await prompt.formatAgentWithDataset({
         datasetPath: resolvedDatasetPath,
         telemetry: { isEnabled: true },
+        ...(sampling ? { sampling } : {}),
       });
       const stream = new ReadableStream({
         async start(controller) {

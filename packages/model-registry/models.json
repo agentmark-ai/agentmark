@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-19T00:48:43.575Z",
+  "generatedAt": "2026-03-31T00:51:06.924Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-19T00:48:43.575Z",
-      "modelCount": 1146
+      "fetchedAt": "2026-03-31T00:51:06.924Z",
+      "modelCount": 1149
     },
     "openrouter": {
-      "fetchedAt": "2026-03-19T00:48:43.575Z",
-      "modelCount": 122
+      "fetchedAt": "2026-03-31T00:51:06.924Z",
+      "modelCount": 123
     }
   },
   "models": {
@@ -3104,6 +3104,62 @@
         "pdfInput": true,
         "webSearch": true
       }
+    },
+    "gpt-5.4-mini": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-5.4 Mini",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.5e-7,
+        "outputCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 7.5e-8
+      },
+      "context": {
+        "maxInputTokens": 272000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "max_tokens"
+      ]
+    },
+    "gpt-5.4-nano": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-5.4 Nano",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2e-7,
+        "outputCostPerToken": 0.00000125,
+        "cacheReadCostPerToken": 2e-8
+      },
+      "context": {
+        "maxInputTokens": 272000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "max_tokens"
+      ]
     },
     "gpt-image-1": {
       "provider": "openai",
@@ -6576,7 +6632,7 @@
         "cacheReadCostPerToken": 3e-7
       },
       "context": {
-        "maxInputTokens": 200000,
+        "maxInputTokens": 1000000,
         "maxOutputTokens": 64000
       },
       "capabilities": {
@@ -8821,7 +8877,7 @@
     },
     "gemini-3-pro-preview": {
       "provider": "google",
-      "displayName": "Google: Gemini 3 Pro Preview",
+      "displayName": "Gemini 3 Pro Preview",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
@@ -8843,12 +8899,7 @@
         "pdfInput": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-03-26",
-      "supportedParameters": [
-        "max_tokens",
-        "temperature",
-        "top_p"
-      ]
+      "deprecationDate": "2026-03-26"
     },
     "gemini-3.1-pro-preview": {
       "provider": "google",
@@ -9083,6 +9134,32 @@
       },
       "capabilities": {
         "promptCaching": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      },
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_p"
+      ]
+    },
+    "gpt-4-0314": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-4 (older v0314)",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00003,
+        "outputCostPerToken": 0.00006
+      },
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 4096
+      },
+      "deprecationDate": "2026-03-26",
+      "capabilities": {
         "functionCalling": true,
         "structuredOutput": true
       },
@@ -13651,7 +13728,7 @@
         "cacheReadCostPerToken": 3e-7
       },
       "context": {
-        "maxInputTokens": 200000,
+        "maxInputTokens": 1000000,
         "maxOutputTokens": 64000
       },
       "capabilities": {
@@ -18848,7 +18925,7 @@
         "cacheReadCostPerToken": 3e-7
       },
       "context": {
-        "maxInputTokens": 200000,
+        "maxInputTokens": 1000000,
         "maxOutputTokens": 64000
       },
       "capabilities": {
@@ -18860,47 +18937,51 @@
         "pdfInput": true
       }
     },
-    "gpt-5.4-nano": {
-      "provider": "openai",
-      "displayName": "OpenAI: GPT-5.4 Nano",
+    "lyria-3-pro-preview": {
+      "provider": "google",
+      "displayName": "Google: Lyria 3 Pro Preview",
       "mode": "chat",
       "source": "openrouter",
       "supportedParameters": [
-        "max_tokens"
+        "max_tokens",
+        "temperature",
+        "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 2e-7,
-        "outputCostPerToken": 0.00000125
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
       },
       "context": {
-        "maxInputTokens": 400000,
-        "maxOutputTokens": 128000
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
       },
       "capabilities": {
         "vision": true,
-        "functionCalling": true,
+        "audioOutput": true,
         "structuredOutput": true
       }
     },
-    "gpt-5.4-mini": {
-      "provider": "openai",
-      "displayName": "OpenAI: GPT-5.4 Mini",
+    "lyria-3-clip-preview": {
+      "provider": "google",
+      "displayName": "Google: Lyria 3 Clip Preview",
       "mode": "chat",
       "source": "openrouter",
       "supportedParameters": [
-        "max_tokens"
+        "max_tokens",
+        "temperature",
+        "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 7.5e-7,
-        "outputCostPerToken": 0.0000045
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
       },
       "context": {
-        "maxInputTokens": 400000,
-        "maxOutputTokens": 128000
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
       },
       "capabilities": {
         "vision": true,
-        "functionCalling": true,
+        "audioOutput": true,
         "structuredOutput": true
       }
     },
@@ -19312,10 +19393,11 @@
       ],
       "pricing": {
         "inputCostPerToken": 3e-8,
-        "outputCostPerToken": 1.4e-7
+        "outputCostPerToken": 1.1e-7
       },
       "context": {
-        "maxInputTokens": 131072
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
@@ -20135,31 +20217,6 @@
         "maxOutputTokens": 4095
       },
       "capabilities": {
-        "structuredOutput": true
-      }
-    },
-    "gpt-4-0314": {
-      "provider": "openai",
-      "displayName": "OpenAI: GPT-4 (older v0314)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 0.00003,
-        "outputCostPerToken": 0.00006
-      },
-      "context": {
-        "maxInputTokens": 8191,
-        "maxOutputTokens": 4096
-      },
-      "capabilities": {
-        "functionCalling": true,
         "structuredOutput": true
       }
     },

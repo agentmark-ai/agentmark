@@ -370,7 +370,8 @@ export class VercelAdapterWebhookHandler<
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    datasetPath?: string
+    datasetPath?: string,
+    sampling?: Record<string, unknown>
   ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
@@ -387,6 +388,7 @@ export class VercelAdapterWebhookHandler<
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
         telemetry: { isEnabled: true },
+        ...(sampling ? { sampling } : {}),
       });
       const stream = new ReadableStream({
         async start(controller) {
@@ -473,6 +475,7 @@ export class VercelAdapterWebhookHandler<
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
         telemetry: { isEnabled: true },
+        ...(sampling ? { sampling } : {}),
       });
       const stream = new ReadableStream({
         async start(controller) {
@@ -594,6 +597,7 @@ export class VercelAdapterWebhookHandler<
       const prompt = await this.client.loadImagePrompt(promptAst);
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
+        ...(sampling ? { sampling } : {}),
       });
       const stream = new ReadableStream({
         async start(controller) {
@@ -638,6 +642,7 @@ export class VercelAdapterWebhookHandler<
       const prompt = await this.client.loadSpeechPrompt(promptAst);
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
+        ...(sampling ? { sampling } : {}),
       });
       const stream = new ReadableStream({
         async start(controller) {

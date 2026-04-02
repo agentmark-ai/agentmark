@@ -17,6 +17,7 @@ import type {
   DatasetErrorChunk,
   FormatWithDatasetOptions,
 } from "../types";
+import { applySampling } from '../sampling';
 
 export abstract class BasePrompt<
   T extends PromptShape<T>,
@@ -78,6 +79,11 @@ export abstract class BasePrompt<
 
     const datasetStream = await this.loader?.loadDataset(dsPath!);
 
+    // Apply sampling if options are provided
+    const sampledStream = options?.sampling
+      ? applySampling(datasetStream!, options.sampling)
+      : datasetStream!;
+
     // Helper function to convert ReadableStream to async iterable if needed
     const makeAsyncIterable = (stream: any): AsyncIterable<any> => {
       // If already async iterable, return as-is
@@ -107,7 +113,7 @@ export abstract class BasePrompt<
       return stream;
     };
 
-    const asyncDataset = makeAsyncIterable(datasetStream);
+    const asyncDataset = makeAsyncIterable(sampledStream);
 
     if (options?.format === 'json') {
       const buffered: Array<{ input: Record<string, any>; expected_output?: string }> = [];
@@ -126,7 +132,7 @@ export abstract class BasePrompt<
             }
             controller.close();
           } catch (error) {
-            console.error("Error processing buffered dataset:", error);
+            controller.error(error);
           }
         },
       });
@@ -159,8 +165,8 @@ export abstract class BasePrompt<
         }
       },
       cancel: (reason) => {
-        if (datasetStream && typeof datasetStream.cancel === 'function') {
-          datasetStream.cancel(reason);
+        if (sampledStream && typeof sampledStream.cancel === 'function') {
+          sampledStream.cancel(reason);
         }
       },
     });

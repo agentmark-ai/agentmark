@@ -1041,5 +1041,27 @@ describe("ClaudeAgentWebhookHandler", () => {
       // But they should be different from each other
       expect(runId1).not.toBe(runId2);
     });
+
+    it("should pass sampling options to formatWithDataset", async () => {
+      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
+        createMockReadableStream(
+          (async function* () {
+            // Empty dataset - we just verify the call args
+          })()
+        )
+      );
+
+      const result = await handler.runExperiment(
+        createMockAst(),
+        "run-sampling",
+        undefined,
+        { rows: [0] }
+      );
+      await drainStream(result.stream);
+
+      expect(mockClient._mockTextPrompt.formatWithDataset).toHaveBeenCalledWith(
+        expect.objectContaining({ sampling: { rows: [0] } })
+      );
+    });
   });
 });

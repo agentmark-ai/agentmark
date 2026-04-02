@@ -206,7 +206,8 @@ export class VercelAdapterWebhookHandler<
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    datasetPath?: string
+    datasetPath?: string,
+    sampling?: Record<string, unknown>
   ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
@@ -219,7 +220,7 @@ export class VercelAdapterWebhookHandler<
 
     if (frontmatter.text_config) {
       const prompt = await this.client.loadTextPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, telemetry: { isEnabled: true } });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, telemetry: { isEnabled: true }, ...(sampling ? { sampling } : {}) });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
@@ -290,7 +291,7 @@ export class VercelAdapterWebhookHandler<
 
     if (frontmatter.object_config) {
       const prompt = await this.client.loadObjectPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, telemetry: { isEnabled: true } });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, telemetry: { isEnabled: true }, ...(sampling ? { sampling } : {}) });
       const stream = new ReadableStream({
         async start(controller) {
           let index = 0;
@@ -393,7 +394,7 @@ export class VercelAdapterWebhookHandler<
 
     if (frontmatter.image_config) {
       const prompt = await this.client.loadImagePrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, ...(sampling ? { sampling } : {}) });
       const stream = new ReadableStream({
         async start(controller) {
           const reader = dataset.getReader();
@@ -426,7 +427,7 @@ export class VercelAdapterWebhookHandler<
 
     if (frontmatter.speech_config) {
       const prompt = await this.client.loadSpeechPrompt(promptAst);
-      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath });
+      const dataset = await prompt.formatWithDataset({ datasetPath: resolvedDatasetPath, ...(sampling ? { sampling } : {}) });
       const stream = new ReadableStream({
         async start(controller) {
           const reader = dataset.getReader();
