@@ -29,12 +29,12 @@
       "workspaceChangelog": false
     },
     "version": {
-      "fallbackCurrentVersionResolver": "disk"
-    },
-    "git": {
-      "commit": false,
-      "tag": false,
-      "push": false
+      "fallbackCurrentVersionResolver": "disk",
+      "git": {
+        "commit": false,
+        "tag": false,
+        "push": false
+      }
     },
     "releaseTagPattern": "{projectName}@{version}"
   },

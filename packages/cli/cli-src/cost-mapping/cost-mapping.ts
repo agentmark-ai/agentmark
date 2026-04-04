@@ -1,13 +1,4 @@
-import modelsData from "@agentmark-ai/model-registry/models.json";
-import overridesData from "@agentmark-ai/model-registry/overrides.json";
-
-const allModels: Record<
-  string,
-  { pricing?: { inputCostPerToken: number; outputCostPerToken: number } }
-> = {
-  ...(modelsData as any).models,
-  ...(overridesData as any).models,
-};
+import { getModelRegistryAsync } from "@agentmark-ai/model-registry";
 
 let prices: Record<string, { promptPrice: number; completionPrice: number }> =
   {};
@@ -18,9 +9,11 @@ export const getModelCostMappings = async (): Promise<{
   if (Object.keys(prices).length > 0) {
     return prices;
   }
+  const registry = await getModelRegistryAsync();
+  const allModels = registry.getAllModels();
   prices = Object.fromEntries(
-    Object.entries(allModels).map(([id, m]) => [
-      id,
+    allModels.map((m) => [
+      m.id,
       {
         promptPrice: (m.pricing?.inputCostPerToken ?? 0) * 1000,
         completionPrice: (m.pricing?.outputCostPerToken ?? 0) * 1000,

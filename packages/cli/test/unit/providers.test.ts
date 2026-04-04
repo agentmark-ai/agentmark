@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { Providers } from "../../cli-src/utils/providers";
+import { describe, it, expect, beforeAll } from "vitest";
+import { getProviders } from "../../cli-src/utils/providers";
+
+type ProvidersMap = Awaited<ReturnType<typeof getProviders>>;
+let Providers: ProvidersMap;
+
+beforeAll(async () => {
+  Providers = await getProviders();
+});
 
 describe("Providers", () => {
   it("loads providers from model registry JSON", () => {
@@ -21,37 +28,31 @@ describe("Providers", () => {
   });
 
   it("falls back to raw key for unlabeled providers", () => {
-    // Any provider not in provider-labels.json should use its raw key
-    for (const [key, provider] of Object.entries(Providers)) {
+    for (const [, provider] of Object.entries(Providers)) {
       expect(typeof provider.label).toBe("string");
       expect(provider.label.length).toBeGreaterThan(0);
     }
   });
 
   it("categorizes chat models as languageModels", () => {
-    // OpenAI should have gpt-4o as a language model
     expect(Providers["openai"]!.languageModels).toContain("openai/gpt-4o");
   });
 
   it("categorizes image_generation models as imageModels with provider prefix", () => {
-    // OpenAI should have dall-e models in provider/model format
     expect(Providers["openai"]!.imageModels.length).toBeGreaterThan(0);
     expect(
       Providers["openai"]!.imageModels.some((m) => m.includes("dall-e"))
     ).toBe(true);
-    // Verify provider/model prefix format (e.g., "openai/dall-e-3")
     expect(
       Providers["openai"]!.imageModels.every((m) => m.startsWith("openai/"))
     ).toBe(true);
   });
 
   it("categorizes audio_speech models as speechModels with provider prefix", () => {
-    // OpenAI should have tts models in provider/model format
     expect(Providers["openai"]!.speechModels.length).toBeGreaterThan(0);
     expect(
       Providers["openai"]!.speechModels.some((m) => m.includes("tts"))
     ).toBe(true);
-    // Verify provider/model prefix format (e.g., "openai/tts-1")
     expect(
       Providers["openai"]!.speechModels.every((m) => m.startsWith("openai/"))
     ).toBe(true);
@@ -83,7 +84,7 @@ describe("Providers", () => {
   });
 
   it("does not have duplicate models within a provider", () => {
-    for (const [key, provider] of Object.entries(Providers)) {
+    for (const [, provider] of Object.entries(Providers)) {
       const all = [
         ...provider.languageModels,
         ...provider.imageModels,
@@ -103,7 +104,6 @@ describe("Providers", () => {
         ...provider.speechModels
       );
     }
-    // Known non-promptable models should not appear
     const excluded = [
       "text-moderation-latest",
       "text-moderation-stable",

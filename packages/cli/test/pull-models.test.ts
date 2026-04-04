@@ -11,45 +11,47 @@ vi.mock('prompts', () => ({
 }));
 
 // Mock providers module with controlled test data (provider-prefixed model names match production)
-vi.mock('../cli-src/utils/providers', () => ({
-  Providers: {
-    openai: {
-      label: "OpenAI",
-      languageModels: ["openai/gpt-4o", "openai/gpt-4o-mini", "openai/gpt-4", "openai/gpt-5", "openai/gpt-4-turbo", "openai/gpt-3.5-turbo"],
-      imageModels: ["openai/dall-e-3", "openai/dall-e-2"],
-      speechModels: ["openai/tts-1", "openai/tts-1-hd"],
-    },
-    anthropic: {
-      label: "Anthropic",
-      languageModels: ["anthropic/claude-3-haiku", "anthropic/claude-3-sonnet", "anthropic/claude-3-opus"],
-      imageModels: [],
-      speechModels: [],
-    },
-    ollama: {
-      label: "Ollama",
-      languageModels: ["ollama/llama3.1", "ollama/llama3.2", "ollama/mistral"],
-      imageModels: [],
-      speechModels: [],
-    },
-    xai: {
-      label: "xAI Grok",
-      languageModels: ["xai/grok-3", "xai/grok-3-mini"],
-      imageModels: [],
-      speechModels: [],
-    },
-    google: {
-      label: "Google",
-      languageModels: ["google/gemini-2.0-flash", "google/gemini-1.5-pro"],
-      imageModels: [],
-      speechModels: [],
-    },
-    groq: {
-      label: "Groq",
-      languageModels: ["groq/llama-3.3-70b-versatile"],
-      imageModels: [],
-      speechModels: [],
-    },
+const mockProvidersData = {
+  openai: {
+    label: "OpenAI",
+    languageModels: ["openai/gpt-4o", "openai/gpt-4o-mini", "openai/gpt-4", "openai/gpt-5", "openai/gpt-4-turbo", "openai/gpt-3.5-turbo"],
+    imageModels: ["openai/dall-e-3", "openai/dall-e-2"],
+    speechModels: ["openai/tts-1", "openai/tts-1-hd"],
   },
+  anthropic: {
+    label: "Anthropic",
+    languageModels: ["anthropic/claude-3-haiku", "anthropic/claude-3-sonnet", "anthropic/claude-3-opus"],
+    imageModels: [],
+    speechModels: [],
+  },
+  ollama: {
+    label: "Ollama",
+    languageModels: ["ollama/llama3.1", "ollama/llama3.2", "ollama/mistral"],
+    imageModels: [],
+    speechModels: [],
+  },
+  xai: {
+    label: "xAI Grok",
+    languageModels: ["xai/grok-3", "xai/grok-3-mini"],
+    imageModels: [],
+    speechModels: [],
+  },
+  google: {
+    label: "Google",
+    languageModels: ["google/gemini-2.0-flash", "google/gemini-1.5-pro"],
+    imageModels: [],
+    speechModels: [],
+  },
+  groq: {
+    label: "Groq",
+    languageModels: ["groq/llama-3.3-70b-versatile"],
+    imageModels: [],
+    speechModels: [],
+  },
+};
+
+vi.mock('../cli-src/utils/providers', () => ({
+  getProviders: vi.fn().mockResolvedValue(mockProvidersData),
 }));
 
 describe('pull-models', () => {
