@@ -1,13 +1,6 @@
-import modelsData from "@agentmark-ai/model-registry/models.json";
-import overridesData from "@agentmark-ai/model-registry/overrides.json";
-import PROVIDER_LABELS from "@agentmark-ai/model-registry/provider-labels.json";
+import { getModelRegistryAsync } from "@agentmark-ai/model-registry";
 
-const allModels: Record<string, { provider: string; mode: string }> = {
-  ...(modelsData as any).models,
-  ...(overridesData as any).models,
-};
-
-function buildProviders(): Record<
+type ProvidersMap = Record<
   string,
   {
     label: string;
@@ -15,21 +8,28 @@ function buildProviders(): Record<
     imageModels: string[];
     speechModels: string[];
   }
-> {
-  const result: Record<
-    string,
-    {
-      label: string;
-      languageModels: string[];
-      imageModels: string[];
-      speechModels: string[];
-    }
-  > = {};
+>;
 
-  for (const [id, entry] of Object.entries(allModels)) {
+let cachedProviders: ProvidersMap | null = null;
+
+export async function getProviders(): Promise<ProvidersMap> {
+  if (cachedProviders) return cachedProviders;
+
+  const registry = await getModelRegistryAsync();
+  const allModels = registry.getAllModels();
+  const providers = registry.getProviders();
+
+  const labelMap: Record<string, string> = {};
+  for (const p of providers) {
+    labelMap[p.id] = p.label;
+  }
+
+  const result: ProvidersMap = {};
+
+  for (const entry of allModels) {
     if (!result[entry.provider]) {
       result[entry.provider] = {
-        label: (PROVIDER_LABELS as Record<string, string>)[entry.provider] ?? entry.provider,
+        label: labelMap[entry.provider] ?? entry.provider,
         languageModels: [],
         imageModels: [],
         speechModels: [],
@@ -37,7 +37,7 @@ function buildProviders(): Record<
     }
 
     const group = result[entry.provider]!;
-    const prefixedId = `${entry.provider}/${id}`;
+    const prefixedId = `${entry.provider}/${entry.id}`;
 
     switch (entry.mode) {
       case "chat":
@@ -52,7 +52,6 @@ function buildProviders(): Record<
     }
   }
 
+  cachedProviders = result;
   return result;
 }
-
-export const Providers = buildProviders();

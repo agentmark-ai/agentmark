@@ -66,9 +66,10 @@ describe('pull-models with real Providers (integration)', () => {
   it('writes provider/model format to agentmark.json when a model is selected', async () => {
     fs.writeJSONSync(configPath, { builtInModels: [] });
 
-    // Use the real Providers to pick the first language model
-    const { Providers } = await import('../cli-src/utils/providers');
-    const firstModel = Providers['openai']!.languageModels[0]!;
+    // Use the real providers to pick the first language model
+    const { getProviders } = await import('../cli-src/utils/providers');
+    const providers = await getProviders();
+    const firstModel = providers['openai']!.languageModels[0]!;
 
     mockPrompts
       .mockResolvedValueOnce({ provider: 'openai' })

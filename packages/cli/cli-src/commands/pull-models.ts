@@ -1,5 +1,5 @@
 import path from "path";
-import { Providers } from "../utils/providers";
+import { getProviders } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
 
@@ -16,11 +16,13 @@ const pullModels = async () => {
     );
   }
 
+  const providers = await getProviders();
+
   const { provider } = await prompts({
     name: "provider",
     type: "select",
     message: "Select a provider",
-    choices: Object.entries(Providers).map(([key, provider]) => {
+    choices: Object.entries(providers).map(([key, provider]) => {
       return {
         title: provider.label,
         value: key,
@@ -28,20 +30,22 @@ const pullModels = async () => {
     }),
   });
 
+  const providerData = providers[provider as keyof typeof providers];
+
   const allModels = [
-    ...Providers[provider as keyof typeof Providers].languageModels.map(
+    ...providerData.languageModels.map(
       (model) => ({
         title: `${model} (Language Model)`,
         value: model,
       })
     ),
-    ...Providers[provider as keyof typeof Providers].imageModels.map(
+    ...providerData.imageModels.map(
       (model) => ({
         title: `${model} (Image Generation)`,
         value: model,
       })
     ),
-    ...Providers[provider as keyof typeof Providers].speechModels.map(
+    ...providerData.speechModels.map(
       (model) => ({
         title: `${model} (Text to Speech)`,
         value: model,

@@ -3,6 +3,10 @@ import * as path from "path";
 import { modelsFileSchema, overridesFileSchema } from "./validation.js";
 import { ModelRegistryImpl } from "./registry.js";
 import type { ModelRegistry } from "./types.js";
+import {
+  getModelRegistryAsync as getModelRegistryAsyncImpl,
+  resetRemoteCache,
+} from "./remote.js";
 
 export type {
   ModelMode,
@@ -56,8 +60,18 @@ export function getModelRegistry(): ModelRegistry {
 }
 
 /**
- * Reset the cached registry (useful for testing).
+ * Async factory that fetches fresh model data from the CDN, falling back
+ * to the bundled copy on network failure. Use this in runtimes that
+ * support async initialization (CLI commands, server cold start).
+ */
+export async function getModelRegistryAsync(): Promise<ModelRegistry> {
+  return getModelRegistryAsyncImpl(() => getModelRegistry());
+}
+
+/**
+ * Reset all caches (useful for testing).
  */
 export function resetRegistryCache(): void {
   cachedRegistry = null;
+  resetRemoteCache();
 }

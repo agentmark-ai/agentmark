@@ -1,18 +1,15 @@
 import path from "path";
 import * as fs from "fs-extra";
-import modelsData from "@agentmark-ai/model-registry/models.json";
-import overridesData from "@agentmark-ai/model-registry/overrides.json";
-
-const allRegistryModels: Record<string, { provider: string; mode: string }> = {
-  ...(modelsData as any).models,
-  ...(overridesData as any).models,
-};
+import { getModelRegistryAsync } from "@agentmark-ai/model-registry";
 
 type Options = {
   outDir?: string;
 };
 
-function classifyModels(builtInModels: string[]): {
+function classifyModels(
+  allRegistryModels: Record<string, { provider: string; mode: string }>,
+  builtInModels: string[],
+): {
   languageModels: string[];
   imageModels: string[];
   speechModels: string[];
@@ -86,7 +83,12 @@ const generateSchema = async ({ outDir }: Options = {}) => {
     ? (agentmarkConfig!["builtInModels"] as string[])
     : [];
 
-  const { languageModels, imageModels, speechModels, unknownModels } = classifyModels(builtInModels);
+  const registry = await getModelRegistryAsync();
+  const allModels = registry.getAllModels();
+  const allRegistryModels: Record<string, { provider: string; mode: string }> =
+    Object.fromEntries(allModels.map((m) => [m.id, { provider: m.provider, mode: m.mode }]));
+
+  const { languageModels, imageModels, speechModels, unknownModels } = classifyModels(allRegistryModels, builtInModels);
 
   // Unknown models (not in registry) are included in all sections as a safe fallback.
   const languageSchema = buildModelNameSchema(languageModels, unknownModels);
