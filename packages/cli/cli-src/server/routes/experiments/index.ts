@@ -10,6 +10,7 @@ export interface ExperimentSummary {
   totalCost: number;
   avgScore: number | null;
   createdAt: string;
+  commitSha: string;
 }
 
 export interface ExperimentItem {
@@ -37,7 +38,8 @@ export const getExperiments = async (): Promise<ExperimentSummary[]> => {
       COUNT(DISTINCT root.TraceId) AS itemCount,
       AVG(root.Duration) AS avgLatencyMs,
       COALESCE(SUM(gen.item_cost), 0.0) AS totalCost,
-      MIN(root.CreatedAt) AS createdAt
+      MIN(root.CreatedAt) AS createdAt,
+      MAX(json_extract(root.Metadata, '$.commit_sha')) AS commitSha
     FROM traces root
     LEFT JOIN (
       SELECT TraceId,
@@ -77,6 +79,7 @@ export const getExperiments = async (): Promise<ExperimentSummary[]> => {
       totalCost: row.totalCost || 0,
       avgScore: scoreRow?.avg_score ?? null,
       createdAt: row.createdAt,
+      commitSha: row.commitSha || "",
     };
   });
 };
@@ -94,7 +97,8 @@ export const getExperimentById = async (
       COUNT(DISTINCT root.TraceId) AS itemCount,
       AVG(root.Duration) AS avgLatencyMs,
       COALESCE(SUM(gen.item_cost), 0.0) AS totalCost,
-      MIN(root.CreatedAt) AS createdAt
+      MIN(root.CreatedAt) AS createdAt,
+      MAX(json_extract(root.Metadata, '$.commit_sha')) AS commitSha
     FROM traces root
     LEFT JOIN (
       SELECT TraceId,
@@ -132,6 +136,7 @@ export const getExperimentById = async (
     totalCost: summaryRow.totalCost || 0,
     avgScore: scoreRow?.avg_score ?? null,
     createdAt: summaryRow.createdAt,
+    commitSha: summaryRow.commitSha || "",
   };
 
   // Items: root span for dataset metadata, JOIN child model spans for input/output/cost.
@@ -142,9 +147,10 @@ export const getExperimentById = async (
       root.TraceId AS traceId,
       COALESCE(NULLIF(root.DatasetItemName, ''), root.SpanName, 'Item') AS itemName,
       COALESCE(
+        NULLIF(root.DatasetInput, ''),
+        NULLIF(root.Input, ''),
         NULLIF(gen.input, ''),
         NULLIF(gen.genai_input, ''),
-        NULLIF(root.Input, ''),
         ''
       ) AS input,
       COALESCE(root.DatasetExpectedOutput, '') AS expectedOutput,

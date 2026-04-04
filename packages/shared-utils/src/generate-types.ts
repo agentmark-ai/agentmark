@@ -309,7 +309,432 @@ const isNewFormat = (frontmatter: any) => {
   );
 };
 
-export async function generateTypeDefinitions(prompts: PromptFrontmatter[]): Promise<string> {
+// =============================================================================
+// Python TypedDict generation
+// =============================================================================
+
+function pythonPrimitiveType(schemaType: string): string {
+  const map: Record<string, string> = {
+    string: "str",
+    number: "float",
+    integer: "int",
+    boolean: "bool",
+    null: "None",
+  };
+  return map[schemaType] || "Any";
+}
+
+function propToPascal(prop: string): string {
+  return prop
+    .split(/[-_]/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join("");
+}
+
+/**
+ * Recursively convert a JSON Schema to a Python type annotation string.
+ * For nested object types, creates TypedDict classes and appends them to `collected`.
+ */
+function schemaToPythonType(
+  schema: any,
+  parentClass: string,
+  propKey: string,
+  collected: string[]
+): string {
+  if (!schema) return "Any";
+
+  // anyOf / oneOf (commonly used for nullable types)
+  const union = schema.anyOf || schema.oneOf;
+  if (union) {
+    const nullIdx = union.findIndex((v: any) => v.type === "null");
+    const hasNull = nullIdx >= 0;
+    const others = union.filter((_: any, i: number) => i !== nullIdx);
+
+    if (hasNull && others.length === 1) {
+      return `${schemaToPythonType(others[0], parentClass, propKey, collected)} | None`;
+    }
+    const parts = others.map((v: any, i: number) =>
+      schemaToPythonType(v, parentClass, `${propKey}${i}`, collected)
+    );
+    if (hasNull) parts.push("None");
+    return parts.join(" | ");
+  }
+
+  // Type arrays: ["string", "null"] → str | None
+  if (Array.isArray(schema.type)) {
+    const hasNull = schema.type.includes("null");
+    const nonNull = schema.type.filter((t: string) => t !== "null");
+
+    // ["object", "null"] with properties → TypedDict | None
+    if (nonNull.length === 1 && nonNull[0] === "object" && schema.properties) {
+      const clsName = `${parentClass}${propToPascal(propKey)}`;
+      collected.push(buildTypedDict(clsName, schema, collected));
+      return hasNull ? `${clsName} | None` : clsName;
+    }
+
+    // ["array", "null"] with items → list[T] | None
+    if (nonNull.length === 1 && nonNull[0] === "array" && schema.items) {
+      const item = schemaToPythonType(
+        schema.items,
+        parentClass,
+        propKey,
+        collected
+      );
+      return hasNull ? `list[${item}] | None` : `list[${item}]`;
+    }
+
+    const base =
+      nonNull.length === 1
+        ? pythonPrimitiveType(nonNull[0])
+        : nonNull.map(pythonPrimitiveType).join(" | ");
+    return hasNull ? `${base} | None` : base;
+  }
+
+  switch (schema.type) {
+    case "string":
+    case "number":
+    case "integer":
+    case "boolean":
+    case "null":
+      return pythonPrimitiveType(schema.type);
+
+    case "array": {
+      const item = schema.items
+        ? schemaToPythonType(schema.items, parentClass, propKey, collected)
+        : "Any";
+      return `list[${item}]`;
+    }
+
+    case "object": {
+      if (!schema.properties || Object.keys(schema.properties).length === 0) {
+        return "dict[str, Any]";
+      }
+      const clsName = `${parentClass}${propToPascal(propKey)}`;
+      collected.push(buildTypedDict(clsName, schema, collected));
+      return clsName;
+    }
+
+    default:
+      // No explicit type but has properties — treat as object
+      if (schema.properties) {
+        const clsName = `${parentClass}${propToPascal(propKey)}`;
+        collected.push(buildTypedDict(clsName, schema, collected));
+        return clsName;
+      }
+      return "Any";
+  }
+}
+
+/**
+ * Build a Python TypedDict class definition from an object JSON Schema.
+ * Nested objects are extracted into separate classes and appended to `collected`.
+ */
+function buildTypedDict(
+  className: string,
+  schema: any,
+  collected: string[]
+): string {
+  const props = schema.properties || {};
+  const requiredSet = new Set<string>(schema.required || []);
+  const lines: string[] = [];
+  const desc = schema.description;
+
+  if (desc) {
+    lines.push(`class ${className}(TypedDict):`);
+    lines.push(`    """${desc}"""`);
+  } else {
+    lines.push(`class ${className}(TypedDict):`);
+  }
+
+  const entries = Object.entries(props);
+  if (entries.length === 0) {
+    lines.push("    pass");
+    return lines.join("\n");
+  }
+
+  for (const [key, propSchema] of entries) {
+    const pyType = schemaToPythonType(
+      propSchema as any,
+      className,
+      key,
+      collected
+    );
+    const isRequired = requiredSet.has(key);
+    const annotation = isRequired ? pyType : `NotRequired[${pyType}]`;
+    const propDesc = (propSchema as any).description;
+
+    if (propDesc) {
+      const prefix = `    ${key}: ${annotation}  # `;
+      const maxDesc = 99 - prefix.length;
+      if (maxDesc > 10) {
+        const shortDesc =
+          propDesc.length > maxDesc
+            ? propDesc.substring(0, maxDesc - 3) + "..."
+            : propDesc;
+        lines.push(`${prefix}${shortDesc}`);
+      } else {
+        // Annotation itself is already near 100 chars — skip comment
+        lines.push(`    ${key}: ${annotation}`);
+      }
+    } else {
+      lines.push(`    ${key}: ${annotation}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function generatePythonToolTypes(tools: Record<string, any>): string | null {
+  if (Object.keys(tools).length === 0) return null;
+
+  const collected: string[] = [];
+
+  for (const [toolName, schema] of Object.entries(tools)) {
+    const argsName = `${getToolInterfaceName(toolName)}Args`;
+    if (schema.parameters && schema.parameters.properties) {
+      collected.push(buildTypedDict(argsName, schema.parameters, collected));
+    } else {
+      collected.push(`class ${argsName}(TypedDict):\n    pass`);
+    }
+  }
+
+  const toolLines = Object.keys(tools)
+    .map((name) => `    ${name}: ${getToolInterfaceName(name)}Args`)
+    .join("\n");
+  collected.push(`class Tools(TypedDict):\n${toolLines}`);
+
+  return collected.join("\n\n\n");
+}
+
+function buildPythonHeader(body: string): string {
+  const imports: string[] = ["TypedDict"];
+  if (body.includes("NotRequired[")) imports.push("NotRequired");
+  if (body.includes("Literal[")) imports.push("Literal");
+  if (/\bAny\b/.test(body)) imports.push("Any");
+  imports.sort();
+  return `# Auto-generated types from AgentMark
+# Do not edit this file directly
+
+from __future__ import annotations
+
+from typing import ${imports.join(", ")}
+
+
+`;
+}
+
+async function generatePythonTypeDefinitionsV1_0(
+  prompts: (
+    | TextPromptFrontmatterV1_0
+    | ObjectPromptFrontmatterV1_0
+    | ImagePromptFrontmatterV1_0
+  )[]
+): Promise<string> {
+
+  const allClasses: string[] = [];
+  const typeMapping: { path: string; name: string }[] = [];
+
+  for (const prompt of prompts) {
+    const { path: promptPath, input_schema } = prompt;
+    const name = getInterfaceName(promptPath);
+
+    try {
+      let kind = "text";
+      let outputSchema = null;
+      let tools: any = {};
+
+      if ("text_config" in prompt) {
+        kind = "text";
+        tools = prompt.text_config.tools || {};
+      } else if ("object_config" in prompt) {
+        kind = "object";
+        tools = prompt.object_config.tools || {};
+        outputSchema = prompt.object_config.schema;
+      } else if ("image_config" in prompt) {
+        kind = "image";
+        tools = prompt.image_config.tools || {};
+      }
+
+      // Input class
+      const inputCollected: string[] = [];
+      if (input_schema && input_schema.properties) {
+        inputCollected.push(
+          buildTypedDict(`${name}In`, input_schema, inputCollected)
+        );
+      } else {
+        inputCollected.push(`class ${name}In(TypedDict):\n    pass`);
+      }
+      allClasses.push(...inputCollected);
+
+      // Output class
+      const outputCollected: string[] = [];
+      if (outputSchema && outputSchema.properties) {
+        outputCollected.push(
+          buildTypedDict(`${name}Out`, outputSchema, outputCollected)
+        );
+      } else if (kind === "object") {
+        outputCollected.push(`class ${name}Out(TypedDict):\n    pass`);
+      } else {
+        outputCollected.push(`${name}Out = str`);
+      }
+      allClasses.push(...outputCollected);
+
+      // Tool types
+      if (Object.keys(tools).length > 0) {
+        const toolOutput = generatePythonToolTypes(tools);
+        if (toolOutput) allClasses.push(toolOutput);
+      }
+
+      // Prompt type class
+      const toolsLine =
+        Object.keys(tools).length > 0
+          ? "\n    tools: NotRequired[list[str]]"
+          : "";
+      allClasses.push(
+        `class ${name}(TypedDict):\n` +
+          `    kind: Literal['${kind}']\n` +
+          `    input: ${name}In\n` +
+          `    output: ${name}Out${toolsLine}`
+      );
+
+      // Path variants
+      typeMapping.push({ path: promptPath, name });
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath)
+        typeMapping.push({ path: withoutMdx, name });
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push({ path: shortName, name });
+      }
+    } catch (error) {
+      console.error(`Error processing ${promptPath}:`, error);
+      allClasses.push(`class ${name}In(TypedDict):\n    pass`);
+      allClasses.push(`${name}Out = str`);
+      allClasses.push(
+        `class ${name}(TypedDict):\n` +
+          `    kind: Literal['text']\n` +
+          `    input: ${name}In\n` +
+          `    output: ${name}Out`
+      );
+      typeMapping.push({ path: promptPath, name });
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath)
+        typeMapping.push({ path: withoutMdx, name });
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push({ path: shortName, name });
+      }
+    }
+  }
+
+  // AgentmarkTypes — functional form since keys contain hyphens
+  const mappingLines = typeMapping
+    .map(({ path, name }) => `    '${path}': ${name}`)
+    .join(",\n");
+
+  allClasses.push(
+    `AgentmarkTypes = TypedDict('AgentmarkTypes', {\n${mappingLines},\n})`
+  );
+
+  const body = allClasses.join("\n\n\n") + "\n";
+  return buildPythonHeader(body) + body;
+}
+
+async function generatePythonTypeDefinitionsV0(
+  prompts: PromptFrontmatterV0[]
+): Promise<string> {
+  const allClasses: string[] = [];
+  const typeMapping: { path: string; name: string }[] = [];
+
+  for (const prompt of prompts) {
+    const { path: promptPath, metadata, input_schema } = prompt;
+    const name = getInterfaceName(promptPath);
+
+    try {
+      // Input class
+      const inputCollected: string[] = [];
+      if (input_schema && input_schema.properties) {
+        inputCollected.push(
+          buildTypedDict(`${name}In`, input_schema, inputCollected)
+        );
+      } else {
+        inputCollected.push(`class ${name}In(TypedDict):\n    pass`);
+      }
+      allClasses.push(...inputCollected);
+
+      // Output class
+      const outputSchema = metadata?.model?.settings?.schema;
+      const outputCollected: string[] = [];
+      if (outputSchema && outputSchema.properties) {
+        outputCollected.push(
+          buildTypedDict(`${name}Out`, outputSchema, outputCollected)
+        );
+      } else {
+        outputCollected.push(`${name}Out = str`);
+      }
+      allClasses.push(...outputCollected);
+
+      // Prompt type class
+      allClasses.push(
+        `class ${name}(TypedDict):\n` +
+          `    input: ${name}In\n` +
+          `    output: ${name}Out`
+      );
+
+      // Path variants
+      typeMapping.push({ path: promptPath, name });
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath)
+        typeMapping.push({ path: withoutMdx, name });
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push({ path: shortName, name });
+      }
+    } catch (error) {
+      console.error(`Error processing ${promptPath}:`, error);
+      allClasses.push(`class ${name}In(TypedDict):\n    pass`);
+      allClasses.push(`${name}Out = str`);
+      allClasses.push(
+        `class ${name}(TypedDict):\n` +
+          `    input: ${name}In\n` +
+          `    output: ${name}Out`
+      );
+      typeMapping.push({ path: promptPath, name });
+      const withoutMdx = promptPath.replace(/\.mdx$/, "");
+      if (withoutMdx !== promptPath)
+        typeMapping.push({ path: withoutMdx, name });
+      const shortName = promptPath.replace(/\.prompt\.mdx$/, "");
+      if (shortName !== promptPath && shortName !== withoutMdx) {
+        typeMapping.push({ path: shortName, name });
+      }
+    }
+  }
+
+  // AgentmarkTypes
+  const mappingLines = typeMapping
+    .map(({ path, name }) => `    '${path}': ${name}`)
+    .join(",\n");
+
+  allClasses.push(
+    `AgentmarkTypes = TypedDict('AgentmarkTypes', {\n${mappingLines},\n})`
+  );
+
+  const body = allClasses.join("\n\n\n") + "\n";
+  return buildPythonHeader(body) + body;
+}
+
+export type GenerateTypesLanguage = "typescript" | "python";
+
+export async function generateTypeDefinitions(
+  prompts: PromptFrontmatter[],
+  language: GenerateTypesLanguage = "typescript"
+): Promise<string> {
+  if (language === "python") {
+    if (prompts[0].version === "1.0") {
+      return generatePythonTypeDefinitionsV1_0(prompts as any);
+    }
+    return generatePythonTypeDefinitionsV0(prompts as any);
+  }
   if (prompts[0].version === "1.0") {
     return generateTypeDefinitionsV1_0(prompts as any);
   }

@@ -3,17 +3,24 @@
 Provides OpenTelemetry-based tracing and observability for AI applications.
 
 Example:
-    from agentmark_sdk import AgentMarkSDK, trace, TraceOptions
+    from agentmark_sdk import AgentMarkSDK, span, SpanOptions
 
     # Initialize the SDK
     sdk = AgentMarkSDK(api_key="sk-...", app_id="app_123")
     sdk.init_tracing()
 
-    # Trace an operation
-    result = await trace(
-        TraceOptions(name="my-operation", user_id="user-1"),
+    # Create a span around an operation
+    result = await span(
+        SpanOptions(name="my-operation", user_id="user-1"),
         my_async_function,
     )
+
+    # Auto-capture IO with decorator
+    from agentmark_sdk import observe, SpanKind
+
+    @observe(kind=SpanKind.TOOL)
+    async def my_tool(query: str) -> dict:
+        return {"result": "data"}
 
     # Submit a score
     await sdk.score(
@@ -30,19 +37,27 @@ from .config import (
     DEFAULT_BASE_URL,
     METADATA_KEY,
 )
+from .decorator import SpanKind, observe
 from .sampler import AgentmarkSampler
 from .sdk import AgentMarkSDK
-from .trace import TraceContext, TraceOptions, TraceResult, trace, trace_context
+from .serialize import serialize_value
+from .trace import SpanContext, SpanOptions, SpanResult, span, span_context, span_context_sync
 
 __all__ = [
     # SDK
     "AgentMarkSDK",
-    # Trace utilities
-    "trace",
-    "trace_context",
-    "TraceOptions",
-    "TraceContext",
-    "TraceResult",
+    # Span utilities
+    "span",
+    "span_context",
+    "span_context_sync",
+    "observe",
+    "SpanOptions",
+    "SpanContext",
+    "SpanResult",
+    # Span kinds
+    "SpanKind",
+    # Serialization
+    "serialize_value",
     # Sampler
     "AgentmarkSampler",
     # Config

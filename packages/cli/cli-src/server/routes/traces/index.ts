@@ -98,6 +98,7 @@ function normalizedSpanToSqliteRow(
     DatasetPath: span.datasetPath || "",
     DatasetItemName: span.datasetItemName || "",
     DatasetExpectedOutput: span.datasetExpectedOutput || "",
+    DatasetInput: span.datasetInput || "",
     PromptName: span.promptName || "",
     Props: span.props || null,
     Metadata: span.metadata ? JSON.stringify(span.metadata) : null,
@@ -115,10 +116,10 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
       Type, Model, InputTokens, OutputTokens, TotalTokens, ReasoningTokens, Cost,
       Input, Output, OutputObject, ToolCalls, FinishReason, Settings,
       SessionId, SessionName, UserId, TraceName,
-      DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput,
+      DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput, DatasetInput,
       PromptName, Props, Metadata
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
@@ -167,6 +168,7 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.DatasetPath,
         row.DatasetItemName,
         row.DatasetExpectedOutput,
+        row.DatasetInput,
         row.PromptName,
         row.Props,
         row.Metadata
@@ -266,10 +268,11 @@ export const getTraces = async (options: TraceFilterOptions = {}) => {
 trace_costs_and_tokens AS (
     SELECT
         TraceId AS id,
-        SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
-        SUM(COALESCE(Cost, 0.0)) AS cost
+        -- Use MAX across all spans — the SDK sets aggregated totals on exactly one span
+        -- (invoke_agent for Claude Agent SDK, GENERATION for direct API, root for others)
+        MAX(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+        MAX(COALESCE(Cost, 0.0)) AS cost
     FROM traces
-    WHERE Type = 'GENERATION'
     GROUP BY TraceId
 ),
 
@@ -278,13 +281,25 @@ traces_cte AS (
         TraceId AS id,
         cast(MIN(Timestamp) as Real) / 1000000 AS start,
         cast(MAX(Timestamp) as Real) / 1000000 AS end,
-        MAX(CASE
-            WHEN StatusCode = '2.0' THEN '2'
-            WHEN StatusCode = '2' THEN '2'
-            WHEN StatusCode = '1.0' THEN '1'
-            WHEN StatusCode = '1' THEN '1'
-            ELSE '0'
-        END) AS status,
+        COALESCE(
+            MAX(CASE WHEN (ParentSpanId IS NULL OR ParentSpanId = '') THEN
+                CASE
+                    WHEN StatusCode = '2.0' THEN '2'
+                    WHEN StatusCode = '2' THEN '2'
+                    WHEN StatusCode = '1.0' THEN '1'
+                    WHEN StatusCode = '1' THEN '1'
+                    ELSE '0'
+                END
+            END),
+            MAX(CASE
+                WHEN StatusCode = '2.0' THEN '2'
+                WHEN StatusCode = '2' THEN '2'
+                WHEN StatusCode = '1.0' THEN '1'
+                WHEN StatusCode = '1' THEN '1'
+                ELSE '0'
+            END)
+        ) AS status,
+        COUNT(*) AS span_count,
         MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id,
         MAX(NULLIF(DatasetPath, '')) AS dataset_path
     FROM traces
@@ -316,6 +331,7 @@ SELECT
     t.status,
     c.cost,
     c.tokens,
+    t.span_count,
     m.name,
     m.latency,
     m.status_message
@@ -331,112 +347,251 @@ ${limitClause};
   return rows;
 };
 
-export const getSpans = async (traceId: string) => {
+export const getTraceCount = async (options: TraceFilterOptions = {}) => {
+  const { status, name, latency_gt, latency_lt } = options;
+
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (status !== undefined) {
+    conditions.push('t.status = ?');
+    params.push(status);
+  }
+  if (name !== undefined) {
+    conditions.push('m.name LIKE ?');
+    params.push(`%${name}%`);
+  }
+  if (latency_gt !== undefined) {
+    conditions.push('m.latency > ?');
+    params.push(latency_gt);
+  }
+  if (latency_lt !== undefined) {
+    conditions.push('m.latency < ?');
+    params.push(latency_lt);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
   const sql = `
+    WITH
+traces_cte AS (
     SELECT
-      SpanId AS id,
-      SpanName AS name,
-      Duration AS duration,
-      ParentSpanId AS parent_id,
-      CAST(Timestamp AS REAL) AS timestamp,
-      TraceId AS trace_id,
-      CASE
-            WHEN StatusCode = '2.0' THEN '2'
-            WHEN StatusCode = '2' THEN '2'
-            WHEN StatusCode = '1.0' THEN '1'
-            WHEN StatusCode = '1' THEN '1'
-            ELSE '0'
-      END AS status_code,
-      StatusMessage AS status_message,
-      SpanAttributes AS attributes,
-      Type AS type,
-      Model AS model,
-      InputTokens AS inputTokens,
-      OutputTokens AS outputTokens,
-      TotalTokens AS totalTokens,
-      ReasoningTokens AS reasoningTokens,
-      Cost AS cost,
-      Input AS input,
-      Output AS output,
-      OutputObject AS outputObject,
-      ToolCalls AS toolCalls,
-      FinishReason AS finishReason,
-      Settings AS settings,
-      SessionId AS sessionId,
-      SessionName AS sessionName,
-      UserId AS userId,
-      TraceName AS traceName,
-      PromptName AS promptName,
-      Props AS props,
-      SpanKind AS spanKind,
-      ServiceName AS serviceName,
-      Metadata AS metadata
+        TraceId AS id,
+        COALESCE(
+            MAX(CASE WHEN (ParentSpanId IS NULL OR ParentSpanId = '') THEN
+                CASE
+                    WHEN StatusCode = '2.0' THEN '2'
+                    WHEN StatusCode = '2' THEN '2'
+                    WHEN StatusCode = '1.0' THEN '1'
+                    WHEN StatusCode = '1' THEN '1'
+                    ELSE '0'
+                END
+            END),
+            MAX(CASE
+                WHEN StatusCode = '2.0' THEN '2'
+                WHEN StatusCode = '2' THEN '2'
+                WHEN StatusCode = '1.0' THEN '1'
+                WHEN StatusCode = '1' THEN '1'
+                ELSE '0'
+            END)
+        ) AS status
+    FROM traces
+    GROUP BY TraceId
+),
+
+trace_metadata AS (
+    SELECT
+    t.TraceId AS id,
+    COALESCE(
+        MAX(NULLIF(t.TraceName, '')),
+        MAX(t.SpanName)
+    ) AS name,
+    MAX(t.Duration) AS latency
+    FROM traces t
+    LEFT JOIN traces c
+        ON c.SpanId = t.ParentSpanId
+    WHERE c.SpanId IS NULL
+    GROUP BY t.TraceId
+)
+
+SELECT COUNT(*) AS total
+FROM traces_cte t
+LEFT JOIN trace_metadata m ON t.id = m.id
+${whereClause};
+  `;
+
+  const row = db.prepare(sql).get(...params) as { total: number };
+  return row.total;
+};
+
+const SPAN_SELECT_COLUMNS = `
+    SpanId AS id,
+    SpanName AS name,
+    Duration AS duration,
+    ParentSpanId AS parent_id,
+    CAST(Timestamp AS REAL) AS timestamp,
+    TraceId AS trace_id,
+    CASE
+          WHEN StatusCode = '2.0' THEN '2'
+          WHEN StatusCode = '2' THEN '2'
+          WHEN StatusCode = '1.0' THEN '1'
+          WHEN StatusCode = '1' THEN '1'
+          ELSE '0'
+    END AS status_code,
+    StatusMessage AS status_message,
+    SpanAttributes AS attributes,
+    Type AS type,
+    Model AS model,
+    InputTokens AS inputTokens,
+    OutputTokens AS outputTokens,
+    TotalTokens AS totalTokens,
+    ReasoningTokens AS reasoningTokens,
+    Cost AS cost,
+    Input AS input,
+    Output AS output,
+    OutputObject AS outputObject,
+    ToolCalls AS toolCalls,
+    FinishReason AS finishReason,
+    Settings AS settings,
+    SessionId AS sessionId,
+    SessionName AS sessionName,
+    UserId AS userId,
+    TraceName AS traceName,
+    PromptName AS promptName,
+    Props AS props,
+    SpanKind AS spanKind,
+    ServiceName AS serviceName,
+    Metadata AS metadata`;
+
+function mapRowToSpan(row: any) {
+  let spanAttributes: any = {};
+  try {
+    if (row.attributes) {
+      spanAttributes =
+        typeof row.attributes === "string"
+          ? JSON.parse(row.attributes)
+          : row.attributes;
+    }
+  } catch {
+    // If parsing fails, keep empty object
+  }
+
+  const data: any = {
+    type: row.type || undefined,
+    model: row.model || undefined,
+    inputTokens: row.inputTokens ?? undefined,
+    outputTokens: row.outputTokens ?? undefined,
+    totalTokens: row.totalTokens ?? undefined,
+    reasoningTokens: row.reasoningTokens ?? undefined,
+    cost: row.cost ?? undefined,
+    input: row.input || undefined,
+    output: row.output || undefined,
+    outputObject: row.outputObject || undefined,
+    toolCalls: row.toolCalls || undefined,
+    finishReason: row.finishReason || undefined,
+    settings: row.settings || undefined,
+    sessionId: row.sessionId || undefined,
+    sessionName: row.sessionName || undefined,
+    userId: row.userId || undefined,
+    traceName: row.traceName || undefined,
+    promptName: row.promptName || undefined,
+    props: row.props || undefined,
+    attributes: JSON.stringify(spanAttributes),
+    statusMessage: row.status_message || undefined,
+    status: row.status_code,
+    spanKind: row.spanKind || undefined,
+    serviceName: row.serviceName || undefined,
+    duration: row.duration || 0,
+    metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+  };
+
+  // Convert timestamp from nanoseconds to milliseconds (JavaScript standard)
+  const timestampMs = row.timestamp ? Math.floor(row.timestamp / 1000000) : 0;
+
+  return {
+    id: row.id,
+    name: row.name,
+    duration: row.duration || 0,
+    parentId: row.parent_id || undefined,
+    timestamp: timestampMs,
+    traceId: row.trace_id,
+    status: row.status_code,
+    data,
+  };
+}
+
+/**
+ * Propagate model, tokens, and cost from child spans to parent spans.
+ * Runs on the mapped span format (after DB query).
+ */
+function propagateToParents(spans: any[]): void {
+  const childrenOf = new Map<string, any[]>();
+  for (const span of spans) {
+    if (span.parentId) {
+      const siblings = childrenOf.get(span.parentId) || [];
+      siblings.push(span);
+      childrenOf.set(span.parentId, siblings);
+    }
+  }
+
+  // Process bottom-up (latest first)
+  const sorted = [...spans].sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+  for (const span of sorted) {
+    const children = childrenOf.get(span.id);
+    if (!children || children.length === 0) continue;
+
+    const d = span.data;
+    if (!d) continue;
+
+    // Aggregate tokens
+    if (!d.inputTokens && !d.outputTokens) {
+      let totalInput = 0;
+      let totalOutput = 0;
+      for (const child of children) {
+        totalInput += child.data?.inputTokens || 0;
+        totalOutput += child.data?.outputTokens || 0;
+      }
+      if (totalInput > 0 || totalOutput > 0) {
+        d.inputTokens = totalInput;
+        d.outputTokens = totalOutput;
+        d.totalTokens = totalInput + totalOutput;
+      }
+    }
+
+    // Inherit model
+    if (!d.model) {
+      for (const child of children) {
+        if (child.data?.model) {
+          d.model = child.data.model;
+          break;
+        }
+      }
+    }
+
+    // Aggregate cost
+    if (!d.cost) {
+      let totalCost = 0;
+      for (const child of children) {
+        totalCost += child.data?.cost || 0;
+      }
+      if (totalCost > 0) {
+        d.cost = totalCost;
+      }
+    }
+  }
+}
+
+export const getSpans = async (traceId: string) => {
+  const rows = db.prepare(`
+    SELECT ${SPAN_SELECT_COLUMNS}
     FROM traces
     WHERE TraceId = ?
     ORDER BY CAST(Timestamp AS REAL) ASC
-  `;
+  `).all(traceId) as any[];
 
-  const rows = db.prepare(sql).all(traceId) as any[];
-
-  return rows.map((row) => {
-    // Parse SpanAttributes JSON
-    let spanAttributes: any = {};
-    try {
-      if (row.attributes) {
-        spanAttributes =
-          typeof row.attributes === "string"
-            ? JSON.parse(row.attributes)
-            : row.attributes;
-      }
-    } catch {
-      // If parsing fails, keep empty object
-    }
-
-    // Map all flat fields to data object matching SpanData type
-    const data: any = {
-      type: row.type || undefined,
-      model: row.model || undefined,
-      inputTokens: row.inputTokens ?? undefined,
-      outputTokens: row.outputTokens ?? undefined,
-      totalTokens: row.totalTokens ?? undefined,
-      reasoningTokens: row.reasoningTokens ?? undefined,
-      cost: row.cost ?? undefined,
-      input: row.input || undefined,
-      output: row.output || undefined,
-      outputObject: row.outputObject || undefined,
-      toolCalls: row.toolCalls || undefined,
-      finishReason: row.finishReason || undefined,
-      settings: row.settings || undefined,
-      sessionId: row.sessionId || undefined,
-      sessionName: row.sessionName || undefined,
-      userId: row.userId || undefined,
-      traceName: row.traceName || undefined,
-      promptName: row.promptName || undefined,
-      props: row.props || undefined,
-      attributes: JSON.stringify(spanAttributes), // Include all attributes
-      statusMessage: row.status_message || undefined,
-      status: row.status_code,
-      spanKind: row.spanKind || undefined,
-      serviceName: row.serviceName || undefined,
-      duration: row.duration || 0,
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
-    };
-
-    // Convert timestamp from nanoseconds to milliseconds (JavaScript standard)
-    // Database stores nanoseconds, divide by 1,000,000 to get milliseconds
-    const timestampMs = row.timestamp ? Math.floor(row.timestamp / 1000000) : 0;
-
-    return {
-      id: row.id,
-      name: row.name,
-      duration: row.duration || 0,
-      parentId: row.parent_id || undefined,
-      timestamp: timestampMs,
-      traceId: row.trace_id,
-      status: row.status_code,
-      data,
-    };
-  });
+  const spans = rows.map(mapRowToSpan);
+  propagateToParents(spans);
+  return spans;
 };
 
 export const getTraceById = async (traceId: string) => {
@@ -445,10 +600,10 @@ export const getTraceById = async (traceId: string) => {
     trace_costs_and_tokens AS (
         SELECT
             TraceId AS id,
-            SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
-            SUM(COALESCE(Cost, 0.0)) AS cost
+            -- Use MAX across all spans — the SDK sets aggregated totals on exactly one span
+            MAX(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+            MAX(COALESCE(Cost, 0.0)) AS cost
         FROM traces
-        WHERE Type = 'GENERATION'
         GROUP BY TraceId
     ),
 
@@ -457,13 +612,24 @@ export const getTraceById = async (traceId: string) => {
             TraceId AS id,
             cast(MIN(Timestamp) as Real) / 1000000 AS start,
             cast(MAX(Timestamp) as Real) / 1000000 AS end,
-            MAX(CASE
-                WHEN StatusCode = '2.0' THEN '2'
-                WHEN StatusCode = '2' THEN '2'
-                WHEN StatusCode = '1.0' THEN '1'
-                WHEN StatusCode = '1' THEN '1'
-                ELSE '0'
-            END) AS status,
+            COALESCE(
+                MAX(CASE WHEN (ParentSpanId IS NULL OR ParentSpanId = '') THEN
+                    CASE
+                        WHEN StatusCode = '2.0' THEN '2'
+                        WHEN StatusCode = '2' THEN '2'
+                        WHEN StatusCode = '1.0' THEN '1'
+                        WHEN StatusCode = '1' THEN '1'
+                        ELSE '0'
+                    END
+                END),
+                MAX(CASE
+                    WHEN StatusCode = '2.0' THEN '2'
+                    WHEN StatusCode = '2' THEN '2'
+                    WHEN StatusCode = '1.0' THEN '1'
+                    WHEN StatusCode = '1' THEN '1'
+                    ELSE '0'
+                END)
+            ) AS status,
             MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id,
             MAX(NULLIF(DatasetPath, '')) AS dataset_path
         FROM traces
@@ -482,7 +648,7 @@ export const getTraceById = async (traceId: string) => {
         FROM traces t
         LEFT JOIN traces c
             ON c.SpanId = t.ParentSpanId
-        WHERE c.SpanId IS NULL    
+        WHERE c.SpanId IS NULL
         GROUP BY t.TraceId
     )
 
@@ -509,8 +675,52 @@ export const getTraceById = async (traceId: string) => {
 
   if (!traceRow) return null;
 
-  // Fetch spans separately
-  const spans = await getSpans(traceId);
+  // Fetch spans for this trace
+  let spans = await getSpans(traceId);
+
+  // Query-time virtual hierarchy: if this trace has a SessionId, find
+  // sibling traces from the same session and virtually parent them under
+  // the invoke_agent span. This handles disconnected traces from separate
+  // OTEL providers (e.g. CLI subprocess) without mutating stored data.
+  const sessionRow = db.prepare(`
+    SELECT DISTINCT SessionId FROM traces
+    WHERE TraceId = ? AND SessionId IS NOT NULL AND SessionId != ''
+    LIMIT 1
+  `).get(traceId) as { SessionId: string } | undefined;
+
+  if (sessionRow) {
+    const siblingTraceIds = (db.prepare(`
+      SELECT DISTINCT TraceId FROM traces
+      WHERE TraceId != ?
+      AND SessionId = ?
+    `).all(traceId, sessionRow.SessionId) as Array<{ TraceId: string }>)
+      .map(r => r.TraceId);
+
+    if (siblingTraceIds.length > 0) {
+      const agentRootSpan = spans.find(
+        s => s.name?.startsWith("invoke_agent") && !s.parentId
+      );
+
+      // Batch-fetch all sibling spans in one query
+      const placeholders = siblingTraceIds.map(() => '?').join(',');
+      const sibRows = db.prepare(`
+        SELECT ${SPAN_SELECT_COLUMNS}
+        FROM traces
+        WHERE TraceId IN (${placeholders})
+        ORDER BY CAST(Timestamp AS REAL) ASC
+      `).all(...siblingTraceIds) as any[];
+      const sibSpans = sibRows.map(mapRowToSpan);
+
+      for (const span of sibSpans) {
+        // Virtually parent orphan root spans under the invoke_agent span
+        if (agentRootSpan && !span.parentId) {
+          spans.push({ ...span, parentId: agentRootSpan.id });
+        } else {
+          spans.push(span);
+        }
+      }
+    }
+  }
 
   return {
     id: traceRow.trace_id,
@@ -614,28 +824,47 @@ export const getTraceGraph = async (traceId: string) => {
 
 export const getSessions = async () => {
   const sql = `
-    WITH session_spans AS (
+    WITH session_traces AS (
       SELECT
-        TRIM(SessionId) AS id,
-        CAST(Timestamp AS REAL) / 1000000 AS timestamp,
+        TRIM(SessionId) AS session_id,
+        TraceId AS trace_id,
         SessionName AS session_name
       FROM traces
       WHERE SessionId IS NOT NULL
         AND SessionId != ''
         AND SessionId != 'null'
+      GROUP BY SessionId, TraceId
+    ),
+    all_session_spans AS (
+      SELECT
+        st.session_id,
+        st.session_name,
+        t.TraceId AS trace_id,
+        CAST(t.Timestamp AS REAL) / 1000000 AS timestamp,
+        COALESCE(t.Cost, 0) AS cost,
+        COALESCE(t.TotalTokens, 0) AS total_tokens,
+        COALESCE(t.Duration, 0) AS duration,
+        t.TraceName AS trace_name,
+        t.PromptName AS prompt_name
+      FROM session_traces st
+      JOIN traces t ON t.TraceId = st.trace_id
     )
     SELECT
-      id,
+      session_id AS id,
       MIN(timestamp) AS start,
       MAX(timestamp) AS end,
-      MIN(CASE 
-        WHEN session_name IS NOT NULL AND session_name != ''
-        THEN session_name
-        ELSE NULL
-      END) AS name
-    FROM session_spans
-    WHERE id IS NOT NULL AND id != ''
-    GROUP BY id
+      COALESCE(
+        MIN(CASE WHEN session_name IS NOT NULL AND session_name != '' THEN session_name ELSE NULL END),
+        MIN(CASE WHEN prompt_name IS NOT NULL AND prompt_name != '' THEN prompt_name ELSE NULL END),
+        MIN(CASE WHEN trace_name IS NOT NULL AND trace_name != '' THEN trace_name ELSE NULL END)
+      ) AS name,
+      COUNT(DISTINCT trace_id) AS traceCount,
+      SUM(cost) AS totalCost,
+      SUM(total_tokens) AS totalTokens,
+      MAX(duration) AS latency
+    FROM all_session_spans
+    WHERE session_id IS NOT NULL AND session_id != ''
+    GROUP BY session_id
     ORDER BY start DESC
   `;
 
@@ -679,10 +908,11 @@ export const getTracesByRunId = async (runId: string) => {
 trace_costs_and_tokens AS (
     SELECT
         TraceId AS id,
-        SUM(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
-        SUM(COALESCE(Cost, 0.0)) AS cost
+        -- Use MAX across all spans — the SDK sets aggregated totals on exactly one span
+        -- (invoke_agent for Claude Agent SDK, GENERATION for direct API, root for others)
+        MAX(COALESCE(InputTokens, 0) + COALESCE(OutputTokens, 0)) AS tokens,
+        MAX(COALESCE(Cost, 0.0)) AS cost
     FROM traces
-    WHERE Type = 'GENERATION'
     GROUP BY TraceId
 ),
 
@@ -691,13 +921,25 @@ traces_cte AS (
         TraceId AS id,
         cast(MIN(Timestamp) as Real) / 1000000 AS start,
         cast(MAX(Timestamp) as Real) / 1000000 AS end,
-        MAX(CASE
-            WHEN StatusCode = '2.0' THEN '2'
-            WHEN StatusCode = '2' THEN '2'
-            WHEN StatusCode = '1.0' THEN '1'
-            WHEN StatusCode = '1' THEN '1'
-            ELSE '0'
-        END) AS status,
+        COALESCE(
+            MAX(CASE WHEN (ParentSpanId IS NULL OR ParentSpanId = '') THEN
+                CASE
+                    WHEN StatusCode = '2.0' THEN '2'
+                    WHEN StatusCode = '2' THEN '2'
+                    WHEN StatusCode = '1.0' THEN '1'
+                    WHEN StatusCode = '1' THEN '1'
+                    ELSE '0'
+                END
+            END),
+            MAX(CASE
+                WHEN StatusCode = '2.0' THEN '2'
+                WHEN StatusCode = '2' THEN '2'
+                WHEN StatusCode = '1.0' THEN '1'
+                WHEN StatusCode = '1' THEN '1'
+                ELSE '0'
+            END)
+        ) AS status,
+        COUNT(*) AS span_count,
         MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id,
         MAX(NULLIF(DatasetPath, '')) AS dataset_path
     FROM traces
@@ -716,7 +958,7 @@ trace_metadata AS (
     FROM traces t
     LEFT JOIN traces c
         ON c.SpanId = t.ParentSpanId
-    WHERE c.SpanId IS NULL    
+    WHERE c.SpanId IS NULL
     GROUP BY t.TraceId
 )
 
@@ -729,6 +971,7 @@ SELECT
     t.status,
     c.cost,
     c.tokens,
+    t.span_count,
     m.name,
     m.latency,
     m.status_message
@@ -912,3 +1155,4 @@ export const searchSpans = async (options: SpanFilterOptions = {}) => {
     };
   });
 };
+

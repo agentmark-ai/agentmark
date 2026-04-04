@@ -2,27 +2,45 @@ import { useSpanPrompts } from "../hooks/use-span-prompts";
 import { PromptList } from "./prompt-list";
 import { OutputDisplay } from "./output-display";
 import { TabPanel } from "@mui/lab";
-import { Alert } from "@mui/material";
+import { Alert, Box, Skeleton } from "@mui/material";
 import { useSpanInfoContext } from "../../span-info-provider";
 
+const IOLoadingSkeleton = () => (
+  <Box sx={{ py: 1 }}>
+    <Skeleton variant="rounded" height={24} width={80} sx={{ mb: 1 }} />
+    <Skeleton variant="rounded" height={120} sx={{ mb: 2 }} />
+    <Skeleton variant="rounded" height={24} width={80} sx={{ mb: 1 }} />
+    <Skeleton variant="rounded" height={80} />
+  </Box>
+);
+
 export const InputOutputTab = () => {
-  const { prompts, outputData } = useSpanPrompts();
+  const { prompts, outputData, isLoadingIO } = useSpanPrompts();
   const { span } = useSpanInfoContext();
 
   return (
     <TabPanel
       sx={{
-        height: "100%",
+        flex: 1,
+        minHeight: 0,
         overflow: "auto",
-        p: 1,
+        px: 3,
+        py: 1,
         "&.MuiTabPanel-root": {
-          padding: 1,
+          px: 3,
+          py: 1,
         },
       }}
       value="inputOutput"
     >
-      <PromptList prompts={prompts} />
-      <OutputDisplay outputData={outputData} />
+      {isLoadingIO ? (
+        <IOLoadingSkeleton />
+      ) : (
+        <>
+          <PromptList prompts={prompts} />
+          <OutputDisplay outputData={outputData} />
+        </>
+      )}
       {span.data.statusMessage && (
         <Alert severity="error" sx={{ mt: 2 }}>
           {span.data.statusMessage}

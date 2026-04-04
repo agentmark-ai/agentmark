@@ -1,6 +1,8 @@
 export { AgentMarkSDK } from "./agentmark";
-export { trace } from "./trace";
-export type { TraceContext, TraceOptions, SpanOptions, TraceResult } from "./trace";
+export { span } from "./trace";
+export { observe, SpanKind } from "./trace";
+export { serializeValue } from "./trace";
+export type { SpanContext, SpanOptions, SpanResult, ObserveOptions } from "./trace";
 
 // Re-export ApiLoader from @agentmark-ai/loader-api for convenience
 export { ApiLoader } from "@agentmark-ai/loader-api";

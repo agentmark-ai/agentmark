@@ -19,3 +19,9 @@ export {
   type WorkflowNodeType,
   type NodeGroup,
 } from "./span-grouping";
+export {
+  extractSpanInput,
+  extractSpanExpectedOutput,
+  getSpanInputKind,
+  type DatasetInputKind,
+} from "./extract-span-data";

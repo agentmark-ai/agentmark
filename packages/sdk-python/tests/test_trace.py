@@ -1,4 +1,4 @@
-"""Tests for trace utilities."""
+"""Tests for span utilities."""
 
 from __future__ import annotations
 
@@ -6,15 +6,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agentmark_sdk import TraceContext, TraceOptions, TraceResult, trace, trace_context
+from agentmark_sdk import SpanContext, SpanOptions, SpanResult, span, span_context
 
 
-class TestTraceOptions:
-    """Tests for TraceOptions dataclass."""
+class TestSpanOptions:
+    """Tests for SpanOptions dataclass."""
 
     def test_create_with_name_only(self) -> None:
-        """Test creating TraceOptions with only name."""
-        opts = TraceOptions(name="my-trace")
+        """Test creating SpanOptions with only name."""
+        opts = SpanOptions(name="my-trace")
 
         assert opts.name == "my-trace"
         assert opts.metadata is None
@@ -22,8 +22,8 @@ class TestTraceOptions:
         assert opts.user_id is None
 
     def test_create_with_all_fields(self) -> None:
-        """Test creating TraceOptions with all fields."""
-        opts = TraceOptions(
+        """Test creating SpanOptions with all fields."""
+        opts = SpanOptions(
             name="my-trace",
             metadata={"key": "value"},
             session_id="session-123",
@@ -43,31 +43,31 @@ class TestTraceOptions:
         assert opts.dataset_run_id == "run-789"
 
 
-class TestTraceResult:
-    """Tests for TraceResult dataclass."""
+class TestSpanResult:
+    """Tests for SpanResult dataclass."""
 
     def test_create_result(self) -> None:
-        """Test creating TraceResult."""
-        result = TraceResult(result="output", trace_id="abc123")
+        """Test creating SpanResult."""
+        result = SpanResult(result="output", trace_id="abc123")
 
         assert result.result == "output"
         assert result.trace_id == "abc123"
 
     def test_generic_type(self) -> None:
-        """Test TraceResult with complex types."""
+        """Test SpanResult with complex types."""
         data = {"key": "value", "items": [1, 2, 3]}
-        result = TraceResult(result=data, trace_id="def456")
+        result = SpanResult(result=data, trace_id="def456")
 
         assert result.result == data
         assert result.result["items"] == [1, 2, 3]
 
 
-class TestTraceFunction:
-    """Tests for trace() function."""
+class TestSpanFunction:
+    """Tests for span() function."""
 
     @pytest.mark.asyncio
-    async def test_trace_with_string_name(self) -> None:
-        """Test trace() with string name converts to TraceOptions."""
+    async def test_span_with_string_name(self) -> None:
+        """Test span() with string name converts to SpanOptions."""
         async def my_func() -> str:
             return "result"
 
@@ -83,14 +83,14 @@ class TestTraceFunction:
             mock_tracer.start_as_current_span.return_value = mock_span
             mock_otel.get_tracer.return_value = mock_tracer
 
-            result = await trace("my-trace", my_func)
+            result = await span("my-trace", my_func)
 
             assert result.result == "result"
             mock_tracer.start_as_current_span.assert_called_once_with("my-trace")
 
     @pytest.mark.asyncio
-    async def test_trace_with_options(self) -> None:
-        """Test trace() with TraceOptions."""
+    async def test_span_with_options(self) -> None:
+        """Test span() with SpanOptions."""
         async def my_func(x: int) -> int:
             return x * 2
 
@@ -106,14 +106,14 @@ class TestTraceFunction:
             mock_tracer.start_as_current_span.return_value = mock_span
             mock_otel.get_tracer.return_value = mock_tracer
 
-            opts = TraceOptions(name="multiply", user_id="user-1")
-            result = await trace(opts, my_func, 5)
+            opts = SpanOptions(name="multiply", user_id="user-1")
+            result = await span(opts, my_func, 5)
 
             assert result.result == 10
 
     @pytest.mark.asyncio
-    async def test_trace_returns_trace_id(self) -> None:
-        """Test that trace() returns correct trace ID format."""
+    async def test_span_returns_trace_id(self) -> None:
+        """Test that span() returns correct trace ID format."""
         async def my_func() -> str:
             return "done"
 
@@ -130,15 +130,15 @@ class TestTraceFunction:
             mock_tracer.start_as_current_span.return_value = mock_span
             mock_otel.get_tracer.return_value = mock_tracer
 
-            result = await trace("test", my_func)
+            result = await span("test", my_func)
 
             # Verify trace_id is a 32-character hex string
             assert len(result.trace_id) == 32
             assert result.trace_id == "abcdef0123456789abcdef0123456789"
 
     @pytest.mark.asyncio
-    async def test_trace_sets_agentmark_attributes(self) -> None:
-        """Test that trace() sets AgentMark-specific attributes."""
+    async def test_span_sets_agentmark_attributes(self) -> None:
+        """Test that span() sets AgentMark-specific attributes."""
         async def my_func() -> str:
             return "done"
 
@@ -154,13 +154,13 @@ class TestTraceFunction:
             mock_tracer.start_as_current_span.return_value = mock_span
             mock_otel.get_tracer.return_value = mock_tracer
 
-            opts = TraceOptions(
+            opts = SpanOptions(
                 name="my-trace",
                 user_id="user-123",
                 session_id="session-456",
                 metadata={"env": "test"},
             )
-            await trace(opts, my_func)
+            await span(opts, my_func)
 
             # Verify attributes were set
             calls = mock_span.set_attribute.call_args_list
@@ -172,8 +172,8 @@ class TestTraceFunction:
             assert "agentmark.metadata.env" in attr_names
 
     @pytest.mark.asyncio
-    async def test_trace_handles_exception(self) -> None:
-        """Test that trace() properly handles exceptions."""
+    async def test_span_handles_exception(self) -> None:
+        """Test that span() properly handles exceptions."""
         async def failing_func() -> None:
             raise ValueError("Something went wrong")
 
@@ -190,7 +190,7 @@ class TestTraceFunction:
             mock_otel.get_tracer.return_value = mock_tracer
 
             with pytest.raises(ValueError, match="Something went wrong"):
-                await trace("failing", failing_func)
+                await span("failing", failing_func)
 
             # Verify error status was set
             from opentelemetry.trace import StatusCode
@@ -200,15 +200,15 @@ class TestTraceFunction:
             assert status_call[0] == StatusCode.ERROR
 
 
-class TestTraceContext:
-    """Tests for TraceContext."""
+class TestSpanContext:
+    """Tests for SpanContext."""
 
     def test_set_attribute(self) -> None:
-        """Test setting attributes on TraceContext."""
+        """Test setting attributes on SpanContext."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
 
-        ctx = TraceContext(
+        ctx = SpanContext(
             trace_id="abc123",
             span_id="def456",
             _span=mock_span,
@@ -220,11 +220,11 @@ class TestTraceContext:
         mock_span.set_attribute.assert_called_once_with("key", "value")
 
     def test_add_event(self) -> None:
-        """Test adding events to TraceContext."""
+        """Test adding events to SpanContext."""
         mock_span = MagicMock()
         mock_tracer = MagicMock()
 
-        ctx = TraceContext(
+        ctx = SpanContext(
             trace_id="abc123",
             span_id="def456",
             _span=mock_span,
@@ -236,12 +236,12 @@ class TestTraceContext:
         mock_span.add_event.assert_called_once_with("my-event", {"detail": "info"})
 
 
-class TestTraceContextManager:
-    """Tests for trace_context() context manager."""
+class TestSpanContextManager:
+    """Tests for span_context() context manager."""
 
     @pytest.mark.asyncio
-    async def test_trace_context_yields_context(self) -> None:
-        """Test that trace_context() yields a TraceContext."""
+    async def test_span_context_yields_context(self) -> None:
+        """Test that span_context() yields a SpanContext."""
         with patch("agentmark_sdk.trace.otel_trace") as mock_otel:
             mock_tracer = MagicMock()
             mock_span = MagicMock()
@@ -254,14 +254,14 @@ class TestTraceContextManager:
             mock_tracer.start_as_current_span.return_value = mock_span
             mock_otel.get_tracer.return_value = mock_tracer
 
-            async with trace_context("my-trace") as ctx:
-                assert isinstance(ctx, TraceContext)
+            async with span_context("my-trace") as ctx:
+                assert isinstance(ctx, SpanContext)
                 assert len(ctx.trace_id) == 32
                 assert len(ctx.span_id) == 16
 
     @pytest.mark.asyncio
-    async def test_trace_context_with_options(self) -> None:
-        """Test trace_context() with TraceOptions."""
+    async def test_span_context_with_options(self) -> None:
+        """Test span_context() with SpanOptions."""
         with patch("agentmark_sdk.trace.otel_trace") as mock_otel:
             mock_tracer = MagicMock()
             mock_span = MagicMock()
@@ -274,8 +274,8 @@ class TestTraceContextManager:
             mock_tracer.start_as_current_span.return_value = mock_span
             mock_otel.get_tracer.return_value = mock_tracer
 
-            opts = TraceOptions(name="my-trace", user_id="user-1")
-            async with trace_context(opts) as ctx:
+            opts = SpanOptions(name="my-trace", user_id="user-1")
+            async with span_context(opts) as ctx:
                 ctx.set_attribute("custom", "value")
 
             mock_span.set_attribute.assert_called()

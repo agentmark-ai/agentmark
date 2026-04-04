@@ -13,6 +13,7 @@ import type { WorkflowNodeType } from "../../utils/span-grouping";
 
 /** Display names for node types */
 const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
+  function: "Function",
   llm: "LLM",
   tool: "Tool",
   agent: "Agent",
@@ -26,6 +27,7 @@ const NODE_TYPE_LABELS: Record<WorkflowNodeType, string> = {
 
 /** Order to display node types in legend */
 const NODE_TYPE_ORDER: WorkflowNodeType[] = [
+  "function",
   "llm",
   "tool",
   "agent",

@@ -12,7 +12,7 @@
     "fs-extra": "^11.2.0",
     "js-yaml": "^4.1.0",
     "json-schema-to-typescript": "^15.0.4",
-    "yaml": "^2.7.0"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.24.1",

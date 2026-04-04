@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-03-31T00:51:06.924Z",
+  "generatedAt": "2026-04-04T00:47:25.290Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-03-31T00:51:06.924Z",
-      "modelCount": 1149
+      "fetchedAt": "2026-04-04T00:47:25.290Z",
+      "modelCount": 1165
     },
     "openrouter": {
-      "fetchedAt": "2026-03-31T00:51:06.924Z",
-      "modelCount": 123
+      "fetchedAt": "2026-04-04T00:47:25.290Z",
+      "modelCount": 125
     }
   },
   "models": {
@@ -148,6 +148,15 @@
     "amazon.nova-canvas-v1:0": {
       "provider": "bedrock",
       "displayName": "Amazon.nova Canvas V1:0",
+      "mode": "image_generation",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 2600
+      }
+    },
+    "us.amazon.nova-canvas-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova Canvas V1:0",
       "mode": "image_generation",
       "source": "litellm",
       "context": {
@@ -4507,6 +4516,24 @@
         "functionCalling": true
       }
     },
+    "ap-northeast-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap Northeast 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
     "ap-northeast-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Ap Northeast 1/moonshotai.kimi K2 Thinking",
@@ -4660,6 +4687,24 @@
         "functionCalling": true
       }
     },
+    "ap-south-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap South 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
     "ap-south-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Ap South 1/moonshotai.kimi K2 Thinking",
@@ -4713,6 +4758,24 @@
         "functionCalling": true
       }
     },
+    "ap-southeast-2/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap Southeast 2/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.09e-7,
+        "outputCostPerToken": 0.000001236
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
     "ap-southeast-3/deepseek.v3.2": {
       "provider": "bedrock",
       "displayName": "Ap Southeast 3/deepseek.v3.2",
@@ -4746,6 +4809,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "ap-southeast-3/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Ap Southeast 3/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "ap-southeast-3/moonshotai.kimi-k2.5": {
@@ -4844,6 +4925,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "eu-north-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Eu North 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "eu-north-1/moonshotai.kimi-k2.5": {
@@ -4983,6 +5082,24 @@
         "functionCalling": true
       }
     },
+    "eu-central-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Eu Central 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
     "eu-central-1/qwen.qwen3-coder-next": {
       "provider": "bedrock",
       "displayName": "Eu Central 1/qwen.qwen3 Coder Next",
@@ -5045,6 +5162,24 @@
         "functionCalling": true
       }
     },
+    "eu-west-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Eu West 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
     "eu-west-1/qwen.qwen3-coder-next": {
       "provider": "bedrock",
       "displayName": "Eu West 1/qwen.qwen3 Coder Next",
@@ -5105,6 +5240,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "eu-west-2/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Eu West 2/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4.7e-7,
+        "outputCostPerToken": 0.00000186
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "eu-west-2/qwen.qwen3-coder-next": {
@@ -5184,6 +5337,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "eu-south-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Eu South 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "eu-south-1/qwen.qwen3-coder-next": {
@@ -5285,6 +5456,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "sa-east-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Sa East 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.6e-7,
+        "outputCostPerToken": 0.00000144
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "sa-east-1/moonshotai.kimi-k2-thinking": {
@@ -5550,6 +5739,24 @@
         "functionCalling": true
       }
     },
+    "us-east-1/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Us East 1/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
     "us-east-1/moonshotai.kimi-k2-thinking": {
       "provider": "bedrock",
       "displayName": "Us East 1/moonshotai.kimi K2 Thinking",
@@ -5636,6 +5843,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "us-east-2/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Us East 2/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "us-east-2/moonshotai.kimi-k2-thinking": {
@@ -5830,10 +6055,10 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000033,
-        "outputCostPerToken": 0.0000165,
-        "cacheCreationCostPerToken": 0.000004125,
-        "cacheReadCostPerToken": 3.3e-7
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6045,10 +6270,10 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000033,
-        "outputCostPerToken": 0.0000165,
-        "cacheCreationCostPerToken": 0.000004125,
-        "cacheReadCostPerToken": 3.3e-7
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6305,6 +6530,24 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "us-west-2/minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Us West 2/minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
       }
     },
     "us-west-2/moonshotai.kimi-k2-thinking": {
@@ -18937,6 +19180,108 @@
         "pdfInput": true
       }
     },
+    "us-gov-east-1/anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us Gov East 1/anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000012,
+        "outputCostPerToken": 0.000006,
+        "cacheCreationCostPerToken": 0.0000015,
+        "cacheReadCostPerToken": 1.2e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us-gov-west-1/anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us Gov West 1/anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000012,
+        "outputCostPerToken": 0.000006,
+        "cacheCreationCostPerToken": 0.0000015,
+        "cacheReadCostPerToken": 1.2e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "gemma-4-26b-a4b-it": {
+      "provider": "google",
+      "displayName": "Google: Gemma 4 26B A4B ",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 1.3e-7,
+        "outputCostPerToken": 4e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "gemma-4-31b-it": {
+      "provider": "google",
+      "displayName": "Google: Gemma 4 31B",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 1.4e-7,
+        "outputCostPerToken": 4e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
     "lyria-3-pro-preview": {
       "provider": "google",
       "displayName": "Google: Lyria 3 Pro Preview",
@@ -20024,32 +20369,6 @@
         "functionCalling": true
       }
     },
-    "command-r-08-2024": {
-      "provider": "cohere",
-      "displayName": "Cohere: Command R (08-2024)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 1.5e-7,
-        "outputCostPerToken": 6e-7
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 4000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
-    },
     "command-r-plus-08-2024": {
       "provider": "cohere",
       "displayName": "Cohere: Command R+ (08-2024)",
@@ -20066,6 +20385,32 @@
       "pricing": {
         "inputCostPerToken": 0.0000025,
         "outputCostPerToken": 0.00001
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "command-r-08-2024": {
+      "provider": "cohere",
+      "displayName": "Cohere: Command R (08-2024)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
       },
       "context": {
         "maxInputTokens": 128000,

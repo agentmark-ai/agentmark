@@ -369,7 +369,7 @@ describe("withTracing", () => {
 
       const spans = getCreatedSpans();
       const agentSpan = spans.find(s => s.name.includes("invoke_agent"));
-      expect(agentSpan?.attributes["gen_ai.usage.cost_usd"]).toBe(0.005);
+      expect(agentSpan?.attributes["agentmark.usage.cost_usd"]).toBe(0.005);
       expect(agentSpan?.attributes["gen_ai.duration_ms"]).toBe(1234);
     });
 

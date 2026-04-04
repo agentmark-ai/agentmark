@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
-import { trace } from "../trace/tracing";
+import { span } from "../trace/tracing";
 import { AgentMarkSDK } from "../agentmark";
 import * as api from "@opentelemetry/api";
 
@@ -148,7 +148,7 @@ describe("OTLP Exporter", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     // ===== Test 1: Basic span creation and OTLP payload structure =====
-    const { result: result1, traceId: traceId1 } = await trace({ name: "test-span" }, async (_ctx) => {
+    const { result: result1, traceId: traceId1 } = await span({ name: "test-span" }, async (_ctx) => {
       return "test";
     });
     expect(await result1).toBe("test");
@@ -174,7 +174,7 @@ describe("OTLP Exporter", () => {
     expect(scope.name).toBe("agentmark");
 
     // ===== Test 4: Metadata attributes with prefix =====
-    await trace(
+    await span(
       {
         name: "test-span-metadata",
         metadata: {
@@ -197,7 +197,7 @@ describe("OTLP Exporter", () => {
     expect(metadataAttrMap.get("agentmark.metadata.userId")).toBe("user-456");
 
     // ===== Test 5: Events in OTLP export =====
-    await trace({ name: "test-span-events" }, async (ctx) => {
+    await span({ name: "test-span-events" }, async (ctx) => {
       ctx.addEvent("test-event", { "event.key": "event-value" });
       return "test";
     });
@@ -222,7 +222,7 @@ describe("OTLP Exporter", () => {
     expect(authRequest.headers["x-agentmark-app-id"]).toBe("test-app-id");
 
     // ===== Test 7: ctx.span() for child spans =====
-    await trace({ name: "parent-span" }, async (ctx) => {
+    await span({ name: "parent-span" }, async (ctx) => {
       const childResult = await ctx.span(
         {
           name: "child-span",
@@ -250,7 +250,7 @@ describe("OTLP Exporter", () => {
 
     // ===== Test 8: Error handling and error status =====
     try {
-      await trace({ name: "error-span" }, async (_ctx) => {
+      await span({ name: "error-span" }, async (_ctx) => {
         throw new Error("Test error");
       });
     } catch {
@@ -263,10 +263,10 @@ describe("OTLP Exporter", () => {
     // OpenTelemetry uses numeric status codes: 1 = OK, 2 = ERROR
     expect(errorSpan.status?.code).toBe(2);
 
-    // ===== Test 9: TraceContext - ctx.traceId =====
+    // ===== Test 9: SpanContext - ctx.traceId =====
     let capturedTraceId: string = "";
     let capturedSpanId: string = "";
-    const { traceId: returnedTraceId } = await trace({ name: "test-trace-id" }, async (ctx) => {
+    const { traceId: returnedTraceId } = await span({ name: "test-span-id" }, async (ctx) => {
       capturedTraceId = ctx.traceId;
       capturedSpanId = ctx.spanId;
       return "test";
@@ -276,13 +276,13 @@ describe("OTLP Exporter", () => {
     expect(typeof capturedTraceId).toBe("string");
     expect(capturedTraceId).toBe(returnedTraceId); // ctx.traceId matches returned traceId
 
-    // ===== Test 10: TraceContext - ctx.spanId =====
+    // ===== Test 10: SpanContext - ctx.spanId =====
     expect(capturedSpanId).toBeTruthy();
     expect(typeof capturedSpanId).toBe("string");
     expect(capturedSpanId).not.toBe(capturedTraceId); // spanId is different from traceId
 
-    // ===== Test 11: TraceContext - setAttribute =====
-    await trace({ name: "test-set-attribute" }, async (ctx) => {
+    // ===== Test 11: SpanContext - setAttribute =====
+    await span({ name: "test-set-attribute" }, async (ctx) => {
       ctx.setAttribute("custom.key", "custom-value");
       ctx.setAttribute("custom.number", 42);
       ctx.setAttribute("custom.bool", true);
@@ -293,8 +293,8 @@ describe("OTLP Exporter", () => {
     const attrSpanResult = findSpanByName("test-set-attribute");
     expect(attrSpanResult).not.toBeNull();
 
-    // ===== Test 12: Context Parameters - set agentmark.* attributes for context parameters in trace() =====
-    await trace(
+    // ===== Test 12: Context Parameters - set agentmark.* attributes for context parameters in span() =====
+    await span(
       {
         name: "test-context-params",
         sessionId: "session-123",
@@ -327,7 +327,7 @@ describe("OTLP Exporter", () => {
     expect(contextAttrMap.get("agentmark.dataset_expected_output")).toBe("expected-output");
 
     // ===== Test 13: Nested spans with ctx.span() =====
-    await trace({ name: "outer-trace" }, async (ctx) => {
+    await span({ name: "outer-span" }, async (ctx) => {
       await ctx.span(
         {
           name: "inner-span-context",
@@ -355,7 +355,7 @@ describe("OTLP Exporter", () => {
     expect(innerContextAttrMap.get("agentmark.metadata.level")).toBe("nested");
 
     // ===== Test 14: Context Parameters - handle both context parameters and metadata =====
-    await trace(
+    await span(
       {
         name: "test-mixed-params",
         sessionId: "session-999",
@@ -385,7 +385,7 @@ describe("OTLP Exporter", () => {
     expect(mixedAttrMap.get("agentmark.metadata.anotherKey")).toBe("another-value");
 
     // ===== Test 15: Context Parameters - handle optional context parameters =====
-    await trace(
+    await span(
       {
         name: "test-optional-params",
         sessionId: "session-only",
@@ -408,7 +408,7 @@ describe("OTLP Exporter", () => {
     expect(optionalAttrMap.get("agentmark.dataset_run_id")).toBeUndefined();
 
     // ===== Test 16: Deep nesting (3 levels) with attributes at each level =====
-    await trace({ name: "nested-level-0-root" }, async (rootCtx) => {
+    await span({ name: "nested-level-0-root" }, async (rootCtx) => {
       // Set attribute on root span
       rootCtx.setAttribute("level", 0);
       rootCtx.addEvent("root-event", { "event.level": "0" });
@@ -482,7 +482,7 @@ describe("OTLP Exporter", () => {
     expect(nestedLevel2Span!.span.traceId).toBe(nestedRootSpan!.span.traceId);
 
     // ===== Test 17: Parallel child spans =====
-    await trace({ name: "parallel-parent" }, async (parentCtx) => {
+    await span({ name: "parallel-parent" }, async (parentCtx) => {
       const [parallelResult1, parallelResult2, parallelResult3] = await Promise.all([
         parentCtx.span({ name: "parallel-child-1" }, async (ctx) => {
           ctx.setAttribute("child.index", 1);
@@ -523,7 +523,7 @@ describe("OTLP Exporter", () => {
 
     // ===== Test 18: Error in child span propagates to parent =====
     try {
-      await trace({ name: "error-parent" }, async (parentCtx) => {
+      await span({ name: "error-parent" }, async (parentCtx) => {
         parentCtx.setAttribute("parent.status", "started");
 
         await parentCtx.span({ name: "error-child" }, async (childCtx) => {
@@ -549,7 +549,7 @@ describe("OTLP Exporter", () => {
     expect(errorParent!.span.status?.code).toBe(2); // ERROR
 
     // ===== Test 19: Caught error in child doesn't fail parent =====
-    const { result: caughtResult } = await trace({ name: "catch-parent" }, async (parentCtx) => {
+    const { result: caughtResult } = await span({ name: "catch-parent" }, async (parentCtx) => {
       parentCtx.setAttribute("parent.status", "started");
 
       try {
@@ -585,9 +585,9 @@ describe("OTLP Exporter", () => {
 
     activeSdk = sdk.initTracing({ disableBatch: false });
 
-    await trace({ name: "span-1" }, async (_ctx) => "1");
-    await trace({ name: "span-2" }, async (_ctx) => "2");
-    await trace({ name: "span-3" }, async (_ctx) => "3");
+    await span({ name: "span-1" }, async (_ctx) => "1");
+    await span({ name: "span-2" }, async (_ctx) => "2");
+    await span({ name: "span-3" }, async (_ctx) => "3");
 
     // Force flush and wait for batch to flush
     await flushSpans();

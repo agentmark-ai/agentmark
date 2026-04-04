@@ -46,11 +46,11 @@ export interface ExperimentsListProps {
   total: number;
   isLoading: boolean;
   error?: Error | null;
-  filterOptions: ExperimentsFilterOptions;
-  promptNameFilter: string | null;
-  onPromptNameFilterChange: (value: string | null) => void;
-  datasetPathFilter: string | null;
-  onDatasetPathFilterChange: (value: string | null) => void;
+  filterOptions?: ExperimentsFilterOptions;
+  promptNameFilter?: string | null;
+  onPromptNameFilterChange?: (value: string | null) => void;
+  datasetPathFilter?: string | null;
+  onDatasetPathFilterChange?: (value: string | null) => void;
   onExperimentClick: (experimentId: string) => void;
   onCompare?: (experimentIds: string[]) => void;
   onPageChange?: (page: number, rowsPerPage: number) => void;
@@ -59,6 +59,8 @@ export interface ExperimentsListProps {
   actionsSlot?: React.ReactNode;
   chartsSlot?: React.ReactNode;
   emptyStateDocsUrl?: string;
+  showDatasetColumn?: boolean;
+  showCreatedColumn?: boolean;
 }
 
 export const ExperimentsList = ({
@@ -79,6 +81,8 @@ export const ExperimentsList = ({
   actionsSlot,
   chartsSlot,
   emptyStateDocsUrl,
+  showDatasetColumn = false,
+  showCreatedColumn = false,
 }: ExperimentsListProps) => {
   const table = useTable();
 
@@ -116,46 +120,50 @@ export const ExperimentsList = ({
         sx={{ px: 1 }}
       >
         <Stack direction="row" spacing={1} flex={1}>
-          <Autocomplete
-            size="small"
-            options={filterOptions.promptNames}
-            value={promptNameFilter}
-            onChange={(_, value) => {
-              onPromptNameFilterChange(value);
-              table.onChangePage(
-                null as unknown as React.MouseEvent<HTMLButtonElement>,
-                0
-              );
-            }}
-            renderInput={(inputParams) => (
-              <TextField
-                {...inputParams}
-                label={t("filterByPrompt")}
+          {filterOptions && onPromptNameFilterChange && onDatasetPathFilterChange && (
+            <>
+              <Autocomplete
                 size="small"
+                options={filterOptions.promptNames}
+                value={promptNameFilter ?? null}
+                onChange={(_, value) => {
+                  onPromptNameFilterChange(value);
+                  table.onChangePage(
+                    null as unknown as React.MouseEvent<HTMLButtonElement>,
+                    0
+                  );
+                }}
+                renderInput={(inputParams) => (
+                  <TextField
+                    {...inputParams}
+                    label={t("filterByPrompt")}
+                    size="small"
+                  />
+                )}
+                sx={{ minWidth: 200 }}
               />
-            )}
-            sx={{ minWidth: 200 }}
-          />
-          <Autocomplete
-            size="small"
-            options={filterOptions.datasetPaths}
-            value={datasetPathFilter}
-            onChange={(_, value) => {
-              onDatasetPathFilterChange(value);
-              table.onChangePage(
-                null as unknown as React.MouseEvent<HTMLButtonElement>,
-                0
-              );
-            }}
-            renderInput={(inputParams) => (
-              <TextField
-                {...inputParams}
-                label={t("filterByDataset")}
+              <Autocomplete
                 size="small"
+                options={filterOptions.datasetPaths}
+                value={datasetPathFilter ?? null}
+                onChange={(_, value) => {
+                  onDatasetPathFilterChange(value);
+                  table.onChangePage(
+                    null as unknown as React.MouseEvent<HTMLButtonElement>,
+                    0
+                  );
+                }}
+                renderInput={(inputParams) => (
+                  <TextField
+                    {...inputParams}
+                    label={t("filterByDataset")}
+                    size="small"
+                  />
+                )}
+                sx={{ minWidth: 200 }}
               />
-            )}
-            sx={{ minWidth: 200 }}
-          />
+            </>
+          )}
         </Stack>
 
         <Stack direction="row" spacing={1}>
@@ -223,10 +231,16 @@ export const ExperimentsList = ({
                     { id: "id", label: t("id") },
                     { id: "name", label: t("name") },
                     { id: "promptName", label: t("promptName") },
+                    ...(showDatasetColumn
+                      ? [{ id: "datasetPath", label: t("datasetPath") }]
+                      : []),
                     { id: "items", label: t("items") },
                     { id: "avgLatency", label: t("avgLatency") },
                     { id: "totalCost", label: t("totalCost") },
                     { id: "avgScore", label: t("avgScore") },
+                    ...(showCreatedColumn
+                      ? [{ id: "createdAt", label: t("createdAt") }]
+                      : []),
                   ]}
                   rowCount={experiments.length}
                   numSelected={table.selected.length}
@@ -281,6 +295,17 @@ export const ExperimentsList = ({
                             {experiment.promptName || "-"}
                           </Typography>
                         </TableCell>
+                        {showDatasetColumn && (
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                              noWrap
+                              sx={{ maxWidth: 150 }}
+                            >
+                              {experiment.datasetPath || "-"}
+                            </Typography>
+                          </TableCell>
+                        )}
                         <TableCell>{experiment.itemCount}</TableCell>
                         <TableCell>
                           {fNumber(experiment.avgLatencyMs / 1000)}s
@@ -302,6 +327,15 @@ export const ExperimentsList = ({
                             </Typography>
                           )}
                         </TableCell>
+                        {showCreatedColumn && (
+                          <TableCell>
+                            <Typography variant="body2" noWrap>
+                              {experiment.createdAt
+                                ? new Date(experiment.createdAt).toLocaleDateString()
+                                : "-"}
+                            </Typography>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
 
@@ -309,7 +343,15 @@ export const ExperimentsList = ({
 
                   {notFound && table.page > 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                      <TableCell
+                        colSpan={
+                          8 +
+                          (showDatasetColumn ? 1 : 0) +
+                          (showCreatedColumn ? 1 : 0)
+                        }
+                        align="center"
+                        sx={{ py: 6 }}
+                      >
                         <Typography variant="body2" color="text.disabled">
                           {t("noExperiments")}
                         </Typography>

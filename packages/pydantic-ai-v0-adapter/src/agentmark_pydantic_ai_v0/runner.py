@@ -1,7 +1,10 @@
-"""Convenience utilities for running AgentMark prompts with Pydantic AI.
+"""Internal runner utilities for the webhook server.
 
-These utilities provide a simple interface for executing adapted prompts
-without manually creating Agent instances.
+These are NOT part of the public API. Users should call their
+framework (Pydantic AI) directly with the adapted params.
+
+Used internally by PydanticAIWebhookHandler for prompt-run and
+dataset-run events.
 """
 
 from __future__ import annotations
@@ -44,24 +47,7 @@ async def run_text_prompt(
     params: PydanticAITextParams,
     message_history: list[ModelMessage] | None = None,
 ) -> TextRunResult:
-    """Run a text prompt with Pydantic AI.
-
-    Convenience function that creates an Agent and runs it.
-
-    Args:
-        params: Adapted parameters from PydanticAIAdapter.adapt_text().
-        message_history: Optional conversation history for multi-turn.
-
-    Returns:
-        TextRunResult with output, messages, and usage stats.
-
-    Example:
-        params = adapter.adapt_text(config, options, metadata)
-        result = await run_text_prompt(params)
-        print(result.output)
-    """
-    # Create agent with pre-converted prompts
-    # Handle None system_prompt by using empty string
+    """Run a text prompt. Internal use only."""
     system_prompt = params.system_prompt if params.system_prompt else ""
     agent: Agent[None, str] = Agent(
         model=params.model,
@@ -70,7 +56,6 @@ async def run_text_prompt(
         tools=params.tools,
     )
 
-    # Run
     result = await agent.run(
         params.user_prompt,
         message_history=message_history,
@@ -87,22 +72,7 @@ async def run_object_prompt(
     params: PydanticAIObjectParams[T],
     message_history: list[ModelMessage] | None = None,
 ) -> ObjectRunResult[T]:
-    """Run an object prompt with Pydantic AI.
-
-    Args:
-        params: Adapted parameters from PydanticAIAdapter.adapt_object().
-        message_history: Optional conversation history.
-
-    Returns:
-        ObjectRunResult with typed output.
-
-    Example:
-        params = adapter.adapt_object(config, options, metadata)
-        result = await run_object_prompt(params)
-        print(result.output.name)  # Typed access to output fields
-    """
-    # Create agent with output_type for structured response
-    # Handle None system_prompt by using empty string
+    """Run an object prompt. Internal use only."""
     system_prompt = params.system_prompt if params.system_prompt else ""
     agent: Agent[None, T] = Agent(
         model=params.model,
@@ -112,7 +82,6 @@ async def run_object_prompt(
         tools=params.tools,
     )
 
-    # Run
     result = await agent.run(
         params.user_prompt,
         message_history=message_history,
@@ -129,21 +98,7 @@ async def stream_text_prompt(
     params: PydanticAITextParams,
     message_history: list[ModelMessage] | None = None,
 ) -> AsyncIterator[str]:
-    """Stream a text prompt response.
-
-    Args:
-        params: Adapted parameters from PydanticAIAdapter.adapt_text().
-        message_history: Optional conversation history.
-
-    Yields:
-        Text chunks as they arrive.
-
-    Example:
-        params = adapter.adapt_text(config, options, metadata)
-        async for chunk in stream_text_prompt(params):
-            print(chunk, end="", flush=True)
-    """
-    # Handle None system_prompt by using empty string
+    """Stream a text prompt response. Internal use only."""
     system_prompt = params.system_prompt if params.system_prompt else ""
     agent: Agent[None, str] = Agent(
         model=params.model,

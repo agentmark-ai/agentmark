@@ -3,6 +3,16 @@ import fs from "fs-extra";
 import type { Root } from "mdast";
 import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
 
+/**
+ * Count the number of visual terminal lines a string occupies,
+ * accounting for line wrapping at the given column width.
+ */
+export function countVisualLines(text: string, columns: number): number {
+  return text.split('\n').reduce(
+    (sum, line) => sum + Math.max(1, Math.ceil((line.length + 1) / columns)), 0
+  );
+}
+
 function resolveAgainstCwdOrEnv(inputPath: string): string {
   if (path.isAbsolute(inputPath)) return inputPath;
   let base: string | undefined;
@@ -239,7 +249,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
               }
               if (evt.type === 'object' && evt.result) {
                 const next = JSON.stringify(evt.result, null, 2);
-                // Clear previously rendered object lines (if any), move cursor up, then render new object
+                const visualLines = countVisualLines(next, process.stdout.columns || 80);
+                // Clear previously rendered visual lines
                 if (lastObjectRenderLineCount > 0) {
                   for (let i = 0; i < lastObjectRenderLineCount; i++) {
                     process.stdout.write('\x1b[1A'); // cursor up
@@ -247,7 +258,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
                   }
                 }
                 process.stdout.write(next + '\n');
-                lastObjectRenderLineCount = next.split('\n').length;
+                lastObjectRenderLineCount = visualLines;
                 finalObjectString = next;
               }
               if (evt.type === 'error' && evt.error) {

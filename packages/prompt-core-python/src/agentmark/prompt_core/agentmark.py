@@ -53,6 +53,10 @@ class AgentMark:
         """Get the eval registry."""
         return self._eval_registry
 
+    def get_eval_registry(self) -> EvalRegistry | None:
+        """Get the eval registry (method form for webhook server compat)."""
+        return self._eval_registry
+
     async def load_text_prompt(
         self,
         path_or_preloaded: str | dict[str, Any],
@@ -86,6 +90,7 @@ class AgentMark:
             path=path,
             test_settings=test_settings,
             loader=self._loader,
+            eval_registry=self._eval_registry,
         )
 
     async def load_object_prompt(
@@ -120,6 +125,7 @@ class AgentMark:
             path=path,
             test_settings=test_settings,
             loader=self._loader,
+            eval_registry=self._eval_registry,
         )
 
     async def load_image_prompt(

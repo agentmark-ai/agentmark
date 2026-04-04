@@ -7,38 +7,30 @@ interface AttributesViewerProps {
 }
 
 export const AttributesViewer = ({ attributes }: AttributesViewerProps) => (
-  <Box position="relative">
-    <Box
-      position="absolute"
-      left={0}
-      right={0}
-      sx={{
-        width: "100%",
-        overflow: "hidden",
-        "& .cm-editor": {
-          borderRadius: 1,
-          fontSize: "14px",
-          maxWidth: "100%",
-          overflow: "hidden",
-        },
+  <Box
+    sx={{
+      width: "100%",
+      "& .cm-editor": {
+        borderRadius: 1,
+        fontSize: "14px",
+        maxWidth: "100%",
+      },
+    }}
+  >
+    <CodeMirror
+      value={JSON.stringify(attributes, null, 2)}
+      extensions={[json()]}
+      basicSetup={{
+        lineNumbers: true,
+        foldGutter: true,
+        highlightActiveLine: false,
+        dropCursor: false,
       }}
-    >
-      <CodeMirror
-        value={JSON.stringify(attributes, null, 2)}
-        extensions={[json()]}
-        basicSetup={{
-          lineNumbers: true,
-          foldGutter: true,
-          highlightActiveLine: false,
-          dropCursor: false,
-        }}
-        editable={false}
-        style={{
-          fontSize: "13px",
-          maxWidth: "100%",
-        }}
-        height="100%"
-      />
-    </Box>
+      editable={false}
+      style={{
+        fontSize: "13px",
+        maxWidth: "100%",
+      }}
+    />
   </Box>
 );

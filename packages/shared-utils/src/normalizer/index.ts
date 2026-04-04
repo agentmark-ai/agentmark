@@ -3,17 +3,17 @@ import { registry } from './registry';
 import { AiSdkTransformer } from './transformers/ai-sdk';
 import { MastraTransformer } from './transformers/mastra';
 import { AgentMarkTransformer } from './transformers/agentmark';
+import { OtelGenAiTransformer } from './transformers/otel-genai';
 import { OtlpResourceSpans, extractResourceScopeSpan } from './converters/otlp-converter';
 import { parseAgentMarkAttributes } from './extractors/agentmark-parser';
 
-// Register transformers
-registry.register('ai', new AiSdkTransformer());
-registry.register('default-tracer', new MastraTransformer());
-// Register AgentMark transformer - uses fixed scope name 'agentmark' from OTEL
-registry.register('agentmark', new AgentMarkTransformer());
-// Set AiSdkTransformer as default adapter for all scopes
-registry.setDefault(new AiSdkTransformer());
-// We can register more transformers here for other scopes (e.g. 'langchain')
+// Register scope-specific transformers
+registry.register('ai', new AiSdkTransformer());                    // Vercel AI SDK
+registry.register('default-tracer', new MastraTransformer());        // Mastra
+registry.register('agentmark', new AgentMarkTransformer());          // AgentMark SDK
+registry.register('pydantic-ai', new OtelGenAiTransformer());       // Pydantic AI
+// Default: OTel GenAI semconv v1.37+ (the official standard)
+registry.setDefault(new OtelGenAiTransformer());
 
 export function normalizeSpan(
     resource: OtelResource,
@@ -127,3 +127,4 @@ export * from './transformers/ai-sdk/token-helpers';
 export * from './transformers/ai-sdk/version-detector';
 export * from './transformers/mastra';
 export * from './transformers/agentmark';
+export * from './transformers/otel-genai';

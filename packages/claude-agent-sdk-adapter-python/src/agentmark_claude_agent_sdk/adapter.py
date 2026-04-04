@@ -82,11 +82,13 @@ class ClaudeAgentAdapter:
     Example:
         from agentmark_claude_agent_sdk import (
             ClaudeAgentAdapter,
-            create_default_model_registry,
+            ClaudeAgentModelRegistry,
         )
 
+        model_registry = ClaudeAgentModelRegistry()
+        model_registry.register_providers({"anthropic": "anthropic"})
         adapter = ClaudeAgentAdapter(
-            model_registry=create_default_model_registry(),
+            model_registry=model_registry,
             adapter_options=ClaudeAgentAdapterOptions(permission_mode='bypassPermissions'),
         )
     """
@@ -225,7 +227,7 @@ class ClaudeAgentAdapter:
             max_budget_usd=self._adapter_options.max_budget_usd if self._adapter_options else None,
             mcp_servers=mcp_servers if mcp_servers else None,
             system_prompt=system_prompt_config,
-            allowed_tools=merged_allowed_tools if merged_allowed_tools else None,
+            allowed_tools=merged_allowed_tools if (merged_allowed_tools or tools is not None) else None,
             disallowed_tools=self._adapter_options.disallowed_tools
             if self._adapter_options
             else None,
@@ -242,13 +244,14 @@ class ClaudeAgentAdapter:
         """Adapt a text configuration for Claude Agent SDK.
 
         Args:
-            config: Text configuration from AgentMark prompt (includes messages).
+            config: Text configuration from AgentMark prompt (Pydantic model or dict).
             options: Adapt options including telemetry settings.
             metadata: Prompt metadata including props.
 
         Returns:
             Configuration for Claude Agent SDK query() with telemetry context.
         """
+        config = config.model_dump(by_alias=True) if hasattr(config, "model_dump") else config
         messages = config.get("messages", [])
         text_config = config.get("text_config", {})
         model_name = text_config.get("model_name", "")
@@ -293,13 +296,14 @@ class ClaudeAgentAdapter:
         """Adapt an object configuration for Claude Agent SDK with structured output.
 
         Args:
-            config: Object configuration from AgentMark prompt (includes messages).
+            config: Object configuration from AgentMark prompt (Pydantic model or dict).
             options: Adapt options including telemetry settings.
             metadata: Prompt metadata including props.
 
         Returns:
             Configuration for Claude Agent SDK query() with outputFormat and telemetry context.
         """
+        config = config.model_dump(by_alias=True) if hasattr(config, "model_dump") else config
         messages = config.get("messages", [])
         object_config = config.get("object_config", {})
         model_name = object_config.get("model_name", "")

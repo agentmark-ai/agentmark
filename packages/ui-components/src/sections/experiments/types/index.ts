@@ -23,13 +23,15 @@ export interface ExperimentSummary {
   name: string;
   datasetPath: string;
   promptName: string;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string;
   itemCount: number;
   avgLatencyMs: number;
   totalCost: number;
-  totalTokens: number;
+  totalTokens?: number;
   avgScore: number | null;
+  commitSha?: string;
+  createdAt?: string;
 }
 
 /** Single item in experiment */
@@ -103,3 +105,6 @@ export interface DiffSegment {
 
 /** Sort options for the comparison table */
 export type ComparisonSortMode = 'item-name' | 'regressions-first' | 'improvements-first' | 'delta-abs';
+
+/** Filter options for the comparison table */
+export type ComparisonFilterMode = 'all' | 'regressed' | 'improved' | 'unchanged';

@@ -124,7 +124,12 @@ program
     if (!Number.isFinite(n)) throw new Error('Seed must be a finite integer');
     return n;
   })
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number }) => {
+  .option('--truncate <chars>', 'Truncate table cell content to N chars (default: 1000, 0 = no limit)', (v) => {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n) || n < 0) throw new Error('Truncate must be a non-negative integer');
+    return n;
+  })
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number, truncate?: number }) => {
     try {
       const format = options.format || 'table';
       if (!['table', 'csv', 'json', 'jsonl'].includes(format)) {
@@ -140,6 +145,7 @@ program
         rows: options.rows,
         split: options.split,
         seed: options.seed,
+        truncate: options.truncate,
       });
     } catch (error) {
       program.error((error as Error).message);

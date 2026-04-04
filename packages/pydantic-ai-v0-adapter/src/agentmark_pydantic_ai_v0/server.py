@@ -54,10 +54,14 @@ async def _handle_webhook(
                 response = web.StreamResponse()
                 response.headers["Content-Type"] = "application/x-ndjson"
                 response.headers["AgentMark-Streaming"] = "true"
+                response.enable_chunked_encoding()
                 await response.prepare(request)
 
                 async for chunk in result["stream"]:
                     await response.write(chunk.encode() + b"\n")
+                    # Force transport flush for progressive streaming
+                    if response._payload_writer is not None:
+                        await response._payload_writer.drain()
 
                 if result.get("traceId"):
                     await response.write(
@@ -75,6 +79,8 @@ async def _handle_webhook(
                 data["ast"],
                 experiment_id,
                 data.get("datasetPath"),
+                data.get("sampling"),
+                data.get("commitSha"),
             )
 
             # Dataset runs always stream

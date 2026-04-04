@@ -9,7 +9,7 @@ export const TraceDrawerMain = ({ children }: TraceDrawerMainProps) => {
     <Stack
       direction="row"
       divider={<Divider orientation="vertical" flexItem />}
-      sx={{ width: "100%" }}
+      sx={{ width: "100%", minHeight: 0 }}
       height="100%"
     >
       {children}

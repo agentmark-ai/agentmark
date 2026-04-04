@@ -67,16 +67,18 @@ export const ExperimentSummaryCard = ({
           </Stack>
         </Grid>
 
-        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-          <Stack spacing={0.5}>
-            <Typography variant="caption" color="text.secondary">
-              {t("totalTokens")}
-            </Typography>
-            <Typography variant="h6">
-              {fNumber(experiment.totalTokens)}
-            </Typography>
-          </Stack>
-        </Grid>
+        {experiment.totalTokens != null && (
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Stack spacing={0.5}>
+              <Typography variant="caption" color="text.secondary">
+                {t("totalTokens")}
+              </Typography>
+              <Typography variant="h6">
+                {fNumber(experiment.totalTokens)}
+              </Typography>
+            </Stack>
+          </Grid>
+        )}
       </Grid>
     </Card>
   );

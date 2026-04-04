@@ -27,11 +27,15 @@ export function parseAgentMarkAttributes(
     if (get('prompt_name')) result.promptName = String(get('prompt_name'));
     if (get('props')) result.props = String(get('props'));
 
+    // Span Kind (set by @traced decorator / traced() wrapper)
+    if (get('span.kind')) result.kind = String(get('span.kind'));
+
     // Dataset / Evaluation Context
     if (get('dataset_run_id')) result.datasetRunId = String(get('dataset_run_id'));
     if (get('dataset_run_name')) result.datasetRunName = String(get('dataset_run_name'));
     if (get('dataset_item_name')) result.datasetItemName = String(get('dataset_item_name'));
     if (get('dataset_expected_output')) result.datasetExpectedOutput = String(get('dataset_expected_output'));
+    if (get('dataset_input')) result.datasetInput = String(get('dataset_input'));
     if (get('dataset_path')) result.datasetPath = String(get('dataset_path'));
 
     return result;

@@ -37,7 +37,17 @@
     "@iconify/react": "^6",
     "@mui/material": "^7",
     "@mui/x-data-grid": "^8",
-    "@mui/x-date-pickers": "^8"
+    "@mui/x-date-pickers": "^8",
+    "apexcharts": "^3.48.0",
+    "react-apexcharts": "^1.4.0"
+  },
+  "peerDependenciesMeta": {
+    "apexcharts": {
+      "optional": true
+    },
+    "react-apexcharts": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
@@ -51,7 +61,6 @@
     "@storybook/components": "^8.6.14",
     "@storybook/react-vite": "^9.1.17",
     "@types/dagre": "^0",
-    "@types/diff": "^8.0.0",
     "@types/node": "^20",
     "@types/numeral": "^2",
     "@types/react": "^19",
@@ -60,10 +69,12 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitest/browser-playwright": "^4.0.4",
     "@vitest/coverage-v8": "^4.0.4",
+    "apexcharts": "^3.48.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.9",
     "eslint-plugin-storybook": "^9.1.17",
     "playwright": "^1.56.1",
+    "react-apexcharts": "^1.4.0",
     "refractor": "^5.0.0",
     "storybook": "^9.1.17",
     "tsup": "^8.5.0",

@@ -62,6 +62,12 @@ interface OtelApi {
   };
   context: {
     active(): Context;
+    with<A extends unknown[], F extends (...args: A) => ReturnType<F>>(
+      context: Context,
+      fn: F,
+      thisArg?: ThisParameterType<F>,
+      ...args: A
+    ): ReturnType<F>;
   };
 }
 
@@ -381,9 +387,25 @@ function endCurrentChat(ctx: TracingContext): void {
 }
 
 /**
+ * End any pending tool spans that never received a PostToolUse hook.
+ * The SDK doesn't call PostToolUse for tools that return errors,
+ * so these spans stay open indefinitely. Ending them here (when a
+ * new assistant message arrives) gives them an accurate duration.
+ */
+function endPendingTools(ctx: TracingContext): void {
+  if (ctx.pendingToolSpans.size === 0) return;
+  for (const [, span] of ctx.pendingToolSpans) {
+    span.setStatus({ code: SpanStatusCode.ERROR, message: "Tool error (no PostToolUse)" });
+    span.end();
+  }
+  ctx.pendingToolSpans.clear();
+}
+
+/**
  * Process AssistantMessage - create chat span (LLM generation)
  */
 function processAssistantMessage(ctx: TracingContext, message: AssistantMessage): void {
+  endPendingTools(ctx);
   endCurrentChat(ctx);
   ctx.turnNumber++;
 
@@ -439,13 +461,7 @@ function processAssistantMessage(ctx: TracingContext, message: AssistantMessage)
  */
 function processResultMessage(ctx: TracingContext, message: ResultMessage): void {
   endCurrentChat(ctx);
-
-  // End any pending tool spans
-  for (const [, span] of ctx.pendingToolSpans) {
-    span.setStatus({ code: SpanStatusCode.ERROR, message: "Tool not completed" });
-    span.end();
-  }
-  ctx.pendingToolSpans.clear();
+  endPendingTools(ctx);
 
   if (message.result) {
     ctx.agentSpan.setAttribute(GenAIAttributes.RESPONSE_OUTPUT, message.result);
@@ -457,7 +473,7 @@ function processResultMessage(ctx: TracingContext, message: ResultMessage): void
   }
 
   if (message.total_cost_usd !== undefined) {
-    ctx.agentSpan.setAttribute("gen_ai.usage.cost_usd", message.total_cost_usd);
+    ctx.agentSpan.setAttribute("agentmark.usage.cost_usd", message.total_cost_usd);
   }
 
   if (message.duration_ms !== undefined) {
@@ -483,10 +499,19 @@ function createToolHooks(ctx: TracingContext): {
   preToolUse: HookCallback;
   postToolUse: HookCallback;
 } {
+  let sessionIdCaptured = false;
+
   const preToolUse: HookCallback = async (
     input: HookInput,
     toolUseId: string | null
   ): Promise<HookOutput> => {
+    // Capture session_id from the first hook call (available immediately,
+    // don't wait for ResultMessage at the end)
+    if (!sessionIdCaptured && input.session_id) {
+      ctx.agentSpan.setAttribute("agentmark.session_id", input.session_id);
+      sessionIdCaptured = true;
+    }
+
     if (!toolUseId) return { continue: true };
 
     const toolName = input.tool_name ? String(input.tool_name) : undefined;
@@ -548,6 +573,20 @@ function createToolHooks(ctx: TracingContext): {
 }
 
 /**
+ * OTEL env vars that should be stripped from the child process to prevent
+ * the CLI subprocess from emitting its own duplicate spans. The adapter
+ * handles all tracing by intercepting the message stream.
+ */
+const OTEL_ENV_VARS_TO_STRIP = [
+  "CLAUDE_CODE_ENABLE_TELEMETRY",
+  "OTEL_TRACES_EXPORTER",
+  "OTEL_EXPORTER_OTLP_ENDPOINT",
+  "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+  "OTEL_EXPORTER_OTLP_PROTOCOL",
+  "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+];
+
+/**
  * Merge tracing hooks into options
  */
 function mergeHooksIntoOptions<T>(
@@ -574,10 +613,36 @@ function mergeHooksIntoOptions<T>(
     newHooks.PostToolUse = [{ hooks: [postToolUse] }];
   }
 
-  return {
+  // Strip OTEL env vars from the subprocess to prevent duplicate span emission.
+  // The adapter handles all tracing via message interception — the CLI's own
+  // OTEL provider would create disconnected traces with separate trace IDs.
+  //
+  // Only materialize env when there are OTEL vars to strip. If env is unset and
+  // no OTEL vars exist in process.env, let the SDK inherit env naturally — avoids
+  // freezing a snapshot of ~100+ env vars at option-creation time.
+  const existingEnv = (opts?.env as Record<string, string | undefined> | undefined);
+  let cleanedEnv: Record<string, string | undefined> | undefined;
+
+  if (existingEnv) {
+    cleanedEnv = { ...existingEnv };
+    for (const key of OTEL_ENV_VARS_TO_STRIP) {
+      delete cleanedEnv[key];
+    }
+  } else if (typeof process !== 'undefined' && OTEL_ENV_VARS_TO_STRIP.some(k => process.env[k] !== undefined)) {
+    cleanedEnv = { ...process.env };
+    for (const key of OTEL_ENV_VARS_TO_STRIP) {
+      delete cleanedEnv[key];
+    }
+  }
+
+  const result: Record<string, unknown> = {
     ...options,
     hooks: newHooks,
-  } as T;
+  };
+  if (cleanedEnv) {
+    result.env = cleanedEnv;
+  }
+  return result as T;
 }
 
 /**
@@ -668,38 +733,52 @@ export async function withTracing<TOptions, R>(
 
   // Create the async iterator that performs tracing
   async function* tracedIterator(): AsyncGenerator<R, void, unknown> {
+    let agentSpanEnded = false;
     try {
-      for await (const message of queryFn({
-        prompt: queryParams.prompt,
-        options: optionsWithHooks,
-      })) {
+      // Create the iterable within the parent context so the SDK picks up
+      // our trace context for its root span creation
+      const iterable = ctx.api.context.with(ctx.parentContext, () =>
+        queryFn({
+          prompt: queryParams.prompt,
+          options: optionsWithHooks,
+        })
+      );
+
+      // Manually iterate so we can wrap each next() call in the parent
+      // context. The SDK creates OTEL spans during async iteration, and
+      // context.with() + AsyncLocalStorage propagates through the Promise
+      // chain, ensuring SDK spans inherit our traceId.
+      const iterator = (iterable as AsyncIterable<R>)[Symbol.asyncIterator]();
+      while (true) {
+        const result = await ctx.api.context.with(ctx.parentContext, () =>
+          iterator.next()
+        );
+        if (result.done) break;
+
+        const message = result.value;
         const msg = message as SDKMessage;
         if (msg.type === "assistant") {
           processAssistantMessage(ctx, msg as AssistantMessage);
         } else if (msg.type === "result") {
           processResultMessage(ctx, msg as ResultMessage);
+          agentSpanEnded = true;
         }
 
         yield message;
       }
     } catch (error) {
       endCurrentChat(ctx);
-      for (const [, span] of ctx.pendingToolSpans) {
-        span.setStatus({ code: SpanStatusCode.ERROR });
-        span.end();
-      }
-      ctx.pendingToolSpans.clear();
+      endPendingTools(ctx);
       ctx.agentSpan.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
       ctx.agentSpan.end();
+      agentSpanEnded = true;
       throw error;
     } finally {
-      // Cleanup any remaining pending tool spans on iterator completion
-      if (ctx.pendingToolSpans.size > 0) {
-        for (const [, span] of ctx.pendingToolSpans) {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: "Iterator completed with pending tools" });
-          span.end();
-        }
-        ctx.pendingToolSpans.clear();
+      // Cleanup any remaining spans on iterator completion (including early break)
+      endCurrentChat(ctx);
+      endPendingTools(ctx);
+      if (!agentSpanEnded) {
+        ctx.agentSpan.end();
       }
     }
   }

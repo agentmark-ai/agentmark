@@ -54,6 +54,7 @@ db.exec(`
         DatasetPath TEXT DEFAULT '',
         DatasetItemName TEXT DEFAULT '',
         DatasetExpectedOutput TEXT DEFAULT '',
+        DatasetInput TEXT DEFAULT '',
         
         -- Prompt/template fields
         PromptName TEXT DEFAULT '',

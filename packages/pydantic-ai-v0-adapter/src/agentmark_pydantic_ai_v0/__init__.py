@@ -38,7 +38,7 @@ from agentmark.prompt_core import AgentMark, EvalRegistry
 
 from .adapter import PydanticAIAdapter
 from .mcp import McpServerRegistry
-from .model_registry import PydanticAIModelRegistry, create_default_model_registry
+from .model_registry import PydanticAIModelRegistry
 from .runner import (
     ObjectRunResult,
     TextRunResult,
@@ -71,7 +71,6 @@ __all__ = [
     # Registries
     "PydanticAIModelRegistry",
     "McpServerRegistry",
-    "create_default_model_registry",
     # Types
     "PydanticAITextParams",
     "PydanticAIObjectParams",
@@ -102,8 +101,8 @@ def create_pydantic_ai_client(
     Mirrors the TypeScript createAgentMarkClient factory function pattern.
 
     Args:
-        model_registry: Registry mapping model names to Pydantic AI models.
-            If None, uses create_default_model_registry().
+        model_registry: Optional registry mapping model names to Pydantic AI
+            models. When omitted a default empty registry is created.
         tools: Optional list of native pydantic-ai Tool objects or callables.
             These are filtered at adapt time by matching names from the MDX
             config's tools list.
@@ -115,34 +114,27 @@ def create_pydantic_ai_client(
         Configured AgentMark client with PydanticAIAdapter.
 
     Example:
-        # Basic usage
-        client = create_pydantic_ai_client()
-
-        # With custom model registry
+        # Register providers explicitly
         registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai", "anthropic": "anthropic"})
+        client = create_pydantic_ai_client(model_registry=registry)
+
+        # With additional exact-match overrides
         registry.register_models("my-model", lambda n, _: f"openai:{n}")
         client = create_pydantic_ai_client(model_registry=registry)
 
         # With native tools
         def search(query: str) -> str:
             return search_web(query)
-        client = create_pydantic_ai_client(tools=[search])
+        client = create_pydantic_ai_client(model_registry=registry, tools=[search])
 
         # With MCP servers
         mcp_registry = McpServerRegistry()
         mcp_registry.register("search-server", {"url": "http://localhost:8000/mcp"})
-        client = create_pydantic_ai_client(mcp_registry=mcp_registry)
-
-        # Full example
-        client = create_pydantic_ai_client(
-            model_registry=create_default_model_registry(),
-            tools=[search],
-            mcp_registry=mcp_registry,
-            eval_registry={},
-        )
+        client = create_pydantic_ai_client(model_registry=registry, mcp_registry=mcp_registry)
     """
     if model_registry is None:
-        model_registry = create_default_model_registry()
+        model_registry = PydanticAIModelRegistry()
 
     adapter = PydanticAIAdapter(
         model_registry=model_registry,

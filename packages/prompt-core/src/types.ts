@@ -126,6 +126,7 @@ export interface EvalParams {
   input: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
   output: string | Record<string, unknown> | Array<Record<string, unknown> | string>;
   expectedOutput?: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface EvalResult {

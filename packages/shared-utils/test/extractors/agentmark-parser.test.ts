@@ -37,12 +37,23 @@ describe('AgentMark Parser', () => {
       expect(result.datasetPath).toBe('path/to/dataset.json');
     });
 
+    it('should extract span kind from agentmark.span.kind', () => {
+      const attributes = {
+        'agentmark.span.kind': 'tool',
+      };
+
+      const result = parseAgentMarkAttributes(attributes);
+
+      expect(result.kind).toBe('tool');
+    });
+
     it('should extract all fields together', () => {
       const attributes = {
         'agentmark.session_id': 'session-123',
         'agentmark.session_name': 'test-session',
         'agentmark.user_id': 'user-456',
         'agentmark.trace_name': 'test-trace',
+        'agentmark.span.kind': 'llm',
         'agentmark.dataset_run_id': 'run-789',
         'agentmark.dataset_run_name': 'test-run',
         'agentmark.dataset_item_name': 'item-1',
@@ -56,6 +67,7 @@ describe('AgentMark Parser', () => {
       expect(result.sessionName).toBe('test-session');
       expect(result.userId).toBe('user-456');
       expect(result.traceName).toBe('test-trace');
+      expect(result.kind).toBe('llm');
       expect(result.datasetRunId).toBe('run-789');
       expect(result.datasetRunName).toBe('test-run');
       expect(result.datasetItemName).toBe('item-1');

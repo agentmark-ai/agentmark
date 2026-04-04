@@ -17,7 +17,8 @@ import type {
   WebhookDatasetResponse,
   WebhookPromptResponse,
 } from "@agentmark-ai/prompt-core";
-import { trace } from "@agentmark-ai/sdk";
+import { span } from "@agentmark-ai/sdk";
+import type { SpanContext } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
   name?: string;
@@ -68,7 +69,7 @@ export class VercelAdapterWebhookHandler<
         const experimental_output = Output.object({ schema });
 
         if (shouldStream) {
-          const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
             return streamText({ ...textParams, experimental_output });
           });
           const streamResult = await result;
@@ -122,7 +123,7 @@ export class VercelAdapterWebhookHandler<
         }
 
         // Non-streaming with tools
-        const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
           return generateText({ ...textParams, experimental_output });
         });
         const textResult = await result;
@@ -142,7 +143,7 @@ export class VercelAdapterWebhookHandler<
 
       // No tools: existing generateObject/streamObject path
       if (shouldStream) {
-        const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
           return streamObject(input);
         });
         const { usage, fullStream } = await result;
@@ -195,7 +196,7 @@ export class VercelAdapterWebhookHandler<
           traceId,
         } as WebhookPromptResponse;
       }
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
         return generateObject(input);
       });
       const { object, usage, finishReason } = await result;
@@ -220,7 +221,7 @@ export class VercelAdapterWebhookHandler<
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
           return streamText(input);
         });
         const { fullStream } = await result;
@@ -304,7 +305,7 @@ export class VercelAdapterWebhookHandler<
           traceId,
         } as WebhookPromptResponse;
       }
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
         return generateText(input);
       });
       const { text, usage, finishReason, steps } = await result;
@@ -330,7 +331,7 @@ export class VercelAdapterWebhookHandler<
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
         return generateImage(input);
       });
       const imageResult = await result;
@@ -349,7 +350,7 @@ export class VercelAdapterWebhookHandler<
       const input = options?.customProps
         ? await prompt.format({ props: options.customProps, telemetry })
         : await prompt.formatWithTestProps({ telemetry });
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
         return generateSpeech(input);
       });
       const speechResult = await result;
@@ -399,14 +400,14 @@ export class VercelAdapterWebhookHandler<
             if (done) break;
             if (item.type === "error") continue;
             const formatted = item.formatted as any;
-            const { result, traceId } = await trace({
+            const { result, traceId } = await span({
               name: `experiment-${datasetRunName}-${index}`,
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
               datasetItemName: `${index}`,
               datasetExpectedOutput: item.dataset?.expected_output,
               datasetPath: resolvedDatasetPath
-            }, async (_ctx) => {
+            }, async (_ctx: SpanContext) => {
               return generateText({
                 ...formatted,
                 experimental_telemetry: {
@@ -495,14 +496,14 @@ export class VercelAdapterWebhookHandler<
             if (hasTools) {
               const { schema, output: _output, schemaName: _sn, schemaDescription: _sd, ...textParams } = formatted;
               const experimental_output = Output.object({ schema });
-              const traceResult = await trace({
+              const traceResult = await span({
                 name: `experiment-${datasetRunName}-${index}`,
                 datasetRunId: experimentRunId,
                 datasetRunName: datasetRunName,
                 datasetItemName: `${index}`,
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx) => {
+              }, async (_ctx: SpanContext) => {
                 return generateText({
                   ...textParams,
                   experimental_output,
@@ -519,14 +520,14 @@ export class VercelAdapterWebhookHandler<
               usage = (textResult as any).usage;
               traceId = traceResult.traceId;
             } else {
-              const traceResult = await trace({
+              const traceResult = await span({
                 name: `experiment-${datasetRunName}-${index}`,
                 datasetRunId: experimentRunId,
                 datasetRunName: datasetRunName,
                 datasetItemName: `${index}`,
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx) => {
+              }, async (_ctx: SpanContext) => {
                 return (await import("ai")).generateObject({
                   ...formatted,
                   experimental_telemetry: {

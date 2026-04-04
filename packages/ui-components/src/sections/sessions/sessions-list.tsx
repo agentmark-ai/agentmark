@@ -17,12 +17,21 @@ import {
 } from "../../components/table";
 import TableNoData from "../../components/table/table-no-data";
 import { Label } from "../../components/label";
+import { Iconify } from "../../components/iconify";
+import { fCurrency, fNumber } from "../../utils";
 
 export interface SessionData {
   id: string;
   name: string | null;
+  /** Milliseconds since epoch */
   start: number;
+  /** Milliseconds since epoch */
   end: number | null;
+  traceCount?: number;
+  totalCost?: number;
+  totalTokens?: number;
+  /** Duration in milliseconds */
+  latency?: number;
 }
 
 export interface SessionsListProps {
@@ -51,6 +60,10 @@ export const SessionsList = ({
           headLabel={[
             { id: "sessionId", label: t("sessionId") },
             { id: "name", label: t("name") },
+            { id: "latency", label: t("latency") },
+            { id: "cost", label: t("cost") },
+            { id: "tokens", label: t("tokens") },
+            { id: "traces", label: t("traces") },
             { id: "startTime", label: t("startTime") },
             { id: "endTime", label: t("endTime") },
           ]}
@@ -79,11 +92,35 @@ export const SessionsList = ({
                 </Typography>
               </TableCell>
               <TableCell>
-                {format(new Date(session.start * 1000), "MMM d, yyyy h:mm:ss a")}
+                {session.latency ? (
+                  <Label color="info" startIcon={<Iconify icon="mdi:clock-outline" />}>
+                    {(session.latency / 1000).toFixed(2)}s
+                  </Label>
+                ) : "-"}
+              </TableCell>
+              <TableCell>
+                {session.totalCost ? fCurrency(`${session.totalCost}`, 5) : "-"}
+              </TableCell>
+              <TableCell>
+                {session.totalTokens ? (
+                  <Label color="default" startIcon={<Iconify icon="game-icons:token" />}>
+                    {fNumber(session.totalTokens)}
+                  </Label>
+                ) : "-"}
+              </TableCell>
+              <TableCell>
+                {session.traceCount ? (
+                  <Label color="default" startIcon={<Iconify icon="mdi:layers-outline" />}>
+                    {fNumber(session.traceCount)}
+                  </Label>
+                ) : "-"}
+              </TableCell>
+              <TableCell>
+                {format(new Date(session.start), "MMM d, yyyy h:mm a")}
               </TableCell>
               <TableCell>
                 {session.end
-                  ? format(new Date(session.end * 1000), "MMM d, yyyy h:mm:ss a")
+                  ? format(new Date(session.end), "MMM d, yyyy h:mm a")
                   : "-"}
               </TableCell>
             </TableRow>
@@ -110,4 +147,3 @@ export const SessionsList = ({
     </TableContainer>
   );
 };
-

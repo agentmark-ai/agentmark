@@ -8,6 +8,10 @@ export interface Session {
   end: number | null;
   tenant_id: string | null;
   app_id: string | null;
+  traceCount?: number;
+  totalCost?: number;
+  totalTokens?: number;
+  latency?: number;
 }
 
 // Re-export SessionData from ui-components for type compatibility

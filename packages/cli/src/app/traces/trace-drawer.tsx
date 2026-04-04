@@ -21,12 +21,16 @@ import {
   ScoreData,
   SpanData,
   TraceTimeline,
+  findRootSpans,
+  extractSpanInput,
+  extractSpanExpectedOutput,
 } from "@agentmark-ai/ui-components";
-import { Box, Stack, Typography, Tabs, Tab } from "@mui/material";
+import { Box, Stack, Typography, Tabs, Tab, Button } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { getTraceById, getTraceGraph, GraphData } from "../../lib/api/traces";
 import { getScoresByResourceId } from "../../lib/api/scores";
+import { AddToDatasetDialog } from "./add-to-dataset-dialog";
 
 /** Available view tabs */
 type ViewTab = "timeline" | "graph" | "details";
@@ -39,10 +43,12 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
   const [graphLoading, setGraphLoading] = useState(false);
   const [scores, setScores] = useState<ScoreData[]>([]);
   const [scoresLoading, setScoresLoading] = useState(false);
-  const [currentSpanId, setCurrentSpanId] = useState<string | null>(null);
+  const currentSpanIdRef = useRef<string | null>(null);
 
-  // Tab state for Timeline | Graph | Details view
-  const [activeTab, setActiveTab] = useState<ViewTab>("timeline");
+  // Tab state for Details | Graph | Timeline view
+  const [activeTab, setActiveTab] = useState<ViewTab>("details");
+  const activeTabRef = useRef<ViewTab>(activeTab);
+  activeTabRef.current = activeTab;
   const [selectedSpanId, setSelectedSpanId] = useState<string | undefined>();
 
   // Resizable sidebar state
@@ -104,32 +110,44 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
   useEffect(() => {
     if (traceId) {
       setSelectedSpanId(undefined);
-      setActiveTab("timeline");
+      setActiveTab("details");
     }
   }, [traceId]);
 
-  const handleSpanChange = async (span: SpanData | null) => {
+  const handleSpanChange = useCallback(async (span: SpanData | null) => {
     if (!span?.id) {
       setScores([]);
       return;
     }
 
-    setCurrentSpanId(span.id);
+    const prevSpanId = currentSpanIdRef.current;
+    currentSpanIdRef.current = span.id;
     setSelectedSpanId(span.id);
+    // Auto-switch to Details tab unless user is on Graph or Timeline (where they may be cycling through spans)
+    if (activeTabRef.current !== "graph" && activeTabRef.current !== "timeline") {
+      setActiveTab("details");
+    }
 
-    try {
-      if (span.id !== currentSpanId) {
+    if (span.id !== prevSpanId) {
+      try {
         setScoresLoading(true);
         const fetchedScores = await getScoresByResourceId(span.id);
-        setScores(fetchedScores);
+        // Only apply if this span is still the current one (avoid stale overwrites)
+        if (currentSpanIdRef.current === span.id) {
+          setScores(fetchedScores);
+        }
+      } catch (err) {
+        console.error("Error fetching scores:", err);
+        if (currentSpanIdRef.current === span.id) {
+          setScores([]);
+        }
+      } finally {
+        if (currentSpanIdRef.current === span.id) {
+          setScoresLoading(false);
+        }
       }
-    } catch (error) {
-      console.error("Error fetching scores:", error);
-      setScores([]);
-    } finally {
-      setScoresLoading(false);
     }
-  };
+  }, []);
 
   // Handle span selection from Timeline or Graph - switch to Details tab
   const handleSpanSelect = useCallback((spanId: string) => {
@@ -218,9 +236,36 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
     </Box>
   );
 
+  // Dataset dialog state
+  const [datasetDialogOpen, setDatasetDialogOpen] = useState(false);
+
+  // Extract input/output from the selected span for dataset pre-filling
+  const selectedSpanData = useMemo(() => {
+    if (!selectedSpanId || !trace) return null;
+
+    // When the trace-level wrapper node is selected, synthesize a span
+    // from the root span's data (same merge the provider does)
+    if (selectedSpanId === trace.id) {
+      const rootSpans = findRootSpans(trace);
+      const rootSpan = rootSpans.length === 1 ? rootSpans[0] : null;
+      if (rootSpan) {
+        return {
+          id: trace.id,
+          name: rootSpan.name || trace.name,
+          data: { ...rootSpan.data },
+        } as any;
+      }
+      return null;
+    }
+
+    return trace.spans.find((s: any) => s.id === selectedSpanId) || null;
+  }, [selectedSpanId, trace]);
+
+  const datasetInput = useMemo(() => extractSpanInput(selectedSpanData), [selectedSpanData]);
+  const datasetExpectedOutput = useMemo(() => extractSpanExpectedOutput(selectedSpanData), [selectedSpanData]);
   // Details tab content
   const renderDetailsTab = () => (
-    <Box sx={{ height: "100%", overflow: "auto" }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {selectedSpanId ? (
         <SpanInfoProvider>
           <SpanInfoHeader />
@@ -362,29 +407,47 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                 }}
               >
                 {/* Tab bar */}
-                <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                <Box sx={{ borderBottom: 1, borderColor: "divider", display: "flex", alignItems: "center" }}>
                   <Tabs
                     value={activeTab}
                     onChange={handleTabChange}
                     aria-label="Trace view tabs"
+                    sx={{ flex: 1 }}
                   >
-                    <Tab label="Timeline" value="timeline" />
-                    <Tab label="Graph" value="graph" />
                     <Tab label="Details" value="details" />
+                    <Tab label="Graph" value="graph" />
+                    <Tab label="Timeline" value="timeline" />
                   </Tabs>
+                  {(datasetInput != null || datasetExpectedOutput != null) && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setDatasetDialogOpen(true)}
+                      sx={{ whiteSpace: "nowrap", flexShrink: 0, mr: 2 }}
+                    >
+                      {t("addToDataset")}
+                    </Button>
+                  )}
                 </Box>
 
                 {/* Tab content */}
                 <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                  {activeTab === "timeline" && renderTimelineTab()}
-                  {activeTab === "graph" && renderGraphTab()}
                   {activeTab === "details" && renderDetailsTab()}
+                  {activeTab === "graph" && renderGraphTab()}
+                  {activeTab === "timeline" && renderTimelineTab()}
                 </Box>
               </Box>
             </Box>
           </TraceDrawerContainer>
         )}
       </TraceDrawerComponent>
+      <AddToDatasetDialog
+        open={datasetDialogOpen}
+        onClose={() => setDatasetDialogOpen(false)}
+        initialInput={datasetInput}
+        initialExpectedOutput={datasetExpectedOutput}
+        t={t}
+      />
     </TraceDrawerProvider>
   );
 };

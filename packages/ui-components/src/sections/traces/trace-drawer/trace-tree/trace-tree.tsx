@@ -4,7 +4,7 @@ import { TraceTreeItem } from "./trace-tree-item";
 import { Iconify } from "@/components";
 import { useTraceDrawerContext } from "../trace-drawer-provider";
 import { TraceLabel } from "./trace-label";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const renderTree = (node: any, findCostAndTokens: any) => {
   if (!node) {
@@ -52,25 +52,32 @@ export const TraceTree = () => {
     return spanTree.map((node) => renderTree(node, findCostAndTokens));
   }, [spanTree]);
 
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (traceId && traces[0]) {
+      setExpandedItems([
+        traces[0].id,
+        ...(traces[0].spans.map((span) => span.id) || []),
+      ]);
+    }
+  }, [traceId, traces]);
+
   return (
-    <Box sx={{ height: "100%", overflowY: "auto", p: 2 }}>
+    <Box sx={{ height: "100%", p: 2 }}>
       {selectedSpan?.id && (
         <SimpleTreeView
           expansionTrigger="iconContainer"
           selectedItems={selectedSpan?.id || null}
+          expandedItems={expandedItems}
+          onExpandedItemsChange={(_, itemIds) => {
+            setExpandedItems(itemIds);
+          }}
           onItemSelectionToggle={(_, nodeId, isSelected) => {
             if (isSelected) {
               setSelectedSpanId(nodeId);
             }
           }}
-          {...(traceId && traces[0]
-            ? {
-                defaultExpandedItems: [
-                  traces[0].id,
-                  ...(traces[0].spans.map((span) => span.id) || []),
-                ],
-              }
-            : {})}
         >
           {tree}
         </SimpleTreeView>

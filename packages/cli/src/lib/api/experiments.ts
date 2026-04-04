@@ -10,6 +10,7 @@ export interface ExperimentSummary {
   totalCost: number;
   avgScore: number | null;
   createdAt: string;
+  commitSha: string;
 }
 
 export interface ExperimentItem {

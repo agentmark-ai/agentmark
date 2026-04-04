@@ -67,8 +67,8 @@ describe('MCP Server Integration Tests', () => {
       expect(seededTrace!.name).toBe(SEED_TRACE_NAME);
       expect(seededTrace!.status).toBe('1'); // OK status
       expect(seededTrace!.latency).toBe(1000); // 1 second (end - start)
-      // Note: tokens are 0 because CLI doesn't parse gen_ai.usage attributes
-      expect(seededTrace!.tokens).toBe(0);
+      // CLI parses gen_ai.usage.input_tokens (100) + output_tokens (50) = 150
+      expect(seededTrace!.tokens).toBe(150);
     });
 
     it('should handle pagination with cursor round-trip', async () => {
@@ -105,17 +105,15 @@ describe('MCP Server Integration Tests', () => {
     });
 
     it('should filter spans by type', async () => {
-      // Note: CLI stores all spans as type=SPAN, not GENERATION
-      // The agentmark.span.type attribute is stored in attributes JSON but not parsed
+      // CLI parses agentmark.span.type into the Type column
+      // Root span has default type=SPAN, generation span has type=GENERATION
       const result = await dataSource.getTrace(SEED_TRACE_ID, {
         filters: [{ field: 'data.type', operator: 'eq', value: 'SPAN' }],
       });
 
       expect(result).not.toBeNull();
-      expect(result!.spans.items.length).toBe(2); // Both spans have type=SPAN
-      const spanIds = result!.spans.items.map(s => s.id);
-      expect(spanIds).toContain(SEED_ROOT_SPAN_ID);
-      expect(spanIds).toContain(SEED_GENERATION_SPAN_ID);
+      expect(result!.spans.items.length).toBe(1); // Only root span has type=SPAN
+      expect(result!.spans.items[0].id).toBe(SEED_ROOT_SPAN_ID);
     });
   });
 
@@ -145,7 +143,7 @@ describe('MCP Server Integration Tests', () => {
       expect(trace.status).toBe('1');
       expect(trace.latency).toBe(1000);
       expect(typeof trace.cost).toBe('number');
-      expect(trace.tokens).toBe(0); // CLI doesn't parse gen_ai.usage attributes
+      expect(trace.tokens).toBe(150); // CLI parses gen_ai.usage: 100 input + 50 output
       expect(typeof trace.start).toBe('number');
       expect(typeof trace.end).toBe('number');
     });
@@ -160,8 +158,8 @@ describe('MCP Server Integration Tests', () => {
       expect(generationSpan!.duration).toBe(800); // 900ms - 100ms
       expect(typeof generationSpan!.timestamp).toBe('number');
       expect(generationSpan!.data).toBeDefined();
-      // Note: type is SPAN because CLI doesn't parse agentmark.span.type attribute
-      expect(generationSpan!.data?.type).toBe('SPAN');
+      // CLI parses agentmark.span.type into the Type column
+      expect(generationSpan!.data?.type).toBe('GENERATION');
     });
   });
 });

@@ -122,7 +122,7 @@ describe("computeHasIOData", () => {
   });
 
   describe("GENERATION span with token data but no I/O", () => {
-    it("returns false when only token data is present (no input/output/toolCalls)", () => {
+    it("returns true for GENERATION spans even without explicit I/O data", () => {
       const span = createSpanData({
         data: {
           type: "GENERATION",
@@ -130,6 +130,41 @@ describe("computeHasIOData", () => {
           outputTokens: 30,
           cost: 0.001,
         },
+      });
+      // LLM generation spans always qualify for the I/O tab
+      expect(computeHasIOData(span)).toBe(true);
+    });
+  });
+
+  describe("model field", () => {
+    it("returns true for spans with a model (implied LLM call)", () => {
+      const span = createSpanData({
+        data: { model: "claude-sonnet-4-20250514" },
+      });
+      expect(computeHasIOData(span)).toBe(true);
+    });
+  });
+
+  describe("agent spans (props/outputObject)", () => {
+    it("returns true for span with props (invoke_agent input)", () => {
+      const span = createSpanData({
+        name: "invoke_agent code-reviewer",
+        data: { props: '{"query":"review this"}' },
+      });
+      expect(computeHasIOData(span)).toBe(true);
+    });
+
+    it("returns true for span with outputObject only", () => {
+      const span = createSpanData({
+        data: { outputObject: '{"result":"done"}' },
+      });
+      expect(computeHasIOData(span)).toBe(true);
+    });
+
+    it("returns false when props and outputObject are both absent", () => {
+      const span = createSpanData({
+        name: "invoke_agent code-reviewer",
+        data: { type: "SPAN" },
       });
       expect(computeHasIOData(span)).toBe(false);
     });

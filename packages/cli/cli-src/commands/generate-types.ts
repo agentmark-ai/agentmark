@@ -1,16 +1,16 @@
-import { generateTypeDefinitions, fetchPromptsFrontmatter } from "@agentmark-ai/shared-utils";
+import { generateTypeDefinitions, fetchPromptsFrontmatter, type GenerateTypesLanguage } from "@agentmark-ai/shared-utils";
 import generateSchema from "./generate-schema";
 
 type Options = {
-  language: "typescript";
+  language: GenerateTypesLanguage;
   local?: number;
   rootDir?: string;
 };
 
 const generateTypes = async ({ language, local, rootDir }: Options) => {
-  if (language !== "typescript") {
+  if (language !== "typescript" && language !== "python") {
     console.error(
-      `Unsupported language: ${language}. Only TypeScript is supported.`
+      `Unsupported language: ${language}. Supported: typescript, python.`
     );
     return;
   }
@@ -19,7 +19,7 @@ const generateTypes = async ({ language, local, rootDir }: Options) => {
     console.error("Generating type definitions...");
     const prompts = await fetchPromptsFrontmatter({ local, rootDir });
 
-    const typeDefinitions = await generateTypeDefinitions(prompts);
+    const typeDefinitions = await generateTypeDefinitions(prompts, language);
 
     process.stdout.write(typeDefinitions);
 

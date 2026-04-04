@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from ..eval_registry import EvalRegistry
 from ..sampling import SamplingOptions, apply_sampling
 from ..types import (
     AdaptOptions,
@@ -28,6 +29,14 @@ class SimpleDatasetStream:
     def get_reader(self) -> "SimpleDatasetReader":
         """Get a reader for this stream."""
         return SimpleDatasetReader(self._items)
+
+    def __aiter__(self):
+        """Async iteration support for webhook server compatibility."""
+        return self._async_iter()
+
+    async def _async_iter(self):
+        for item in self._items:
+            yield item
 
 
 class SimpleDatasetReader:
@@ -58,6 +67,7 @@ class BasePrompt[C](ABC):
         path: str | None = None,
         test_settings: TestSettings | None = None,
         loader: Loader | None = None,
+        eval_registry: EvalRegistry | None = None,
     ) -> None:
         """Initialize a base prompt.
 
@@ -68,6 +78,7 @@ class BasePrompt[C](ABC):
             path: Optional path the prompt was loaded from
             test_settings: Optional test settings from frontmatter
             loader: Optional loader for loading related resources
+            eval_registry: Optional registry of eval functions
         """
         self.template = template
         self.template_engine = engine
@@ -75,6 +86,7 @@ class BasePrompt[C](ABC):
         self._path = path
         self._test_settings = test_settings
         self._loader = loader
+        self._eval_registry = eval_registry
 
     async def _compile(self, props: dict[str, Any] | None) -> Any:
         """Compile the template with props.

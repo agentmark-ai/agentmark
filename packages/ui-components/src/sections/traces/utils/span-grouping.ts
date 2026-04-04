@@ -13,10 +13,12 @@ export interface SpanForGrouping {
   parentSpanId?: string;
   name: string;
   startTime: number;
+  kind?: string;
   type?: string;
   data?: {
     type?: string;
     toolCalls?: string;
+    spanKind?: string;
   };
 }
 
@@ -25,6 +27,7 @@ export interface SpanForGrouping {
  * Maps to icon/color styling in node-styling.ts.
  */
 export type WorkflowNodeType =
+  | "function"
   | "llm"
   | "tool"
   | "agent"
@@ -102,15 +105,21 @@ export function groupSpansByKey(
   return groups;
 }
 
+/** Valid span kind values that can be set via the SDK's @traced decorator / traced() wrapper. */
+const VALID_SPAN_KINDS = new Set<WorkflowNodeType>([
+  "function", "llm", "tool", "agent", "retrieval", "router", "memory",
+]);
+
 /**
  * Infers the node type from span data for automatic styling.
  *
  * Priority:
- * 1. GENERATION type → "llm"
- * 2. Has tool calls → "tool"
- * 3. Has children with LLM/tool activity → "agent"
- * 4. Name-based fallbacks (retrieval, router, memory)
- * 5. Default
+ * 1. Explicit agentmark.span.kind attribute (set by SDK) — single source of truth
+ * 2. GENERATION type → "llm"
+ * 3. Has tool calls → "tool"
+ * 4. Has children with LLM/tool activity → "agent"
+ * 5. Name-based fallbacks (retrieval, router, memory)
+ * 6. Default
  *
  * @param span - The span to analyze
  * @param hasChildren - Whether this span has child spans
@@ -120,24 +129,30 @@ export function inferNodeType(
   span: SpanForGrouping,
   hasChildren: boolean = false
 ): WorkflowNodeType {
-  // 1. LLM detection: GENERATION type
+  // 1. Explicit span kind from SDK (agentmark.span.kind attribute)
+  const explicitKind = span.kind || span.data?.spanKind;
+  if (explicitKind && VALID_SPAN_KINDS.has(explicitKind as WorkflowNodeType)) {
+    return explicitKind as WorkflowNodeType;
+  }
+
+  // 2. LLM detection: GENERATION type
   const spanType = span.type || span.data?.type;
   if (spanType === "GENERATION") {
     return "llm";
   }
 
-  // 2. Tool detection: has tool calls data
+  // 3. Tool detection: has tool calls data
   const toolCalls = span.data?.toolCalls;
   if (toolCalls && toolCalls !== "[]") {
     return "tool";
   }
 
-  // 3. Agent detection: has child spans (indicates a sub-workflow)
+  // 4. Agent detection: has child spans (indicates a sub-workflow)
   if (hasChildren) {
     return "agent";
   }
 
-  // 4. Name-based fallbacks
+  // 5. Name-based fallbacks
   const name = (span.name || "").toLowerCase();
 
   if (name.includes("retrieval") || name.includes("rag") || name.includes("search")) {
@@ -152,12 +167,12 @@ export function inferNodeType(
     return "memory";
   }
 
-  // 5. Check if name suggests it's a tool
+  // 6. Check if name suggests it's a tool
   if (name.includes("tool") || name.includes("function")) {
     return "tool";
   }
 
-  // 6. Default
+  // 7. Default
   return "default";
 }
 

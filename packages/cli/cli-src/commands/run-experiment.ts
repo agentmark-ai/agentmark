@@ -189,9 +189,10 @@ function getExperimentConfig(): ExperimentConfig {
   };
 }
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number }) {
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number; truncate?: number }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
+  const truncateLimit = options.truncate === 0 ? Infinity : (options.truncate ?? 1000);
   const config = getExperimentConfig();
 
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
@@ -259,13 +260,36 @@ export default async function runExperiment(filepath: string, options: { skipEva
     sampling = { seed: options.seed };
   }
 
+  // Capture git state for experiment traceability using tree hashes.
+  // Tree hashes are content-addressed: identical file state = identical hash,
+  // unlike commit/stash hashes which include timestamps and differ every run.
+  // Uses explicit cwd to ensure git runs in the correct repo, regardless of
+  // any process.chdir() that may have changed the working directory.
+  let commitSha: string | undefined;
+  try {
+    const { execFileSync } = await import('child_process');
+    const gitCwd = path.dirname(resolvedFilepath);
+    const gitExec = (args: string[]) =>
+      execFileSync('git', args, { encoding: 'utf-8', timeout: 5000, cwd: gitCwd }).trim();
+    const stash = gitExec(['stash', 'create']);
+    if (stash) {
+      // Dirty working tree: use tree hash from the stash snapshot
+      commitSha = gitExec(['rev-parse', `${stash}^{tree}`]);
+    } else {
+      // Clean working tree: use HEAD's tree hash
+      commitSha = gitExec(['rev-parse', 'HEAD^{tree}']);
+    }
+  } catch {
+    // Not a git repo or git not available — skip
+  }
+
   // Only show status messages for table format
   if (format === 'table') {
     console.log("Running prompt with dataset...");
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(sampling ? { sampling } : {}) } });
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(sampling ? { sampling } : {}), ...(commitSha ? { commitSha } : {}) } });
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
@@ -364,8 +388,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
           if (evt.type !== 'dataset') continue;
           const r = evt.result || {};
           if (evt.runId && !experimentRunId) experimentRunId = evt.runId;
-          const input = JSON.stringify(r.input ?? {}, null, 0);
-          const expected = r.expectedOutput ?? 'N/A';
+          const truncate = (s: string) => format === 'table' && s.length > truncateLimit ? s.slice(0, truncateLimit) + '…' : s;
+          const input = truncate(JSON.stringify(r.input ?? {}, null, 0));
+          const rawExpected = r.expectedOutput ?? 'N/A';
+          const expected = typeof rawExpected === 'object' && rawExpected !== null
+            ? JSON.stringify(rawExpected, null, 0)
+            : String(rawExpected);
 
           // Coerce AI result column, saving media to files and printing IDE-clickable paths
           let actual: string;
@@ -426,8 +454,8 @@ export default async function runExperiment(filepath: string, options: { skipEva
             tableInitialized = true;
           }
 
-          // Build and render row immediately
-          const row: string[] = [String(index), input, actual, expected];
+          // Build and render row immediately (truncate AI Result for table)
+          const row: string[] = [String(index), input, truncate(actual), truncate(expected)];
 
           // Add eval columns
           for (const name of evalNames) {

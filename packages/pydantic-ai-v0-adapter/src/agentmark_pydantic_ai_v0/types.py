@@ -40,6 +40,9 @@ class PydanticAITextParams:
     prompt_name: str | None = None
     agentmark_meta: dict[str, Any] | None = None
 
+    # Original props passed to prompt.format() — used for trace span input
+    props: dict[str, Any] | None = None
+
     # Original messages (for advanced use cases like multi-turn)
     _raw_messages: list[RichChatMessage] = field(default_factory=list, repr=False)
 
@@ -63,6 +66,9 @@ class PydanticAIObjectParams(Generic[T]):
     # AgentMark metadata for tracing/telemetry
     prompt_name: str | None = None
     agentmark_meta: dict[str, Any] | None = None
+
+    # Original props passed to prompt.format() — used for trace span input
+    props: dict[str, Any] | None = None
 
     # Original messages (for advanced use cases like multi-turn)
     _raw_messages: list[RichChatMessage] = field(default_factory=list, repr=False)
