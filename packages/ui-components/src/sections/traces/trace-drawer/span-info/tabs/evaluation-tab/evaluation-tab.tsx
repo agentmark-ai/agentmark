@@ -9,7 +9,8 @@ export const EvaluationTab = ({ children }: EvaluationTabProps) => {
     <TabPanel
       value="evaluation"
       sx={{
-        height: "100%",
+        flex: 1,
+        minHeight: 0,
         overflow: "auto",
         p: 1,
         "&.MuiTabPanel-root": { padding: 1 },

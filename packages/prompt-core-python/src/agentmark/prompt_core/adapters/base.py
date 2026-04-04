@@ -1,4 +1,9 @@
-"""Adapter protocol definition."""
+"""Adapter protocol definition.
+
+prompt-core passes compiled Pydantic config schemas directly to adapters,
+matching the TypeScript pattern where compiled objects are passed as-is.
+Each adapter handles its own serialization if needed.
+"""
 
 from typing import Any, Protocol
 
@@ -12,7 +17,12 @@ from ..types import AdaptOptions, PromptMetadata
 
 
 class Adapter(Protocol):
-    """Protocol defining the adapter interface for LLM providers."""
+    """Protocol defining the adapter interface for LLM providers.
+
+    Config parameters are Pydantic schema objects compiled by the template
+    engine. Adapters that need dict access should call config.model_dump()
+    internally.
+    """
 
     @property
     def name(self) -> str:
@@ -28,7 +38,7 @@ class Adapter(Protocol):
         """Adapt a text prompt config for the provider.
 
         Args:
-            config: Text prompt configuration
+            config: Text prompt configuration (Pydantic model).
             options: Adapter options
             metadata: Prompt metadata
 
@@ -46,7 +56,7 @@ class Adapter(Protocol):
         """Adapt an object prompt config for the provider.
 
         Args:
-            config: Object prompt configuration
+            config: Object prompt configuration (Pydantic model).
             options: Adapter options
             metadata: Prompt metadata
 
@@ -63,7 +73,7 @@ class Adapter(Protocol):
         """Adapt an image prompt config for the provider.
 
         Args:
-            config: Image prompt configuration
+            config: Image prompt configuration (Pydantic model).
             options: Adapter options
 
         Returns:
@@ -79,7 +89,7 @@ class Adapter(Protocol):
         """Adapt a speech prompt config for the provider.
 
         Args:
-            config: Speech prompt configuration
+            config: Speech prompt configuration (Pydantic model).
             options: Adapter options
 
         Returns:

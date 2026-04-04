@@ -27,6 +27,10 @@ export default function SessionsPage() {
         name: s.name,
         start: s.start,
         end: s.end,
+        traceCount: s.traceCount,
+        totalCost: s.totalCost,
+        totalTokens: s.totalTokens,
+        latency: s.latency,
       }));
       setSessions(sessionData);
       setIsLoading(false);

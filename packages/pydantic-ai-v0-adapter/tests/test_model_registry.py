@@ -9,7 +9,6 @@ import pytest
 
 from agentmark_pydantic_ai_v0 import (
     PydanticAIModelRegistry,
-    create_default_model_registry,
 )
 
 
@@ -317,53 +316,46 @@ class TestProviderAutoResolution:
         assert result is sentinel
 
 
-class TestCreateDefaultModelRegistry:
-    """Tests for the create_default_model_registry factory."""
+class TestExplicitProviderRegistration:
+    """Tests for the explicit provider registration pattern (no factory methods)."""
 
-    def test_openai_models(self) -> None:
-        """Test OpenAI model name prefixing."""
-        registry = create_default_model_registry()
+    def test_registered_providers_resolve_slash_format(self) -> None:
+        """Registered providers resolve slash-format names to colon-format."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai", "anthropic": "anthropic"})
 
-        assert registry.get_model("gpt-4o") == "openai:gpt-4o"
-        assert registry.get_model("gpt-4o-mini") == "openai:gpt-4o-mini"
-        assert registry.get_model("gpt-3.5-turbo") == "openai:gpt-3.5-turbo"
-        assert registry.get_model("o1-preview") == "openai:o1-preview"
-        assert registry.get_model("o3-mini") == "openai:o3-mini"
+        assert registry.get_model("openai/gpt-4o") == "openai:gpt-4o"
+        assert registry.get_model("anthropic/claude-3") == "anthropic:claude-3"
 
-    def test_anthropic_models(self) -> None:
-        """Test Anthropic model name prefixing."""
-        registry = create_default_model_registry()
+    def test_raises_when_no_provider_registered(self) -> None:
+        """Raises ValueError when model has no matching provider and no registration."""
+        registry = PydanticAIModelRegistry()
 
-        assert registry.get_model("claude-3-opus") == "anthropic:claude-3-opus"
-        assert registry.get_model("claude-3-5-sonnet") == "anthropic:claude-3-5-sonnet"
-        assert registry.get_model("claude-3-haiku") == "anthropic:claude-3-haiku"
+        with pytest.raises(ValueError):
+            registry.get_model("openai/gpt-4o")
 
-    def test_gemini_models(self) -> None:
-        """Test Gemini model name prefixing."""
-        registry = create_default_model_registry()
+    def test_raises_for_unknown_plain_name(self) -> None:
+        """Raises ValueError for plain model names with no matching registration."""
+        registry = PydanticAIModelRegistry()
 
-        assert registry.get_model("gemini-1.5-pro") == "gemini:gemini-1.5-pro"
-        assert registry.get_model("gemini-1.5-flash") == "gemini:gemini-1.5-flash"
+        with pytest.raises(ValueError):
+            registry.get_model("gpt-4o")
 
-    def test_mistral_models(self) -> None:
-        """Test Mistral model name prefixing."""
-        registry = create_default_model_registry()
+    def test_exact_model_registration_takes_priority(self) -> None:
+        """Exact model registrations take priority over provider resolution."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({"openai": "openai"})
+        registry.register_models("openai/gpt-4o", lambda name, _: f"custom:{name}")
 
-        assert registry.get_model("mistral-large") == "mistral:mistral-large"
-        assert registry.get_model("codestral-latest") == "mistral:codestral-latest"
+        assert registry.get_model("openai/gpt-4o") == "custom:openai/gpt-4o"
 
-    def test_already_prefixed_passthrough(self) -> None:
-        """Test that already-prefixed model names pass through unchanged."""
-        registry = create_default_model_registry()
+    def test_multiple_providers_registered_separately(self) -> None:
+        """Multiple providers can be registered in a single call."""
+        registry = PydanticAIModelRegistry()
+        registry.register_providers({
+            "openai": "openai",
+            "anthropic": "anthropic",
+        })
 
-        assert registry.get_model("openai:gpt-4o") == "openai:gpt-4o"
-        assert registry.get_model("anthropic:claude-3-opus") == "anthropic:claude-3-opus"
-        assert registry.get_model("custom:my-model") == "custom:my-model"
-
-    def test_unknown_model_passthrough(self) -> None:
-        """Test that unknown model names pass through unchanged."""
-        registry = create_default_model_registry()
-
-        # Unknown models without prefix are returned as-is
-        assert registry.get_model("my-custom-model") == "my-custom-model"
-        assert registry.get_model("local-llama") == "local-llama"
+        assert registry.get_model("openai/gpt-4o") == "openai:gpt-4o"
+        assert registry.get_model("anthropic/claude-3-opus") == "anthropic:claude-3-opus"

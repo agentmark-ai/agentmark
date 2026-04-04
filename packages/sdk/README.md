@@ -11,7 +11,7 @@ npm install @agentmark-ai/sdk
 ## Quick Start
 
 ```typescript
-import { AgentMarkSDK, trace } from "@agentmark-ai/sdk";
+import { AgentMarkSDK, span } from "@agentmark-ai/sdk";
 
 // Initialize the SDK with your API key
 const sdk = new AgentMarkSDK({
@@ -22,8 +22,8 @@ const sdk = new AgentMarkSDK({
 // Start the OpenTelemetry tracer
 sdk.initTracing();
 
-// Wrap any LLM call in a trace
-const { result, traceId } = await trace(
+// Wrap any LLM call in a span
+const { result, traceId } = await span(
   { name: "customer-support", userId: "user-123" },
   async (ctx) => {
     // Your LLM call here — works with any SDK
@@ -61,14 +61,14 @@ const sdk = new AgentMarkSDK({
 - **`sdk.getApiLoader()`** — Get an `ApiLoader` instance for loading prompts from AgentMark Cloud.
 - **`sdk.score(props)`** — Submit an evaluation score for a trace.
 
-### `trace(options, fn)`
+### `span(options, fn)`
 
-Create a root trace span. Returns `{ result, traceId }`.
+Create a root span. Returns `{ result, traceId }`.
 
 ```typescript
-const { result, traceId } = await trace(
+const { result, traceId } = await span(
   {
-    name: "my-trace",          // Required
+    name: "my-span",           // Required
     userId: "user-123",       // Optional: associate with a user
     sessionId: "session-456", // Optional: group related traces
     sessionName: "chat",      // Optional: human-readable session name
@@ -87,10 +87,10 @@ const { result, traceId } = await trace(
 
 ### `ctx.span(options, fn)`
 
-Create a child span within a trace. Available on the `TraceContext` passed to `trace()` and nested `span()` callbacks.
+Create a child span within a trace. Available on the `SpanContext` passed to `span()` and nested `span()` callbacks.
 
 ```typescript
-await trace({ name: "request" }, async (ctx) => {
+await span({ name: "request" }, async (ctx) => {
   const user = await ctx.span({ name: "fetch-user" }, async (spanCtx) => {
     return await db.getUser(id);
   });

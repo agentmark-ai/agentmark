@@ -15,29 +15,28 @@ from .types import AdaptOptions, ModelFunctionCreator
 class PydanticAIModelRegistry:
     """Registry for mapping model names to Pydantic AI model instances.
 
-    Mirrors TypeScript's VercelAIModelRegistry pattern. Supports:
-    - Exact string matches (highest priority)
-    - Regex pattern matches
-    - Default fallback creator
+    Mirrors TypeScript's VercelAIModelRegistry pattern. Providers must be
+    registered explicitly — there are no defaults. If no match is found,
+    a ValueError is raised.
 
     Example:
         registry = PydanticAIModelRegistry()
+        registry.register_providers({
+            "openai": "openai",
+            "anthropic": "anthropic",
+        })
 
-        # Register exact matches
+        # Exact match
         registry.register_models("gpt-4o", lambda name, _: f"openai:{name}")
-        registry.register_models(
-            ["claude-3-5-sonnet", "claude-3-opus"],
-            lambda name, _: f"anthropic:{name}"
-        )
 
-        # Register pattern match
+        # Pattern match
         registry.register_models(
             re.compile(r"^gpt-"),
             lambda name, _: f"openai:{name}"
         )
 
         # Use
-        model = registry.get_model("gpt-4o")  # Returns "openai:gpt-4o"
+        model = registry.get_model("openai/gpt-4o")  # Returns "openai:gpt-4o"
     """
 
     def __init__(
@@ -47,12 +46,13 @@ class PydanticAIModelRegistry:
         """Initialize the registry.
 
         Args:
-            default_creator: Fallback creator when no match is found.
+            default_creator: Optional fallback creator used when no exact match,
+                pattern match, or provider resolution succeeds.
         """
         self._exact_matches: dict[str, ModelFunctionCreator] = {}
         self._pattern_matches: list[tuple[re.Pattern[str], ModelFunctionCreator]] = []
         self._providers: dict[str, str | Any] = {}
-        self._default_creator = default_creator
+        self._default_creator: ModelFunctionCreator | None = default_creator
 
     def register_models(
         self,
@@ -96,6 +96,21 @@ class PydanticAIModelRegistry:
             Self for method chaining.
         """
         self._providers.update(providers)
+        return self
+
+    def set_default(
+        self,
+        creator: ModelFunctionCreator,
+    ) -> PydanticAIModelRegistry:
+        """Set the default creator used when no other match is found.
+
+        Args:
+            creator: Fallback creator function.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._default_creator = creator
         return self
 
     def get_model(
@@ -153,49 +168,5 @@ class PydanticAIModelRegistry:
 
         raise ValueError(f"No model creator found for: {model_name}")
 
-    def set_default(
-        self,
-        creator: ModelFunctionCreator,
-    ) -> PydanticAIModelRegistry:
-        """Set the default model creator.
-
-        Args:
-            creator: Default creator function.
-
-        Returns:
-            Self for method chaining.
-        """
-        self._default_creator = creator
-        return self
 
 
-def create_default_model_registry() -> PydanticAIModelRegistry:
-    """Create a model registry with sensible defaults.
-
-    Uses Pydantic AI's string format which auto-resolves providers.
-    This matches common model naming patterns used in AgentMark prompts.
-
-    Returns:
-        Pre-configured model registry.
-    """
-
-    def default_creator(name: str, _options: AdaptOptions | None) -> str:
-        # Pydantic AI accepts "provider:model" format
-        # If already has provider prefix, return as-is
-        if ":" in name:
-            return name
-
-        # Common model name patterns → provider prefixes
-        if name.startswith("gpt-") or name.startswith("o1") or name.startswith("o3"):
-            return f"openai:{name}"
-        if name.startswith("claude-"):
-            return f"anthropic:{name}"
-        if name.startswith("gemini-"):
-            return f"gemini:{name}"
-        if name.startswith("mistral-") or name.startswith("codestral"):
-            return f"mistral:{name}"
-
-        # Return as-is and let Pydantic AI attempt resolution
-        return name
-
-    return PydanticAIModelRegistry(default_creator=default_creator)  # type: ignore[arg-type]

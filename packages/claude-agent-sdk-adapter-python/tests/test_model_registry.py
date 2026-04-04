@@ -12,16 +12,25 @@ import pytest
 from agentmark_claude_agent_sdk.model_registry import (
     ClaudeAgentModelRegistry,
     ModelConfig,
-    create_default_model_registry,
 )
 
 
 class TestClaudeAgentModelRegistry:
     """Test suite for ClaudeAgentModelRegistry."""
 
-    def test_creates_default_registry_passing_model_names_through(self) -> None:
-        """Default registry should pass model names through unchanged."""
-        registry = create_default_model_registry()
+    def test_raises_when_no_models_registered(self) -> None:
+        """Registry with no registrations raises ValueError on lookup."""
+        registry = ClaudeAgentModelRegistry()
+        with pytest.raises(ValueError, match=r"No model configuration found"):
+            registry.get_model_config("claude-sonnet-4-20250514")
+
+    def test_explicit_registration_resolves_model(self) -> None:
+        """Explicitly registered model resolves correctly."""
+        registry = ClaudeAgentModelRegistry()
+        registry.register_models(
+            "claude-sonnet-4-20250514",
+            lambda name, _: ModelConfig(model=name),
+        )
         config = registry.get_model_config("claude-sonnet-4-20250514")
 
         assert config == ModelConfig(model="claude-sonnet-4-20250514")

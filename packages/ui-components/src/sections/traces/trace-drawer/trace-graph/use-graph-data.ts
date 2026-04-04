@@ -79,29 +79,14 @@ export function useGraphData({
       const { color, icon } = getNodeTypeStyle(rawNode?.nodeType, theme);
       const currentSpanIndex = nodeSpanIndices?.get(node.id);
 
-      // Resolve span data for tooltip: prefer the primary spanId, fall back to
-      // the first entry in spanIds if the primary lookup misses.
+      // Resolve span data for tooltip based on the currently cycled span index
       let spanData: SpanData | undefined;
-      if (spanLookup) {
-        const primaryId = rawNode?.spanId;
-        if (primaryId) {
-          spanData = spanLookup.get(primaryId);
-          if (!spanData && rawNode?.spanIds) {
-            for (const sid of rawNode.spanIds) {
-              spanData = spanLookup.get(sid);
-              if (spanData) break;
-            }
-          }
-          if (!spanData) {
-            // Span ID is present in the graph but missing from the loaded spans —
-            // likely a data-pipeline inconsistency (partial hydration, ID mismatch).
-            console.warn(
-              "[useGraphData] Span ID not found in lookup for node",
-              node.id,
-              "spanId:",
-              primaryId
-            );
-          }
+      if (spanLookup && rawNode) {
+        // Use the current cycle index to pick the right span ID
+        const spanIndex = currentSpanIndex ?? 0;
+        const activeSpanId = rawNode.spanIds?.[spanIndex] ?? rawNode.spanId;
+        if (activeSpanId) {
+          spanData = spanLookup.get(activeSpanId);
         }
       }
 
@@ -131,13 +116,20 @@ export function useGraphData({
     const edges: Edge[] = [];
 
     rawEdges.forEach((edge) => {
-      edges.push({
+      const rfEdge: Edge = {
         id: edge.id,
         source: edge.source,
         target: edge.target,
         type: "default",
         animated: true,
-      });
+        markerEnd: { type: "arrowclosed" as const, width: 16, height: 16 },
+      };
+
+      if (edge.bidirectional) {
+        rfEdge.markerStart = { type: "arrowclosed" as const, width: 16, height: 16 };
+      }
+
+      edges.push(rfEdge);
     });
 
     return edges;

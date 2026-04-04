@@ -23,16 +23,7 @@ class DefaultAdapter:
         _options: AdaptOptions,
         _metadata: PromptMetadata,
     ) -> TextConfigSchema:
-        """Return text config unchanged.
-
-        Args:
-            config: Text prompt configuration
-            _options: Adapter options (unused)
-            _metadata: Prompt metadata (unused)
-
-        Returns:
-            The original config
-        """
+        """Return text config unchanged."""
         return config
 
     def adapt_object(
@@ -41,16 +32,7 @@ class DefaultAdapter:
         _options: AdaptOptions,
         _metadata: PromptMetadata,
     ) -> ObjectConfigSchema:
-        """Return object config unchanged.
-
-        Args:
-            config: Object prompt configuration
-            _options: Adapter options (unused)
-            _metadata: Prompt metadata (unused)
-
-        Returns:
-            The original config
-        """
+        """Return object config unchanged."""
         return config
 
     def adapt_image(
@@ -58,15 +40,7 @@ class DefaultAdapter:
         config: ImageConfigSchema,
         _options: AdaptOptions,
     ) -> ImageConfigSchema:
-        """Return image config unchanged.
-
-        Args:
-            config: Image prompt configuration
-            _options: Adapter options (unused)
-
-        Returns:
-            The original config
-        """
+        """Return image config unchanged."""
         return config
 
     def adapt_speech(
@@ -74,13 +48,5 @@ class DefaultAdapter:
         config: SpeechConfigSchema,
         _options: AdaptOptions,
     ) -> SpeechConfigSchema:
-        """Return speech config unchanged.
-
-        Args:
-            config: Speech prompt configuration
-            _options: Adapter options (unused)
-
-        Returns:
-            The original config
-        """
+        """Return speech config unchanged."""
         return config

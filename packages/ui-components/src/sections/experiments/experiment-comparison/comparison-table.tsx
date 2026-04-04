@@ -17,6 +17,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -50,12 +51,52 @@ const SORT_MODE_OPTIONS: ComparisonSortMode[] = [
   "delta-abs",
 ];
 
+function CommitHeader({
+  sha,
+  name,
+}: {
+  sha: string;
+  name: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(sha).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <Stack alignItems="center" spacing={0.25}>
+      <Tooltip title={copied ? "Copied!" : `Click to copy: ${sha}`}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontFamily: "monospace",
+            cursor: "pointer",
+            "&:hover": { textDecoration: "underline" },
+          }}
+          onClick={handleCopy}
+        >
+          {sha.slice(0, 8)}
+        </Typography>
+      </Tooltip>
+      <Typography variant="subtitle2" noWrap>
+        {name}
+      </Typography>
+    </Stack>
+  );
+}
+
 // ----------------------------------------------------------------------
 
 export interface ComparisonTableProps {
   rows: ComparisonRow[];
   experimentNames: Record<string, string>;
   experimentIds: string[];
+  experimentCommitShas?: Record<string, string | undefined>;
+  showInputExpected?: boolean;
   sortMode: ComparisonSortMode;
   onSortModeChange: (mode: ComparisonSortMode) => void;
   t: (key: string) => string;
@@ -65,6 +106,8 @@ export const ComparisonTable = ({
   rows,
   experimentNames,
   experimentIds,
+  experimentCommitShas,
+  showInputExpected = true,
   sortMode,
   onSortModeChange,
   t,
@@ -116,22 +159,53 @@ export const ComparisonTable = ({
                 </Typography>
               </TableCell>
 
-              {experimentIds.map((expId) => (
-                <TableCell
-                  key={expId}
-                  colSpan={experimentColSpan}
-                  align="center"
-                  sx={{
-                    borderBottom: 1,
-                    borderBottomColor: "divider",
-                    bgcolor: "background.neutral",
-                  }}
-                >
-                  <Typography variant="subtitle2" noWrap>
-                    {experimentNames[expId] || expId}
-                  </Typography>
-                </TableCell>
-              ))}
+              {showInputExpected && (
+                <>
+                  <TableCell
+                    rowSpan={2}
+                    sx={{ verticalAlign: "bottom", minWidth: 120 }}
+                  >
+                    <Typography variant="subtitle2">
+                      {t("input")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell
+                    rowSpan={2}
+                    sx={{ verticalAlign: "bottom", minWidth: 120 }}
+                  >
+                    <Typography variant="subtitle2">
+                      {t("expectedOutput")}
+                    </Typography>
+                  </TableCell>
+                </>
+              )}
+
+              {experimentIds.map((expId) => {
+                const sha = experimentCommitShas?.[expId];
+                return (
+                  <TableCell
+                    key={expId}
+                    colSpan={experimentColSpan}
+                    align="center"
+                    sx={{
+                      borderBottom: 1,
+                      borderBottomColor: "divider",
+                      bgcolor: "background.neutral",
+                    }}
+                  >
+                    {sha ? (
+                      <CommitHeader
+                        sha={sha}
+                        name={experimentNames[expId] || expId}
+                      />
+                    ) : (
+                      <Typography variant="subtitle2" noWrap>
+                        {experimentNames[expId] || expId}
+                      </Typography>
+                    )}
+                  </TableCell>
+                );
+              })}
 
               {hasDeltas && (
                 <TableCell
@@ -162,6 +236,7 @@ export const ComparisonTable = ({
                 experimentIds={experimentIds}
                 experimentNames={experimentNames}
                 hasDeltas={hasDeltas}
+                showInputExpected={showInputExpected}
                 t={t}
               />
             ))}
@@ -171,6 +246,7 @@ export const ComparisonTable = ({
                 <TableCell
                   colSpan={
                     1 +
+                    (showInputExpected ? 2 : 0) +
                     experimentIds.length * subColumnsPerExperiment +
                     (hasDeltas ? 1 : 0)
                   }
@@ -238,15 +314,19 @@ function ComparisonTableRow({
   experimentIds,
   experimentNames,
   hasDeltas,
+  showInputExpected,
   t,
 }: {
   row: ComparisonRow;
   experimentIds: string[];
   experimentNames: Record<string, string>;
   hasDeltas: boolean;
+  showInputExpected: boolean;
   t: (key: string) => string;
 }) {
   const [expandedOutputs, setExpandedOutputs] = useState<Record<string, boolean>>({});
+  const [expandedInput, setExpandedInput] = useState(false);
+  const [expandedExpected, setExpandedExpected] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
 
   const toggleOutput = useCallback((expId: string) => {
@@ -269,7 +349,14 @@ function ComparisonTableRow({
 
   const subColumnsPerExperiment = 4;
   const totalColumns =
-    1 + experimentIds.length * subColumnsPerExperiment + (hasDeltas ? 1 : 0);
+    1 +
+    (showInputExpected ? 2 : 0) +
+    experimentIds.length * subColumnsPerExperiment +
+    (hasDeltas ? 1 : 0);
+
+  // Find input/expected from the first experiment that has data for this row
+  const firstDataExpId = experimentsWithData[0] ?? null;
+  const firstData = firstDataExpId ? row.experiments[firstDataExpId] : null;
 
   return (
     <>
@@ -293,6 +380,26 @@ function ComparisonTableRow({
             </IconButton>
           </Stack>
         </TableCell>
+
+        {/* Input / Expected columns */}
+        {showInputExpected && (
+          <>
+            <ExpandableCell
+              text={firstData?.input || ""}
+              maxLength={OUTPUT_TRUNCATE_LENGTH}
+              isExpanded={expandedInput}
+              onToggle={() => setExpandedInput(!expandedInput)}
+              t={t}
+            />
+            <ExpandableCell
+              text={firstData?.expectedOutput || ""}
+              maxLength={OUTPUT_TRUNCATE_LENGTH}
+              isExpanded={expandedExpected}
+              onToggle={() => setExpandedExpected(!expandedExpected)}
+              t={t}
+            />
+          </>
+        )}
 
         {/* Per-experiment columns */}
         {experimentIds.map((expId) => {
@@ -449,6 +556,58 @@ function ExperimentCells({
         </Typography>
       </TableCell>
     </>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+function ExpandableCell({
+  text,
+  maxLength,
+  isExpanded,
+  onToggle,
+  t,
+}: {
+  text: string;
+  maxLength: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  t: (key: string) => string;
+}) {
+  if (!text) {
+    return (
+      <TableCell>
+        <Typography variant="body2" color="text.disabled">{"\u2013"}</Typography>
+      </TableCell>
+    );
+  }
+
+  const isTruncated = text.length > maxLength;
+  const displayText = isExpanded ? text : truncateText(text, maxLength);
+
+  return (
+    <TableCell sx={scrollableCellSx}>
+      <Stack spacing={0.5}>
+        <Typography
+          variant="caption"
+          component="div"
+          sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+        >
+          {displayText}
+        </Typography>
+        {isTruncated && (
+          <IconButton size="small" onClick={onToggle} sx={{ alignSelf: "flex-start" }}>
+            <Iconify
+              icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"}
+              width={16}
+            />
+            <Typography variant="caption" sx={{ ml: 0.5 }}>
+              {isExpanded ? t("showLess") : t("showMore")}
+            </Typography>
+          </IconButton>
+        )}
+      </Stack>
+    </TableCell>
   );
 }
 

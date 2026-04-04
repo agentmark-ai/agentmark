@@ -4,7 +4,8 @@
  * Displays a summary banner for the experiment comparison view.
  */
 
-import { Card, Chip, Grid, Typography } from "@mui/material";
+import { useState } from "react";
+import { Card, Chip, Grid, Tooltip, Typography } from "@mui/material";
 import { Stack } from "@mui/system";
 import { Iconify } from "@/components";
 import type { ComparisonSummary as ComparisonSummaryType } from "../types";
@@ -13,13 +14,33 @@ import type { ComparisonSummary as ComparisonSummaryType } from "../types";
 
 export interface ComparisonSummaryBannerProps {
   summary: ComparisonSummaryType;
+  commitShas?: (string | undefined)[];
   t: (key: string) => string;
 }
 
 export const ComparisonSummaryBanner = ({
   summary,
+  commitShas,
   t,
 }: ComparisonSummaryBannerProps) => {
+  const validShas = (commitShas ?? []).filter(
+    (sha): sha is string => sha != null && sha.length > 0
+  );
+  const sha1 = validShas[0] ?? "";
+  const sha2 = validShas[1] ?? "";
+  const showCommitRow = validShas.length >= 2;
+  const shasDiffer = showCommitRow && sha1 !== sha2;
+
+  const [diffCopied, setDiffCopied] = useState(false);
+
+  const handleCopyDiffCommand = () => {
+    const cmd = `git diff ${sha1.slice(0, 12)} ${sha2.slice(0, 12)}`;
+    void navigator.clipboard.writeText(cmd).then(() => {
+      setDiffCopied(true);
+      setTimeout(() => setDiffCopied(false), 1500);
+    });
+  };
+
   return (
     <Card sx={{ p: 3 }}>
       <Grid container spacing={3}>
@@ -103,6 +124,38 @@ export const ComparisonSummaryBanner = ({
           </Stack>
         </Grid>
       </Grid>
+
+      {showCommitRow && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}
+        >
+          <Iconify icon="mdi:source-commit" width={18} />
+          <Typography
+            variant="body2"
+            sx={{ fontFamily: "monospace" }}
+          >
+            {sha1.slice(0, 8)} {"\u2192"} {sha2.slice(0, 8)}
+          </Typography>
+          {shasDiffer ? (
+            <Tooltip title={diffCopied ? "Copied!" : "Copy git diff command"}>
+              <Chip
+                label={`git diff ${sha1.slice(0, 12)} ${sha2.slice(0, 12)}`}
+                size="small"
+                variant="outlined"
+                onClick={handleCopyDiffCommand}
+                sx={{ fontFamily: "monospace", cursor: "pointer" }}
+              />
+            </Tooltip>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              {t("sameVersion")}
+            </Typography>
+          )}
+        </Stack>
+      )}
     </Card>
   );
 };

@@ -48,6 +48,7 @@ export function TraceGraphCanvas({
         parentSpanId: span.parentId,
         name: span.name,
         startTime: typeof span.timestamp === 'string' ? new Date(span.timestamp).getTime() : span.timestamp,
+        kind: span.data?.spanKind as string | undefined,
         type: span.data?.type as string | undefined,
         data: span.data as SpanForGrouping["data"],
       }))
@@ -270,7 +271,8 @@ export function TraceGraphCanvas({
           panOnScroll
           zoomOnPinch
           fitViewOptions={{
-            padding: 0.5,
+            padding: 0.3,
+            maxZoom: 1.2,
           }}
         >
           <MiniMap

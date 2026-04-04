@@ -15,6 +15,11 @@ export function getNodeTypeStyle(
         color: theme.palette.info.main,
         icon: "mdi:robot-outline",
       };
+    case "function":
+      return {
+        color: theme.palette.primary.main,
+        icon: "mdi:function-variant",
+      };
     case "tool":
       return {
         color: theme.palette.success.main,

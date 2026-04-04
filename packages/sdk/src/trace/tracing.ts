@@ -12,6 +12,7 @@ import {
 } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { AGENTMARK_TRACE_ENDPOINT } from "../config";
+import { serializeValue } from "./serialize";
 
 type InitProps = {
   apiKey: string;
@@ -58,9 +59,9 @@ export const initialize = ({
 };
 
 /**
- * Options for creating a trace or span
+ * Options for creating a span
  */
-export type TraceOptions = {
+export type SpanOptions = {
   name: string;
   metadata?: Record<string, string>;
   sessionId?: string;
@@ -74,17 +75,9 @@ export type TraceOptions = {
 };
 
 /**
- * Options for creating a child span
+ * Context passed to span callbacks with explicit access to trace info and child span creation
  */
-export type SpanOptions = {
-  name: string;
-  metadata?: Record<string, string>;
-};
-
-/**
- * Context passed to trace/span callbacks with explicit access to trace info and child span creation
- */
-export interface TraceContext {
+export interface SpanContext {
   /** The trace ID for this trace */
   readonly traceId: string;
   /** The span ID for this span */
@@ -93,34 +86,46 @@ export interface TraceContext {
   setAttribute: (key: string, value: string | number | boolean) => void;
   /** Add an event to this span */
   addEvent: (name: string, attributes?: Attributes) => void;
+  /** Set the input for this span (displayed in the UI Input tab) */
+  setInput: (value: unknown) => void;
+  /** Set the output for this span (displayed in the UI Output tab) */
+  setOutput: (value: unknown) => void;
   /** Create a child span within this trace */
-  span: <T>(options: SpanOptions, fn: (ctx: TraceContext) => Promise<T>) => Promise<T>;
+  span: <T>(options: { name: string; metadata?: Record<string, string> }, fn: (ctx: SpanContext) => Promise<T>) => Promise<T>;
 }
 
 const MetadataKey = "agentmark.metadata";
 const AgentMarkKey = "agentmark";
 
 /**
- * Build a TraceContext from an OpenTelemetry span
+ * Build a SpanContext from an OpenTelemetry span
  */
-function buildContext(span: Span, tracer: Tracer): TraceContext {
-  const spanContext = span.spanContext();
+function buildContext(otelSpan: Span, tracer: Tracer): SpanContext {
+  const otelCtx = otelSpan.spanContext();
 
-  const ctx: TraceContext = {
-    traceId: spanContext.traceId,
-    spanId: spanContext.spanId,
+  const ctx: SpanContext = {
+    traceId: otelCtx.traceId,
+    spanId: otelCtx.spanId,
 
     setAttribute: (key: string, value: string | number | boolean) => {
-      span.setAttribute(key, value);
+      otelSpan.setAttribute(key, value);
     },
 
     addEvent: (name: string, attributes?: Attributes) => {
-      span.addEvent(name, attributes);
+      otelSpan.addEvent(name, attributes);
     },
 
-    span: async <T>(options: SpanOptions, fn: (ctx: TraceContext) => Promise<T>): Promise<T> => {
+    setInput: (value: unknown) => {
+      otelSpan.setAttribute("gen_ai.request.input", serializeValue(value));
+    },
+
+    setOutput: (value: unknown) => {
+      otelSpan.setAttribute("gen_ai.response.output", serializeValue(value));
+    },
+
+    span: async <T>(options: { name: string; metadata?: Record<string, string> }, fn: (ctx: SpanContext) => Promise<T>): Promise<T> => {
       // Create child span with this span as explicit parent
-      const parentContext = api.trace.setSpan(api.context.active(), span);
+      const parentContext = api.trace.setSpan(api.context.active(), otelSpan);
 
       return api.context.with(parentContext, () =>
         tracer.startActiveSpan(options.name, async (childSpan) => {
@@ -156,68 +161,70 @@ function buildContext(span: Span, tracer: Tracer): TraceContext {
 /**
  * Set agentmark-specific attributes on a span
  */
-function setAgentmarkAttributes(span: Span, options: TraceOptions): void {
-  span.setAttribute(`${AgentMarkKey}.trace_name`, options.name);
+function setAgentmarkAttributes(otelSpan: Span, options: SpanOptions): void {
+  otelSpan.setAttribute(`${AgentMarkKey}.trace_name`, options.name);
 
   if (options.sessionId) {
-    span.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
+    otelSpan.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
   }
   if (options.sessionName) {
-    span.setAttribute(`${AgentMarkKey}.session_name`, options.sessionName);
+    otelSpan.setAttribute(`${AgentMarkKey}.session_name`, options.sessionName);
   }
   if (options.userId) {
-    span.setAttribute(`${AgentMarkKey}.user_id`, options.userId);
+    otelSpan.setAttribute(`${AgentMarkKey}.user_id`, options.userId);
   }
   if (options.datasetRunId) {
-    span.setAttribute(`${AgentMarkKey}.dataset_run_id`, options.datasetRunId);
+    otelSpan.setAttribute(`${AgentMarkKey}.dataset_run_id`, options.datasetRunId);
   }
   if (options.datasetRunName) {
-    span.setAttribute(`${AgentMarkKey}.dataset_run_name`, options.datasetRunName);
+    otelSpan.setAttribute(`${AgentMarkKey}.dataset_run_name`, options.datasetRunName);
   }
   if (options.datasetItemName) {
-    span.setAttribute(`${AgentMarkKey}.dataset_item_name`, options.datasetItemName);
+    otelSpan.setAttribute(`${AgentMarkKey}.dataset_item_name`, options.datasetItemName);
   }
   if (options.datasetExpectedOutput) {
-    span.setAttribute(`${AgentMarkKey}.dataset_expected_output`, options.datasetExpectedOutput);
+    otelSpan.setAttribute(`${AgentMarkKey}.dataset_expected_output`, options.datasetExpectedOutput);
   }
   if (options.datasetPath) {
-    span.setAttribute(`${AgentMarkKey}.dataset_path`, options.datasetPath);
+    otelSpan.setAttribute(`${AgentMarkKey}.dataset_path`, options.datasetPath);
   }
 
   if (options.metadata) {
     for (const [key, value] of Object.entries(options.metadata)) {
-      span.setAttribute(`${MetadataKey}.${key}`, value);
+      otelSpan.setAttribute(`${MetadataKey}.${key}`, value);
     }
   }
 }
 
 /**
- * Result returned from the trace function
+ * Result returned from the span function
  */
-export interface TraceResult<T> {
-  /** The result of the traced function */
+export interface SpanResult<T> {
+  /** The result of the observed function */
   result: Promise<T>;
   /** The trace ID for correlation */
   traceId: string;
 }
 
 /**
- * Start a new trace (root span) and execute a function within it.
+ * Create a span and execute a function within it.
  *
  * Returns both the result and traceId, eliminating the need for closure mutation.
  *
- * The callback receives a TraceContext with:
+ * The callback receives a SpanContext with:
  * - traceId: The trace ID for correlation
- * - spanId: The span ID for this root span
+ * - spanId: The span ID for this span
  * - setAttribute(): Add attributes to the span
  * - addEvent(): Add events to the span
- * - span(): Create child spans within this trace
+ * - setInput(): Set the span input (displayed in the UI)
+ * - setOutput(): Set the span output (displayed in the UI)
+ * - span(): Create child spans
  *
  * @example
  * ```typescript
- * const { result, traceId } = await trace({ name: 'request-handler' }, async (ctx) => {
+ * const { result, traceId } = await span({ name: 'request-handler' }, async (ctx) => {
  *   // Create child spans
- *   const user = await ctx.span({ name: 'fetch-user' }, async (spanCtx) => {
+ *   const user = await ctx.span({ name: 'fetch-user' }, async (childCtx) => {
  *     return db.getUser(id);
  *   });
  *
@@ -226,42 +233,33 @@ export interface TraceResult<T> {
  * // traceId is available here without closure mutation
  * ```
  */
-export const trace = async <T>(
-  options: TraceOptions,
-  fn: (ctx: TraceContext) => Promise<T>
-): Promise<TraceResult<T>> => {
+export const span = async <T>(
+  options: SpanOptions,
+  fn: (ctx: SpanContext) => Promise<T>
+): Promise<SpanResult<T>> => {
   const tracer = api.trace.getTracer("agentmark");
 
+  // Use an async callback inside context.with so the active span context
+  // propagates through all awaited promises (via AsyncLocalStorage).
+  // Without this, child spans created in async callbacks lose their parent.
   return context.with(ROOT_CONTEXT, () =>
-    tracer.startActiveSpan(options.name, (span) => {
-      setAgentmarkAttributes(span, options);
+    tracer.startActiveSpan(options.name, async (otelSpan) => {
+      setAgentmarkAttributes(otelSpan, options);
 
-      const ctx = buildContext(span, tracer);
+      const ctx = buildContext(otelSpan, tracer);
       const traceId = ctx.traceId;
       try {
-        const result = fn(ctx);
-        // Handle promise completion to set status and end span
-        result
-          .then(() => {
-            span.setStatus({ code: SpanStatusCode.OK });
-          })
-          .catch((e: any) => {
-            span.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: e.message,
-            });
-          })
-          .finally(() => {
-            span.end();
-          });
-        return { result, traceId };
+        const value = await fn(ctx);
+        otelSpan.setStatus({ code: SpanStatusCode.OK });
+        return { result: Promise.resolve(value), traceId };
       } catch (e: any) {
-        span.setStatus({
+        otelSpan.setStatus({
           code: SpanStatusCode.ERROR,
           message: e.message,
         });
-        span.end();
         throw e;
+      } finally {
+        otelSpan.end();
       }
     })
   );

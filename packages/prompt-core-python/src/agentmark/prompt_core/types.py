@@ -87,6 +87,7 @@ class EvalParams(TypedDict, total=False):
     input: str | dict[str, Any] | list[dict[str, Any] | str]
     output: str | dict[str, Any] | list[dict[str, Any] | str]
     expectedOutput: str | None
+    metadata: dict[str, Any] | None
 
 
 class EvalResult(TypedDict, total=False):

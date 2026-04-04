@@ -169,6 +169,12 @@ export class AgentMarkTransformer implements ScopeTransformer {
             result.totalTokens = result.inputTokens + result.outputTokens;
         }
 
+        // Cost from agentmark.usage.cost_usd attribute
+        const costUsd = attributes['agentmark.usage.cost_usd'];
+        if (typeof costUsd === 'number' && costUsd > 0) {
+            result.cost = costUsd;
+        }
+
         // Finish reason (stored as JSON array per OTEL spec)
         const finishReasons = attributes[GenAIAttributes.RESPONSE_FINISH_REASONS];
         if (finishReasons) {
@@ -230,6 +236,22 @@ export class AgentMarkTransformer implements ScopeTransformer {
         const responseOutput = attributes[GenAIAttributes.RESPONSE_OUTPUT];
         if (responseOutput && typeof responseOutput === 'string') {
             result.output = responseOutput;
+            try {
+                result.outputObject = JSON.parse(responseOutput);
+            } catch { /* not JSON, keep as text only */ }
+        }
+
+        // Fallback: agentmark.input / agentmark.output (set by SDK's set_input/set_output)
+        const amInput = attributes['agentmark.input'];
+        if (amInput && typeof amInput === 'string' && !result.input) {
+            result.input = [{ role: 'user', content: amInput }];
+        }
+        const amOutput = attributes['agentmark.output'];
+        if (amOutput && typeof amOutput === 'string' && !result.output) {
+            result.output = amOutput;
+            try {
+                result.outputObject = JSON.parse(amOutput);
+            } catch { /* ignore */ }
         }
 
         // Tool call spans: extract tool info

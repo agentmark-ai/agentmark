@@ -14,18 +14,24 @@ function TracesContent() {
   const runId = searchParams.get("runId");
   const t = useTranslations("traces");
   const [traces, setTraces] = useState<Trace[]>([]);
+  const [traceCount, setTraceCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const table = useTable();
 
   useEffect(() => {
     const fetchTraces = async () => {
       setIsLoading(true);
-      const fetchedTraces = await getTraces(runId || undefined);
-      setTraces(fetchedTraces);
+      const { traces: fetched, total } = await getTraces({
+        runId: runId || undefined,
+        limit: table.rowsPerPage,
+        offset: table.page * table.rowsPerPage,
+      });
+      setTraces(fetched);
+      setTraceCount(total);
       setIsLoading(false);
     };
     fetchTraces();
-  }, [runId]);
+  }, [runId, table.page, table.rowsPerPage]);
 
   return (
     <Stack spacing={2}>
@@ -36,7 +42,7 @@ function TracesContent() {
         <TracesList
           traces={traces}
           isLoading={isLoading}
-          traceCount={traces.length}
+          traceCount={traceCount}
           onTraceClick={(trace) => {
             const params = new URLSearchParams(searchParams.toString());
             params.set("traceId", trace.id);

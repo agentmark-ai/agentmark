@@ -7,7 +7,8 @@ import type { ToolsInput } from "@mastra/core/agent";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
 import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
-import { trace } from "@agentmark-ai/sdk";
+import { span } from "@agentmark-ai/sdk";
+import type { SpanContext } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
   name?: string;
@@ -57,7 +58,7 @@ export class MastraAdapterWebhookHandler<
 
       if (shouldStream) {
         try {
-          const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
             return agent.stream(messages, generateOptions);
           });
           const streamResult = await result;
@@ -139,7 +140,7 @@ export class MastraAdapterWebhookHandler<
       }
 
       // Non-streaming object generation
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
         return agent.generate(messages, generateOptions);
       });
       const response = await result;
@@ -167,7 +168,7 @@ export class MastraAdapterWebhookHandler<
 
       if (shouldStream) {
         try {
-          const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
             return agent.stream(messages, generateOptions);
           });
           const streamResult = await result;
@@ -269,7 +270,7 @@ export class MastraAdapterWebhookHandler<
       }
 
       // Non-streaming text generation
-      const { result, traceId } = await trace({ name: frontmatter.name || 'prompt-run' }, async (_ctx) => {
+      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
         return agent.generate(messages, generateOptions);
       });
       const response = await result;
@@ -336,14 +337,14 @@ export class MastraAdapterWebhookHandler<
                 ...(options.telemetry?.metadata ?? {}),
               };
 
-              const { result, traceId } = await trace({
+              const { result, traceId } = await span({
                 name: `ds-run-${datasetRunName}-${index}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
                 datasetItemName: String(index),
                 datasetExpectedOutput: item.dataset?.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx) => {
+              }, async (_ctx: SpanContext) => {
                 return agent.generate(messages, {
                   ...options,
                   telemetry: options.telemetry
@@ -444,14 +445,14 @@ export class MastraAdapterWebhookHandler<
                 ...(options.telemetry?.metadata ?? {}),
               };
 
-              const { result, traceId } = await trace({
+              const { result, traceId } = await span({
                 name: `ds-run-${datasetRunName}-${index}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
                 datasetItemName: String(index),
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx) => {
+              }, async (_ctx: SpanContext) => {
                 return agent.generate(messages, {
                   ...options,
                   telemetry: options.telemetry

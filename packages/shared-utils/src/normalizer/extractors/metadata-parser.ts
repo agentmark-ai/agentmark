@@ -12,6 +12,7 @@ const KNOWN_METADATA_FIELDS = new Set([
     'dataset_path',
     'dataset_item_name',
     'dataset_expected_output',
+    'dataset_input',
     'prompt_name',
     'props',
     'commit_sha',

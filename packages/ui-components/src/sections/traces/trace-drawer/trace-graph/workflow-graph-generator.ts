@@ -89,10 +89,16 @@ export function hasManualGraphMetadata(spans: SpanForGrouping[]): boolean {
  * @param nodeKeysBySpanId - Map of spanId to nodeId
  * @returns Array of workflow edges
  */
+export interface ExecutionEdgesResult {
+  edges: WorkflowEdge[];
+  /** The last node visited in execution order (useful for __end__ connection) */
+  lastExecutionNodeId?: string;
+}
+
 export function generateExecutionEdges(
   spans: SpanForGrouping[],
   nodeKeysBySpanId: Map<string, string>
-): WorkflowEdge[] {
+): ExecutionEdgesResult {
   // Group spans by parent for ordering
   const spansByParent = new Map<string, SpanForGrouping[]>();
   for (const span of spans) {
@@ -139,36 +145,105 @@ export function generateExecutionEdges(
     }
   };
 
+  // Track the last node visited in execution order
+  let lastExecutionNodeId: string | undefined;
+
   // Process each parent's children
   for (const [parentSpanId, parentSpans] of spansByParent) {
     // Sort by start time
     const sorted = [...parentSpans].sort((a, b) => a.startTime - b.startTime);
 
-    // Create hierarchical edge from parent node to first child node
-    if (parentSpanId !== "root" && sorted.length > 0) {
-      const parentNode = nodeKeysBySpanId.get(parentSpanId);
-      const firstChildSpan = sorted[0];
-      const firstChildNode = firstChildSpan ? nodeKeysBySpanId.get(firstChildSpan.spanId) : undefined;
-
-      if (parentNode && firstChildNode && parentNode !== firstChildNode) {
-        addEdgeTransition(parentNode, firstChildNode);
+    // Build the ordered node sequence (with duplicates, for detecting A→B→A flow)
+    // and a deduplicated set of distinct child nodes (for parent→child edges)
+    const orderedNodeSequence: string[] = [];
+    const childNodeIds: string[] = [];
+    const seenChildNodes = new Set<string>();
+    for (const span of sorted) {
+      const nodeId = nodeKeysBySpanId.get(span.spanId);
+      if (nodeId) {
+        orderedNodeSequence.push(nodeId);
+        if (!seenChildNodes.has(nodeId)) {
+          seenChildNodes.add(nodeId);
+          childNodeIds.push(nodeId);
+        }
       }
     }
 
-    // Create edges between consecutive spans (execution flow)
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const currentSpan = sorted[i];
-      const nextSpan = sorted[i + 1];
+    // Track the last node in execution order across all parent groups
+    if (orderedNodeSequence.length > 0) {
+      lastExecutionNodeId = orderedNodeSequence[orderedNodeSequence.length - 1];
+    }
 
-      const currentNode = nodeKeysBySpanId.get(currentSpan!.spanId);
-      const nextNode = nodeKeysBySpanId.get(nextSpan!.spanId);
+    if (parentSpanId !== "root") {
+      const parentNode = nodeKeysBySpanId.get(parentSpanId);
+      if (parentNode && orderedNodeSequence.length > 0) {
+        // Parent node exists in graph — create a hierarchical edge from parent
+        // to the first child, then use execution flow between siblings.
+        //
+        // To avoid false sequential edges between independent parallel operations
+        // (e.g., tool calls that fan out from an LLM call), we detect "fan-out"
+        // patterns: when multiple unique nodes appear consecutively between two
+        // occurrences of the same node (A → B → C → A), we create edges from A
+        // to each unique node and back, rather than chaining B → C.
+        const firstChild = orderedNodeSequence[0]!;
+        if (firstChild !== parentNode) {
+          addEdgeTransition(parentNode, firstChild);
+        }
 
-      // Skip if same node (spans in same group)
-      if (!currentNode || !nextNode || currentNode === nextNode) {
-        continue;
+        // Walk the sequence and detect fan-out patterns
+        let i = 0;
+        while (i < orderedNodeSequence.length - 1) {
+          const current = orderedNodeSequence[i]!;
+          // Look ahead: collect all distinct nodes until we see `current` again
+          // or reach the end
+          const fanOutSet = new Set<string>();
+          const fanOutTargets: string[] = [];
+          let j = i + 1;
+          let foundReturn = false;
+          while (j < orderedNodeSequence.length) {
+            const next = orderedNodeSequence[j]!;
+            if (next === current) {
+              foundReturn = true;
+              break;
+            }
+            if (!fanOutSet.has(next)) {
+              fanOutSet.add(next);
+              fanOutTargets.push(next);
+            }
+            j++;
+          }
+
+          if (foundReturn && fanOutTargets.length > 1) {
+            // Fan-out: current → each target, each target → current (bidirectional)
+            for (const target of fanOutTargets) {
+              addEdgeTransition(current, target);
+              addEdgeTransition(target, current);
+            }
+            i = j; // Skip past the return occurrence
+          } else {
+            // Normal sequential edge
+            const next = orderedNodeSequence[i + 1]!;
+            if (current !== next) {
+              addEdgeTransition(current, next);
+            }
+            i++;
+          }
+        }
+      } else {
+        // Parent span not in any node — use consecutive execution flow edges.
+        for (let i = 0; i < orderedNodeSequence.length - 1; i++) {
+          if (orderedNodeSequence[i] !== orderedNodeSequence[i + 1]) {
+            addEdgeTransition(orderedNodeSequence[i]!, orderedNodeSequence[i + 1]!);
+          }
+        }
       }
-
-      addEdgeTransition(currentNode, nextNode);
+    } else {
+      // Root-level spans — use consecutive execution flow edges.
+      for (let i = 0; i < orderedNodeSequence.length - 1; i++) {
+        if (orderedNodeSequence[i] !== orderedNodeSequence[i + 1]) {
+          addEdgeTransition(orderedNodeSequence[i]!, orderedNodeSequence[i + 1]!);
+        }
+      }
     }
   }
 
@@ -183,7 +258,7 @@ export function generateExecutionEdges(
     });
   }
 
-  return edges;
+  return { edges, lastExecutionNodeId };
 }
 
 /**
@@ -193,6 +268,14 @@ export function generateExecutionEdges(
  * @param spans - Array of spans to process
  * @returns WorkflowGraphResult with nodes, edges, and metadata
  */
+// Built-in Claude Code tools that add noise to the workflow graph.
+// These are internal tools, not user-defined application tools.
+const BUILTIN_TOOL_NAMES = new Set([
+  "Bash", "Read", "Write", "Edit", "Glob", "Grep", "Agent",
+  "TodoRead", "TodoWrite", "WebFetch", "WebSearch",
+  "NotebookEdit", "LSP",
+]);
+
 export function generateWorkflowGraph(
   spans: SpanForGrouping[]
 ): WorkflowGraphResult {
@@ -200,8 +283,11 @@ export function generateWorkflowGraph(
     return { nodes: [], edges: [], isAutoGenerated: true };
   }
 
+  // Filter out built-in Claude Code tool spans to reduce graph noise
+  const filteredSpans = spans.filter((s) => !BUILTIN_TOOL_NAMES.has(s.name));
+
   // Group spans by key
-  const groups = groupSpansByKey(spans);
+  const groups = groupSpansByKey(filteredSpans);
 
   // Build spanId -> nodeKey map for edge generation
   const nodeKeysBySpanId = new Map<string, string>();
@@ -211,9 +297,12 @@ export function generateWorkflowGraph(
     }
   }
 
-  // Determine which groups have children (for agent detection)
+  // Determine which groups have children (for agent detection).
+  // IMPORTANT: Use filteredSpans, not the raw input — otherwise spans that were
+  // excluded by BUILTIN_TOOL_NAMES still count as children, causing their parent
+  // nodes to be incorrectly excluded by the container-chain logic.
   const groupsWithChildren = new Set<string>();
-  for (const span of spans) {
+  for (const span of filteredSpans) {
     if (span.parentSpanId) {
       const parentGroup = nodeKeysBySpanId.get(span.parentSpanId);
       if (parentGroup) {
@@ -222,11 +311,56 @@ export function generateWorkflowGraph(
     }
   }
 
-  // Create nodes from groups
+  // Recursively detect and exclude single-child container spans from the graph.
+  // When there's exactly one node at a level and it has children (i.e., it's just a
+  // wrapper like "invoke_agent" or "claude.conversation"), exclude it so the graph
+  // shows the actual execution flow of its children instead of disconnected containers.
+  const excludedNodeIds = new Set<string>();
+  const excludeContainerChain = () => {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const currentRoots: string[] = [];
+      for (const [key, group] of groups) {
+        if (excludedNodeIds.has(key)) continue;
+        const parentKey = group.parentSpanId
+          ? nodeKeysBySpanId.get(group.parentSpanId)
+          : undefined;
+        if (!parentKey || excludedNodeIds.has(parentKey)) {
+          currentRoots.push(key);
+        }
+      }
+      if (currentRoots.length === 1) {
+        const rootKey = currentRoots[0]!;
+        const rootGroup = groups.get(rootKey);
+        if (
+          groupsWithChildren.has(rootKey) &&
+          rootGroup &&
+          rootGroup.spanIds.length === 1
+        ) {
+          excludedNodeIds.add(rootKey);
+          changed = true;
+        }
+      }
+    }
+  };
+  excludeContainerChain();
+
+  // Clean up nodeKeysBySpanId after exclusion (separated from the loop to
+  // avoid mutating the map while the exclusion algorithm reads it)
+  for (const [spanId, nodeKey] of [...nodeKeysBySpanId]) {
+    if (excludedNodeIds.has(nodeKey)) {
+      nodeKeysBySpanId.delete(spanId);
+    }
+  }
+
+  // Create nodes from groups (excluding container nodes)
   const nodes: WorkflowNode[] = [];
   for (const [key, group] of groups) {
+    if (excludedNodeIds.has(key)) continue;
+
     // Get first span for type inference
-    const firstSpan = spans.find((s) => s.spanId === group.spanIds[0]);
+    const firstSpan = filteredSpans.find((s) => s.spanId === group.spanIds[0]);
     if (!firstSpan) continue;
 
     const hasChildren = groupsWithChildren.has(key);
@@ -243,11 +377,19 @@ export function generateWorkflowGraph(
   }
 
   // Generate edges
-  const edges = generateExecutionEdges(spans, nodeKeysBySpanId);
+  const { edges, lastExecutionNodeId } = generateExecutionEdges(filteredSpans, nodeKeysBySpanId);
 
-  // Find first and last nodes by span time for start/end connections
-  const firstNodeId = findFirstNodeByTime(spans, nodeKeysBySpanId);
-  const lastNodeId = findLastNodeByTime(spans, nodeKeysBySpanId);
+  // Find first and last nodes for start/end connections (excluding container nodes)
+  const visibleSpans = filteredSpans.filter((s) => {
+    const nodeKey = nodeKeysBySpanId.get(s.spanId);
+    return nodeKey && !excludedNodeIds.has(nodeKey);
+  });
+  const firstNodeId = findFirstNodeByTime(visibleSpans, nodeKeysBySpanId);
+  // Prefer the last node from execution order (handles timestamp ties correctly),
+  // fall back to timestamp-based if execution order isn't available
+  const lastNodeId = (lastExecutionNodeId && !excludedNodeIds.has(lastExecutionNodeId))
+    ? lastExecutionNodeId
+    : findLastNodeByTime(visibleSpans, nodeKeysBySpanId);
 
   // Add start and end nodes
   const { nodes: finalNodes, edges: finalEdges } = addStartEndNodes(

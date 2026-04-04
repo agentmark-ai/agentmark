@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import db from '../cli-src/server/database';
 import {
   getTraces,
+  getTraceCount,
   getSpans,
   getTraceById,
   searchSpans,
@@ -257,6 +258,73 @@ describe('Traces Routes', () => {
       const result = await getTraces({ limit: Infinity });
 
       expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('getTraceCount', () => {
+    it('should return 0 when no traces exist', async () => {
+      const result = await getTraceCount();
+      expect(result).toBe(0);
+    });
+
+    it('should count distinct traces', async () => {
+      insertTestSpan({ traceId: 'trace-1', spanId: 'span-1', spanName: 'Root' });
+      insertTestSpan({ traceId: 'trace-1', spanId: 'span-2', parentSpanId: 'span-1', spanName: 'Child' });
+      insertTestSpan({ traceId: 'trace-2', spanId: 'span-3', spanName: 'Other' });
+
+      const result = await getTraceCount();
+      expect(result).toBe(2);
+    });
+
+    it('should respect the same filters as getTraces', async () => {
+      insertTestSpan({ traceId: 'trace-ok', spanId: 'span-1', spanName: 'OK', statusCode: '0' });
+      insertTestSpan({ traceId: 'trace-err', spanId: 'span-2', spanName: 'Error', statusCode: '2' });
+
+      const count = await getTraceCount({ status: '2' });
+      const traces = await getTraces({ status: '2' });
+      expect(count).toBe(traces.length);
+      expect(count).toBe(1);
+    });
+
+    it('should match getTraces length when paginated', async () => {
+      for (let i = 0; i < 15; i++) {
+        insertTestSpan({
+          traceId: `trace-${i}`,
+          spanId: `span-${i}`,
+          spanName: `Trace ${i}`,
+          timestamp: String((1000 + i) * 1000000),
+        });
+      }
+
+      const total = await getTraceCount();
+      expect(total).toBe(15);
+
+      const page1 = await getTraces({ limit: 10, offset: 0 });
+      expect(page1).toHaveLength(10);
+
+      const page2 = await getTraces({ limit: 10, offset: 10 });
+      expect(page2).toHaveLength(5);
+    });
+
+    it('should ignore limit and offset (always returns total)', async () => {
+      for (let i = 0; i < 5; i++) {
+        insertTestSpan({ traceId: `trace-${i}`, spanId: `span-${i}`, spanName: `Trace ${i}` });
+      }
+
+      // limit/offset in the options should not affect the count
+      const count = await getTraceCount({ limit: 2, offset: 3 });
+      expect(count).toBe(5);
+    });
+
+    it('should filter by name consistently with getTraces', async () => {
+      insertTestSpan({ traceId: 'trace-1', spanId: 'span-1', spanName: 'Auth Flow', traceName: 'Auth Flow' });
+      insertTestSpan({ traceId: 'trace-2', spanId: 'span-2', spanName: 'Payment', traceName: 'Payment' });
+      insertTestSpan({ traceId: 'trace-3', spanId: 'span-3', spanName: 'Auth Check', traceName: 'Auth Check' });
+
+      const count = await getTraceCount({ name: 'Auth' });
+      const traces = await getTraces({ name: 'Auth' });
+      expect(count).toBe(traces.length);
+      expect(count).toBe(2);
     });
   });
 

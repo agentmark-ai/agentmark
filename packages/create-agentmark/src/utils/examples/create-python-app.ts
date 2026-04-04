@@ -204,40 +204,131 @@ strict = true
 `;
 };
 
-const getAgentmarkClientContent = (_deploymentMode: "cloud" | "static", adapter: string): string => {
+const getHandlerPyContent = (adapter: string): string => {
+  const webhookClass = adapter === "claude-agent-sdk"
+    ? "ClaudeAgentSDKWebhookHandler"
+    : "PydanticAIWebhookHandler";
+  const webhookImport = adapter === "claude-agent-sdk"
+    ? "from agentmark_claude_agent_sdk import ClaudeAgentSDKWebhookHandler"
+    : "from agentmark_pydantic_ai_v0 import PydanticAIWebhookHandler";
+
+  return `"""AgentMark handler for managed cloud deployments.
+
+This file is used by the AgentMark platform to execute prompts and experiments
+on deployed infrastructure. It mirrors the TypeScript handler.ts pattern.
+"""
+
+import os
+
+from agentmark_sdk import AgentMarkSDK
+${webhookImport}
+from agentmark_client import client
+
+# Initialize tracing
+sdk = AgentMarkSDK(
+    api_key=os.environ.get("AGENTMARK_API_KEY", ""),
+    app_id=os.environ.get("AGENTMARK_APP_ID", ""),
+    base_url=os.environ.get("AGENTMARK_BASE_URL"),
+)
+sdk.init_tracing(disable_batch=True)
+
+adapter = ${webhookClass}(client)
+
+
+async def handler(request: dict):
+    """Handle prompt-run and dataset-run requests from the platform."""
+    req_type = request.get("type")
+    data = request.get("data", {})
+
+    if req_type == "prompt-run":
+        return await adapter.run_prompt(data["ast"], {
+            "shouldStream": data.get("options", {}).get("shouldStream", True),
+            "customProps": data.get("customProps"),
+        })
+
+    if req_type == "dataset-run":
+        return await adapter.run_experiment(
+            data["ast"],
+            data.get("experimentId", ""),
+            data.get("datasetPath"),
+        )
+
+    raise ValueError(f"Unknown request type: {req_type}")
+`;
+};
+
+const getAgentmarkClientContent = (deploymentMode: "cloud" | "static", adapter: string): string => {
+  const isCloud = deploymentMode === "cloud";
+  const loaderImport = isCloud
+    ? `from agentmark.prompt_core import ApiLoader`
+    : `from agentmark.prompt_core import FileLoader`;
+  const loaderSetup = isCloud
+    ? `# API loader for cloud deployment — fetches datasets from the AgentMark gateway
+loader = ApiLoader.cloud()`
+    : `# File loader for local development
+project_root = Path(__file__).parent.resolve()
+loader = FileLoader(base_dir=str(project_root))`;
+
   if (adapter === "claude-agent-sdk") {
     return `"""AgentMark client configuration.
 
 This file configures the AgentMark client with Claude Agent SDK adapter.
-Customize the model registry as needed.
+Customize the model registry and eval registry as needed.
 """
 
+import json
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from agentmark.prompt_core import FileLoader
+${loaderImport}
 from agentmark_claude_agent_sdk import (
     create_claude_agent_client,
-    create_default_model_registry,
+    ClaudeAgentModelRegistry,
 )
 
 # Load environment variables
 load_dotenv()
 
-# Configure model registry with default mappings
-# Supports: claude-* models
-model_registry = create_default_model_registry()
+# Register the model providers your prompts use.
+# This maps "anthropic/claude-sonnet-4-20250514" in prompt files to the Claude Agent SDK.
+model_registry = ClaudeAgentModelRegistry()
+model_registry.register_providers({
+    "anthropic": "anthropic",
+})
 
-# Create file loader for local development
-# Uses the project root as base directory for resolving relative paths
-project_root = Path(__file__).parent.resolve()
-loader = FileLoader(base_dir=str(project_root))
+
+# Eval registry — define evaluation functions for experiments
+def exact_match_json(params):
+    """Check if output matches expected output exactly."""
+    output = params.get("output")
+    expected_output = params.get("expectedOutput")
+    if not expected_output:
+        return {"score": 0, "label": "error", "reason": "No expected output provided", "passed": False}
+    try:
+        actual = json.loads(output) if isinstance(output, str) else output
+        expected = json.loads(expected_output) if isinstance(expected_output, str) else expected_output
+        ok = actual == expected
+        return {
+            "score": 1 if ok else 0,
+            "label": "correct" if ok else "incorrect",
+            "reason": "Exact match" if ok else "Mismatch",
+            "passed": ok,
+        }
+    except (json.JSONDecodeError, TypeError):
+        return {"score": 0, "label": "error", "reason": "Failed to parse JSON", "passed": False}
+
+eval_registry = {
+    "exact_match_json": exact_match_json,
+}
+
+${loaderSetup}
 
 # Create the client
 # Claude Agent SDK handles tools natively through the SDK
 client = create_claude_agent_client(
     model_registry=model_registry,
+    eval_registry=eval_registry,
     loader=loader,
 )
 
@@ -249,25 +340,30 @@ __all__ = ["client"]
   return `"""AgentMark client configuration.
 
 This file configures the AgentMark client with Pydantic AI adapter.
-Customize the model registry and tools as needed.
+Customize the model registry, tools, and eval registry as needed.
 """
 
+import json
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from agentmark.prompt_core import FileLoader
+${loaderImport}
 from agentmark_pydantic_ai_v0 import (
     create_pydantic_ai_client,
-    create_default_model_registry,
+    PydanticAIModelRegistry,
 )
 
 # Load environment variables
 load_dotenv()
 
-# Configure model registry with default mappings
-# Supports: gpt-*, claude-*, gemini-*, etc.
-model_registry = create_default_model_registry()
+# Register the model providers your prompts use.
+# This maps "openai/gpt-4o" in prompt files to "openai:gpt-4o" for Pydantic AI.
+model_registry = PydanticAIModelRegistry()
+model_registry.register_providers({
+    "openai": "openai",
+    "anthropic": "anthropic",
+})
 
 # Define tools as native pydantic-ai Tool objects or callables
 # Example:
@@ -276,15 +372,38 @@ model_registry = create_default_model_registry()
 # tools = [search]
 tools = []
 
-# Create file loader for local development
-# Uses the project root as base directory for resolving relative paths
-project_root = Path(__file__).parent.resolve()
-loader = FileLoader(base_dir=str(project_root))
+
+# Eval registry — define evaluation functions for experiments
+def exact_match_json(params):
+    """Check if output matches expected output exactly."""
+    output = params.get("output")
+    expected_output = params.get("expectedOutput")
+    if not expected_output:
+        return {"score": 0, "label": "error", "reason": "No expected output provided", "passed": False}
+    try:
+        actual = json.loads(output) if isinstance(output, str) else output
+        expected = json.loads(expected_output) if isinstance(expected_output, str) else expected_output
+        ok = actual == expected
+        return {
+            "score": 1 if ok else 0,
+            "label": "correct" if ok else "incorrect",
+            "reason": "Exact match" if ok else "Mismatch",
+            "passed": ok,
+        }
+    except (json.JSONDecodeError, TypeError):
+        return {"score": 0, "label": "error", "reason": "Failed to parse JSON", "passed": False}
+
+eval_registry = {
+    "exact_match_json": exact_match_json,
+}
+
+${loaderSetup}
 
 # Create the client
 client = create_pydantic_ai_client(
     model_registry=model_registry,
     tools=tools,
+    eval_registry=eval_registry,
     loader=loader,
 )
 
@@ -547,6 +666,17 @@ export const createPythonApp = async (
 
     // Create agentmark_client.py (always create - this is AgentMark-specific)
     fs.writeFileSync(`${targetPath}/agentmark_client.py`, getAgentmarkClientContent(deploymentMode, adapter));
+
+    // Create handler.py for cloud deployments (managed code execution)
+    if (deploymentMode === "cloud") {
+      const handlerPath = path.join(targetPath, 'handler.py');
+      if (fs.existsSync(handlerPath)) {
+        console.log("⏭️  Skipped handler.py (already exists - preserving customizations)");
+      } else {
+        fs.writeFileSync(handlerPath, getHandlerPyContent(adapter));
+        console.log(`✅ Created handler.py for cloud deployment`);
+      }
+    }
 
     // Create main.py (skip for existing projects)
     if (!isExistingProject) {

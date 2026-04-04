@@ -61,22 +61,43 @@ export const SpanPrompt = ({ prompt }: SpanPromptProps) => {
         return t("assistant");
       case "tool":
         return t("tool");
+      case "input":
+      case "tool-input":
+        return t("input");
+      case "output":
+      case "tool-output":
+        return t("output");
       default:
         return role;
     }
   };
 
   return (
-    <Accordion sx={{ backgroundColor: "white" }} defaultExpanded>
+    <Accordion
+      sx={{
+        backgroundColor: "white",
+        "&.MuiAccordion-root": { my: 0.5 },
+        "&:before": { display: "none" },
+      }}
+      defaultExpanded
+    >
       <AccordionSummary
-        expandIcon={<Iconify icon="mdi:chevron-down" />}
+        expandIcon={<Iconify icon="mdi:chevron-down" width={16} />}
         sx={{
+          minHeight: "28px !important",
+          px: 1,
+          py: 0,
           "& .MuiAccordionSummary-content": {
             alignItems: "center",
+            my: "4px !important",
+          },
+          "&.Mui-expanded": {
+            minHeight: "28px !important",
+            my: 0,
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <Iconify
             icon={
               prompt.role === "system"
@@ -85,17 +106,20 @@ export const SpanPrompt = ({ prompt }: SpanPromptProps) => {
                 ? "mdi:account"
                 : prompt.role === "assistant"
                 ? "mdi:robot"
-                : prompt.role === "tool"
+                : prompt.role === "tool" || prompt.role === "tool-input" || prompt.role === "tool-output"
                 ? "mdi:tools"
+                : prompt.role === "input" || prompt.role === "output"
+                ? "mdi:arrow-right-bold"
                 : "mdi:message"
             }
+            width={16}
           />
-          <Typography fontWeight={700} variant="body2">
+          <Typography fontWeight={700} variant="body2" fontSize="0.8rem">
             {getTitle(prompt.role)}
           </Typography>
         </Box>
       </AccordionSummary>
-      <AccordionDetails>
+      <AccordionDetails sx={{ px: 1, py: 0.5 }}>
         <MarkdownRenderer content={content} />
       </AccordionDetails>
     </Accordion>

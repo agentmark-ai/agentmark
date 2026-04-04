@@ -9,9 +9,9 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
-from typing import Any, TypeVar
+from typing import Any
 
-T = TypeVar("T")
+from .traced import generate_fallback_trace_id
 
 
 @dataclass
@@ -62,24 +62,6 @@ class ExperimentResult:
     """HTTP headers for streaming response."""
 
 
-def generate_fallback_trace_id() -> str:
-    """Generate a fallback trace ID when OTEL is not available.
-
-    Uses UUID format without hyphens (32 hex chars).
-    """
-    return uuid.uuid4().hex
-
-
-def get_otel_api() -> Any | None:
-    """Get OpenTelemetry API if available."""
-    try:
-        from opentelemetry import trace
-
-        return trace
-    except ImportError:
-        return None
-
-
 class ClaudeAgentWebhookHandler:
     """Webhook handler for Claude Agent SDK adapter.
 
@@ -95,13 +77,15 @@ class ClaudeAgentWebhookHandler:
         result = await handler.run_prompt(ast, custom_props={"task": "Help me"})
     """
 
-    def __init__(self, client: Any) -> None:
+    def __init__(self, client: Any, *, mcp_servers: dict[str, Any] | None = None) -> None:
         """Initialize the handler.
 
         Args:
             client: AgentMark client configured with ClaudeAgentAdapter.
+            mcp_servers: Optional default MCP servers to include in every query.
         """
         self._client = client
+        self._default_mcp_servers = mcp_servers or {}
 
     def _get_frontmatter(self, prompt_ast: dict[str, Any]) -> dict[str, Any]:
         """Get frontmatter from prompt AST.
@@ -140,94 +124,6 @@ class ClaudeAgentWebhookHandler:
                     return {}
 
         return {}
-
-    async def _execute_query(
-        self, adapted: Any, _output_type: str = "text"
-    ) -> list[dict[str, Any]]:
-        """Execute query and collect all results.
-
-        Args:
-            adapted: Adapted prompt parameters.
-            _output_type: Expected output type (unused, for interface consistency).
-
-        Returns:
-            List of message results from query.
-        """
-        # Try to import and use claude-agent-sdk
-        try:
-            from claude_agent_sdk import query
-        except ImportError:
-            # Return mock result for testing
-            return [{"type": "result", "subtype": "success", "result": "Mock result"}]
-
-        results = []
-        options_dict = self._adapted_to_options(adapted)
-
-        async for message in query(prompt=adapted.query.prompt, options=options_dict):
-            results.append(message)
-
-        return results
-
-    async def _stream_query(
-        self, adapted: Any, _output_type: str = "text"
-    ) -> AsyncGenerator[dict[str, Any], None]:
-        """Stream query results.
-
-        Args:
-            adapted: Adapted prompt parameters.
-            _output_type: Expected output type (unused, for interface consistency).
-
-        Yields:
-            Message results from query.
-        """
-        # Try to import and use claude-agent-sdk
-        try:
-            from claude_agent_sdk import query
-        except ImportError:
-            # Yield mock result for testing
-            yield {"type": "result", "subtype": "success", "result": "Mock result"}
-            return
-
-        options_dict = self._adapted_to_options(adapted)
-
-        async for message in query(prompt=adapted.query.prompt, options=options_dict):
-            yield message
-
-    def _adapted_to_options(self, adapted: Any) -> dict[str, Any]:
-        """Convert adapted params to query options dict.
-
-        Args:
-            adapted: Adapted prompt parameters.
-
-        Returns:
-            Options dictionary for Claude Agent SDK query.
-        """
-        options = adapted.query.options
-        result: dict[str, Any] = {}
-
-        if hasattr(options, "model") and options.model:
-            result["model"] = options.model
-        if hasattr(options, "max_thinking_tokens") and options.max_thinking_tokens:
-            result["max_thinking_tokens"] = options.max_thinking_tokens
-        if hasattr(options, "max_turns") and options.max_turns:
-            result["max_turns"] = options.max_turns
-        if hasattr(options, "permission_mode") and options.permission_mode:
-            result["permission_mode"] = options.permission_mode
-        if hasattr(options, "cwd") and options.cwd:
-            result["cwd"] = options.cwd
-        if hasattr(options, "system_prompt") and options.system_prompt:
-            result["system_prompt"] = options.system_prompt
-        if hasattr(options, "output_format") and options.output_format:
-            result["output_format"] = {
-                "type": options.output_format.type,
-                "schema": options.output_format.schema,
-            }
-        if hasattr(options, "mcp_servers") and options.mcp_servers:
-            result["mcp_servers"] = options.mcp_servers
-        if hasattr(options, "hooks") and options.hooks:
-            result["hooks"] = options.hooks
-
-        return result
 
     async def run_prompt(
         self,
@@ -296,101 +192,81 @@ class ClaudeAgentWebhookHandler:
         else:
             adapted = await prompt.format_with_test_props(telemetry=telemetry_config)
 
-        # Generate trace ID
+        return await self._run_with_tracing(adapted, output_type, should_stream)
+
+    async def _run_with_tracing(
+        self,
+        adapted: Any,
+        output_type: str,
+        should_stream: bool,
+    ) -> WebhookResult | StreamingResult:
+        """Run prompt execution with automatic OTEL tracing via traced_query.
+
+        Mirrors the TypeScript runner pattern:
+            const tracedResult = await withTracing(query, adapted);
+
+        traced_query handles SDK execution and OTEL tracing transparently.
+        """
+        from .traced import traced_query
+
+        mcp_servers = self._default_mcp_servers or None
         trace_id = generate_fallback_trace_id()
 
         if should_stream:
-            return await self._create_streaming_response(adapted, output_type, trace_id)
+            async def stream_generator() -> AsyncGenerator[bytes, None]:
+                input_tokens = 0
+                output_tokens = 0
+                final_result = ""
+                structured_output: Any = None
+                finish_reason = "stop"
 
-        return await self._create_non_streaming_response(adapted, output_type, trace_id)
+                try:
+                    async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
+                        msg_type = type(message).__name__
 
-    async def _create_streaming_response(
-        self, adapted: Any, output_type: str, trace_id: str
-    ) -> StreamingResult:
-        """Create a streaming response.
+                        if msg_type == "AssistantMessage":
+                            content = getattr(message, "content", [])
+                            for block in (content or []):
+                                text = block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
+                                if text:
+                                    chunk = json.dumps({"type": output_type, "delta": text})
+                                    yield (chunk + "\n").encode()
 
-        Args:
-            adapted: Adapted prompt parameters.
-            output_type: Expected output type.
-            trace_id: Trace ID for telemetry.
-
-        Returns:
-            StreamingResult with async generator.
-        """
-
-        async def stream_generator() -> AsyncGenerator[bytes, None]:
-            input_tokens = 0
-            output_tokens = 0
-            final_result = ""
-            structured_output: Any = None
-
-            try:
-                async for message in self._stream_query(adapted, output_type):
-                    # Handle different message types
-                    if message.get("type") == "assistant":
-                        msg_content = message.get("message", {}).get("content", [])
-                        for block in msg_content:
-                            if block.get("type") == "text":
-                                chunk = json.dumps(
-                                    {"type": output_type, "delta": block.get("text", "")}
-                                )
+                        elif msg_type == "ResultMessage":
+                            subtype = getattr(message, "subtype", "")
+                            if subtype == "success":
+                                final_result = getattr(message, "result", "") or ""
+                                structured_output = getattr(message, "structured_output", None)
+                                usage = getattr(message, "usage", {}) or {}
+                                input_tokens = usage.get("input_tokens", 0)
+                                output_tokens = usage.get("output_tokens", 0)
+                            else:
+                                finish_reason = "error"
+                                error_msg = f"Error: {subtype}"
+                                chunk = json.dumps({"type": "error", "error": error_msg})
                                 yield (chunk + "\n").encode()
 
-                    elif message.get("type") == "result":
-                        if message.get("subtype") == "success":
-                            final_result = message.get("result", "")
-                            structured_output = message.get("structured_output")
-                            usage = message.get("usage", {})
-                            input_tokens = usage.get("input_tokens", 0)
-                            output_tokens = usage.get("output_tokens", 0)
-                        else:
-                            # Handle error subtypes
-                            errors = message.get("errors", [])
-                            error_msg = (
-                                ", ".join(errors) if errors else f"Error: {message.get('subtype')}"
-                            )
-                            chunk = json.dumps({"type": "error", "error": error_msg})
-                            yield (chunk + "\n").encode()
-
-                # Emit final completion message
-                result_value = structured_output if output_type == "object" else final_result
-                final_chunk = json.dumps(
-                    {
+                    result_value = structured_output if output_type == "object" else final_result
+                    final_chunk = json.dumps({
                         "type": output_type,
                         "result": result_value,
-                        "finishReason": "stop",
-                        "usage": {
-                            "promptTokens": input_tokens,
-                            "completionTokens": output_tokens,
-                        },
-                    }
-                )
-                yield (final_chunk + "\n").encode()
+                        "finishReason": finish_reason,
+                        "usage": {"promptTokens": input_tokens, "completionTokens": output_tokens},
+                    })
+                    yield (final_chunk + "\n").encode()
 
-            except Exception as e:
-                error_chunk = json.dumps({"type": "error", "error": str(e)})
-                yield (error_chunk + "\n").encode()
+                except Exception as e:
+                    error_chunk = json.dumps({"type": "error", "error": str(e)})
+                    yield (error_chunk + "\n").encode()
 
-        return StreamingResult(
-            type="stream",
-            stream=stream_generator(),
-            stream_header={"AgentMark-Streaming": "true"},
-            trace_id=trace_id,
-        )
+            return StreamingResult(
+                type="stream",
+                stream=stream_generator(),
+                stream_header={"AgentMark-Streaming": "true"},
+                trace_id=trace_id,
+            )
 
-    async def _create_non_streaming_response(
-        self, adapted: Any, output_type: str, trace_id: str
-    ) -> WebhookResult:
-        """Create a non-streaming response.
-
-        Args:
-            adapted: Adapted prompt parameters.
-            output_type: Expected output type.
-            trace_id: Trace ID for telemetry.
-
-        Returns:
-            WebhookResult with complete response.
-        """
+        # Non-streaming
         input_tokens = 0
         output_tokens = 0
         final_result: Any = ""
@@ -398,29 +274,24 @@ class ClaudeAgentWebhookHandler:
         finish_reason = "stop"
 
         try:
-            results = await self._execute_query(adapted, output_type)
+            async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
+                msg_type = type(message).__name__
 
-            for message in results:
-                if message.get("type") == "result":
-                    if message.get("subtype") == "success":
-                        final_result = message.get("result", "")
-                        structured_output = message.get("structured_output")
-                        usage = message.get("usage", {})
+                if msg_type == "ResultMessage":
+                    subtype = getattr(message, "subtype", "")
+                    if subtype == "success":
+                        final_result = getattr(message, "result", "") or ""
+                        structured_output = getattr(message, "structured_output", None)
+                        usage = getattr(message, "usage", {}) or {}
                         input_tokens = usage.get("input_tokens", 0)
                         output_tokens = usage.get("output_tokens", 0)
                     else:
-                        # Handle error subtypes
-                        errors = message.get("errors", [])
                         finish_reason = "error"
-                        final_result = (
-                            ", ".join(errors) if errors else f"Error: {message.get('subtype')}"
-                        )
+                        final_result = f"Error: {subtype}"
 
-            # For errors, always use final_result (the error message), not structured_output
-            if finish_reason == "error":
-                result_value = final_result
-            else:
-                result_value = structured_output if output_type == "object" else final_result
+            result_value = final_result if finish_reason == "error" else (
+                structured_output if output_type == "object" else final_result
+            )
 
             return WebhookResult(
                 type=output_type,
@@ -435,6 +306,8 @@ class ClaudeAgentWebhookHandler:
             )
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return WebhookResult(
                 type=output_type,
                 result=f"Error: {str(e)}",
@@ -500,6 +373,7 @@ class ClaudeAgentWebhookHandler:
 
         # Create experiment stream
         client = self._client
+        mcp_servers = self._default_mcp_servers or None
         run_id = experiment_run_id
         run_name = dataset_run_name
         prompt_name = frontmatter.get("name")
@@ -507,6 +381,8 @@ class ClaudeAgentWebhookHandler:
         sampling_opts = sampling
 
         async def experiment_stream() -> AsyncGenerator[bytes, None]:
+            from .traced import traced_query
+
             # Emit experiment metadata
             start_chunk = json.dumps(
                 {
@@ -564,17 +440,12 @@ class ClaudeAgentWebhookHandler:
                     item_trace_id = generate_fallback_trace_id()
 
                     try:
-                        # Execute query for this dataset item
-                        async for message in self._stream_query(
-                            adapted, "object" if is_object_prompt else "text"
-                        ):
-                            if (
-                                message.get("type") == "result"
-                                and message.get("subtype") == "success"
-                            ):
-                                result = message.get("result", "")
-                                structured_output = message.get("structured_output")
-                                usage = message.get("usage", {})
+                        async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
+                            msg_type = type(message).__name__
+                            if msg_type == "ResultMessage" and getattr(message, "subtype", "") == "success":
+                                result = getattr(message, "result", "") or ""
+                                structured_output = getattr(message, "structured_output", None)
+                                usage = getattr(message, "usage", {}) or {}
                                 input_tokens = usage.get("input_tokens", 0)
                                 output_tokens = usage.get("output_tokens", 0)
 
@@ -649,5 +520,4 @@ __all__ = [
     "WebhookResult",
     "StreamingResult",
     "ExperimentResult",
-    "generate_fallback_trace_id",
 ]

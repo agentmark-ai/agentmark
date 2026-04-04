@@ -18,6 +18,74 @@ from agentmark_claude_agent_sdk.webhook import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Mock SDK message types — type().__name__ must match real SDK class names
+# ---------------------------------------------------------------------------
+
+class _MockAssistantMessage:
+    """Mock whose type().__name__ == 'AssistantMessage'."""
+    def __init__(self, content=None, model=None):
+        self.content = content or []
+        self.model = model
+
+_MockAssistantMessage.__name__ = "AssistantMessage"
+
+
+class _MockResultMessage:
+    """Mock whose type().__name__ == 'ResultMessage'."""
+    def __init__(self, **kwargs):
+        self.subtype = kwargs.get("subtype", "")
+        self.result = kwargs.get("result", "")
+        self.structured_output = kwargs.get("structured_output")
+        self.usage = kwargs.get("usage", {})
+        self.total_cost_usd = kwargs.get("total_cost_usd")
+        self.duration_ms = kwargs.get("duration_ms")
+        self.session_id = kwargs.get("session_id")
+
+_MockResultMessage.__name__ = "ResultMessage"
+
+
+def _to_sdk_message(d: dict[str, Any]) -> Any:
+    """Convert a dict message spec to a typed mock SDK message."""
+    t = d.get("type")
+    if t == "assistant":
+        msg = d.get("message", {})
+        return _MockAssistantMessage(content=msg.get("content", []), model=msg.get("model"))
+    elif t == "result":
+        return _MockResultMessage(**{k: v for k, v in d.items() if k != "type"})
+    return d
+
+
+TRACED_QUERY_PATH = "agentmark_claude_agent_sdk.traced.traced_query"
+
+
+def make_mock_traced_query(messages: list[dict[str, Any]]):
+    """Create a mock traced_query that yields typed mock messages from a list."""
+    async def _mock(adapted, *, default_mcp_servers=None):
+        for d in messages:
+            yield _to_sdk_message(d)
+    return _mock
+
+
+def make_mock_traced_query_from_gen(gen_factory):
+    """Create a mock traced_query wrapping an async generator factory.
+
+    gen_factory is a callable that returns an async generator of dicts.
+    """
+    async def _mock(adapted, *, default_mcp_servers=None):
+        async for d in gen_factory():
+            yield _to_sdk_message(d)
+    return _mock
+
+
+def make_mock_traced_query_error(error: Exception):
+    """Create a mock traced_query that raises an error."""
+    async def _mock(adapted, *, default_mcp_servers=None):
+        raise error
+        yield  # make it a generator
+    return _mock
+
+
 def create_mock_ast() -> dict[str, Any]:
     """Create a mock AST."""
     return {"type": "root", "children": []}
@@ -158,7 +226,7 @@ class TestRunPromptTextPrompts:
                 "name": "test-prompt",
                 "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.type == "text"
@@ -180,7 +248,7 @@ class TestRunPromptTextPrompts:
                 "name": "test-prompt",
                 "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             await handler.run_prompt(create_mock_ast())
 
         mock_client._mock_text_prompt.format_with_test_props.assert_called()
@@ -199,7 +267,7 @@ class TestRunPromptTextPrompts:
                 "name": "test-prompt",
                 "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             await handler.run_prompt(create_mock_ast(), custom_props={"userMessage": "Hello"})
 
         mock_client._mock_text_prompt.format.assert_called()
@@ -217,7 +285,7 @@ class TestRunPromptTextPrompts:
                 "name": "test-prompt",
                 "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.finish_reason == "stop"
@@ -241,11 +309,11 @@ class TestRunPromptTextPrompts:
                 "name": "test-prompt",
                 "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.finish_reason == "error"
-        assert "Something went wrong" in result.result
+        assert "error_during_execution" in result.result
 
     async def test_includes_trace_id_in_result(self, handler: ClaudeAgentWebhookHandler) -> None:
         """Should include traceId in result."""
@@ -258,7 +326,7 @@ class TestRunPromptTextPrompts:
                 "name": "test-prompt",
                 "text_config": {"model_name": "anthropic/claude-sonnet-4-20250514"},
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         # traceId is now generated by withTracing() wrapper (32-char hex string)
@@ -305,7 +373,7 @@ class TestRunPromptObjectPrompts:
                     "output": {"schema": {"type": "object"}},
                 },
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.type == "object"
@@ -327,7 +395,7 @@ class TestRunPromptObjectPrompts:
                     "output": {"schema": {"type": "object"}},
                 },
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             await handler.run_prompt(create_mock_ast())
 
         mock_client._mock_object_prompt.format_with_test_props.assert_called()
@@ -350,11 +418,11 @@ class TestRunPromptObjectPrompts:
                     "output": {"schema": {"type": "object"}},
                 },
             },
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.finish_reason == "error"
-        assert "JSON parse error" in result.result
+        assert "error_during_execution" in result.result
 
 
 class TestRunPromptUnsupportedTypes:
@@ -434,7 +502,7 @@ class TestRunPromptErrorHandling:
         """Should handle query errors gracefully."""
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "test", "text_config": {}}
-        ), patch.object(handler, "_execute_query", side_effect=Exception("Network error")):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_error(Exception("Network error"))):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.finish_reason == "error"
@@ -450,11 +518,11 @@ class TestRunPromptErrorHandling:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "test", "text_config": {}}
-        ), patch.object(handler, "_execute_query", return_value=mock_results):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)):
             result = await handler.run_prompt(create_mock_ast())
 
         assert result.finish_reason == "error"
-        assert "Max turns exceeded" in result.result
+        assert "error_max_turns" in result.result
 
     async def test_includes_trace_id_even_when_prompt_name_missing(
         self, handler: ClaudeAgentWebhookHandler
@@ -464,7 +532,7 @@ class TestRunPromptErrorHandling:
 
         with (
             patch.object(handler, "_get_frontmatter", return_value={"text_config": {}}),
-            patch.object(handler, "_execute_query", return_value=mock_results),
+            patch(TRACED_QUERY_PATH, make_mock_traced_query(mock_results)),
         ):
             result = await handler.run_prompt(create_mock_ast())
 
@@ -497,7 +565,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
 
         assert result.type == "stream"
@@ -518,7 +586,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             # Must drain stream inside patch context
             chunks = await drain_stream(result.stream)
@@ -547,7 +615,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             chunks = await drain_stream(result.stream)
 
@@ -573,7 +641,7 @@ class TestStreamingResponses:
                 "name": "object-stream",
                 "object_config": {"model_name": "anthropic/claude-sonnet"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             chunks = await drain_stream(result.stream)
 
@@ -596,7 +664,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             chunks = await drain_stream(result.stream)
 
@@ -604,7 +672,7 @@ class TestStreamingResponses:
         error_chunk = next((p for p in parsed if p.get("type") == "error"), None)
 
         assert error_chunk is not None
-        assert "Execution failed" in error_chunk["error"]
+        assert "error_during_execution" in error_chunk["error"]
 
     async def test_handles_missing_message_content(
         self, handler: ClaudeAgentWebhookHandler
@@ -617,7 +685,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             # Should not throw
             chunks = await drain_stream(result.stream)
@@ -632,7 +700,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             # Draining should complete without hanging
             await drain_stream(result.stream)
@@ -648,7 +716,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
             chunks = await drain_stream(result.stream)
 
@@ -666,7 +734,7 @@ class TestStreamingResponses:
 
         with patch.object(
             handler, "_get_frontmatter", return_value={"name": "stream-test", "text_config": {}}
-        ), patch.object(handler, "_stream_query", return_value=mock_stream()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_stream)):
             result = await handler.run_prompt(create_mock_ast(), should_stream=True)
 
         assert result.stream_header == {"AgentMark-Streaming": "true"}
@@ -791,6 +859,14 @@ class TestRunExperiment:
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {"type": "result", "subtype": "success", "result": "Response"}
 
+        # Use a call counter to serve fresh generators for each dataset item
+        call_count_holder = [0]
+
+        async def multi_mock(adapted, *, default_mcp_servers=None):
+            call_count_holder[0] += 1
+            async for d in mock_query_results():
+                yield _to_sdk_message(d)
+
         with patch.object(
             handler,
             "_get_frontmatter",
@@ -799,9 +875,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(
-            handler, "_stream_query", side_effect=[mock_query_results(), mock_query_results()]
-        ):
+        ), patch(TRACED_QUERY_PATH, multi_mock):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -842,7 +916,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_query_results()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -893,7 +967,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_query_results()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -918,10 +992,6 @@ class TestRunExperiment:
 
         mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
 
-        async def mock_query_error() -> AsyncGenerator[dict[str, Any], None]:
-            raise Exception("Item execution failed")
-            yield  # Make it a generator
-
         with patch.object(
             handler,
             "_get_frontmatter",
@@ -930,7 +1000,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_query_error()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_error(Exception("Item execution failed"))):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -945,7 +1015,7 @@ class TestRunExperiment:
         self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
     ) -> None:
         """Should continue after item errors."""
-        call_count = 0
+        call_count = [0]
 
         async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
             yield {
@@ -965,12 +1035,11 @@ class TestRunExperiment:
 
         mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
 
-        async def mock_query_conditional() -> AsyncGenerator[dict[str, Any], None]:
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
+        async def multi_mock(adapted, *, default_mcp_servers=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
                 raise Exception("First item failed")
-            yield {"type": "result", "subtype": "success", "result": "Second item succeeded"}
+            yield _to_sdk_message({"type": "result", "subtype": "success", "result": "Second item succeeded"})
 
         with patch.object(
             handler,
@@ -980,11 +1049,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(
-            handler,
-            "_stream_query",
-            side_effect=[mock_query_conditional(), mock_query_conditional()],
-        ):
+        ), patch(TRACED_QUERY_PATH, multi_mock):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -1025,7 +1090,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_query_results()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -1097,7 +1162,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_query_results()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -1136,7 +1201,7 @@ class TestRunExperiment:
                 "object_config": {"model_name": "anthropic/claude-sonnet", "output": {}},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(handler, "_stream_query", return_value=mock_query_results()):
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
             result = await handler.run_experiment(create_mock_ast(), "run-1")
             chunks = await drain_stream(result.stream)
 
@@ -1193,12 +1258,15 @@ class TestRunExperiment:
 
         mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
 
-        call_count = 0
+        call_count = [0]
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
-            nonlocal call_count
-            call_count += 1
-            yield {"type": "result", "subtype": "success", "result": f"R{call_count}"}
+            call_count[0] += 1
+            yield {"type": "result", "subtype": "success", "result": f"R{call_count[0]}"}
+
+        async def multi_mock(adapted, *, default_mcp_servers=None):
+            async for d in mock_query_results():
+                yield _to_sdk_message(d)
 
         with patch.object(
             handler,
@@ -1208,9 +1276,7 @@ class TestRunExperiment:
                 "text_config": {},
                 "test_settings": {"dataset": "./test.jsonl"},
             },
-        ), patch.object(
-            handler, "_stream_query", side_effect=[mock_query_results(), mock_query_results()]
-        ):
+        ), patch(TRACED_QUERY_PATH, multi_mock):
             result = await handler.run_experiment(create_mock_ast(), "my-experiment")
 
         chunks = await drain_stream(result.stream)
@@ -1260,7 +1326,7 @@ class TestRunExperiment:
         ):
             # Run experiment first time
             mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
-            with patch.object(handler, "_stream_query", return_value=mock_query_results()):
+            with patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
                 result1 = await handler.run_experiment(create_mock_ast(), "same-name")
             chunks1 = await drain_stream(result1.stream)
             parsed1 = [json.loads(c) for c in chunks1]
@@ -1270,7 +1336,7 @@ class TestRunExperiment:
 
             # Run experiment second time
             mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
-            with patch.object(handler, "_stream_query", return_value=mock_query_results()):
+            with patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
                 result2 = await handler.run_experiment(create_mock_ast(), "same-name")
             chunks2 = await drain_stream(result2.stream)
             parsed2 = [json.loads(c) for c in chunks2]

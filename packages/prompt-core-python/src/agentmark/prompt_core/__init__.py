@@ -1,18 +1,9 @@
 """AgentMark Prompt Core - Python implementation."""
 
 from .adapters import Adapter, DefaultAdapter
-from .sampling import (
-    SamplingOptions,
-    SplitSpec,
-    apply_sampling,
-    parse_row_selection,
-    parse_split_spec,
-    seeded_random,
-    should_include_row,
-    validate_sampling_options,
-)
 from .agentmark import AgentMark, create_agentmark
 from .eval_registry import EvalRegistry
+from .api_loader import ApiDatasetReader, ApiDatasetStream, ApiLoader
 from .loaders import FileDatasetReader, FileDatasetStream, FileLoader
 from .mcp import (
     McpServerConfig,
@@ -92,6 +83,9 @@ __all__ = [
     # Registries
     "EvalRegistry",
     # Loaders
+    "ApiLoader",
+    "ApiDatasetStream",
+    "ApiDatasetReader",
     "FileLoader",
     "FileDatasetStream",
     "FileDatasetReader",
@@ -136,15 +130,6 @@ __all__ = [
     "FormatWithDatasetOptions",
     "DatasetReader",
     "DatasetStream",
-    # Sampling utilities
-    "SamplingOptions",
-    "SplitSpec",
-    "apply_sampling",
-    "parse_row_selection",
-    "parse_split_spec",
-    "seeded_random",
-    "should_include_row",
-    "validate_sampling_options",
     # MCP utilities
     "parse_mcp_uri",
     "interpolate_env_in_object",

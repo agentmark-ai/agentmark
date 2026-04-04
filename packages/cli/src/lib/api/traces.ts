@@ -10,23 +10,46 @@ export interface GraphData {
   spanName: string;
 }
 
-export const getTraces = async (runId?: string): Promise<Trace[]> => {
+export interface GetTracesParams {
+  runId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface GetTracesResponse {
+  traces: Trace[];
+  total: number;
+}
+
+export const getTraces = async (params: GetTracesParams = {}): Promise<GetTracesResponse> => {
   try {
-    const url = runId
+    const { runId, limit, offset } = params;
+    let url = runId
       ? `${API_URL}/v1/runs/${runId}/traces`
       : `${API_URL}/v1/traces`;
+
+    const searchParams = new URLSearchParams();
+    if (limit !== undefined) searchParams.set("limit", String(limit));
+    if (offset !== undefined) searchParams.set("offset", String(offset));
+    const qs = searchParams.toString();
+    if (qs) url += `?${qs}`;
+
     const response = await fetch(url);
     const data = await response.json();
-    return data.traces as Trace[];
+    const traces = (data.traces || []).map((t: any) => ({
+      ...t,
+      spanCount: t.span_count ?? t.spanCount ?? 0,
+    })) as Trace[];
+    return { traces, total: data.total ?? traces.length };
   } catch (error) {
     console.error("Error fetching traces:", error);
-    return [];
+    return { traces: [], total: 0 };
   }
 };
 
 export const getTraceById = async (traceId: string): Promise<TraceData | null> => {
   try {
-    const response = await fetch(`${API_URL}/v1/traces/${traceId}`);
+    const response = await fetch(`${API_URL}/v1/traces/${encodeURIComponent(traceId)}`);
     if (!response.ok) {
       if (response.status === 404) {
         return null;
@@ -43,7 +66,7 @@ export const getTraceById = async (traceId: string): Promise<TraceData | null> =
 
 export const getTraceGraph = async (traceId: string): Promise<GraphData[]> => {
   try {
-    const response = await fetch(`${API_URL}/v1/traces/${traceId}/graph`);
+    const response = await fetch(`${API_URL}/v1/traces/${encodeURIComponent(traceId)}/graph`);
     if (!response.ok) {
       if (response.status === 404) {
         return [];

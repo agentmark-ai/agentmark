@@ -39,10 +39,13 @@ class TraceOptions:
     session_id: str | None = None
     session_name: str | None = None
     user_id: str | None = None
+    prompt_name: str | None = None
     dataset_run_id: str | None = None
     dataset_run_name: str | None = None
     dataset_item_name: str | None = None
     dataset_expected_output: str | None = None
+    dataset_input: str | None = None
+    dataset_path: str | None = None
 
 
 @dataclass
@@ -70,6 +73,22 @@ class TraceContext:
             value: Attribute value.
         """
         self._span.set_attribute(key, value)
+
+    def set_input(self, data: dict[str, Any]) -> None:
+        """Record input data on this span."""
+        from .serialize import serialize_value
+
+        self._span.set_attribute(
+            f"{AGENTMARK_KEY}.input", serialize_value(data),
+        )
+
+    def set_output(self, data: dict[str, Any]) -> None:
+        """Record output data on this span."""
+        from .serialize import serialize_value
+
+        self._span.set_attribute(
+            f"{AGENTMARK_KEY}.output", serialize_value(data),
+        )
 
     def add_event(
         self, name: str, attributes: dict[str, Any] | None = None
@@ -143,6 +162,8 @@ def _set_agentmark_attributes(span: Span, options: TraceOptions) -> None:
         span.set_attribute(f"{AGENTMARK_KEY}.session_name", options.session_name)
     if options.user_id:
         span.set_attribute(f"{AGENTMARK_KEY}.user_id", options.user_id)
+    if options.prompt_name:
+        span.set_attribute(f"{AGENTMARK_KEY}.prompt_name", options.prompt_name)
     if options.dataset_run_id:
         span.set_attribute(f"{AGENTMARK_KEY}.dataset_run_id", options.dataset_run_id)
     if options.dataset_run_name:
@@ -153,6 +174,10 @@ def _set_agentmark_attributes(span: Span, options: TraceOptions) -> None:
         span.set_attribute(
             f"{AGENTMARK_KEY}.dataset_expected_output", options.dataset_expected_output
         )
+    if options.dataset_input:
+        span.set_attribute(f"{AGENTMARK_KEY}.dataset_input", options.dataset_input)
+    if options.dataset_path:
+        span.set_attribute(f"{AGENTMARK_KEY}.dataset_path", options.dataset_path)
 
     if options.metadata:
         for key, value in options.metadata.items():
@@ -254,4 +279,53 @@ async def trace_context(
             span.set_status(StatusCode.OK)
         except Exception as e:
             span.set_status(StatusCode.ERROR, str(e))
+            raise
+
+
+# ---------------------------------------------------------------------------
+# Renamed aliases (trace → span rename)
+# ---------------------------------------------------------------------------
+SpanOptions = TraceOptions
+SpanContext = TraceContext
+SpanResult = TraceResult
+span = trace
+span_context = trace_context
+
+
+# ---------------------------------------------------------------------------
+# Sync wrapper for span_context (used by orchestrator in sync code)
+# ---------------------------------------------------------------------------
+from contextlib import contextmanager  # noqa: E402
+
+
+@contextmanager
+def span_context_sync(options: TraceOptions | str):
+    """Synchronous context manager wrapper around span_context.
+
+    Creates an OTEL span without requiring async. The span is started
+    and stopped synchronously; the yielded context has the same API
+    as the async version (set_attribute, add_event, etc.) but without
+    the async child-span helper.
+    """
+    if isinstance(options, str):
+        options = TraceOptions(name=options)
+
+    tracer = otel_trace.get_tracer("agentmark")
+
+    with tracer.start_as_current_span(options.name) as otel_span:
+        _set_agentmark_attributes(otel_span, options)
+
+        span_ctx = otel_span.get_span_context()
+        ctx = TraceContext(
+            trace_id=format(span_ctx.trace_id, "032x"),
+            span_id=format(span_ctx.span_id, "016x"),
+            _span=otel_span,
+            _tracer=tracer,
+        )
+
+        try:
+            yield ctx
+            otel_span.set_status(StatusCode.OK)
+        except Exception as e:
+            otel_span.set_status(StatusCode.ERROR, str(e))
             raise

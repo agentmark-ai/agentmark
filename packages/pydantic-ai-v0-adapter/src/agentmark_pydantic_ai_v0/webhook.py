@@ -130,6 +130,32 @@ class PydanticAIWebhookHandler:
             }
 
         result = await run_text_prompt(params)
+
+        # Extract tool calls and results from message history
+        from pydantic_ai.messages import ToolCallPart, ToolReturnPart
+
+        tool_calls = []
+        tool_results = []
+        for msg in result.messages:
+            for part in msg.parts:
+                if isinstance(part, ToolCallPart):
+                    args = (
+                        json.loads(part.args)
+                        if isinstance(part.args, str)
+                        else part.args
+                    )
+                    tool_calls.append({
+                        "toolCallId": part.tool_call_id,
+                        "toolName": part.tool_name,
+                        "args": args,
+                    })
+                elif isinstance(part, ToolReturnPart):
+                    tool_results.append({
+                        "toolCallId": part.tool_call_id,
+                        "toolName": part.tool_name,
+                        "result": part.content,
+                    })
+
         return {
             "type": "text",
             "result": result.output,
@@ -139,6 +165,8 @@ class PydanticAIWebhookHandler:
                 "totalTokens": result.usage.total_tokens or 0,
             },
             "finishReason": "stop",
+            "toolCalls": tool_calls,
+            "toolResults": tool_results,
         }
 
     async def _run_object_prompt(
@@ -180,11 +208,23 @@ class PydanticAIWebhookHandler:
         }
 
     async def _stream_text(self, params: Any) -> AsyncIterator[str]:
-        """Stream text prompt responses.
+        """Stream text prompt responses with real-time tool call events.
 
-        Yields NDJSON chunks matching the webhook protocol.
+        Uses agent.iter() to stream tool calls as they happen,
+        matching the AI SDK's fullStream behavior.
         """
         from pydantic_ai import Agent
+        from pydantic_ai._agent_graph import (
+            CallToolsNode,
+            ModelRequestNode,
+        )
+        from pydantic_ai.messages import (
+            PartDeltaEvent,
+            PartStartEvent,
+            TextPartDelta,
+            ToolCallPart,
+            ToolReturnPart,
+        )
 
         system_prompt = params.system_prompt if params.system_prompt else ""
         agent: Agent[None, str] = Agent(
@@ -194,11 +234,57 @@ class PydanticAIWebhookHandler:
             tools=params.tools,
         )
 
-        async with agent.run_stream(params.user_prompt) as result:
-            async for text in result.stream_text():
-                yield json.dumps({"type": "text", "result": text})
+        async with agent.iter(params.user_prompt) as run:
+            async for node in run:
+                if isinstance(node, ModelRequestNode):
+                    async with node.stream(run.ctx) as stream:
+                        # Stream text deltas as they arrive
+                        async for event in stream:
+                            if isinstance(event, PartDeltaEvent):
+                                if isinstance(event.delta, TextPartDelta):
+                                    yield json.dumps({
+                                        "type": "text",
+                                        "result": event.delta.content_delta,
+                                    })
 
-            usage = result.usage()
+                        # After stream completes, emit any tool calls
+                        # with their full args (args are empty during streaming)
+                        for part in stream.response.parts:
+                            if isinstance(part, ToolCallPart):
+                                args = (
+                                    json.loads(part.args)
+                                    if isinstance(part.args, str) and part.args
+                                    else part.args or {}
+                                )
+                                yield json.dumps({
+                                    "type": "text",
+                                    "toolCall": {
+                                        "toolCallId": part.tool_call_id,
+                                        "toolName": part.tool_name,
+                                        "args": args,
+                                    },
+                                })
+
+                elif isinstance(node, CallToolsNode):
+                    # Stream tool results as they complete
+                    from pydantic_ai.messages import (
+                        FunctionToolResultEvent,
+                    )
+
+                    async with node.stream(run.ctx) as stream:
+                        async for event in stream:
+                            if isinstance(event, FunctionToolResultEvent):
+                                part = event.result
+                                yield json.dumps({
+                                    "type": "text",
+                                    "toolResult": {
+                                        "toolCallId": part.tool_call_id,
+                                        "toolName": part.tool_name,
+                                        "result": part.content,
+                                    },
+                                })
+
+            usage = run.usage()
             yield json.dumps(
                 {
                     "type": "text",
@@ -376,7 +462,7 @@ class PydanticAIWebhookHandler:
             List of eval result dicts with name and result fields.
         """
         eval_registry = self._client.eval_registry
-        if not eval_registry:
+        if not eval_registry or not eval_names:
             return []
 
         # Filter to only registered evals (matching TS .filter(Boolean))
@@ -439,7 +525,7 @@ class PydanticAIWebhookHandler:
             result = await run_text_prompt(item["formatted"])
 
             # Execute evals if specified
-            eval_names = item.get("evals", [])
+            eval_names = item.get("evals") or []
             # Pass raw messages to evals (matching TS: formatted?.messages)
             formatted = item["formatted"]
             input_messages = (
@@ -508,7 +594,7 @@ class PydanticAIWebhookHandler:
             )
 
             # Execute evals if specified
-            eval_names = item.get("evals", [])
+            eval_names = item.get("evals") or []
             # Pass raw messages to evals (matching TS: item.formatted.messages)
             formatted = item["formatted"]
             input_messages = (

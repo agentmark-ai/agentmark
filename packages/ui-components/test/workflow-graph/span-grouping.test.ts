@@ -98,6 +98,63 @@ describe("span-grouping", () => {
   });
 
   describe("inferNodeType", () => {
+    it("returns explicit kind when set via agentmark.span.kind (top-level)", () => {
+      const span: SpanForGrouping = {
+        spanId: "span-1",
+        name: "my_custom_tool",
+        startTime: 100,
+        kind: "tool",
+      };
+
+      expect(inferNodeType(span)).toBe("tool");
+    });
+
+    it("returns explicit kind from data.spanKind as fallback", () => {
+      const span: SpanForGrouping = {
+        spanId: "span-1",
+        name: "my_function",
+        startTime: 100,
+        data: { spanKind: "function" },
+      };
+
+      expect(inferNodeType(span)).toBe("function");
+    });
+
+    it("explicit kind takes priority over GENERATION type", () => {
+      const span: SpanForGrouping = {
+        spanId: "span-1",
+        name: "generateText",
+        startTime: 100,
+        kind: "tool",
+        type: "GENERATION",
+      };
+
+      expect(inferNodeType(span)).toBe("tool");
+    });
+
+    it("explicit kind takes priority over hasChildren", () => {
+      const span: SpanForGrouping = {
+        spanId: "span-1",
+        name: "my_llm_call",
+        startTime: 100,
+        kind: "llm",
+      };
+
+      expect(inferNodeType(span, true)).toBe("llm");
+    });
+
+    it("ignores invalid kind values and falls through to heuristics", () => {
+      const span: SpanForGrouping = {
+        spanId: "span-1",
+        name: "generateText",
+        startTime: 100,
+        kind: "invalid_kind",
+        type: "GENERATION",
+      };
+
+      expect(inferNodeType(span)).toBe("llm");
+    });
+
     it("returns 'llm' for GENERATION type spans", () => {
       const span: SpanForGrouping = {
         spanId: "span-1",

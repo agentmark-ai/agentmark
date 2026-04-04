@@ -79,7 +79,7 @@ describe("workflow-graph-generator", () => {
         ["span-3", "root:generateText"],
       ]);
 
-      const edges = generateExecutionEdges(spans, nodeKeysBySpanId);
+      const { edges } = generateExecutionEdges(spans, nodeKeysBySpanId);
 
       // Should have edges: generateText -> search_web and search_web -> generateText
       expect(edges.length).toBe(1); // Combined into one bidirectional edge
@@ -99,7 +99,7 @@ describe("workflow-graph-generator", () => {
         ["span-2", "root:generateText"],
       ]);
 
-      const edges = generateExecutionEdges(spans, nodeKeysBySpanId);
+      const { edges } = generateExecutionEdges(spans, nodeKeysBySpanId);
 
       expect(edges.length).toBe(0);
     });
@@ -119,13 +119,13 @@ describe("workflow-graph-generator", () => {
         ["span-4", "parent-2:D"],
       ]);
 
-      const edges = generateExecutionEdges(spans, nodeKeysBySpanId);
+      const { edges } = generateExecutionEdges(spans, nodeKeysBySpanId);
 
       expect(edges.length).toBe(2);
     });
 
     it("handles empty spans array", () => {
-      const edges = generateExecutionEdges([], new Map());
+      const { edges } = generateExecutionEdges([], new Map());
       expect(edges.length).toBe(0);
     });
   });
@@ -236,6 +236,40 @@ describe("workflow-graph-generator", () => {
       const endNode = result.nodes.find((n) => n.nodeType === "end");
       expect(startNode).toBeDefined();
       expect(endNode).toBeDefined();
+    });
+
+    it("does not exclude nodes whose only children are built-in tools", () => {
+      // Regression test: when a node's only children are filtered out by
+      // BUILTIN_TOOL_NAMES (Bash, Read, Write, etc.), it should NOT be marked
+      // as "has children" and therefore should NOT be excluded as a container.
+      const spans: SpanForGrouping[] = [
+        // Root agent (single root with children → should be excluded)
+        { spanId: "agent", name: "invoke_agent planner", startTime: 100 },
+        // Chat spans under the agent (multiple → should survive as nodes)
+        { spanId: "chat-1", parentSpanId: "agent", name: "chat claude-haiku", startTime: 200 },
+        { spanId: "chat-2", parentSpanId: "agent", name: "chat claude-haiku", startTime: 400 },
+        // Built-in tool spans under chat (should be filtered out, NOT count as children)
+        { spanId: "bash-1", parentSpanId: "chat-1", name: "Bash", startTime: 250 },
+        { spanId: "read-1", parentSpanId: "chat-1", name: "Read", startTime: 300 },
+        // Output span under agent
+        { spanId: "output", parentSpanId: "agent", name: "StructuredOutput", startTime: 500 },
+      ];
+
+      const result = generateWorkflowGraph(spans);
+
+      // invoke_agent is the only root with children → excluded
+      // chat and StructuredOutput should both survive as nodes
+      const workflowNodes = result.nodes.filter(
+        (n) => n.nodeType !== "start" && n.nodeType !== "end"
+      );
+      expect(workflowNodes.length).toBe(2);
+
+      const chatNode = workflowNodes.find((n) => n.displayName === "chat claude-haiku");
+      expect(chatNode).toBeDefined();
+      expect(chatNode?.spanIds).toEqual(["chat-1", "chat-2"]);
+
+      const outputNode = workflowNodes.find((n) => n.displayName === "StructuredOutput");
+      expect(outputNode).toBeDefined();
     });
 
     it("sets parentNodeId for nested spans", () => {

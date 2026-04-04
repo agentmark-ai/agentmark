@@ -28,10 +28,10 @@ class AgentMarkSDK:
         sdk = AgentMarkSDK(api_key="sk-...", app_id="app_123")
         sdk.init_tracing()
 
-        # Use trace() function from the SDK
-        from agentmark_sdk import trace, TraceOptions
-        result = await trace(
-            TraceOptions(name="my-operation"),
+        # Use span() function from the SDK
+        from agentmark_sdk import span, SpanOptions
+        result = await span(
+            SpanOptions(name="my-operation"),
             my_async_function,
         )
 

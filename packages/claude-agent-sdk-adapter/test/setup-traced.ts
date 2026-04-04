@@ -80,6 +80,7 @@ const mockOtelApi = {
   },
   context: {
     active: () => mockContext,
+    with: (_ctx: unknown, fn: () => unknown) => fn(),
   },
 };
 

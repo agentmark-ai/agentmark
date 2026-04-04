@@ -12,9 +12,8 @@ import pytest
 from agentmark_claude_agent_sdk.adapter import ClaudeAgentAdapter
 from agentmark_claude_agent_sdk.model_registry import (
     ClaudeAgentModelRegistry,
-    create_default_model_registry,
 )
-from agentmark_claude_agent_sdk.types import ClaudeAgentAdapterOptions
+from agentmark_claude_agent_sdk.types import ClaudeAgentAdapterOptions, ModelConfig
 
 
 class TestClaudeAgentAdapterTextPrompts:
@@ -23,7 +22,7 @@ class TestClaudeAgentAdapterTextPrompts:
     @pytest.fixture
     def model_registry(self) -> ClaudeAgentModelRegistry:
         """Create default model registry."""
-        return create_default_model_registry()
+        return ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name))
 
     @pytest.fixture
     def adapter(self, model_registry: ClaudeAgentModelRegistry) -> ClaudeAgentAdapter:
@@ -101,7 +100,7 @@ class TestClaudeAgentAdapterObjectPrompts:
     @pytest.fixture
     def model_registry(self) -> ClaudeAgentModelRegistry:
         """Create default model registry."""
-        return create_default_model_registry()
+        return ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name))
 
     @pytest.fixture
     def adapter(self, model_registry: ClaudeAgentModelRegistry) -> ClaudeAgentAdapter:
@@ -139,13 +138,85 @@ class TestClaudeAgentAdapterObjectPrompts:
         assert result.query.options.output_format.schema is not None
 
 
+class TestClaudeAgentAdapterPydanticInput:
+    """Test adapter handles Pydantic model inputs from prompt-core.
+
+    prompt-core passes compiled Pydantic schemas directly to adapters.
+    The Claude Agent SDK adapter calls model_dump(by_alias=True) internally
+    since it uses dict-style .get() access.
+    """
+
+    @pytest.fixture
+    def adapter(self) -> ClaudeAgentAdapter:
+        return ClaudeAgentAdapter(model_registry=ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name)))
+
+    async def test_adapt_text_accepts_pydantic_model(self, adapter: ClaudeAgentAdapter) -> None:
+        """prompt-core passes Pydantic TextConfigSchema; adapter converts internally."""
+        from pydantic import BaseModel
+
+        class TextConfig(BaseModel):
+            model_name: str
+
+        class ConfigSchema(BaseModel):
+            name: str
+            text_config: TextConfig
+            messages: list[dict[str, Any]]
+
+        config = ConfigSchema(
+            name="text-prompt",
+            text_config=TextConfig(model_name="anthropic/claude-sonnet-4-20250514"),
+            messages=[
+                {"role": "system", "content": "You are helpful."},
+                {"role": "user", "content": "Hello"},
+            ],
+        )
+
+        result = await adapter.adapt_text(config, {}, {"name": "text-prompt"})
+
+        assert result is not None
+        assert "Hello" in result.query.prompt
+        assert result.query.options.model == "anthropic/claude-sonnet-4-20250514"
+
+    async def test_adapt_object_accepts_pydantic_model(self, adapter: ClaudeAgentAdapter) -> None:
+        """prompt-core passes Pydantic ObjectConfigSchema; adapter converts internally."""
+        from pydantic import BaseModel, ConfigDict, Field
+
+        class ObjectConfig(BaseModel):
+            model_config = ConfigDict(populate_by_name=True)
+            model_name: str
+            schema_: dict[str, Any] = Field(alias="schema")
+
+        class ConfigSchema(BaseModel):
+            name: str
+            object_config: ObjectConfig
+            messages: list[dict[str, Any]]
+
+        config = ConfigSchema(
+            name="object-prompt",
+            object_config=ObjectConfig(
+                model_name="anthropic/claude-sonnet-4-20250514",
+                schema={"type": "object", "properties": {"answer": {"type": "string"}}},
+            ),
+            messages=[
+                {"role": "user", "content": "What is 2+2?"},
+            ],
+        )
+
+        result = await adapter.adapt_object(config, {}, {"name": "object-prompt"})
+
+        assert result is not None
+        assert "What is 2+2?" in result.query.prompt
+        assert result.query.options.output_format is not None
+        assert result.query.options.output_format.schema is not None
+
+
 class TestClaudeAgentAdapterUnsupportedTypes:
     """Test suite for ClaudeAgentAdapter unsupported prompt types."""
 
     @pytest.fixture
     def adapter(self) -> ClaudeAgentAdapter:
         """Create adapter with default registry."""
-        return ClaudeAgentAdapter(model_registry=create_default_model_registry())
+        return ClaudeAgentAdapter(model_registry=ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name)))
 
     def test_throws_error_for_image_prompts(self, adapter: ClaudeAgentAdapter) -> None:
         """Should throw error for image prompts."""
@@ -180,7 +251,7 @@ class TestClaudeAgentAdapterOptions:
     @pytest.fixture
     def model_registry(self) -> ClaudeAgentModelRegistry:
         """Create default model registry."""
-        return create_default_model_registry()
+        return ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name))
 
     async def test_applies_permission_mode_from_adapter_options(
         self, model_registry: ClaudeAgentModelRegistry
@@ -297,7 +368,7 @@ class TestClaudeAgentAdapterToolsAsStringArray:
     @pytest.fixture
     def model_registry(self) -> ClaudeAgentModelRegistry:
         """Create default model registry."""
-        return create_default_model_registry()
+        return ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name))
 
     async def test_adds_tools_from_prompt_to_allowed_tools(
         self, model_registry: ClaudeAgentModelRegistry
@@ -390,7 +461,7 @@ class TestClaudeAgentAdapterNonStringTools:
 
     @pytest.fixture
     def adapter(self) -> ClaudeAgentAdapter:
-        return ClaudeAgentAdapter(model_registry=create_default_model_registry())
+        return ClaudeAgentAdapter(model_registry=ClaudeAgentModelRegistry(default_creator=lambda name, _: ModelConfig(model=name)))
 
     async def test_raises_type_error_for_dict_tool_entry(
         self, adapter: ClaudeAgentAdapter

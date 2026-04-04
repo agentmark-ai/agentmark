@@ -68,13 +68,19 @@ client = create_pydantic_ai_client(
 ### Model Registry
 
 ```python
-from agentmark_pydantic_ai_v0 import PydanticAIModelRegistry, create_default_model_registry
+from agentmark_pydantic_ai_v0 import PydanticAIModelRegistry
 import re
 
-# Use default registry (handles common model prefixes)
-registry = create_default_model_registry()
+# Default registry (passthrough — model names forwarded as-is to Pydantic AI)
+registry = PydanticAIModelRegistry.create_default()
 
-# Or create custom registry
+# Register providers you need (user-driven, not pre-registered)
+registry = (
+    PydanticAIModelRegistry.create_default()
+    .register_providers({"openai": "openai", "anthropic": "anthropic"})
+)
+
+# Or register specific models
 registry = PydanticAIModelRegistry()
 registry.register_models("gpt-4o", lambda name, opts: f"openai:{name}")
 registry.register_models(

@@ -32,6 +32,8 @@
     "user": "User",
     "assistant": "Assistant",
     "tool": "Tool",
+    "input": "Input",
+    "output": "Output",
     "metadata": "Metadata",
     "model": "Model",
     "noSpanSelected": "Select a span to view its details",
@@ -98,7 +100,8 @@
     "name": "Name",
     "timestamp": "Timestamp",
     "loading": "Loading traces...",
-    "sessionDetails": "Session Details"
+    "sessionDetails": "Session Details",
+    "spans": "Spans"
   },
   "sessions": {
     "title": "Sessions",
@@ -108,7 +111,11 @@
     "endTime": "End Time",
     "noSessions": "No Sessions",
     "loading": "Loading sessions...",
-    "sessionDetails": "Session Details"
+    "sessionDetails": "Session Details",
+    "latency": "Latency",
+    "cost": "Cost",
+    "tokens": "Tokens",
+    "traces": "Traces"
   },
   "experiments": {
     "title": "Experiments",
@@ -129,6 +136,26 @@
     "compareButton": "Compare",
     "compareMaxLimit": "You can compare up to 3 experiments at a time",
     "clearSelection": "Clear Selection",
+    "emptyState": "No experiments yet",
+    "emptyStateDescription": "Run an experiment to see results here.",
+    "viewDocs": "View Docs",
+    "filterByPrompt": "Filter by Prompt",
+    "filterByDataset": "Filter by Dataset",
+    "notAvailable": "--",
+    "totalTokens": "Total Tokens",
+    "input": "Input",
+    "output": "Output",
+    "expectedOutput": "Expected Output",
+    "model": "Model",
+    "latency": "Latency",
+    "cost": "Cost",
+    "tokens": "Tokens",
+    "scores": "Scores",
+    "noScores": "--",
+    "trace": "",
+    "itemName": "Item",
+    "viewTrace": "View Trace",
+    "noItems": "No items",
     "detail": {
       "summary": "Summary",
       "itemsTable": "Items",
@@ -144,6 +171,7 @@
     },
     "compare": {
       "title": "Compare Experiments",
+      "compareExperiments": "Compare Experiments",
       "invalidIds": "Please select 2 or 3 experiments to compare.",
       "error": "Unable to load experiments for comparison",
       "totalItems": "Total Items",
@@ -159,7 +187,30 @@
       "latency": "Latency",
       "cost": "Cost",
       "delta": "Delta",
-      "noItems": "No items to compare"
+      "noItems": "No items to compare",
+      "showLess": "Show less",
+      "showMore": "Show more",
+      "input": "Input",
+      "expectedOutput": "Expected",
+      "sameVersion": "same version",
+      "diff": {
+        "toggle": "Toggle diff",
+        "noDifferences": "No differences",
+        "baseline": "Baseline",
+        "comparison": "Comparison"
+      },
+      "sort": {
+        "item-name": "Item Name",
+        "regressions-first": "Regressions First",
+        "improvements-first": "Improvements First",
+        "delta-abs": "Delta (absolute)"
+      },
+      "filter": {
+        "all": "All",
+        "regressed": "Regressed",
+        "improved": "Improved",
+        "unchanged": "Unchanged"
+      }
     }
   }
 }

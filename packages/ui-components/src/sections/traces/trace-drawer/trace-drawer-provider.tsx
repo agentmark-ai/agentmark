@@ -10,6 +10,13 @@ import {
 import { TraceData, SpanData, ScoreData } from "../types";
 import { useTraceDrawer } from "./hooks/use-trace-drawer";
 
+export interface SpanIOData {
+  input: string;
+  output: string;
+  outputObject: string | null;
+  toolCalls: string | null;
+}
+
 export interface TraceDrawerContextValue {
   traces: TraceData[];
   selectedSpan: SpanData | null;
@@ -19,6 +26,7 @@ export interface TraceDrawerContextValue {
   // Todo: add proper type
   findCostAndTokens: (item: any) => { cost: number; tokens: number };
   fetchSpanEvaluations?: (spanId: string) => Promise<ScoreData[]>;
+  fetchSpanIO?: (traceId: string, spanId: string) => Promise<SpanIOData | null>;
   navigateToFile?: (filePath: string) => void;
   traceId?: string;
   setSelectedSpanId: (spanId: string) => void;
@@ -34,9 +42,44 @@ export interface TraceDrawerProviderProps {
   traceId?: string;
   sessionId?: string;
   fetchSpanEvaluations?: (spanId: string) => Promise<ScoreData[]>;
+  fetchSpanIO?: (traceId: string, spanId: string) => Promise<SpanIOData | null>;
   navigateToFile?: (filePath: string) => void;
   t: (key: string) => string;
   onSpanChange?: (span: SpanData | null) => void;
+}
+
+/**
+ * Find root spans in a trace (spans with no parent or whose parent isn't in the trace).
+ */
+export function findRootSpans(trace: TraceData): any[] {
+  return trace.spans.filter(
+    (s: any) => !s.parentId || !trace.spans.some((p: any) => p.id === s.parentId)
+  );
+}
+
+/**
+ * Merge root span data into a trace-level data object.
+ * When a trace has exactly one root span, its rich fields (input, output, model,
+ * tokens, etc.) are copied to the trace wrapper — like Langfuse does.
+ */
+function mergeRootSpanData(rootSpans: any[], trace: TraceData, traceData?: Record<string, any>): Record<string, any> {
+  const rootSpanData = rootSpans.length === 1 ? (rootSpans[0]!.data || {}) : {};
+  return {
+    ...rootSpanData,
+    ...(traceData || trace.data || {}),
+    input: rootSpanData.input,
+    output: rootSpanData.output,
+    outputObject: rootSpanData.outputObject,
+    model: rootSpanData.model,
+    props: rootSpanData.props,
+    promptName: rootSpanData.promptName,
+    inputTokens: rootSpanData.inputTokens,
+    outputTokens: rootSpanData.outputTokens,
+    totalTokens: rootSpanData.totalTokens,
+    reasoningTokens: rootSpanData.reasoningTokens,
+    toolCalls: rootSpanData.toolCalls,
+    sessionId: rootSpanData.sessionId,
+  };
 }
 
 const TraceDrawerContext = createContext<TraceDrawerContextValue | undefined>(
@@ -48,18 +91,29 @@ export const TraceDrawerProvider = ({
   traces,
   traceId,
   fetchSpanEvaluations,
+  fetchSpanIO,
   t,
   onSpanChange,
 }: TraceDrawerProviderProps & { children: ReactNode }) => {
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
+  // Compute root spans once per trace set to avoid redundant O(n²) lookups
+  const rootSpansByTraceId = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const trace of traces) {
+      map.set(trace.id, findRootSpans(trace));
+    }
+    return map;
+  }, [traces]);
+
   const selectedSpan = useMemo(() => {
     if (!selectedSpanId) {
       if (traces.length > 0 && traces[0]) {
+        const firstTrace = traces[0];
         return {
-          id: traces[0].id,
-          name: traces[0].name,
-          data: { ...(traces[0].data || {}) },
+          id: firstTrace.id,
+          name: firstTrace.name,
+          data: mergeRootSpanData(rootSpansByTraceId.get(firstTrace.id) || [], firstTrace),
           duration: 0,
           timestamp: 0,
         } satisfies SpanData;
@@ -67,12 +121,12 @@ export const TraceDrawerProvider = ({
       return null;
     }
 
-    const trace = traces.find((t) => t.id === selectedSpanId);
+    const trace = traces.find((tr) => tr.id === selectedSpanId);
     if (trace) {
       return {
         id: trace.id,
         name: trace.name,
-        data: { ...trace.data },
+        data: mergeRootSpanData(rootSpansByTraceId.get(trace.id) || [], trace),
         duration: 0,
         timestamp: 0,
         traceId: trace.id,
@@ -81,12 +135,12 @@ export const TraceDrawerProvider = ({
 
     // Then check spans across all traces
     const span = traces
-      .flatMap((t) => t.spans)
+      .flatMap((tr) => tr.spans)
       .find((s) => s.id === selectedSpanId);
 
     if (span) {
-      const traceForSpan = traces.find((t) =>
-        t.spans.some((s) => s.id === span.id)
+      const traceForSpan = traces.find((tr) =>
+        tr.spans.some((s) => s.id === span.id)
       );
       return {
         ...span,
@@ -95,7 +149,7 @@ export const TraceDrawerProvider = ({
     }
 
     return null;
-  }, [selectedSpanId, traces]);
+  }, [selectedSpanId, traces, rootSpansByTraceId]);
 
   const spanTree = useMemo(() => {
     const buildSpanTree = (traces: TraceData[]) => {
@@ -127,7 +181,7 @@ export const TraceDrawerProvider = ({
           name: trace.name,
           children: rootSpans,
           data: {
-            ...trace.data,
+            ...mergeRootSpanData(rootSpans, trace),
             duration: trace.data.latency,
           },
         });
@@ -151,7 +205,7 @@ export const TraceDrawerProvider = ({
     if (onSpanChange) {
       onSpanChange(selectedSpan);
     }
-  }, [selectedSpan]);
+  }, [selectedSpan, onSpanChange]);
 
   // Cost and token calculation function
   const findCostAndTokens = useCallback((item: any) => {
@@ -194,17 +248,18 @@ export const TraceDrawerProvider = ({
     return calculate(item);
   }, []);
 
-  const onSelectSpan = (spanId: string) => {
+  const onSelectSpan = useCallback((spanId: string) => {
     setSelectedSpanId(spanId);
-  };
+  }, []);
 
-  const value: TraceDrawerContextValue = {
+  const value: TraceDrawerContextValue = useMemo(() => ({
     traces,
     selectedSpan,
     onSelectSpan,
     spanTree,
     findCostAndTokens,
     fetchSpanEvaluations,
+    fetchSpanIO,
     traceId,
     setSelectedSpanId,
     treeHeight,
@@ -212,7 +267,21 @@ export const TraceDrawerProvider = ({
     isDragging,
     t,
     onSpanChange,
-  };
+  }), [
+    traces,
+    selectedSpan,
+    onSelectSpan,
+    spanTree,
+    findCostAndTokens,
+    fetchSpanEvaluations,
+    fetchSpanIO,
+    traceId,
+    treeHeight,
+    handleMouseDown,
+    isDragging,
+    t,
+    onSpanChange,
+  ]);
 
   return (
     <TraceDrawerContext.Provider value={value}>

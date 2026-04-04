@@ -150,6 +150,7 @@ export interface NormalizedSpan {
     datasetPath?: string;
     datasetItemName?: string;
     datasetExpectedOutput?: string;
+    datasetInput?: string;
 
     // Prompt fields
     promptName?: string;

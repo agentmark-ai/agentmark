@@ -4,7 +4,7 @@ export interface LLMText {
 }
 
 export interface LLMPrompt {
-  role: "system" | "user" | "assistant" | "tool";
+  role: "system" | "user" | "assistant" | "tool" | "input" | "output" | "tool-input" | "tool-output";
   content: LLMText[] | string;
 }
 

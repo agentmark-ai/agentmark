@@ -8,6 +8,7 @@ import {
   exportTraces,
   getRequests,
   getTraces,
+  getTraceCount,
   getTraceById,
   getTraceGraph,
   getSessions,
@@ -434,10 +435,30 @@ ${promptsList}
     }
   });
 
-  app.post("/v1/traces", async (req: Request, res: Response) => {
+  // Accept both JSON and protobuf OTLP payloads
+  app.post("/v1/traces", express.raw({ type: 'application/x-protobuf', limit: '10mb' }), async (req: Request, res: Response) => {
     try {
-      // Parse OTLP ExportTraceServiceRequest
-      const body = req.body;
+      let body: any;
+
+      if (Buffer.isBuffer(req.body)) {
+        // Protobuf payload — decode using OTLP proto definition
+        try {
+          const root = require("@opentelemetry/otlp-transformer/build/src/generated/root");
+          const ExportTraceServiceRequest = root.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;
+          const decoded = ExportTraceServiceRequest.decode(req.body);
+          body = ExportTraceServiceRequest.toObject(decoded, {
+            longs: String,
+            bytes: String,
+            defaults: true,
+          });
+        } catch (protoErr: any) {
+          return res.status(400).json({ error: `Failed to decode protobuf: ${protoErr.message}` });
+        }
+      } else {
+        // JSON payload (already parsed by express.json middleware)
+        body = req.body;
+      }
+
       if (!body || !body.resourceSpans || !Array.isArray(body.resourceSpans)) {
         return res.status(400).json({
           error: "Invalid OTLP payload: expected ExportTraceServiceRequest with resourceSpans array"
@@ -482,6 +503,70 @@ ${promptsList}
     }
   });
 
+  // --- Dataset endpoints ---
+
+  app.get("/v1/datasets", async (_req: Request, res: Response) => {
+    try {
+      const datasets: string[] = [];
+      const walk = (dir: string) => {
+        if (!fs.existsSync(dir)) return;
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (entry.isDirectory()) {
+            walk(path.join(dir, entry.name));
+          } else if (entry.name.endsWith(".jsonl")) {
+            datasets.push(path.relative(agentmarkTemplatesBase, path.join(dir, entry.name)));
+          }
+        }
+      };
+      walk(agentmarkTemplatesBase);
+      res.json({ datasets });
+    } catch (error) {
+      console.error("Error listing datasets:", error);
+      res.status(500).json({ error: "Failed to list datasets" });
+    }
+  });
+
+  app.post("/v1/datasets/append", async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { path: datasetPath, item } = req.body;
+
+      if (!datasetPath || typeof datasetPath !== "string") {
+        res.status(400).json({ error: "Missing or invalid dataset path" });
+        return;
+      }
+      if (!datasetPath.endsWith(".jsonl")) {
+        res.status(400).json({ error: "Dataset path must end with .jsonl" });
+        return;
+      }
+      if (path.isAbsolute(datasetPath) || datasetPath.includes("..")) {
+        res.status(400).json({ error: "Invalid dataset path" });
+        return;
+      }
+      if (!item || typeof item !== "object") {
+        res.status(400).json({ error: "Missing or invalid item" });
+        return;
+      }
+
+      const fullPath = path.resolve(agentmarkTemplatesBase, datasetPath);
+      const resolvedBase = path.resolve(agentmarkTemplatesBase);
+      if (!fullPath.startsWith(resolvedBase)) {
+        res.status(400).json({ error: "Invalid dataset path" });
+        return;
+      }
+
+      // Ensure parent directory exists
+      fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+
+      // Append the item as a single JSON line
+      fs.appendFileSync(fullPath, JSON.stringify(item) + "\n");
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error appending to dataset:", error);
+      res.status(500).json({ error: error.message || "Failed to append to dataset" });
+    }
+  });
+
   app.get("/v1/traces", async (req: Request, res: Response) => {
     try {
       // Parse query parameters for filtering
@@ -513,8 +598,11 @@ ${promptsList}
         options.offset = Number(req.query.offset);
       }
 
-      const traces = await getTraces(options);
-      return res.json({ traces });
+      const [traces, total] = await Promise.all([
+        getTraces(options),
+        getTraceCount(options),
+      ]);
+      return res.json({ traces, total });
     } catch (error) {
       console.error("Error getting traces:", error);
       return res.status(500).json({ error: "Failed to get traces" });
@@ -523,7 +611,7 @@ ${promptsList}
 
   app.get("/v1/traces/:traceId", async (req: Request, res: Response) => {
     try {
-      const { traceId } = req.params;
+      const traceId = req.params.traceId as string;
       if (!traceId) {
         return res.status(400).json({ error: "traceId parameter is required" });
       }
@@ -540,7 +628,7 @@ ${promptsList}
 
   app.get("/v1/traces/:traceId/graph", async (req: Request, res: Response) => {
     try {
-      const { traceId } = req.params;
+      const traceId = req.params.traceId as string;
       if (!traceId) {
         return res.status(400).json({ error: "traceId parameter is required" });
       }
@@ -647,7 +735,7 @@ ${promptsList}
 
   app.get("/v1/sessions/:sessionId/traces", async (req: Request, res: Response) => {
     try {
-      const { sessionId } = req.params;
+      const sessionId = req.params.sessionId as string;
       if (!sessionId) {
         return res.status(400).json({ error: "sessionId parameter is required" });
       }
@@ -671,7 +759,7 @@ ${promptsList}
 
   app.get("/v1/experiments/:experimentId", async (req: Request, res: Response) => {
     try {
-      const { experimentId } = req.params;
+      const experimentId = req.params.experimentId as string;
       if (!experimentId) {
         return res.status(400).json({ error: "experimentId parameter is required" });
       }
@@ -688,7 +776,7 @@ ${promptsList}
 
   app.get("/v1/runs/:runId/traces", async (req: Request, res: Response) => {
     try {
-      const { runId } = req.params;
+      const runId = req.params.runId as string;
       if (!runId) {
         return res.status(400).json({ error: "runId parameter is required" });
       }

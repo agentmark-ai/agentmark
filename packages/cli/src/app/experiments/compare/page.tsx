@@ -1,27 +1,48 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Card,
-  Chip,
-  Grid,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Button } from "@mui/material";
+import { Stack } from "@mui/system";
 import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Iconify } from "@/components";
 import {
+  ExperimentComparison,
+  buildComparisonRows,
+  computeComparisonSummary,
+} from "@agentmark-ai/ui-components";
+import type { ExperimentDetail, ComparisonRow } from "@agentmark-ai/ui-components";
+import {
   getExperimentById,
-  type ExperimentDetail,
+  type ExperimentDetail as CliExperimentDetail,
 } from "../../../lib/api/experiments";
+
+function toSharedDetail(cli: CliExperimentDetail): ExperimentDetail {
+  return {
+    id: cli.summary.id,
+    name: cli.summary.name,
+    promptName: cli.summary.promptName,
+    datasetPath: cli.summary.datasetPath,
+    itemCount: cli.summary.itemCount,
+    avgLatencyMs: cli.summary.avgLatencyMs,
+    totalCost: cli.summary.totalCost,
+    avgScore: cli.summary.avgScore,
+    commitSha: cli.summary.commitSha || undefined,
+    createdAt: cli.summary.createdAt || undefined,
+    items: cli.items.map((item) => ({
+      traceId: item.traceId,
+      itemName: item.itemName,
+      input: item.input,
+      expectedOutput: item.expectedOutput,
+      output: item.actualOutput,
+      latencyMs: item.latencyMs,
+      cost: item.cost,
+      tokens: 0,
+      model: "",
+      scores: item.scores,
+    })),
+  };
+}
 
 function CompareContent() {
   const t = useTranslations("experiments");
@@ -32,10 +53,7 @@ function CompareContent() {
   const experimentIds = useMemo(() => {
     const idsParam = searchParams.get("ids");
     if (!idsParam) return [];
-    return idsParam
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean);
+    return idsParam.split(",").map((id) => id.trim()).filter(Boolean);
   }, [searchParams]);
 
   const isValidIdCount = experimentIds.length >= 2 && experimentIds.length <= 3;
@@ -54,113 +72,45 @@ function CompareContent() {
         experimentIds.map((id) => getExperimentById(id))
       );
       setExperiments(
-        results.filter((r): r is ExperimentDetail => r !== null)
+        results.filter((r): r is CliExperimentDetail => r !== null).map(toSharedDetail)
       );
       setIsLoading(false);
     };
     fetchAll();
   }, [experimentIds, isValidIdCount]);
 
-  // Build comparison data: map item names to experiment data
-  const { allItemNames, experimentData, summary } = useMemo(() => {
-    const itemMap = new Map<
-      string,
-      Map<string, { output: string; score: number | null; latencyMs: number; cost: number }>
-    >();
-
-    for (const exp of experiments) {
-      for (const item of exp.items) {
-        if (!itemMap.has(item.itemName)) {
-          itemMap.set(item.itemName, new Map());
-        }
-        const avgScore =
-          item.scores.length > 0
-            ? item.scores.reduce((sum, s) => sum + s.score, 0) / item.scores.length
-            : null;
-        itemMap.get(item.itemName)!.set(exp.summary.id, {
-          output: item.actualOutput,
-          score: avgScore,
-          latencyMs: item.latencyMs,
-          cost: item.cost,
-        });
-      }
-    }
-
-    const allNames = Array.from(itemMap.keys()).sort();
-
-    // Compute summary stats
-    let overlapping = 0;
-    let improved = 0;
-    let regressed = 0;
-    let unchanged = 0;
-    let unscored = 0;
-
-    if (experiments.length >= 2) {
-      for (const name of allNames) {
-        const expData = itemMap.get(name)!;
-        const presentInAll = experiments.every((e) => expData.has(e.summary.id));
-        if (presentInAll) {
-          overlapping++;
-          const scores = experiments.map((e) => expData.get(e.summary.id)!.score);
-          if (scores.some((s) => s === null)) {
-            unscored++;
-          } else {
-            const first = scores[0]!;
-            const last = scores[scores.length - 1]!;
-            if (last > first) improved++;
-            else if (last < first) regressed++;
-            else unchanged++;
-          }
-        }
-      }
-    }
-
-    return {
-      allItemNames: allNames,
-      experimentData: itemMap,
-      summary: {
-        totalItems: allNames.length,
-        overlapping,
-        improved,
-        regressed,
-        unchanged,
-        unscored,
-      },
-    };
+  const { rows, summary } = useMemo(() => {
+    if (experiments.length < 2) return { rows: [] as ComparisonRow[], summary: null };
+    const r = buildComparisonRows(experiments);
+    const ids = experiments.map((e) => e.id);
+    const s = computeComparisonSummary(r, ids);
+    return { rows: r, summary: s };
   }, [experiments]);
+
+  const experimentNames: Record<string, string> = {};
+  const experimentCommitShas: Record<string, string | undefined> = {};
+  for (const exp of experiments) {
+    experimentNames[exp.id] = exp.name;
+    experimentCommitShas[exp.id] = exp.commitSha;
+  }
+
+  const translate = useCallback(
+    (key: string) => {
+      // Try compare namespace first, then experiments namespace.
+      // next-intl returns key path on miss (not throw), so check for dots.
+      const compareResult = tc(key);
+      if (!compareResult.includes(".")) return compareResult;
+      const expResult = t(key);
+      if (!expResult.includes(".")) return expResult;
+      return key;
+    },
+    [t, tc]
+  );
 
   if (!isValidIdCount) {
     return (
       <Stack spacing={2} sx={{ p: 2 }} alignItems="center">
-        <Typography variant="body1" color="warning.main">
-          {tc("invalidIds")}
-        </Typography>
-        <Button
-          startIcon={<Iconify icon="eva:arrow-back-fill" />}
-          onClick={() => router.push("/experiments")}
-        >
-          {t("backToList")}
-        </Button>
-      </Stack>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Stack spacing={2} sx={{ p: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          {t("loading")}
-        </Typography>
-      </Stack>
-    );
-  }
-
-  if (experiments.length < 2) {
-    return (
-      <Stack spacing={2} sx={{ p: 2 }} alignItems="center">
-        <Typography variant="body1" color="error">
-          {tc("error")}
-        </Typography>
+        <Alert severity="warning">{tc("invalidIds")}</Alert>
         <Button
           startIcon={<Iconify icon="eva:arrow-back-fill" />}
           onClick={() => router.push("/experiments")}
@@ -172,198 +122,25 @@ function CompareContent() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Button
-        startIcon={<Iconify icon="eva:arrow-back-fill" />}
-        onClick={() => router.push("/experiments")}
-        sx={{ alignSelf: "flex-start" }}
-        color="inherit"
-      >
-        {t("backToList")}
-      </Button>
-
-      <Typography variant="h5">{tc("title")}</Typography>
-
-      {/* Summary banner */}
-      <Card sx={{ p: 3 }}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {tc("totalItems")}
-            </Typography>
-            <Typography variant="h6">{summary.totalItems}</Typography>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {tc("overlapping")}
-            </Typography>
-            <Typography variant="h6">{summary.overlapping}</Typography>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {tc("improved")}
-            </Typography>
-            <Chip
-              label={summary.improved}
-              size="small"
-              sx={{ color: "success.main", bgcolor: "success.lighter", fontWeight: "bold" }}
-            />
-          </Grid>
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {tc("regressed")}
-            </Typography>
-            <Chip
-              label={summary.regressed}
-              size="small"
-              sx={{ color: "error.main", bgcolor: "error.lighter", fontWeight: "bold" }}
-            />
-          </Grid>
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {tc("unchanged")}
-            </Typography>
-            <Typography variant="h6">{summary.unchanged}</Typography>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              {tc("unscored")}
-            </Typography>
-            <Typography variant="h6" color="text.disabled">
-              {summary.unscored}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Card>
-
-      {/* Comparison table */}
-      <Card>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell rowSpan={2} sx={{ minWidth: 120 }}>
-                  {tc("itemName")}
-                </TableCell>
-                {experiments.map((exp) => (
-                  <TableCell
-                    key={exp.summary.id}
-                    colSpan={4}
-                    align="center"
-                    sx={{ borderBottom: 1, borderBottomColor: "divider", bgcolor: "background.default" }}
-                  >
-                    <Typography variant="subtitle2" noWrap>
-                      {exp.summary.name}
-                    </Typography>
-                  </TableCell>
-                ))}
-              </TableRow>
-              <TableRow>
-                {experiments.map((exp) => (
-                  <SubHeaders key={exp.summary.id} tc={tc} />
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {allItemNames.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={1 + experiments.length * 4}
-                    align="center"
-                    sx={{ py: 4 }}
-                  >
-                    <Typography variant="body2" color="text.disabled">
-                      {tc("noItems")}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {allItemNames.map((itemName) => {
-                const expData = experimentData.get(itemName)!;
-                return (
-                  <TableRow key={itemName} hover>
-                    <TableCell>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 120 }}>
-                        {itemName}
-                      </Typography>
-                    </TableCell>
-                    {experiments.map((exp) => {
-                      const data = expData.get(exp.summary.id);
-                      if (!data) {
-                        return (
-                          <EmptyCells key={exp.summary.id} />
-                        );
-                      }
-                      return (
-                        <DataCells key={exp.summary.id} data={data} />
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Card>
-    </Stack>
-  );
-}
-
-function SubHeaders({ tc }: { tc: (key: string) => string }) {
-  return (
-    <>
-      <TableCell>{tc("output")}</TableCell>
-      <TableCell>{tc("score")}</TableCell>
-      <TableCell>{tc("latency")}</TableCell>
-      <TableCell>{tc("cost")}</TableCell>
-    </>
-  );
-}
-
-function EmptyCells() {
-  return (
-    <>
-      <TableCell><Typography variant="body2" color="text.disabled">–</Typography></TableCell>
-      <TableCell><Typography variant="body2" color="text.disabled">–</Typography></TableCell>
-      <TableCell><Typography variant="body2" color="text.disabled">–</Typography></TableCell>
-      <TableCell><Typography variant="body2" color="text.disabled">–</Typography></TableCell>
-    </>
-  );
-}
-
-function DataCells({
-  data,
-}: {
-  data: { output: string; score: number | null; latencyMs: number; cost: number };
-}) {
-  const truncatedOutput =
-    data.output.length > 80 ? `${data.output.slice(0, 80)}...` : data.output;
-  return (
-    <>
-      <TableCell>
-        <Typography
-          variant="caption"
-          sx={{ maxWidth: 200, display: "block", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+    <ExperimentComparison
+      rows={rows}
+      experimentNames={experimentNames}
+      experimentIds={experimentIds}
+      experimentCommitShas={experimentCommitShas}
+      summary={summary}
+      isLoading={isLoading}
+      t={translate}
+      headerSlot={
+        <Button
+          startIcon={<Iconify icon="eva:arrow-back-fill" />}
+          onClick={() => router.push("/experiments")}
+          sx={{ alignSelf: "flex-start" }}
+          color="inherit"
         >
-          {truncatedOutput || "–"}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        <Typography variant="body2">
-          {data.score != null ? data.score.toFixed(2) : "–"}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        <Typography variant="body2">
-          {data.latencyMs >= 1000
-            ? `${(data.latencyMs / 1000).toFixed(1)}s`
-            : `${data.latencyMs}ms`}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        <Typography variant="body2">${data.cost.toFixed(5)}</Typography>
-      </TableCell>
-    </>
+          {t("backToList")}
+        </Button>
+      }
+    />
   );
 }
 

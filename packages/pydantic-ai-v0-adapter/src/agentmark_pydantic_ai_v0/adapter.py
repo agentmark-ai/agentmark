@@ -136,8 +136,9 @@ class PydanticAIAdapter:
     Example:
         from pydantic_ai import Tool
 
-        # Create registries
-        model_registry = create_default_model_registry()
+        # Create registries — providers must be registered explicitly
+        model_registry = PydanticAIModelRegistry()
+        model_registry.register_providers({"openai": "openai", "anthropic": "anthropic"})
         mcp_registry = McpServerRegistry()
         mcp_registry.register("search", {"url": "http://localhost:8000/mcp"})
 
@@ -229,6 +230,7 @@ class PydanticAIAdapter:
             tool_context=tool_context,
             prompt_name=config.name,
             agentmark_meta=config.agentmark_meta,
+            props=_metadata.get("props"),
             _raw_messages=list(config.messages),  # type: ignore[arg-type]
         )
 
@@ -282,6 +284,7 @@ class PydanticAIAdapter:
             tool_context=tool_context,
             prompt_name=config.name,
             agentmark_meta=config.agentmark_meta,
+            props=_metadata.get("props"),
             _raw_messages=list(config.messages),  # type: ignore[arg-type]
         )
 
@@ -478,6 +481,19 @@ class PydanticAIAdapter:
             Python type annotation.
         """
         json_type = prop_schema.get("type", "string")
+
+        # Handle nullable types: type: ["string", "null"] → Optional[str]
+        if isinstance(json_type, list):
+            non_null = [t for t in json_type if t != "null"]
+            has_null = "null" in json_type
+            if non_null:
+                # Resolve the non-null type, then wrap in Optional if nullable
+                inner_schema = {**prop_schema, "type": non_null[0]}
+                inner_type = self._json_type_to_python(inner_schema, nested_name)
+                if has_null:
+                    return inner_type | None  # type: ignore[return-value]
+                return inner_type
+            return type(None)  # type: ignore[return-value]
 
         # Handle enum
         if "enum" in prop_schema:

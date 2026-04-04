@@ -10,8 +10,11 @@ Example:
         ClaudeAgentAdapterOptions,
     )
 
+    model_registry = ClaudeAgentModelRegistry()
+    model_registry.register_providers({"anthropic": "anthropic"})
+
     client = create_claude_agent_client(
-        model_registry=ClaudeAgentModelRegistry.create_default(),
+        model_registry=model_registry,
         adapter_options=ClaudeAgentAdapterOptions(
             permission_mode="bypassPermissions",
             max_turns=10,
@@ -55,7 +58,6 @@ from .hooks import (
 
 from .model_registry import (
     ClaudeAgentModelRegistry,
-    create_default_model_registry,
 )
 
 # Import types
@@ -93,18 +95,23 @@ from .types import (
     is_user_prompt_submit_input,
 )
 
+# Import tracing wrapper
+from .traced import traced_query, generate_fallback_trace_id
+
 # Import webhook handler
 from .webhook import (
     ClaudeAgentWebhookHandler,
     ExperimentResult,
     StreamingResult,
     WebhookResult,
-    generate_fallback_trace_id,
 )
+
+# Import webhook server
+from .server import create_webhook_server
 
 
 def create_claude_agent_client(
-    model_registry: ClaudeAgentModelRegistry | None = None,
+    model_registry: ClaudeAgentModelRegistry,
     mcp_servers: dict[str, Any] | None = None,
     adapter_options: ClaudeAgentAdapterOptions | None = None,
     eval_registry: Any | None = None,
@@ -114,9 +121,12 @@ def create_claude_agent_client(
 
     This is the main entry point for using AgentMark with Claude Agent SDK.
 
+    A model_registry must be provided — there are no defaults. Register
+    providers explicitly to control how model names in prompt files resolve.
+
     Args:
         model_registry: Model registry for model configuration.
-            Defaults to create_default_model_registry().
+            Register providers before passing in.
         mcp_servers: Optional MCP servers configuration (native SDK format).
         adapter_options: Optional adapter-level options.
         eval_registry: Optional evaluation registry.
@@ -126,8 +136,11 @@ def create_claude_agent_client(
         Configured AgentMark client.
 
     Example:
+        model_registry = ClaudeAgentModelRegistry()
+        model_registry.register_providers({"anthropic": "anthropic"})
+
         client = create_claude_agent_client(
-            model_registry=ClaudeAgentModelRegistry.create_default(),
+            model_registry=model_registry,
             adapter_options=ClaudeAgentAdapterOptions(
                 permission_mode="bypassPermissions",
                 max_turns=10,
@@ -152,9 +165,6 @@ def create_claude_agent_client(
             "agentmark-prompt-core is required. Install with: pip install agentmark-prompt-core"
         ) from None
 
-    if model_registry is None:
-        model_registry = create_default_model_registry()
-
     adapter = ClaudeAgentAdapter(
         model_registry=model_registry,
         mcp_servers=mcp_servers,
@@ -176,7 +186,6 @@ __all__ = [
     # Core classes
     "ClaudeAgentAdapter",
     "ClaudeAgentModelRegistry",
-    "create_default_model_registry",
     # Core types
     "ClaudeAgentTextParams",
     "ClaudeAgentObjectParams",
@@ -220,6 +229,10 @@ __all__ = [
     "AgentMarkAttributes",
     "SpanNames",
     "TRACER_SCOPE_NAME",
+    # Webhook server
+    "create_webhook_server",
+    # Tracing wrapper
+    "traced_query",
     # Webhook handler
     "ClaudeAgentWebhookHandler",
     "WebhookResult",

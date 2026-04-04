@@ -138,16 +138,31 @@ export const OutputAccordion = ({ outputData }: OutputAccordionProps) => {
   const isToolResponse = !!(outputData?.toolCall?.name || outputData?.toolCall?.toolName);
 
   return (
-    <Accordion sx={{ backgroundColor: "white" }} defaultExpanded>
+    <Accordion
+      sx={{
+        backgroundColor: "white",
+        "&.MuiAccordion-root": { my: 0.5 },
+        "&:before": { display: "none" },
+      }}
+      defaultExpanded
+    >
       <AccordionSummary
-        expandIcon={<Iconify icon="mdi:chevron-down" />}
+        expandIcon={<Iconify icon="mdi:chevron-down" width={16} />}
         sx={{
+          minHeight: "28px !important",
+          px: 1,
+          py: 0,
           "& .MuiAccordionSummary-content": {
             alignItems: "center",
+            my: "4px !important",
+          },
+          "&.Mui-expanded": {
+            minHeight: "28px !important",
+            my: 0,
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <Iconify
             icon={
               isToolResponse
@@ -156,13 +171,14 @@ export const OutputAccordion = ({ outputData }: OutputAccordionProps) => {
                 ? "mdi:code-json"
                 : "mdi:robot"
             }
+            width={16}
           />
-          <Typography fontWeight={700} variant="body2">
-            {isToolResponse ? t("tool") : t("assistant")}
+          <Typography fontWeight={700} variant="body2" fontSize="0.8rem">
+            {isToolResponse || isObjectResponse ? t("output") : t("assistant")}
           </Typography>
         </Box>
       </AccordionSummary>
-      <AccordionDetails>
+      <AccordionDetails sx={{ px: 1, py: 0.5 }}>
         {content ? (
           <MarkdownRenderer content={content} />
         ) : (

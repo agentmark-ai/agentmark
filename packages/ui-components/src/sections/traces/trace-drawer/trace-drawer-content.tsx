@@ -5,5 +5,9 @@ interface TraceDrawerContentProps {
 }
 
 export const TraceDrawerContent = ({ children }: TraceDrawerContentProps) => {
-  return <Stack width="100%">{children}</Stack>;
+  return (
+    <Stack width="100%" height="100%" minHeight={0} overflow="hidden">
+      {children}
+    </Stack>
+  );
 };
