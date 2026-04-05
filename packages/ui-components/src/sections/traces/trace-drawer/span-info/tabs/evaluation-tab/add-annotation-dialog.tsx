@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { useTraceDrawerContext } from "../../../trace-drawer-provider";
 import { FormProvider, RHFTextField } from "@/components";
 import { useEvaluationContext } from "./evaluation-provider";
+import { SchemaAnnotationForm } from "./schema-annotation-form";
 
 type Props = {
   saveAnnotation: (data: {
@@ -30,8 +31,11 @@ export function AddAnnotationDialog({ saveAnnotation }: Props) {
   const {
     setOpenAddAnnotationDialog,
     openAddAnnotationDialog,
+    scoreConfigs,
   } = useEvaluationContext();
   const { t, selectedSpan } = useTraceDrawerContext();
+
+  const hasSchemaConfigs = scoreConfigs.length > 0;
 
   const Schema = Yup.object().shape({
     name: Yup.string().required(t("annotationValidationError")),
@@ -89,47 +93,65 @@ export function AddAnnotationDialog({ saveAnnotation }: Props) {
       maxWidth="sm"
     >
       <DialogTitle>{t("addAnnotationTitle")}</DialogTitle>
-      <FormProvider methods={methods} onSubmit={onSubmit}>
+      {hasSchemaConfigs ? (
         <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <RHFTextField
-              name="name"
-              label={t("annotationName")}
-              placeholder={t("annotationNamePlaceholder")}
-            />
-            <RHFTextField
-              name="label"
-              label={t("annotationLabel")}
-              placeholder={t("annotationLabelPlaceholder")}
-            />
-            <RHFTextField
-              name="score"
-              label={t("annotationScore")}
-              type="number"
-              inputProps={{ step: "0.01" }}
-            />
-            <RHFTextField
-              name="reason"
-              label={t("annotationReason")}
-              placeholder={t("annotationReasonPlaceholder")}
-              multiline
-              minRows={3}
-            />
-          </Stack>
+          <SchemaAnnotationForm
+            scoreConfigs={scoreConfigs}
+            onSave={saveAnnotation}
+            resourceId={selectedSpan?.id || ""}
+          />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} disabled={isSubmitting}>
-            {t("annotationCancel")}
-          </Button>
-          <LoadingButton
-            type="submit"
-            variant="contained"
-            loading={isSubmitting}
-          >
-            {t("annotationSave")}
-          </LoadingButton>
-        </DialogActions>
-      </FormProvider>
+      ) : (
+        <FormProvider methods={methods} onSubmit={onSubmit}>
+          <DialogContent>
+            <Stack spacing={2.5} sx={{ pt: 1 }}>
+              <RHFTextField
+                name="name"
+                label={t("annotationName")}
+                placeholder={t("annotationNamePlaceholder")}
+
+                size="small"
+              />
+              <RHFTextField
+                name="label"
+                label={t("annotationLabel")}
+                placeholder={t("annotationLabelPlaceholder")}
+
+                size="small"
+              />
+              <RHFTextField
+                name="score"
+                label={t("annotationScore")}
+                type="number"
+                inputProps={{ step: "0.01" }}
+
+                size="small"
+              />
+              <RHFTextField
+                name="reason"
+                label={t("annotationReason")}
+                placeholder={t("annotationReasonPlaceholder")}
+                multiline
+                minRows={3}
+
+                size="small"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleClose} disabled={isSubmitting}>
+              {t("annotationCancel")}
+            </Button>
+            <LoadingButton
+              type="submit"
+              variant="contained"
+              loading={isSubmitting}
+            >
+              {t("annotationSave")}
+            </LoadingButton>
+          </DialogActions>
+        </FormProvider>
+      )}
     </Dialog>
   );
 }

@@ -18,6 +18,7 @@ import {
 import type {
   DatasetErrorChunk,
   DatasetStreamChunk,
+  ScoreRegistry,
 } from "@agentmark-ai/prompt-core";
 import type { Root } from "mdast";
 import type { Tool } from "ai";
@@ -71,7 +72,10 @@ export function createAgentMarkClient<
   loader?: LoaderLike<D>;
   modelRegistry: VercelAIModelRegistry;
   tools?: TTools;
+  /** @deprecated Use scores instead. */
   evalRegistry?: EvalRegistry;
+  /** Score definitions with schemas and optional eval functions. */
+  scores?: ScoreRegistry;
   mcpServers?: McpServers;
 }): VercelAgentMark<D, TTools> {
   const adapter = new VercelAIAdapter<D, TTools>(
@@ -85,6 +89,7 @@ export function createAgentMarkClient<
     loader: opts.loader as unknown as Loader<D>,
     adapter,
     evalRegistry: opts.evalRegistry,
+    scores: opts.scores,
   }) as unknown as VercelAgentMark<D, TTools>;
 }
 

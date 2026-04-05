@@ -299,6 +299,8 @@ model_registry.register_providers({
 
 
 # Eval registry — define evaluation functions for experiments
+# TODO: Update to use scores (ScoreRegistry) once the Python SDK supports it.
+# The TypeScript SDK already uses scores with schema definitions.
 def exact_match_json(params):
     """Check if output matches expected output exactly."""
     output = params.get("output")
@@ -374,6 +376,8 @@ tools = []
 
 
 # Eval registry — define evaluation functions for experiments
+# TODO: Update to use scores (ScoreRegistry) once the Python SDK supports it.
+# The TypeScript SDK already uses scores with schema definitions.
 def exact_match_json(params):
     """Check if output matches expected output exactly."""
     output = params.get("output")

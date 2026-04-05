@@ -65,7 +65,7 @@ function mockClientWithDataset(items: any[]) {
           for (const it of items) {
             const expected = it.dataset?.expected_output ?? '';
             const actual = MOCK_EXPECTED_OUTPUT;
-            const evals = (it.evals ?? []).map((name: string) => ({
+            const evals = (it.scores ?? it.evals ?? []).map((name: string) => ({
               name,
               score: String(expected) === String(actual) ? 1 : 0,
               label: String(expected) === String(actual) ? 'correct' : 'incorrect',

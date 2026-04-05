@@ -83,5 +83,5 @@ export type AgentmarkConfig = {
   version: string;
   builtInModels?: string[];
   mcpServers?: McpServers;
-  evals: string[];
+  evals?: string[];
 };

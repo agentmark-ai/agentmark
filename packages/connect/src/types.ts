@@ -1,3 +1,5 @@
+import type { ScoreRegistry } from '@agentmark-ai/prompt-core';
+
 // ── Protocol: Worker -> Platform ────────────────────────────────────────────
 
 export interface HeartbeatMessage {
@@ -46,7 +48,7 @@ export interface JobMessage {
   type: 'job';
   jobId: string;
   request: {
-    type: 'prompt-run' | 'dataset-run';
+    type: 'prompt-run' | 'dataset-run' | 'get-score-configs';
     data: {
       ast: unknown;
       customProps?: Record<string, unknown>;
@@ -106,7 +108,7 @@ export interface WebSocketClientEvents {
 // ── Connect Server API ──────────────────────────────────────────────────────
 
 export interface JobRequest {
-  type: 'prompt-run' | 'dataset-run';
+  type: 'prompt-run' | 'dataset-run' | 'get-score-configs';
   data: {
     ast: unknown;
     customProps?: Record<string, unknown>;
@@ -135,6 +137,8 @@ export interface ConnectServerOptions {
   appId: string;
   url?: string;
   handler: JobHandlerFn;
+  /** Score registry for serving configs to the dashboard. */
+  scoreRegistry?: ScoreRegistry;
   onConnected?: () => void;
   onDisconnected?: (reason?: string) => void;
   onError?: (error: Error) => void;

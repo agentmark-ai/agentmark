@@ -112,6 +112,7 @@ export class MastraTextPrompt<
         ReturnType<MastraTextPrompt<T, A, K>["formatAgent"]>
       >;
       evals: string[];
+      scores: string[];
     }>
   > {
     if (
@@ -137,12 +138,14 @@ export class MastraTextPrompt<
               props: value.input as any,
               ...(options || {}),
             });
+            const resolvedScores = this.testSettings?.scores ?? this.testSettings?.evals ?? [];
             controller.enqueue({
               dataset: {
                 input: value.input,
                 expected_output: value.expected_output,
               },
-              evals: this.testSettings?.evals || [],
+              evals: resolvedScores,
+              scores: resolvedScores,
               formatted: formattedOutput as any,
             });
           }

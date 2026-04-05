@@ -9,4 +9,5 @@ export default defineConfig({
   format: ['esm', 'cjs'],
   minify: false,
   target: 'es2019',
+  external: ['@agentmark-ai/prompt-core'],
 });
