@@ -36,6 +36,8 @@ export type {
 
 export type { EvalRegistry } from "./eval-registery";
 export type { EvalFunction } from "./types";
+export type { ScoreSchema, ScoreDefinition, ScoreRegistry, SerializedScoreConfig } from "./scores";
+export { ScoreSchemaDefinition, ScoreDefinitionSchema, ScoreRegistrySchema, serializeScoreRegistry } from "./scores";
 export { createPromptTelemetry } from "./runner";
 export type { WebhookDatasetResponse, WebhookDatasetChunk, WebhookPromptResponse, WebhookTextResponse, WebhookObjectResponse, WebhookImageResponse, WebhookSpeechResponse } from "./runner";
 

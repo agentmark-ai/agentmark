@@ -93,7 +93,7 @@ describe('init', () => {
     expect(content).toContain("ApiLoader");
     expect(content).toContain("ApiLoader.local");
   });
-  it('party-planner prompt includes evals list', async () => {
+  it('party-planner prompt includes scores list', async () => {
     const { createExamplePrompts } = await import('../src/utils/examples/templates');
     const tmpDir = path.join(__dirname, '..', 'tmp-examples-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
@@ -103,7 +103,7 @@ describe('init', () => {
       const filePath = path.join(tmpDir, 'agentmark', 'party-planner.prompt.mdx');
       const content = fs.readFileSync(filePath, 'utf8');
       expect(content).toContain('test_settings:');
-      expect(content).toContain('evals:');
+      expect(content).toContain('scores:');
       expect(content).toContain('- exact_match_json');
     } finally {
       // cleanup

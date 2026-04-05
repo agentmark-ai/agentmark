@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-04-04T00:47:25.290Z",
+  "generatedAt": "2026-04-05T00:54:07.809Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-04-04T00:47:25.290Z",
-      "modelCount": 1165
+      "fetchedAt": "2026-04-05T00:54:07.809Z",
+      "modelCount": 1166
     },
     "openrouter": {
-      "fetchedAt": "2026-04-04T00:47:25.290Z",
+      "fetchedAt": "2026-04-05T00:54:07.809Z",
       "modelCount": 125
     }
   },
@@ -13577,6 +13577,30 @@
       },
       "capabilities": {
         "functionCalling": true,
+        "pdfInput": true
+      }
+    },
+    "vertex_ai/claude-haiku-4-5": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Haiku 4 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.000005,
+        "cacheCreationCostPerToken": 0.00000125,
+        "cacheReadCostPerToken": 1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
         "pdfInput": true
       }
     },

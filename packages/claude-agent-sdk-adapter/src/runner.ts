@@ -23,6 +23,7 @@ interface Frontmatter {
   test_settings?: {
     dataset?: string;
     evals?: string[];
+    scores?: string[];
   };
 }
 
@@ -505,8 +506,9 @@ export class ClaudeAgentWebhookHandler {
               // Run evals if configured
               const actualOutput = isObjectPrompt ? structuredOutput : result;
               let evalResults: Array<{ name: string; score: number; label: string; reason: string; passed: boolean }> = [];
-              if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
-                const evalNames = item.evals as string[];
+              const scoreNames = item.scores ?? item.evals ?? [];
+              if (evalRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
+                const evalNames = scoreNames as string[];
                 const evaluators = evalNames
                   .map((name: string) => {
                     const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;

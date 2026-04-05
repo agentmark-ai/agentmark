@@ -4,6 +4,7 @@ import {
   useContext,
   useState,
 } from "react";
+import type { SerializedScoreConfig } from "@agentmark-ai/prompt-core";
 
 interface EvaluationContextValue {
   scores: ScoreData[];
@@ -11,6 +12,7 @@ interface EvaluationContextValue {
   openAddAnnotationDialog: boolean;
   setOpenAddAnnotationDialog: (open: boolean) => void;
   canAddAnnotation: boolean;
+  scoreConfigs: SerializedScoreConfig[];
 }
 
 const EvaluationContext = createContext<EvaluationContextValue | undefined>(
@@ -32,11 +34,13 @@ export const EvaluationProvider = ({
   canAddAnnotation,
   scores,
   isLoading,
+  scoreConfigs = [],
 }: {
   children: React.ReactNode;
   canAddAnnotation: boolean;
   scores: ScoreData[];
   isLoading: boolean;
+  scoreConfigs?: SerializedScoreConfig[];
 }) => {
   const [openAddAnnotationDialog, setOpenAddAnnotationDialog] = useState(false);
 
@@ -48,6 +52,7 @@ export const EvaluationProvider = ({
         openAddAnnotationDialog,
         setOpenAddAnnotationDialog,
         canAddAnnotation,
+        scoreConfigs,
       }}
     >
       {children}

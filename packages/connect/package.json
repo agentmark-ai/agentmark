@@ -33,6 +33,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@agentmark-ai/prompt-core": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {

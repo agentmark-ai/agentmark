@@ -15,7 +15,7 @@ type Frontmatter = {
   object_config?: unknown;
   image_config?: unknown;
   speech_config?: unknown;
-  test_settings?: { dataset?: string; evals?: string[] };
+  test_settings?: { dataset?: string; evals?: string[]; scores?: string[] };
 };
 
 export class VercelAdapterWebhookHandler<
@@ -253,9 +253,9 @@ export class VercelAdapterWebhookHandler<
             const { text, usage } = await result;
 
             let evalResults: any[] = [];
-            if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
-              const evalNames = item.evals;
-              const evaluators = evalNames
+            const scoreNames = item.scores ?? item.evals ?? [];
+            if (evalRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
+              const evaluators = scoreNames
                 .map((name: string) => {
                   const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                   return fn ? { name, fn } : undefined;
@@ -357,8 +357,9 @@ export class VercelAdapterWebhookHandler<
             }
 
             let evalResults: any[] = [];
-            if (evalRegistry && Array.isArray(item.evals) && item.evals.length > 0) {
-              const evaluators = item.evals
+            const scoreNamesObj = item.scores ?? item.evals ?? [];
+            if (evalRegistry && Array.isArray(scoreNamesObj) && scoreNamesObj.length > 0) {
+              const evaluators = scoreNamesObj
                 .map((name: string) => {
                   const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
                   return fn ? { name, fn } : undefined;
