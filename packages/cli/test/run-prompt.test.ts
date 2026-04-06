@@ -70,6 +70,7 @@ vi.mock('path', async () => {
 vi.mock('@agentmark-ai/templatedx', () => ({
   getFrontMatter: vi.fn(() => ({})),
   load: vi.fn(async () => ({ children: [{ type: 'yaml', value: '' }] })),
+  resolveAstSchemaRefs: vi.fn(),
 }));
 
 // Mock Template engine compile to return a text_config
