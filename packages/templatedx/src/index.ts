@@ -56,3 +56,6 @@ export {
 
 // Export the new stateful engine
 export { TemplateDX } from './templatedx-engine';
+
+// Export schema $ref resolution
+export { resolveSchemaRefs, resolveAstSchemaRefs } from './schema-ref-resolver';

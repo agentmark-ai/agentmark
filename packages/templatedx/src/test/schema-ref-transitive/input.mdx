@@ -1,0 +1,14 @@
+---
+name: test-prompt
+text_config:
+  model_name: test-model
+input_schema:
+  type: object
+  properties:
+    user:
+      $ref: ./schemas/user.json
+  required:
+    - user
+---
+
+Hello {props.user.name}

@@ -131,7 +131,7 @@ const build = async (options: BuildOptions = {}) => {
       const contentLoader = async (filePath: string) => {
         const resolvedPath = path.resolve(path.dirname(sourcePath), filePath);
         // Ensure the resolved path is within the source directory
-        if (!resolvedPath.startsWith(sourceDir)) {
+        if (!resolvedPath.startsWith(sourceDir + path.sep) && resolvedPath !== sourceDir) {
           throw new Error(`Access denied: path outside source directory: ${filePath}`);
         }
         return fs.readFile(resolvedPath, "utf-8");
@@ -141,6 +141,10 @@ const build = async (options: BuildOptions = {}) => {
       const parserType = detectPromptTypeFromContent(content);
       const templateDX = getTemplateDXInstance(parserType);
       const ast = await templateDX.parse(content, sourceDir, contentLoader);
+
+      // Resolve any JSON Schema $refs in input_schema / object_config.schema
+      const { resolveAstSchemaRefs } = await import("@agentmark-ai/templatedx");
+      await resolveAstSchemaRefs(ast, path.dirname(sourcePath), contentLoader);
 
       // Extract frontmatter to determine prompt kind and get metadata
       const frontmatter = templateDX.getFrontMatter(ast) as Record<string, any>;

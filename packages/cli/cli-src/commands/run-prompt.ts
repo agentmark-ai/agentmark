@@ -63,11 +63,19 @@ async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptNam
     const contentLoader = async (filePath: string) => {
       const { readFile } = await import('fs/promises');
       const resolvedPath = path.resolve(baseDir, filePath);
+      if (!resolvedPath.startsWith(baseDir + path.sep) && resolvedPath !== baseDir) {
+        throw new Error(`Access denied: schema $ref path outside base directory: ${filePath}`);
+      }
       return readFile(resolvedPath, 'utf-8');
     };
 
     // Parse the MDX content
     const ast: Root = await templateDX.parse(content, baseDir, contentLoader);
+
+    // Resolve any JSON Schema $refs in input_schema / object_config.schema
+    const { resolveAstSchemaRefs } = await import("@agentmark-ai/templatedx");
+    await resolveAstSchemaRefs(ast, baseDir, contentLoader);
+
     const frontmatter = templateDX.getFrontMatter(ast) as { name?: string };
 
     return {
