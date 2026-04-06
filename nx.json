@@ -28,13 +28,13 @@
       },
       "workspaceChangelog": false
     },
+    "git": {
+      "commit": false,
+      "tag": false,
+      "push": false
+    },
     "version": {
-      "fallbackCurrentVersionResolver": "disk",
-      "git": {
-        "commit": false,
-        "tag": false,
-        "push": false
-      }
+      "fallbackCurrentVersionResolver": "disk"
     },
     "releaseTagPattern": "{projectName}@{version}"
   },
