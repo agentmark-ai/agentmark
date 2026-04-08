@@ -110,8 +110,10 @@ jobs:
           # Run nx release to update versions and changelogs
           npx nx release --skip-publish
 
-          # Update lockfile
-          yarn install
+          # Update lockfile (yarn 4 enables --immutable by default in CI; the
+          # nx release version bumps legitimately need a lockfile refresh, so
+          # opt out explicitly)
+          yarn install --no-immutable
 
           # Commit and push
           git add .
@@ -134,7 +136,9 @@ jobs:
 
           npx nx release --skip-publish
 
-          yarn install
+          # yarn 4 enables --immutable by default in CI; the nx release version
+          # bumps legitimately need a lockfile refresh, so opt out explicitly
+          yarn install --no-immutable
 
           git add .
           git commit -m "chore(release): version packages"
