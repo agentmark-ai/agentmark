@@ -1,6 +1,6 @@
 """Tests for Telemetry Hooks.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/test/hooks.test.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/test/hooks.test.ts
 """
 
 from __future__ import annotations

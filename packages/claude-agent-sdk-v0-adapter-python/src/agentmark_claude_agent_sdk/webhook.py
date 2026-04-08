@@ -1,6 +1,6 @@
 """Webhook handler for Claude Agent SDK adapter.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/src/runner.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/runner.ts
 """
 
 from __future__ import annotations

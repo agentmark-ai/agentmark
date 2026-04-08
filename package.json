@@ -64,7 +64,7 @@
     "brace-expansion@npm:^5.0.2": "^5.0.5"
   },
   "dependenciesMeta": {
-    "@agentmark-ai/claude-agent-sdk-adapter-python": {
+    "@agentmark-ai/claude-agent-sdk-v0-adapter-python": {
       "built": false
     },
     "@agentmark-ai/prompt-core-python": {

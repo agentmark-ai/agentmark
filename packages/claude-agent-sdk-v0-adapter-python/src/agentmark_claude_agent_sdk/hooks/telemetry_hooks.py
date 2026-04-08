@@ -1,6 +1,6 @@
 """Telemetry hooks for Claude Agent SDK adapter.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/src/hooks/telemetry-hooks.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/hooks/telemetry-hooks.ts
 """
 
 from __future__ import annotations

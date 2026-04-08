@@ -1,6 +1,6 @@
 """Tests for ClaudeAgentWebhookHandler.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/test/runner.test.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/test/runner.test.ts
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Type definitions for Claude Agent SDK adapter.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/src/types.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/types.ts
 """
 
 from __future__ import annotations

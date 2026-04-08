@@ -4,7 +4,7 @@ These follow GenAI semantic conventions.
 
 See: https://opentelemetry.io/docs/specs/semconv/gen-ai/
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/src/hooks/otel-hooks.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/hooks/otel-hooks.ts
 """
 
 from __future__ import annotations

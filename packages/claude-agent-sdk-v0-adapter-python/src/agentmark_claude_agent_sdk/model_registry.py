@@ -1,6 +1,6 @@
 """Model registry for Claude Agent SDK adapter.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/src/model-registry.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/model-registry.ts
 """
 
 from __future__ import annotations

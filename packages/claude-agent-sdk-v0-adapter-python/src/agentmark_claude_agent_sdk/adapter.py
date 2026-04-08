@@ -1,6 +1,6 @@
 """AgentMark adapter for Claude Agent SDK.
 
-Ported from TypeScript: packages/claude-agent-sdk-adapter/src/adapter.ts
+Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/adapter.ts
 """
 
 from __future__ import annotations

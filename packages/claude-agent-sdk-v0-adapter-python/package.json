@@ -1,5 +1,5 @@
 {
-  "name": "@agentmark-ai/claude-agent-sdk-adapter-python",
+  "name": "@agentmark-ai/claude-agent-sdk-v0-adapter-python",
   "version": "0.0.1",
   "private": true,
   "scripts": {

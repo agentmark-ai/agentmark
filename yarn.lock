@@ -78,15 +78,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/claude-agent-sdk-adapter-python@workspace:packages/claude-agent-sdk-adapter-python":
+"@agentmark-ai/claude-agent-sdk-v0-adapter-python@workspace:packages/claude-agent-sdk-v0-adapter-python":
   version: 0.0.0-use.local
-  resolution: "@agentmark-ai/claude-agent-sdk-adapter-python@workspace:packages/claude-agent-sdk-adapter-python"
+  resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter-python@workspace:packages/claude-agent-sdk-v0-adapter-python"
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-adapter":
+"@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-adapter"
+  resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.3.0"
@@ -8697,7 +8697,7 @@ __metadata:
     turbo: "npm:latest"
     typescript: "npm:^5"
   dependenciesMeta:
-    "@agentmark-ai/claude-agent-sdk-adapter-python":
+    "@agentmark-ai/claude-agent-sdk-v0-adapter-python":
       built: false
     "@agentmark-ai/prompt-core-python":
       built: false
