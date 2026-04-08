@@ -150,7 +150,7 @@ describe('init', () => {
       });
 
       // Check imports
-      expect(content).toContain('@agentmark-ai/claude-agent-sdk-adapter');
+      expect(content).toContain('@agentmark-ai/claude-agent-sdk-v0-adapter');
       expect(content).toContain('ClaudeAgentModelRegistry');
 
       // Tool registry has been removed — tools are no longer imported as a registry class
@@ -175,7 +175,7 @@ describe('init', () => {
 
       // Check imports
       expect(content).toContain("import { query } from \"@anthropic-ai/claude-agent-sdk\"");
-      expect(content).toContain("import { withTracing } from \"@agentmark-ai/claude-agent-sdk-adapter\"");
+      expect(content).toContain("import { withTracing } from \"@agentmark-ai/claude-agent-sdk-v0-adapter\"");
 
       // Check usage of withTracing
       expect(content).toContain('withTracing(query, adapted)');
@@ -189,7 +189,7 @@ describe('init', () => {
       const { getAdapterConfig } = await import('../src/utils/examples/templates/adapters');
       const config = getAdapterConfig('claude-agent-sdk', 'anthropic');
 
-      expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-adapter');
+      expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-v0-adapter');
       expect(config.dependencies).toContain('@anthropic-ai/claude-agent-sdk@^0.1.0');
       expect(config.classes.modelRegistry).toBe('ClaudeAgentModelRegistry');
       expect(config.classes.webhookHandler).toBe('ClaudeAgentWebhookHandler');
@@ -232,7 +232,7 @@ describe('init', () => {
         expect(fs.existsSync(devEntryPath)).toBe(true);
 
         const content = fs.readFileSync(devEntryPath, 'utf8');
-        expect(content).toContain("import { ClaudeAgentWebhookHandler } from '@agentmark-ai/claude-agent-sdk-adapter/runner'");
+        expect(content).toContain("import { ClaudeAgentWebhookHandler } from '@agentmark-ai/claude-agent-sdk-v0-adapter/runner'");
         expect(content).toContain('new ClaudeAgentWebhookHandler(client');
 
         // Verify correct import path

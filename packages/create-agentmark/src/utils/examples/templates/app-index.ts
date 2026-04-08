@@ -31,7 +31,7 @@ sdk.initTracing({ disableBatch: true });
   if (adapter === "claude-agent-sdk") {
     return `import "dotenv/config";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { withTracing } from "@agentmark-ai/claude-agent-sdk-adapter";
+import { withTracing } from "@agentmark-ai/claude-agent-sdk-v0-adapter";
 ${tracingImport}import { client } from "./agentmark.client";
 ${tracingInit}
 const telemetry = {

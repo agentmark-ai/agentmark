@@ -1,5 +1,5 @@
 {
-  "name": "@agentmark-ai/prompt-core-python",
+  "name": "agentmark-prompt-core",
   "version": "0.0.0",
   "private": true,
   "scripts": {

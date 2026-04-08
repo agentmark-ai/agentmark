@@ -1,9 +1,9 @@
 {
-  "name": "agentmark-pydantic-ai-v0",
-  "version": "0.1.0",
+  "name": "agentmark-claude-agent-sdk-v0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
-    "postinstall": "node ../../scripts/setup-python-venv.js -e ../templatedx-python -e ../prompt-core-python -e \".[dev]\"",
+    "postinstall": "node ../../scripts/setup-python-venv.js -e ../templatedx-python -e ../prompt-core-python -e \".[dev,otel]\"",
     "test": "node ../../scripts/run-venv.js pytest",
     "test:watch": "node ../../scripts/run-venv.js pytest --watch",
     "lint": "node ../../scripts/run-venv.js ruff check src tests",
