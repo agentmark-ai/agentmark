@@ -60,7 +60,7 @@ jobs:
           git push --tags
 
       - name: Publish to npm
-        run: npx nx release publish
+        run: npx nx release publish --groups js
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
