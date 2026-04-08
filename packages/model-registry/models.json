@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-04-06T00:53:22.924Z",
+  "generatedAt": "2026-04-08T00:52:12.855Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-04-06T00:53:22.924Z",
-      "modelCount": 1166
+      "fetchedAt": "2026-04-08T00:52:12.855Z",
+      "modelCount": 1168
     },
     "openrouter": {
-      "fetchedAt": "2026-04-06T00:53:22.924Z",
-      "modelCount": 124
+      "fetchedAt": "2026-04-08T00:52:12.855Z",
+      "modelCount": 127
     }
   },
   "models": {
@@ -6062,7 +6062,31 @@
       },
       "context": {
         "maxInputTokens": 200000,
-        "maxOutputTokens": 4096
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us-gov-east-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us Gov East 1/anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 8192
       },
       "capabilities": {
         "vision": true,
@@ -6277,7 +6301,31 @@
       },
       "context": {
         "maxInputTokens": 200000,
-        "maxOutputTokens": 4096
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us-gov-west-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us Gov West 1/anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 8192
       },
       "capabilities": {
         "vision": true,
@@ -19252,6 +19300,54 @@
         "pdfInput": true
       }
     },
+    "claude-opus-4.6-fast": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Opus 4.6 (Fast)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.00003,
+        "outputCostPerToken": 0.00015
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "gemma-4-26b-a4b-it:free": {
+      "provider": "google",
+      "displayName": "Google: Gemma 4 26B A4B  (free)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 32768
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
     "gemma-4-26b-a4b-it": {
       "provider": "google",
       "displayName": "Google: Gemma 4 26B A4B ",
@@ -19272,6 +19368,30 @@
       "context": {
         "maxInputTokens": 262144,
         "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "gemma-4-31b-it:free": {
+      "provider": "google",
+      "displayName": "Google: Gemma 4 31B (free)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 32768
       },
       "capabilities": {
         "vision": true,
@@ -20369,32 +20489,6 @@
         "functionCalling": true
       }
     },
-    "command-r-08-2024": {
-      "provider": "cohere",
-      "displayName": "Cohere: Command R (08-2024)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 1.5e-7,
-        "outputCostPerToken": 6e-7
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 4000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
-    },
     "command-r-plus-08-2024": {
       "provider": "cohere",
       "displayName": "Cohere: Command R+ (08-2024)",
@@ -20411,6 +20505,32 @@
       "pricing": {
         "inputCostPerToken": 0.0000025,
         "outputCostPerToken": 0.00001
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "command-r-08-2024": {
+      "provider": "cohere",
+      "displayName": "Cohere: Command R (08-2024)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
       },
       "context": {
         "maxInputTokens": 128000,
