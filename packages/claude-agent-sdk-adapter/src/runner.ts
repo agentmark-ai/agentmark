@@ -50,7 +50,7 @@ export interface RunPromptOptions {
  *
  * @example
  * ```typescript
- * import { ClaudeAgentWebhookHandler } from "@agentmark-ai/claude-agent-sdk-adapter/runner";
+ * import { ClaudeAgentWebhookHandler } from "@agentmark-ai/claude-agent-sdk-v0-adapter/runner";
  *
  * const handler = new ClaudeAgentWebhookHandler(client);
  *

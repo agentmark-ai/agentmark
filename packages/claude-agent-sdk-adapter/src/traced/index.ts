@@ -4,7 +4,7 @@
  * @example
  * ```typescript
  * import { query } from "@anthropic-ai/claude-agent-sdk";
- * import { withTracing } from "@agentmark-ai/claude-agent-sdk-adapter";
+ * import { withTracing } from "@agentmark-ai/claude-agent-sdk-v0-adapter";
  *
  * // Using with adapter output (telemetry auto-configured)
  * const adapted = await prompt.format({ props, telemetry: { isEnabled: true } });
@@ -662,7 +662,7 @@ function mergeHooksIntoOptions<T>(
  * @example
  * ```typescript
  * import { query } from "@anthropic-ai/claude-agent-sdk";
- * import { withTracing } from "@agentmark-ai/claude-agent-sdk-adapter";
+ * import { withTracing } from "@agentmark-ai/claude-agent-sdk-v0-adapter";
  *
  * // Using with adapter output (telemetry auto-configured)
  * const adapted = await prompt.format({ props, telemetry: { isEnabled: true } });

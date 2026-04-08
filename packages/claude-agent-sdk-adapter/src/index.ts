@@ -42,7 +42,7 @@ export interface CreateClientOptions<
  *
  * @example
  * ```typescript
- * import { createAgentMarkClient, ClaudeAgentModelRegistry } from "@agentmark-ai/claude-agent-sdk-adapter";
+ * import { createAgentMarkClient, ClaudeAgentModelRegistry } from "@agentmark-ai/claude-agent-sdk-v0-adapter";
  * import { FileLoader } from "@agentmark-ai/loader-file";
  *
  * const client = createAgentMarkClient({

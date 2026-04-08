@@ -1,4 +1,4 @@
-"""Test configuration and fixtures for agentmark-claude-agent-sdk tests."""
+"""Test configuration and fixtures for agentmark-claude-agent-sdk-v0 tests."""
 
 from __future__ import annotations
 

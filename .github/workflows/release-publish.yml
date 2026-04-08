@@ -118,7 +118,7 @@ jobs:
             "packages/sdk-python:agentmark-sdk"
             "packages/prompt-core-python:agentmark-prompt-core"
             "packages/templatedx-python:agentmark-templatedx"
-            "packages/claude-agent-sdk-adapter-python:agentmark-claude-agent-sdk"
+            "packages/claude-agent-sdk-adapter-python:agentmark-claude-agent-sdk-v0"
             "packages/pydantic-ai-v0-adapter:agentmark-pydantic-ai-v0"
           )
 

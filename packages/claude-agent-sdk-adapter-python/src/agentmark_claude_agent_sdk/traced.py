@@ -1,6 +1,6 @@
 """Tracing wrapper and SDK execution layer for Claude Agent SDK queries.
 
-Mirrors the TypeScript traced/index.ts in @agentmark-ai/claude-agent-sdk-adapter.
+Mirrors the TypeScript traced/index.ts in @agentmark-ai/claude-agent-sdk-v0-adapter.
 Handles SDK execution (ClaudeSDKClient lifecycle), OTEL env stripping,
 hook merging, and automatic tracing — keeping the webhook handler thin.
 

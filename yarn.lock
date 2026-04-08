@@ -84,9 +84,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/claude-agent-sdk-adapter@workspace:packages/claude-agent-sdk-adapter":
+"@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-adapter":
   version: 0.0.0-use.local
-  resolution: "@agentmark-ai/claude-agent-sdk-adapter@workspace:packages/claude-agent-sdk-adapter"
+  resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.3.0"

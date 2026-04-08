@@ -84,7 +84,7 @@ function warnUnsupportedOptions(
  *
  * @example
  * ```typescript
- * import { ClaudeAgentAdapter, ClaudeAgentModelRegistry } from "@agentmark-ai/claude-agent-sdk-adapter";
+ * import { ClaudeAgentAdapter, ClaudeAgentModelRegistry } from "@agentmark-ai/claude-agent-sdk-v0-adapter";
  *
  * const adapter = new ClaudeAgentAdapter(
  *   ClaudeAgentModelRegistry.createDefault(),

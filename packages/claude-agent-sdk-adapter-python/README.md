@@ -5,7 +5,7 @@ Python adapter for integrating AgentMark prompts with Claude Agent SDK.
 ## Installation
 
 ```bash
-pip install agentmark-claude-agent-sdk
+pip install agentmark-claude-agent-sdk-v0
 ```
 
 ## Usage
