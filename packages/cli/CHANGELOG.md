@@ -1,3 +1,9 @@
+## 0.10.2 (2026-04-08)
+
+### 🩹 Fixes
+
+- Convert `next.config.ts` to `next.config.mjs` to drop the runtime `typescript` dependency. Fixes the npx UI server crash where Next.js could not parse the `.ts` config because `typescript` was only listed in `devDependencies`. ([#547](https://github.com/agentmark-ai/agentmark/pull/547))
+
 ## 0.10.1 (2026-03-18)
 
 ### 🧱 Updated Dependencies
