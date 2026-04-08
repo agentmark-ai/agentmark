@@ -17,8 +17,18 @@
         "**/vitest.config.ts"
       ]
     },
-    "projects": ["packages/*"],
     "projectsRelationship": "independent",
+    "groups": {
+      "python": {
+        "projects": ["@agentmark-ai/*-python", "@agentmark-ai/pydantic-ai-v0-adapter"],
+        "version": {
+          "versionActions": "@nxlv/python/release/version-actions"
+        }
+      },
+      "js": {
+        "projects": ["packages/*", "!@agentmark-ai/*-python", "!@agentmark-ai/pydantic-ai-v0-adapter"]
+      }
+    },
     "changelog": {
       "projectChangelogs": {
         "file": "{projectRoot}/CHANGELOG.md",
@@ -34,11 +44,22 @@
       "push": false
     },
     "version": {
-      "fallbackCurrentVersionResolver": "disk"
+      "fallbackCurrentVersionResolver": "disk",
+      "versionActionsOptions": {
+        "skipLockFileUpdate": true
+      }
     },
-    "releaseTagPattern": "{projectName}@{version}"
+    "releaseTag": {
+      "pattern": "{projectName}@{version}"
+    }
   },
   "plugins": [
+    {
+      "plugin": "@nxlv/python",
+      "options": {
+        "packageManager": "uv"
+      }
+    },
     {
       "plugin": "@nx/js/typescript",
       "options": {
@@ -53,5 +74,6 @@
         }
       }
     }
-  ]
+  ],
+  "analytics": false
 }

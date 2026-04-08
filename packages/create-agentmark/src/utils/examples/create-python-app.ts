@@ -177,7 +177,7 @@ description = "An AgentMark application using Pydantic AI"
 requires-python = ">=3.12"
 dependencies = [
     "agentmark-sdk>=0.1.0",
-    "agentmark-pydantic-ai>=0.1.0",
+    "agentmark-pydantic-ai-v0>=0.1.0",
     "agentmark-prompt-core>=0.1.0",
     "python-dotenv>=1.0.0",
     "pydantic-ai[openai]>=0.1.0",
@@ -773,7 +773,7 @@ export const createPythonApp = async (
         ? `${pythonVenv.name}\\Scripts\\activate`
         : `source ${pythonVenv.name}/bin/activate`;
       console.log(`  $ ${activateCmd}`);
-      console.log('  $ pip install agentmark-pydantic-ai agentmark-prompt-core python-dotenv "pydantic-ai[openai]"');
+      console.log('  $ pip install agentmark-pydantic-ai-v0 agentmark-prompt-core python-dotenv "pydantic-ai[openai]"');
     } else {
       console.log('  $ python -m venv .venv');
       console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
