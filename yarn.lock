@@ -78,12 +78,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/claude-agent-sdk-v0-adapter-python@workspace:packages/claude-agent-sdk-v0-adapter-python":
-  version: 0.0.0-use.local
-  resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter-python@workspace:packages/claude-agent-sdk-v0-adapter-python"
-  languageName: unknown
-  linkType: soft
-
 "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter"
@@ -294,12 +288,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/prompt-core-python@workspace:packages/prompt-core-python":
-  version: 0.0.0-use.local
-  resolution: "@agentmark-ai/prompt-core-python@workspace:packages/prompt-core-python"
-  languageName: unknown
-  linkType: soft
-
 "@agentmark-ai/prompt-core@npm:0.3.0, @agentmark-ai/prompt-core@workspace:*, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/prompt-core@workspace:packages/prompt-core"
@@ -316,18 +304,6 @@ __metadata:
     typescript: "npm:^5.6.2"
     vitest: "npm:^3.0.8"
     zod: "npm:^3.23.8"
-  languageName: unknown
-  linkType: soft
-
-"@agentmark-ai/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter":
-  version: 0.0.0-use.local
-  resolution: "@agentmark-ai/pydantic-ai-v0-adapter@workspace:packages/pydantic-ai-v0-adapter"
-  languageName: unknown
-  linkType: soft
-
-"@agentmark-ai/sdk-python@workspace:packages/sdk-python":
-  version: 0.0.0-use.local
-  resolution: "@agentmark-ai/sdk-python@workspace:packages/sdk-python"
   languageName: unknown
   linkType: soft
 
@@ -367,12 +343,6 @@ __metadata:
     typescript: "npm:^5"
     vitest: "npm:^3.1.4"
     yaml: "npm:^2.8.3"
-  languageName: unknown
-  linkType: soft
-
-"@agentmark-ai/templatedx-python@workspace:packages/templatedx-python":
-  version: 0.0.0-use.local
-  resolution: "@agentmark-ai/templatedx-python@workspace:packages/templatedx-python"
   languageName: unknown
   linkType: soft
 
@@ -8838,6 +8808,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"agentmark-claude-agent-sdk-v0@workspace:packages/claude-agent-sdk-v0-adapter-python":
+  version: 0.0.0-use.local
+  resolution: "agentmark-claude-agent-sdk-v0@workspace:packages/claude-agent-sdk-v0-adapter-python"
+  languageName: unknown
+  linkType: soft
+
 "agentmark-monorepo@workspace:.":
   version: 0.0.0-use.local
   resolution: "agentmark-monorepo@workspace:."
@@ -8855,16 +8831,40 @@ __metadata:
     turbo: "npm:latest"
     typescript: "npm:^5"
   dependenciesMeta:
-    "@agentmark-ai/claude-agent-sdk-v0-adapter-python":
+    agentmark-claude-agent-sdk-v0:
       built: false
-    "@agentmark-ai/prompt-core-python":
+    agentmark-prompt-core:
       built: false
-    "@agentmark-ai/pydantic-ai-v0-adapter":
+    agentmark-pydantic-ai-v0:
       built: false
-    "@agentmark-ai/sdk-python":
+    agentmark-sdk:
       built: false
-    "@agentmark-ai/templatedx-python":
+    agentmark-templatedx:
       built: false
+  languageName: unknown
+  linkType: soft
+
+"agentmark-prompt-core@workspace:packages/prompt-core-python":
+  version: 0.0.0-use.local
+  resolution: "agentmark-prompt-core@workspace:packages/prompt-core-python"
+  languageName: unknown
+  linkType: soft
+
+"agentmark-pydantic-ai-v0@workspace:packages/pydantic-ai-v0-adapter":
+  version: 0.0.0-use.local
+  resolution: "agentmark-pydantic-ai-v0@workspace:packages/pydantic-ai-v0-adapter"
+  languageName: unknown
+  linkType: soft
+
+"agentmark-sdk@workspace:packages/sdk-python":
+  version: 0.0.0-use.local
+  resolution: "agentmark-sdk@workspace:packages/sdk-python"
+  languageName: unknown
+  linkType: soft
+
+"agentmark-templatedx@workspace:packages/templatedx-python":
+  version: 0.0.0-use.local
+  resolution: "agentmark-templatedx@workspace:packages/templatedx-python"
   languageName: unknown
   linkType: soft
 

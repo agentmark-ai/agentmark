@@ -1,5 +1,5 @@
 {
-  "name": "@agentmark-ai/pydantic-ai-v0-adapter",
+  "name": "agentmark-pydantic-ai-v0",
   "version": "0.1.0",
   "private": true,
   "scripts": {

@@ -65,19 +65,19 @@
     "brace-expansion@npm:^5.0.2": "^5.0.5"
   },
   "dependenciesMeta": {
-    "@agentmark-ai/claude-agent-sdk-v0-adapter-python": {
+    "agentmark-claude-agent-sdk-v0": {
       "built": false
     },
-    "@agentmark-ai/prompt-core-python": {
+    "agentmark-prompt-core": {
       "built": false
     },
-    "@agentmark-ai/pydantic-ai-v0-adapter": {
+    "agentmark-pydantic-ai-v0": {
       "built": false
     },
-    "@agentmark-ai/sdk-python": {
+    "agentmark-sdk": {
       "built": false
     },
-    "@agentmark-ai/templatedx-python": {
+    "agentmark-templatedx": {
       "built": false
     }
   },

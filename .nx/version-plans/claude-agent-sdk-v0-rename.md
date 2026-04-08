@@ -1,7 +1,7 @@
 ---
 '@agentmark-ai/claude-agent-sdk-v0-adapter': patch
-'@agentmark-ai/claude-agent-sdk-v0-adapter-python': patch
-'@agentmark-ai/pydantic-ai-v0-adapter': patch
+'agentmark-claude-agent-sdk-v0': patch
+'agentmark-pydantic-ai-v0': patch
 'create-agentmark': patch
 ---
 

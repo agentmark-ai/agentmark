@@ -20,13 +20,13 @@
     "projectsRelationship": "independent",
     "groups": {
       "python": {
-        "projects": ["@agentmark-ai/*-python", "@agentmark-ai/pydantic-ai-v0-adapter"],
+        "projects": ["agentmark-*"],
         "version": {
           "versionActions": "@nxlv/python/release/version-actions"
         }
       },
       "js": {
-        "projects": ["packages/*", "!@agentmark-ai/*-python", "!@agentmark-ai/pydantic-ai-v0-adapter"]
+        "projects": ["packages/*", "!agentmark-*"]
       }
     },
     "changelog": {
