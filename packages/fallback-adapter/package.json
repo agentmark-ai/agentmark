@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/fallback-adapter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "0.3.0",
+    "@agentmark-ai/prompt-core": "0.4.0",
     "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",

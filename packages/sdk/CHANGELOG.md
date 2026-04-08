@@ -1,3 +1,20 @@
+## 1.1.0 (2026-04-08)
+
+### 🚀 Features
+
+- Rename trace API to span/observe semantics. **Breaking** for consumers of the previous tracing surface. ([#553](https://github.com/agentmark-ai/agentmark/pull/553), [#517](https://github.com/agentmark-ai/agentmark/issues/517), [#521](https://github.com/agentmark-ai/agentmark/issues/521), [#532](https://github.com/agentmark-ai/agentmark/issues/532), [#544](https://github.com/agentmark-ai/agentmark/issues/544), [#540](https://github.com/agentmark-ai/agentmark/issues/540), [#492](https://github.com/agentmark-ai/agentmark/issues/492))
+
+  - Renamed `trace` → `span`
+  - Renamed `TraceContext` → `SpanContext`, `TraceOptions` → (folded into `SpanOptions`), `TraceResult` → `SpanResult`
+  - Added `observe` higher-order helper, `SpanKind` enum, and `serializeValue` utility
+  - New internal modules `trace/traced.ts` and `trace/serialize.ts`
+
+  This change landed in source via sync #535 (2026-04-03) but was missed by the upstream-sync release pipeline — no version plan was generated alongside the source change, so the bump never made it onto npm. Consumers on `@agentmark-ai/sdk@1.0.7` should migrate `trace`/`TraceContext` imports to `span`/`SpanContext` when upgrading to this release.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.4.0
+
 ## 1.0.7 (2026-03-18)
 
 ### 🧱 Updated Dependencies
