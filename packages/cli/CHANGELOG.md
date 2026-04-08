@@ -1,3 +1,28 @@
+## 0.11.0 (2026-04-08)
+
+### 🚀 Features
+
+- Add dataset sampling support: percentage-based sampling with seed reproducibility, ([#553](https://github.com/agentmark-ai/agentmark/pull/553), [#517](https://github.com/agentmark-ai/agentmark/issues/517), [#521](https://github.com/agentmark-ai/agentmark/issues/521), [#532](https://github.com/agentmark-ai/agentmark/issues/532), [#544](https://github.com/agentmark-ai/agentmark/issues/544), [#540](https://github.com/agentmark-ai/agentmark/issues/540), [#492](https://github.com/agentmark-ai/agentmark/issues/492))
+  specific row selection via indices/ranges, and train/test split for experiments.
+  New CLI flags: --sample, --rows, --split, --seed on run-experiment command.
+
+  (claude-agent-sdk-v0-adapter was dropped from this plan when restoring it because its bump shipped in a later release.)
+
+
+### 🩹 Fixes
+
+- fix(cli): bump @agentmark-ai/templatedx pin to pick up resolveAstSchemaRefs ([#553](https://github.com/agentmark-ai/agentmark/pull/553), [#517](https://github.com/agentmark-ai/agentmark/issues/517), [#521](https://github.com/agentmark-ai/agentmark/issues/521), [#532](https://github.com/agentmark-ai/agentmark/issues/532), [#544](https://github.com/agentmark-ai/agentmark/issues/544), [#540](https://github.com/agentmark-ai/agentmark/issues/540), [#492](https://github.com/agentmark-ai/agentmark/issues/492))
+
+  The previously pinned templatedx@0.2.0 did not export `resolveAstSchemaRefs`. The CLI's `run-prompt` and `build` commands destructure that symbol from the package and call it, so they crashed with "resolveAstSchemaRefs is not a function" at runtime. Bumping the pin to the republished templatedx (which now ships the export from `schema-ref-resolver.ts`) restores `agentmark run` and `agentmark build`.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.5.0
+- Updated @agentmark-ai/shared-utils to 0.3.1
+- Updated @agentmark-ai/prompt-core to 0.4.0
+- Updated @agentmark-ai/templatedx to 0.3.0
+- Updated @agentmark-ai/connect to 0.2.0
+
 ## 0.10.3 (2026-04-08)
 
 ### 🧱 Updated Dependencies

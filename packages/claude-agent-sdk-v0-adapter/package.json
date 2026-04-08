@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/claude-agent-sdk-v0-adapter",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -49,8 +49,8 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "0.3.0",
-    "@agentmark-ai/sdk": "1.0.7",
+    "@agentmark-ai/prompt-core": "0.4.0",
+    "@agentmark-ai/sdk": "1.1.0",
     "@agentmark-ai/templatedx": "*",
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@opentelemetry/api": "^1.9.0",
