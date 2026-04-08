@@ -80,7 +80,7 @@
   },
   "files": [
     "dist",
-    "next.config.mjs",
+    "next.config.ts",
     "public"
   ],
   "directories": {

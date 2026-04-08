@@ -85,7 +85,7 @@ describe('handler.ts generation', () => {
       {
         adapter: 'claude-agent-sdk',
         handlerClass: 'ClaudeAgentWebhookHandler',
-        adapterPackage: '@agentmark-ai/claude-agent-sdk-v0-adapter',
+        adapterPackage: '@agentmark-ai/claude-agent-sdk-adapter',
       },
       {
         adapter: 'mastra',
@@ -338,7 +338,7 @@ describe('getAdapterConfig for handler generation', () => {
     const { getAdapterConfig } = await import('../../src/utils/examples/templates/adapters');
     const config = getAdapterConfig('claude-agent-sdk', 'anthropic');
     expect(config.classes.webhookHandler).toBe('ClaudeAgentWebhookHandler');
-    expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-v0-adapter');
+    expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-adapter');
   });
 
   it('should return MastraAdapterWebhookHandler for mastra adapter', async () => {

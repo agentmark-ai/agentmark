@@ -20,13 +20,13 @@
     "projectsRelationship": "independent",
     "groups": {
       "python": {
-        "projects": ["agentmark-*"],
+        "projects": ["@agentmark-ai/*-python", "@agentmark-ai/pydantic-ai-v0-adapter"],
         "version": {
           "versionActions": "@nxlv/python/release/version-actions"
         }
       },
       "js": {
-        "projects": ["packages/*", "!agentmark-*"]
+        "projects": ["packages/*", "!@agentmark-ai/*-python", "!@agentmark-ai/pydantic-ai-v0-adapter"]
       }
     },
     "changelog": {
@@ -44,7 +44,10 @@
       "push": false
     },
     "version": {
-      "fallbackCurrentVersionResolver": "disk"
+      "fallbackCurrentVersionResolver": "disk",
+      "versionActionsOptions": {
+        "skipLockFileUpdate": true
+      }
     },
     "releaseTag": {
       "pattern": "{projectName}@{version}"

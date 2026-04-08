@@ -1,5 +1,5 @@
 {
-  "name": "agentmark-templatedx",
+  "name": "@agentmark-ai/templatedx-python",
   "version": "0.0.0",
   "private": true,
   "scripts": {

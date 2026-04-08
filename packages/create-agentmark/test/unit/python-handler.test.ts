@@ -467,7 +467,7 @@ describe('Python pyproject.toml generation', () => {
       await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
 
       const content = fs.readFileSync(path.join(tmpDir, 'pyproject.toml'), 'utf8');
-      expect(content).toContain('agentmark-claude-agent-sdk-v0');
+      expect(content).toContain('agentmark-claude-agent-sdk');
       expect(content).toContain('claude-agent-sdk');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });

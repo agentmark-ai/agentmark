@@ -3,16 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentmark-pydantic-ai-v0"
-version = "0.1.1"
-description = "Pydantic AI adapter for AgentMark - integrate AgentMark prompts with Pydantic AI"
+name = "agentmark-claude-agent-sdk"
+version = "0.0.1"
+description = "Claude Agent SDK adapter for AgentMark - integrate AgentMark prompts with Claude Agent SDK"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
-authors = [
-    { name = "AgentMark Team" }
-]
-keywords = ["agentmark", "pydantic-ai", "llm", "ai", "prompt"]
+authors = [{ name = "AgentMark Team" }]
+keywords = ["agentmark", "claude", "anthropic", "agent-sdk", "llm", "ai"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -23,9 +21,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+
 dependencies = [
-    "pydantic>=2.0",
-    "pydantic-ai>=0.0.39",
+    "claude-agent-sdk>=0.1.0",
     "agentmark-prompt-core>=0.0.1",
     "aiohttp>=3.9.0",
 ]
@@ -38,9 +36,10 @@ dev = [
     "ruff>=0.8.0",
     "mypy>=1.0",
 ]
-openai = ["pydantic-ai[openai]"]
-anthropic = ["pydantic-ai[anthropic]"]
-gemini = ["pydantic-ai[gemini]"]
+otel = [
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+]
 
 [project.urls]
 Homepage = "https://github.com/agentmark/agentmark"
@@ -48,7 +47,7 @@ Documentation = "https://github.com/agentmark/agentmark#readme"
 Repository = "https://github.com/agentmark/agentmark"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agentmark_pydantic_ai_v0"]
+packages = ["src/agentmark_claude_agent_sdk"]
 
 [tool.ruff]
 target-version = "py312"
@@ -75,7 +74,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agentmark_pydantic_ai_v0", "agentmark"]
+known-first-party = ["agentmark_claude_agent_sdk", "agentmark"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ARG001", "ARG002", "ARG005"]  # Allow unused args in test mocks/fixtures
@@ -97,7 +96,7 @@ follow_imports = "normal"
 ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
-module = ["pydantic_ai.*"]
+module = ["claude_agent_sdk.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

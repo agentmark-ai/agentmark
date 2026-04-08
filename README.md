@@ -114,8 +114,8 @@ AgentMark doesn't call LLM APIs directly. Instead, adapters format your prompt f
 | [Vercel AI SDK v5](https://docs.agentmark.co/agentmark/running_prompts/vercel) | TypeScript | `@agentmark-ai/ai-sdk-v5-adapter` |
 | [Vercel AI SDK v4](https://docs.agentmark.co/agentmark/running_prompts/vercel) | TypeScript | `@agentmark-ai/ai-sdk-v4-adapter` |
 | [Mastra](https://docs.agentmark.co/agentmark/running_prompts/mastra) | TypeScript | `@agentmark-ai/mastra-v0-adapter` |
-| [Claude Agent SDK](https://docs.agentmark.co/agentmark/running_prompts/claude-agent-sdk) | TypeScript | `@agentmark-ai/claude-agent-sdk-v0-adapter` |
-| [Claude Agent SDK](https://docs.agentmark.co/agentmark/running_prompts/claude-agent-sdk) | Python | `agentmark-claude-agent-sdk-v0` |
+| [Claude Agent SDK](https://docs.agentmark.co/agentmark/running_prompts/claude-agent-sdk) | TypeScript | `@agentmark-ai/claude-agent-sdk-adapter` |
+| [Claude Agent SDK](https://docs.agentmark.co/agentmark/running_prompts/claude-agent-sdk) | Python | `agentmark-claude-agent-sdk` |
 | [Pydantic AI](https://docs.agentmark.co/agentmark/running_prompts/pydantic-ai) | Python | `agentmark-pydantic-ai` |
 | [Fallback](https://docs.agentmark.co/agentmark/running_prompts/default) | TypeScript | `@agentmark-ai/fallback-adapter` |
 

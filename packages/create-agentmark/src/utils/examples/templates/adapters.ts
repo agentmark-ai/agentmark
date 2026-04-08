@@ -36,7 +36,7 @@ export const createAdapterConfig = (
       },
     },
     "claude-agent-sdk": {
-      package: "@agentmark-ai/claude-agent-sdk-v0-adapter",
+      package: "@agentmark-ai/claude-agent-sdk-adapter",
       dependencies: ["@anthropic-ai/claude-agent-sdk@^0.1.0"],
       classes: {
         modelRegistry: "ClaudeAgentModelRegistry",

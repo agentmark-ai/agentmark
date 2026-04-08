@@ -144,7 +144,7 @@ description = "An AgentMark application using Claude Agent SDK"
 requires-python = ">=3.12"
 dependencies = [
     "agentmark-sdk>=0.1.0",
-    "agentmark-claude-agent-sdk-v0>=0.1.0",
+    "agentmark-claude-agent-sdk>=0.1.0",
     "agentmark-prompt-core>=0.1.0",
     "python-dotenv>=1.0.0",
     "claude-agent-sdk>=0.1.0",
