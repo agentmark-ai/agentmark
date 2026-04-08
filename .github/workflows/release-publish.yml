@@ -112,6 +112,44 @@ jobs:
       - name: Install build tools
         run: pip install build twine
 
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push git tags
+        run: |
+          PYTHON_PACKAGES=(
+            "packages/sdk-python:agentmark-sdk"
+            "packages/prompt-core-python:agentmark-prompt-core"
+            "packages/templatedx-python:agentmark-templatedx"
+            "packages/claude-agent-sdk-v0-adapter-python:agentmark-claude-agent-sdk-v0"
+            "packages/pydantic-ai-v0-adapter:agentmark-pydantic-ai-v0"
+          )
+
+          for entry in "${PYTHON_PACKAGES[@]}"; do
+            pkg_dir="${entry%%:*}"
+            pkg_name="${entry##*:}"
+
+            [ -f "$pkg_dir/pyproject.toml" ] || continue
+
+            pkg_version=$(python -c "
+          import tomllib, pathlib
+          data = tomllib.loads(pathlib.Path('$pkg_dir/pyproject.toml').read_text())
+          print(data['project']['version'])
+          ")
+
+            # Skip packages not ready for release
+            [ "$pkg_version" = "0.0.0" ] && continue
+
+            tag="${pkg_name}@${pkg_version}"
+            if ! git rev-parse "$tag" >/dev/null 2>&1; then
+              echo "Creating tag: $tag"
+              git tag "$tag"
+            fi
+          done
+          git push --tags
+
       - name: Build and publish Python packages
         run: |
           PYTHON_PACKAGES=(
