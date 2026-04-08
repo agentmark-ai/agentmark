@@ -1,17 +1,16 @@
-import { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-const nextConfig: NextConfig = {
+const nextConfig = {
     distDir: "./dist/.next",
-redirects: async () => {
+    redirects: async () => {
         return [
             {
                 source: "/",
                 destination: "/requests",
-                permanent: true
-            }
-        ]
-    }
+                permanent: true,
+            },
+        ];
+    },
 };
 
 const withNextIntl = createNextIntlPlugin();
