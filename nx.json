@@ -44,10 +44,7 @@
       "push": false
     },
     "version": {
-      "fallbackCurrentVersionResolver": "disk",
-      "versionActionsOptions": {
-        "skipLockFileUpdate": true
-      }
+      "fallbackCurrentVersionResolver": "disk"
     },
     "releaseTag": {
       "pattern": "{projectName}@{version}"
