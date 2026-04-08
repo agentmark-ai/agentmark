@@ -1,3 +1,9 @@
+## 0.10.3 (2026-04-08)
+
+### 🧱 Updated Dependencies
+
+- Updated `@agentmark-ai/model-registry` to `0.2.1`. The previously pinned `0.2.0` was a broken publish that shipped raw TypeScript source instead of compiled JS, which caused `npx @agentmark-ai/cli ui` to crash on Node ≥22.6 with `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`. Bumping the pin picks up the republished `0.2.1` that ships `dist/index.js` and a correct `main` field.
+
 ## 0.10.2 (2026-04-08)
 
 ### 🩹 Fixes
