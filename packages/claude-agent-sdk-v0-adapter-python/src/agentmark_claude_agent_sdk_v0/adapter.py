@@ -80,7 +80,7 @@ class ClaudeAgentAdapter:
     - Includes permission system for tool access control
 
     Example:
-        from agentmark_claude_agent_sdk import (
+        from agentmark_claude_agent_sdk_v0 import (
             ClaudeAgentAdapter,
             ClaudeAgentModelRegistry,
         )

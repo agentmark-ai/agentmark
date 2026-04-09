@@ -11,7 +11,7 @@ pip install agentmark-claude-agent-sdk-v0
 ## Usage
 
 ```python
-from agentmark_claude_agent_sdk import (
+from agentmark_claude_agent_sdk_v0 import (
     create_claude_agent_client,
     ClaudeAgentModelRegistry,
     ClaudeAgentAdapterOptions,

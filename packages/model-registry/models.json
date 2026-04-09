@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-04-08T00:52:12.855Z",
+  "generatedAt": "2026-04-09T00:44:36.550Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-04-08T00:52:12.855Z",
+      "fetchedAt": "2026-04-09T00:44:36.550Z",
       "modelCount": 1168
     },
     "openrouter": {
-      "fetchedAt": "2026-04-08T00:52:12.855Z",
+      "fetchedAt": "2026-04-09T00:44:36.550Z",
       "modelCount": 127
     }
   },
@@ -20489,32 +20489,6 @@
         "functionCalling": true
       }
     },
-    "command-r-plus-08-2024": {
-      "provider": "cohere",
-      "displayName": "Cohere: Command R+ (08-2024)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 0.0000025,
-        "outputCostPerToken": 0.00001
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 4000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
-    },
     "command-r-08-2024": {
       "provider": "cohere",
       "displayName": "Cohere: Command R (08-2024)",
@@ -20531,6 +20505,32 @@
       "pricing": {
         "inputCostPerToken": 1.5e-7,
         "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "command-r-plus-08-2024": {
+      "provider": "cohere",
+      "displayName": "Cohere: Command R+ (08-2024)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.00001
       },
       "context": {
         "maxInputTokens": 128000,
@@ -20643,7 +20643,6 @@
       "source": "openrouter",
       "supportedParameters": [
         "frequency_penalty",
-        "max_tokens",
         "presence_penalty",
         "temperature",
         "top_p"

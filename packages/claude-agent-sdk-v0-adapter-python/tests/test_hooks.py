@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agentmark_claude_agent_sdk.hooks.telemetry_hooks import (
+from agentmark_claude_agent_sdk_v0.hooks.telemetry_hooks import (
     TelemetryConfig,
     TelemetryEvent,
     create_telemetry_hooks,

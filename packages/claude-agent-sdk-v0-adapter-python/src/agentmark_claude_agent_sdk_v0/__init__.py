@@ -4,7 +4,7 @@ This package provides integration between AgentMark prompts and Claude Agent SDK
 for agentic AI interactions in Python.
 
 Example:
-    from agentmark_claude_agent_sdk import (
+    from agentmark_claude_agent_sdk_v0 import (
         create_claude_agent_client,
         ClaudeAgentModelRegistry,
         ClaudeAgentAdapterOptions,

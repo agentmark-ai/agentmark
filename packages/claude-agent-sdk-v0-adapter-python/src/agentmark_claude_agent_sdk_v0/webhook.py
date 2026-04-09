@@ -69,7 +69,7 @@ class ClaudeAgentWebhookHandler:
     to execute prompts with the Claude Agent SDK and return results.
 
     Example:
-        from agentmark_claude_agent_sdk import ClaudeAgentWebhookHandler
+        from agentmark_claude_agent_sdk_v0 import ClaudeAgentWebhookHandler
 
         handler = ClaudeAgentWebhookHandler(client)
 

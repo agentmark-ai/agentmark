@@ -45,7 +45,7 @@ dependencies = [
   Repository = "https://github.com/agentmark/agentmark"
 
 [tool.hatch.build.targets.wheel]
-packages = [ "src/agentmark_claude_agent_sdk" ]
+packages = [ "src/agentmark_claude_agent_sdk_v0" ]
 
 [tool.ruff]
 target-version = "py312"
@@ -56,7 +56,7 @@ line-length = 100
   ignore = [ "E501", "B008", "B905", "UP046", "UP047" ]
 
     [tool.ruff.lint.isort]
-    known-first-party = [ "agentmark_claude_agent_sdk", "agentmark" ]
+    known-first-party = [ "agentmark_claude_agent_sdk_v0", "agentmark" ]
 
     [tool.ruff.lint.per-file-ignores]
     "tests/**/*.py" = [ "ARG001", "ARG002", "ARG005" ]

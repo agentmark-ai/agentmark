@@ -18,6 +18,7 @@ import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
 import createDeployCommand from './commands/deploy';
+import createExportCommand from './commands/export-traces';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
 // Start async update check early (non-blocking)
@@ -202,6 +203,7 @@ program
   });
 
 program.addCommand(createDeployCommand());
+program.addCommand(createExportCommand());
 
 // Parse and run command, then display update notification
 // Using parseAsync ensures notification displays after command completes
