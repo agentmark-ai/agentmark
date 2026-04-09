@@ -37,6 +37,7 @@
     "@mui/material-nextjs": "^7.3.3",
     "@mui/x-data-grid": "^8.14.1",
     "@mui/x-date-pickers": "^8.14.1",
+    "@opentelemetry/otlp-transformer": "^0.203.0",
     "@types/lodash": "^4.14.202",
     "apexcharts": "^3.48.0",
     "better-sqlite3": "^12.4.1",

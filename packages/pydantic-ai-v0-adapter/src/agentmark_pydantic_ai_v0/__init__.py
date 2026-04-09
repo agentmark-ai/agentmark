@@ -32,6 +32,7 @@ MCP (Model Context Protocol) Example:
 
 from __future__ import annotations
 
+from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING, Any
 
 from agentmark.prompt_core import AgentMark, EvalRegistry
@@ -149,4 +150,7 @@ def create_pydantic_ai_client(
     )
 
 
-__version__ = "0.1.0"
+# Read the runtime version from installed dist metadata so __version__ can never
+# drift against pyproject.toml across releases (the previous hardcoded "0.1.0"
+# was one patch behind "0.1.1" shipped in the actual PyPI dist).
+__version__ = _pkg_version("agentmark-pydantic-ai-v0")

@@ -34,9 +34,8 @@ Example:
 
 from __future__ import annotations
 
+from importlib.metadata import version as _pkg_version
 from typing import Any
-
-__version__ = "0.0.0"
 
 # Import core classes
 from .adapter import ClaudeAgentAdapter
@@ -55,10 +54,15 @@ from .hooks import (
     create_telemetry_hooks,
     merge_hooks,
 )
-
 from .model_registry import (
     ClaudeAgentModelRegistry,
 )
+
+# Import webhook server
+from .server import create_webhook_server
+
+# Import tracing wrapper
+from .traced import generate_fallback_trace_id, traced_query
 
 # Import types
 from .types import (
@@ -95,9 +99,6 @@ from .types import (
     is_user_prompt_submit_input,
 )
 
-# Import tracing wrapper
-from .traced import traced_query, generate_fallback_trace_id
-
 # Import webhook handler
 from .webhook import (
     ClaudeAgentWebhookHandler,
@@ -105,9 +106,6 @@ from .webhook import (
     StreamingResult,
     WebhookResult,
 )
-
-# Import webhook server
-from .server import create_webhook_server
 
 
 def create_claude_agent_client(
@@ -240,3 +238,8 @@ __all__ = [
     "ExperimentResult",
     "generate_fallback_trace_id",
 ]
+
+# Read runtime __version__ from installed dist metadata to prevent drift
+# against pyproject.toml across releases. See pydantic-ai-v0-adapter for
+# the same pattern and rationale.
+__version__ = _pkg_version("agentmark-claude-agent-sdk-v0")

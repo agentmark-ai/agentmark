@@ -270,6 +270,51 @@ class TestRunExperimentSampling:
             dataset_path="./test.jsonl", sampling={"rows": [0]}
         )
 
+    @pytest.mark.asyncio
+    async def test_run_experiment_accepts_commit_sha_positional(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: server.py dispatcher passes commit_sha as the 5th positional arg.
+
+        Before the fix restoring commit_sha threading, run_experiment only accepted
+        4 arguments (ignoring `self`). When server.py started forwarding
+        ``data.get("commitSha")`` after PR #1754, every dataset-run call crashed with:
+            TypeError: run_experiment() takes 5 positional arguments but 6 were given
+
+        This test calls run_experiment with all 5 positional arguments exactly the
+        way the server.py dispatcher does, verifying the signature and the internal
+        propagation through _stream_experiment / _stream_text_experiment all accept
+        the parameter without raising.
+        """
+        prompt_ast: dict[str, Any] = {
+            "type": "root",
+            "children": [
+                {
+                    "type": "yaml",
+                    "value": "text_config:\n  model_name: test\ntest_settings:\n  dataset: ./test.jsonl",
+                }
+            ],
+            "data": {},
+        }
+
+        # Exact call shape from server.py:78-84 — five positional args,
+        # commit_sha in the 5th slot.
+        result = await handler.run_experiment(
+            prompt_ast,
+            "run-commit-sha",
+            None,              # dataset_path
+            None,              # sampling
+            "abc123def456",    # commit_sha — this 5th positional arg was crashing
+        )
+
+        assert "stream" in result
+        assert "streamHeaders" in result
+
+        # Consume the stream to exercise _stream_experiment →
+        # _stream_text_experiment and verify commit_sha propagates without error.
+        async for _ in result["stream"]:
+            pass
+
 
 @pytest.mark.asyncio
 class TestStreamTextDelta:

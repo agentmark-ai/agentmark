@@ -30,6 +30,8 @@ Example:
     )
 """
 
+from importlib.metadata import version as _pkg_version
+
 from .config import (
     AGENTMARK_KEY,
     AGENTMARK_SCORE_ENDPOINT,
@@ -68,4 +70,7 @@ __all__ = [
     "DEFAULT_BASE_URL",
 ]
 
-__version__ = "0.1.0"
+# Read runtime __version__ from installed dist metadata to prevent drift
+# against pyproject.toml across releases. See pydantic-ai-v0-adapter for
+# the same pattern and rationale.
+__version__ = _pkg_version("agentmark-sdk")
