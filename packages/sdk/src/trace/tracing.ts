@@ -13,12 +13,15 @@ import {
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { AGENTMARK_TRACE_ENDPOINT } from "../config";
 import { serializeValue } from "./serialize";
+import { MaskingSpanProcessor } from "./masking-processor";
+import type { MaskFunction } from "./masking-processor";
 
 type InitProps = {
   apiKey: string;
   appId: string;
   baseUrl: string;
   disableBatch: boolean;
+  mask?: MaskFunction;
 };
 
 export const initialize = ({
@@ -26,6 +29,7 @@ export const initialize = ({
   appId,
   baseUrl,
   disableBatch,
+  mask,
 }: InitProps) => {
   // Append the standard OTLP endpoint path to all URLs
   const exporterUrl = `${baseUrl}/${AGENTMARK_TRACE_ENDPOINT}`;
@@ -38,9 +42,22 @@ export const initialize = ({
     },
   });
 
-  const spanProcessor = disableBatch
+  const hideInputs = process.env.AGENTMARK_HIDE_INPUTS === "true";
+  const hideOutputs = process.env.AGENTMARK_HIDE_OUTPUTS === "true";
+
+  const innerProcessor = disableBatch
     ? new SimpleSpanProcessor(otlpExporter)
     : new BatchSpanProcessor(otlpExporter);
+
+  const spanProcessor =
+    mask || hideInputs || hideOutputs
+      ? new MaskingSpanProcessor({
+          innerProcessor,
+          mask,
+          hideInputs,
+          hideOutputs,
+        })
+      : innerProcessor;
 
   const resource = defaultResource().merge(
     resourceFromAttributes({

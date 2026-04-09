@@ -1,11 +1,13 @@
 import { AGENTMARK_SCORE_ENDPOINT } from "./config";
 import { initialize } from "./trace";
 import { ApiLoader } from "@agentmark-ai/loader-api";
+import type { MaskFunction } from "./trace";
 
 type AgentmarkProps = {
   apiKey: string;
   appId: string;
   baseUrl?: string;
+  mask?: MaskFunction;
 };
 
 type DefaultIO = {
@@ -30,13 +32,15 @@ export class AgentMarkSDK<
   private apiKey: string;
   private appId: string;
   private baseUrl: string = "https://api.agentmark.co";
+  private mask?: MaskFunction;
 
   constructor(
-    { apiKey, appId, baseUrl }: AgentmarkProps
+    { apiKey, appId, baseUrl, mask }: AgentmarkProps
   ) {
     this.apiKey = apiKey;
     this.appId = appId;
     this.baseUrl = baseUrl || this.baseUrl;
+    this.mask = mask;
   }
 
   initTracing({ disableBatch }: { disableBatch?: boolean } = {}) {
@@ -45,6 +49,7 @@ export class AgentMarkSDK<
       appId: this.appId,
       baseUrl: this.baseUrl,
       disableBatch: !!disableBatch,
+      mask: this.mask,
     });
   }
 

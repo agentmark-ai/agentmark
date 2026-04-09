@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import httpx
@@ -16,6 +17,7 @@ from .config import (
     AGENTMARK_TRACE_ENDPOINT,
     DEFAULT_BASE_URL,
 )
+from .masking_processor import MaskFunction, MaskingSpanProcessor
 from .sampler import AgentmarkSampler
 
 
@@ -50,6 +52,7 @@ class AgentMarkSDK:
         api_key: str,
         app_id: str,
         base_url: str = DEFAULT_BASE_URL,
+        mask: MaskFunction | None = None,
     ) -> None:
         """Initialize the SDK.
 
@@ -57,10 +60,13 @@ class AgentMarkSDK:
             api_key: AgentMark API key.
             app_id: AgentMark application ID.
             base_url: Base URL for the AgentMark API.
+            mask: Optional function ``(str) -> str`` that redacts sensitive
+                span attribute values before export.
         """
         self._api_key = api_key
         self._app_id = app_id
         self._base_url = base_url.rstrip("/")
+        self._mask = mask
         self._tracer_provider: TracerProvider | None = None
 
     @property
@@ -104,11 +110,26 @@ class AgentMarkSDK:
             },
         )
 
-        processor: SimpleSpanProcessor | BatchSpanProcessor
+        inner_processor: SimpleSpanProcessor | BatchSpanProcessor
         if disable_batch:
-            processor = SimpleSpanProcessor(exporter)
+            inner_processor = SimpleSpanProcessor(exporter)
         else:
-            processor = BatchSpanProcessor(exporter)
+            inner_processor = BatchSpanProcessor(exporter)
+
+        hide_inputs = os.environ.get("AGENTMARK_HIDE_INPUTS", "").lower() == "true"
+        hide_outputs = os.environ.get("AGENTMARK_HIDE_OUTPUTS", "").lower() == "true"
+
+        needs_masking = self._mask is not None or hide_inputs or hide_outputs
+        processor: MaskingSpanProcessor | SimpleSpanProcessor | BatchSpanProcessor
+        if needs_masking:
+            processor = MaskingSpanProcessor(
+                inner=inner_processor,
+                mask=self._mask,
+                hide_inputs=hide_inputs,
+                hide_outputs=hide_outputs,
+            )
+        else:
+            processor = inner_processor
 
         resource = Resource.create(
             {
