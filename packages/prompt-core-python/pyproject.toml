@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentmark-prompt-core"
-version = "0.1.1"
+version = "0.1.2"
 description = "Python prompt-core package for AgentMark - high-level runtime for working with AgentMark prompts"
 readme = "README.md"
 license = "MIT"
