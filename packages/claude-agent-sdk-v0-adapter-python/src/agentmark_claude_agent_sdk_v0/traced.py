@@ -5,7 +5,7 @@ Handles SDK execution (ClaudeSDKClient lifecycle), OTEL env stripping,
 hook merging, and automatic tracing — keeping the webhook handler thin.
 
 Example:
-    from agentmark_claude_agent_sdk.traced import traced_query
+    from agentmark_claude_agent_sdk_v0.traced import traced_query
 
     adapted = await prompt.format(props=my_props, telemetry={"isEnabled": True})
     async for message in traced_query(adapted):

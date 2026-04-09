@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from agentmark_claude_agent_sdk.model_registry import (
+from agentmark_claude_agent_sdk_v0.model_registry import (
     ClaudeAgentModelRegistry,
     ModelConfig,
 )

@@ -9,11 +9,11 @@ from typing import Any
 
 import pytest
 
-from agentmark_claude_agent_sdk.adapter import ClaudeAgentAdapter
-from agentmark_claude_agent_sdk.model_registry import (
+from agentmark_claude_agent_sdk_v0.adapter import ClaudeAgentAdapter
+from agentmark_claude_agent_sdk_v0.model_registry import (
     ClaudeAgentModelRegistry,
 )
-from agentmark_claude_agent_sdk.types import ClaudeAgentAdapterOptions, ModelConfig
+from agentmark_claude_agent_sdk_v0.types import ClaudeAgentAdapterOptions, ModelConfig
 
 
 class TestClaudeAgentAdapterTextPrompts:

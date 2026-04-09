@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agentmark_claude_agent_sdk.webhook import (
+from agentmark_claude_agent_sdk_v0.webhook import (
     ClaudeAgentWebhookHandler,
 )
 
@@ -56,7 +56,7 @@ def _to_sdk_message(d: dict[str, Any]) -> Any:
     return d
 
 
-TRACED_QUERY_PATH = "agentmark_claude_agent_sdk.traced.traced_query"
+TRACED_QUERY_PATH = "agentmark_claude_agent_sdk_v0.traced.traced_query"
 
 
 def make_mock_traced_query(messages: list[dict[str, Any]]):
