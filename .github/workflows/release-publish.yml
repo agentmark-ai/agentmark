@@ -240,11 +240,6 @@ jobs:
               notes="Release ${pkg_name}@${pkg_version}"
             fi
 
-            # Fall back to generic note if changelog section was empty
-            if [ -z "$notes" ]; then
-              notes="Release ${pkg_name}@${pkg_version}"
-            fi
-
             echo "Creating release: $tag"
             gh release create "$tag" --title "$tag" --notes "$notes"
           done
