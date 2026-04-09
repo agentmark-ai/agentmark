@@ -40,6 +40,8 @@ from .config import (
     METADATA_KEY,
 )
 from .decorator import SpanKind, observe
+from .masking_processor import MaskFunction, MaskingSpanProcessor
+from .pii_masker import CustomPattern, PiiMaskerConfig, create_pii_masker
 from .sampler import AgentmarkSampler
 from .sdk import AgentMarkSDK
 from .serialize import serialize_value
@@ -62,6 +64,12 @@ __all__ = [
     "serialize_value",
     # Sampler
     "AgentmarkSampler",
+    # Masking
+    "MaskFunction",
+    "MaskingSpanProcessor",
+    "create_pii_masker",
+    "PiiMaskerConfig",
+    "CustomPattern",
     # Config
     "AGENTMARK_KEY",
     "METADATA_KEY",
