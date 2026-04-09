@@ -339,6 +339,7 @@ class PydanticAIWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None = None,
         sampling: dict[str, Any] | None = None,
+        commit_sha: str | None = None,
     ) -> dict[str, Any]:
         """Run an experiment across a dataset.
 
@@ -350,6 +351,12 @@ class PydanticAIWebhookHandler:
             dataset_run_name: Name for this experiment run.
             dataset_path: Optional path to dataset file. If not provided,
                 uses the dataset path from test_settings in the prompt.
+            sampling: Optional sampling configuration for dataset rows.
+            commit_sha: Optional git commit SHA to tag experiment runs with
+                for version tracking. Forwarded by server.py dispatcher from
+                the webhook payload; currently threaded through but not yet
+                attached to spans (the span instrumentation was removed from
+                this adapter; re-add when re-instrumenting).
 
         Returns:
             Dict with:
@@ -377,6 +384,7 @@ class PydanticAIWebhookHandler:
                 dataset_run_name,
                 resolved_dataset_path,
                 sampling,
+                commit_sha,
             ),
             "streamHeaders": {"AgentMark-Streaming": "true"},
         }
@@ -389,6 +397,7 @@ class PydanticAIWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None,
         sampling: dict[str, Any] | None = None,
+        commit_sha: str | None = None,
     ) -> AsyncIterator[str]:
         """Stream experiment results.
 
@@ -396,13 +405,15 @@ class PydanticAIWebhookHandler:
         """
         if frontmatter.get("text_config"):
             async for chunk in self._stream_text_experiment(
-                prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling
+                prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling,
+                commit_sha,
             ):
                 yield chunk
 
         elif frontmatter.get("object_config"):
             async for chunk in self._stream_object_experiment(
-                prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling
+                prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling,
+                commit_sha,
             ):
                 yield chunk
 
@@ -498,6 +509,7 @@ class PydanticAIWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None,
         sampling: dict[str, Any] | None = None,
+        commit_sha: str | None = None,  # noqa: ARG002 — reserved for span metadata when instrumentation is restored
     ) -> AsyncIterator[str]:
         """Stream text experiment results."""
         prompt = await self._client.load_text_prompt(prompt_ast)
@@ -562,6 +574,7 @@ class PydanticAIWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None,
         sampling: dict[str, Any] | None = None,
+        commit_sha: str | None = None,  # noqa: ARG002 — reserved for span metadata when instrumentation is restored
     ) -> AsyncIterator[str]:
         """Stream object experiment results."""
         prompt = await self._client.load_object_prompt(prompt_ast)

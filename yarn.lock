@@ -126,6 +126,7 @@ __metadata:
     "@mui/material-nextjs": "npm:^7.3.3"
     "@mui/x-data-grid": "npm:^8.14.1"
     "@mui/x-date-pickers": "npm:^8.14.1"
+    "@opentelemetry/otlp-transformer": "npm:^0.203.0"
     "@types/better-sqlite3": "npm:^7.6.13"
     "@types/cors": "npm:^2"
     "@types/express": "npm:^5"

@@ -1,9 +1,11 @@
 """AgentMark Prompt Core - Python implementation."""
 
+from importlib.metadata import version as _pkg_version
+
 from .adapters import Adapter, DefaultAdapter
 from .agentmark import AgentMark, create_agentmark
-from .eval_registry import EvalRegistry
 from .api_loader import ApiDatasetReader, ApiDatasetStream, ApiLoader
+from .eval_registry import EvalRegistry
 from .loaders import FileDatasetReader, FileDatasetStream, FileLoader
 from .mcp import (
     McpServerConfig,
@@ -141,4 +143,7 @@ __all__ = [
     "NormalizedTool",
 ]
 
-__version__ = "0.1.0"
+# Read runtime __version__ from installed dist metadata to prevent drift
+# against pyproject.toml across releases. See pydantic-ai-v0-adapter for
+# the same pattern and rationale.
+__version__ = _pkg_version("agentmark-prompt-core")
