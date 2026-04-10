@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-04-09T00:44:36.550Z",
+  "generatedAt": "2026-04-10T00:51:51.439Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-04-09T00:44:36.550Z",
+      "fetchedAt": "2026-04-10T00:51:51.439Z",
       "modelCount": 1168
     },
     "openrouter": {
-      "fetchedAt": "2026-04-09T00:44:36.550Z",
+      "fetchedAt": "2026-04-10T00:51:51.439Z",
       "modelCount": 127
     }
   },
@@ -6049,16 +6049,16 @@
         "pdfInput": true
       }
     },
-    "us-gov-east-1/claude-sonnet-4-5-20250929-v1:0": {
+    "us-gov-east-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "provider": "bedrock",
-      "displayName": "Us Gov East 1/claude Sonnet 4 5 20250929 V1:0",
+      "displayName": "Us Gov East 1/anthropic.claude Sonnet 4 5 20250929 V1:0",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000036,
-        "outputCostPerToken": 0.000018,
-        "cacheCreationCostPerToken": 0.0000045,
-        "cacheReadCostPerToken": 3.6e-7
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6073,9 +6073,9 @@
         "pdfInput": true
       }
     },
-    "us-gov-east-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
+    "us-gov-east-1/claude-sonnet-4-5-20250929-v1:0": {
       "provider": "bedrock",
-      "displayName": "Us Gov East 1/anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "displayName": "Us Gov East 1/claude Sonnet 4 5 20250929 V1:0",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
@@ -6288,16 +6288,16 @@
         "pdfInput": true
       }
     },
-    "us-gov-west-1/claude-sonnet-4-5-20250929-v1:0": {
+    "us-gov-west-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "provider": "bedrock",
-      "displayName": "Us Gov West 1/claude Sonnet 4 5 20250929 V1:0",
+      "displayName": "Us Gov West 1/anthropic.claude Sonnet 4 5 20250929 V1:0",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000036,
-        "outputCostPerToken": 0.000018,
-        "cacheCreationCostPerToken": 0.0000045,
-        "cacheReadCostPerToken": 3.6e-7
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6312,9 +6312,9 @@
         "pdfInput": true
       }
     },
-    "us-gov-west-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
+    "us-gov-west-1/claude-sonnet-4-5-20250929-v1:0": {
       "provider": "bedrock",
-      "displayName": "Us Gov West 1/anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "displayName": "Us Gov West 1/claude Sonnet 4 5 20250929 V1:0",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
