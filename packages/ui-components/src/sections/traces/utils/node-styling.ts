@@ -45,6 +45,16 @@ export function getNodeTypeStyle(
         color: theme.palette.secondary.main,
         icon: "mdi:account-cog-outline",
       };
+    case "embedding":
+      return {
+        color: "#00897b",
+        icon: "mdi:vector-combine",
+      };
+    case "guardrail":
+      return {
+        color: "#e53935",
+        icon: "mdi:shield-check-outline",
+      };
     case "start":
       return {
         color: theme.palette.success.main,

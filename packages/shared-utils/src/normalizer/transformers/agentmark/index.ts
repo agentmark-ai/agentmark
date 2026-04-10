@@ -96,6 +96,11 @@ export class AgentMarkTransformer implements ScopeTransformer {
             return SpanType.GENERATION;
         }
 
+        // Embedding operations are generations too (they have tokens/cost)
+        if (operationName === OperationNames.EMBEDDINGS) {
+            return SpanType.GENERATION;
+        }
+
         // OTEL convention: "chat" or "chat {model}" format
         if (span.name === SpanNames.CHAT || span.name.startsWith(SpanNames.CHAT + ' ')) {
             return SpanType.GENERATION;

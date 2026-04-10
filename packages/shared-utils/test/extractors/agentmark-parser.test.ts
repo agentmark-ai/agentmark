@@ -44,7 +44,7 @@ describe('AgentMark Parser', () => {
 
       const result = parseAgentMarkAttributes(attributes);
 
-      expect(result.kind).toBe('tool');
+      expect(result.semanticKind).toBe('tool');
     });
 
     it('should extract all fields together', () => {
@@ -67,7 +67,7 @@ describe('AgentMark Parser', () => {
       expect(result.sessionName).toBe('test-session');
       expect(result.userId).toBe('user-456');
       expect(result.traceName).toBe('test-trace');
-      expect(result.kind).toBe('llm');
+      expect(result.semanticKind).toBe('llm');
       expect(result.datasetRunId).toBe('run-789');
       expect(result.datasetRunName).toBe('test-run');
       expect(result.datasetItemName).toBe('item-1');

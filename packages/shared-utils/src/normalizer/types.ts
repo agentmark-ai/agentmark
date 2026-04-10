@@ -112,6 +112,7 @@ export interface NormalizedSpan {
     // Span metadata
     name: string;
     kind: string;
+    semanticKind?: string;
     serviceName?: string;
     statusCode: string;
     statusMessage?: string;

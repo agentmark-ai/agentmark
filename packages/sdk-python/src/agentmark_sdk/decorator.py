@@ -31,6 +31,21 @@ class SpanKind(str, Enum):
     FUNCTION = "function"
     LLM = "llm"
     TOOL = "tool"
+    AGENT = "agent"
+    RETRIEVAL = "retrieval"
+    EMBEDDING = "embedding"
+    GUARDRAIL = "guardrail"
+
+
+_OPENINFERENCE_KIND_MAP = {
+    "function": "CHAIN",
+    "llm": "LLM",
+    "tool": "TOOL",
+    "agent": "AGENT",
+    "retrieval": "RETRIEVER",
+    "embedding": "EMBEDDING",
+    "guardrail": "GUARDRAIL",
+}
 
 
 def _capture_inputs(
@@ -131,6 +146,7 @@ def observe(
             tracer = otel_trace.get_tracer("agentmark")
             with tracer.start_as_current_span(span_name) as span:
                 span.set_attribute(SPAN_KIND_KEY, kind.value)
+                span.set_attribute("openinference.span.kind", _OPENINFERENCE_KIND_MAP.get(kind.value, "CHAIN"))
 
                 if capture_input:
                     input_str = _capture_inputs(fn, args, kwargs, process_inputs)
@@ -154,6 +170,7 @@ def observe(
             tracer = otel_trace.get_tracer("agentmark")
             with tracer.start_as_current_span(span_name) as span:
                 span.set_attribute(SPAN_KIND_KEY, kind.value)
+                span.set_attribute("openinference.span.kind", _OPENINFERENCE_KIND_MAP.get(kind.value, "CHAIN"))
 
                 if capture_input:
                     input_str = _capture_inputs(fn, args, kwargs, process_inputs)

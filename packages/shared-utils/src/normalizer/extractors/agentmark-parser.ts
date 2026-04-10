@@ -28,7 +28,8 @@ export function parseAgentMarkAttributes(
     if (get('props')) result.props = String(get('props'));
 
     // Span Kind (set by @traced decorator / traced() wrapper)
-    if (get('span.kind')) result.kind = String(get('span.kind'));
+    // Route to semanticKind — keep kind as OTel-only (see Hazard 1 in issue #1817)
+    if (get('span.kind')) result.semanticKind = String(get('span.kind'));
 
     // Dataset / Evaluation Context
     if (get('dataset_run_id')) result.datasetRunId = String(get('dataset_run_id'));
