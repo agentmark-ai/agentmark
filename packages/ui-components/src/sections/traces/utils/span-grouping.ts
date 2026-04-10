@@ -19,6 +19,7 @@ export interface SpanForGrouping {
     type?: string;
     toolCalls?: string;
     spanKind?: string;
+    semanticKind?: string;
   };
 }
 
@@ -32,6 +33,8 @@ export type WorkflowNodeType =
   | "tool"
   | "agent"
   | "retrieval"
+  | "embedding"
+  | "guardrail"
   | "router"
   | "memory"
   | "default"
@@ -107,14 +110,14 @@ export function groupSpansByKey(
 
 /** Valid span kind values that can be set via the SDK's @traced decorator / traced() wrapper. */
 const VALID_SPAN_KINDS = new Set<WorkflowNodeType>([
-  "function", "llm", "tool", "agent", "retrieval", "router", "memory",
+  "function", "llm", "tool", "agent", "retrieval", "embedding", "guardrail", "router", "memory",
 ]);
 
 /**
  * Infers the node type from span data for automatic styling.
  *
  * Priority:
- * 1. Explicit agentmark.span.kind attribute (set by SDK) — single source of truth
+ * 1. Resolved semanticKind (pipeline) → raw kind → spanKind attribute
  * 2. GENERATION type → "llm"
  * 3. Has tool calls → "tool"
  * 4. Has children with LLM/tool activity → "agent"
@@ -129,8 +132,8 @@ export function inferNodeType(
   span: SpanForGrouping,
   hasChildren: boolean = false
 ): WorkflowNodeType {
-  // 1. Explicit span kind from SDK (agentmark.span.kind attribute)
-  const explicitKind = span.kind || span.data?.spanKind;
+  // 1. Explicit span kind — prefer semanticKind (resolved by pipeline), fall back to raw attributes
+  const explicitKind = span.data?.semanticKind || span.kind || span.data?.spanKind;
   if (explicitKind && VALID_SPAN_KINDS.has(explicitKind as WorkflowNodeType)) {
     return explicitKind as WorkflowNodeType;
   }

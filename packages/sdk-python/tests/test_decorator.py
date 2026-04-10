@@ -327,3 +327,89 @@ class TestObserveDecorator:
 
             assert await func_with_parens() == "ok"
             assert await func_without_parens() == "ok"
+
+    @pytest.mark.parametrize(
+        "kind,expected",
+        [
+            (SpanKind.AGENT, "agent"),
+            (SpanKind.RETRIEVAL, "retrieval"),
+            (SpanKind.EMBEDDING, "embedding"),
+            (SpanKind.GUARDRAIL, "guardrail"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_new_span_kinds(self, kind: SpanKind, expected: str) -> None:
+        """Sets agentmark.span.kind for new span kind values."""
+        mock_otel_mod, _, mock_span = _mock_otel()
+
+        with patch("agentmark_sdk.decorator.otel_trace", mock_otel_mod):
+
+            @observe(kind=kind)
+            async def my_func() -> str:
+                return "ok"
+
+            await my_func()
+
+        calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
+        assert calls["agentmark.span.kind"] == expected
+
+    @pytest.mark.asyncio
+    async def test_openinference_attribute_async(self) -> None:
+        """Async function sets both agentmark and openinference span kind attributes."""
+        mock_otel_mod, _, mock_span = _mock_otel()
+
+        with patch("agentmark_sdk.decorator.otel_trace", mock_otel_mod):
+
+            @observe(kind=SpanKind.TOOL)
+            async def my_tool() -> str:
+                return "ok"
+
+            await my_tool()
+
+        calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
+        assert calls["agentmark.span.kind"] == "tool"
+        assert calls["openinference.span.kind"] == "TOOL"
+
+    def test_openinference_attribute_sync(self) -> None:
+        """Sync function sets both agentmark and openinference span kind attributes."""
+        mock_otel_mod, _, mock_span = _mock_otel()
+
+        with patch("agentmark_sdk.decorator.otel_trace", mock_otel_mod):
+
+            @observe(kind=SpanKind.TOOL)
+            def my_tool() -> str:
+                return "ok"
+
+            my_tool()
+
+        calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
+        assert calls["agentmark.span.kind"] == "tool"
+        assert calls["openinference.span.kind"] == "TOOL"
+
+    @pytest.mark.parametrize(
+        "kind,expected_oi",
+        [
+            (SpanKind.FUNCTION, "CHAIN"),
+            (SpanKind.LLM, "LLM"),
+            (SpanKind.TOOL, "TOOL"),
+            (SpanKind.AGENT, "AGENT"),
+            (SpanKind.RETRIEVAL, "RETRIEVER"),
+            (SpanKind.EMBEDDING, "EMBEDDING"),
+            (SpanKind.GUARDRAIL, "GUARDRAIL"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_openinference_mapping_values(self, kind: SpanKind, expected_oi: str) -> None:
+        """Maps each SpanKind to the correct openinference.span.kind value."""
+        mock_otel_mod, _, mock_span = _mock_otel()
+
+        with patch("agentmark_sdk.decorator.otel_trace", mock_otel_mod):
+
+            @observe(kind=kind)
+            async def my_func() -> str:
+                return "ok"
+
+            await my_func()
+
+        calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
+        assert calls["openinference.span.kind"] == expected_oi

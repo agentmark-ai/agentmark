@@ -13,9 +13,23 @@ export const SpanKind = {
   FUNCTION: "function",
   LLM: "llm",
   TOOL: "tool",
+  AGENT: "agent",
+  RETRIEVAL: "retrieval",
+  EMBEDDING: "embedding",
+  GUARDRAIL: "guardrail",
 } as const;
 
 export type SpanKind = (typeof SpanKind)[keyof typeof SpanKind];
+
+const OPENINFERENCE_KIND_MAP: Record<string, string> = {
+  function: "CHAIN",
+  llm: "LLM",
+  tool: "TOOL",
+  agent: "AGENT",
+  retrieval: "RETRIEVER",
+  embedding: "EMBEDDING",
+  guardrail: "GUARDRAIL",
+};
 
 // Attribute keys matching the gen_ai semantic conventions used by the adapter
 const INPUT_KEY = "gen_ai.request.input";
@@ -88,6 +102,7 @@ export function observe<TArgs extends unknown[], TReturn>(
 
     return tracer.startActiveSpan(spanName, async (span) => {
       span.setAttribute(SPAN_KIND_KEY, kind);
+      span.setAttribute('openinference.span.kind', OPENINFERENCE_KIND_MAP[kind] || 'CHAIN');
 
       if (captureInput) {
         let inputs: Record<string, unknown> = _captureArgs(args);

@@ -6,6 +6,7 @@ import { AgentMarkTransformer } from './transformers/agentmark';
 import { OtelGenAiTransformer } from './transformers/otel-genai';
 import { OtlpResourceSpans, extractResourceScopeSpan } from './converters/otlp-converter';
 import { parseAgentMarkAttributes } from './extractors/agentmark-parser';
+import { resolveSemanticKind } from './resolvers/semantic-kind-resolver';
 
 // Register scope-specific transformers
 registry.register('ai', new AiSdkTransformer());                    // Vercel AI SDK
@@ -93,7 +94,8 @@ export function normalizeSpan(
     const agentMarkAttributes = parseAgentMarkAttributes(allAttributes);
     Object.assign(normalized, agentMarkAttributes);
 
-    // 6. Extract Tenant/App ID from Resource Attributes if not already set
+    // 6. Resolve semantic kind from all available attribute sources
+    normalized.semanticKind = resolveSemanticKind(normalized, allAttributes);
 
     return normalized;
 }
@@ -122,6 +124,7 @@ export * from './converters/otlp-converter';
 export { parseTokens } from './extractors/token-parser';
 export * from './extractors/metadata-parser';
 export * from './extractors/agentmark-parser';
+export * from './resolvers/semantic-kind-resolver';
 export * from './transformers/ai-sdk';
 export * from './transformers/ai-sdk/token-helpers';
 export * from './transformers/ai-sdk/version-detector';
