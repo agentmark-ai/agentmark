@@ -24,7 +24,8 @@ dependencies = [
   "pydantic>=2.0",
   "pydantic-ai>=0.0.39",
   "agentmark-prompt-core>=0.0.1",
-  "aiohttp>=3.9.0"
+  "agentmark-sdk>=0.0.1",
+  "aiohttp>=3.9.0",
 ]
 
   [[project.authors]]

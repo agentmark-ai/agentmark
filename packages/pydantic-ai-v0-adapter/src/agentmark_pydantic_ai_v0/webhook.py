@@ -23,6 +23,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import inspect
 import json
 import uuid
@@ -354,9 +355,8 @@ class PydanticAIWebhookHandler:
             sampling: Optional sampling configuration for dataset rows.
             commit_sha: Optional git commit SHA to tag experiment runs with
                 for version tracking. Forwarded by server.py dispatcher from
-                the webhook payload; currently threaded through but not yet
-                attached to spans (the span instrumentation was removed from
-                this adapter; re-add when re-instrumenting).
+                the webhook payload and attached to each iteration's
+                experiment span as SpanOptions.metadata["commit_sha"].
 
         Returns:
             Dict with:
@@ -403,17 +403,19 @@ class PydanticAIWebhookHandler:
 
         Yields NDJSON chunks for each dataset item result.
         """
+        prompt_name = frontmatter.get("name")
+
         if frontmatter.get("text_config"):
             async for chunk in self._stream_text_experiment(
                 prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling,
-                commit_sha,
+                prompt_name, commit_sha,
             ):
                 yield chunk
 
         elif frontmatter.get("object_config"):
             async for chunk in self._stream_object_experiment(
                 prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling,
-                commit_sha,
+                prompt_name, commit_sha,
             ):
                 yield chunk
 
@@ -509,13 +511,17 @@ class PydanticAIWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None,
         sampling: dict[str, Any] | None = None,
-        commit_sha: str | None = None,  # noqa: ARG002 — reserved for span metadata when instrumentation is restored
+        prompt_name: str | None = None,
+        commit_sha: str | None = None,
     ) -> AsyncIterator[str]:
         """Stream text experiment results."""
+        from agentmark_sdk import SpanOptions, span_context
+
         prompt = await self._client.load_text_prompt(prompt_ast)
         dataset = await prompt.format_with_dataset(dataset_path=dataset_path, sampling=sampling)
 
         reader = dataset.get_reader()
+        index = 0
         while True:
             read_result = await reader.read()
             if read_result.get("done"):
@@ -533,24 +539,77 @@ class PydanticAIWebhookHandler:
                 )
                 continue
 
-            # Run the formatted prompt
-            result = await run_text_prompt(item["formatted"])
+            # Wrap in span with dataset attributes (for experiments tab)
+            dataset_input = item["dataset"].get("input")
+            async with span_context(SpanOptions(
+                name=f"experiment-{dataset_run_name}-{index}",
+                prompt_name=prompt_name,
+                dataset_run_id=experiment_run_id,
+                dataset_run_name=dataset_run_name,
+                dataset_item_name=hashlib.md5(
+                    json.dumps(dataset_input, sort_keys=True, default=str).encode()
+                ).hexdigest()[:12] if dataset_input else str(index),
+                dataset_expected_output=json.dumps(
+                    item["dataset"].get("expected_output")
+                ) if item["dataset"].get("expected_output") else None,
+                dataset_input=json.dumps(
+                    dataset_input, default=str
+                ) if dataset_input else None,
+                dataset_path=dataset_path,
+                metadata={"commit_sha": commit_sha} if commit_sha else None,
+            )) as ctx:
+                # Record the experiment iteration's input as agentmark.props on
+                # the wrapper span. This matches the standard pattern used by
+                # claude-agent-sdk-v0-adapter-python/traced.py (which sets
+                # agentmark.props on its invoke_agent span) and causes the
+                # normalizer's otel-genai transformer to promote it into
+                # NormalizedSpan.input, and the trace drawer's isAgentSpan()
+                # check in use-span-prompts.ts to render it as the span input.
+                # Without this, the wrapper span shows empty I/O in the trace
+                # drawer because it has no input/output/props attributes.
+                if dataset_input is not None:
+                    try:
+                        ctx.set_attribute(
+                            "agentmark.props",
+                            json.dumps(dataset_input, default=str),
+                        )
+                    except (TypeError, ValueError):
+                        pass
 
-            # Execute evals if specified
-            eval_names = item.get("evals") or []
-            # Pass raw messages to evals (matching TS: formatted?.messages)
-            formatted = item["formatted"]
-            input_messages = (
-                formatted._raw_messages
-                if hasattr(formatted, "_raw_messages")
-                else formatted.user_prompt
-            )
-            eval_results = await self._execute_evals(
-                eval_names=eval_names,
-                input_data=input_messages,
-                output=result.output,
-                expected_output=item["dataset"].get("expected_output"),
-            )
+                # Run the formatted prompt
+                result = await run_text_prompt(item["formatted"])
+
+                # Record the model output on the wrapper span as agentmark.output.
+                # The normalizer promotes this to NormalizedSpan.output and the
+                # trace drawer renders it via extractOutputFromSpan().
+                try:
+                    ctx.set_attribute(
+                        "agentmark.output",
+                        json.dumps(result.output, default=str),
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+                # Execute evals if specified
+                eval_names = item.get("evals") or []
+                # Pass raw messages to evals (matching TS: formatted?.messages)
+                formatted = item["formatted"]
+                input_messages = (
+                    formatted._raw_messages
+                    if hasattr(formatted, "_raw_messages")
+                    else formatted.user_prompt
+                )
+                eval_results = await self._execute_evals(
+                    eval_names=eval_names,
+                    input_data=input_messages,
+                    output=result.output,
+                    expected_output=item["dataset"].get("expected_output"),
+                )
+
+            # Emit traceId as lowercase hex (matches OTLP JSON format used
+            # by the JSON exporter in agentmark_sdk). The server-side stream
+            # wrap in server.py consumes this and posts scores to /v1/score.
+            trace_id_hex = ctx.trace_id
 
             yield json.dumps(
                 {
@@ -562,10 +621,12 @@ class PydanticAIWebhookHandler:
                         "tokens": result.usage.total_tokens or 0,
                         "evals": eval_results,
                     },
+                    "traceId": trace_id_hex,
                     "runId": experiment_run_id,
                     "runName": dataset_run_name,
                 }
             )
+            index += 1
 
     async def _stream_object_experiment(
         self,
@@ -574,13 +635,17 @@ class PydanticAIWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None,
         sampling: dict[str, Any] | None = None,
-        commit_sha: str | None = None,  # noqa: ARG002 — reserved for span metadata when instrumentation is restored
+        prompt_name: str | None = None,
+        commit_sha: str | None = None,
     ) -> AsyncIterator[str]:
         """Stream object experiment results."""
+        from agentmark_sdk import SpanOptions, span_context
+
         prompt = await self._client.load_object_prompt(prompt_ast)
         dataset = await prompt.format_with_dataset(dataset_path=dataset_path, sampling=sampling)
 
         reader = dataset.get_reader()
+        index = 0
         while True:
             read_result = await reader.read()
             if read_result.get("done"):
@@ -598,29 +663,76 @@ class PydanticAIWebhookHandler:
                 )
                 continue
 
-            # Run the formatted prompt
-            result = await run_object_prompt(item["formatted"])
-            output = (
-                result.output.model_dump()
-                if hasattr(result.output, "model_dump")
-                else result.output
-            )
+            # Wrap in span with dataset attributes (for experiments tab)
+            dataset_input = item["dataset"].get("input")
+            async with span_context(SpanOptions(
+                name=f"experiment-{dataset_run_name}-{index}",
+                prompt_name=prompt_name,
+                dataset_run_id=experiment_run_id,
+                dataset_run_name=dataset_run_name,
+                dataset_item_name=hashlib.md5(
+                    json.dumps(dataset_input, sort_keys=True, default=str).encode()
+                ).hexdigest()[:12] if dataset_input else str(index),
+                dataset_expected_output=json.dumps(
+                    item["dataset"].get("expected_output")
+                ) if item["dataset"].get("expected_output") else None,
+                dataset_input=json.dumps(
+                    dataset_input, default=str
+                ) if dataset_input else None,
+                dataset_path=dataset_path,
+                metadata={"commit_sha": commit_sha} if commit_sha else None,
+            )) as ctx:
+                # Record the experiment iteration's input as agentmark.props on
+                # the wrapper span — matches the standard pattern used by
+                # claude-agent-sdk-v0-adapter-python/traced.py and enables the
+                # trace drawer to render the wrapper's I/O. See _stream_text_experiment
+                # for the full rationale.
+                if dataset_input is not None:
+                    try:
+                        ctx.set_attribute(
+                            "agentmark.props",
+                            json.dumps(dataset_input, default=str),
+                        )
+                    except (TypeError, ValueError):
+                        pass
 
-            # Execute evals if specified
-            eval_names = item.get("evals") or []
-            # Pass raw messages to evals (matching TS: item.formatted.messages)
-            formatted = item["formatted"]
-            input_messages = (
-                formatted._raw_messages
-                if hasattr(formatted, "_raw_messages")
-                else formatted.user_prompt
-            )
-            eval_results = await self._execute_evals(
-                eval_names=eval_names,
-                input_data=input_messages,
-                output=output,
-                expected_output=item["dataset"].get("expected_output"),
-            )
+                # Run the formatted prompt
+                result = await run_object_prompt(item["formatted"])
+                output = (
+                    result.output.model_dump()
+                    if hasattr(result.output, "model_dump")
+                    else result.output
+                )
+
+                # Record the model output on the wrapper span as agentmark.output.
+                try:
+                    ctx.set_attribute(
+                        "agentmark.output",
+                        json.dumps(output, default=str),
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+                # Execute evals if specified
+                eval_names = item.get("evals") or []
+                # Pass raw messages to evals (matching TS: item.formatted.messages)
+                formatted = item["formatted"]
+                input_messages = (
+                    formatted._raw_messages
+                    if hasattr(formatted, "_raw_messages")
+                    else formatted.user_prompt
+                )
+                eval_results = await self._execute_evals(
+                    eval_names=eval_names,
+                    input_data=input_messages,
+                    output=output,
+                    expected_output=item["dataset"].get("expected_output"),
+                )
+
+            # Emit traceId as lowercase hex (matches OTLP JSON format used
+            # by the JSON exporter in agentmark_sdk). The server-side stream
+            # wrap in server.py consumes this and posts scores to /v1/score.
+            trace_id_hex = ctx.trace_id
 
             yield json.dumps(
                 {
@@ -632,7 +744,9 @@ class PydanticAIWebhookHandler:
                         "tokens": result.usage.total_tokens or 0,
                         "evals": eval_results,
                     },
+                    "traceId": trace_id_hex,
                     "runId": experiment_run_id,
                     "runName": dataset_run_name,
                 }
             )
+            index += 1

@@ -21,6 +21,8 @@ export interface ExperimentItem {
   actualOutput: string;
   latencyMs: number;
   cost: number;
+  totalTokens: number;
+  model: string;
   scores: Array<{ name: string; score: number; label: string; reason: string }>;
 }
 

@@ -8,12 +8,31 @@
  * (this is a library package built with tsup, not a Next.js app).
  */
 
-import { lazy, Suspense, useMemo } from "react";
+import { Component, lazy, Suspense, useMemo } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Card, CardContent, CardHeader, Grid } from "@mui/material";
 import { fCurrency } from "@/utils";
 import type { ExperimentSummary } from "../types";
 import { useChartOptions } from "./use-chart-options";
+
+// Minimal error boundary — degrades to null when the chart library crashes
+// (e.g. react-apexcharts CJS/ESM interop issues in certain environments).
+class ChartErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(_: Error, info: ErrorInfo) {
+    console.warn("Chart render failed, hiding charts:", info.componentStack);
+  }
+  render() {
+    return this.state.hasError ? null : this.props.children;
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ApexChart = lazy(() => import("react-apexcharts") as any);
@@ -93,6 +112,7 @@ export const ExperimentCharts = ({
   if (experiments.length === 0) return null;
 
   return (
+    <ChartErrorBoundary>
     <Suspense fallback={null}>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 4 }}>
@@ -140,5 +160,6 @@ export const ExperimentCharts = ({
         )}
       </Grid>
     </Suspense>
+    </ChartErrorBoundary>
   );
 };

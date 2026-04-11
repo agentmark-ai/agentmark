@@ -41,6 +41,7 @@ from .config import (
 )
 from .decorator import SpanKind, observe
 from .masking_processor import MaskFunction, MaskingSpanProcessor
+from .otlp_json_exporter import JsonOtlpSpanExporter
 from .pii_masker import CustomPattern, PiiMaskerConfig, create_pii_masker
 from .sampler import AgentmarkSampler
 from .sdk import AgentMarkSDK
@@ -50,6 +51,8 @@ from .trace import SpanContext, SpanOptions, SpanResult, span, span_context, spa
 __all__ = [
     # SDK
     "AgentMarkSDK",
+    # Exporter
+    "JsonOtlpSpanExporter",
     # Span utilities
     "span",
     "span_context",

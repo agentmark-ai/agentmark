@@ -42,7 +42,7 @@ class TestAgentMarkSDK:
         assert sdk.base_url == "https://api.example.com"
 
     @patch("agentmark_sdk.sdk.otel_trace")
-    @patch("agentmark_sdk.sdk.OTLPSpanExporter")
+    @patch("agentmark_sdk.sdk.JsonOtlpSpanExporter")
     @patch("agentmark_sdk.sdk.BatchSpanProcessor")
     @patch("agentmark_sdk.sdk.TracerProvider")
     def test_init_tracing_creates_provider(
@@ -66,7 +66,7 @@ class TestAgentMarkSDK:
         mock_otel_trace.set_tracer_provider.assert_called_once_with(mock_provider)
 
     @patch("agentmark_sdk.sdk.otel_trace")
-    @patch("agentmark_sdk.sdk.OTLPSpanExporter")
+    @patch("agentmark_sdk.sdk.JsonOtlpSpanExporter")
     @patch("agentmark_sdk.sdk.SimpleSpanProcessor")
     @patch("agentmark_sdk.sdk.TracerProvider")
     def test_init_tracing_with_disable_batch(
@@ -85,7 +85,7 @@ class TestAgentMarkSDK:
 
         mock_simple_processor_class.assert_called_once()
 
-    @patch("agentmark_sdk.sdk.OTLPSpanExporter")
+    @patch("agentmark_sdk.sdk.JsonOtlpSpanExporter")
     def test_init_tracing_exporter_config(
         self, mock_exporter_class: MagicMock
     ) -> None:

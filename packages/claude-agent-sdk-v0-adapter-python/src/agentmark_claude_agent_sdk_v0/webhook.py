@@ -5,6 +5,7 @@ Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/runner.ts
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from collections.abc import AsyncGenerator
@@ -322,6 +323,7 @@ class ClaudeAgentWebhookHandler:
         dataset_run_name: str,
         dataset_path: str | None = None,
         sampling: dict[str, Any] | None = None,
+        commit_sha: str | None = None,
     ) -> ExperimentResult:
         """Run an experiment against a dataset.
 
@@ -329,6 +331,11 @@ class ClaudeAgentWebhookHandler:
             prompt_ast: The parsed prompt AST.
             dataset_run_name: Name for this experiment run.
             dataset_path: Optional override path to dataset.
+            sampling: Optional sampling configuration for dataset rows.
+            commit_sha: Optional git commit SHA to tag experiment runs with
+                for version tracking. Forwarded by server.py dispatcher from
+                the webhook payload and attached to each iteration's
+                experiment span as SpanOptions.metadata["commit_sha"].
 
         Returns:
             ExperimentResult with streaming dataset results.
@@ -379,8 +386,14 @@ class ClaudeAgentWebhookHandler:
         prompt_name = frontmatter.get("name")
         is_object_prompt = bool(frontmatter.get("object_config"))
         sampling_opts = sampling
+        commit_sha_val = commit_sha
 
         async def experiment_stream() -> AsyncGenerator[bytes, None]:
+            # Local import: agentmark_sdk is an optional runtime dep — deferring
+            # the import until the experiment runs mirrors the pydantic adapter
+            # pattern and avoids penalising module load when experiments are idle.
+            from agentmark_sdk import SpanOptions, span_context
+
             from .traced import traced_query
 
             # Emit experiment metadata
@@ -437,40 +450,108 @@ class ClaudeAgentWebhookHandler:
                     structured_output: Any = None
                     input_tokens = 0
                     output_tokens = 0
+                    # Fallback trace id used only when span_context yields a
+                    # no-op context (no OTEL provider registered) — normally
+                    # ctx.trace_id below overrides this.
                     item_trace_id = generate_fallback_trace_id()
 
+                    # Wrap the per-item run in an agentmark span carrying the
+                    # dataset attributes (for the experiments tab) and the
+                    # commit_sha in metadata. traced_query() will create its
+                    # own invoke_agent span as a child of this one, so all
+                    # agent spans inherit the dataset_run_id / dataset_item_name
+                    # attributes via the OTEL parent context.
+                    dataset_input = dataset_item.get("input")
                     try:
-                        async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
-                            msg_type = type(message).__name__
-                            if msg_type == "ResultMessage" and getattr(message, "subtype", "") == "success":
-                                result = getattr(message, "result", "") or ""
-                                structured_output = getattr(message, "structured_output", None)
-                                usage = getattr(message, "usage", {}) or {}
-                                input_tokens = usage.get("input_tokens", 0)
-                                output_tokens = usage.get("output_tokens", 0)
+                        async with span_context(SpanOptions(
+                            name=f"experiment-{run_name}-{item_index}",
+                            prompt_name=prompt_name,
+                            dataset_run_id=run_id,
+                            dataset_run_name=run_name,
+                            dataset_item_name=hashlib.md5(
+                                json.dumps(dataset_input, sort_keys=True, default=str).encode()
+                            ).hexdigest()[:12] if dataset_input else str(item_index),
+                            dataset_expected_output=json.dumps(
+                                dataset_item.get("expected_output")
+                            ) if dataset_item.get("expected_output") else None,
+                            dataset_input=json.dumps(
+                                dataset_input, default=str
+                            ) if dataset_input else None,
+                            dataset_path=resolved_dataset_path,
+                            metadata={"commit_sha": commit_sha_val} if commit_sha_val else None,
+                        )) as ctx:
+                            # Use the real trace_id from the outer span. The
+                            # claude-agent server exports spans as OTLP/JSON
+                            # so the stored TraceId column is hex — emit hex
+                            # here so /v1/score resourceId lookups match.
+                            item_trace_id = ctx.trace_id
 
-                        # Determine actual output
-                        actual_output = structured_output if is_object_prompt else result
+                            # Record the experiment iteration's input as
+                            # agentmark.props on the wrapper span — matches the
+                            # standard pattern used by traced.py's invoke_agent
+                            # span. The normalizer's otel-genai transformer
+                            # promotes this into NormalizedSpan.input, and the
+                            # trace drawer's isAgentSpan() check renders it as
+                            # the span's input. Without this, the wrapper span
+                            # has no input/output/props attributes and shows
+                            # empty I/O in the trace drawer.
+                            if dataset_input is not None:
+                                try:
+                                    ctx.set_attribute(
+                                        "agentmark.props",
+                                        json.dumps(dataset_input, default=str),
+                                    )
+                                except (TypeError, ValueError):
+                                    pass
 
-                        # Run evals if configured
-                        eval_results: list[dict[str, Any]] = []
-                        if eval_registry and evals:
-                            for eval_name in evals:
-                                eval_fn = eval_registry.get(eval_name)
-                                if eval_fn:
-                                    try:
-                                        eval_result = await eval_fn(
-                                            input=adapted.messages
-                                            if hasattr(adapted, "messages")
-                                            else [],
-                                            output=actual_output,
-                                            expected_output=dataset_item.get("expected_output"),
-                                        )
-                                        eval_results.append({"name": eval_name, **eval_result})
-                                    except Exception:
-                                        pass
+                            async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
+                                msg_type = type(message).__name__
+                                if msg_type == "ResultMessage" and getattr(message, "subtype", "") == "success":
+                                    result = getattr(message, "result", "") or ""
+                                    structured_output = getattr(message, "structured_output", None)
+                                    usage = getattr(message, "usage", {}) or {}
+                                    input_tokens = usage.get("input_tokens", 0)
+                                    output_tokens = usage.get("output_tokens", 0)
 
-                        # Emit dataset result
+                            # Determine actual output
+                            actual_output = structured_output if is_object_prompt else result
+
+                            # Record the model output on the wrapper span as
+                            # agentmark.output. The normalizer promotes this to
+                            # NormalizedSpan.output and the trace drawer
+                            # renders it via extractOutputFromSpan().
+                            try:
+                                ctx.set_attribute(
+                                    "agentmark.output",
+                                    json.dumps(actual_output, default=str),
+                                )
+                            except (TypeError, ValueError):
+                                pass
+
+                            # Run evals if configured
+                            eval_results: list[dict[str, Any]] = []
+                            if eval_registry and evals:
+                                for eval_name in evals:
+                                    eval_fn = eval_registry.get(eval_name)
+                                    if eval_fn:
+                                        try:
+                                            eval_result = await eval_fn(
+                                                input=adapted.messages
+                                                if hasattr(adapted, "messages")
+                                                else [],
+                                                output=actual_output,
+                                                expected_output=dataset_item.get("expected_output"),
+                                            )
+                                            eval_results.append({"name": eval_name, **eval_result})
+                                        except Exception:
+                                            pass
+
+                        # Span is now closed. Emit the dataset chunk AFTER the
+                        # span closes, so the span's duration reflects only
+                        # the prompt + evals, not the stream write. This also
+                        # matches the pydantic adapter's structure. The server
+                        # wrap in server.py consumes traceId from this chunk
+                        # to post eval scores.
                         result_chunk = json.dumps(
                             {
                                 "type": "dataset",

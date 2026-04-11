@@ -23,7 +23,8 @@ classifiers = [
 dependencies = [
   "claude-agent-sdk>=0.1.0",
   "agentmark-prompt-core>=0.0.1",
-  "aiohttp>=3.9.0"
+  "agentmark-sdk>=0.0.1",
+  "aiohttp>=3.9.0",
 ]
 
   [[project.authors]]
