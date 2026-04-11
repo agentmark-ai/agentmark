@@ -1,7 +1,24 @@
 import { NormalizedSpan } from '../types';
 import { isSafeKey } from '../utils/key-sanitizer';
 
-// Known metadata fields that should be excluded from custom metadata
+// Known metadata fields that should be excluded from custom metadata.
+//
+// NOTE: 'commit_sha' is deliberately NOT in this set. It IS promoted to the
+// typed NormalizedSpan.commitSha field by parseMetadata() below, but it is
+// ALSO allowed to flow into the custom metadata bucket because the OSS CLI's
+// SQLite trace schema has no dedicated CommitSha column (unlike production
+// ClickHouse). The CLI's experiments query reads commit_sha via:
+//     MAX(json_extract(root.Metadata, '$.commit_sha'))
+// which only works if commit_sha is present in the Metadata JSON bucket.
+// Promoting it here would break the CLI's experiment comparison SHA display.
+//
+// History: commit 64a9333b2 removed 'commit_sha' from this set originally.
+// That removal was silently lost when PR #1754 was squash-merged, and was
+// subsequently re-added by PR #1797 (commit 405230643) without awareness
+// of 64a9333b2's dependency on it. Do NOT add 'commit_sha' back here without
+// first adding a dedicated CommitSha column to the CLI SQLite schema
+// (cli/cli-src/server/database/index.ts) and mapping span.commitSha in
+// normalizedSpanToSqliteRow (cli/cli-src/server/routes/traces/index.ts).
 const KNOWN_METADATA_FIELDS = new Set([
     'session_id',
     'session_name',
@@ -15,7 +32,6 @@ const KNOWN_METADATA_FIELDS = new Set([
     'dataset_input',
     'prompt_name',
     'props',
-    'commit_sha',
 ]);
 
 export function parseMetadata(attributes: Record<string, any>, prefix: string = 'agentmark.metadata.'): Partial<NormalizedSpan> {

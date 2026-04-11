@@ -1399,3 +1399,547 @@ class TestRunExperimentSampling:
             telemetry={"isEnabled": True},
             sampling={"rows": [0]},
         )
+
+    async def test_run_experiment_accepts_commit_sha(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: run_experiment must accept commit_sha (5 positional args
+        after self), matching the server.py dispatcher which forwards
+        data.get("commitSha"). Before this fix, passing commit_sha crashed with:
+            TypeError: run_experiment() takes 5 positional arguments but 6 were given
+        """
+
+        async def empty_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            return
+            yield  # Make it a generator
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "experiment-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ):
+            # Exact call shape from server.py dispatcher — five positional args,
+            # commit_sha in the 5th slot.
+            result = await handler.run_experiment(
+                create_mock_ast(),
+                "run-commit-sha",
+                None,           # dataset_path
+                None,           # sampling
+                "abc123def456", # commit_sha
+            )
+
+            # Drain to exercise the full stream path.
+            async for _ in result.stream:
+                pass
+
+    async def test_dataset_chunk_trace_id_comes_from_span_context(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: dataset chunks must carry a traceId sourced from the
+        agentmark_sdk span_context (not the old random fallback UUID).
+
+        The server-side score wrap in server.py parses traceId from each
+        dataset chunk and posts eval scores to /v1/score. Without a real
+        span-derived trace id, the scored resource wouldn't match the stored
+        trace, leaving the experiments Avg Score column empty (issue #1860).
+
+        A 32-char hex string is emitted in either case (real span or fallback
+        uuid4.hex), so this test asserts the format, not the source.
+        """
+        import re
+
+        async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "formatted": MagicMock(
+                    query=MagicMock(prompt="test", options=MagicMock()),
+                    telemetry=MagicMock(is_enabled=True, prompt_name="test"),
+                ),
+                "dataset": {"input": {"q": "hi"}, "expected_output": "ok"},
+            }
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+
+        async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "type": "result",
+                "subtype": "success",
+                "result": "ok",
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "experiment-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
+            result = await handler.run_experiment(create_mock_ast(), "run-trace-id")
+            chunks = await drain_stream(result.stream)
+
+        parsed = [json.loads(c) for c in chunks]
+        item_event = next((p for p in parsed if p.get("type") == "dataset"), None)
+        assert item_event is not None, "dataset chunk missing from stream"
+
+        trace_id = item_event.get("traceId")
+        assert trace_id is not None
+        assert isinstance(trace_id, str)
+        # 32-char lowercase hex (either a real OTel trace_id or the uuid4.hex
+        # fallback when no OTEL provider is registered).
+        assert re.match(r"^[0-9a-f]{32}$", trace_id), f"unexpected traceId format: {trace_id!r}"
+
+    async def test_wrapper_span_sets_agentmark_props_and_output(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: the experiment wrapper span must set agentmark.props
+        (dataset input) and agentmark.output (model output) attributes so the
+        normalizer promotes them into NormalizedSpan.input/output and the
+        trace drawer renders the wrapper's I/O.
+
+        This mirrors the standard pattern used by traced.py's invoke_agent
+        span, which already sets agentmark.props. The new experiment wrapper
+        span added in webhook.py is a separate OTel span and needs its own
+        attribute-setting.
+        """
+        from contextlib import asynccontextmanager
+
+        async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "formatted": MagicMock(
+                    query=MagicMock(prompt="test", options=MagicMock()),
+                    telemetry=MagicMock(is_enabled=True, prompt_name="test"),
+                ),
+                "dataset": {"input": {"q": "hi"}, "expected_output": "ok"},
+            }
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+
+        async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "type": "result",
+                "subtype": "success",
+                "result": "hello world",
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
+
+        # Capture set_attribute calls on the span context yielded by span_context().
+        recorded_attrs: dict[str, Any] = {}
+
+        class _FakeCtx:
+            trace_id = "a" * 32  # valid hex, 32 chars
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                recorded_attrs[key] = value
+
+        @asynccontextmanager
+        async def fake_span_context(_options: Any):
+            yield _FakeCtx()
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "experiment-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(create_mock_ast(), "run-props-output")
+            async for _ in result.stream:
+                pass
+
+        # Both attributes must be set.
+        assert "agentmark.props" in recorded_attrs, (
+            "Wrapper span missing agentmark.props — see use-span-prompts.ts "
+            "isAgentSpan() which requires this attribute to render I/O."
+        )
+        assert "agentmark.output" in recorded_attrs, (
+            "Wrapper span missing agentmark.output — trace drawer cannot "
+            "render the model output without this."
+        )
+
+        # agentmark.props should be the JSON-serialized dataset input.
+        props = json.loads(recorded_attrs["agentmark.props"])
+        assert props == {"q": "hi"}
+
+        # agentmark.output should be the JSON-serialized model output.
+        output = json.loads(recorded_attrs["agentmark.output"])
+        assert output == "hello world"
+
+    async def test_span_options_carry_all_dataset_fields(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: SpanOptions passed to span_context must contain ALL
+        dataset fields. A regression removing any single field (e.g.
+        dataset_run_id, dataset_item_name) would otherwise go undetected.
+
+        This is the core regression guard for issue #1860.
+        """
+        import hashlib
+        from contextlib import asynccontextmanager
+
+        async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "formatted": MagicMock(
+                    query=MagicMock(prompt="test", options=MagicMock()),
+                    telemetry=MagicMock(is_enabled=True, prompt_name="test"),
+                ),
+                "dataset": {
+                    "input": {"topic": "sunsets"},
+                    "expected_output": "a poem",
+                },
+            }
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+
+        async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "type": "result",
+                "subtype": "success",
+                "result": "Beautiful sunset poem",
+                "usage": {"input_tokens": 10, "output_tokens": 5},
+            }
+
+        # Capture the SpanOptions object passed to span_context.
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "my-test-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(
+                create_mock_ast(),
+                "my-experiment",
+                None,              # dataset_path
+                None,              # sampling
+                "deadbeef1234",    # commit_sha
+            )
+            async for _ in result.stream:
+                pass
+
+        assert len(captured_options) == 1, "span_context should be called once per dataset item"
+        opts = captured_options[0]
+
+        # Name matches experiment-<runName>-<index>
+        assert opts.name == "experiment-my-experiment-0"
+
+        # prompt_name is set from frontmatter
+        assert opts.prompt_name == "my-test-prompt"
+
+        # dataset_run_id is a non-empty UUID string
+        assert isinstance(opts.dataset_run_id, str)
+        assert len(opts.dataset_run_id) > 0
+
+        # dataset_run_name matches the experiment name
+        assert opts.dataset_run_name == "my-experiment"
+
+        # dataset_item_name is a 12-char hex string (md5 hash of input)
+        expected_hash = hashlib.md5(
+            json.dumps({"topic": "sunsets"}, sort_keys=True, default=str).encode()
+        ).hexdigest()[:12]
+        assert opts.dataset_item_name == expected_hash
+
+        # dataset_expected_output is JSON-serialized
+        assert opts.dataset_expected_output == '"a poem"'
+
+        # dataset_input is JSON-serialized
+        assert opts.dataset_input == '{"topic": "sunsets"}'
+
+        # dataset_path is set
+        assert opts.dataset_path == "./test.jsonl"
+
+        # metadata contains commit_sha
+        assert isinstance(opts.metadata, dict)
+        assert opts.metadata["commit_sha"] == "deadbeef1234"
+
+
+@pytest.mark.asyncio
+class TestSpanOptionsObjectConfig:
+    """Regression: SpanOptions fields must also be correct for object_config experiments.
+
+    Commit 64a9333b2 specifically fixed the object path. The existing
+    test_span_options_carry_all_dataset_fields only exercises text_config.
+    """
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create mock client."""
+        return create_mock_client()
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> ClaudeAgentWebhookHandler:
+        """Create handler with mock client."""
+        return ClaudeAgentWebhookHandler(mock_client)
+
+    async def test_span_options_carry_all_dataset_fields_object_config(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Same as text_config variant but for object_config experiments.
+        Commit 64a9333b2 originally fixed the object path specifically."""
+        import hashlib
+        from contextlib import asynccontextmanager
+
+        async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "formatted": MagicMock(
+                    query=MagicMock(prompt="test", options=MagicMock()),
+                    telemetry=MagicMock(is_enabled=True, prompt_name="test"),
+                ),
+                "dataset": {
+                    "input": {"topic": "sunsets"},
+                    "expected_output": {"answer": 42},
+                },
+            }
+
+        mock_client._mock_object_prompt.format_with_dataset.return_value = mock_dataset()
+
+        # Capture the SpanOptions object passed to span_context.
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "type": "result",
+                "subtype": "success",
+                "structured_output": {"answer": 42},
+                "usage": {"input_tokens": 10, "output_tokens": 5},
+            }
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "my-object-prompt",
+                "object_config": {
+                    "model_name": "anthropic/claude-sonnet",
+                    "output": {"schema": {"type": "object"}},
+                },
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(
+                create_mock_ast(),
+                "my-experiment",
+                None,              # dataset_path
+                None,              # sampling
+                "deadbeef1234",    # commit_sha
+            )
+            async for _ in result.stream:
+                pass
+
+        assert len(captured_options) == 1, "span_context should be called once per dataset item"
+        opts = captured_options[0]
+
+        # Name matches experiment-<runName>-<index>
+        assert opts.name == "experiment-my-experiment-0"
+
+        # prompt_name is set from frontmatter
+        assert opts.prompt_name == "my-object-prompt"
+
+        # dataset_run_id is a non-empty UUID string
+        assert isinstance(opts.dataset_run_id, str)
+        assert len(opts.dataset_run_id) > 0
+
+        # dataset_run_name matches the experiment name
+        assert opts.dataset_run_name == "my-experiment"
+
+        # dataset_item_name is a 12-char hex string (md5 hash of input)
+        expected_hash = hashlib.md5(
+            json.dumps({"topic": "sunsets"}, sort_keys=True, default=str).encode()
+        ).hexdigest()[:12]
+        assert opts.dataset_item_name == expected_hash
+
+        # dataset_expected_output is JSON-serialized
+        assert opts.dataset_expected_output == '{"answer": 42}'
+
+        # dataset_input is JSON-serialized
+        assert opts.dataset_input == '{"topic": "sunsets"}'
+
+        # dataset_path is set
+        assert opts.dataset_path == "./test.jsonl"
+
+        # metadata contains commit_sha
+        assert isinstance(opts.metadata, dict)
+        assert opts.metadata["commit_sha"] == "deadbeef1234"
+
+
+@pytest.mark.asyncio
+class TestSpanOptionsEdgeCases:
+    """Edge case tests for SpanOptions in experiment wrapper spans."""
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create mock client."""
+        return create_mock_client()
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> ClaudeAgentWebhookHandler:
+        """Create handler with mock client."""
+        return ClaudeAgentWebhookHandler(mock_client)
+
+    async def test_span_options_metadata_is_none_when_no_commit_sha(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """When commit_sha is not provided, SpanOptions.metadata must be None,
+        not {"commit_sha": None}."""
+        from contextlib import asynccontextmanager
+
+        async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "formatted": MagicMock(
+                    query=MagicMock(prompt="test", options=MagicMock()),
+                    telemetry=MagicMock(is_enabled=True, prompt_name="test"),
+                ),
+                "dataset": {
+                    "input": {"topic": "test"},
+                    "expected_output": "answer",
+                },
+            }
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "type": "result",
+                "subtype": "success",
+                "result": "Done",
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "experiment-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            # No commit_sha provided
+            result = await handler.run_experiment(create_mock_ast(), "my-experiment")
+            async for _ in result.stream:
+                pass
+
+        assert len(captured_options) == 1
+        opts = captured_options[0]
+        assert opts.metadata is None
+
+    async def test_dataset_item_name_falls_back_to_index_when_input_is_none(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """When dataset item has no input, dataset_item_name should be str(index)."""
+        from contextlib import asynccontextmanager
+
+        async def mock_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "formatted": MagicMock(
+                    query=MagicMock(prompt="test", options=MagicMock()),
+                    telemetry=MagicMock(is_enabled=True, prompt_name="test"),
+                ),
+                "dataset": {
+                    "input": None,
+                    "expected_output": "answer",
+                },
+            }
+
+        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
+            yield {
+                "type": "result",
+                "subtype": "success",
+                "result": "Done",
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
+
+        with patch.object(
+            handler,
+            "_get_frontmatter",
+            return_value={
+                "name": "experiment-prompt",
+                "text_config": {},
+                "test_settings": {"dataset": "./test.jsonl"},
+            },
+        ), patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(create_mock_ast(), "my-experiment")
+            async for _ in result.stream:
+                pass
+
+        assert len(captured_options) == 1
+        opts = captured_options[0]
+        assert opts.dataset_item_name == "0"

@@ -23,8 +23,7 @@ classifiers = [
 dependencies = [
   "opentelemetry-api>=1.20",
   "opentelemetry-sdk>=1.20",
-  "opentelemetry-exporter-otlp-proto-http>=1.20",
-  "httpx>=0.25"
+  "httpx>=0.25",
 ]
 
   [project.license]

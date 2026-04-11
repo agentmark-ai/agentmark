@@ -231,15 +231,18 @@ export class VercelAdapterWebhookHandler<
             if (done) break;
             if (item.type === "error") continue;
             const formatted = item.formatted as any;
-            const { result } = await span({
+            const { result, traceId } = await span({
               name: `experiment-${datasetRunName}-${index}`,
               datasetRunId: experimentRunId,
               datasetRunName: datasetRunName,
               datasetItemName: `${index}`,
               datasetExpectedOutput: item.dataset?.expected_output,
               datasetPath: resolvedDatasetPath
-            }, async (_ctx: SpanContext) => {
-              return generateText({
+            }, async (ctx: SpanContext) => {
+              if (item.dataset?.input != null) {
+                try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+              }
+              const genResult = await generateText({
                 ...formatted,
                 experimental_telemetry: {
                   ...(formatted?.experimental_telemetry ?? {}),
@@ -248,6 +251,8 @@ export class VercelAdapterWebhookHandler<
                   },
                 },
               });
+              try { ctx.setAttribute("agentmark.output", genResult.text); } catch { /* ignore */ }
+              return genResult;
             });
 
             const { text, usage } = await result;
@@ -278,6 +283,7 @@ export class VercelAdapterWebhookHandler<
                 tokens: usage?.totalTokens,
                 evals: evalResults,
               },
+              traceId,
               runId: experimentRunId,
               runName: datasetRunName,
             }) + "\n";
@@ -306,19 +312,23 @@ export class VercelAdapterWebhookHandler<
 
             let object: any;
             let usage: any;
+            let traceId: string;
 
             if (hasTools) {
               const { schema, output: _output, schemaName: _sn, schemaDescription: _sd, ...textParams } = formatted;
               const experimental_output = Output.object({ schema });
-              const { result } = await span({
+              const spanRet = await span({
                 name: `experiment-${datasetRunName}-${index}`,
                 datasetRunId: experimentRunId,
                 datasetRunName: datasetRunName,
                 datasetItemName: `${index}`,
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx: SpanContext) => {
-                return generateText({
+              }, async (ctx: SpanContext) => {
+                if (item.dataset?.input != null) {
+                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                }
+                const genResult = await generateText({
                   ...textParams,
                   experimental_output,
                   experimental_telemetry: {
@@ -328,20 +338,29 @@ export class VercelAdapterWebhookHandler<
                     },
                   },
                 });
+                try {
+                  const outputStr = typeof (genResult as any).experimental_output === 'string' ? (genResult as any).experimental_output : JSON.stringify((genResult as any).experimental_output);
+                  ctx.setAttribute("agentmark.output", outputStr);
+                } catch { /* ignore */ }
+                return genResult;
               });
-              const textResult = await result;
+              traceId = spanRet.traceId;
+              const textResult = await spanRet.result;
               object = (textResult as any).experimental_output;
               usage = (textResult as any).usage;
             } else {
-              const { result } = await span({
+              const spanRet = await span({
                 name: `experiment-${datasetRunName}-${index}`,
                 datasetRunId: experimentRunId,
                 datasetRunName: datasetRunName,
                 datasetItemName: `${index}`,
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx: SpanContext) => {
-                return (await import("ai")).generateObject({
+              }, async (ctx: SpanContext) => {
+                if (item.dataset?.input != null) {
+                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                }
+                const genResult = await (await import("ai")).generateObject({
                   ...formatted,
                   experimental_telemetry: {
                     ...(formatted.experimental_telemetry ?? {}),
@@ -350,8 +369,14 @@ export class VercelAdapterWebhookHandler<
                     },
                   },
                 });
+                try {
+                  const outputStr = typeof genResult.object === 'string' ? genResult.object : JSON.stringify(genResult.object);
+                  ctx.setAttribute("agentmark.output", outputStr);
+                } catch { /* ignore */ }
+                return genResult;
               });
-              const objResult = await result;
+              traceId = spanRet.traceId;
+              const objResult = await spanRet.result;
               object = objResult.object;
               usage = objResult.usage;
             }
@@ -382,6 +407,7 @@ export class VercelAdapterWebhookHandler<
                 tokens: usage?.totalTokens,
                 evals: evalResults,
               },
+              traceId,
               runId: experimentRunId,
               runName: datasetRunName,
             }) + "\n";

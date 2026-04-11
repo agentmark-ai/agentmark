@@ -21,6 +21,8 @@ export interface ExperimentItem {
   actualOutput: string;
   latencyMs: number;
   cost: number;
+  totalTokens: number;
+  model: string;
   scores: Array<{ name: string; score: number; label: string; reason: string }>;
 }
 
@@ -163,7 +165,9 @@ export const getExperimentById = async (
         ''
       ) AS actualOutput,
       COALESCE(root.Duration, 0) AS latencyMs,
-      COALESCE(gen.item_cost, root.Cost, 0.0) AS cost
+      COALESCE(gen.item_cost, root.Cost, 0.0) AS cost,
+      COALESCE(gen.totalTokens, root.TotalTokens, 0) AS totalTokens,
+      COALESCE(NULLIF(gen.model, ''), NULLIF(root.Model, ''), '') AS model
     FROM traces root
     LEFT JOIN (
       SELECT TraceId,
@@ -171,6 +175,8 @@ export const getExperimentById = async (
         MAX(Output) AS output,
         MAX(OutputObject) AS outputObject,
         SUM(COALESCE(Cost, 0.0)) AS item_cost,
+        SUM(COALESCE(TotalTokens, 0)) AS totalTokens,
+        MAX(NULLIF(Model, '')) AS model,
         MAX(json_extract(SpanAttributes, '$."gen_ai.prompt"')) AS genai_input,
         MAX(json_extract(SpanAttributes, '$."gen_ai.completion"')) AS genai_output
       FROM traces
@@ -202,6 +208,8 @@ export const getExperimentById = async (
       actualOutput: item.actualOutput,
       latencyMs: item.latencyMs,
       cost: item.cost,
+      totalTokens: item.totalTokens || 0,
+      model: item.model || "",
       scores: itemScores.map((s: any) => ({
         name: s.name,
         score: s.score,

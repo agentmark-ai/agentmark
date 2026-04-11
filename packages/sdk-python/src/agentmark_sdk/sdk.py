@@ -7,10 +7,11 @@ from typing import Any
 
 import httpx
 from opentelemetry import trace as otel_trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
+
+from .otlp_json_exporter import JsonOtlpSpanExporter
 
 from .config import (
     AGENTMARK_SCORE_ENDPOINT,
@@ -102,7 +103,7 @@ class AgentMarkSDK:
         """
         exporter_url = f"{self._base_url}/{AGENTMARK_TRACE_ENDPOINT}"
 
-        exporter = OTLPSpanExporter(
+        exporter = JsonOtlpSpanExporter(
             endpoint=exporter_url,
             headers={
                 "Authorization": self._api_key,

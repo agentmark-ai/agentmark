@@ -37,8 +37,8 @@ function toSharedDetail(cli: CliExperimentDetail): ExperimentDetail {
       output: item.actualOutput,
       latencyMs: item.latencyMs,
       cost: item.cost,
-      tokens: 0,
-      model: "",
+      tokens: item.totalTokens,
+      model: item.model,
       scores: item.scores,
     })),
   };

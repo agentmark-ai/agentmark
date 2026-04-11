@@ -240,7 +240,6 @@ describe('Metadata Parser', () => {
         'dataset_expected_output',
         'prompt_name',
         'props',
-        'commit_sha',
       ];
 
       const attributes: Record<string, string> = {};
@@ -255,6 +254,21 @@ describe('Metadata Parser', () => {
         expect(result[field]).toBeUndefined();
       });
       expect(result.custom_field).toBe('custom-value');
+    });
+
+    it('should include commit_sha in custom metadata bucket (dual-storage with typed field)', () => {
+      // commit_sha is deliberately NOT in KNOWN_METADATA_FIELDS so it flows
+      // into the custom metadata bucket in addition to being promoted to the
+      // typed NormalizedSpan.commitSha field. This is required for the OSS
+      // CLI's SQLite experiments query to find it via json_extract on the
+      // Metadata column. See metadata-parser.ts for full rationale.
+      const attributes = {
+        'agentmark.metadata.commit_sha': 'abc123def456',
+      };
+
+      const result = extractCustomMetadata(attributes);
+
+      expect(result.commit_sha).toBe('abc123def456');
     });
 
     it('should handle custom prefix', () => {

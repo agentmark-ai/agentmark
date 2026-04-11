@@ -189,6 +189,37 @@ function getExperimentConfig(): ExperimentConfig {
   };
 }
 
+/**
+ * Fire-and-forget POST of eval scores to the API server.
+ * Extracted so the logic is testable without spinning up the full experiment runner.
+ */
+export function postExperimentScores(
+  evt: { traceId?: string; result?: { evals?: Array<{ name: string; score?: number; label?: string; reason?: string; passed?: boolean }> } },
+  apiServerUrl: string,
+): void {
+  const evals = evt.result?.evals;
+  if (!evt.traceId || !Array.isArray(evals) || evals.length === 0) return;
+  for (const evalResult of evals) {
+    if (typeof evalResult.score === 'number' || evalResult.passed !== undefined) {
+      const passed = evalResult.passed;
+      const label = evalResult.label ?? (passed !== undefined ? (passed ? 'PASS' : 'FAIL') : 'N/A');
+      const score = evalResult.score ?? (passed !== undefined ? (passed ? 1 : 0) : 0);
+      fetch(`${apiServerUrl}/v1/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceId: evt.traceId,
+          score,
+          label,
+          reason: evalResult.reason || '',
+          name: evalResult.name,
+          type: 'experiment',
+        }),
+      }).catch(() => {}); // fire-and-forget — never block experiment rendering
+    }
+  }
+}
+
 export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number; truncate?: number }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
@@ -440,6 +471,9 @@ export default async function runExperiment(filepath: string, options: { skipEva
             actual = typeof ao === 'string' ? ao : JSON.stringify(ao ?? '');
           }
           const evals = Array.isArray(r.evals) ? r.evals : [];
+
+          // Post eval scores to the API server (fire-and-forget)
+          postExperimentScores(evt, `http://localhost:${process.env.AGENTMARK_API_PORT || '9418'}`);
 
           // Initialize table on first row
           if (!tableInitialized) {

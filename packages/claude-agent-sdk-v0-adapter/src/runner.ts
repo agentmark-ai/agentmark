@@ -8,6 +8,8 @@ import type {
 } from "@agentmark-ai/prompt-core";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { withTracing } from "./traced";
+import { span } from "@agentmark-ai/sdk";
+import type { SpanContext } from "@agentmark-ai/sdk";
 import type { ClaudeAgentAdapter } from "./adapter";
 import type { ClaudeAgentTextParams, ClaudeAgentObjectParams, ClaudeAgentErrorResult } from "./types";
 
@@ -476,32 +478,69 @@ export class ClaudeAgentWebhookHandler {
             let traceId = "";
 
             try {
-              // Build telemetry context with dataset attributes
-              const telemetryContext = {
-                ...(adapted.telemetry || { isEnabled: true, promptName: frontmatter.name || "experiment" }),
+              const spanResult = await span({
+                name: `experiment-${datasetRunName}-${itemIndex}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
                 datasetItemName: String(itemIndex),
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath,
-              };
+              }, async (ctx: SpanContext) => {
+                if (item.dataset?.input != null) {
+                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                }
 
-              // Use withTracing() wrapper for telemetry
-              const tracedResult = await withTracing(query, {
-                query: adapted.query,
-                telemetry: telemetryContext,
+                // Build telemetry context with dataset attributes
+                const telemetryContext = {
+                  ...(adapted.telemetry || { isEnabled: true, promptName: frontmatter.name || "experiment" }),
+                  datasetRunId: runId,
+                  datasetRunName: datasetRunName,
+                  datasetItemName: String(itemIndex),
+                  datasetExpectedOutput: item.dataset.expected_output,
+                  datasetPath: resolvedDatasetPath,
+                };
+
+                // Use withTracing() wrapper for telemetry
+                const tracedResult = await withTracing(query, {
+                  query: adapted.query,
+                  telemetry: telemetryContext,
+                });
+
+                let localResult = "";
+                let localStructuredOutput: unknown = undefined;
+                let localInputTokens = 0;
+                let localOutputTokens = 0;
+
+                for await (const message of tracedResult) {
+                  if (message.type === "result" && message.subtype === "success") {
+                    localResult = message.result || "";
+                    localStructuredOutput = message.structured_output;
+                    localInputTokens = message.usage?.input_tokens || 0;
+                    localOutputTokens = message.usage?.output_tokens || 0;
+                  }
+                }
+
+                const actualOutput = isObjectPrompt ? localStructuredOutput : localResult;
+                try {
+                  const outputStr = typeof actualOutput === 'string' ? actualOutput : JSON.stringify(actualOutput);
+                  ctx.setAttribute("agentmark.output", outputStr);
+                } catch { /* ignore */ }
+
+                return {
+                  result: localResult,
+                  structuredOutput: localStructuredOutput,
+                  inputTokens: localInputTokens,
+                  outputTokens: localOutputTokens,
+                  innerTraceId: tracedResult.traceId,
+                };
               });
 
-              traceId = tracedResult.traceId;
-
-              for await (const message of tracedResult) {
-                if (message.type === "result" && message.subtype === "success") {
-                  result = message.result || "";
-                  structuredOutput = message.structured_output;
-                  inputTokens = message.usage?.input_tokens || 0;
-                  outputTokens = message.usage?.output_tokens || 0;
-                }
-              }
+              const spanData = await spanResult.result;
+              result = spanData.result;
+              structuredOutput = spanData.structuredOutput;
+              inputTokens = spanData.inputTokens;
+              outputTokens = spanData.outputTokens;
+              traceId = spanResult.traceId;
 
               // Run evals if configured
               const actualOutput = isObjectPrompt ? structuredOutput : result;

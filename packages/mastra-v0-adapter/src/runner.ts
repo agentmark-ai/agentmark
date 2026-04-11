@@ -344,8 +344,11 @@ export class MastraAdapterWebhookHandler<
                 datasetItemName: String(index),
                 datasetExpectedOutput: item.dataset?.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx: SpanContext) => {
-                return agent.generate(messages, {
+              }, async (ctx: SpanContext) => {
+                if (item.dataset?.input != null) {
+                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                }
+                const genResult = await agent.generate(messages, {
                   ...options,
                   telemetry: options.telemetry
                     ? {
@@ -354,6 +357,11 @@ export class MastraAdapterWebhookHandler<
                       }
                     : undefined,
                 });
+                try {
+                  const outputText = (genResult as any).text || (genResult as any).content || String(genResult);
+                  ctx.setAttribute("agentmark.output", outputText);
+                } catch { /* ignore */ }
+                return genResult;
               });
 
               const response = await result;
@@ -452,8 +460,11 @@ export class MastraAdapterWebhookHandler<
                 datasetItemName: String(index),
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
-              }, async (_ctx: SpanContext) => {
-                return agent.generate(messages, {
+              }, async (ctx: SpanContext) => {
+                if (item.dataset?.input != null) {
+                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                }
+                const genResult = await agent.generate(messages, {
                   ...options,
                   telemetry: options.telemetry
                     ? {
@@ -462,6 +473,12 @@ export class MastraAdapterWebhookHandler<
                       }
                     : undefined,
                 });
+                try {
+                  const obj = (genResult as any).object || genResult;
+                  const outputStr = typeof obj === 'string' ? obj : JSON.stringify(obj);
+                  ctx.setAttribute("agentmark.output", outputStr);
+                } catch { /* ignore */ }
+                return genResult;
               });
 
               const response = await result;
