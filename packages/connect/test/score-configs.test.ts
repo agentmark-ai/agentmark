@@ -14,7 +14,7 @@ describe('get-score-configs job handling', () => {
         schema: { type: 'numeric', min: 1, max: 5 },
       },
       category: {
-        schema: { type: 'categorical', categories: ['a', 'b', 'c'] },
+        schema: { type: 'categorical', categories: [{ label: 'a', value: 1 }, { label: 'b', value: 0.5 }, { label: 'c', value: 0 }] },
         eval: async () => ({ label: 'a' }),
       },
     };
@@ -35,7 +35,7 @@ describe('get-score-configs job handling', () => {
     });
     expect(result[2]).toEqual({
       name: 'category',
-      schema: { type: 'categorical', categories: ['a', 'b', 'c'] },
+      schema: { type: 'categorical', categories: [{ label: 'a', value: 1 }, { label: 'b', value: 0.5 }, { label: 'c', value: 0 }] },
       hasEval: true,
     });
 

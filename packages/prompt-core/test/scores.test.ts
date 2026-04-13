@@ -21,10 +21,14 @@ describe("ScoreSchemaDefinition (Zod)", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts a valid categorical schema", () => {
+  it("accepts a valid categorical schema with label+value pairs", () => {
     const result = ScoreSchemaDefinition.safeParse({
       type: "categorical",
-      categories: ["good", "bad", "neutral"],
+      categories: [
+        { label: "good", value: 1 },
+        { label: "bad", value: 0 },
+        { label: "neutral", value: 0.5 },
+      ],
     });
     expect(result.success).toBe(true);
   });
@@ -116,7 +120,7 @@ describe("serializeScoreRegistry", () => {
       c: {
         schema: {
           type: "categorical",
-          categories: ["good", "bad"],
+          categories: [{ label: "good", value: 1 }, { label: "bad", value: 0 }],
         },
       },
     };

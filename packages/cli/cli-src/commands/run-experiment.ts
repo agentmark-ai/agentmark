@@ -194,29 +194,43 @@ function getExperimentConfig(): ExperimentConfig {
  * Extracted so the logic is testable without spinning up the full experiment runner.
  */
 export function postExperimentScores(
-  evt: { traceId?: string; result?: { evals?: Array<{ name: string; score?: number; label?: string; reason?: string; passed?: boolean }> } },
+  evt: { traceId?: string; result?: { evals?: Array<{ name: string; score?: number; label?: string; reason?: string; passed?: boolean; dataType?: string }> } },
   apiServerUrl: string,
 ): void {
   const evals = evt.result?.evals;
   if (!evt.traceId || !Array.isArray(evals) || evals.length === 0) return;
   for (const evalResult of evals) {
-    if (typeof evalResult.score === 'number' || evalResult.passed !== undefined) {
+    // Schema-aware path: runner already produced canonical score/label via toStoredScore
+    // Legacy path: derive score/label from passed/score fields
+    const hasCanonicalFormat = evalResult.dataType && typeof evalResult.score === 'number' && typeof evalResult.label === 'string';
+
+    let score: number;
+    let label: string;
+
+    if (hasCanonicalFormat) {
+      score = evalResult.score!;
+      label = evalResult.label!;
+    } else if (typeof evalResult.score === 'number' || evalResult.passed !== undefined) {
       const passed = evalResult.passed;
-      const label = evalResult.label ?? (passed !== undefined ? (passed ? 'PASS' : 'FAIL') : 'N/A');
-      const score = evalResult.score ?? (passed !== undefined ? (passed ? 1 : 0) : 0);
-      fetch(`${apiServerUrl}/v1/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resourceId: evt.traceId,
-          score,
-          label,
-          reason: evalResult.reason || '',
-          name: evalResult.name,
-          type: 'experiment',
-        }),
-      }).catch(() => {}); // fire-and-forget — never block experiment rendering
+      label = evalResult.label ?? (passed !== undefined ? (passed ? 'PASS' : 'FAIL') : 'N/A');
+      score = evalResult.score ?? (passed !== undefined ? (passed ? 1 : 0) : 0);
+    } else {
+      continue;
     }
+
+    fetch(`${apiServerUrl}/v1/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resourceId: evt.traceId,
+        score,
+        label,
+        reason: evalResult.reason || '',
+        name: evalResult.name,
+        type: 'experiment',
+        dataType: evalResult.dataType || '',
+      }),
+    }).catch(() => {}); // fire-and-forget — never block experiment rendering
   }
 }
 

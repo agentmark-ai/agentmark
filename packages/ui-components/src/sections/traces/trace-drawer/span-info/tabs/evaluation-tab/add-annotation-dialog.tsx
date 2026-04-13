@@ -26,6 +26,7 @@ type Props = {
     score: number;
     reason: string;
     resourceId: string;
+    dataType?: string;
   }) => Promise<{
     hasError: boolean;
   }>;
@@ -67,6 +68,7 @@ export function AddAnnotationDialog({ saveAnnotation }: Props) {
         score: annotation.score,
         label: annotation.label,
         reason: annotation.reason,
+        dataType: annotation.dataType,
         resourceId,
       });
       if (result.hasError) {

@@ -1,11 +1,16 @@
 import { z } from "zod";
-import type { EvalFunction } from "./types";
+import type { EvalFunction, EvalResult } from "./types";
 
 // ── Type Definitions ────────────────────────────────────────────────────────
 
+export interface CategoryValue {
+  label: string;
+  value: number;
+}
+
 export type ScoreSchema =
   | { type: "numeric"; min?: number; max?: number }
-  | { type: "categorical"; categories: string[] }
+  | { type: "categorical"; categories: CategoryValue[] }
   | { type: "boolean" };
 
 export interface ScoreDefinition {
@@ -35,7 +40,10 @@ export const ScoreSchemaDefinition = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("categorical"),
-    categories: z.array(z.string()).min(1),
+    categories: z.array(z.object({
+      label: z.string().min(1),
+      value: z.number(),
+    })).min(1),
   }),
   z.object({
     type: z.literal("boolean"),
@@ -52,6 +60,60 @@ export const ScoreRegistrySchema = z.record(
   z.string(),
   ScoreDefinitionSchema
 );
+
+// ── Storage format ──────────────────────────────────────────────────────
+
+export interface StoredScore {
+  score: number;
+  label: string;
+  reason: string;
+  dataType: "boolean" | "numeric" | "categorical";
+}
+
+/**
+ * Convert an EvalResult into canonical storage format using the schema.
+ *
+ * Both the annotation UI and the eval runner call this so that human
+ * and automated scores produce identical representations in ClickHouse.
+ */
+export function toStoredScore(
+  schema: ScoreSchema,
+  result: EvalResult,
+): StoredScore {
+  switch (schema.type) {
+    case "boolean": {
+      const passed =
+        result.passed ?? (result.score != null ? result.score >= 0.5 : false);
+      return {
+        score: passed ? 1 : 0,
+        label: passed ? "PASS" : "FAIL",
+        reason: result.reason ?? "",
+        dataType: "boolean",
+      };
+    }
+    case "numeric": {
+      let score = result.score ?? 0;
+      if (schema.min != null && score < schema.min) score = schema.min;
+      if (schema.max != null && score > schema.max) score = schema.max;
+      return {
+        score,
+        label: String(score),
+        reason: result.reason ?? "",
+        dataType: "numeric",
+      };
+    }
+    case "categorical": {
+      const label = result.label ?? "";
+      const match = schema.categories.find((c) => c.label === label);
+      return {
+        score: match?.value ?? 0,
+        label,
+        reason: result.reason ?? "",
+        dataType: "categorical",
+      };
+    }
+  }
+}
 
 // ── Serialization ───────────────────────────────────────────────────────────
 

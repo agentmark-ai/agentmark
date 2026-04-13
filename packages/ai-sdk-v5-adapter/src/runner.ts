@@ -12,7 +12,7 @@ import {
   experimental_generateImage as generateImage,
   experimental_generateSpeech as generateSpeech,
 } from "ai";
-import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
+import { createPromptTelemetry, toStoredScore } from "@agentmark-ai/prompt-core";
 import type {
   WebhookDatasetResponse,
   WebhookPromptResponse,
@@ -379,7 +379,7 @@ export class VercelAdapterWebhookHandler<
 
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     const experimentRunId = crypto.randomUUID();
-    const evalRegistry = this.client.getEvalRegistry();
+    const scoreRegistry = this.client.getScoreRegistry();
 
     const resolvedDatasetPath =
       datasetPath ?? frontmatter?.test_settings?.dataset;
@@ -428,23 +428,28 @@ export class VercelAdapterWebhookHandler<
             let evalResults: any[] = [];
             const scoreNames = item.scores ?? item.evals ?? [];
             if (
-              evalRegistry &&
+              scoreRegistry &&
               Array.isArray(scoreNames) &&
               scoreNames.length > 0
             ) {
               const evaluators = scoreNames
                 .map((name: string) => {
-                  const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
-                  return fn ? { name, fn } : undefined;
+                  const def = scoreRegistry[name];
+                  const evalFn = def?.eval;
+                  return evalFn ? { name, evalFn, schema: def.schema } : undefined;
                 })
-                .filter(Boolean) as Array<{ name: string; fn: any }>;
+                .filter(Boolean) as Array<{ name: string; evalFn: any; schema: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.fn({
+                  const r = await e.evalFn({
                     input: formatted?.messages,
                     output: text,
                     expectedOutput: item.dataset?.expected_output,
                   });
+                  if (e.schema) {
+                    const stored = toStoredScore(e.schema, r);
+                    return { name: e.name, ...stored };
+                  }
                   return { name: e.name, ...r };
                 })
               );
@@ -568,23 +573,28 @@ export class VercelAdapterWebhookHandler<
             let evalResults: any[] = [];
             const scoreNamesObj = item.scores ?? item.evals ?? [];
             if (
-              evalRegistry &&
+              scoreRegistry &&
               Array.isArray(scoreNamesObj) &&
               scoreNamesObj.length > 0
             ) {
               const evaluators = scoreNamesObj
                 .map((name: string) => {
-                  const fn = evalRegistry[name] as typeof evalRegistry[string] | undefined;
-                  return fn ? { name, fn } : undefined;
+                  const def = scoreRegistry[name];
+                  const evalFn = def?.eval;
+                  return evalFn ? { name, evalFn, schema: def.schema } : undefined;
                 })
-                .filter(Boolean) as Array<{ name: string; fn: any }>;
+                .filter(Boolean) as Array<{ name: string; evalFn: any; schema: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.fn({
+                  const r = await e.evalFn({
                     input: formatted.messages,
                     output: object,
                     expectedOutput: item.dataset.expected_output,
                   });
+                  if (e.schema) {
+                    const stored = toStoredScore(e.schema, r);
+                    return { name: e.name, ...stored };
+                  }
                   return { name: e.name, ...r };
                 })
               );

@@ -47,6 +47,7 @@ describe('postExperimentScores', () => {
       reason: 'Good match',
       name: 'quality',
       type: 'experiment',
+      dataType: '',
     });
 
     expect(postedScores[1].body).toEqual({
@@ -56,6 +57,7 @@ describe('postExperimentScores', () => {
       reason: '',
       name: 'relevance',
       type: 'experiment',
+      dataType: '',
     });
   });
 
@@ -82,6 +84,7 @@ describe('postExperimentScores', () => {
       reason: 'Mismatch',
       name: 'accuracy',
       type: 'experiment',
+      dataType: '',
     });
   });
 
@@ -184,5 +187,82 @@ describe('postExperimentScores', () => {
 
     expect(postedScores.length).toBe(1);
     expect(postedScores[0].body.name).toBe('has-score');
+  });
+
+  it('passes through canonical format with dataType from schema-aware runner', async () => {
+    postExperimentScores(
+      {
+        traceId: 'trace-1',
+        result: {
+          evals: [
+            { name: 'accuracy', score: 1, label: 'PASS', reason: 'Exact match', dataType: 'boolean' },
+            { name: 'tone', score: 1, label: 'professional', reason: '', dataType: 'categorical' },
+            { name: 'helpfulness', score: 4.2, label: '4.2', reason: 'Good', dataType: 'numeric' },
+          ],
+        },
+      },
+      'http://localhost:9418',
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(postedScores.length).toBe(3);
+
+    expect(postedScores[0].body).toEqual({
+      resourceId: 'trace-1',
+      score: 1,
+      label: 'PASS',
+      reason: 'Exact match',
+      name: 'accuracy',
+      type: 'experiment',
+      dataType: 'boolean',
+    });
+
+    expect(postedScores[1].body).toEqual({
+      resourceId: 'trace-1',
+      score: 1,
+      label: 'professional',
+      reason: '',
+      name: 'tone',
+      type: 'experiment',
+      dataType: 'categorical',
+    });
+
+    expect(postedScores[2].body).toEqual({
+      resourceId: 'trace-1',
+      score: 4.2,
+      label: '4.2',
+      reason: 'Good',
+      name: 'helpfulness',
+      type: 'experiment',
+      dataType: 'numeric',
+    });
+  });
+
+  it('falls back to legacy derivation when dataType is absent', async () => {
+    postExperimentScores(
+      {
+        traceId: 'trace-1',
+        result: {
+          evals: [
+            { name: 'legacy-eval', passed: true, reason: 'Old style' },
+          ],
+        },
+      },
+      'http://localhost:9418',
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(postedScores.length).toBe(1);
+    expect(postedScores[0].body).toEqual({
+      resourceId: 'trace-1',
+      score: 1,
+      label: 'PASS',
+      reason: 'Old style',
+      name: 'legacy-eval',
+      type: 'experiment',
+      dataType: '',
+    });
   });
 });
