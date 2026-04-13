@@ -128,6 +128,7 @@ function createMockClient() {
     loadObjectPrompt: vi.fn().mockResolvedValue(mockObjectPrompt),
     getLoader: vi.fn().mockReturnValue({}),
     getEvalRegistry: vi.fn().mockReturnValue(undefined),
+    getScoreRegistry: vi.fn().mockReturnValue({}),
     _mockTextPrompt: mockTextPrompt,
     _mockObjectPrompt: mockObjectPrompt,
   } as unknown as AgentMark<

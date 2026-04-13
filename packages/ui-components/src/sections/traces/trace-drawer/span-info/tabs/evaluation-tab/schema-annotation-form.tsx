@@ -11,6 +11,9 @@ import {
   InputLabel,
   Divider,
 } from "@mui/material";
+import {
+  toStoredScore,
+} from "@agentmark-ai/prompt-core";
 import type {
   SerializedScoreConfig,
   ScoreSchema,
@@ -21,6 +24,7 @@ export interface AnnotationEntry {
   score: number;
   label: string;
   reason: string;
+  dataType: "boolean" | "numeric" | "categorical";
 }
 
 interface Props {
@@ -66,36 +70,19 @@ function toAnnotationEntry(
 ): AnnotationEntry | null {
   if (!isFilled(config, state)) return null;
 
-  let score: number;
-  let label: string;
+  // Convert form state → EvalResult shape, then use shared storage conversion
+  const evalResult = config.schema.type === "boolean"
+    ? { passed: state.value as boolean, reason: state.reason }
+    : config.schema.type === "numeric"
+    ? { score: state.value as number, reason: state.reason }
+    : config.schema.type === "categorical"
+    ? { label: state.value as string, reason: state.reason }
+    : null;
 
-  switch (config.schema.type) {
-    case "boolean": {
-      const boolValue = state.value as boolean;
-      score = boolValue ? 1 : 0;
-      label = boolValue ? "PASS" : "FAIL";
-      break;
-    }
-    case "numeric": {
-      score = state.value as number;
-      label = String(state.value);
-      break;
-    }
-    case "categorical": {
-      score = 1;
-      label = state.value as string;
-      break;
-    }
-    default:
-      return null;
-  }
+  if (!evalResult) return null;
 
-  return {
-    name: config.name,
-    score,
-    label,
-    reason: state.reason,
-  };
+  const stored = toStoredScore(config.schema, evalResult);
+  return { name: config.name, ...stored };
 }
 
 function BooleanControl({
@@ -191,7 +178,7 @@ function CategoricalControl({
 }: {
   value: string;
   onChange: (value: string) => void;
-  categories: string[];
+  categories: Array<{ label: string; value: number }>;
   disabled?: boolean;
 }) {
   return (
@@ -203,8 +190,8 @@ function CategoricalControl({
         label="Category"
       >
         {categories.map((category) => (
-          <MenuItem key={category} value={category}>
-            {category}
+          <MenuItem key={category.label} value={category.label}>
+            {category.label}
           </MenuItem>
         ))}
       </Select>
