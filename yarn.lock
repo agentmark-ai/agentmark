@@ -114,9 +114,9 @@ __metadata:
     "@agentmark-ai/connect": "npm:0.2.0"
     "@agentmark-ai/model-registry": "npm:0.2.2"
     "@agentmark-ai/prompt-core": "npm:0.4.0"
-    "@agentmark-ai/shared-utils": "npm:0.3.1"
+    "@agentmark-ai/shared-utils": "npm:0.3.2"
     "@agentmark-ai/templatedx": "npm:0.3.0"
-    "@agentmark-ai/ui-components": "npm:0.5.0"
+    "@agentmark-ai/ui-components": "npm:0.5.1"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -329,7 +329,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/shared-utils@npm:0.3.1, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
+"@agentmark-ai/shared-utils@npm:0.3.2, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/shared-utils@workspace:packages/shared-utils"
   dependencies:
@@ -375,7 +375,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.5.0, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.5.1, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
@@ -10432,7 +10432,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-agentmark@workspace:packages/create-agentmark"
   dependencies:
-    "@agentmark-ai/shared-utils": "npm:0.3.1"
+    "@agentmark-ai/shared-utils": "npm:0.3.2"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/node": "npm:^20"
     "@types/prompts": "npm:^2.4.9"
