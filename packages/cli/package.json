@@ -57,6 +57,7 @@
     "react": "19.1.0",
     "react-apexcharts": "^1.4.0",
     "react-dom": "19.1.0",
+    "specli": "^0.0.39",
     "tsx": "^4.19.2",
     "yaml": "^2.8.3"
   },

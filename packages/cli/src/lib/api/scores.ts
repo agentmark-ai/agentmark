@@ -14,7 +14,7 @@ export const createScore = async (
   body: CreateScoreBody
 ): Promise<{ id: string; message: string }> => {
   try {
-    const response = await fetch(`${API_URL}/v1/score`, {
+    const response = await fetch(`${API_URL}/v1/scores`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -39,7 +39,7 @@ export const getScoresByResourceId = async (
 ): Promise<ScoreData[]> => {
   try {
     const response = await fetch(
-      `${API_URL}/v1/score?resourceId=${encodeURIComponent(resourceId)}`
+      `${API_URL}/v1/scores?resourceId=${encodeURIComponent(resourceId)}`
     );
 
     if (!response.ok) {

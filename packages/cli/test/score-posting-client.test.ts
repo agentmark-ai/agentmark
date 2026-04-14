@@ -8,7 +8,7 @@ describe('postExperimentScores', () => {
   beforeEach(() => {
     postedScores = [];
     fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url, options) => {
-      if (typeof url === 'string' && url.includes('/v1/score') && options?.method === 'POST') {
+      if (typeof url === 'string' && url.includes('/v1/scores') && options?.method === 'POST') {
         const body = JSON.parse(options.body as string);
         postedScores.push({ url, body });
       }
@@ -39,7 +39,7 @@ describe('postExperimentScores', () => {
 
     expect(postedScores.length).toBe(2);
 
-    expect(postedScores[0].url).toBe('http://localhost:9418/v1/score');
+    expect(postedScores[0].url).toBe('http://localhost:9418/v1/scores');
     expect(postedScores[0].body).toEqual({
       resourceId: 'abc123',
       score: 0.9,
@@ -166,7 +166,7 @@ describe('postExperimentScores', () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(postedScores.length).toBe(1);
-    expect(postedScores[0].url).toBe('http://localhost:9999/v1/score');
+    expect(postedScores[0].url).toBe('http://localhost:9999/v1/scores');
   });
 
   it('skips evals that have neither score nor passed', async () => {

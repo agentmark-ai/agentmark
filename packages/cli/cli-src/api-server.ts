@@ -278,7 +278,7 @@ export async function createApiServer(port: number) {
   <div class="endpoint">
     <div class="endpoint-title">
       <span class="endpoint-method">GET</span>
-      /v1/score?resourceId=xxx
+      /v1/scores?resourceId=xxx
     </div>
     <div class="endpoint-desc">
       Get all evaluation scores for a specific span or trace resource
@@ -691,7 +691,7 @@ ${promptsList}
     }
   });
 
-  app.post("/v1/score", async (req: Request, res: Response) => {
+  app.post("/v1/scores", async (req: Request, res: Response) => {
     try {
       const body = req.body;
       if (!body.resourceId) {
@@ -707,7 +707,7 @@ ${promptsList}
     }
   });
 
-  app.get("/v1/score", async (req: Request, res: Response) => {
+  app.get("/v1/scores", async (req: Request, res: Response) => {
     try {
       const resourceId = req.query.resourceId as string;
       if (!resourceId) {

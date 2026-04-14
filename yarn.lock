@@ -158,6 +158,7 @@ __metadata:
     react: "npm:19.1.0"
     react-apexcharts: "npm:^1.4.0"
     react-dom: "npm:19.1.0"
+    specli: "npm:^0.0.39"
     tsup: "npm:^8"
     tsx: "npm:^4.19.2"
     typescript: "npm:^5"
@@ -625,6 +626,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apidevtools/json-schema-ref-parser@npm:14.0.1":
+  version: 14.0.1
+  resolution: "@apidevtools/json-schema-ref-parser@npm:14.0.1"
+  dependencies:
+    "@types/json-schema": "npm:^7.0.15"
+    js-yaml: "npm:^4.1.0"
+  checksum: 10c0/f8aff4d32f66b81be0e641da175d359ec3e4191f9c65343b30f90cfbcfdbdb78b13e57c4a0a8d0574c828294abde56400a031858f61cf38b3309a4213698dc0c
+  languageName: node
+  linkType: hard
+
 "@apidevtools/json-schema-ref-parser@npm:^11.1.0, @apidevtools/json-schema-ref-parser@npm:^11.5.5":
   version: 11.9.3
   resolution: "@apidevtools/json-schema-ref-parser@npm:11.9.3"
@@ -644,6 +655,36 @@ __metadata:
   peerDependencies:
     "@types/json-schema": ^7.0.15
   checksum: 10c0/ffc6d0df28c4a7da0b725cd916f92cfcef4efecb1c6054c67534886c7fb2ade7e6f77c3b5a0d6675020326280fe9bbca74e0e9da679590d9f78301cb6ffa0648
+  languageName: node
+  linkType: hard
+
+"@apidevtools/openapi-schemas@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "@apidevtools/openapi-schemas@npm:2.1.0"
+  checksum: 10c0/f4aa0f9df32e474d166c84ef91bceb18fa1c4f44b5593879529154ef340846811ea57dc2921560f157f692262827d28d988dd6e19fb21f00320e9961964176b4
+  languageName: node
+  linkType: hard
+
+"@apidevtools/swagger-methods@npm:^3.0.2":
+  version: 3.0.2
+  resolution: "@apidevtools/swagger-methods@npm:3.0.2"
+  checksum: 10c0/8c390e8e50c0be7787ba0ba4c3758488bde7c66c2d995209b4b48c1f8bc988faf393cbb24a4bd1cd2d42ce5167c26538e8adea5c85eb922761b927e4dab9fa1c
+  languageName: node
+  linkType: hard
+
+"@apidevtools/swagger-parser@npm:^12.1.0":
+  version: 12.1.0
+  resolution: "@apidevtools/swagger-parser@npm:12.1.0"
+  dependencies:
+    "@apidevtools/json-schema-ref-parser": "npm:14.0.1"
+    "@apidevtools/openapi-schemas": "npm:^2.1.0"
+    "@apidevtools/swagger-methods": "npm:^3.0.2"
+    ajv: "npm:^8.17.1"
+    ajv-draft-04: "npm:^1.0.0"
+    call-me-maybe: "npm:^1.0.2"
+  peerDependencies:
+    openapi-types: ">=7"
+  checksum: 10c0/ccac54e2f67c24c22fbfe8040a70642da20b72c8b0b21ba75c4e97b7444189eff09fb25fcdd8903f1081b9d4d3c78b57ed39c19397502e1bc64b517f0f3a8639
   languageName: node
   linkType: hard
 
@@ -8920,6 +8961,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ajv-draft-04@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "ajv-draft-04@npm:1.0.0"
+  peerDependencies:
+    ajv: ^8.5.0
+  peerDependenciesMeta:
+    ajv:
+      optional: true
+  checksum: 10c0/6044310bd38c17d77549fd326bd40ce1506fa10b0794540aa130180808bf94117fac8c9b448c621512bea60e4a947278f6a978e87f10d342950c15b33ddd9271
+  languageName: node
+  linkType: hard
+
 "ajv-formats@npm:^3.0.1":
   version: 3.0.1
   resolution: "ajv-formats@npm:3.0.1"
@@ -9858,6 +9911,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"call-me-maybe@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "call-me-maybe@npm:1.0.2"
+  checksum: 10c0/8eff5dbb61141ebb236ed71b4e9549e488bcb5451c48c11e5667d5c75b0532303788a1101e6978cafa2d0c8c1a727805599c2741e3e0982855c9f1d78cd06c9f
+  languageName: node
+  linkType: hard
+
 "callsites@npm:^3.0.0":
   version: 3.1.0
   resolution: "callsites@npm:3.1.0"
@@ -10229,6 +10289,13 @@ __metadata:
   version: 12.1.0
   resolution: "commander@npm:12.1.0"
   checksum: 10c0/6e1996680c083b3b897bfc1cfe1c58dfbcd9842fd43e1aaf8a795fbc237f65efcc860a3ef457b318e73f29a4f4a28f6403c3d653d021d960e4632dd45bde54a9
+  languageName: node
+  linkType: hard
+
+"commander@npm:^14.0.2":
+  version: 14.0.3
+  resolution: "commander@npm:14.0.3"
+  checksum: 10c0/755652564bbf56ff2ff083313912b326450d3f8d8c85f4b71416539c9a05c3c67dbd206821ca72635bf6b160e2afdefcb458e86b317827d5cb333b69ce7f1a24
   languageName: node
   linkType: hard
 
@@ -16202,6 +16269,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openapi-types@npm:^12.1.3":
+  version: 12.1.3
+  resolution: "openapi-types@npm:12.1.3"
+  checksum: 10c0/4ad4eb91ea834c237edfa6ab31394e87e00c888fc2918009763389c00d02342345195d6f302d61c3fd807f17723cd48df29b47b538b68375b3827b3758cd520f
+  languageName: node
+  linkType: hard
+
 "optionator@npm:^0.9.3":
   version: 0.9.4
   resolution: "optionator@npm:0.9.4"
@@ -18392,6 +18466,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"specli@npm:^0.0.39":
+  version: 0.0.39
+  resolution: "specli@npm:0.0.39"
+  dependencies:
+    "@apidevtools/swagger-parser": "npm:^12.1.0"
+    ajv: "npm:^8.17.1"
+    ajv-formats: "npm:^3.0.1"
+    commander: "npm:^14.0.2"
+    openapi-types: "npm:^12.1.3"
+    yaml: "npm:^2.8.2"
+  peerDependencies:
+    ai: ^6.0.0
+    zod: ^4.0.0
+  bin:
+    specli: bin/cli.sh
+  checksum: 10c0/6eac776dbe6d31dd41c2c3573acee3b6bb78cf2b7833e6f9fc2364b6e943b1ce882513d566d150c562e95fd53ef437ee6f08329e9d263f91d0f926dd4fd3b1a6
+  languageName: node
+  linkType: hard
+
 "split2@npm:^4.0.0":
   version: 4.2.0
   resolution: "split2@npm:4.2.0"
@@ -20378,7 +20471,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.8.3":
+"yaml@npm:^2.8.2, yaml@npm:^2.8.3":
   version: 2.8.3
   resolution: "yaml@npm:2.8.3"
   bin:

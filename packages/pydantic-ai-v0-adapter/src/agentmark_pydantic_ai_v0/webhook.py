@@ -608,7 +608,7 @@ class PydanticAIWebhookHandler:
 
             # Emit traceId as lowercase hex (matches OTLP JSON format used
             # by the JSON exporter in agentmark_sdk). The server-side stream
-            # wrap in server.py consumes this and posts scores to /v1/score.
+            # wrap in server.py consumes this and posts scores to /v1/scores.
             trace_id_hex = ctx.trace_id
 
             yield json.dumps(
@@ -731,7 +731,7 @@ class PydanticAIWebhookHandler:
 
             # Emit traceId as lowercase hex (matches OTLP JSON format used
             # by the JSON exporter in agentmark_sdk). The server-side stream
-            # wrap in server.py consumes this and posts scores to /v1/score.
+            # wrap in server.py consumes this and posts scores to /v1/scores.
             trace_id_hex = ctx.trace_id
 
             yield json.dumps(

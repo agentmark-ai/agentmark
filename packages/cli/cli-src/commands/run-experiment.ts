@@ -218,7 +218,7 @@ export function postExperimentScores(
       continue;
     }
 
-    fetch(`${apiServerUrl}/v1/score`, {
+    fetch(`${apiServerUrl}/v1/scores`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
