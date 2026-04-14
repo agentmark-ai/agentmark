@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/cli",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {
@@ -24,9 +24,9 @@
     "agentmark": "dist/index.js"
   },
   "dependencies": {
-    "@agentmark-ai/connect": "0.2.0",
-    "@agentmark-ai/model-registry": "0.2.2",
-    "@agentmark-ai/prompt-core": "0.4.0",
+    "@agentmark-ai/connect": "0.2.1",
+    "@agentmark-ai/model-registry": "0.2.3",
+    "@agentmark-ai/prompt-core": "0.4.1",
     "@agentmark-ai/shared-utils": "0.3.2",
     "@agentmark-ai/templatedx": "0.3.0",
     "@emotion/cache": "^11.14.0",
@@ -62,7 +62,7 @@
     "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "@agentmark-ai/ui-components": "0.5.1",
+    "@agentmark-ai/ui-components": "0.5.2",
     "@eslint/eslintrc": "^3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2",

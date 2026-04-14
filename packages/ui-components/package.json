@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ui-components",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "source": "./src/index.ts",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -82,7 +82,7 @@
     "vitest": "^4.0.4"
   },
   "dependencies": {
-    "@agentmark-ai/prompt-core": "0.4.0",
+    "@agentmark-ai/prompt-core": "0.4.1",
     "@codemirror/lang-json": "^6.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@mui/lab": "^7.0.1-beta.18",

@@ -25,6 +25,19 @@
 │  └─ Dependents
 │     └─ [38;5;173meslint[39m[38;5;111m@[39m[38;5;111mnpm:9.39.2 [f9974][39m
 │
+├─ [38;5;173mfollow-redirects[39m
+│  ├─ ID: [38;5;220m1116560[39m
+│  ├─ Issue: follow-redirects leaks Custom Authentication Headers to Cross-Domain Redirect Targets
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-r4q5-vmmm-2653[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<=1.15.11[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.15.11[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173maxios[39m[38;5;111m@[39m[38;5;111mnpm:1.15.0[39m
+│
 ├─ [38;5;173mglob[39m
 │  ├─ ID: [38;5;111mglob (deprecation)[39m
 │  ├─ Issue: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
@@ -37,71 +50,6 @@
 │  └─ Dependents
 │     └─ [38;5;166m@nxlv/[39m[38;5;173mpython[39m[38;5;111m@[39m[38;5;111mnpm:22.1.1[39m
 │
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1116244[39m
-│  ├─ Issue: Hono missing validation of cookie name on write path in setCookie()
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-26pp-8wgv-hjvm[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.12[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.10[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1116277[39m
-│  ├─ Issue: Hono: Non-breaking space prefix bypass in cookie name handling in getCookie()
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-r5rp-j6wh-rvv4[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.12[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.10[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1116278[39m
-│  ├─ Issue: Hono has incorrect IP matching in ipRestriction() for IPv4-mapped IPv6 addresses
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-xpcf-pg52-r92g[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.12[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.10[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1116279[39m
-│  ├─ Issue: Hono: Path traversal in toSSG() allows writing files outside the output directory
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-xf4j-xp2r-rqqx[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <=4.12.11[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.10[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1116280[39m
-│  ├─ Issue: Hono: Middleware bypass via repeated slashes in serveStatic
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-wmmm-f939-6g9c[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.12[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.10[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
 ├─ [38;5;173mprebuild-install[39m
 │  ├─ ID: [38;5;111mprebuild-install (deprecation)[39m
 │  ├─ Issue: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
@@ -113,51 +61,6 @@
 │  │ 
 │  └─ Dependents
 │     └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
-│
-├─ [38;5;173mvite[39m
-│  ├─ ID: [38;5;220m1116230[39m
-│  ├─ Issue: Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-4w7w-66w2-5vf9[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m>=7.0.0 <=7.3.1[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m7.3.1[39m
-│  │ 
-│  └─ Dependents
-│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [5121e][39m
-│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [7dc72][39m
-│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [ced0a][39m
-│
-├─ [38;5;173mvite[39m
-│  ├─ ID: [38;5;220m1116232[39m
-│  ├─ Issue: Vite: `server.fs.deny` bypassed with queries
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-v2wj-q39q-566r[39m
-│  ├─ Severity: high
-│  ├─ Vulnerable Versions: [38;5;37m>=7.1.0 <=7.3.1[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m7.3.1[39m
-│  │ 
-│  └─ Dependents
-│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [5121e][39m
-│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [7dc72][39m
-│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [ced0a][39m
-│
-├─ [38;5;173mvite[39m
-│  ├─ ID: [38;5;220m1116235[39m
-│  ├─ Issue: Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-p9ff-h696-f583[39m
-│  ├─ Severity: high
-│  ├─ Vulnerable Versions: [38;5;37m>=7.0.0 <=7.3.1[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m7.3.1[39m
-│  │ 
-│  └─ Dependents
-│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [5121e][39m
-│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [7dc72][39m
-│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:3.2.4 [ced0a][39m
 │
 ├─ [38;5;173myaml[39m
 │  ├─ ID: [38;5;220m1115555[39m

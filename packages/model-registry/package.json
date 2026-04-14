@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/model-registry",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "LLM model registry with provider metadata, pricing, and capabilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

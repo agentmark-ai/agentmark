@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/connect",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "WebSocket connect client for AgentMark — auto-connects your app to the platform",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@agentmark-ai/prompt-core": "0.4.0",
+    "@agentmark-ai/prompt-core": "0.4.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
