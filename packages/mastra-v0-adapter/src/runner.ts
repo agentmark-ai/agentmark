@@ -16,7 +16,7 @@ type Frontmatter = {
   object_config?: unknown;
   image_config?: unknown;
   speech_config?: unknown;
-  test_settings?: { dataset?: string; evals?: string[]; scores?: string[] };
+  test_settings?: { dataset?: string; evals?: string[] };
 };
 
 function extractErrorMessage(error: unknown): string {
@@ -372,7 +372,7 @@ export class MastraAdapterWebhookHandler<
               const usage = (response as any).usage;
 
               let evalResults: any[] = [];
-              const scoreNames = item.scores ?? item.evals ?? [];
+              const scoreNames = item.evals ?? [];
               if (
                 evalRegistry &&
                 Array.isArray(scoreNames) &&
@@ -486,7 +486,7 @@ export class MastraAdapterWebhookHandler<
               const usage = (response as any).usage;
 
               let evalResults: any[] = [];
-              const scoreNamesObj = item.scores ?? item.evals ?? [];
+              const scoreNamesObj = item.evals ?? [];
               if (
                 evalRegistry &&
                 Array.isArray(scoreNamesObj) &&

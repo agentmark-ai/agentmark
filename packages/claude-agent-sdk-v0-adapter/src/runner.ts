@@ -545,7 +545,7 @@ export class ClaudeAgentWebhookHandler {
               // Run evals if configured
               const actualOutput = isObjectPrompt ? structuredOutput : result;
               let evalResults: any[] = [];
-              const scoreNames = item.scores ?? item.evals ?? [];
+              const scoreNames = item.evals ?? [];
               if (evalRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
                 const evalNames = scoreNames as string[];
                 const evaluators = evalNames

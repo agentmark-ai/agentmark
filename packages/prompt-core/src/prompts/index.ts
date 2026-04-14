@@ -123,12 +123,11 @@ export abstract class BasePrompt<
           try {
             for (const value of buffered) {
               const formattedOutput = await this.format({ props: value.input, ...options });
-              const resolvedScores = this.testSettings?.scores ?? this.testSettings?.evals ?? [];
+              const resolvedScores = this.testSettings?.evals ?? [];
               controller.enqueue({
                 type: "dataset",
                 dataset: { input: value.input, expected_output: value.expected_output },
                 evals: resolvedScores,
-                scores: resolvedScores,
                 formatted: formattedOutput,
               });
             }
@@ -147,14 +146,13 @@ export abstract class BasePrompt<
               props: value.input,
               ...options,
             });
-            const resolvedScores = this.testSettings?.scores ?? this.testSettings?.evals ?? [];
+            const resolvedScores = this.testSettings?.evals ?? [];
             controller.enqueue({
               dataset: {
                 input: value.input,
                 expected_output: value.expected_output,
               },
               evals: resolvedScores,
-              scores: resolvedScores,
               formatted: formattedOutput,
               type: "dataset",
             });

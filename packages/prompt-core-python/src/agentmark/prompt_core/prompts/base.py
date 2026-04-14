@@ -202,7 +202,11 @@ class BasePrompt[C](ABC):
         dataset_stream = await self._loader.load_dataset(ds_path)
 
         # Get evals from test settings
-        evals = self._test_settings.get("evals", []) if self._test_settings else []
+        evals = (
+            self._test_settings.get("evals", [])
+            if self._test_settings
+            else []
+        )
 
         # Buffer all rows so we can apply sampling (and support positional splits)
         all_rows: list[dict[str, Any]] = []
