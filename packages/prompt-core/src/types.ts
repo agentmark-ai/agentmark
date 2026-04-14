@@ -148,10 +148,8 @@ export type DatasetStreamChunk<T> = {
     expected_output?: string;
   };
   formatted: T;
-  /** @deprecated Use `scores` instead. */
+  /** Eval function names to run during experiments. */
   evals: string[];
-  /** Score config names resolved from test_settings (scores ?? evals). */
-  scores: string[];
   type: "dataset";
 }
 
