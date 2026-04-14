@@ -282,6 +282,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ${loaderImport}
+from agentmark.prompt_core import ScoreRegistry
 from agentmark_claude_agent_sdk import (
     create_claude_agent_client,
     ClaudeAgentModelRegistry,
@@ -298,9 +299,7 @@ model_registry.register_providers({
 })
 
 
-# Eval registry — define evaluation functions for experiments
-# TODO: Update to use scores (ScoreRegistry) once the Python SDK supports it.
-# The TypeScript SDK already uses scores with schema definitions.
+# Score definitions — define evaluation functions with schemas for experiments
 def exact_match_json(params):
     """Check if output matches expected output exactly."""
     output = params.get("output")
@@ -320,8 +319,12 @@ def exact_match_json(params):
     except (json.JSONDecodeError, TypeError):
         return {"score": 0, "label": "error", "reason": "Failed to parse JSON", "passed": False}
 
-eval_registry = {
-    "exact_match_json": exact_match_json,
+scores: ScoreRegistry = {
+    "exact_match_json": {
+        "schema": {"type": "boolean"},
+        "description": "Whether output matches expected JSON exactly",
+        "eval": exact_match_json,
+    },
 }
 
 ${loaderSetup}
@@ -330,7 +333,7 @@ ${loaderSetup}
 # Claude Agent SDK handles tools natively through the SDK
 client = create_claude_agent_client(
     model_registry=model_registry,
-    eval_registry=eval_registry,
+    scores=scores,
     loader=loader,
 )
 
@@ -351,6 +354,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ${loaderImport}
+from agentmark.prompt_core import ScoreRegistry
 from agentmark_pydantic_ai_v0 import (
     create_pydantic_ai_client,
     PydanticAIModelRegistry,
@@ -375,9 +379,7 @@ model_registry.register_providers({
 tools = []
 
 
-# Eval registry — define evaluation functions for experiments
-# TODO: Update to use scores (ScoreRegistry) once the Python SDK supports it.
-# The TypeScript SDK already uses scores with schema definitions.
+# Score definitions — define evaluation functions with schemas for experiments
 def exact_match_json(params):
     """Check if output matches expected output exactly."""
     output = params.get("output")
@@ -397,8 +399,12 @@ def exact_match_json(params):
     except (json.JSONDecodeError, TypeError):
         return {"score": 0, "label": "error", "reason": "Failed to parse JSON", "passed": False}
 
-eval_registry = {
-    "exact_match_json": exact_match_json,
+scores: ScoreRegistry = {
+    "exact_match_json": {
+        "schema": {"type": "boolean"},
+        "description": "Whether output matches expected JSON exactly",
+        "eval": exact_match_json,
+    },
 }
 
 ${loaderSetup}
@@ -407,7 +413,7 @@ ${loaderSetup}
 client = create_pydantic_ai_client(
     model_registry=model_registry,
     tools=tools,
-    eval_registry=eval_registry,
+    scores=scores,
     loader=loader,
 )
 

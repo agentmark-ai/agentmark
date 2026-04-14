@@ -45,7 +45,7 @@ interface DeployFile {
 /**
  * Reads the agentmark.json config file from the current directory.
  */
-function getAgentmarkConfig(): { agentmarkPath?: string } {
+function getAgentmarkConfig(): { agentmarkPath?: string; scores?: Record<string, unknown> } {
   const configPath = path.join(process.cwd(), "agentmark.json");
   if (!fs.existsSync(configPath)) {
     throw new Error(
@@ -181,6 +181,15 @@ export default function createDeployCommand(): Command {
         for (const file of files) {
           console.log(`  ${file.path}`);
         }
+        if (config.scores) {
+          const scoreNames = Object.keys(config.scores);
+          if (scoreNames.length > 0) {
+            console.log(`\nScore configs that would be deployed (${scoreNames.length}):`);
+            for (const name of scoreNames) {
+              console.log(`  ${name}`);
+            }
+          }
+        }
         process.exit(EXIT_CODES.SUCCESS);
         return;
       }
@@ -193,7 +202,7 @@ export default function createDeployCommand(): Command {
           Authorization: `Bearer ${authToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ appId, files, message: options.message }),
+        body: JSON.stringify({ appId, files, scores: config.scores, message: options.message }),
       });
 
       if (response.status < 200 || response.status >= 300) {
@@ -244,6 +253,9 @@ export default function createDeployCommand(): Command {
       }
       if (result.filesSkipped && result.filesSkipped > 0) {
         console.log(`  Files skipped (unchanged): ${result.filesSkipped}`);
+      }
+      if (config.scores && Object.keys(config.scores).length > 0) {
+        console.log(`  Score configs: ${Object.keys(config.scores).length}`);
       }
 
       process.exit(EXIT_CODES.SUCCESS);

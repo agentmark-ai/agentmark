@@ -279,6 +279,86 @@ describe('deploy command', () => {
   });
 
   // --------------------------------------------------------------------------
+  // Score config persistence
+  // --------------------------------------------------------------------------
+  describe('score config in deploy body', () => {
+    it('should include scores in POST body when agentmark.json has scores', async () => {
+      process.env.AGENTMARK_API_KEY = 'sk_test';
+      process.env.AGENTMARK_APP_ID = 'app-test';
+
+      setupFileMocks();
+      const fs = vi.mocked(fsExtra);
+      (fs.readJsonSync as any).mockReturnValue({
+        agentmarkPath: '.',
+        scores: { accuracy: { type: 'boolean', description: 'Is correct?' } },
+      });
+
+      mockFetch.mockResolvedValue({
+        status: 202,
+        json: async () => ({ deployment_id: 'dep-scores' }),
+      });
+
+      const cmd = createDeployCommand();
+      await expect(cmd.parseAsync(['node', 'agentmark'])).rejects.toThrow();
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_CODES.SUCCESS);
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body.scores).toEqual({
+        accuracy: { type: 'boolean', description: 'Is correct?' },
+      });
+    });
+
+    it('should have scores undefined in POST body when agentmark.json has no scores', async () => {
+      process.env.AGENTMARK_API_KEY = 'sk_test';
+      process.env.AGENTMARK_APP_ID = 'app-test';
+
+      setupFileMocks(); // readJsonSync returns { agentmarkPath: '.' } by default
+
+      mockFetch.mockResolvedValue({
+        status: 202,
+        json: async () => ({ deployment_id: 'dep-no-scores' }),
+      });
+
+      const cmd = createDeployCommand();
+      await expect(cmd.parseAsync(['node', 'agentmark'])).rejects.toThrow();
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_CODES.SUCCESS);
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      expect(body.scores).toBeUndefined();
+    });
+
+    it('should print score config names in dry-run mode', async () => {
+      process.env.AGENTMARK_API_KEY = 'sk_test';
+      process.env.AGENTMARK_APP_ID = 'app-test';
+
+      setupFileMocks();
+      const fs = vi.mocked(fsExtra);
+      (fs.readJsonSync as any).mockReturnValue({
+        agentmarkPath: '.',
+        scores: {
+          accuracy: { type: 'boolean' },
+          relevance: { type: 'numeric', range: [0, 1] },
+        },
+      });
+
+      const cmd = createDeployCommand();
+      await expect(
+        cmd.parseAsync(['node', 'agentmark', '--dry-run']),
+      ).rejects.toThrow();
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_CODES.SUCCESS);
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(consoleMock.log).toHaveBeenCalledWith(
+        expect.stringContaining('Score configs that would be deployed (2)'),
+      );
+      expect(consoleMock.log).toHaveBeenCalledWith('  accuracy');
+      expect(consoleMock.log).toHaveBeenCalledWith('  relevance');
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // API error responses
   // --------------------------------------------------------------------------
   describe('API error responses', () => {
