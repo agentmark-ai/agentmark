@@ -36,6 +36,7 @@ from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING, Any
 
 from agentmark.prompt_core import AgentMark, EvalRegistry
+from agentmark.prompt_core.types import ScoreRegistry
 
 from .adapter import PydanticAIAdapter
 from .mcp import McpServerRegistry
@@ -94,6 +95,7 @@ def create_pydantic_ai_client(
     tools: list[Tool[Any] | Callable[..., Any]] | None = None,
     mcp_registry: McpServerRegistry | None = None,
     eval_registry: EvalRegistry | None = None,
+    scores: ScoreRegistry | None = None,
     loader: Loader | None = None,
 ) -> AgentMark:
     """Create an AgentMark client configured for Pydantic AI.
@@ -108,7 +110,10 @@ def create_pydantic_ai_client(
             These are filtered at adapt time by matching names from the MDX
             config's tools list.
         mcp_registry: Optional MCP server registry for MCP tool resolution.
-        eval_registry: Optional registry for evaluation functions.
+        eval_registry: Optional registry for evaluation functions
+            (deprecated, use scores instead).
+        scores: Optional score registry with schema definitions.
+            When provided, takes precedence over eval_registry.
         loader: Optional loader for loading prompts from paths.
 
     Returns:
@@ -133,6 +138,15 @@ def create_pydantic_ai_client(
         mcp_registry = McpServerRegistry()
         mcp_registry.register("search-server", {"url": "http://localhost:8000/mcp"})
         client = create_pydantic_ai_client(model_registry=registry, mcp_registry=mcp_registry)
+
+        # With scores (recommended over eval_registry)
+        scores = {
+            "accuracy": {
+                "schema": {"type": "boolean"},
+                "eval": my_accuracy_eval,
+            },
+        }
+        client = create_pydantic_ai_client(model_registry=registry, scores=scores)
     """
     if model_registry is None:
         model_registry = PydanticAIModelRegistry()
@@ -147,6 +161,7 @@ def create_pydantic_ai_client(
         adapter=adapter,
         loader=loader,
         eval_registry=eval_registry,
+        scores=scores,
     )
 
 

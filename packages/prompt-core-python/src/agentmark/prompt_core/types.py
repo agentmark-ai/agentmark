@@ -1,7 +1,7 @@
 """Type definitions for prompt-core."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, Protocol, TypedDict
+from typing import Any, Dict, List, Literal, Protocol, Required, TypedDict, Union
 
 # JSON types
 JSONPrimitive = str | int | float | bool | None
@@ -100,6 +100,49 @@ class EvalResult(TypedDict, total=False):
 
 
 EvalFunction = Callable[[EvalParams], EvalResult | Awaitable[EvalResult]]
+
+
+# Score types (mirrors TypeScript ScoreRegistry pattern)
+class CategoryValue(TypedDict):
+    """A categorical score value with a label and numeric value."""
+
+    label: str
+    value: float
+
+
+class BooleanSchema(TypedDict):
+    """Schema for boolean (pass/fail) scores."""
+
+    type: Literal["boolean"]
+
+
+class NumericSchema(TypedDict, total=False):
+    """Schema for numeric scores with optional min/max bounds."""
+
+    type: Required[Literal["numeric"]]
+    min: float
+    max: float
+
+
+class CategoricalSchema(TypedDict):
+    """Schema for categorical scores with predefined categories."""
+
+    type: Literal["categorical"]
+    categories: List[CategoryValue]
+
+
+ScoreSchema = Union[BooleanSchema, NumericSchema, CategoricalSchema]
+
+
+class ScoreDefinition(TypedDict, total=False):
+    """Definition for a score, including schema, description, and eval function."""
+
+    schema: Required[ScoreSchema]
+    description: str
+    eval: EvalFunction
+
+
+ScoreRegistry = Dict[str, ScoreDefinition]
 
 
 # Test settings

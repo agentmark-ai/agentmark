@@ -1,6 +1,7 @@
-"""Tests for EvalRegistry (plain dict type alias)."""
+"""Tests for EvalRegistry (plain dict type alias) and ScoreRegistry in AgentMark client."""
 
-from agentmark.prompt_core import EvalRegistry
+from agentmark.prompt_core import AgentMark, DefaultAdapter, EvalRegistry
+from agentmark.prompt_core.types import ScoreRegistry
 
 
 class TestEvalRegistry:
@@ -80,3 +81,91 @@ class TestEvalRegistry:
         registry: EvalRegistry = {"my_fn": my_fn}
         del registry["my_fn"]
         assert registry.get("my_fn") is None
+
+
+adapter = DefaultAdapter()
+
+
+class TestAgentMarkScoreRegistry:
+    """Tests for ScoreRegistry integration in AgentMark client."""
+
+    def test_should_store_score_registry_when_scores_parameter_provided(self) -> None:
+        scores: ScoreRegistry = {
+            "accuracy": {
+                "schema": {"type": "boolean"},
+                "eval": lambda _: {"passed": True},
+            },
+            "quality": {
+                "schema": {"type": "numeric", "min": 1, "max": 5},
+            },
+        }
+
+        client = AgentMark(adapter=adapter, scores=scores)
+        registry = client.get_score_registry()
+
+        assert registry is scores
+        assert list(registry.keys()) == ["accuracy", "quality"]
+
+    def test_should_wrap_bare_functions_as_schemaless_score_definitions(self) -> None:
+        fn = lambda _: {"passed": True}
+        legacy_registry: EvalRegistry = {"accuracy": fn}
+
+        client = AgentMark(adapter=adapter, eval_registry=legacy_registry)
+        score_registry = client.get_score_registry()
+
+        assert "accuracy" in score_registry
+        assert score_registry["accuracy"]["eval"] is fn
+        # Schema is not set when wrapping legacy functions
+        assert score_registry["accuracy"].get("schema") is None
+
+    def test_should_prefer_scores_when_both_options_provided(self) -> None:
+        legacy_fn = lambda _: {"passed": False}
+        new_fn = lambda _: {"passed": True}
+
+        client = AgentMark(
+            adapter=adapter,
+            eval_registry={"accuracy": legacy_fn},
+            scores={
+                "accuracy": {"schema": {"type": "boolean"}, "eval": new_fn},
+            },
+        )
+
+        registry = client.get_score_registry()
+        assert registry["accuracy"]["eval"] is new_fn
+        assert registry["accuracy"]["schema"] == {"type": "boolean"}
+
+    def test_should_derive_registry_from_score_entries_with_functions(self) -> None:
+        fn = lambda _: {"passed": True}
+        scores: ScoreRegistry = {
+            "accuracy": {"schema": {"type": "boolean"}, "eval": fn},
+            "quality": {"schema": {"type": "numeric", "min": 1, "max": 5}},
+        }
+
+        client = AgentMark(adapter=adapter, scores=scores)
+        derived = client.get_eval_registry()
+
+        assert derived is not None
+        assert derived["accuracy"] is fn
+        assert "quality" not in derived
+
+    def test_should_return_score_registry_via_get_score_registry(self) -> None:
+        scores: ScoreRegistry = {
+            "accuracy": {"schema": {"type": "boolean"}},
+        }
+
+        client = AgentMark(adapter=adapter, scores=scores)
+        assert client.get_score_registry() is scores
+
+    def test_should_return_empty_score_registry_when_no_options_provided(self) -> None:
+        client = AgentMark(adapter=adapter)
+        assert client.get_score_registry() == {}
+
+    def test_should_return_original_functions_when_using_legacy_option(self) -> None:
+        fn = lambda _: {"passed": True}
+        legacy_registry: EvalRegistry = {"accuracy": fn}
+
+        client = AgentMark(adapter=adapter, eval_registry=legacy_registry)
+        result = client.get_eval_registry()
+
+        assert result is not None
+        assert result["accuracy"] is fn
