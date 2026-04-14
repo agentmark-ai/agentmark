@@ -200,23 +200,13 @@ export function postExperimentScores(
   const evals = evt.result?.evals;
   if (!evt.traceId || !Array.isArray(evals) || evals.length === 0) return;
   for (const evalResult of evals) {
-    // Schema-aware path: runner already produced canonical score/label via toStoredScore
-    // Legacy path: derive score/label from passed/score fields
-    const hasCanonicalFormat = evalResult.dataType && typeof evalResult.score === 'number' && typeof evalResult.label === 'string';
-
-    let score: number;
-    let label: string;
-
-    if (hasCanonicalFormat) {
-      score = evalResult.score!;
-      label = evalResult.label!;
-    } else if (typeof evalResult.score === 'number' || evalResult.passed !== undefined) {
-      const passed = evalResult.passed;
-      label = evalResult.label ?? (passed !== undefined ? (passed ? 'PASS' : 'FAIL') : 'N/A');
-      score = evalResult.score ?? (passed !== undefined ? (passed ? 1 : 0) : 0);
-    } else {
+    if (typeof evalResult.score !== 'number' && evalResult.passed === undefined) {
       continue;
     }
+
+    const passed = evalResult.passed;
+    const label = evalResult.label ?? (passed !== undefined ? (passed ? 'PASS' : 'FAIL') : 'N/A');
+    const score = evalResult.score ?? (passed !== undefined ? (passed ? 1 : 0) : 0);
 
     fetch(`${apiServerUrl}/v1/score`, {
       method: 'POST',

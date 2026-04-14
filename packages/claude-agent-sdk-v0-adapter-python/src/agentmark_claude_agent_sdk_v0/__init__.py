@@ -112,8 +112,8 @@ def create_claude_agent_client(
     model_registry: ClaudeAgentModelRegistry,
     mcp_servers: dict[str, Any] | None = None,
     adapter_options: ClaudeAgentAdapterOptions | None = None,
+    evals: Any | None = None,
     eval_registry: Any | None = None,
-    scores: Any | None = None,
     loader: Any | None = None,
 ) -> Any:
     """Create an AgentMark client configured for Claude Agent SDK.
@@ -128,10 +128,9 @@ def create_claude_agent_client(
             Register providers before passing in.
         mcp_servers: Optional MCP servers configuration (native SDK format).
         adapter_options: Optional adapter-level options.
-        eval_registry: Optional evaluation registry
-            (deprecated, use scores instead).
-        scores: Optional score registry with schema definitions.
-            When provided, takes precedence over eval_registry.
+        evals: Optional dict mapping eval names to eval functions.
+        eval_registry: Deprecated alias for evals. When evals is
+            provided, eval_registry is ignored.
         loader: Optional prompt loader.
 
     Returns:
@@ -159,16 +158,13 @@ def create_claude_agent_client(
         async for message in query(prompt=adapted.query.prompt, options=...):
             print(message)
 
-        # With scores (recommended over eval_registry)
-        scores = {
-            "accuracy": {
-                "schema": {"type": "boolean"},
-                "eval": my_accuracy_eval,
-            },
+        # With evals
+        evals = {
+            "accuracy": my_accuracy_eval,
         }
         client = create_claude_agent_client(
             model_registry=model_registry,
-            scores=scores,
+            evals=evals,
         )
     """
     # Import AgentMark from prompt-core
@@ -188,8 +184,7 @@ def create_claude_agent_client(
     return AgentMark(
         adapter=adapter,
         loader=loader,
-        eval_registry=eval_registry,
-        scores=scores,
+        evals=evals or eval_registry,
     )
 
 

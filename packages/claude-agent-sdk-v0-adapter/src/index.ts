@@ -1,6 +1,6 @@
 import type { PromptShape, Loader } from "@agentmark-ai/prompt-core";
 import { AgentMark } from "@agentmark-ai/prompt-core";
-import type { EvalRegistry, ScoreRegistry } from "@agentmark-ai/prompt-core";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
 import { ClaudeAgentAdapter } from "./adapter";
 import { ClaudeAgentModelRegistry } from "./model-registry";
 import type { ClaudeAgentAdapterOptions, McpServerConfig } from "./types";
@@ -24,10 +24,10 @@ export interface CreateClientOptions<
   modelRegistry?: ClaudeAgentModelRegistry;
   /** MCP servers configuration for tool access */
   mcpServers?: Record<string, McpServerConfig>;
-  /** @deprecated Use scores instead. */
+  /** @deprecated Use evals instead. */
   evalRegistry?: EvalRegistry;
-  /** Score definitions with schemas and optional eval functions. */
-  scores?: ScoreRegistry;
+  /** Plain eval functions keyed by name. */
+  evals?: EvalRegistry;
   /** Adapter-level options */
   adapterOptions?: ClaudeAgentAdapterOptions;
 }
@@ -84,7 +84,7 @@ export function createAgentMarkClient<
     loader: opts.loader as Loader<D>,
     adapter,
     evalRegistry: opts.evalRegistry,
-    scores: opts.scores,
+    evals: opts.evals,
   });
 }
 

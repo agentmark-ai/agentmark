@@ -282,7 +282,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ${loaderImport}
-from agentmark.prompt_core import ScoreRegistry
+from agentmark.prompt_core import EvalRegistry
 from agentmark_claude_agent_sdk import (
     create_claude_agent_client,
     ClaudeAgentModelRegistry,
@@ -299,7 +299,7 @@ model_registry.register_providers({
 })
 
 
-# Score definitions — define evaluation functions with schemas for experiments
+# Evaluation functions — used by experiments to score model outputs
 def exact_match_json(params):
     """Check if output matches expected output exactly."""
     output = params.get("output")
@@ -319,12 +319,8 @@ def exact_match_json(params):
     except (json.JSONDecodeError, TypeError):
         return {"score": 0, "label": "error", "reason": "Failed to parse JSON", "passed": False}
 
-scores: ScoreRegistry = {
-    "exact_match_json": {
-        "schema": {"type": "boolean"},
-        "description": "Whether output matches expected JSON exactly",
-        "eval": exact_match_json,
-    },
+evals: EvalRegistry = {
+    "exact_match_json": exact_match_json,
 }
 
 ${loaderSetup}
@@ -333,7 +329,7 @@ ${loaderSetup}
 # Claude Agent SDK handles tools natively through the SDK
 client = create_claude_agent_client(
     model_registry=model_registry,
-    scores=scores,
+    evals=evals,
     loader=loader,
 )
 
@@ -354,7 +350,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ${loaderImport}
-from agentmark.prompt_core import ScoreRegistry
+from agentmark.prompt_core import EvalRegistry
 from agentmark_pydantic_ai_v0 import (
     create_pydantic_ai_client,
     PydanticAIModelRegistry,
@@ -379,7 +375,7 @@ model_registry.register_providers({
 tools = []
 
 
-# Score definitions — define evaluation functions with schemas for experiments
+# Evaluation functions — used by experiments to score model outputs
 def exact_match_json(params):
     """Check if output matches expected output exactly."""
     output = params.get("output")
@@ -399,12 +395,8 @@ def exact_match_json(params):
     except (json.JSONDecodeError, TypeError):
         return {"score": 0, "label": "error", "reason": "Failed to parse JSON", "passed": False}
 
-scores: ScoreRegistry = {
-    "exact_match_json": {
-        "schema": {"type": "boolean"},
-        "description": "Whether output matches expected JSON exactly",
-        "eval": exact_match_json,
-    },
+evals: EvalRegistry = {
+    "exact_match_json": exact_match_json,
 }
 
 ${loaderSetup}
@@ -413,7 +405,7 @@ ${loaderSetup}
 client = create_pydantic_ai_client(
     model_registry=model_registry,
     tools=tools,
-    scores=scores,
+    evals=evals,
     loader=loader,
 )
 

@@ -19,7 +19,6 @@ import type {
 } from "./types";
 import type { Root } from "mdast";
 import { EvalRegistry } from "./eval-registery";
-import type { ScoreRegistry } from "./scores";
 
 export interface AgentMarkOptions<
   T extends PromptShape<T>,
@@ -28,10 +27,10 @@ export interface AgentMarkOptions<
   loader?: Loader<T>;
   adapter: A;
   templateEngine?: TemplateEngine;
-  /** @deprecated Use `scores` instead. Will be removed in a future major version. */
+  /** @deprecated Use `evals` instead. Will be removed in a future major version. */
   evalRegistry?: EvalRegistry;
-  /** Score definitions with schemas and optional eval functions. */
-  scores?: ScoreRegistry;
+  /** Plain eval functions keyed by name. */
+  evals?: EvalRegistry;
   /** List of allowed model names (e.g. from agentmark.json's builtInModels). When provided,
    *  model_name fields in prompt frontmatter must be one of these values. */
   builtInModels?: string[];
@@ -50,27 +49,15 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
   protected loader?: Loader<T>;
   protected adapter: A;
   protected templateEngine: TemplateEngine;
-  protected scoreRegistry: ScoreRegistry;
+  protected _evalRegistry: EvalRegistry;
   protected builtInModels?: string[];
 
-  constructor({ loader, adapter, templateEngine, evalRegistry, scores, builtInModels }: AgentMarkOptions<T, A>) {
+  constructor({ loader, adapter, templateEngine, evalRegistry, evals, builtInModels }: AgentMarkOptions<T, A>) {
     this.loader = loader;
     this.adapter = adapter;
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
     this.builtInModels = builtInModels;
-
-    if (scores) {
-      this.scoreRegistry = scores;
-    } else if (evalRegistry) {
-      this.scoreRegistry = Object.fromEntries(
-        Object.entries(evalRegistry).map(([name, fn]) => [
-          name,
-          { eval: fn } as ScoreRegistry[string],
-        ])
-      );
-    } else {
-      this.scoreRegistry = {};
-    }
+    this._evalRegistry = evals ?? evalRegistry ?? {};
   }
 
   getLoader() {
@@ -81,16 +68,8 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
     return this.adapter;
   }
 
-  /** @deprecated Use `getScoreRegistry()` instead. */
-  getEvalRegistry(): EvalRegistry | undefined {
-    const entries = Object.entries(this.scoreRegistry)
-      .filter(([_, def]) => typeof def.eval === "function")
-      .map(([name, def]) => [name, def.eval!] as const);
-    return Object.fromEntries(entries);
-  }
-
-  getScoreRegistry(): ScoreRegistry {
-    return this.scoreRegistry;
+  getEvalRegistry(): EvalRegistry {
+    return this._evalRegistry;
   }
 
   async loadTextPrompt<K extends KeysWithKind<T, "text"> & string>(
@@ -220,9 +199,9 @@ export function createAgentMark<A extends Adapter<any>>(opts: {
   adapter: A;
   loader?: Loader<DictOf<A>>;
   templateEngine?: TemplateEngine;
-  /** @deprecated Use `scores` instead. */
+  /** @deprecated Use `evals` instead. */
   evalRegistry?: EvalRegistry;
-  scores?: ScoreRegistry;
+  evals?: EvalRegistry;
   builtInModels?: string[];
 }): AgentMark<DictOf<A>, A> {
   return new AgentMark(opts);

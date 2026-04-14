@@ -94,8 +94,8 @@ import type { Tool } from 'ai';
 import { z } from 'zod';`;
 
   const createClientCall = isClaudeAgentSdk
-    ? `return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, scores, adapterOptions, mcpServers: { 'customer-support': customerSupportTools } });`
-    : `return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, tools, scores });`;
+    ? `return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, evals, adapterOptions, mcpServers: { 'customer-support': customerSupportTools } });`
+    : `return createAgentMarkClient<AgentMarkTypes>({ loader, modelRegistry, tools, evals });`;
 
   // AI SDK v5 uses inputSchema (Zod), Mastra uses parameters (Zod via ai v4 tool helper)
   const toolSchemaField = isMastra
@@ -158,7 +158,7 @@ import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 import { createAgentMarkClient, ${modelRegistry} } from "${adapterConfig.package}";
-import type { ScoreRegistry } from "@agentmark-ai/prompt-core";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
 ${loaderImport}
 import AgentMarkTypes from './agentmark.types';
 ${providerImport}
@@ -168,26 +168,22 @@ ${adapterOptionsImport}
 ${modelRegistrySetup}
 ${toolsSetup}
 
-const scores: ScoreRegistry = {
-  exact_match_json: {
-    schema: { type: 'boolean' },
-    description: 'Whether output matches expected JSON exactly',
-    eval: ({ output, expectedOutput }) => {
-      if (!expectedOutput) {
-        return { score: 0, label: 'error', reason: 'No expected output provided', passed: false };
-      }
-      try {
-        const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
-        return {
-          score: ok ? 1 : 0,
-          label: ok ? 'correct' : 'incorrect',
-          reason: ok ? 'Exact match' : 'Mismatch',
-          passed: ok
-        };
-      } catch (e) {
-        return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON', passed: false };
-      }
-    },
+const evals: EvalRegistry = {
+  exact_match_json: async ({ output, expectedOutput }) => {
+    if (!expectedOutput) {
+      return { score: 0, label: 'error', reason: 'No expected output provided', passed: false };
+    }
+    try {
+      const ok = JSON.stringify(output) === JSON.stringify(JSON.parse(expectedOutput));
+      return {
+        score: ok ? 1 : 0,
+        label: ok ? 'correct' : 'incorrect',
+        reason: ok ? 'Exact match' : 'Mismatch',
+        passed: ok
+      };
+    } catch (e) {
+      return { score: 0, label: 'error', reason: 'Failed to parse expected output as JSON', passed: false };
+    }
   },
 };
 

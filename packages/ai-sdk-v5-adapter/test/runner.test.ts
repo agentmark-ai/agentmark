@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { fileURLToPath } from "url";
 import path from "path";
-import type { EvalRegistry, ScoreRegistry } from "@agentmark-ai/prompt-core";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark-ai/templatedx";
@@ -315,51 +315,5 @@ describe("VercelAdapterWebhookHandler", () => {
     expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
   });
 
-  it("produces canonical storage format with dataType when using schema-aware scores", async () => {
-    // Create a new client with `scores` (ScoreRegistry) instead of `evalRegistry`
-    const scores: ScoreRegistry = {
-      exact_match: {
-        schema: { type: "boolean" },
-        description: "Whether output matches expected exactly",
-        eval: async ({ output, expectedOutput }) => {
-          const out = typeof output === 'string' ? output : JSON.stringify(output);
-          const exp = typeof expectedOutput === 'string' ? expectedOutput : JSON.stringify(expectedOutput);
-          return { passed: out === exp };
-        },
-      },
-    };
-
-    const base = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
-    const schemaLoader = new FileLoader(base);
-    const modelRegistry = new VercelAIModelRegistry();
-    modelRegistry.registerModels("test-model", () => ({}) as any);
-    const schemaClient = createAgentMarkClient({ loader: schemaLoader, modelRegistry, scores });
-    const schemaRunner = new VercelAdapterWebhookHandler(schemaClient);
-
-    const ast = (await schemaLoader.load("text.prompt.mdx", "text")) as Ast;
-    const { stream } = await schemaRunner.runExperiment(ast, "run-schema");
-
-    const reader = (stream as ReadableStream).getReader();
-    const rows: any[] = [];
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const line = typeof value === "string" ? value : new TextDecoder().decode(value);
-      const trimmed = line.trim();
-      if (trimmed) rows.push(JSON.parse(trimmed));
-    }
-
-    expect(rows.length).toBe(2);
-
-    // The mock generateText returns "TEXT", expected is "4" → mismatch → FAIL
-    const evalResult = rows[0].result.evals[0];
-    expect(evalResult).toBeDefined();
-    expect(evalResult.name).toBe("exact_match");
-    expect(evalResult.dataType).toBe("boolean");
-    expect(evalResult.score).toBe(0);
-    expect(evalResult.label).toBe("FAIL");
-    // Should NOT have a `passed` field (removed the re-spread)
-    expect(evalResult.passed).toBeUndefined();
-  });
 });
 

@@ -36,7 +36,6 @@ from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING, Any
 
 from agentmark.prompt_core import AgentMark, EvalRegistry
-from agentmark.prompt_core.types import ScoreRegistry
 
 from .adapter import PydanticAIAdapter
 from .mcp import McpServerRegistry
@@ -94,8 +93,8 @@ def create_pydantic_ai_client(
     model_registry: PydanticAIModelRegistry | None = None,
     tools: list[Tool[Any] | Callable[..., Any]] | None = None,
     mcp_registry: McpServerRegistry | None = None,
+    evals: EvalRegistry | None = None,
     eval_registry: EvalRegistry | None = None,
-    scores: ScoreRegistry | None = None,
     loader: Loader | None = None,
 ) -> AgentMark:
     """Create an AgentMark client configured for Pydantic AI.
@@ -110,10 +109,9 @@ def create_pydantic_ai_client(
             These are filtered at adapt time by matching names from the MDX
             config's tools list.
         mcp_registry: Optional MCP server registry for MCP tool resolution.
-        eval_registry: Optional registry for evaluation functions
-            (deprecated, use scores instead).
-        scores: Optional score registry with schema definitions.
-            When provided, takes precedence over eval_registry.
+        evals: Optional dict mapping eval names to eval functions.
+        eval_registry: Deprecated alias for evals. When evals is
+            provided, eval_registry is ignored.
         loader: Optional loader for loading prompts from paths.
 
     Returns:
@@ -139,14 +137,11 @@ def create_pydantic_ai_client(
         mcp_registry.register("search-server", {"url": "http://localhost:8000/mcp"})
         client = create_pydantic_ai_client(model_registry=registry, mcp_registry=mcp_registry)
 
-        # With scores (recommended over eval_registry)
-        scores = {
-            "accuracy": {
-                "schema": {"type": "boolean"},
-                "eval": my_accuracy_eval,
-            },
+        # With evals
+        evals = {
+            "accuracy": my_accuracy_eval,
         }
-        client = create_pydantic_ai_client(model_registry=registry, scores=scores)
+        client = create_pydantic_ai_client(model_registry=registry, evals=evals)
     """
     if model_registry is None:
         model_registry = PydanticAIModelRegistry()
@@ -160,8 +155,7 @@ def create_pydantic_ai_client(
     return AgentMark(
         adapter=adapter,
         loader=loader,
-        eval_registry=eval_registry,
-        scores=scores,
+        evals=evals or eval_registry,
     )
 
 
