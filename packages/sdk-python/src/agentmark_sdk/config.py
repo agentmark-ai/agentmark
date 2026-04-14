@@ -2,7 +2,7 @@
 
 # API Endpoints
 AGENTMARK_TRACE_ENDPOINT = "v1/traces"
-AGENTMARK_SCORE_ENDPOINT = "v1/score"
+AGENTMARK_SCORE_ENDPOINT = "v1/scores"
 
 # Default base URL
 DEFAULT_BASE_URL = "https://api.agentmark.co"

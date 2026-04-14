@@ -322,7 +322,7 @@ class TestRunExperimentSampling:
     ) -> None:
         """Regression: dataset-run chunks must carry a traceId so the CLI
         consumer (run-experiment.ts) can post eval scores via fire-and-forget
-        POST /v1/score.
+        POST /v1/scores.
 
         Without traceId, score posting is skipped (it requires traceId + evals)
         and the experiments Avg Score column stays empty — the exact regression

@@ -483,7 +483,7 @@ class ClaudeAgentWebhookHandler:
                             # Use the real trace_id from the outer span. The
                             # claude-agent server exports spans as OTLP/JSON
                             # so the stored TraceId column is hex — emit hex
-                            # here so /v1/score resourceId lookups match.
+                            # here so /v1/scores resourceId lookups match.
                             item_trace_id = ctx.trace_id
 
                             # Record the experiment iteration's input as

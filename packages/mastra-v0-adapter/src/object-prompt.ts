@@ -65,7 +65,10 @@ export class MastraObjectPrompt<
         }),
       });
 
-      return [messageAdapted.messages, messageAdapted.options];
+      // Type assertion needed: adaptMessages returns `functionId?: string` but the
+      // intersection type expects `functionId?: string | undefined` (strict optional).
+      // Both are functionally identical at runtime.
+      return [messageAdapted.messages, messageAdapted.options] as any;
     };
 
     return {

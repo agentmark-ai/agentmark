@@ -1445,7 +1445,7 @@ class TestRunExperimentSampling:
         agentmark_sdk span_context (not the old random fallback UUID).
 
         The server-side score wrap in server.py parses traceId from each
-        dataset chunk and posts eval scores to /v1/score. Without a real
+        dataset chunk and posts eval scores to /v1/scores. Without a real
         span-derived trace id, the scored resource wouldn't match the stored
         trace, leaving the experiments Avg Score column empty (issue #1860).
 
