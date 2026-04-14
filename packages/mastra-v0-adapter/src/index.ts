@@ -1,4 +1,4 @@
-import type { Loader, PromptShape, EvalRegistry, ScoreRegistry } from "@agentmark-ai/prompt-core";
+import type { Loader, PromptShape, EvalRegistry } from "@agentmark-ai/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { MastraAdapter } from "./adapter";
 import type { McpServers } from "@agentmark-ai/prompt-core";
@@ -11,10 +11,10 @@ export function createAgentMarkClient<
   loader?: Loader<any>;
   modelRegistry?: MastraModelRegistry;
   tools?: ToolsInput;
-  /** @deprecated Use scores instead. */
+  /** @deprecated Use evals instead. */
   evalRegistry?: EvalRegistry;
-  /** Score definitions with schemas and optional eval functions. */
-  scores?: ScoreRegistry;
+  /** Plain eval functions keyed by name. */
+  evals?: EvalRegistry;
   mcpServers?: McpServers;
 }): MastraAgentMark<D, MastraAdapter<D, ToolsInput>> {
   const adapter = new MastraAdapter<D, ToolsInput>(
@@ -26,7 +26,7 @@ export function createAgentMarkClient<
     loader: opts.loader,
     adapter,
     evalRegistry: opts.evalRegistry,
-    scores: opts.scores,
+    evals: opts.evals,
   });
 }
 

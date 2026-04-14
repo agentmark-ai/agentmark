@@ -12,7 +12,7 @@ from .schemas import (
     TextConfigSchema,
 )
 from .template_engines import TemplateDXTemplateEngine
-from .types import Loader, PromptKind, ScoreRegistry, TemplateEngine, TestSettings
+from .types import Loader, PromptKind, TemplateEngine, TestSettings
 
 
 class AgentMark:
@@ -23,8 +23,8 @@ class AgentMark:
         adapter: Adapter,
         loader: Loader | None = None,
         template_engine: TemplateEngine | None = None,
+        evals: EvalRegistry | None = None,
         eval_registry: EvalRegistry | None = None,
-        scores: ScoreRegistry | None = None,
     ) -> None:
         """Initialize AgentMark.
 
@@ -32,29 +32,14 @@ class AgentMark:
             adapter: Adapter for formatting prompt output
             loader: Optional loader for loading prompts from paths
             template_engine: Optional custom template engine
-            eval_registry: Optional eval registry for evaluation functions
-                (deprecated, use scores instead)
-            scores: Optional score registry with schema definitions.
-                When provided, takes precedence over eval_registry.
+            evals: Optional dict mapping eval names to eval functions.
+            eval_registry: Deprecated alias for evals. When evals is
+                provided, eval_registry is ignored.
         """
         self._adapter = adapter
         self._loader = loader
         self._template_engine: TemplateEngine = template_engine or TemplateDXTemplateEngine()
-
-        # Build score registry: scores > eval_registry > empty
-        if scores is not None:
-            self._score_registry: ScoreRegistry = scores
-        elif eval_registry is not None:
-            # Wrap legacy eval functions as ScoreDefinitions without schemas
-            self._score_registry = {
-                name: {"eval": fn}  # type: ignore[typeddict-item]
-                for name, fn in eval_registry.items()
-            }
-        else:
-            self._score_registry = {}
-
-        # Derive eval_registry from score_registry for backward compat
-        self._eval_registry = eval_registry
+        self._eval_registry = evals or eval_registry
 
     @property
     def loader(self) -> Loader | None:
@@ -68,30 +53,12 @@ class AgentMark:
 
     @property
     def eval_registry(self) -> EvalRegistry | None:
-        """Get the eval registry (deprecated, use score_registry instead)."""
+        """Get the eval registry."""
         return self._eval_registry
 
-    @property
-    def score_registry(self) -> ScoreRegistry:
-        """Get the score registry."""
-        return self._score_registry
-
     def get_eval_registry(self) -> EvalRegistry | None:
-        """Get the eval registry (method form for webhook server compat).
-
-        Deprecated: use get_score_registry() instead.
-        """
-        # Derive from score registry for backward compat
-        entries = {
-            name: defn["eval"]
-            for name, defn in self._score_registry.items()
-            if callable(defn.get("eval"))
-        }
-        return entries if entries else self._eval_registry
-
-    def get_score_registry(self) -> ScoreRegistry:
-        """Get the score registry."""
-        return self._score_registry
+        """Get the eval registry (method form for webhook server compat)."""
+        return self._eval_registry
 
     async def load_text_prompt(
         self,
@@ -257,8 +224,8 @@ def create_agentmark(
     adapter: Adapter,
     loader: Loader | None = None,
     template_engine: TemplateEngine | None = None,
+    evals: EvalRegistry | None = None,
     eval_registry: EvalRegistry | None = None,
-    scores: ScoreRegistry | None = None,
 ) -> AgentMark:
     """Factory function to create an AgentMark instance.
 
@@ -266,9 +233,8 @@ def create_agentmark(
         adapter: Adapter for formatting prompt output
         loader: Optional loader for loading prompts from paths
         template_engine: Optional custom template engine
-        eval_registry: Optional eval registry for evaluation functions
-            (deprecated, use scores instead)
-        scores: Optional score registry with schema definitions
+        evals: Optional dict mapping eval names to eval functions.
+        eval_registry: Deprecated alias for evals.
 
     Returns:
         Configured AgentMark instance
@@ -277,6 +243,6 @@ def create_agentmark(
         adapter=adapter,
         loader=loader,
         template_engine=template_engine,
+        evals=evals,
         eval_registry=eval_registry,
-        scores=scores,
     )

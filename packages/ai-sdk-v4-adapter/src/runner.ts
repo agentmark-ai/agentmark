@@ -4,7 +4,7 @@ import type { AgentMark, PromptShape } from "@agentmark-ai/prompt-core";
 import type { VercelAIAdapter } from "./adapter";
 import type { Tool } from "ai";
 import { generateObject, generateText, streamObject, streamText, Output, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
-import { createPromptTelemetry, toStoredScore } from "@agentmark-ai/prompt-core";
+import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
 import { span } from "@agentmark-ai/sdk";
 import type { SpanContext } from "@agentmark-ai/sdk";
@@ -215,7 +215,7 @@ export class VercelAdapterWebhookHandler<
 
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     const experimentRunId = crypto.randomUUID();
-    const scoreRegistry = this.client.getScoreRegistry();
+    const evalRegistry = this.client.getEvalRegistry();
 
     const resolvedDatasetPath = datasetPath ?? frontmatter?.test_settings?.dataset;
 
@@ -259,21 +259,16 @@ export class VercelAdapterWebhookHandler<
 
             let evalResults: any[] = [];
             const scoreNames = item.scores ?? item.evals ?? [];
-            if (scoreRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
+            if (evalRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
               const evaluators = scoreNames
                 .map((name: string) => {
-                  const def = scoreRegistry[name];
-                  const evalFn = def?.eval;
-                  return evalFn ? { name, evalFn, schema: def.schema } : undefined;
+                  const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
+                  return fn ? { name, fn } : undefined;
                 })
-                .filter(Boolean) as Array<{ name: string; evalFn: any; schema: any }>;
+                .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.evalFn({ input: formatted?.messages, output: text, expectedOutput: item.dataset?.expected_output });
-                  if (e.schema) {
-                    const stored = toStoredScore(e.schema, r);
-                    return { name: e.name, ...stored };
-                  }
+                  const r = await e.fn({ input: formatted?.messages, output: text, expectedOutput: item.dataset?.expected_output });
                   return { name: e.name, ...r };
                 })
               );
@@ -388,21 +383,16 @@ export class VercelAdapterWebhookHandler<
 
             let evalResults: any[] = [];
             const scoreNamesObj = item.scores ?? item.evals ?? [];
-            if (scoreRegistry && Array.isArray(scoreNamesObj) && scoreNamesObj.length > 0) {
+            if (evalRegistry && Array.isArray(scoreNamesObj) && scoreNamesObj.length > 0) {
               const evaluators = scoreNamesObj
                 .map((name: string) => {
-                  const def = scoreRegistry[name];
-                  const evalFn = def?.eval;
-                  return evalFn ? { name, evalFn, schema: def.schema } : undefined;
+                  const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
+                  return fn ? { name, fn } : undefined;
                 })
-                .filter(Boolean) as Array<{ name: string; evalFn: any; schema: any }>;
+                .filter(Boolean) as Array<{ name: string; fn: any }>;
               evalResults = await Promise.all(
                 evaluators.map(async (e) => {
-                  const r = await e.evalFn({ input: formatted.messages, output: object, expectedOutput: item.dataset.expected_output });
-                  if (e.schema) {
-                    const stored = toStoredScore(e.schema, r);
-                    return { name: e.name, ...stored };
-                  }
+                  const r = await e.fn({ input: formatted.messages, output: object, expectedOutput: item.dataset.expected_output });
                   return { name: e.name, ...r };
                 })
               );

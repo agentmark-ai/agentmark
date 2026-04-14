@@ -1,7 +1,7 @@
 import { getFrontMatter } from "@agentmark-ai/templatedx";
 import type { Ast } from "@agentmark-ai/templatedx";
 import type { AgentMark } from "@agentmark-ai/prompt-core";
-import { createPromptTelemetry, toStoredScore } from "@agentmark-ai/prompt-core";
+import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import type {
   WebhookPromptResponse,
   WebhookDatasetResponse,
@@ -434,8 +434,8 @@ export class ClaudeAgentWebhookHandler {
             ? await client.loadObjectPrompt(promptAst)
             : await client.loadTextPrompt(promptAst);
 
-          // Get score registry for running evaluations
-          const scoreRegistry = client.getScoreRegistry();
+          // Get eval registry for running evaluations
+          const evalRegistry = client.getEvalRegistry();
 
           // Format with dataset and execute each item
           const dataset = await prompt.formatWithDataset({
@@ -546,26 +546,21 @@ export class ClaudeAgentWebhookHandler {
               const actualOutput = isObjectPrompt ? structuredOutput : result;
               let evalResults: any[] = [];
               const scoreNames = item.scores ?? item.evals ?? [];
-              if (scoreRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
+              if (evalRegistry && Array.isArray(scoreNames) && scoreNames.length > 0) {
                 const evalNames = scoreNames as string[];
                 const evaluators = evalNames
                   .map((name: string) => {
-                    const def = scoreRegistry[name];
-                    const evalFn = def?.eval;
-                    return evalFn ? { name, evalFn, schema: def.schema } : undefined;
+                    const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
+                    return fn ? { name, fn } : undefined;
                   })
-                  .filter(Boolean) as Array<{ name: string; evalFn: any; schema: any }>;
+                  .filter(Boolean) as Array<{ name: string; fn: any }>;
                 evalResults = await Promise.all(
                   evaluators.map(async (e) => {
-                    const r = await e.evalFn({
+                    const r = await e.fn({
                       input: adapted.messages,
                       output: actualOutput,
                       expectedOutput: item.dataset?.expected_output,
                     });
-                    if (e.schema) {
-                      const stored = toStoredScore(e.schema, r);
-                      return { name: e.name, ...stored };
-                    }
                     return { name: e.name, ...r };
                   })
                 );

@@ -6,7 +6,6 @@ from .adapters import Adapter, DefaultAdapter
 from .agentmark import AgentMark, create_agentmark
 from .api_loader import ApiDatasetReader, ApiDatasetStream, ApiLoader
 from .eval_registry import EvalRegistry
-from .scores import serialize_score_registry, to_stored_score
 from .loaders import FileDatasetReader, FileDatasetStream, FileLoader
 from .mcp import (
     McpServerConfig,
@@ -42,9 +41,6 @@ from .schemas import (
 from .template_engines import TemplateDXTemplateEngine, get_front_matter
 from .types import (
     AdaptOptions,
-    BooleanSchema,
-    CategoricalSchema,
-    CategoryValue,
     ChatMessage,
     ContentPart,
     DatasetErrorChunk,
@@ -62,13 +58,9 @@ from .types import (
     JSONPrimitive,
     JSONValue,
     Loader,
-    NumericSchema,
     PromptKind,
     PromptMetadata,
     RichChatMessage,
-    ScoreDefinition,
-    ScoreRegistry,
-    ScoreSchema,
     TelemetryOptions,
     TemplateEngine,
     TestSettings,
@@ -92,9 +84,6 @@ __all__ = [
     "SimpleDatasetReader",
     # Registries
     "EvalRegistry",
-    # Score utilities
-    "to_stored_score",
-    "serialize_score_registry",
     # Loaders
     "ApiLoader",
     "ApiDatasetStream",
@@ -136,14 +125,6 @@ __all__ = [
     "TestSettings",
     "Loader",
     "TemplateEngine",
-    # Score types
-    "CategoryValue",
-    "BooleanSchema",
-    "NumericSchema",
-    "CategoricalSchema",
-    "ScoreSchema",
-    "ScoreDefinition",
-    "ScoreRegistry",
     # Dataset types
     "DatasetItem",
     "DatasetStreamChunk",
