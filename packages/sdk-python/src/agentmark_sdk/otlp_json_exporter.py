@@ -15,11 +15,18 @@ import base64
 import json
 import urllib.request
 from collections import defaultdict
+from importlib.metadata import version as _pkg_version
 from typing import Any, Sequence
 
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.trace import SpanKind
+
+# Cloudflare Browser Integrity Check rejects the default urllib User-Agent
+# ("Python-urllib/x.y") with a 403 error code 1010. Set an explicit SDK UA so
+# requests through proxied zones (api.agentmark.co et al) aren't blocked
+# before reaching the gateway.
+_SDK_USER_AGENT = f"agentmark-sdk-python/{_pkg_version('agentmark-sdk')}"
 
 # OTLP wire format uses 1-indexed SpanKind values (UNSPECIFIED=0,
 # INTERNAL=1, SERVER=2, ...) while the Python API uses 0-indexed
@@ -50,6 +57,7 @@ class JsonOtlpSpanExporter(SpanExporter):
             data=payload,
             headers={
                 "Content-Type": "application/json",
+                "User-Agent": _SDK_USER_AGENT,
                 **self._headers,
             },
             method="POST",
