@@ -73,14 +73,24 @@ export interface Session {
   updated_at: string;
 }
 
+/**
+ * Trace list item — matches the canonical `/v1/traces` wire shape
+ * served by both the cloud gateway and the OSS local dev server.
+ * Source of truth: the upstream monorepo's api-contract
+ * TraceResponseSchema (packages/api-contract/src/schemas/traces.ts).
+ * The OSS local server's wire-mapper (cli-src/server/wire-mappers.ts)
+ * is pinned against the same schema, and the cloud gateway emits it
+ * directly from apps/gateway/src/openapi/routes/traces.ts.
+ */
 export interface Trace {
   id: string;
   name: string;
-  status: string;
-  latency: string;
-  cost: string;
-  tokens: string;
+  status: "UNSET" | "OK" | "ERROR";
   start: string;
   end: string;
-  spanCount: number;
+  latency_ms: number;
+  cost: number;
+  tokens: number;
+  span_count: number;
+  tags?: string[];
 }

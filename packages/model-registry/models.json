@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-04-14T00:56:22.150Z",
+  "generatedAt": "2026-04-20T00:56:22.837Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-04-14T00:56:22.150Z",
-      "modelCount": 1168
+      "fetchedAt": "2026-04-20T00:56:22.837Z",
+      "modelCount": 1174
     },
     "openrouter": {
-      "fetchedAt": "2026-04-14T00:56:22.150Z",
-      "modelCount": 127
+      "fetchedAt": "2026-04-20T00:56:22.837Z",
+      "modelCount": 126
     }
   },
   "models": {
@@ -7129,6 +7129,54 @@
         "pdfInput": true
       }
     },
+    "claude-opus-4-7": {
+      "provider": "anthropic",
+      "displayName": "Claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "claude-opus-4-7-20260416": {
+      "provider": "anthropic",
+      "displayName": "Claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
     "claude-sonnet-4-20250514": {
       "provider": "anthropic",
       "displayName": "Claude Sonnet 4",
@@ -12244,6 +12292,17 @@
         "webSearch": true
       }
     },
+    "anthropic/claude-opus-4-7": {
+      "provider": "perplexity",
+      "displayName": "Anthropic/claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": false,
+        "webSearch": true
+      }
+    },
     "anthropic/claude-opus-4-5": {
       "provider": "perplexity",
       "displayName": "Anthropic/claude Opus 4 5",
@@ -14007,6 +14066,54 @@
         "pdfInput": true
       }
     },
+    "vertex_ai/claude-opus-4-7": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "vertex_ai/claude-opus-4-7@default": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Opus 4 7@default",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
     "vertex_ai/claude-sonnet-4-5": {
       "provider": "google",
       "displayName": "Vertex Ai/claude Sonnet 4 5",
@@ -15746,6 +15853,27 @@
     "grok-4.20-beta-0309-reasoning": {
       "provider": "xai",
       "displayName": "Grok 4.20 Beta 0309 Reasoning",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006,
+        "cacheReadCostPerToken": 2e-7
+      },
+      "context": {
+        "maxInputTokens": 2000000,
+        "maxOutputTokens": 2000000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "reasoning": true,
+        "webSearch": true
+      }
+    },
+    "grok-4.20-0309-reasoning": {
+      "provider": "xai",
+      "displayName": "Grok 4.20 0309 Reasoning",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
@@ -19300,6 +19428,28 @@
         "pdfInput": true
       }
     },
+    "claude-opus-4.7": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Opus 4.7",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
     "claude-opus-4.6-fast": {
       "provider": "anthropic",
       "displayName": "Anthropic: Claude Opus 4.6 (Fast)",
@@ -20071,8 +20221,8 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 2e-8,
-        "outputCostPerToken": 4e-8
+        "inputCostPerToken": 6e-8,
+        "outputCostPerToken": 1.2e-7
       },
       "context": {
         "maxInputTokens": 32768
@@ -20485,32 +20635,6 @@
         "functionCalling": true
       }
     },
-    "command-r-08-2024": {
-      "provider": "cohere",
-      "displayName": "Cohere: Command R (08-2024)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 1.5e-7,
-        "outputCostPerToken": 6e-7
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 4000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
-    },
     "command-r-plus-08-2024": {
       "provider": "cohere",
       "displayName": "Cohere: Command R+ (08-2024)",
@@ -20527,6 +20651,32 @@
       "pricing": {
         "inputCostPerToken": 0.0000025,
         "outputCostPerToken": 0.00001
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "command-r-08-2024": {
+      "provider": "cohere",
+      "displayName": "Cohere: Command R (08-2024)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
       },
       "context": {
         "maxInputTokens": 128000,
@@ -20558,53 +20708,6 @@
         "maxOutputTokens": 2048
       },
       "capabilities": {
-        "structuredOutput": true
-      }
-    },
-    "gemma-2-9b-it": {
-      "provider": "google",
-      "displayName": "Google: Gemma 2 9B",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 3e-8,
-        "outputCostPerToken": 9e-8
-      },
-      "context": {
-        "maxInputTokens": 8192
-      }
-    },
-    "gpt-4o:extended": {
-      "provider": "openai",
-      "displayName": "OpenAI: GPT-4o (extended)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 0.000006,
-        "outputCostPerToken": 0.000018
-      },
-      "context": {
-        "maxInputTokens": 128000,
-        "maxOutputTokens": 64000
-      },
-      "capabilities": {
-        "vision": true,
-        "functionCalling": true,
         "structuredOutput": true
       }
     },
@@ -20679,6 +20782,55 @@
       "capabilities": {
         "structuredOutput": true
       }
+    },
+    "gpt-4o:extended": {
+      "provider": "openai",
+      "displayName": "OpenAI: GPT-4o (extended)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.000006,
+        "outputCostPerToken": 0.000018
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      },
+      "deprecationDate": "2026-04-19"
+    },
+    "gemma-2-9b-it": {
+      "provider": "google",
+      "displayName": "Google: Gemma 2 9B",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 3e-8,
+        "outputCostPerToken": 9e-8
+      },
+      "context": {
+        "maxInputTokens": 8192
+      },
+      "deprecationDate": "2026-04-15"
     },
     "claude-3.5-sonnet": {
       "provider": "anthropic",

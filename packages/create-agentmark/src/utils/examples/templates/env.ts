@@ -24,6 +24,6 @@ AGENTMARK_APP_ID=your_agentmark_app_id
 
   return `${apiKeyName}=${apiKeyValue}
 ${cloudEnvVars}
-# Learn more: https://docs.agentmark.co/platform/getting_started/quickstart
+# Learn more: https://docs.agentmark.co/getting-started/quickstart
 `;
 };

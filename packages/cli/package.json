@@ -24,6 +24,8 @@
     "agentmark": "dist/index.js"
   },
   "dependencies": {
+    "@agentmark-ai/api-schemas": "workspace:*",
+    "@agentmark-ai/api-types": "workspace:*",
     "@agentmark-ai/connect": "0.2.1",
     "@agentmark-ai/model-registry": "0.2.3",
     "@agentmark-ai/prompt-core": "0.4.1",
@@ -59,7 +61,8 @@
     "react-dom": "19.1.0",
     "specli": "^0.0.39",
     "tsx": "^4.19.2",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@agentmark-ai/ui-components": "0.5.2",

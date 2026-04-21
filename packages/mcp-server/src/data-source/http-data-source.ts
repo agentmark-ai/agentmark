@@ -14,17 +14,27 @@ const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
 /**
- * Raw trace data from API responses
+ * Raw trace data from API responses. Models the `/v1/traces` wire
+ * shape: snake_case fields, `latency_ms` (ms), `start`/`end` as ISO
+ * datetimes. The optional legacy camelCase / numeric-date fields are
+ * accepted because older fixtures and the single-trace GET still
+ * surface them through the nested `data` object. `mapToTraceListItem`
+ * normalizes both.
  */
 interface ApiTraceItem {
   id: string;
   name?: string;
   status?: string;
+  latency_ms?: number;
   latency?: number;
   cost?: number;
   tokens?: number;
-  start?: number;
-  end?: number;
+  span_count?: number;
+  tags?: string[];
+  // The `/v1/traces` wire now emits ISO datetime strings. Accept the
+  // legacy numeric shape too so the single-trace GET path keeps working.
+  start?: string | number;
+  end?: string | number;
   dataset_run_id?: string;
   dataset_path?: string;
   status_message?: string;
@@ -42,8 +52,35 @@ interface ApiTraceItem {
   spans?: SpanData[];
 }
 
+// Canonical status values emitted on the wire. `TraceListItem.status` is
+// typed as `string` and consumers compare against either these names or
+// the numeric codes the OSS server emitted pre-consolidation — pass the
+// name through unchanged. Callers that need the numeric code handle it
+// locally (see CLI React client).
+
+function toUnixMs(value: string | number | undefined): number {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === 'number') return value;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Envelope shape served by /v1/traces and /v1/sessions/{id}/traces.
+ * Accepts both the canonical `{ data, pagination }` wire format and the
+ * legacy `{ traces, total }` shape older mock servers still emit.
+ */
 interface ApiTracesResponse {
-  traces: ApiTraceItem[];
+  data?: ApiTraceItem[];
+  pagination?: { total: number; limit?: number; offset?: number };
+  traces?: ApiTraceItem[];
+  total?: number;
+}
+
+function unwrapTraces(body: ApiTracesResponse): ApiTraceItem[] {
+  if (Array.isArray(body.data)) return body.data;
+  if (Array.isArray(body.traces)) return body.traces;
+  return [];
 }
 
 interface ApiTraceResponse {
@@ -51,7 +88,8 @@ interface ApiTraceResponse {
 }
 
 /**
- * HTTP data source that connects to the AgentMark API server (local or cloud)
+ * HTTP data source that connects to an AgentMark API server (the local
+ * dev server or any hosted instance reachable via HTTP).
  */
 export class HttpDataSource implements DataSource {
   constructor(
@@ -80,8 +118,16 @@ export class HttpDataSource implements DataSource {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(error.error || `API request failed: ${response.status}`);
+        const body = await response.json().catch(() => ({})) as {
+          error?: { message?: string; code?: string } | string;
+          message?: string;
+        };
+        const message =
+          (typeof body.error === 'object' && body.error?.message) ||
+          body.message ||
+          (typeof body.error === 'string' && body.error) ||
+          `API request failed: ${response.status}`;
+        throw new Error(message);
       }
 
       return response.json();
@@ -103,7 +149,11 @@ export class HttpDataSource implements DataSource {
   }
 
   /**
-   * Map raw API trace item to TraceListItem
+   * Map raw API trace item to TraceListItem. The `/v1/traces` wire
+   * uses snake_case + ISO datetimes; `latency` falls back to the
+   * legacy camel field and ISO strings are converted to unix
+   * milliseconds so every consumer of TraceListItem keeps seeing
+   * numeric timestamps.
    */
   private mapToTraceListItem(t: ApiTraceItem, useDataField = false): TraceListItem {
     if (useDataField) {
@@ -124,11 +174,11 @@ export class HttpDataSource implements DataSource {
       id: t.id,
       name: t.name || '',
       status: t.status || '0',
-      latency: t.latency || 0,
+      latency: t.latency_ms ?? t.latency ?? 0,
       cost: t.cost || 0,
       tokens: t.tokens || 0,
-      start: t.start || 0,
-      end: t.end || 0,
+      start: toUnixMs(t.start),
+      end: toUnixMs(t.end),
       datasetRunId: t.dataset_run_id,
       datasetPath: t.dataset_path,
       statusMessage: t.status_message,
@@ -159,17 +209,18 @@ export class HttpDataSource implements DataSource {
         `/v1/sessions/${encodeURIComponent(options.sessionId)}/traces`
       );
       // Session traces come in full format, extract summary
-      allTraces = result.traces.map((t) => this.mapToTraceListItem(t, true));
+      allTraces = unwrapTraces(result).map((t) => this.mapToTraceListItem(t, true));
     } else if (options?.datasetRunId) {
-      // Use run-specific endpoint
+      // Filter via `/v1/traces?dataset_run_id=...` — supersedes the
+      // deprecated `/v1/runs/{runId}/traces` endpoint.
       const result = await this.fetch<ApiTracesResponse>(
-        `/v1/runs/${encodeURIComponent(options.datasetRunId)}/traces`
+        `/v1/traces?dataset_run_id=${encodeURIComponent(options.datasetRunId)}`
       );
-      allTraces = result.traces.map((t) => this.mapToTraceListItem(t));
+      allTraces = unwrapTraces(result).map((t) => this.mapToTraceListItem(t));
     } else {
       // Use general traces endpoint
       const result = await this.fetch<ApiTracesResponse>('/v1/traces');
-      allTraces = result.traces.map((t) => this.mapToTraceListItem(t));
+      allTraces = unwrapTraces(result).map((t) => this.mapToTraceListItem(t));
     }
 
     // Apply client-side pagination (API doesn't support limit/offset for traces)

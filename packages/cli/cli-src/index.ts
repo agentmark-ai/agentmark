@@ -17,7 +17,6 @@ import build from './commands/build';
 import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
-import createDeployCommand from './commands/deploy';
 import createExportCommand from './commands/export-traces';
 import { registerApiCommand } from './commands/api';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
@@ -31,7 +30,7 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 
 program
   .version(packageJson.version, '-v, --version', 'Output the current version')
   .name('agentmark')
-  .description('AgentMark CLI - Build, test, and deploy AI agents');
+  .description('AgentMark CLI - Build and test AI agents');
 
 program
   .command("dev")
@@ -40,6 +39,7 @@ program
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
   .option("-r, --remote", "Connect to platform (WebSocket + forwarding)")
   .option("--no-forward", "Disable trace forwarding (only relevant with --remote)")
+  .option("--no-ui", "Skip the UI app (API + webhook only) — for CI / headless / test use")
   .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
@@ -48,6 +48,7 @@ program
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
       remote: options.remote || false,
       forward: options.forward, // Commander.js --no-forward sets this to false; defaults to true
+      ui: options.ui, // Commander.js --no-ui sets this to false; defaults to true
     });
   });
 
@@ -203,7 +204,6 @@ program
     }
   });
 
-program.addCommand(createDeployCommand());
 program.addCommand(createExportCommand());
 registerApiCommand(program);
 

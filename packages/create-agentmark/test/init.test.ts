@@ -346,7 +346,7 @@ describe('init', () => {
 
       // Should have static-specific comment
       expect(content).toContain('traces will be sent to local dev server');
-      expect(content).toContain('npm run agentmark dev');
+      expect(content).toContain('npx agentmark dev');
 
       // Should call initTracing
       expect(content).toContain('sdk.initTracing()');
@@ -555,7 +555,7 @@ describe('init', () => {
 
       // Should have static-specific comment
       expect(content).toContain('traces will be sent to local dev server');
-      expect(content).toContain('npm run agentmark dev');
+      expect(content).toContain('npx agentmark dev');
 
       // Should call init_tracing
       expect(content).toContain('sdk.init_tracing()');

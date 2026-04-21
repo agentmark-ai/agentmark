@@ -67,7 +67,7 @@ function isPortFree(port: number): Promise<boolean> {
   });
 }
 
-const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; remote?: boolean; forward?: boolean } = {}) => {
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; remote?: boolean; forward?: boolean; ui?: boolean } = {}) => {
   const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
@@ -76,8 +76,12 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   // Resolve mode flags:
   // --remote: enables platform connection (WebSocket + forwarding)
   // --no-forward: disables trace forwarding when used with --remote
+  // --no-ui: skip the Next.js UI app for CI / headless / test contexts.
+  //          API + webhook are still started; they're the real contract
+  //          consumers of `agentmark dev` care about.
   let useRemote = options.remote || false;
   let useForwarding = useRemote ? (options.forward !== false) : false;
+  const useUi = options.ui !== false;
 
   // Inline login when --remote is used
   if (useRemote) {
@@ -277,8 +281,11 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     });
   }
 
-  // Start the AgentMark app
-  startAgentMarkServer();
+  // Start the AgentMark app (Next.js UI). Gated by --ui so headless
+  // / CI / test contexts can opt out without affecting the default UX.
+  if (useUi) {
+    startAgentMarkServer();
+  }
 
   // Store forwarder, status reporter, and WebSocket client for cleanup
   let forwarder: TraceForwarder | null = null;
@@ -475,9 +482,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log('─'.repeat(70));
     console.log('\n  Open a new terminal window and run:');
     console.log('\n  Run a prompt:');
-    console.log('  $ npm run agentmark run-prompt ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx agentmark run-prompt ./agentmark/party-planner.prompt.mdx');
     console.log('\n  Run an experiment:');
-    console.log('  $ npm run agentmark run-experiment ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx agentmark run-experiment ./agentmark/party-planner.prompt.mdx');
     console.log('\n  (Replace with any prompt file in ./agentmark/)');
 
     console.log('\n' + '═'.repeat(70));

@@ -34,6 +34,7 @@ function insertTestSpan(data: {
   traceName?: string;
   datasetRunId?: string;
   metadata?: Record<string, string>;
+  tags?: string[];
 }) {
   const timestampNs = data.timestamp || String(Date.now() * 1000000);
 
@@ -41,8 +42,8 @@ function insertTestSpan(data: {
     INSERT INTO traces (
       TraceId, SpanId, ParentSpanId, SpanName, Type, StatusCode, StatusMessage,
       Duration, Timestamp, Model, InputTokens, OutputTokens, Cost,
-      SessionId, TraceName, DatasetRunId, Metadata, SpanAttributes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      SessionId, TraceName, DatasetRunId, Metadata, SpanAttributes, Tags
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -63,7 +64,8 @@ function insertTestSpan(data: {
     data.traceName || '',
     data.datasetRunId || '',
     data.metadata ? JSON.stringify(data.metadata) : null,
-    '{}'
+    '{}',
+    JSON.stringify(data.tags ?? [])
   );
 }
 
@@ -259,12 +261,159 @@ describe('Traces Routes', () => {
 
       expect(result).toHaveLength(1);
     });
+
+    // Regression coverage for the /v1/runs/{runId}/traces deprecation —
+    // the CLI client and MCP server now drive run-scoped listings through
+    // `/v1/traces?dataset_run_id=...`, which lands on the same SQLite
+    // predicate tested here.
+    describe('dataset_run_id filter (supersedes /v1/runs/{runId}/traces)', () => {
+      it('returns only traces tagged with the matching datasetRunId', async () => {
+        insertTestSpan({
+          traceId: 'trace-run-A',
+          spanId: 'span-A1',
+          spanName: 'Run A',
+          datasetRunId: 'run-A',
+        });
+        insertTestSpan({
+          traceId: 'trace-run-B',
+          spanId: 'span-B1',
+          spanName: 'Run B',
+          datasetRunId: 'run-B',
+        });
+        insertTestSpan({
+          traceId: 'trace-no-run',
+          spanId: 'span-C1',
+          spanName: 'No run',
+        });
+
+        const resultA = await getTraces({ dataset_run_id: 'run-A' });
+        expect(resultA).toHaveLength(1);
+        expect(resultA[0].id).toBe('trace-run-A');
+
+        const resultB = await getTraces({ dataset_run_id: 'run-B' });
+        expect(resultB).toHaveLength(1);
+        expect(resultB[0].id).toBe('trace-run-B');
+
+        // Without the filter, all three traces come back.
+        const resultAll = await getTraces();
+        expect(resultAll).toHaveLength(3);
+      });
+
+      it('returns an empty list when the runId does not match any trace', async () => {
+        insertTestSpan({
+          traceId: 'trace-1',
+          spanId: 'span-1',
+          spanName: 'Only run',
+          datasetRunId: 'run-X',
+        });
+
+        const result = await getTraces({ dataset_run_id: 'run-missing' });
+        expect(result).toEqual([]);
+      });
+    });
+
+    // The `tags: string[]` field on each trace row is aggregated across
+    // the trace's spans via the Tags column + a json_group_array(DISTINCT …)
+    // CTE. These tests pin the aggregation: cross-span merge, dedup,
+    // empty-trace tolerance, per-trace isolation.
+    describe('tags aggregation', () => {
+      // Helper to parse the SQL column back into a sorted array for
+      // stable equality assertions — the raw row is a JSON TEXT string.
+      function parseTags(row: unknown): string[] {
+        const raw = (row as { tags?: unknown }).tags;
+        if (typeof raw !== 'string' || raw === '[]') return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? [...parsed].map(String).sort() : [];
+      }
+
+      it('aggregates tags across all spans of a trace', async () => {
+        insertTestSpan({
+          traceId: 'trace-tagged',
+          spanId: 'span-1',
+          spanName: 'root',
+          tags: ['prod', 'checkout'],
+        });
+        insertTestSpan({
+          traceId: 'trace-tagged',
+          spanId: 'span-2',
+          parentSpanId: 'span-1',
+          spanName: 'child',
+          tags: ['experiment-42'],
+        });
+
+        const [row] = await getTraces();
+        expect(parseTags(row)).toEqual(['checkout', 'experiment-42', 'prod']);
+      });
+
+      it('deduplicates tags that appear on multiple spans', async () => {
+        insertTestSpan({
+          traceId: 'trace-dup',
+          spanId: 'span-1',
+          spanName: 'root',
+          tags: ['prod', 'checkout'],
+        });
+        insertTestSpan({
+          traceId: 'trace-dup',
+          spanId: 'span-2',
+          parentSpanId: 'span-1',
+          spanName: 'child',
+          tags: ['prod'], // duplicate — must collapse
+        });
+
+        const [row] = await getTraces();
+        expect(parseTags(row)).toEqual(['checkout', 'prod']);
+      });
+
+      it('returns [] when no span on the trace carries tags', async () => {
+        insertTestSpan({
+          traceId: 'trace-untagged',
+          spanId: 'span-1',
+          spanName: 'root',
+          // no tags
+        });
+
+        const [row] = await getTraces();
+        expect(parseTags(row)).toEqual([]);
+      });
+
+      it('isolates tag sets per trace (no cross-trace leakage)', async () => {
+        insertTestSpan({
+          traceId: 'trace-A',
+          spanId: 'span-A',
+          spanName: 'A',
+          tags: ['alpha'],
+        });
+        insertTestSpan({
+          traceId: 'trace-B',
+          spanId: 'span-B',
+          spanName: 'B',
+          tags: ['beta'],
+        });
+
+        const rows = await getTraces();
+        const byId = new Map(
+          rows.map((r) => [(r as { id: string }).id, parseTags(r)]),
+        );
+        expect(byId.get('trace-A')).toEqual(['alpha']);
+        expect(byId.get('trace-B')).toEqual(['beta']);
+      });
+    });
   });
 
   describe('getTraceCount', () => {
     it('should return 0 when no traces exist', async () => {
       const result = await getTraceCount();
       expect(result).toBe(0);
+    });
+
+    it('should count only traces matching dataset_run_id when filter is set', async () => {
+      insertTestSpan({ traceId: 't-A', spanId: 's-A', spanName: 'A', datasetRunId: 'run-1' });
+      insertTestSpan({ traceId: 't-B', spanId: 's-B', spanName: 'B', datasetRunId: 'run-1' });
+      insertTestSpan({ traceId: 't-C', spanId: 's-C', spanName: 'C', datasetRunId: 'run-2' });
+
+      expect(await getTraceCount({ dataset_run_id: 'run-1' })).toBe(2);
+      expect(await getTraceCount({ dataset_run_id: 'run-2' })).toBe(1);
+      expect(await getTraceCount()).toBe(3);
     });
 
     it('should count distinct traces', async () => {

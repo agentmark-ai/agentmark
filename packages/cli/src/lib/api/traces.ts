@@ -24,23 +24,31 @@ export interface GetTracesResponse {
 export const getTraces = async (params: GetTracesParams = {}): Promise<GetTracesResponse> => {
   try {
     const { runId, limit, offset } = params;
-    let url = runId
-      ? `${API_URL}/v1/runs/${runId}/traces`
-      : `${API_URL}/v1/traces`;
 
+    // Use /v1/traces with dataset_run_id filter for run-scoped queries.
+    // The old /v1/runs/{runId}/traces endpoint still works but is
+    // deprecated.
     const searchParams = new URLSearchParams();
+    if (runId !== undefined) searchParams.set("dataset_run_id", runId);
     if (limit !== undefined) searchParams.set("limit", String(limit));
     if (offset !== undefined) searchParams.set("offset", String(offset));
     const qs = searchParams.toString();
-    if (qs) url += `?${qs}`;
+    const url = qs ? `${API_URL}/v1/traces?${qs}` : `${API_URL}/v1/traces`;
 
     const response = await fetch(url);
-    const data = await response.json();
-    const traces = (data.traces || []).map((t: any) => ({
-      ...t,
-      spanCount: t.span_count ?? t.spanCount ?? 0,
-    })) as Trace[];
-    return { traces, total: data.total ?? traces.length };
+    const body = await response.json();
+    // Canonical wire shape:
+    //   { data: Trace[], pagination: { total, limit, offset } }
+    // Tolerate the older `{ traces, total }` shape so any mock server on
+    // an older fixture keeps working.
+    const traces: Trace[] = Array.isArray(body.data)
+      ? body.data
+      : Array.isArray(body.traces)
+        ? body.traces
+        : [];
+    const total =
+      body.pagination?.total ?? body.total ?? traces.length;
+    return { traces, total };
   } catch (error) {
     console.error("Error fetching traces:", error);
     return { traces: [], total: 0 };
@@ -74,7 +82,7 @@ export const getTraceGraph = async (traceId: string): Promise<GraphData[]> => {
       throw new Error(`Failed to fetch trace graph: ${response.statusText}`);
     }
     const data = await response.json();
-    return data.graphData as GraphData[];
+    return data.data as GraphData[];
   } catch (error) {
     console.error("Error fetching trace graph:", error);
     return [];

@@ -27,12 +27,16 @@ const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
       <TableCell>
         <Iconify
           color={
-            trace.status === "0" || trace.status === "1"
+            // Canonical status names from the wire contract. The pre-
+            // consolidation code compared numeric codes ("0"/"1") while
+            // the server has always emitted names — rendering every trace
+            // as ERROR. Fixed here.
+            trace.status === "OK" || trace.status === "UNSET"
               ? theme.palette.success.main
               : theme.palette.error.main
           }
           icon={
-            trace.status === "0" || trace.status === "1"
+            trace.status === "OK" || trace.status === "UNSET"
               ? "mdi:check-circle-outline"
               : "mdi:close-circle-outline"
           }
@@ -40,10 +44,10 @@ const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
       </TableCell>
       <TableCell>
         <Label color="info" startIcon={<Iconify icon="mdi:clock-outline" />}>
-          {(parseInt(trace.latency) / 1000).toFixed(2)}s
+          {(trace.latency_ms / 1000).toFixed(2)}s
         </Label>
       </TableCell>
-      <TableCell>{fCurrency(`${trace.cost}` || 0, 5)}</TableCell>
+      <TableCell>{fCurrency(trace.cost, 5)}</TableCell>
       <TableCell>
         <Label color="default" startIcon={<Iconify icon="game-icons:token" />}>
           {fNumber(trace.tokens || 0)}
@@ -51,7 +55,7 @@ const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
       </TableCell>
       <TableCell>
         <Label color="default" startIcon={<Iconify icon="mdi:layers-outline" />}>
-          {fNumber(trace.spanCount || 0)}
+          {fNumber(trace.span_count || 0)}
         </Label>
       </TableCell>
       <TableCell>

@@ -18,10 +18,11 @@ export const appendToDataset = async (
   datasetPath: string,
   item: { input: any; expected_output: any }
 ): Promise<void> => {
-  const response = await fetch(`${API_URL}/v1/datasets/append`, {
+  const datasetName = encodeURIComponent(datasetPath.replace(/\.jsonl$/, ""));
+  const response = await fetch(`${API_URL}/v1/datasets/${datasetName}/rows`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path: datasetPath, item }),
+    body: JSON.stringify(item),
   });
 
   if (!response.ok) {

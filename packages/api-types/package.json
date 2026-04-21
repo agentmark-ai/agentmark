@@ -1,0 +1,20 @@
+{
+  "name": "@agentmark-ai/api-types",
+  "version": "0.1.0",
+  "description": "Shared API contract types for AgentMark services",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@agentmark-ai/ui-components": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}

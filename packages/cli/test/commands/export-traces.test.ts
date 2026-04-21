@@ -44,7 +44,7 @@ vi.mock('../../cli-src/forwarding/config', () => ({
   loadForwardingConfig: vi.fn(),
 }));
 
-import createExportCommand, { ExportError, parseScoreFilter } from '../../cli-src/commands/export-traces';
+import createExportCommand, { ExportError, parseScoreFilter, handleErrorResponse } from '../../cli-src/commands/export-traces';
 import * as credentials from '../../cli-src/auth/credentials';
 import * as forwardingConfig from '../../cli-src/forwarding/config';
 import fsExtra from 'fs-extra';
@@ -287,6 +287,35 @@ describe('export traces command', () => {
   // --------------------------------------------------------------------------
   // Error handling
   // --------------------------------------------------------------------------
+  describe('handleErrorResponse parser', () => {
+    function makeResponse(status: number, body: unknown): Response {
+      return {
+        status,
+        json: async () => body,
+      } as unknown as Response;
+    }
+
+    it('should read message from nested canonical envelope', async () => {
+      const res = makeResponse(404, { error: { code: 'trace_not_found', message: 'Trace not found' } });
+      await expect(handleErrorResponse(res)).rejects.toThrow(/Trace not found/);
+    });
+
+    it('should prefer top-level message over error-as-code for legacy sibling shape', async () => {
+      const res = makeResponse(404, { error: 'not_found', message: 'Trace not found' });
+      await expect(handleErrorResponse(res)).rejects.toThrow(/Trace not found/);
+    });
+
+    it('should fall back to flat error string when no nested message or top-level message', async () => {
+      const res = makeResponse(400, { error: 'Bad dataset path' });
+      await expect(handleErrorResponse(res)).rejects.toThrow(/Bad dataset path/);
+    });
+
+    it('should fall back to HTTP status when body is empty', async () => {
+      const res = makeResponse(503, {});
+      await expect(handleErrorResponse(res)).rejects.toThrow(/HTTP 503/);
+    });
+  });
+
   describe('error handling', () => {
     it('should produce ExportError with exit code 1 for 401', () => {
       const error = new ExportError('Auth failed', 1);
