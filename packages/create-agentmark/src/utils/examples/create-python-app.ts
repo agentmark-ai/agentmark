@@ -135,17 +135,26 @@ const setupMCPServer = (client: string, targetPath: string) => {
   }
 };
 
-const getPyprojectContent = (projectName: string, adapter: string): string => {
+const getPyprojectContent = (projectName: string, adapter: string, deploymentMode: "cloud" | "static"): string => {
+  // Scaffolded Python projects are flat-layout (top-level .py modules, no package dir),
+  // so setuptools with explicit py-modules is the simplest build backend.
+  // Hatchling requires explicit per-file inclusion rules for this layout, which adds noise.
+  const pyModules = deploymentMode === "cloud"
+    ? `["agentmark_client", "main", "handler"]`
+    : `["agentmark_client", "main"]`;
+
   if (adapter === "claude-agent-sdk") {
     return `[project]
 name = "${projectName}"
 version = "0.1.0"
 description = "An AgentMark application using Claude Agent SDK"
 requires-python = ">=3.12"
+# Lower bounds bumped to currently-published versions — loose >=0.1.0 constraints
+# explode pip's resolver search space and trigger "dependency graph too complex".
 dependencies = [
-    "agentmark-sdk>=0.1.0",
-    "agentmark-claude-agent-sdk-v0>=0.1.0",
-    "agentmark-prompt-core>=0.1.0",
+    "agentmark-sdk>=0.2.0",
+    "agentmark-claude-agent-sdk-v0>=0.1.4",
+    "agentmark-prompt-core>=0.1.2",
     "python-dotenv>=1.0.0",
     "claude-agent-sdk>=0.1.0",
 ]
@@ -158,8 +167,11 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ${pyModules}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -169,18 +181,21 @@ strict = true
 `;
   }
 
-  // Default: pydantic-ai
+  // Default: pydantic-ai. Note: pydantic-ai >=1.0 no longer publishes `[openai]` /
+  // `[anthropic]` / `[gemini]` extras — the main package handles those providers directly.
   return `[project]
 name = "${projectName}"
 version = "0.1.0"
 description = "An AgentMark application using Pydantic AI"
 requires-python = ">=3.12"
+# Lower bounds bumped to currently-published versions — loose >=0.1.0 constraints
+# explode pip's resolver search space and trigger "dependency graph too complex".
 dependencies = [
-    "agentmark-sdk>=0.1.0",
-    "agentmark-pydantic-ai-v0>=0.1.0",
-    "agentmark-prompt-core>=0.1.0",
+    "agentmark-sdk>=0.2.0",
+    "agentmark-pydantic-ai-v0>=0.1.4",
+    "agentmark-prompt-core>=0.1.2",
     "python-dotenv>=1.0.0",
-    "pydantic-ai[openai]>=0.1.0",
+    "pydantic-ai>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -189,12 +204,13 @@ dev = [
     "pytest-asyncio>=0.21",
     "mypy>=1.0",
 ]
-anthropic = ["pydantic-ai[anthropic]"]
-gemini = ["pydantic-ai[gemini]"]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ${pyModules}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -428,7 +444,7 @@ sdk.init_tracing(disable_batch=True)
 
   const staticTracingInit = `
 # Initialize tracing - traces will be sent to local dev server
-# Make sure to run "npm run agentmark dev" in another terminal first
+# Make sure to run "npx agentmark dev" in another terminal first
 # To disable tracing, comment out sdk.init_tracing() below
 sdk = AgentMarkSDK(
     api_key="",
@@ -553,7 +569,7 @@ const getDevServerContent = (adapter: string): string => {
 
   return `"""Auto-generated webhook server for AgentMark development.
 
-This server is started by 'npm run agentmark dev' (agentmark dev) and handles
+This server is started by 'npx agentmark dev' (agentmark dev) and handles
 prompt execution requests from the CLI.
 """
 
@@ -661,7 +677,7 @@ export const createPythonApp = async (
     // Create pyproject.toml (skip for existing projects)
     if (!isExistingProject) {
       const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
-      fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName, adapter));
+      fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName, adapter, deploymentMode));
     } else {
       console.log("⏭️  Skipped pyproject.toml (existing project)");
     }
@@ -765,19 +781,25 @@ export const createPythonApp = async (
       console.log(`  $ cd ${folderName}`);
     }
 
-    // Show venv activation or creation based on detection
+    // Recommend installing deps directly — `pip install -e ".[dev]"` on flat-layout
+    // projects triggers pip's "dependency graph too complex" backtracking limit,
+    // even though the same deps resolve fine when passed directly to pip.
+    const pipInstallCmd = adapter === 'claude-agent-sdk'
+      ? '  $ pip install agentmark-sdk agentmark-claude-agent-sdk-v0 agentmark-prompt-core python-dotenv claude-agent-sdk'
+      : '  $ pip install agentmark-sdk agentmark-pydantic-ai-v0 agentmark-prompt-core python-dotenv pydantic-ai';
+
     if (pythonVenv) {
       const activateCmd = process.platform === 'win32'
         ? `${pythonVenv.name}\\Scripts\\activate`
         : `source ${pythonVenv.name}/bin/activate`;
       console.log(`  $ ${activateCmd}`);
-      console.log('  $ pip install agentmark-pydantic-ai-v0 agentmark-prompt-core python-dotenv "pydantic-ai[openai]"');
+      console.log(pipInstallCmd);
     } else {
       console.log('  $ python -m venv .venv');
       console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
-      console.log('  $ pip install -e ".[dev]"');
+      console.log(pipInstallCmd);
     }
-    console.log('  $ npm run agentmark dev\n');
+    console.log('  $ npx agentmark dev\n');
 
     console.log('─'.repeat(70));
     console.log('Resources');

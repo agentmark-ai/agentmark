@@ -197,18 +197,102 @@ describe('HttpDataSource', () => {
       });
     });
 
-    it('should fetch by datasetRunId when provided', async () => {
+    it('should fetch by datasetRunId using /v1/traces?dataset_run_id= filter', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ traces: [] }),
+        json: async () => ({ data: [], pagination: { total: 0 } }),
       });
 
       await dataSource.listTraces({ datasetRunId: 'run-456' });
 
+      // The deprecated /v1/runs/{runId}/traces path is no longer used —
+      // all run-scoped listings now go through /v1/traces with the filter.
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:9418/v1/runs/run-456/traces',
+        'http://localhost:9418/v1/traces?dataset_run_id=run-456',
         expect.any(Object)
       );
+    });
+
+    it('should URL-encode datasetRunId with special characters', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [], pagination: { total: 0 } }),
+      });
+
+      await dataSource.listTraces({ datasetRunId: 'run id with spaces/slash' });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:9418/v1/traces?dataset_run_id=run%20id%20with%20spaces%2Fslash',
+        expect.any(Object)
+      );
+    });
+
+    // Wire shape served by the `/v1/traces` endpoint: snake_case
+    // fields, ISO datetime strings for start/end, latency_ms (not
+    // latency). The mapper must normalize these to the internal
+    // TraceListItem model (numeric unix timestamps, `latency` field).
+    it('should map canonical snake_case + ISO-date wire shape to TraceListItem', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 'trace-canonical',
+              name: 'Canonical Trace',
+              status: 'OK',
+              start: '2026-01-01T00:00:00.000Z',
+              end: '2026-01-01T00:00:01.500Z',
+              latency_ms: 1500,
+              cost: 0.0042,
+              tokens: 731,
+              span_count: 4,
+              tags: ['alpha', 'beta'],
+            },
+          ],
+          pagination: { total: 1, limit: 50, offset: 0 },
+        }),
+      });
+
+      const result = await dataSource.listTraces();
+
+      expect(result.items).toHaveLength(1);
+      const [item] = result.items;
+      expect(item.id).toBe('trace-canonical');
+      expect(item.name).toBe('Canonical Trace');
+      expect(item.status).toBe('OK');
+      expect(item.latency).toBe(1500);
+      expect(item.cost).toBe(0.0042);
+      expect(item.tokens).toBe(731);
+      // ISO datetimes must be parsed into numeric unix milliseconds.
+      expect(item.start).toBe(Date.parse('2026-01-01T00:00:00.000Z'));
+      expect(item.end).toBe(Date.parse('2026-01-01T00:00:01.500Z'));
+    });
+
+    it('should still accept legacy numeric start/end and camelCase latency on older fixtures', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              id: 'trace-legacy',
+              name: 'Legacy Trace',
+              status: '0',
+              latency: 100,
+              cost: 0.001,
+              tokens: 500,
+              start: 1704067200000,
+              end: 1704067201000,
+            },
+          ],
+          pagination: { total: 1 },
+        }),
+      });
+
+      const result = await dataSource.listTraces();
+
+      expect(result.items[0].latency).toBe(100);
+      expect(result.items[0].start).toBe(1704067200000);
+      expect(result.items[0].end).toBe(1704067201000);
     });
   });
 
@@ -534,6 +618,34 @@ describe('HttpDataSource', () => {
       });
 
       await expect(dataSource.listTraces()).rejects.toThrow('Internal server error');
+    });
+
+    it('should read message from nested canonical error envelope', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: { code: 'trace_not_found', message: 'Trace not found' } }),
+      });
+
+      await expect(dataSource.listTraces()).rejects.toThrow('Trace not found');
+    });
+
+    it('should prefer top-level message over error-as-code for legacy sibling shape', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'not_found', message: 'Trace not found' }),
+      });
+
+      await expect(dataSource.listTraces()).rejects.toThrow('Trace not found');
+    });
+
+    it('should fall back to HTTP status when body has no parseable error fields', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({}),
+      });
+
+      await expect(dataSource.listTraces()).rejects.toThrow('API request failed: 503');
     });
 
     it('should handle timeout errors', async () => {

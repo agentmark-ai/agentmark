@@ -105,6 +105,10 @@ describe("API Server - POST /v1/traces", () => {
     });
 
     expect(res.status).toBe(200);
+    const data = await res.json() as { data: { requestId: string } };
+    expect(data.data).toBeDefined();
+    expect(typeof data.data.requestId).toBe("string");
+    expect(data.data.requestId.length).toBeGreaterThan(0);
 
     // Verify the trace was stored in the database
     const row = db
@@ -112,6 +116,27 @@ describe("API Server - POST /v1/traces", () => {
       .get("http-test-trace-1") as any;
     expect(row).toBeDefined();
     expect(row.SpanName).toBe("test via HTTP");
+  });
+
+  it("should use provided x-request-id header in response", async () => {
+    const payload = buildOtlpPayload({
+      traceId: "reqid-test-trace-1",
+      spanId: "reqid-test-span-1",
+      spanName: "request id test",
+    });
+
+    const res = await fetch(`http://localhost:${port}/v1/traces`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-request-id": "custom-request-id-12345",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    expect(res.status).toBe(200);
+    const data = await res.json() as { data: { requestId: string } };
+    expect(data.data.requestId).toBe("custom-request-id-12345");
   });
 
   it("should accept large OTLP payloads (>100kb) with AI prompt/response data", async () => {

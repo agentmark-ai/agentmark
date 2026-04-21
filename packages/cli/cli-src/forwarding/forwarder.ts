@@ -2,7 +2,7 @@
  * Trace Forwarding Service
  * Feature: 013-trace-tunnel
  *
- * Forwards locally-generated traces to the platform gateway in near-real-time.
+ * Forwards locally-generated traces to a remote API in near-real-time.
  *
  * Per forwarding-protocol.md:
  * - In-memory FIFO queue (max 100)

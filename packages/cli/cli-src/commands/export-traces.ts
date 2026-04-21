@@ -2,12 +2,12 @@
  * CLI Export Traces Command
  *
  * Implements `agentmark export traces` — exports trace data from the
- * gateway API as NDJSON (Generic JSONL, OpenAI chat-completion, or CSV).
+ * remote API as NDJSON (Generic JSONL, OpenAI chat-completion, or CSV).
  *
  * Flow:
  * 1. Resolve auth: --api-key flag > AGENTMARK_API_KEY env > forwarding config > stored credentials
  * 2. Resolve app ID: --app flag > AGENTMARK_APP_ID env > forwarding config
- * 3. Resolve gateway URL: --base-url > forwarding config baseUrl > DEFAULT_API_URL
+ * 3. Resolve API base URL: --base-url > forwarding config baseUrl > DEFAULT_API_URL
  * 4. Build query params from CLI flags
  * 5. If --dry-run, fetch with limit=3 and display summary
  * 6. Stream response to --output file or stdout
@@ -408,15 +408,22 @@ export class ExportError extends Error {
   }
 }
 
-export { parseScoreFilter };
+export { parseScoreFilter, handleErrorResponse };
 
 async function handleErrorResponse(response: Response): Promise<never> {
   const status = response.status;
   let message: string;
 
   try {
-    const body = await response.json() as { error?: string; message?: string };
-    message = body.error || body.message || `HTTP ${status}`;
+    const body = await response.json() as {
+      error?: { message?: string; code?: string } | string;
+      message?: string;
+    };
+    message =
+      (typeof body.error === 'object' && body.error?.message) ||
+      body.message ||
+      (typeof body.error === 'string' && body.error) ||
+      `HTTP ${status}`;
   } catch {
     message = `HTTP ${status}`;
   }

@@ -114,8 +114,9 @@ describe('API server forwarding hook', () => {
       expect(response.ok).toBe(true);
       expect(response.status).toBe(200);
 
-      const data = await response.json();
-      expect(data).toEqual({ success: true });
+      const data = await response.json() as { data: { requestId: string } };
+      expect(data.data).toBeDefined();
+      expect(typeof data.data.requestId).toBe('string');
 
       // Verify local save was called with normalized spans (camelCase fields from normalizeOtlpSpans)
       expect(exportTraces).toHaveBeenCalledWith(
@@ -180,8 +181,9 @@ describe('API server forwarding hook', () => {
       expect(response.ok).toBe(true);
       expect(response.status).toBe(200);
 
-      const data = await response.json();
-      expect(data).toEqual({ success: true });
+      const data = await response.json() as { data: { requestId: string } };
+      expect(data.data).toBeDefined();
+      expect(typeof data.data.requestId).toBe('string');
 
       // Verify local save was called with normalized spans (camelCase fields)
       expect(exportTraces).toHaveBeenCalledWith(

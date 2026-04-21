@@ -78,6 +78,26 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@agentmark-ai/api-schemas@workspace:*, @agentmark-ai/api-schemas@workspace:packages/api-schemas":
+  version: 0.0.0-use.local
+  resolution: "@agentmark-ai/api-schemas@workspace:packages/api-schemas"
+  dependencies:
+    tsup: "npm:^8.5.0"
+    typescript: "npm:^5.5.3"
+    vitest: "npm:^3.0.8"
+    zod: "npm:^4.3.6"
+  languageName: unknown
+  linkType: soft
+
+"@agentmark-ai/api-types@workspace:*, @agentmark-ai/api-types@workspace:packages/api-types":
+  version: 0.0.0-use.local
+  resolution: "@agentmark-ai/api-types@workspace:packages/api-types"
+  dependencies:
+    "@agentmark-ai/ui-components": "workspace:*"
+    typescript: "npm:^5.5.3"
+  languageName: unknown
+  linkType: soft
+
 "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter"
@@ -111,6 +131,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/cli@workspace:packages/cli"
   dependencies:
+    "@agentmark-ai/api-schemas": "workspace:*"
+    "@agentmark-ai/api-types": "workspace:*"
     "@agentmark-ai/connect": "npm:0.2.1"
     "@agentmark-ai/model-registry": "npm:0.2.3"
     "@agentmark-ai/prompt-core": "npm:0.4.1"
@@ -164,6 +186,7 @@ __metadata:
     typescript: "npm:^5"
     vitest: "npm:^3.0.8"
     yaml: "npm:^2.8.3"
+    zod: "npm:^4.3.6"
   bin:
     agentmark: dist/index.js
   languageName: unknown
@@ -376,7 +399,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.5.2, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.5.2, @agentmark-ai/ui-components@workspace:*, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
@@ -20573,7 +20596,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25 || ^4.0, zod@npm:^4.0.17, zod@npm:^4.3.5":
+"zod@npm:^3.25 || ^4.0, zod@npm:^4.0.17, zod@npm:^4.3.5, zod@npm:^4.3.6":
   version: 4.3.6
   resolution: "zod@npm:4.3.6"
   checksum: 10c0/860d25a81ab41d33aa25f8d0d07b091a04acb426e605f396227a796e9e800c44723ed96d0f53a512b57be3d1520f45bf69c0cb3b378a232a00787a2609625307

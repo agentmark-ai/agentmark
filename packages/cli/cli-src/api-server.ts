@@ -1,25 +1,92 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 import fs from "fs";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark-ai/shared-utils";
 import cors from "cors";
+import { z } from "zod";
 import {
   exportTraces,
-  getRequests,
-  getTraces,
-  getTraceCount,
-  getTraceById,
   getTraceGraph,
-  getSessions,
-  getTracesBySessionId,
-  getTracesByRunId,
+  getSpans,
   searchSpans,
 } from "./server/routes/traces";
-import { createScore, getScoresByResourceId } from "./server/routes/scores";
-import { getExperiments, getExperimentById } from "./server/routes/experiments";
+import { createScore, createScoresBatch } from "./server/routes/scores";
+import { LOCAL_PRICING_MAP } from "./server/routes/pricing";
+import { LocalObservabilityService } from "./server/services/local-observability-service";
+import { toTracesListResponseWire } from "./server/wire-mappers";
+import db from "./server/database";
 import { getTemplateDXInstance } from "@agentmark-ai/prompt-core";
 import type { TraceForwarder } from "./forwarding/forwarder";
+import {
+  CreateScoreBodySchema,
+  ScoresListParamsSchema,
+  TracesListParamsSchema,
+  SpansListParamsSchema,
+  SessionsListParamsSchema,
+  ExperimentsListParamsSchema,
+} from "@agentmark-ai/api-schemas";
+import {
+  parseOrBadRequest,
+  sendInternalError,
+  sendNotFound,
+} from "./api-helpers";
+
+// Envelope-only schema for /v1/scores/batch. The `createScoresBatch` service
+// does its own per-item validation and returns a 207 with per-row errors
+// when items are partially valid; it also throws a 413 when the array
+// exceeds MAX_SCORES_BATCH_SIZE. Validating items at the wrapper via
+// `CreateScoresBatchBodySchema` would fail the whole request at 400 and
+// break both of those flows — so at the handler we only enforce
+// "has a non-empty `scores` array", leaving the rest to the service.
+const CreateScoresBatchEnvelopeSchema = z.object({
+  scores: z.array(z.unknown()).min(1),
+});
+
+// ---------------------------------------------------------------------------
+// Path-param schemas
+//
+// Not exported from the shared api-contract package because the cloud
+// gateway encodes path params in its route class (chanfana handles the
+// validation), so there's no reusable schema to vendor. Defined here so
+// the OSS CLI handlers get the same "structured 400 on bad path" behavior
+// as cloud.
+// ---------------------------------------------------------------------------
+
+const TraceIdParamsSchema = z.object({
+  traceId: z.string().min(1),
+});
+const TraceSpanIdParamsSchema = z.object({
+  traceId: z.string().min(1),
+  spanId: z.string().min(1),
+});
+const ScoreIdParamsSchema = z.object({
+  scoreId: z.string().min(1),
+});
+const SessionIdParamsSchema = z.object({
+  sessionId: z.string().min(1),
+});
+const ExperimentIdParamsSchema = z.object({
+  experimentId: z.string().min(1),
+});
+const RunIdParamsSchema = z.object({
+  runId: z.string().min(1),
+});
+const DatasetNameParamsSchema = z.object({
+  datasetName: z
+    .string()
+    .min(1)
+    .refine((v) => !v.includes("..") && !path.isAbsolute(v), {
+      message: "Invalid dataset name",
+    }),
+});
+
+const DatasetRowBodySchema = z
+  .record(z.string(), z.unknown())
+  .refine((v) => v !== null && !Array.isArray(v), {
+    message: "Request body must be a JSON object",
+  });
 
 // Module-level forwarder instance (injected from dev command)
 let forwarderInstance: TraceForwarder | null = null;
@@ -44,7 +111,24 @@ export async function createApiServer(port: number) {
   const app = express();
   app.set('trust proxy', 1);
   app.use(express.json({ limit: '10mb' }));
-  app.use(cors());
+  app.use(cors({ origin: /^https?:\/\/localhost(:\d+)?$/ }));
+
+  const service = new LocalObservabilityService(db);
+  // Local dev server doesn't use multi-tenancy - create a placeholder appId
+  const localAppId = 'local' as any; // VerifiedAppId is a branded type
+
+  // Serve the static OpenAPI spec
+  app.get("/v1/openapi.json", (_req: Request, res: Response) => {
+    try {
+      const specPath = path.join(__dirname, 'server', 'openapi-spec.json');
+      const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+      res.json(spec);
+    } catch (error) {
+      console.error("Error serving OpenAPI spec:", error);
+      res.status(503).json({ error: "spec_unavailable", message: "Could not load OpenAPI spec" });
+    }
+  });
+
   const currentPath = safePath();
   const basePath = path.join(currentPath);
   let agentmarkTemplatesBase = path.join(basePath, "agentmark");
@@ -474,20 +558,11 @@ ${promptsList}
       // Forward to platform if forwarder is configured (non-blocking, never throws)
       forwarderInstance?.enqueue(body);
 
-      return res.json({ success: true });
+      const requestId = (req.headers["x-request-id"] as string) || crypto.randomUUID();
+      return res.json({ data: { requestId } });
     } catch (error: any) {
       console.error("Error processing traces:", error);
       return res.status(500).json({ error: error.message || "Failed to export traces" });
-    }
-  });
-
-  app.get("/v1/requests", async (_req: Request, res: Response) => {
-    try {
-      const requests = await getRequests();
-      return res.json({ requests });
-    } catch (error) {
-      console.error("Error getting requests:", error);
-      return res.status(500).json({ error: "Failed to get requests" });
     }
   });
 
@@ -526,271 +601,374 @@ ${promptsList}
     }
   });
 
-  app.post("/v1/datasets/append", async (req: Request, res: Response): Promise<void> => {
+  app.post("/v1/datasets/:datasetName/rows", async (req: Request, res: Response): Promise<void> => {
+    const params = parseOrBadRequest(DatasetNameParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
+    const body = parseOrBadRequest(DatasetRowBodySchema, req.body, res, 'body');
+    if (!body.ok) return;
+
     try {
-      const { path: datasetPath, item } = req.body;
-
-      if (!datasetPath || typeof datasetPath !== "string") {
-        res.status(400).json({ error: "Missing or invalid dataset path" });
-        return;
-      }
-      if (!datasetPath.endsWith(".jsonl")) {
-        res.status(400).json({ error: "Dataset path must end with .jsonl" });
-        return;
-      }
-      if (path.isAbsolute(datasetPath) || datasetPath.includes("..")) {
-        res.status(400).json({ error: "Invalid dataset path" });
-        return;
-      }
-      if (!item || typeof item !== "object") {
-        res.status(400).json({ error: "Missing or invalid item" });
-        return;
-      }
-
+      const datasetPath = `${params.data.datasetName}.jsonl`;
       const fullPath = path.resolve(agentmarkTemplatesBase, datasetPath);
       const resolvedBase = path.resolve(agentmarkTemplatesBase);
       if (!fullPath.startsWith(resolvedBase)) {
-        res.status(400).json({ error: "Invalid dataset path" });
+        // Defence-in-depth: schema-level `..`/absolute rejection should already
+        // have caught this, but symlink escape via
+        // `path.resolve` is worth guarding explicitly.
+        parseOrBadRequest(
+          z.never(),
+          params.data.datasetName,
+          res,
+          'params',
+        );
         return;
       }
 
-      // Ensure parent directory exists
       fs.mkdirSync(path.dirname(fullPath), { recursive: true });
 
-      // Append the item as a single JSON line
-      fs.appendFileSync(fullPath, JSON.stringify(item) + "\n");
+      let nextLineNumber = 0;
+      if (fs.existsSync(fullPath)) {
+        const existing = fs.readFileSync(fullPath, "utf8");
+        nextLineNumber = existing.split("\n").filter((l) => l.trim().length > 0).length;
+      }
 
-      res.json({ success: true });
+      fs.appendFileSync(fullPath, JSON.stringify(body.data) + "\n");
+
+      res.status(201).json({ data: { line_number: nextLineNumber } });
     } catch (error: any) {
       console.error("Error appending to dataset:", error);
-      res.status(500).json({ error: error.message || "Failed to append to dataset" });
+      sendInternalError(res, error?.message || "Failed to append to dataset");
     }
   });
 
   app.get("/v1/traces", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(TracesListParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
     try {
-      // Parse query parameters for filtering
-      const options: {
-        status?: string;
-        name?: string;
-        latency_gt?: number;
-        latency_lt?: number;
-        limit?: number;
-        offset?: number;
-      } = {};
+      // Map validated snake_case query to the service's camelCase params.
+      // Schema enforces `limit`, `offset`, `status`, `user_id`, `model`,
+      // `dataset_run_id`, and date ranges — same contract as the cloud
+      // gateway's `ListTraces` handler.
+      const { dataset_run_id: datasetRunId, ...rest } = query.data as any;
+      const params: any = { ...rest };
+      if (datasetRunId) params.datasetRunId = datasetRunId;
 
-      if (req.query.status) {
-        options.status = String(req.query.status);
-      }
-      if (req.query.name) {
-        options.name = String(req.query.name);
-      }
-      if (req.query.latency_gt) {
-        options.latency_gt = Number(req.query.latency_gt);
-      }
-      if (req.query.latency_lt) {
-        options.latency_lt = Number(req.query.latency_lt);
-      }
-      if (req.query.limit) {
-        options.limit = Number(req.query.limit);
-      }
-      if (req.query.offset) {
-        options.offset = Number(req.query.offset);
-      }
-
-      const [traces, total] = await Promise.all([
-        getTraces(options),
-        getTraceCount(options),
-      ]);
-      return res.json({ traces, total });
+      const result = await service.getTraces(localAppId, params);
+      // Map the service's camelCase shape to the `/v1/traces` wire
+      // contract (snake_case). Mapping lives in a helper so it's
+      // unit-testable — see `test/wire-mappers.test.ts`.
+      return res.json(toTracesListResponseWire(result));
     } catch (error) {
       console.error("Error getting traces:", error);
-      return res.status(500).json({ error: "Failed to get traces" });
+      return sendInternalError(res, "Failed to get traces");
     }
   });
 
   app.get("/v1/traces/:traceId", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(TraceIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
     try {
-      const traceId = req.params.traceId as string;
-      if (!traceId) {
-        return res.status(400).json({ error: "traceId parameter is required" });
-      }
-      const trace = await getTraceById(traceId);
-      if (!trace) {
-        return res.status(404).json({ error: "Trace not found" });
-      }
-      return res.json({ trace });
+      const trace = await service.getTraceDetail(localAppId, params.data.traceId);
+      if (!trace) return sendNotFound(res, "Trace not found");
+      return res.json({ data: trace });
     } catch (error) {
       console.error("Error getting trace:", error);
-      return res.status(500).json({ error: "Failed to get trace" });
+      return sendInternalError(res, "Failed to get trace");
     }
   });
 
   app.get("/v1/traces/:traceId/graph", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(TraceIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
     try {
-      const traceId = req.params.traceId as string;
-      if (!traceId) {
-        return res.status(400).json({ error: "traceId parameter is required" });
-      }
-      const graphData = await getTraceGraph(traceId);
-      return res.json({ graphData });
+      const graphData = await getTraceGraph(params.data.traceId);
+      return res.json({ data: graphData });
     } catch (error) {
       console.error("Error getting trace graph:", error);
-      return res.status(500).json({ error: "Failed to get trace graph" });
+      return sendInternalError(res, "Failed to get trace graph");
     }
   });
 
   app.get("/v1/spans", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(SpansListParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
     try {
-      // Parse query parameters for filtering
-      const options: {
-        traceId?: string;
-        type?: string;
-        status?: string;
-        name?: string;
-        model?: string;
-        minDuration?: number;
-        maxDuration?: number;
-        limit?: number;
-        offset?: number;
-      } = {};
-
-      if (req.query.traceId) {
-        options.traceId = String(req.query.traceId);
-      }
-      if (req.query.type) {
-        options.type = String(req.query.type);
-      }
-      if (req.query.status) {
-        options.status = String(req.query.status);
-      }
-      if (req.query.name) {
-        options.name = String(req.query.name);
-      }
-      if (req.query.model) {
-        options.model = String(req.query.model);
-      }
-      if (req.query.minDuration) {
-        options.minDuration = Number(req.query.minDuration);
-      }
-      if (req.query.maxDuration) {
-        options.maxDuration = Number(req.query.maxDuration);
-      }
-      if (req.query.limit) {
-        options.limit = Number(req.query.limit);
-      }
-      if (req.query.offset) {
-        options.offset = Number(req.query.offset);
-      }
-
-      const spans = await searchSpans(options);
-      return res.json({ spans });
+      const spans = await searchSpans(query.data as any);
+      return res.json({
+        data: spans,
+        pagination: {
+          total: spans.length,
+          limit: (query.data as any).limit ?? 50,
+          offset: (query.data as any).offset ?? 0,
+        },
+      });
     } catch (error) {
       console.error("Error searching spans:", error);
-      return res.status(500).json({ error: "Failed to search spans" });
+      return sendInternalError(res, "Failed to search spans");
+    }
+  });
+
+  app.get("/v1/traces/:traceId/spans", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(TraceIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
+    try {
+      const spans = await getSpans(params.data.traceId);
+      return res.json({ data: spans });
+    } catch (error) {
+      console.error("Error getting spans for trace:", error);
+      return sendInternalError(res, "Failed to get spans for trace");
+    }
+  });
+
+  app.get("/v1/traces/:traceId/spans/:spanId", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(TraceSpanIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
+    try {
+      const spanIO = await service.getSpanIO(localAppId, params.data.traceId, params.data.spanId);
+      if (!spanIO) return sendNotFound(res, "Span not found");
+      return res.json({ data: spanIO });
+    } catch (error) {
+      console.error("Error getting span detail:", error);
+      return sendInternalError(res, "Failed to get span detail");
     }
   });
 
   app.post("/v1/scores", async (req: Request, res: Response) => {
+    const body = parseOrBadRequest(CreateScoreBodySchema, req.body, res, 'body');
+    if (!body.ok) return;
     try {
-      const body = req.body;
-      if (!body.resourceId) {
-        return res.status(400).json({ error: "resourceId is required" });
-      }
-      const result = await createScore(body);
-      return res.json(result);
+      const result = await createScore(body.data);
+      return res.status(201).json(result);
     } catch (error: any) {
       console.error("Error creating score:", error);
-      return res
-        .status(500)
-        .json({ error: error.message || "Failed to create score" });
+      return sendInternalError(res, error?.message || "Failed to create score");
+    }
+  });
+
+  app.post("/v1/scores/batch", async (req: Request, res: Response) => {
+    const body = parseOrBadRequest(CreateScoresBatchEnvelopeSchema, req.body, res, 'body');
+    if (!body.ok) return;
+    try {
+      const result = await createScoresBatch(body.data as { scores: any[] });
+      const status =
+        result.summary.failed === 0 ? 201 : result.summary.succeeded === 0 ? 400 : 207;
+      return res.status(status).json({ data: result });
+    } catch (error: any) {
+      console.error("Error creating scores batch:", error);
+      // Service-layer errors carry `status` + `code` for size-limit /
+      // malformed-envelope rejections; preserve them.
+      const status = typeof error?.status === "number" ? error.status : 500;
+      if (status >= 500) {
+        return sendInternalError(res, error?.message || "Failed to create scores");
+      }
+      return res.status(status).json({
+        error: {
+          code: error?.code || "invalid_request_body",
+          message: error?.message || "Failed to create scores",
+        },
+      });
     }
   });
 
   app.get("/v1/scores", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(ScoresListParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
     try {
-      const resourceId = req.query.resourceId as string;
-      if (!resourceId) {
-        return res
-          .status(400)
-          .json({ error: "resourceId query parameter is required" });
+      // Cloud uses `resource_id` (snake_case); SQLite service expects
+      // `resourceId` (camelCase). Map at the boundary.
+      const params: any = { ...query.data };
+      if (params.resource_id) {
+        params.resourceId = params.resource_id;
+        delete params.resource_id;
       }
-      const scores = await getScoresByResourceId(resourceId);
-      return res.json({ scores });
+      const result = await service.getScores(localAppId, params);
+      return res.json({ data: result.scores, pagination: { total: result.total, limit: result.limit, offset: result.offset } });
     } catch (error) {
       console.error("Error getting scores:", error);
-      return res.status(500).json({ error: "Failed to get scores" });
+      return sendInternalError(res, "Failed to get scores");
     }
   });
 
-  app.get("/v1/sessions", async (_req: Request, res: Response) => {
+  app.get("/v1/scores/names", async (_req: Request, res: Response) => {
     try {
-      const sessions = await getSessions();
-      return res.json({ sessions });
+      const result = await service.getDistinctScoreNames(localAppId);
+      return res.json({ data: result.names });
+    } catch (error) {
+      console.error("Error getting score names:", error);
+      return sendInternalError(res, "Failed to get score names");
+    }
+  });
+
+  // 501 stub — must register before `/v1/scores/:scoreId` so Express
+  // matches this literal path first instead of treating `aggregations` as a
+  // score ID.
+  app.get("/v1/scores/aggregations", (_req: Request, res: Response) => {
+    res.status(501).json({
+      error: 'not_available_locally',
+      message: 'Score aggregations are not available on the local dev server.',
+      hint: 'Use --remote to target a hosted backend, or check available endpoints with: agentmark api capabilities',
+    });
+  });
+
+  app.get("/v1/scores/:scoreId", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(ScoreIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
+    try {
+      const score = await service.getScoreById(localAppId, params.data.scoreId);
+      if (!score) return sendNotFound(res, "Score not found");
+      return res.json({
+        data: {
+          id: score.id,
+          resource_id: score.resourceId,
+          name: score.name,
+          score: score.score,
+          label: score.label,
+          reason: score.reason,
+          source: score.source,
+          created_at: score.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error("Error getting score:", error);
+      return sendInternalError(res, "Failed to get score");
+    }
+  });
+
+  app.get("/v1/sessions", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(SessionsListParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
+    try {
+      const result = await service.getSessions(localAppId, query.data as any);
+      return res.json({ data: result.sessions, pagination: { total: result.total, limit: result.limit, offset: result.offset } });
     } catch (error) {
       console.error("Error getting sessions:", error);
-      return res.status(500).json({ error: "Failed to get sessions" });
+      return sendInternalError(res, "Failed to get sessions");
     }
   });
 
   app.get("/v1/sessions/:sessionId/traces", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(SessionIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
     try {
-      const sessionId = req.params.sessionId as string;
-      if (!sessionId) {
-        return res.status(400).json({ error: "sessionId parameter is required" });
-      }
-      const traces = await getTracesBySessionId(sessionId);
-      return res.json({ traces });
+      const traces = await service.getSessionTraces(localAppId, params.data.sessionId);
+      return res.json({ data: traces });
     } catch (error) {
       console.error("Error getting traces for session:", error);
-      return res.status(500).json({ error: "Failed to get traces for session" });
+      return sendInternalError(res, "Failed to get traces for session");
     }
   });
 
-  app.get("/v1/experiments", async (_req: Request, res: Response) => {
+  app.get("/v1/experiments", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(ExperimentsListParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
     try {
-      const experiments = await getExperiments();
-      return res.json({ experiments });
+      const result = await service.getExperiments(localAppId, query.data as any);
+      return res.json({ data: result.experiments, pagination: { total: result.total, limit: result.limit, offset: result.offset } });
     } catch (error) {
       console.error("Error getting experiments:", error);
-      return res.status(500).json({ error: "Failed to get experiments" });
+      return sendInternalError(res, "Failed to get experiments");
     }
   });
 
   app.get("/v1/experiments/:experimentId", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(ExperimentIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
     try {
-      const experimentId = req.params.experimentId as string;
-      if (!experimentId) {
-        return res.status(400).json({ error: "experimentId parameter is required" });
-      }
-      const result = await getExperimentById(experimentId);
-      if (!result) {
-        return res.status(404).json({ error: "Experiment not found" });
-      }
-      return res.json(result);
+      const result = await service.getExperimentDetail(localAppId, params.data.experimentId);
+      if (!result) return sendNotFound(res, "Experiment not found");
+      return res.json({ data: result });
     } catch (error) {
       console.error("Error getting experiment:", error);
-      return res.status(500).json({ error: "Failed to get experiment" });
+      return sendInternalError(res, "Failed to get experiment");
     }
   });
 
   app.get("/v1/runs/:runId/traces", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(RunIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
     try {
-      const runId = req.params.runId as string;
-      if (!runId) {
-        return res.status(400).json({ error: "runId parameter is required" });
-      }
-      const traces = await getTracesByRunId(runId);
-      return res.json({ traces });
+      const detail = await service.getDatasetRunDetail(localAppId, params.data.runId);
+      if (!detail) return sendNotFound(res, "Run not found");
+      return res.json({ data: detail.items });
     } catch (error) {
       console.error("Error getting traces for run:", error);
-      return res.status(500).json({ error: "Failed to get traces for run" });
+      return sendInternalError(res, "Failed to get traces for run");
     }
   });
 
-  return new Promise((resolve) => {
+  app.get("/v1/capabilities", (_req: Request, res: Response) => {
+    res.json({
+      target: 'local',
+      url: `http://localhost:${port}`,
+      endpoints: {
+        traces: true,
+        spans: true,
+        sessions: true,
+        scores: true,
+        score_analytics: false,
+        metrics: false,
+        experiments: true,
+        datasets: true,
+        prompts: true,
+        runs: true,
+        pricing: true,
+      },
+    });
+  });
+
+  // Per-model LLM pricing data. Public (no auth). Raw map shape keyed
+  // by model ID — no { data } envelope.
+  app.get("/v1/pricing", (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.json(LOCAL_PRICING_MAP);
+  });
+
+  // 501 stubs — endpoints whose implementation is not available locally.
+  app.get("/v1/metrics", (_req: Request, res: Response) => {
+    res.status(501).json({
+      error: 'not_available_locally',
+      message: 'Metrics are not available on the local dev server.',
+      hint: 'Use --remote to target a hosted backend, or check available endpoints with: agentmark api capabilities',
+    });
+  });
+
+  app.delete("/v1/scores/:scoreId", async (req: Request, res: Response) => {
+    const params = parseOrBadRequest(ScoreIdParamsSchema, req.params, res, 'params');
+    if (!params.ok) return;
+    try {
+      const deleted = await service.deleteScore(localAppId, params.data.scoreId);
+      if (!deleted) return sendNotFound(res, "Score not found");
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting score:", error);
+      return sendInternalError(res, "Failed to delete score");
+    }
+  });
+
+  // Error handling middleware for NotAvailableLocallyError
+  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+    if (err.name === 'NotAvailableLocallyError') {
+      return res.status(501).json({
+        error: 'not_available_locally',
+        message: err.message,
+        hint: 'Use --remote to target a hosted backend, or check available endpoints with: agentmark api capabilities',
+      });
+    }
+    return next(err);
+  });
+
+  return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {
       resolve(server);
+    });
+    server.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        reject(new Error(
+          `Port ${port} is already in use. Stop the existing server or set AGENTMARK_API_PORT to a different port.`,
+        ));
+      } else {
+        reject(err);
+      }
     });
   });
 }
