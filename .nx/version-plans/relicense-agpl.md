@@ -4,7 +4,7 @@
 "@agentmark-ai/api-schemas": patch
 "@agentmark-ai/claude-agent-sdk-v0-adapter": patch
 "@agentmark-ai/cli": patch
-"@agentmark-ai/create-agentmark": patch
+"create-agentmark": patch
 "@agentmark-ai/eslint-config": patch
 "@agentmark-ai/fallback-adapter": patch
 "@agentmark-ai/loader-api": patch
