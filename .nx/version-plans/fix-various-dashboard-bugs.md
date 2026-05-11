@@ -1,7 +1,7 @@
 ---
 "@agentmark-ai/ui-components": patch
 "@agentmark-ai/cli": patch
-"@agentmark-ai/create-agentmark": patch
+"create-agentmark": patch
 "@agentmark-ai/prompt-core": patch
 ---
 
