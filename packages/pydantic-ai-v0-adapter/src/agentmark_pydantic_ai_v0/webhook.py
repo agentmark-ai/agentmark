@@ -558,15 +558,18 @@ class PydanticAIWebhookHandler:
                 dataset_path=dataset_path,
                 metadata={"commit_sha": commit_sha} if commit_sha else None,
             )) as ctx:
-                # Record the experiment iteration's input as agentmark.props on
-                # the wrapper span. This matches the standard pattern used by
-                # claude-agent-sdk-v0-adapter-python/traced.py (which sets
-                # agentmark.props on its invoke_agent span) and causes the
-                # normalizer's otel-genai transformer to promote it into
-                # NormalizedSpan.input, and the trace drawer's isAgentSpan()
-                # check in use-span-prompts.ts to render it as the span input.
-                # Without this, the wrapper span shows empty I/O in the trace
-                # drawer because it has no input/output/props attributes.
+                # Record the experiment iteration's template variables on the
+                # wrapper span as `agentmark.props`. The dataset row's `input`
+                # column IS the template variables for that iteration — that's
+                # what `format_with_dataset` consumed to render the prompt. The
+                # normalizer's agentmark-parser reads `agentmark.props` and
+                # populates `result.props`, which the trace drawer's Test
+                # Prompt button gates on; AgentMarkTransformer's input
+                # fallback (transformers/agentmark/index.ts:258) also maps
+                # this attribute to `result.input`, so the drawer's Input
+                # panel renders too. Don't ALSO write `agentmark.input` — it
+                # would erase the semantic distinction between "template vars"
+                # and "generic input data".
                 if dataset_input is not None:
                     try:
                         ctx.set_attribute(
@@ -579,9 +582,9 @@ class PydanticAIWebhookHandler:
                 # Run the formatted prompt
                 result = await run_text_prompt(item["formatted"])
 
-                # Record the model output on the wrapper span as agentmark.output.
-                # The normalizer promotes this to NormalizedSpan.output and the
-                # trace drawer renders it via extractOutputFromSpan().
+                # Record the model output on the wrapper span. `agentmark.output`
+                # is the canonical attribute key (no fallback needed; the
+                # transformer reads it directly).
                 try:
                     ctx.set_attribute(
                         "agentmark.output",
@@ -682,11 +685,10 @@ class PydanticAIWebhookHandler:
                 dataset_path=dataset_path,
                 metadata={"commit_sha": commit_sha} if commit_sha else None,
             )) as ctx:
-                # Record the experiment iteration's input as agentmark.props on
-                # the wrapper span — matches the standard pattern used by
-                # claude-agent-sdk-v0-adapter-python/traced.py and enables the
-                # trace drawer to render the wrapper's I/O. See _stream_text_experiment
-                # for the full rationale.
+                # Template variables — see _stream_text_experiment for the
+                # full rationale on writing `agentmark.props` here (parser →
+                # result.props for the Test Prompt button; transformer
+                # fallback → result.input for the drawer's Input panel).
                 if dataset_input is not None:
                     try:
                         ctx.set_attribute(
@@ -704,7 +706,7 @@ class PydanticAIWebhookHandler:
                     else result.output
                 )
 
-                # Record the model output on the wrapper span as agentmark.output.
+                # Record the model output on the wrapper span (canonical key).
                 try:
                     ctx.set_attribute(
                         "agentmark.output",

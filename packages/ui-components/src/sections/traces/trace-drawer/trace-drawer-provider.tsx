@@ -7,15 +7,13 @@ import {
   useState,
   useEffect,
 } from "react";
-import { TraceData, SpanData, ScoreData } from "../types";
+import { TraceData, SpanData, ScoreData, SpanIOData } from "../types";
 import { useTraceDrawer } from "./hooks/use-trace-drawer";
 
-export interface SpanIOData {
-  input: string;
-  output: string;
-  outputObject: string | null;
-  toolCalls: string | null;
-}
+// Re-exported here for backward compatibility — the canonical SpanIOData
+// declaration lives in `../types` so `@agentmark-ai/ui-components/types`
+// can re-export it without pulling React.
+export type { SpanIOData };
 
 export interface TraceDrawerContextValue {
   traces: TraceData[];
@@ -116,6 +114,7 @@ export const TraceDrawerProvider = ({
           data: mergeRootSpanData(rootSpansByTraceId.get(firstTrace.id) || [], firstTrace),
           duration: 0,
           timestamp: 0,
+          traceId: firstTrace.id,
         } satisfies SpanData;
       }
       return null;

@@ -6,6 +6,37 @@ import db from "../../database";
 import type { NormalizedSpan } from "@agentmark-ai/shared-utils";
 
 /**
+ * Extract + validate the `agentmark.tags` attribute from span/resource
+ * attributes.
+ *   - accepts native array, JSON array string, or comma-separated string
+ *   - trims whitespace, drops empty + >100-char tags
+ *   - caps at 20 tags per span
+ */
+function extractTags(attributes: Record<string, unknown>): string[] {
+  const raw = attributes['agentmark.tags'];
+  if (raw === undefined || raw === null || raw === '') return [];
+
+  let tags: string[];
+  if (Array.isArray(raw)) {
+    tags = raw.map(String);
+  } else if (typeof raw === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      tags = Array.isArray(parsed) ? parsed.map(String) : [raw];
+    } catch {
+      tags = raw.split(',').map((t: string) => t.trim());
+    }
+  } else {
+    return [];
+  }
+
+  return tags
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0 && t.length <= 100)
+    .slice(0, 20);
+}
+
+/**
  * Convert NormalizedSpan to SQLite row format
  */
 function normalizedSpanToSqliteRow(
@@ -102,6 +133,11 @@ function normalizedSpanToSqliteRow(
     PromptName: span.promptName || "",
     Props: span.props || null,
     Metadata: span.metadata ? JSON.stringify(span.metadata) : null,
+    // Tags look at resource + span attributes — user-supplied labels
+    // live on whichever layer the SDK emitted them on.
+    Tags: JSON.stringify(
+      extractTags({ ...span.resourceAttributes, ...span.spanAttributes }),
+    ),
   };
 }
 
@@ -117,9 +153,9 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
       Input, Output, OutputObject, ToolCalls, FinishReason, Settings,
       SessionId, SessionName, UserId, TraceName,
       DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput, DatasetInput,
-      PromptName, Props, Metadata
+      PromptName, Props, Metadata, Tags
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
@@ -171,7 +207,8 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.DatasetInput,
         row.PromptName,
         row.Props,
-        row.Metadata
+        row.Metadata,
+        row.Tags
       );
     }
   });
@@ -224,10 +261,14 @@ export interface TraceFilterOptions {
   latency_lt?: number;
   limit?: number;
   offset?: number;
+  dataset_run_id?: string;
+  session_id?: string;
+  tags?: string[];
+  commit_sha?: string;
 }
 
 export const getTraces = async (options: TraceFilterOptions = {}) => {
-  const { status, name, latency_gt, latency_lt, limit, offset } = options;
+  const { status, name, latency_gt, latency_lt, limit, offset, dataset_run_id, session_id, tags, commit_sha } = options;
 
   // Build WHERE conditions for the final query
   const conditions: string[] = [];
@@ -241,6 +282,16 @@ export const getTraces = async (options: TraceFilterOptions = {}) => {
     conditions.push('m.name LIKE ?');
     params.push(`%${name}%`);
   }
+  // Tag filter — trace has ANY of the listed tags (OR semantics,
+  // matching the cloud `hasAny` behavior). Tags column is JSON-
+  // serialized, so we use json_each + IN to expand and match.
+  if (tags && tags.length > 0) {
+    const placeholders = tags.map(() => '?').join(',');
+    conditions.push(
+      `EXISTS (SELECT 1 FROM json_each(tt.tags) WHERE value IN (${placeholders}))`
+    );
+    params.push(...tags);
+  }
   if (latency_gt !== undefined) {
     conditions.push('m.latency > ?');
     params.push(latency_gt);
@@ -248,6 +299,28 @@ export const getTraces = async (options: TraceFilterOptions = {}) => {
   if (latency_lt !== undefined) {
     conditions.push('m.latency < ?');
     params.push(latency_lt);
+  }
+  if (dataset_run_id !== undefined) {
+    conditions.push('t.dataset_run_id = ?');
+    params.push(dataset_run_id);
+  }
+  // Session filter — trace has at least one span carrying the given
+  // SessionId. Subquery keeps the aggregated trace-row shape intact.
+  if (session_id !== undefined) {
+    conditions.push('t.id IN (SELECT DISTINCT TraceId FROM traces WHERE SessionId = ?)');
+    params.push(session_id);
+  }
+  // Commit SHA filter — local SQLite has no dedicated CommitSha
+  // column (unlike cloud ClickHouse), so we extract it from the
+  // Metadata JSON. See
+  // `oss/agentmark/packages/shared-utils/src/normalizer/extractors/metadata-parser.ts`
+  // for why commit_sha is left in the Metadata bucket on the local
+  // side.
+  if (commit_sha !== undefined) {
+    conditions.push(
+      "t.id IN (SELECT DISTINCT TraceId FROM traces WHERE json_extract(Metadata, '$.commit_sha') = ?)"
+    );
+    params.push(commit_sha);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -306,6 +379,20 @@ traces_cte AS (
     GROUP BY TraceId
 ),
 
+-- Flatten + dedupe tags across every span in a trace. Tags are stored
+-- as a JSON-encoded TEXT per span, so we json_each each span's array,
+-- take DISTINCT values, and re-aggregate with json_group_array.
+-- Empty/missing arrays contribute no rows.
+trace_tags AS (
+    SELECT
+        TraceId AS id,
+        json_group_array(DISTINCT tag.value) AS tags
+    FROM traces, json_each(traces.Tags) AS tag
+    WHERE json_valid(traces.Tags)
+      AND traces.Tags != '[]'
+    GROUP BY TraceId
+),
+
 trace_metadata AS (
     SELECT
     t.TraceId AS id,
@@ -334,10 +421,12 @@ SELECT
     t.span_count,
     m.name,
     m.latency,
-    m.status_message
+    m.status_message,
+    COALESCE(tt.tags, '[]') AS tags
 FROM traces_cte t
 LEFT JOIN trace_costs_and_tokens c ON t.id = c.id
 LEFT JOIN trace_metadata m ON t.id = m.id
+LEFT JOIN trace_tags tt ON t.id = tt.id
 ${whereClause}
 ORDER BY t.start DESC
 ${limitClause};
@@ -348,7 +437,7 @@ ${limitClause};
 };
 
 export const getTraceCount = async (options: TraceFilterOptions = {}) => {
-  const { status, name, latency_gt, latency_lt } = options;
+  const { status, name, latency_gt, latency_lt, dataset_run_id, session_id, tags, commit_sha } = options;
 
   const conditions: string[] = [];
   const params: any[] = [];
@@ -361,6 +450,13 @@ export const getTraceCount = async (options: TraceFilterOptions = {}) => {
     conditions.push('m.name LIKE ?');
     params.push(`%${name}%`);
   }
+  if (tags && tags.length > 0) {
+    const placeholders = tags.map(() => '?').join(',');
+    conditions.push(
+      `EXISTS (SELECT 1 FROM json_each(tt.tags) WHERE value IN (${placeholders}))`
+    );
+    params.push(...tags);
+  }
   if (latency_gt !== undefined) {
     conditions.push('m.latency > ?');
     params.push(latency_gt);
@@ -368,6 +464,20 @@ export const getTraceCount = async (options: TraceFilterOptions = {}) => {
   if (latency_lt !== undefined) {
     conditions.push('m.latency < ?');
     params.push(latency_lt);
+  }
+  if (dataset_run_id !== undefined) {
+    conditions.push('t.dataset_run_id = ?');
+    params.push(dataset_run_id);
+  }
+  if (session_id !== undefined) {
+    conditions.push('t.id IN (SELECT DISTINCT TraceId FROM traces WHERE SessionId = ?)');
+    params.push(session_id);
+  }
+  if (commit_sha !== undefined) {
+    conditions.push(
+      "t.id IN (SELECT DISTINCT TraceId FROM traces WHERE json_extract(Metadata, '$.commit_sha') = ?)"
+    );
+    params.push(commit_sha);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -394,8 +504,22 @@ traces_cte AS (
                 WHEN StatusCode = '1' THEN '1'
                 ELSE '0'
             END)
-        ) AS status
+        ) AS status,
+        MAX(NULLIF(DatasetRunId, '')) AS dataset_run_id
     FROM traces
+    GROUP BY TraceId
+),
+
+-- Mirror getTraces() so the WHERE clause's tag-filter EXISTS subquery
+-- can reference tt.tags. Without this CTE, ?tag=… raised SQLITE_ERROR
+-- "no such column: tt.tags" (count diverged from list).
+trace_tags AS (
+    SELECT
+        TraceId AS id,
+        json_group_array(DISTINCT tag.value) AS tags
+    FROM traces, json_each(traces.Tags) AS tag
+    WHERE json_valid(traces.Tags)
+      AND traces.Tags != '[]'
     GROUP BY TraceId
 ),
 
@@ -417,6 +541,7 @@ trace_metadata AS (
 SELECT COUNT(*) AS total
 FROM traces_cte t
 LEFT JOIN trace_metadata m ON t.id = m.id
+LEFT JOIN trace_tags tt ON t.id = tt.id
 ${whereClause};
   `;
 
@@ -676,7 +801,7 @@ export const getTraceById = async (traceId: string) => {
   if (!traceRow) return null;
 
   // Fetch spans for this trace
-  let spans = await getSpans(traceId);
+  const spans = await getSpans(traceId);
 
   // Query-time virtual hierarchy: if this trace has a SessionId, find
   // sibling traces from the same session and virtually parent them under

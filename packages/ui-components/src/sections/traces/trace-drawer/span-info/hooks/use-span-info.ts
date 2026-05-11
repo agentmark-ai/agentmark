@@ -8,6 +8,10 @@ interface UseSpanInfoProps {
 /**
  * Determine whether a span has I/O data worth showing in the Input/Output tab.
  * LLM generation spans always qualify; other spans need explicit data fields.
+ *
+ * Falls back to true when the span has both an id and a traceId — those can
+ * lazy-load IO via fetchSpanIO even when the initial (lightweight) payload
+ * has the fields stripped to empty strings.
  */
 export function computeHasIOData(span?: SpanData): boolean {
   if (!span?.data) return false;
@@ -16,6 +20,9 @@ export function computeHasIOData(span?: SpanData): boolean {
   if (span.data.input || span.data.output) return true;
   // Agent spans use props as input and may have outputObject
   if (span.data.props || span.data.outputObject) return true;
+  // Anything else with both ids set may have IO via lazy fetch — show the tab
+  // and let the InputOutputTab render an empty state if the fetch returns nothing.
+  if (span.id && span.traceId) return true;
   return false;
 }
 

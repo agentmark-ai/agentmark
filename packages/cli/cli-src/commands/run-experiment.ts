@@ -221,14 +221,18 @@ export function postExperimentScores(
     fetch(`${apiServerUrl}/v1/scores`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      // CreateScoreBodySchema in @agentmark-ai/api-schemas (scores.ts:18)
+      // requires snake_case keys. Zod silently strips unknown camelCase
+      // fields, so a body with `resourceId`/`dataType` ends up missing
+      // the required `resource_id` and the POST stores nothing.
       body: JSON.stringify({
-        resourceId: evt.traceId,
+        resource_id: evt.traceId,
         score,
         label,
         reason: evalResult.reason || '',
         name: evalResult.name,
         type: 'experiment',
-        dataType: evalResult.dataType || '',
+        data_type: evalResult.dataType || '',
       }),
     }).catch(() => {}); // fire-and-forget — never block experiment rendering
   }

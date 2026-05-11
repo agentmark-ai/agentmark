@@ -15,7 +15,7 @@ object_config:
       - names
 test_settings:
   dataset: party.jsonl
-  scores:
+  evals:
     - exact_match_json
   props:
     party_text: "We're having a party with Alice, Bob, and Carol."

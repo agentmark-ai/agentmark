@@ -25,6 +25,21 @@ export function parseAgentMarkAttributes(
 
     // Prompt Context
     if (get('prompt_name')) result.promptName = String(get('prompt_name'));
+    // Template variables. Only `agentmark.props` populates `result.props`
+    // — never fall back to `agentmark.input`. The two attributes have
+    // different semantics:
+    //   `agentmark.props`  = frontmatter template variables. Set by
+    //                        spans that ran a templated prompt (e.g.
+    //                        invoke_agent in traced.py).
+    //   `agentmark.input`  = arbitrary input data (dataset rows on a
+    //                        wrapper span, chat messages on a generation
+    //                        span, tool args on an execute_tool span).
+    // Backfilling props from input would mis-label every wrapper / tool /
+    // generation span as "has template variables", which the trace
+    // drawer's Test Prompt button reads as "this is a prompt invocation
+    // you can re-run". The asymmetry is intentional: AgentMarkTransformer
+    // already does the safe direction (`props -> input`) at
+    // transformers/agentmark/index.ts:258.
     if (get('props')) result.props = String(get('props'));
 
     // Span Kind (set by @traced decorator / traced() wrapper)

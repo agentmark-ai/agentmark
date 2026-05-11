@@ -2,56 +2,26 @@
  * Experiment Types
  *
  * Type definitions for experiment UI components.
- * These types are the canonical source — the dashboard re-exports them.
+ *
+ * The four core types (ExperimentItemScore, ExperimentSummary,
+ * ExperimentItemSummary, ExperimentDetail) are owned by
+ * `@agentmark-ai/api-schemas` (inferred from Zod schemas) and re-exported
+ * here for backward compatibility. The comparison-table types below remain
+ * UI-local — they describe rendered table state, not wire shapes.
  */
 
 // ---------------------------------------------------------------------------
-// Core Experiment Types
+// Core Experiment Types — re-exported from the canonical source.
 // ---------------------------------------------------------------------------
 
-/** Score on a single experiment item */
-export interface ExperimentItemScore {
-  name: string;
-  score: number;
-  label: string;
-  reason: string;
-}
+import type { ExperimentItemScore } from '@agentmark-ai/api-schemas';
 
-/** Summary for list views (from analytics) */
-export interface ExperimentSummary {
-  id: string;
-  name: string;
-  datasetPath: string;
-  promptName: string;
-  start?: string;
-  end?: string;
-  itemCount: number;
-  avgLatencyMs: number;
-  totalCost: number;
-  totalTokens?: number;
-  avgScore: number | null;
-  commitSha?: string;
-  createdAt?: string;
-}
-
-/** Single item in experiment */
-export interface ExperimentItemSummary {
-  traceId: string;
-  itemName: string;
-  expectedOutput: string;
-  input: string;
-  output: string;
-  latencyMs: number;
-  cost: number;
-  tokens: number;
-  model: string;
-  scores: ExperimentItemScore[];
-}
-
-/** Full detail with all items */
-export interface ExperimentDetail extends ExperimentSummary {
-  items: ExperimentItemSummary[];
-}
+export type {
+  ExperimentItemScore,
+  ExperimentSummary,
+  ExperimentItemSummary,
+  ExperimentDetail,
+} from '@agentmark-ai/api-schemas';
 
 // ---------------------------------------------------------------------------
 // Comparison Types

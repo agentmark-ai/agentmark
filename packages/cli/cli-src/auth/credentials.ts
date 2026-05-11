@@ -5,11 +5,18 @@ import { CliAuthCredentials } from "./types";
 
 /**
  * Returns the directory used for storing auth credentials.
- * In test environments, uses a temp directory to avoid polluting the real home.
+ * In test environments, uses a per-worker temp dir to avoid both polluting
+ * the real home AND cross-file pollution between vitest workers running
+ * in parallel. Before this was a single shared dir, `credentials.test.ts`
+ * writes leaked into `forwarder.test.ts` via `loadCredentials()`.
  */
 export function getAuthDir(): string {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
-    return path.join(os.tmpdir(), ".agentmark-test", path.sep);
+    // VITEST_POOL_ID is set per worker by vitest; pid is a safe fallback
+    // for non-vitest "NODE_ENV=test" callers and for the rare case where
+    // VITEST_POOL_ID isn't populated (e.g. main thread of the test runner).
+    const workerId = process.env.VITEST_POOL_ID || String(process.pid);
+    return path.join(os.tmpdir(), `.agentmark-test-${workerId}`, path.sep);
   }
   return path.join(os.homedir(), ".agentmark", path.sep);
 }

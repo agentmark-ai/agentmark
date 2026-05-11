@@ -4,7 +4,7 @@
   "description": "LLM model registry with provider metadata, pricing, and capabilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "publishConfig": {
     "access": "public"
   },

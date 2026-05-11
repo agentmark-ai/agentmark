@@ -188,7 +188,26 @@ export const createExampleApp = async (
       getClientConfigContent({ provider: modelProvider, adapter, deploymentMode })
     );
 
-    // Create or append to .env file
+    // Create or append to .gitignore FIRST so the `.env` rule is in place
+    // before any secret values land on disk. `git init` runs at the very end
+    // (see src/index.ts), so as long as .gitignore lists `.env` before .env
+    // is written we're safe even if someone reshuffles steps later.
+    // Note: .agentmark/ removed - dev-entry.ts is now at project root for version control
+    const gitignoreEntries = ['node_modules/', '.env', '*.agentmark-outputs/', 'dist/'];
+    if (shouldMergeFile('.gitignore', projectInfo, resolutions)) {
+      const result = appendGitignore(targetPath, gitignoreEntries);
+      if (result.added.length > 0) {
+        console.log(`✅ Added to .gitignore: ${result.added.join(', ')}`);
+      }
+      if (result.skipped.length > 0) {
+        console.log(`⏭️  Already in .gitignore: ${result.skipped.join(', ')}`);
+      }
+    } else {
+      const gitignore = gitignoreEntries.join('\n');
+      fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
+    }
+
+    // Create or append to .env file (after .gitignore is in place)
     if (shouldMergeFile('.env', projectInfo, resolutions)) {
       const envVars: Record<string, string> = {};
       const apiKeyEnvVar = adapter === 'claude-agent-sdk' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
@@ -210,22 +229,6 @@ export const createExampleApp = async (
       }
     } else {
       fs.writeFileSync(`${targetPath}/.env`, getEnvFileContent(modelProvider, apiKey, adapter, deploymentMode));
-    }
-
-    // Create or append to .gitignore
-    // Note: .agentmark/ removed - dev-entry.ts is now at project root for version control
-    const gitignoreEntries = ['node_modules/', '.env', '*.agentmark-outputs/', 'dist/'];
-    if (shouldMergeFile('.gitignore', projectInfo, resolutions)) {
-      const result = appendGitignore(targetPath, gitignoreEntries);
-      if (result.added.length > 0) {
-        console.log(`✅ Added to .gitignore: ${result.added.join(', ')}`);
-      }
-      if (result.skipped.length > 0) {
-        console.log(`⏭️  Already in .gitignore: ${result.skipped.join(', ')}`);
-      }
-    } else {
-      const gitignore = gitignoreEntries.join('\n');
-      fs.writeFileSync(`${targetPath}/.gitignore`, gitignore);
     }
 
     // Create the main application file (skip for existing projects)
@@ -284,15 +287,23 @@ sdk.initTracing({ disableBatch: true });
 const adapter = new ${handlerClass}(client as any);
 
 export default async function handler(request: {
-  type: 'prompt-run' | 'dataset-run';
+  type: 'prompt-run' | 'dataset-run' | 'get-evals';
   data: {
-    ast: any;
+    ast?: any;
     customProps?: Record<string, unknown>;
     options?: { shouldStream?: boolean };
     experimentId?: string;
     datasetPath?: string;
   };
 }) {
+  if (request.type === 'get-evals') {
+    return {
+      type: 'evals',
+      result: JSON.stringify(Object.keys(client.getEvalRegistry())),
+      traceId: '',
+    };
+  }
+
   if (request.type === 'prompt-run') {
     return adapter.runPrompt(request.data.ast, {
       shouldStream: request.data.options?.shouldStream,
@@ -406,24 +417,11 @@ main().catch((err) => {
     console.log('Next Steps');
     console.log('═'.repeat(70));
 
-    // Use detected package manager for instructions
-    const runCmd = packageManager?.runCmd ?? 'npm run';
-
-    // Check if agentmark script was namespaced
-    const pkgJsonPath = path.join(targetPath, 'package.json');
-    let agentmarkScriptName = 'agentmark';
-    if (fs.existsSync(pkgJsonPath)) {
-      const pkgJson = fs.readJsonSync(pkgJsonPath);
-      if (pkgJson.scripts?.['agentmark:agentmark']) {
-        agentmarkScriptName = 'agentmark:agentmark';
-      }
-    }
-
     console.log('\n Get Started:');
     if (folderName !== "." && folderName !== "./" && !isExistingProject) {
       console.log(`  $ cd ${folderName}`);
     }
-    console.log(`  $ ${runCmd} ${agentmarkScriptName} dev\n`);
+    console.log(`  $ npx agentmark dev\n`);
 
     console.log('─'.repeat(70));
     console.log('Resources');

@@ -19,12 +19,16 @@ import { FileLoader } from "@agentmark-ai/loader-file";`;
   const loaderSetup = deploymentMode === "cloud"
     ? `  // ApiLoader works for both development and production
   // - Development: 'agentmark dev' sets AGENTMARK_BASE_URL to localhost
-  // - Production: Set AGENTMARK_API_KEY and AGENTMARK_APP_ID for cloud
+  // - Production: Set AGENTMARK_API_KEY and AGENTMARK_APP_ID for cloud.
+  //   AGENTMARK_BASE_URL overrides the default https://api.agentmark.co
+  //   target — managed deployments use this to point back at the gateway
+  //   that dispatched the job.
   const loader = process.env.NODE_ENV === 'development'
     ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })
     : ApiLoader.cloud({
         apiKey: process.env.AGENTMARK_API_KEY!,
         appId: process.env.AGENTMARK_APP_ID!,
+        baseUrl: process.env.AGENTMARK_BASE_URL,
       });`
     : `  const loader = process.env.NODE_ENV === 'development'
     ? ApiLoader.local({ baseUrl: process.env.AGENTMARK_BASE_URL || 'http://localhost:9418' })

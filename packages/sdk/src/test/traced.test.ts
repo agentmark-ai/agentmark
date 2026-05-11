@@ -5,7 +5,6 @@ import { observe, SpanKind } from "../trace/traced";
 import { serializeValue } from "../trace/serialize";
 import { span } from "../trace/tracing";
 import { AgentMarkSDK } from "../agentmark";
-import * as api from "@opentelemetry/api";
 
 interface OTLPSpan {
   name: string;
@@ -77,9 +76,10 @@ describe("observe wrapper", () => {
   let receivedRequests: Array<{ body: OTLPRequest }>;
 
   async function flushSpans() {
-    const provider = api.trace.getTracerProvider() as any;
-    if (provider.forceFlush) {
-      await provider.forceFlush();
+    // AgentMark's tracer provider is now isolated (no longer the global
+    // OTel provider — see issue #1131), so flush the active SDK directly.
+    if (activeSdk?.forceFlush) {
+      await activeSdk.forceFlush();
     }
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }

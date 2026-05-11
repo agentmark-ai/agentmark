@@ -6,7 +6,6 @@ import { FileLoader } from "@agentmark-ai/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark-ai/templatedx";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
-import type { VercelAIAdapter } from "../src/adapter";
 import * as ai from "ai";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";

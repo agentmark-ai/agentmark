@@ -10,10 +10,38 @@ from agentmark.prompt_core.schemas import (
     ObjectSettingsSchema,
     SpeechConfigSchema,
     SpeechSettingsSchema,
+    TestSettingsSchema,
     TextConfigSchema,
     TextSettingsSchema,
     ToolChoiceSchema,
 )
+
+
+class TestTestSettingsScoresField:
+    """test_settings.scores parsing — see PR #1804 (`evals` -> `scores` rename).
+
+    The TS schema is passthrough-by-default so it tolerated the new key
+    silently. This Python schema is `extra="forbid"`, so the rename has to
+    be reflected here or every fresh-scaffolded project explodes when the
+    pre-built JSON is loaded (`agentmark build` writes `scores:` from the
+    template).
+    """
+
+    def test_accepts_scores(self) -> None:
+        settings = TestSettingsSchema(scores=["exact_match_json"])
+        assert settings.scores == ["exact_match_json"]
+        assert settings.evals is None
+
+    def test_accepts_legacy_evals(self) -> None:
+        settings = TestSettingsSchema(evals=["legacy_eval"])
+        assert settings.evals == ["legacy_eval"]
+        assert settings.scores is None
+
+    def test_rejects_unknown_field(self) -> None:
+        # extra="forbid" must still reject genuinely unknown keys, not just
+        # accept everything as a side effect of the rename fix.
+        with pytest.raises(ValidationError):
+            TestSettingsSchema(unknown_field="value")
 
 
 class TestTextSettingsSchema:

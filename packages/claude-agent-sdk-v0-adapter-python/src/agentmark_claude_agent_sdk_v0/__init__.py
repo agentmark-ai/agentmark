@@ -169,7 +169,7 @@ def create_claude_agent_client(
     """
     # Import AgentMark from prompt-core
     try:
-        from agentmark_prompt_core import AgentMark
+        from agentmark.prompt_core import AgentMark
     except ImportError:
         raise ImportError(
             "agentmark-prompt-core is required. Install with: pip install agentmark-prompt-core"

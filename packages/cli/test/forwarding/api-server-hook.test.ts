@@ -114,8 +114,9 @@ describe('API server forwarding hook', () => {
       expect(response.ok).toBe(true);
       expect(response.status).toBe(200);
 
-      const data = await response.json();
-      expect(data).toEqual({ success: true });
+      const data = await response.json() as { data: { requestId: string } };
+      expect(data.data).toBeDefined();
+      expect(typeof data.data.requestId).toBe('string');
 
       // Verify local save was called with normalized spans (camelCase fields from normalizeOtlpSpans)
       expect(exportTraces).toHaveBeenCalledWith(
@@ -180,8 +181,9 @@ describe('API server forwarding hook', () => {
       expect(response.ok).toBe(true);
       expect(response.status).toBe(200);
 
-      const data = await response.json();
-      expect(data).toEqual({ success: true });
+      const data = await response.json() as { data: { requestId: string } };
+      expect(data.data).toBeDefined();
+      expect(typeof data.data.requestId).toBe('string');
 
       // Verify local save was called with normalized spans (camelCase fields)
       expect(exportTraces).toHaveBeenCalledWith(
@@ -285,8 +287,10 @@ describe('API server forwarding hook', () => {
       expect(response.ok).toBe(false);
       expect(response.status).toBe(400);
 
+      // Canonical envelope: {error: {code, message}}.
       const data = await response.json();
-      expect(data.error).toContain('Invalid OTLP payload');
+      expect(data.error.message).toContain('Invalid OTLP payload');
+      expect(data.error.code).toBe('invalid_otlp_payload');
     });
 
     it('should return 400 when resourceSpans is not an array', async () => {
@@ -341,8 +345,10 @@ describe('API server forwarding hook', () => {
       expect(response.ok).toBe(false);
       expect(response.status).toBe(500);
 
+      // Canonical envelope: {error: {code, message}}.
       const data = await response.json();
-      expect(data.error).toBe('Database error');
+      expect(data.error.code).toBe('internal_error');
+      expect(data.error.message).toBe('Database error');
     });
 
     it('should not call forwarder when local save fails', async () => {

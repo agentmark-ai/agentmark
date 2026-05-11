@@ -93,7 +93,7 @@ describe('init', () => {
     expect(content).toContain("ApiLoader");
     expect(content).toContain("ApiLoader.local");
   });
-  it('party-planner prompt includes scores list', async () => {
+  it('party-planner prompt includes evals list', async () => {
     const { createExamplePrompts } = await import('../src/utils/examples/templates');
     const tmpDir = path.join(__dirname, '..', 'tmp-examples-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
@@ -103,7 +103,9 @@ describe('init', () => {
       const filePath = path.join(tmpDir, 'agentmark', 'party-planner.prompt.mdx');
       const content = fs.readFileSync(filePath, 'utf8');
       expect(content).toContain('test_settings:');
-      expect(content).toContain('scores:');
+      // Frontmatter key was renamed `scores:` → `evals:` in the
+      // get-score-configs → get-evals refactor.
+      expect(content).toContain('evals:');
       expect(content).toContain('- exact_match_json');
     } finally {
       // cleanup
@@ -346,7 +348,7 @@ describe('init', () => {
 
       // Should have static-specific comment
       expect(content).toContain('traces will be sent to local dev server');
-      expect(content).toContain('npm run agentmark dev');
+      expect(content).toContain('npx agentmark dev');
 
       // Should call initTracing
       expect(content).toContain('sdk.initTracing()');
@@ -555,7 +557,7 @@ describe('init', () => {
 
       // Should have static-specific comment
       expect(content).toContain('traces will be sent to local dev server');
-      expect(content).toContain('npm run agentmark dev');
+      expect(content).toContain('npx agentmark dev');
 
       // Should call init_tracing
       expect(content).toContain('sdk.init_tracing()');

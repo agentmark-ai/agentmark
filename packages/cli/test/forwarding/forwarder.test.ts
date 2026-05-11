@@ -72,6 +72,12 @@ describe('TraceForwarder', () => {
     it('should accept valid config without throwing', () => {
       expect(() => new TraceForwarder(validConfig)).not.toThrow();
     });
+
+    it('should accept config without apiKey when bearer credentials are available', () => {
+      // apiKey is optional — bearer auth via `agentmark login` is sufficient
+      const { apiKey: _unused, ...noKeyConfig } = validConfig;
+      expect(() => new TraceForwarder(noKeyConfig as any)).not.toThrow();
+    });
   });
 
   describe('enqueue', () => {
@@ -165,6 +171,125 @@ describe('TraceForwarder', () => {
       const stats = forwarder.getStats();
       expect(stats.sent).toBe(1);
       expect(stats.failed).toBe(0);
+    });
+  });
+
+  // ==========================================================================
+  // Auth header resolution — bearer-first, apikey-fallback
+  // ==========================================================================
+  //
+  // When the user has run `agentmark login` and has unexpired credentials
+  // in `~/.agentmark/auth.json`, the forwarder should send the Supabase
+  // session JWT as `Bearer <access_token>`. This routes to the gateway's
+  // bearer-auth path, which validates against SUPABASE_JWT_SECRET and
+  // runs queries through the dashboard's RLS under the `authenticated`
+  // role.
+  //
+  // When no fresh credentials are available (logged out, expired), the
+  // forwarder falls back to the configured API key — preserves the
+  // pre-login behavior so nothing breaks.
+
+  describe('auth header resolution', () => {
+    // Mock the credentials module so tests control the "is the user
+    // logged in" state without touching the real ~/.agentmark/auth.json.
+    const mockLoadCredentials = vi.fn();
+    const mockIsExpired = vi.fn();
+
+    beforeEach(() => {
+      vi.doMock('../../cli-src/auth/credentials', () => ({
+        loadCredentials: mockLoadCredentials,
+        isExpired: mockIsExpired,
+      }));
+      vi.resetModules();
+      mockLoadCredentials.mockReset();
+      mockIsExpired.mockReset();
+    });
+
+    afterEach(() => {
+      vi.doUnmock('../../cli-src/auth/credentials');
+      vi.resetModules();
+    });
+
+    it('prefers Bearer <access_token> when logged in with fresh credentials', async () => {
+      mockLoadCredentials.mockReturnValue({
+        user_id: 'u-1',
+        email: 'test@example.com',
+        access_token: 'supabase.jwt.here',
+        refresh_token: 'refresh',
+        expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        created_at: new Date().toISOString(),
+      });
+      mockIsExpired.mockReturnValue(false);
+
+      (global.fetch as any).mockResolvedValue({ ok: true, status: 200 });
+
+      const { TraceForwarder: FreshForwarder } = await import(
+        '../../cli-src/forwarding/forwarder'
+      );
+      const forwarder = new FreshForwarder(validConfig);
+      forwarder.enqueue(sampleTrace);
+      await vi.runAllTimersAsync();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer supabase.jwt.here',
+          }),
+        })
+      );
+    });
+
+    it('falls back to apiKey when not logged in (loadCredentials returns null)', async () => {
+      mockLoadCredentials.mockReturnValue(null);
+
+      (global.fetch as any).mockResolvedValue({ ok: true, status: 200 });
+
+      const { TraceForwarder: FreshForwarder } = await import(
+        '../../cli-src/forwarding/forwarder'
+      );
+      const forwarder = new FreshForwarder(validConfig);
+      forwarder.enqueue(sampleTrace);
+      await vi.runAllTimersAsync();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: validConfig.apiKey, // no Bearer prefix
+          }),
+        })
+      );
+    });
+
+    it('falls back to apiKey when login credentials are expired', async () => {
+      mockLoadCredentials.mockReturnValue({
+        user_id: 'u-1',
+        email: 'test@example.com',
+        access_token: 'stale.jwt',
+        refresh_token: 'refresh',
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+        created_at: new Date().toISOString(),
+      });
+      mockIsExpired.mockReturnValue(true);
+
+      (global.fetch as any).mockResolvedValue({ ok: true, status: 200 });
+
+      const { TraceForwarder: FreshForwarder } = await import(
+        '../../cli-src/forwarding/forwarder'
+      );
+      const forwarder = new FreshForwarder(validConfig);
+      forwarder.enqueue(sampleTrace);
+      await vi.runAllTimersAsync();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: validConfig.apiKey,
+          }),
+        })
+      );
     });
   });
 

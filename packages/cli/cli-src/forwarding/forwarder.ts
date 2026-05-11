@@ -2,7 +2,7 @@
  * Trace Forwarding Service
  * Feature: 013-trace-tunnel
  *
- * Forwards locally-generated traces to the platform gateway in near-real-time.
+ * Forwards locally-generated traces to a remote API in near-real-time.
  *
  * Per forwarding-protocol.md:
  * - In-memory FIFO queue (max 100)
@@ -14,6 +14,7 @@
  */
 
 import { ForwardingConfig } from './config';
+import { loadCredentials, isExpired } from '../auth/credentials';
 
 interface ForwardingStats {
   sent: number;
@@ -39,7 +40,11 @@ export class TraceForwarder {
   private forwardWindowStart = Date.now();
 
   constructor(config: ForwardingConfig) {
-    if (!config.apiKey || !config.baseUrl || !config.appId) {
+    // `apiKey` is optional when the user has fresh bearer credentials from
+    // `agentmark login` — `resolveAuthHeader()` prefers those over the API
+    // key. Requiring `apiKey` here would break the bearer-auth path before
+    // forwarding even starts.
+    if (!config.baseUrl || !config.appId) {
       throw new Error('Invalid forwarding config: missing required fields');
     }
     this.config = config;
@@ -174,6 +179,35 @@ export class TraceForwarder {
   }
 
   /**
+   * Resolves the Authorization header value.
+   *
+   * Prefers the user's Supabase session JWT (written by `agentmark login`
+   * to `~/.agentmark/auth.json`) when present and unexpired — the gateway
+   * accepts it as `Bearer <jwt>` and runs queries through the dashboard's
+   * existing RLS under the `authenticated` role.
+   *
+   * Falls back to the configured API key (legacy path) when no fresh
+   * session is available. This keeps every pre-`agentmark login` caller
+   * working unchanged.
+   *
+   * See apps/gateway/src/lib/verify-bearer.ts for the gateway side.
+   */
+  private resolveAuthHeader(): string {
+    const credentials = loadCredentials();
+    if (credentials && !isExpired(credentials) && credentials.access_token) {
+      return `Bearer ${credentials.access_token}`;
+    }
+    if (this.config.apiKey) {
+      return this.config.apiKey;
+    }
+    // Neither fresh credentials nor an API key — the request will 401.
+    // The 401 handler in forwardOnce() will stop the forwarder and print
+    // an actionable message. Returning an empty string lets that path run
+    // rather than throwing here and losing any buffered traces silently.
+    return '';
+  }
+
+  /**
    * Attempts to forward a trace once.
    */
   private async forwardOnce(
@@ -190,7 +224,7 @@ export class TraceForwarder {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: this.config.apiKey!,
+          Authorization: this.resolveAuthHeader(),
           'X-Agentmark-App-Id': this.config.appId!,
         },
         body: JSON.stringify(payload),

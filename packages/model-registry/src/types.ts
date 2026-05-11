@@ -118,6 +118,8 @@ export interface SyncResult {
 export interface SyncChangelog {
   added: string[];
   removed: string[];
+  deprecated: string[];
+  resurrected: string[];
   pricingChanged: Array<{
     modelId: string;
     field: string;

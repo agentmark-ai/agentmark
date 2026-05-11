@@ -17,8 +17,6 @@ import build from './commands/build';
 import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
-import createDeployCommand from './commands/deploy';
-import createExportCommand from './commands/export-traces';
 import { registerApiCommand } from './commands/api';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
@@ -31,23 +29,23 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 
 program
   .version(packageJson.version, '-v, --version', 'Output the current version')
   .name('agentmark')
-  .description('AgentMark CLI - Build, test, and deploy AI agents');
+  .description('AgentMark CLI - Build and test AI agents');
 
 program
   .command("dev")
   .option("--api-port <number>", "API server port (default: 9418)")
   .option("--webhook-port <number>", "Webhook server port (default: 9417)")
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
-  .option("-r, --remote", "Connect to platform (WebSocket + forwarding)")
-  .option("--no-forward", "Disable trace forwarding (only relevant with --remote)")
+  .option("--no-forward", "Disable trace forwarding to AgentMark Cloud")
+  .option("--no-ui", "Skip the UI app (API + webhook only) — for CI / headless / test use")
   .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
       apiPort: options.apiPort ? parseInt(options.apiPort, 10) : undefined,
       webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
-      remote: options.remote || false,
       forward: options.forward, // Commander.js --no-forward sets this to false; defaults to true
+      ui: options.ui, // Commander.js --no-ui sets this to false; defaults to true
     });
   });
 
@@ -203,8 +201,23 @@ program
     }
   });
 
-program.addCommand(createDeployCommand());
-program.addCommand(createExportCommand());
+// `deploy` was removed in 0.12.x — git-based deploys replace it. Keep an
+// explicit handler so users get a migration hint instead of Commander's
+// generic "unknown command 'deploy'" stack-trace-shaped message.
+program
+  .command('deploy')
+  .description('[Removed] Use git-based deploys — see release notes')
+  .allowUnknownOption(true)
+  .action(() => {
+    // eslint-disable-next-line no-console
+    console.error(
+      'agentmark deploy was removed.\n' +
+        '  Deployments are now driven from your linked git provider — see release notes:\n' +
+        '  https://docs.agentmark.co/changelog#cli-deploy-removed',
+    );
+    process.exit(1);
+  });
+
 registerApiCommand(program);
 
 // Parse and run command, then display update notification

@@ -73,14 +73,43 @@ export interface Session {
   updated_at: string;
 }
 
+/**
+ * Span input/output payload, lazily fetched by the trace drawer.
+ *
+ * Defined here (a pure-type module) rather than next to the React
+ * provider so that consumers of `@agentmark-ai/ui-components/types`
+ * (Node-only environments, gateway/CLI, the downstream api-types
+ * package) can import this shape without pulling React/MUI/@emotion.
+ *
+ * The original export in
+ * `sections/traces/trace-drawer/trace-drawer-provider.tsx` re-exports
+ * this interface for backward compatibility with the main barrel.
+ */
+export interface SpanIOData {
+  input: string;
+  output: string;
+  outputObject: string | null;
+  toolCalls: string | null;
+}
+
+/**
+ * Trace list item — matches the canonical `/v1/traces` wire shape
+ * served by both the cloud gateway and the OSS local dev server.
+ * Source of truth: the upstream monorepo's api-contract
+ * TraceResponseSchema (packages/api-contract/src/schemas/traces.ts).
+ * The OSS local server's wire-mapper (cli-src/server/wire-mappers.ts)
+ * is pinned against the same schema, and the cloud gateway emits it
+ * directly from apps/gateway/src/openapi/routes/traces.ts.
+ */
 export interface Trace {
   id: string;
   name: string;
-  status: string;
-  latency: string;
-  cost: string;
-  tokens: string;
+  status: "UNSET" | "OK" | "ERROR";
   start: string;
   end: string;
-  spanCount: number;
+  latency_ms: number;
+  cost: number;
+  tokens: number;
+  span_count: number;
+  tags?: string[];
 }

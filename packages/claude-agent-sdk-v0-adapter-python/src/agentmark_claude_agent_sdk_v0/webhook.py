@@ -486,15 +486,20 @@ class ClaudeAgentWebhookHandler:
                             # here so /v1/scores resourceId lookups match.
                             item_trace_id = ctx.trace_id
 
-                            # Record the experiment iteration's input as
-                            # agentmark.props on the wrapper span — matches the
-                            # standard pattern used by traced.py's invoke_agent
-                            # span. The normalizer's otel-genai transformer
-                            # promotes this into NormalizedSpan.input, and the
-                            # trace drawer's isAgentSpan() check renders it as
-                            # the span's input. Without this, the wrapper span
-                            # has no input/output/props attributes and shows
-                            # empty I/O in the trace drawer.
+                            # Record the experiment iteration's template
+                            # variables on the wrapper span as `agentmark.props`.
+                            # The dataset row's `input` column IS the template
+                            # variables for that iteration — that's what
+                            # `format_with_dataset` consumed to render the
+                            # prompt. The normalizer's agentmark-parser maps
+                            # `agentmark.props` to `result.props` (Test Prompt
+                            # button gating), and AgentMarkTransformer's input
+                            # fallback (transformers/agentmark/index.ts:258)
+                            # also maps it to `result.input` so the drawer's
+                            # Input panel renders. Don't ALSO write
+                            # `agentmark.input` — it would erase the semantic
+                            # distinction between "template vars" and
+                            # "generic input data".
                             if dataset_input is not None:
                                 try:
                                     ctx.set_attribute(
@@ -516,10 +521,8 @@ class ClaudeAgentWebhookHandler:
                             # Determine actual output
                             actual_output = structured_output if is_object_prompt else result
 
-                            # Record the model output on the wrapper span as
-                            # agentmark.output. The normalizer promotes this to
-                            # NormalizedSpan.output and the trace drawer
-                            # renders it via extractOutputFromSpan().
+                            # Record the model output on the wrapper span
+                            # (canonical key — no fallback needed).
                             try:
                                 ctx.set_attribute(
                                     "agentmark.output",

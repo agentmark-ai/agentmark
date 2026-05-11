@@ -188,14 +188,25 @@ describe('Python handler.py generation via createPythonApp', () => {
       expect(fs.existsSync(path.join(tmpDir, 'handler.py'))).toBe(true);
     });
 
-    it('should generate handler with ClaudeAgentSDKWebhookHandler for claude-agent-sdk adapter', { timeout: 15000 }, async () => {
+    it('should generate handler with ClaudeAgentWebhookHandler for claude-agent-sdk adapter', { timeout: 15000 }, async () => {
       await applyStandardMocks();
       const { createPythonApp } = await import('../../src/utils/examples/create-python-app');
       await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
 
       const content = fs.readFileSync(path.join(tmpDir, 'handler.py'), 'utf8');
-      expect(content).toContain('ClaudeAgentSDKWebhookHandler');
-      expect(content).toContain('from agentmark_claude_agent_sdk import ClaudeAgentSDKWebhookHandler');
+      expect(content).toContain('ClaudeAgentWebhookHandler');
+      expect(content).toContain('from agentmark_claude_agent_sdk_v0 import ClaudeAgentWebhookHandler');
+    });
+
+    it('should import from agentmark_claude_agent_sdk_v0 (not the old module name)', { timeout: 15000 }, async () => {
+      await applyStandardMocks();
+      const { createPythonApp } = await import('../../src/utils/examples/create-python-app');
+      await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
+
+      const content = fs.readFileSync(path.join(tmpDir, 'handler.py'), 'utf8');
+      expect(content).toContain('from agentmark_claude_agent_sdk_v0 import ClaudeAgentWebhookHandler');
+      expect(content).not.toContain('ClaudeAgentSDKWebhookHandler');
+      expect(content).not.toContain('from agentmark_claude_agent_sdk import ClaudeAgentSDKWebhookHandler');
     });
 
     it('should include SDK tracing initialization for claude-agent-sdk', { timeout: 15000 }, async () => {
@@ -208,13 +219,13 @@ describe('Python handler.py generation via createPythonApp', () => {
       expect(content).toContain('sdk.init_tracing(disable_batch=True)');
     });
 
-    it('should instantiate ClaudeAgentSDKWebhookHandler as the adapter', { timeout: 15000 }, async () => {
+    it('should instantiate ClaudeAgentWebhookHandler as the adapter', { timeout: 15000 }, async () => {
       await applyStandardMocks();
       const { createPythonApp } = await import('../../src/utils/examples/create-python-app');
       await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
 
       const content = fs.readFileSync(path.join(tmpDir, 'handler.py'), 'utf8');
-      expect(content).toContain('adapter = ClaudeAgentSDKWebhookHandler(client)');
+      expect(content).toContain('adapter = ClaudeAgentWebhookHandler(client)');
     });
 
     it('should not reference PydanticAI when using claude-agent-sdk', { timeout: 15000 }, async () => {
@@ -339,16 +350,41 @@ describe('Python getMainPyContent', () => {
     const { getMainPyContent } = await import('../../src/utils/examples/create-python-app');
     const content = getMainPyContent('pydantic-ai', 'cloud');
 
-    expect(content).toContain('from agentmark_pydantic_ai_v0 import run_text_prompt');
+    // The bundled party-planner.prompt.mdx ships object_config (structured
+    // attendee extraction), so main.py must use the object helpers — not text.
+    expect(content).toContain('from agentmark_pydantic_ai_v0 import run_object_prompt');
     expect(content).toContain('from agentmark_client import client');
+    expect(content).toContain('client.load_object_prompt');
   });
 
   it('should include claude-agent-sdk specific imports for claude-agent-sdk adapter', async () => {
     const { getMainPyContent } = await import('../../src/utils/examples/create-python-app');
     const content = getMainPyContent('claude-agent-sdk', 'cloud');
 
-    expect(content).toContain('from agentmark_claude_agent_sdk import run_text_prompt');
+    // claude-agent-sdk uses traced_query for streaming, but the bundled prompt
+    // is still object_config, so the load step must be load_object_prompt.
+    expect(content).toContain('from agentmark_claude_agent_sdk_v0 import traced_query');
     expect(content).toContain('from agentmark_client import client');
+    expect(content).toContain('client.load_object_prompt');
+  });
+
+  it('should load via FileLoader by name, not by manually opening dist JSON', async () => {
+    const { getMainPyContent } = await import('../../src/utils/examples/create-python-app');
+    const pyd = getMainPyContent('pydantic-ai', 'cloud');
+    const claude = getMainPyContent('claude-agent-sdk', 'cloud');
+
+    // `agentmark build` emits { ast, metadata } — FileLoader.load() unwraps
+    // the AST internally, so scaffolded main.py should hand the prompt name
+    // to the client, not open and parse the JSON itself. Teaching new users
+    // the manual unwrap was the bug this template fix addresses.
+    for (const content of [pyd, claude]) {
+      expect(content).toContain("client.load_object_prompt(\"party-planner.prompt.mdx\")");
+      expect(content).not.toContain('compiled["ast"]');
+      expect(content).not.toContain('json.load(f)');
+      expect(content).not.toContain('Path("dist/agentmark/');
+      // The actionable build hint should still surface on FileNotFoundError.
+      expect(content).toContain("Run 'npx agentmark build' first");
+    }
   });
 
   it('should include cloud tracing init with env vars for cloud mode', async () => {
@@ -453,7 +489,7 @@ describe('Python pyproject.toml generation', () => {
 
       const content = fs.readFileSync(path.join(tmpDir, 'pyproject.toml'), 'utf8');
       expect(content).toContain('agentmark-pydantic-ai');
-      expect(content).toContain('pydantic-ai[openai]');
+      expect(content).toMatch(/"pydantic-ai(-slim\[openai\])?>=\d/);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -468,7 +504,7 @@ describe('Python pyproject.toml generation', () => {
 
       const content = fs.readFileSync(path.join(tmpDir, 'pyproject.toml'), 'utf8');
       expect(content).toContain('agentmark-claude-agent-sdk-v0');
-      expect(content).toContain('claude-agent-sdk');
+      expect(content).toMatch(/"claude-agent-sdk>=\d/);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -560,6 +596,81 @@ describe('Python .env generation', () => {
   });
 });
 
+describe('Python README.md generation', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.resetModules();
+    vi.unmock('fs-extra');
+    vi.unmock('child_process');
+  });
+
+  afterAll(() => {
+    try {
+      for (const entry of fs.readdirSync(PKG_ROOT)) {
+        if (entry.startsWith(TMP_PREFIX)) {
+          fs.rmSync(path.join(PKG_ROOT, entry), { recursive: true, force: true });
+        }
+      }
+    } catch { /* best-effort */ }
+  });
+
+  // Anchors the pip>=26.1 fix from /tmp/test-fix-scaffolder-2: a scaffolded
+  // pydantic-ai project must direct users to upgrade pip before installing,
+  // or pip 25.x trips "resolution-too-deep" on pydantic-ai-slim's transitive
+  // graph (mcp/fastmcp/logfire). Without this README, the only place this
+  // hint appears is in the CLI's transient "Get Started" output.
+  it('should create README.md with pip>=26.1 upgrade instruction for pydantic-ai', { timeout: 15000 }, async () => {
+    const tmpDir = makeTmpDir();
+    try {
+      await applyStandardMocks();
+      const { createPythonApp } = await import('../../src/utils/examples/create-python-app');
+      await createPythonApp('skip', tmpDir, '', 'cloud', 'pydantic-ai');
+
+      expect(fs.existsSync(path.join(tmpDir, 'README.md'))).toBe(true);
+      const content = fs.readFileSync(path.join(tmpDir, 'README.md'), 'utf8');
+      expect(content).toMatch(/pip>=26\.1/);
+      expect(content).toContain('pydantic-ai-slim[openai]');
+      expect(content).toContain('OPENAI_API_KEY');
+      // Must explain *why* the pip upgrade is required, not just dictate it.
+      expect(content).toMatch(/resolution-too-deep|backtracking|transitive/i);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should create README.md with pip>=26.1 upgrade instruction for claude-agent-sdk', { timeout: 15000 }, async () => {
+    const tmpDir = makeTmpDir();
+    try {
+      await applyStandardMocks();
+      const { createPythonApp } = await import('../../src/utils/examples/create-python-app');
+      await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
+
+      expect(fs.existsSync(path.join(tmpDir, 'README.md'))).toBe(true);
+      const content = fs.readFileSync(path.join(tmpDir, 'README.md'), 'utf8');
+      expect(content).toMatch(/pip>=26\.1/);
+      expect(content).toContain('ANTHROPIC_API_KEY');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('should not overwrite an existing README.md', { timeout: 15000 }, async () => {
+    const tmpDir = makeTmpDir();
+    const existingReadme = '# My Project\n\nDo not touch.\n';
+    fs.writeFileSync(path.join(tmpDir, 'README.md'), existingReadme);
+    try {
+      await applyStandardMocks();
+      const { createPythonApp } = await import('../../src/utils/examples/create-python-app');
+      await createPythonApp('skip', tmpDir, '', 'cloud', 'pydantic-ai');
+
+      const content = fs.readFileSync(path.join(tmpDir, 'README.md'), 'utf8');
+      expect(content).toBe(existingReadme);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('Python .agentmark/dev_server.py generation', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -602,7 +713,7 @@ describe('Python .agentmark/dev_server.py generation', () => {
       await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
 
       const content = fs.readFileSync(path.join(tmpDir, '.agentmark', 'dev_server.py'), 'utf8');
-      expect(content).toContain('from agentmark_claude_agent_sdk import create_webhook_server');
+      expect(content).toContain('from agentmark_claude_agent_sdk_v0 import create_webhook_server');
       expect(content).toContain('from agentmark_client import client');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });

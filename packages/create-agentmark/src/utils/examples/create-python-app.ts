@@ -135,7 +135,14 @@ const setupMCPServer = (client: string, targetPath: string) => {
   }
 };
 
-const getPyprojectContent = (projectName: string, adapter: string): string => {
+const getPyprojectContent = (projectName: string, adapter: string, deploymentMode: "cloud" | "static"): string => {
+  // Scaffolded Python projects are flat-layout (top-level .py modules, no package dir),
+  // so setuptools with explicit py-modules is the simplest build backend.
+  // Hatchling requires explicit per-file inclusion rules for this layout, which adds noise.
+  const pyModules = deploymentMode === "cloud"
+    ? `["agentmark_client", "main", "handler"]`
+    : `["agentmark_client", "main"]`;
+
   if (adapter === "claude-agent-sdk") {
     return `[project]
 name = "${projectName}"
@@ -143,9 +150,9 @@ version = "0.1.0"
 description = "An AgentMark application using Claude Agent SDK"
 requires-python = ">=3.12"
 dependencies = [
-    "agentmark-sdk>=0.1.0",
-    "agentmark-claude-agent-sdk-v0>=0.1.0",
-    "agentmark-prompt-core>=0.1.0",
+    "agentmark-sdk>=0.2.0",
+    "agentmark-claude-agent-sdk-v0>=0.1.4",
+    "agentmark-prompt-core>=0.1.2",
     "python-dotenv>=1.0.0",
     "claude-agent-sdk>=0.1.0",
 ]
@@ -158,8 +165,11 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ${pyModules}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -169,18 +179,19 @@ strict = true
 `;
   }
 
-  // Default: pydantic-ai
+  // Default: pydantic-ai.
+  // pydantic-ai-slim with explicit extras avoids the meta-package's transitive extras explosion (pip resolution-too-deep).
   return `[project]
 name = "${projectName}"
 version = "0.1.0"
 description = "An AgentMark application using Pydantic AI"
 requires-python = ">=3.12"
 dependencies = [
-    "agentmark-sdk>=0.1.0",
-    "agentmark-pydantic-ai-v0>=0.1.0",
-    "agentmark-prompt-core>=0.1.0",
+    "agentmark-sdk>=0.2.0",
+    "agentmark-pydantic-ai-v0>=0.1.4",
+    "agentmark-prompt-core>=0.1.2",
     "python-dotenv>=1.0.0",
-    "pydantic-ai[openai]>=0.1.0",
+    "pydantic-ai-slim[openai]>=1.0,<2.0",
 ]
 
 [project.optional-dependencies]
@@ -189,12 +200,13 @@ dev = [
     "pytest-asyncio>=0.21",
     "mypy>=1.0",
 ]
-anthropic = ["pydantic-ai[anthropic]"]
-gemini = ["pydantic-ai[gemini]"]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ${pyModules}
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -206,10 +218,10 @@ strict = true
 
 const getHandlerPyContent = (adapter: string): string => {
   const webhookClass = adapter === "claude-agent-sdk"
-    ? "ClaudeAgentSDKWebhookHandler"
+    ? "ClaudeAgentWebhookHandler"
     : "PydanticAIWebhookHandler";
   const webhookImport = adapter === "claude-agent-sdk"
-    ? "from agentmark_claude_agent_sdk import ClaudeAgentSDKWebhookHandler"
+    ? "from agentmark_claude_agent_sdk_v0 import ClaudeAgentWebhookHandler"
     : "from agentmark_pydantic_ai_v0 import PydanticAIWebhookHandler";
 
   return `"""AgentMark handler for managed cloud deployments.
@@ -236,9 +248,17 @@ adapter = ${webhookClass}(client)
 
 
 async def handler(request: dict):
-    """Handle prompt-run and dataset-run requests from the platform."""
+    """Handle prompt-run, dataset-run, and get-evals requests from the platform."""
     req_type = request.get("type")
     data = request.get("data", {})
+
+    if req_type == "get-evals":
+        import json
+        return {
+            "type": "evals",
+            "result": json.dumps(list(client.get_eval_registry().keys())),
+            "traceId": "",
+        }
 
     if req_type == "prompt-run":
         return await adapter.run_prompt(data["ast"], {
@@ -283,7 +303,7 @@ from dotenv import load_dotenv
 
 ${loaderImport}
 from agentmark.prompt_core import EvalRegistry
-from agentmark_claude_agent_sdk import (
+from agentmark_claude_agent_sdk_v0 import (
     create_claude_agent_client,
     ClaudeAgentModelRegistry,
 )
@@ -428,7 +448,7 @@ sdk.init_tracing(disable_batch=True)
 
   const staticTracingInit = `
 # Initialize tracing - traces will be sent to local dev server
-# Make sure to run "npm run agentmark dev" in another terminal first
+# Make sure to run "npx agentmark dev" in another terminal first
 # To disable tracing, comment out sdk.init_tracing() below
 sdk = AgentMarkSDK(
     api_key="",
@@ -443,49 +463,40 @@ sdk.init_tracing(disable_batch=True)
   if (adapter === "claude-agent-sdk") {
     return `"""Example usage of AgentMark with Claude Agent SDK.
 
-Run with: python main.py
+Run with:
+    npx agentmark build   # compile party-planner.prompt.mdx -> dist/agentmark/*.json
+    python main.py
 """
 
 import asyncio
-import json
 import os
-from pathlib import Path
 
 from agentmark_sdk import AgentMarkSDK
-from agentmark_claude_agent_sdk import run_text_prompt
+from agentmark_claude_agent_sdk_v0 import traced_query
 from agentmark_client import client
 ${tracingInit}
 
 async def main():
-    """Run the party planner prompt."""
-    # Load the prompt AST (in production, use the API loader)
-    prompt_path = Path("agentmark/party-planner.prompt.mdx.json")
-
-    if not prompt_path.exists():
-        print("Prompt file not found. Run 'agentmark build' first.")
+    """Run the party planner prompt (object_config: extracts attendee names)."""
+    # \`agentmark build\` writes pre-compiled prompts to dist/agentmark/.
+    # The FileLoader reads them by name — extension is optional.
+    try:
+        prompt = await client.load_object_prompt("party-planner.prompt.mdx")
+    except FileNotFoundError:
+        print("Pre-built prompt not found. Run 'npx agentmark build' first.")
         return
 
-    with open(prompt_path) as f:
-        ast = json.load(f)
-
-    # Load and format the prompt
-    prompt = await client.load_text_prompt(ast)
-    params = await prompt.format(props={
-        "numberOfGuests": 10,
-        "theme": "80s disco",
-        "dietaryRestrictions": ["vegetarian", "gluten-free"],
+    adapted = await prompt.format(props={
+        "party_text": "We're having a party with Alice, Bob, and Carol.",
     })
 
-    # Execute the prompt
+    # Execute via Claude Agent SDK (streamed) with automatic OTEL tracing.
+    # adapted.query.options.output_format is set to the object schema.
     print("Running party planner prompt...")
-    result = await run_text_prompt(params)
-
-    print("\\n" + "=" * 50)
-    print("Party Plan:")
     print("=" * 50)
-    print(result.output)
-    print("\\n" + "-" * 50)
-    print(f"Tokens used: {result.usage}")
+    async for message in traced_query(adapted):
+        print(message)
+    print("=" * 50)
 
 
 if __name__ == "__main__":
@@ -496,47 +507,44 @@ if __name__ == "__main__":
   // Default: pydantic-ai
   return `"""Example usage of AgentMark with Pydantic AI.
 
-Run with: python main.py
+Run with:
+    npx agentmark build   # compile party-planner.prompt.mdx -> dist/agentmark/*.json
+    python main.py
 """
+# To use a different LLM provider, install: pip install "pydantic-ai-slim[anthropic]" (or [google], [bedrock], etc.)
 
 import asyncio
-import json
 import os
-from pathlib import Path
 
 from agentmark_sdk import AgentMarkSDK
-from agentmark_pydantic_ai_v0 import run_text_prompt
+from agentmark_pydantic_ai_v0 import run_object_prompt
 from agentmark_client import client
 ${tracingInit}
 
 async def main():
-    """Run the party planner prompt."""
-    # Load the prompt AST (in production, use the API loader)
-    prompt_path = Path("agentmark/party-planner.prompt.mdx.json")
-
-    if not prompt_path.exists():
-        print("Prompt file not found. Run 'agentmark build' first.")
+    """Run the party planner prompt (object_config: extracts attendee names)."""
+    # \`agentmark build\` writes pre-compiled prompts to dist/agentmark/.
+    # The FileLoader reads them by name — extension is optional, and it
+    # extracts the inner AST from the { ast, metadata } wrapper for you.
+    try:
+        prompt = await client.load_object_prompt("party-planner.prompt.mdx")
+    except FileNotFoundError:
+        print("Pre-built prompt not found. Run 'npx agentmark build' first.")
         return
 
-    with open(prompt_path) as f:
-        ast = json.load(f)
-
-    # Load and format the prompt
-    prompt = await client.load_text_prompt(ast)
     params = await prompt.format(props={
-        "numberOfGuests": 10,
-        "theme": "80s disco",
-        "dietaryRestrictions": ["vegetarian", "gluten-free"],
+        "party_text": "We're having a party with Alice, Bob, and Carol.",
     })
 
     # Execute the prompt
     print("Running party planner prompt...")
-    result = await run_text_prompt(params)
+    result = await run_object_prompt(params)
 
     print("\\n" + "=" * 50)
-    print("Party Plan:")
+    print("Extracted attendees:")
     print("=" * 50)
-    print(result.output)
+    # result.output is a Pydantic model instance with the schema's fields
+    print(result.output.names)
     print("\\n" + "-" * 50)
     print(f"Tokens used: {result.usage.total_tokens}")
 
@@ -548,12 +556,12 @@ if __name__ == "__main__":
 
 const getDevServerContent = (adapter: string): string => {
   const adapterPackage = adapter === "claude-agent-sdk"
-    ? "agentmark_claude_agent_sdk"
+    ? "agentmark_claude_agent_sdk_v0"
     : "agentmark_pydantic_ai_v0";
 
   return `"""Auto-generated webhook server for AgentMark development.
 
-This server is started by 'npm run agentmark dev' (agentmark dev) and handles
+This server is started by 'npx agentmark dev' (agentmark dev) and handles
 prompt execution requests from the CLI.
 """
 
@@ -594,6 +602,66 @@ OPENAI_API_KEY=${apiKey}
 
 # For Google Gemini models, add:
 # GOOGLE_API_KEY=your-key-here
+`;
+};
+
+const getReadmeContent = (projectName: string, adapter: string): string => {
+  const adapterName = adapter === "claude-agent-sdk" ? "Claude Agent SDK" : "Pydantic AI";
+  const apiKeyEnvVar = adapter === "claude-agent-sdk" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY";
+  const directInstallCmd = adapter === "claude-agent-sdk"
+    ? 'pip install agentmark-sdk agentmark-claude-agent-sdk-v0 agentmark-prompt-core python-dotenv claude-agent-sdk'
+    : 'pip install agentmark-sdk agentmark-pydantic-ai-v0 agentmark-prompt-core python-dotenv "pydantic-ai-slim[openai]>=1.0,<2.0"';
+
+  return `# ${projectName}
+
+An AgentMark application using ${adapterName}.
+
+## Prerequisites
+
+- Python 3.12+
+- **pip 26.1+** (older pip versions fail to resolve the dependency graph — see "Why pip 26.1?" below)
+
+## Setup
+
+\`\`\`bash
+# 1. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate
+
+# 2. Upgrade pip (REQUIRED — older pip cannot resolve pydantic-ai's transitive graph)
+python -m pip install --upgrade "pip>=26.1"
+
+# 3. Install dependencies
+${directInstallCmd}
+
+# 4. Set your API key
+echo "${apiKeyEnvVar}=your-key-here" > .env
+\`\`\`
+
+## Run
+
+\`\`\`bash
+# Start the AgentMark dev server (in another terminal)
+npx agentmark dev
+
+# Run the example prompt
+python main.py
+\`\`\`
+
+Then open [http://localhost:9418](http://localhost:9418) to view your traces.
+
+## Why pip 26.1?
+
+The \`pydantic-ai-slim\` package transitively depends on \`mcp\`, \`fastmcp\`, and
+\`logfire\`, which together produce a deep dependency graph. Pip versions before
+26.1 fall into long backtracking loops and abort with \`resolution-too-deep\`.
+Pip 26.1's resolver handles this graph efficiently. If you skip the upgrade and
+hit the error, run \`python -m pip install --upgrade pip\` and retry.
+
+## Resources
+
+- [Documentation](https://docs.agentmark.co)
+- [GitHub](https://github.com/agentmark-ai/agentmark)
 `;
 };
 
@@ -661,7 +729,7 @@ export const createPythonApp = async (
     // Create pyproject.toml (skip for existing projects)
     if (!isExistingProject) {
       const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
-      fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName, adapter));
+      fs.writeFileSync(`${targetPath}/pyproject.toml`, getPyprojectContent(projectName, adapter, deploymentMode));
     } else {
       console.log("⏭️  Skipped pyproject.toml (existing project)");
     }
@@ -725,6 +793,16 @@ export const createPythonApp = async (
       fs.writeFileSync(`${targetPath}/.gitignore`, getGitignoreContent());
     }
 
+    // Create README.md (skip for existing projects — they likely already have one)
+    if (!isExistingProject) {
+      const readmePath = path.join(targetPath, 'README.md');
+      if (!fs.existsSync(readmePath)) {
+        const projectName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "-");
+        fs.writeFileSync(readmePath, getReadmeContent(projectName, adapter));
+        console.log(`✅ Created README.md`);
+      }
+    }
+
     // Create .agentmark directory with dev_server.py
     const agentmarkInternalDir = path.join(targetPath, '.agentmark');
     fs.ensureDirSync(agentmarkInternalDir);
@@ -765,19 +843,32 @@ export const createPythonApp = async (
       console.log(`  $ cd ${folderName}`);
     }
 
-    // Show venv activation or creation based on detection
+    // Recommend installing deps directly — `pip install -e ".[dev]"` on flat-layout
+    // projects triggers pip's "dependency graph too complex" backtracking limit,
+    // even though the same deps resolve fine when passed directly to pip.
+    //
+    // Even with the direct-install workaround, pip < 26.1 still hits "resolution-too-deep"
+    // on the pydantic-ai-slim transitive graph (mcp/fastmcp/logfire/etc). Pip 26.1+ ships
+    // a far better resolver — upgrade first so the install reliably converges.
+    const pipInstallCmd = adapter === 'claude-agent-sdk'
+      ? '  $ pip install agentmark-sdk agentmark-claude-agent-sdk-v0 agentmark-prompt-core python-dotenv claude-agent-sdk'
+      : '  $ pip install agentmark-sdk agentmark-pydantic-ai-v0 agentmark-prompt-core python-dotenv "pydantic-ai-slim[openai]>=1.0,<2.0"';
+    const pipUpgradeCmd = '  $ python -m pip install --upgrade "pip>=26.1"';
+
     if (pythonVenv) {
       const activateCmd = process.platform === 'win32'
         ? `${pythonVenv.name}\\Scripts\\activate`
         : `source ${pythonVenv.name}/bin/activate`;
       console.log(`  $ ${activateCmd}`);
-      console.log('  $ pip install agentmark-pydantic-ai-v0 agentmark-prompt-core python-dotenv "pydantic-ai[openai]"');
+      console.log(pipUpgradeCmd);
+      console.log(pipInstallCmd);
     } else {
       console.log('  $ python -m venv .venv');
       console.log('  $ source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate');
-      console.log('  $ pip install -e ".[dev]"');
+      console.log(pipUpgradeCmd);
+      console.log(pipInstallCmd);
     }
-    console.log('  $ npm run agentmark dev\n');
+    console.log('  $ npx agentmark dev\n');
 
     console.log('─'.repeat(70));
     console.log('Resources');

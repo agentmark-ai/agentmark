@@ -104,10 +104,15 @@ EvalFunction = Callable[[EvalParams], EvalResult | Awaitable[EvalResult]]
 
 # Test settings
 class TestSettings(TypedDict, total=False):
-    """Test settings from frontmatter."""
+    """Test settings from frontmatter.
+
+    `scores` is the canonical key (renamed from `evals` in #1804). `evals` is
+    retained as a deprecated alias for back-compat with older prompt files.
+    """
 
     props: dict[str, Any] | None
     dataset: str | None
+    scores: list[str] | None
     evals: list[str] | None
 
 

@@ -18,11 +18,21 @@ export const setupPackageJson = (
     execSync("npm init -y", { cwd: targetPath });
   }
 
+  // In static/self-hosted mode the demo runs index.ts which uses FileLoader
+  // against ./dist/agentmark — those compiled prompts only exist after
+  // `agentmark build`. Prefix the demo script so a fresh `npm run demo`
+  // succeeds without users having to discover the build step manually.
+  // Cloud mode hits the API directly, so no build is needed.
+  const demoScript =
+    deploymentMode === "static"
+      ? "npx agentmark build --out dist/agentmark && npx tsx index.ts"
+      : "npx tsx index.ts";
+
   // For existing projects, use merge logic
   if (isExistingProject && fs.existsSync(packageJsonPath)) {
     // Build scripts to add - with namespacing for conflicts
     const scriptsToAdd: Record<string, string> = {
-      "demo": "npx tsx index.ts",
+      "demo": demoScript,
       "agentmark": "agentmark",
     };
 
@@ -52,10 +62,20 @@ export const setupPackageJson = (
     pkgJson.description =
       pkgJson.description || "A simple Node.js app using the Agentmark SDK";
 
+    // `npm init -y` writes "type": "commonjs". With tsconfig set to NodeNext,
+    // dev-entry.ts uses `await import('./agentmark.client.js')` (NodeNext
+    // requires the .js extension). Plain node would fail to resolve the .js
+    // path because no compiled .js exists alongside the .ts. Drop the field
+    // so node falls back to its default CJS interpretation, and let tsx
+    // (which the dev/demo scripts use) do extension resolution.
+    if (pkgJson.type === "commonjs") {
+      delete pkgJson.type;
+    }
+
     // Base scripts for all modes
     const scripts: Record<string, string> = {
       ...pkgJson.scripts,
-      "demo": "npx tsx index.ts",
+      "demo": demoScript,
       "agentmark": "agentmark",
     };
 

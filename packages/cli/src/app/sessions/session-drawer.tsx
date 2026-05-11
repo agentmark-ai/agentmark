@@ -26,7 +26,7 @@ import {
 } from "@agentmark-ai/ui-components";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { getTracesBySessionId } from "../../lib/api/sessions";
 import { getScoresByResourceId } from "../../lib/api/scores";
 import { useTranslations } from "next-intl";
@@ -38,6 +38,7 @@ export const SessionDrawer = () => {
   const [error, setError] = useState<string | null>(null);
   const [scores, setScores] = useState<ScoreData[]>([]);
   const [scoresLoading, setScoresLoading] = useState(false);
+  const currentSpanIdRef = useRef<string | null>(null);
 
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
@@ -51,11 +52,17 @@ export const SessionDrawer = () => {
       return;
     }
 
+    // Guard against stale responses: when the user clicks session A then
+    // quickly clicks session B, A's pending fetch can resolve AFTER B's
+    // and overwrite B's traces[] under B's title. Mirrors the cancelled
+    // flag pattern in trace-drawer.tsx.
+    let cancelled = false;
     const fetchTraces = async () => {
       setLoading(true);
       setError(null);
       try {
         const fetchedTraces = await getTracesBySessionId(sessionId);
+        if (cancelled) return;
         if (fetchedTraces.length === 0) {
           setError("No traces found for this session");
           setTraces([]);
@@ -63,30 +70,66 @@ export const SessionDrawer = () => {
           setTraces(fetchedTraces);
         }
       } catch {
+        if (cancelled) return;
         setError("Failed to load session traces");
         setTraces([]);
       } finally {
+        if (cancelled) return;
         setLoading(false);
       }
     };
     fetchTraces();
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId]);
 
   const handleSpanChange = useCallback(async (span: SpanData | null) => {
     if (!span?.id) {
+      currentSpanIdRef.current = null;
       setScores([]);
       return;
     }
 
+    // Guard against stale responses: when the user toggles between spans
+    // quickly the previous getScoresByResourceId can resolve AFTER the
+    // new one and overwrite the fresh scores list. Mirror the
+    // currentSpanIdRef pattern from trace-drawer.tsx.
+    currentSpanIdRef.current = span.id;
     setScoresLoading(true);
     try {
-      const fetchedScores = await getScoresByResourceId(span.id);
-      setScores(fetchedScores);
+      // Score `resource_id` is keyed differently by source: CLI eval
+      // scores write resource_id = traceId, dashboard annotations write
+      // resource_id = spanId. Fetch both (when distinct) and merge so
+      // CLI-written eval scores surface here too. See trace-drawer.tsx
+      // for the canonical implementation of this pattern.
+      const traceIdForSpan = span.traceId;
+      const queries: Array<Promise<ScoreData[]>> = [getScoresByResourceId(span.id)];
+      if (traceIdForSpan && traceIdForSpan !== span.id) {
+        queries.push(getScoresByResourceId(traceIdForSpan));
+      }
+      const results = await Promise.all(queries);
+      const seen = new Set<string>();
+      const merged: ScoreData[] = [];
+      for (const list of results) {
+        for (const s of list) {
+          if (seen.has(s.id)) continue;
+          seen.add(s.id);
+          merged.push(s);
+        }
+      }
+      if (currentSpanIdRef.current === span.id) {
+        setScores(merged);
+      }
     } catch (error) {
       console.error("Error fetching scores:", error);
-      setScores([]);
+      if (currentSpanIdRef.current === span.id) {
+        setScores([]);
+      }
     } finally {
-      setScoresLoading(false);
+      if (currentSpanIdRef.current === span.id) {
+        setScoresLoading(false);
+      }
     }
   }, []);
 

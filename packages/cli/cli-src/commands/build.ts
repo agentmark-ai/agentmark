@@ -181,6 +181,28 @@ const build = async (options: BuildOptions = {}) => {
     }
   }
 
+  // Copy non-prompt assets (datasets, schemas) to the build output so
+  // FileLoader can resolve them at runtime. Without this, a built
+  // prompt that references `dataset.jsonl` in its frontmatter would
+  // throw "Dataset not found" because `dist/agentmark/dataset.jsonl`
+  // doesn't exist — only the `.prompt.json` files do.
+  //
+  // Scope: any file not ending in `.prompt.mdx` (which is already
+  // compiled to `.prompt.json` above) is treated as an asset and
+  // copied verbatim preserving the relative path. Hidden files (those
+  // whose path components start with `.`) are skipped to avoid
+  // shipping editor / VCS metadata.
+  const datasetFilesAbsolute = await findFiles(sourceDir, /\.jsonl$/);
+  let datasetCopyCount = 0;
+  for (const sourcePath of datasetFilesAbsolute) {
+    const relativePath = path.relative(sourceDir, sourcePath).replace(/\\/g, "/");
+    if (relativePath.split("/").some((seg) => seg.startsWith("."))) continue;
+    const outputPath = path.join(outDir, relativePath);
+    await fs.ensureDir(path.dirname(outputPath));
+    await fs.copyFile(sourcePath, outputPath);
+    datasetCopyCount++;
+  }
+
   // Write manifest
   const manifest = {
     version: "1.0",
@@ -196,11 +218,14 @@ const build = async (options: BuildOptions = {}) => {
   // Summary
   console.log("\n" + "─".repeat(50));
   console.log("Build complete!");
-  console.log(`  Prompts: ${results.prompts.length} built`);
-  if (results.errors.length > 0) {
-    console.log(`  Errors:  ${results.errors.length}`);
+  console.log(`  Prompts:  ${results.prompts.length} built`);
+  if (datasetCopyCount > 0) {
+    console.log(`  Datasets: ${datasetCopyCount} copied`);
   }
-  console.log(`  Output:  ${outDir}`);
+  if (results.errors.length > 0) {
+    console.log(`  Errors:   ${results.errors.length}`);
+  }
+  console.log(`  Output:   ${outDir}`);
 
   if (results.errors.length > 0) {
     process.exit(1);

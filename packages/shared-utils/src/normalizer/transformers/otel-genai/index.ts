@@ -31,9 +31,16 @@ const Attrs = {
     USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
     USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
 
-    // v1.37.0+ content attributes
+    // v1.37.0+ content attributes (canonical OTel GenAI semantic conventions).
+    // SDKs that emit the AgentMark-scoped equivalents (`gen_ai.request.input`
+    // / `gen_ai.response.output` — used by `claude-agent-sdk-v0-adapter`) are
+    // also accepted here as fallbacks so an SDK picking either key set
+    // doesn't silently lose IO data on ingest. The canonical pair always wins
+    // when both are present.
     INPUT_MESSAGES: 'gen_ai.input.messages',
     OUTPUT_MESSAGES: 'gen_ai.output.messages',
+    REQUEST_INPUT_FALLBACK: 'gen_ai.request.input',
+    RESPONSE_OUTPUT_FALLBACK: 'gen_ai.response.output',
     SYSTEM_INSTRUCTIONS: 'gen_ai.system_instructions',
     TOOL_DEFINITIONS: 'gen_ai.tool.definitions',
 
@@ -158,15 +165,18 @@ export class OtelGenAiTransformer implements ScopeTransformer {
             result.settings = { ...result.settings, temperature };
         }
 
-        // Input messages (gen_ai.input.messages)
-        const inputMessages = attributes[Attrs.INPUT_MESSAGES];
+        // Input messages — canonical OTel GenAI key (gen_ai.input.messages).
+        // Fall back to the AgentMark-scoped equivalent (gen_ai.request.input)
+        // so SDKs that picked the older key set don't lose IO data on ingest.
+        const inputMessages = attributes[Attrs.INPUT_MESSAGES] ?? attributes[Attrs.REQUEST_INPUT_FALLBACK];
         if (inputMessages && typeof inputMessages === 'string') {
             const messages = normalizeMessages(inputMessages);
             if (messages) result.input = messages;
         }
 
-        // Output messages (gen_ai.output.messages)
-        const outputMessages = attributes[Attrs.OUTPUT_MESSAGES];
+        // Output messages — canonical OTel GenAI key (gen_ai.output.messages),
+        // with gen_ai.response.output as a fallback for older SDK emitters.
+        const outputMessages = attributes[Attrs.OUTPUT_MESSAGES] ?? attributes[Attrs.RESPONSE_OUTPUT_FALLBACK];
         if (outputMessages && typeof outputMessages === 'string') {
             const extracted = extractStructuredOutput(outputMessages);
             if (extracted) {

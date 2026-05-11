@@ -19,12 +19,13 @@
     "test:watch": "vitest"
   },
   "author": "",
-  "license": "ISC",
+  "license": "AGPL-3.0-or-later",
   "bin": {
     "agentmark": "dist/index.js"
   },
   "dependencies": {
-    "@agentmark-ai/connect": "0.2.1",
+    "@agentmark-ai/api-schemas": "workspace:*",
+    "@agentmark-ai/api-types": "workspace:*",
     "@agentmark-ai/model-registry": "0.2.3",
     "@agentmark-ai/prompt-core": "0.4.1",
     "@agentmark-ai/shared-utils": "0.3.2",
@@ -51,7 +52,7 @@
     "fs-extra": "^11.2.0",
     "lodash": "^4.18.1",
     "next": "15.5.15",
-    "next-intl": "^4.9.1",
+    "next-intl": "^4.9.2",
     "open": "^11.0.0",
     "prompts": "^2.4.2",
     "react": "19.1.0",
@@ -59,7 +60,8 @@
     "react-dom": "19.1.0",
     "specli": "^0.0.39",
     "tsx": "^4.19.2",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@agentmark-ai/ui-components": "0.5.2",
@@ -76,6 +78,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.10",
+    "msw": "^2.10.4",
     "tsup": "^8",
     "typescript": "^5",
     "vitest": "^3.0.8"

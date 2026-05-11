@@ -15,6 +15,29 @@ from agentmark_pydantic_ai_v0 import (
 )
 
 
+class TestModuleImportInstrumentation:
+    """The adapter must enable pydantic-ai's gen_ai instrumentation on import.
+
+    Without ``Agent.instrument_all()`` no ``gen_ai.*`` spans are emitted, so a
+    user who calls ``sdk.init_tracing()`` and then runs a prompt sees zero
+    traces in the dashboard. See bug 2 in /tmp/test-fix-scaffolder-2 fix.
+    """
+
+    def test_agent_instrument_default_is_set(self) -> None:
+        """Importing the adapter package must enable instrumentation globally."""
+        # The import side-effect ran when this test module loaded
+        # ``agentmark_pydantic_ai_v0`` at the top of the file.
+        from pydantic_ai import Agent
+
+        # When ``instrument_all()`` has been called, the private default flag
+        # is True (or a non-False sentinel). The strict check is that it is
+        # truthy — that's the precondition pydantic-ai uses internally.
+        assert getattr(Agent, "_instrument_default", False), (
+            "Agent._instrument_default is falsy — Agent.instrument_all() did "
+            "not run on import. gen_ai spans will not be emitted."
+        )
+
+
 class TestCreatePydanticAIClient:
     """Tests for the create_pydantic_ai_client factory function."""
 

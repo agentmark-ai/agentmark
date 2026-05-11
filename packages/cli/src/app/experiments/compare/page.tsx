@@ -66,17 +66,29 @@ function CompareContent() {
       setIsLoading(false);
       return;
     }
+    // Guard against stale responses: if the user changes the ?ids=
+    // query param mid-load (e.g. by editing the URL or hitting back),
+    // the previous Promise.all can resolve AFTER the new one and
+    // overwrite the fresh data. The cancelled flag is captured by the
+    // closure and flipped in the cleanup, so a late response is
+    // dropped instead of clobbering state. Mirrors the pattern in
+    // trace-drawer.tsx.
+    let cancelled = false;
     const fetchAll = async () => {
       setIsLoading(true);
       const results = await Promise.all(
         experimentIds.map((id) => getExperimentById(id))
       );
+      if (cancelled) return;
       setExperiments(
         results.filter((r): r is CliExperimentDetail => r !== null).map(toSharedDetail)
       );
       setIsLoading(false);
     };
     fetchAll();
+    return () => {
+      cancelled = true;
+    };
   }, [experimentIds, isValidIdCount]);
 
   const { rows, summary } = useMemo(() => {

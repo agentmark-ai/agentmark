@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, Suspense } from "react";
 import { SessionDrawer } from "./session-drawer";
-import { getSessions } from "../../lib/api/sessions";
+import { getSessionsWithTotal } from "../../lib/api/sessions";
 import type { SessionData } from "@agentmark-ai/ui-components";
 import { useTable } from "@agentmark-ai/ui-components";
 
@@ -14,14 +14,22 @@ export default function SessionsPage() {
   const router = useRouter();
   const t = useTranslations("sessions");
   const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [sessionTotal, setSessionTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const table = useTable();
 
   useEffect(() => {
+    // Guard against stale responses on remount/refetch — same pattern
+    // applied across the audit. Mirrors trace-drawer.tsx.
+    let cancelled = false;
     const fetchSessions = async () => {
       setIsLoading(true);
-      const fetchedSessions = await getSessions();
-      // Map Session to SessionData format
+      const { sessions: fetchedSessions, total } = await getSessionsWithTotal();
+      if (cancelled) return;
+      // Map Session to SessionData format. The wire→Session translation
+      // (snake_case → camelCase, ISO string → epoch ms) happens at the
+      // boundary inside getSessionsWithTotal; here we just project the
+      // fields the SessionsList component reads.
       const sessionData: SessionData[] = fetchedSessions.map((s) => ({
         id: s.id,
         name: s.name,
@@ -33,9 +41,13 @@ export default function SessionsPage() {
         latency: s.latency,
       }));
       setSessions(sessionData);
+      setSessionTotal(total);
       setIsLoading(false);
     };
     fetchSessions();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Paginate sessions
@@ -62,7 +74,7 @@ export default function SessionsPage() {
         <SessionsList
           sessions={paginatedSessions}
           isLoading={isLoading}
-          sessionCount={sessions.length}
+          sessionCount={sessionTotal || sessions.length}
           table={table}
           onSessionClick={handleSessionClick}
           t={translationFunction}

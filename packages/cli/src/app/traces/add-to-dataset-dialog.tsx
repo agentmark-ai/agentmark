@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -44,6 +44,12 @@ export const AddToDatasetDialog = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // Track the deferred onClose timer so it can be cancelled if the
+  // dialog is reopened (or unmounts) before the 1200ms success-toast
+  // delay elapses. Without this, a stale timer from a previous submit
+  // would call onClose() on the next-rendered dialog instance and
+  // dismiss it unexpectedly.
+  const successCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -57,12 +63,29 @@ export const AddToDatasetDialog = ({
         ? JSON.stringify(initialExpectedOutput, null, 2)
         : "{}"
     );
+    // Clear any in-flight success-close timer from a previous open
+    // — see the ref declaration above for the full rationale.
+    if (successCloseTimerRef.current !== null) {
+      clearTimeout(successCloseTimerRef.current);
+      successCloseTimerRef.current = null;
+    }
 
     setLoading(true);
     getDatasets()
       .then(setDatasets)
       .finally(() => setLoading(false));
   }, [open, initialInput, initialExpectedOutput]);
+
+  // Final cleanup: cancel any pending close-timer on unmount so it can't
+  // fire after the consumer has already torn down the dialog.
+  useEffect(() => {
+    return () => {
+      if (successCloseTimerRef.current !== null) {
+        clearTimeout(successCloseTimerRef.current);
+        successCloseTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSubmit = async () => {
     setError(null);
@@ -114,7 +137,10 @@ export const AddToDatasetDialog = ({
         expected_output: parsedExpectedOutput,
       });
       setSuccess(true);
-      setTimeout(() => onClose(), 1200);
+      successCloseTimerRef.current = setTimeout(() => {
+        successCloseTimerRef.current = null;
+        onClose();
+      }, 1200);
     } catch (err: any) {
       setError(err.message || "Failed to add to dataset");
     } finally {

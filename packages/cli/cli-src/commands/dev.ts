@@ -11,11 +11,7 @@ import { ForwardingStatusReporter } from "../forwarding/status";
 import { attemptAutoLink } from "../auth/auto-link";
 import { setForwarder } from "../api-server";
 import { loadCredentials } from "../auth/credentials";
-import { DEFAULT_PLATFORM_URL, DEFAULT_API_URL } from "../auth/constants";
-import { WebSocketClient } from "@agentmark-ai/connect";
-import type { JobMessage, JobCancelMessage } from "@agentmark-ai/connect";
-import { JobHandler } from "../connect/job-handler";
-import login from "./login";
+import { DEFAULT_PLATFORM_URL } from "../auth/constants";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -24,7 +20,6 @@ function getSafeCwd(): string {
 type ProjectLanguage = "typescript" | "python";
 
 function detectProjectLanguage(cwd: string): ProjectLanguage {
-  // Check for Python project indicators
   const pyprojectPath = path.join(cwd, 'pyproject.toml');
   const agentmarkClientPy = path.join(cwd, 'agentmark_client.py');
   const pythonDevServer = path.join(cwd, '.agentmark', 'dev_server.py');
@@ -33,7 +28,6 @@ function detectProjectLanguage(cwd: string): ProjectLanguage {
     return "python";
   }
 
-  // Default to TypeScript
   return "typescript";
 }
 
@@ -44,7 +38,6 @@ function detectProjectLanguage(cwd: string): ProjectLanguage {
 function findPythonExecutable(cwd: string): string {
   const { binDir, pythonExe, pythonCmd } = getPythonPaths();
 
-  // Check common virtual environment directories
   const venvDirs = ['.venv', 'venv'];
   for (const venvDir of venvDirs) {
     const venvPython = path.join(cwd, venvDir, binDir, pythonExe);
@@ -54,7 +47,6 @@ function findPythonExecutable(cwd: string): string {
     }
   }
 
-  // Fallback to system Python
   return pythonCmd;
 }
 
@@ -67,37 +59,22 @@ function isPortFree(port: number): Promise<boolean> {
   });
 }
 
-const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; remote?: boolean; forward?: boolean } = {}) => {
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; forward?: boolean; ui?: boolean } = {}) => {
   const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
   const cwd = getSafeCwd();
 
-  // Resolve mode flags:
-  // --remote: enables platform connection (WebSocket + forwarding)
-  // --no-forward: disables trace forwarding when used with --remote
-  let useRemote = options.remote || false;
-  let useForwarding = useRemote ? (options.forward !== false) : false;
+  // --no-forward: disables trace forwarding even when linked.
+  // --no-ui: skip the Next.js UI app for CI / headless / test contexts.
+  const useForwarding = options.forward !== false;
+  const useUi = options.ui !== false;
 
-  // Inline login when --remote is used
-  if (useRemote) {
-    try {
-      await login();
-    } catch {
-      console.log('⚠️  Login failed. Continuing in local-only mode.\n');
-      useRemote = false;
-      useForwarding = false;
-    }
-  }
-
-  // Load or create local config (ensures .agentmark dir exists)
   loadLocalConfig();
 
-  // Detect project language
   const projectLanguage = detectProjectLanguage(cwd);
   console.log(`Detected ${projectLanguage} project`);
 
-  // Check for appropriate client config file based on language
   if (projectLanguage === "python") {
     const pythonConfigPath = path.join(cwd, 'agentmark_client.py');
     if (!fs.existsSync(pythonConfigPath)) {
@@ -114,7 +91,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     }
   }
 
-  // Determine which dev server entry point to use based on language
   let devServerFile: string;
 
   if (projectLanguage === "python") {
@@ -133,10 +109,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       process.exit(1);
     }
   } else {
-    // Check locations in priority order:
-    // 1. Custom dev-server.ts (user override)
-    // 2. Project root dev-entry.ts (new default location, version controlled)
-    // 3. .agentmark/dev-entry.ts (legacy location for backward compatibility)
     const customDevServer = path.join(cwd, 'dev-server.ts');
     const projectRootEntry = path.join(cwd, 'dev-entry.ts');
     const legacyEntry = path.join(cwd, '.agentmark', 'dev-entry.ts');
@@ -157,8 +129,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     }
   }
 
-  // Start API server directly
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let apiServerInstance: any;
   try {
     console.log(`Starting...`);
@@ -169,15 +139,11 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     process.exit(1);
   }
 
-  // Track shutdown state to suppress exit messages during intentional shutdown
   let isShuttingDown = false;
 
-  // Start webhook server based on project language
   let webhookServer: ChildProcess;
 
   if (projectLanguage === "python") {
-    // For Python projects, spawn the Python dev server
-    // Find Python executable (prefers virtual environment if present)
     const pythonCommand = findPythonExecutable(cwd);
 
     webhookServer = spawn(pythonCommand, [
@@ -189,12 +155,11 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       cwd,
       env: {
         ...process.env,
-        PYTHONDONTWRITEBYTECODE: '1', // Prevent __pycache__ creation
-        PYTHONUNBUFFERED: '1', // Ensure real-time output
+        PYTHONDONTWRITEBYTECODE: '1',
+        PYTHONUNBUFFERED: '1',
       }
     });
   } else {
-    // For TypeScript projects, use tsx with watch mode
     const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
     webhookServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`], {
       stdio: 'inherit',
@@ -205,15 +170,12 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   webhookServer.on('error', (error) => {
     console.error('Failed to start webhook server:', error.message);
     if (apiServerInstance) {
-      try { apiServerInstance.close(); } catch {
-        // Ignore errors when closing API server
-      }
+      try { apiServerInstance.close(); } catch { /* ignore */ }
     }
     process.exit(1);
   });
 
   webhookServer.on('exit', (code) => {
-    // Only log if not shutting down intentionally
     if (!isShuttingDown) {
       if (code === 0 || code === null) {
         console.log('\nWebhook server stopped');
@@ -222,15 +184,12 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
         console.error('Check the output above for error details');
       }
       if (apiServerInstance) {
-        try { apiServerInstance.close(); } catch {
-          // Ignore errors when closing API server
-        }
+        try { apiServerInstance.close(); } catch { /* ignore */ }
       }
       process.exit(code || 0);
     }
   });
 
-  // Start AgentMark UI app (Next.js production server)
   const nextCwd = path.join(__dirname, '..', '..');
   let actualAppPort = appPort;
   let uiServer: ReturnType<typeof spawn> | null = null;
@@ -241,30 +200,25 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       actualAppPort++;
     }
 
-    // Save the actual app port to config so run-prompt/run-experiment can use it
     setAppPort(actualAppPort);
 
     uiServer = spawn('npm', ['start', '--', '-p', `${actualAppPort}`], {
       stdio: 'pipe',
       cwd: nextCwd,
-      shell: IS_WINDOWS, // Required for Windows to resolve npm.cmd
+      shell: IS_WINDOWS,
       env: {
         ...process.env,
         NEXT_PUBLIC_AGENTMARK_API_PORT: String(apiPort)
       },
     });
 
-    // Capture output for debugging
-    uiServer.stdout?.on('data', () => {
-      // Silently consume stdout
-    });
+    uiServer.stdout?.on('data', () => { /* silent */ });
 
     uiServer.stderr?.on('data', (data) => {
       console.error(`AgentMark UI error: ${data.toString()}`);
     });
 
     uiServer.on('exit', (code) => {
-      // Only log if not shutting down intentionally
       if (!isShuttingDown) {
         console.log(`AgentMark UI server exited with code ${code}`);
         process.exit(code || 0);
@@ -277,49 +231,40 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     });
   }
 
-  // Start the AgentMark app
-  startAgentMarkServer();
+  if (useUi) {
+    startAgentMarkServer();
+  }
 
-  // Store forwarder, status reporter, and WebSocket client for cleanup
   let forwarder: TraceForwarder | null = null;
   let statusReporter: ForwardingStatusReporter | null = null;
-  let wsClient: WebSocketClient | null = null;
 
-  // Give servers time to start, then print summary
   setTimeout(async () => {
-    // Verify webhook server is still running before showing success message
     if (webhookServer.exitCode !== null) {
       console.error('\n❌ Webhook server failed to start');
       console.error('The API server is running, but the webhook server did not start successfully');
       return;
     }
 
-    // Setup trace forwarding if not disabled
     let forwardingStatus: 'active' | 'inactive' | 'disabled' | 'expired' = 'inactive';
     let forwardingAppName = '';
     let forwardingBaseUrl = '';
 
     if (useForwarding) {
-      // Check if already linked
       let forwardingConfig = loadForwardingConfig();
 
-      // If not linked but user is logged in, attempt auto-link
       if (!forwardingConfig) {
         await attemptAutoLink();
         forwardingConfig = loadForwardingConfig();
       }
 
-      // Check if key is expired or about to expire (within 7 days)
       if (forwardingConfig && isKeyExpired(forwardingConfig)) {
         console.log('⚠️  Dev API key expired. Run `agentmark link` to refresh.\n');
         forwardingStatus = 'expired';
       } else if (forwardingConfig?.expiresAt) {
-        // Check if key is within 7 days of expiry
         const expiryDate = new Date(forwardingConfig.expiresAt);
         const daysUntilExpiry = (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
 
         if (daysUntilExpiry < 7 && daysUntilExpiry > 0) {
-          // Attempt to refresh the key
           console.log('⚠️  Dev API key expires soon, attempting refresh...');
           const credentials = loadCredentials();
           if (credentials && forwardingConfig.apiKeyId) {
@@ -335,14 +280,12 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
               if (response.ok) {
                 const newKeyData = await response.json() as { key: string; key_id: string; expires_at: string };
-                // Update forwarding config with new key
                 saveForwardingConfig({
                   ...forwardingConfig,
                   apiKey: newKeyData.key,
                   apiKeyId: newKeyData.key_id,
                   expiresAt: newKeyData.expires_at,
                 });
-                // Reload the config for use
                 forwardingConfig = loadForwardingConfig()!;
                 console.log('✓ Dev API key refreshed\n');
               } else {
@@ -356,17 +299,14 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       }
 
       if (forwardingConfig?.apiKey && forwardingConfig?.baseUrl && forwardingConfig?.appId) {
-        // Create forwarder and inject into API server
         try {
           forwarder = new TraceForwarder(forwardingConfig);
           setForwarder(forwarder);
 
-          // Create status reporter
           statusReporter = new ForwardingStatusReporter(forwarder);
 
           forwardingStatus = 'active';
           forwardingAppName = forwardingConfig.appName || 'Unknown App';
-          // Tenant info is available in forwardingConfig.tenantId if needed
           forwardingBaseUrl = forwardingConfig.baseUrl;
         } catch (error) {
           console.error('⚠️  Failed to initialize trace forwarding:', (error as Error).message);
@@ -377,60 +317,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       forwardingStatus = 'disabled';
     }
 
-    // Setup WebSocket connection to platform
-    let connectStatus: 'connected' | 'connecting' | 'inactive' | 'error' = 'inactive';
-
-    if (useRemote) {
-      // Load forwarding config for apiKey and appId
-      const connectConfig = loadForwardingConfig();
-
-      if (connectConfig?.apiKey && connectConfig?.appId) {
-        const wsUrl = (process.env.AGENTMARK_WS_URL || `wss://${new URL(DEFAULT_API_URL).host}`) + '/v1/connect';
-        const localWebhookUrl = `http://localhost:${webhookPort}`;
-
-        try {
-          wsClient = new WebSocketClient(
-            {
-              url: wsUrl,
-              apiKey: connectConfig.apiKey,
-              appId: connectConfig.appId,
-              language: projectLanguage,
-            },
-            {
-              onConnected: () => {
-                connectStatus = 'connected';
-                console.log('  [connect] Connected to AgentMark platform');
-              },
-              onDisconnected: (reason) => {
-                if (!isShuttingDown) {
-                  console.log(`  [connect] Disconnected${reason ? `: ${reason}` : ''} (reconnecting...)`);
-                }
-              },
-              onJob: (message) => {
-                jobHandler.handleMessage(message as JobMessage | JobCancelMessage);
-              },
-              onError: (err) => {
-                if (!isShuttingDown) {
-                  console.error(`  [connect] Error: ${err.message}`);
-                }
-              },
-            },
-          );
-
-          const jobHandler = new JobHandler(wsClient, localWebhookUrl);
-          wsClient.setActiveJobsProvider(() => jobHandler.getActiveJobIds());
-          wsClient.connect();
-          connectStatus = 'connecting';
-        } catch (error) {
-          console.error('  Failed to initialize WebSocket connection:', (error as Error).message);
-          connectStatus = 'error';
-        }
-      } else {
-        console.log('  Not linked to platform (run `agentmark link` to connect)');
-        connectStatus = 'inactive';
-      }
-    }
-
     console.log('\n' + '═'.repeat(70));
     console.log('🚀 AgentMark Development Servers Running');
     console.log('═'.repeat(70));
@@ -439,35 +325,14 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log(`  Webhook:       http://localhost:${webhookPort}`);
     console.log(`  App:           http://localhost:${actualAppPort}`);
 
-    if (useRemote) {
-      // Consolidated remote section
-      console.log('\n  Remote:        ✓ Connected');
-
-      // WebSocket connect status
-      // TypeScript narrows connectStatus based on synchronous assignments only.
-      // The 'connected' value is set by the async onConnected callback, so we
-      // widen back to the full union to allow this runtime-valid comparison.
-      if ((connectStatus as 'connected' | 'connecting' | 'inactive' | 'error') === 'connected') {
-        console.log(`    Connect:     ✓ WebSocket active`);
-      } else if (connectStatus === 'connecting') {
-        console.log(`    Connect:     … WebSocket connecting`);
-      } else if (connectStatus === 'error') {
-        console.log(`    Connect:     ⚠️  WebSocket failed (falling back to local)`);
-      } else {
-        console.log(`    Connect:     ○ Not linked (run 'agentmark link')`);
-      }
-
-      if (forwardingStatus === 'active') {
-        console.log(`    Forwarding:  ✓ Active → ${forwardingAppName} (${forwardingBaseUrl})`);
-      } else if (forwardingStatus === 'disabled') {
-        console.log(`    Forwarding:  ○ Disabled (--no-forward)`);
-      } else if (forwardingStatus === 'expired') {
-        console.log(`    Forwarding:  ⚠️  Expired (run 'agentmark link' to refresh)`);
-      } else {
-        console.log(`    Forwarding:  ⚠️  Not linked (run 'agentmark link')`);
-      }
+    if (forwardingStatus === 'active') {
+      console.log(`\n  Forwarding:    ✓ Active → ${forwardingAppName} (${forwardingBaseUrl})`);
+    } else if (forwardingStatus === 'disabled') {
+      console.log(`\n  Forwarding:    ○ Disabled (--no-forward)`);
+    } else if (forwardingStatus === 'expired') {
+      console.log(`\n  Forwarding:    ⚠️  Expired (run 'agentmark link' to refresh)`);
     } else {
-      console.log('\n  Running in local mode (use --remote to connect to the platform)');
+      console.log(`\n  Forwarding:    ○ Not linked (run 'agentmark link')`);
     }
 
     console.log('\n' + '─'.repeat(70));
@@ -475,9 +340,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log('─'.repeat(70));
     console.log('\n  Open a new terminal window and run:');
     console.log('\n  Run a prompt:');
-    console.log('  $ npm run agentmark run-prompt ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx agentmark run-prompt ./agentmark/party-planner.prompt.mdx');
     console.log('\n  Run an experiment:');
-    console.log('  $ npm run agentmark run-experiment ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx agentmark run-experiment ./agentmark/party-planner.prompt.mdx');
     console.log('\n  (Replace with any prompt file in ./agentmark/)');
 
     console.log('\n' + '═'.repeat(70));
@@ -485,19 +350,16 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log('═'.repeat(70) + '\n');
   }, 3000);
 
-  // Handle process termination
   const cleanup = async () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
 
     console.log('\nShutting down servers...');
 
-    // Stop status reporter polling
     if (statusReporter) {
       statusReporter.stop();
     }
 
-    // Flush trace forwarder first (with 5s timeout)
     if (forwarder) {
       try {
         console.log('  Flushing trace buffer...');
@@ -513,23 +375,14 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       }
     }
 
-    // Close WebSocket connection
-    if (wsClient) {
-      console.log('  Closing WebSocket connection...');
-      wsClient.close();
-    }
-
-    // Close API server with force close on all connections
     if (apiServerInstance) {
       try {
         console.log('  Stopping API server...');
-        // Force close all connections
         await new Promise<void>((resolve) => {
           apiServerInstance.closeAllConnections?.();
           apiServerInstance.close(() => {
             resolve();
           });
-          // Timeout in case close hangs
           setTimeout(resolve, 1000);
         });
       } catch (error) {
@@ -537,13 +390,11 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       }
     }
 
-    // Kill webhook server process tree
     if (webhookServer.pid) {
       console.log('  Stopping webhook server...');
       killProcessTree(webhookServer.pid);
     }
 
-    // Kill UI server process tree
     if (uiServer && uiServer.pid) {
       console.log('  Stopping UI server...');
       killProcessTree(uiServer.pid);
@@ -551,8 +402,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
     console.log('Servers stopped.');
 
-    // Give processes time to die, then force exit
-    // Increased timeout to allow for graceful shutdown
     setTimeout(() => {
       process.exit(0);
     }, 1000);
@@ -560,9 +409,6 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
   process.on('SIGINT', cleanup);
   process.on('SIGTERM', cleanup);
-
-  // Don't use exit handler - it causes issues with async cleanup
-  // The SIGINT/SIGTERM handlers will trigger process.exit()
 };
 
 export default dev;

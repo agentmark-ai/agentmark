@@ -20,21 +20,22 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || 'test-key' });
 const modelRegistry = new VercelAIModelRegistry();
-modelRegistry.registerModels(['gpt-4o'], (name: string) => openai(name));
+modelRegistry.registerModels(['openai/gpt-4o'], (name: string) => openai(name));
 
 const adapter = new VercelAIAdapter(modelRegistry);
 export const client = new AgentMark({ prompt: {}, adapter });
 `;
 }
 
-const DEV_ENTRY_TEMPLATE = `// Development webhook server entry point
+function getDevEntryTemplate(clientImportPath) {
+  return `// Development webhook server entry point
 // This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
 import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v4-adapter/runner';
 
 async function main() {
-  const { client } = await import('../agentmark.client.js');
+  const { client } = await import('\${clientImportPath}');
 
   const args = process.argv.slice(2);
   const runnerPortArg = args.find(arg => arg.startsWith('--webhook-port='));
@@ -49,6 +50,7 @@ main().catch((err) => {
   process.exit(1);
 });
 `;
+}
 
 function setupTestDir(tempDir: string, useLegacyLocation = false) {
   // Create package.json for proper module resolution
@@ -69,10 +71,10 @@ function setupTestDir(tempDir: string, useLegacyLocation = false) {
     // Create .agentmark/dev-entry.ts (legacy location for backward compatibility testing)
     const agentmarkInternalDir = path.join(tempDir, '.agentmark');
     fs.mkdirSync(agentmarkInternalDir, { recursive: true});
-    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+    fs.writeFileSync(path.join(agentmarkInternalDir, 'dev-entry.ts'), getDevEntryTemplate('./agentmark.client.js'));
   } else {
     // Create dev-entry.ts at project root (new default location, version controlled)
-    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), DEV_ENTRY_TEMPLATE);
+    fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), getDevEntryTemplate('./agentmark.client.js'));
   }
 }
 
@@ -169,7 +171,7 @@ describe('agentmark dev', () => {
 
       // Create required files
       fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
-      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo Prompt');
+      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: openai/gpt-4o\n---\n\n# Demo Prompt');
       fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.jsonl'), JSON.stringify({ input: {}, expected_output: 'EXPECTED' }) + '\n');
 
       // Create minimal agentmark.client.ts
@@ -180,7 +182,7 @@ describe('agentmark dev', () => {
       const webhookPort = await getFreePort();
 
       // Spawn dev command in its own process group for clean cleanup
-      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--no-ui', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -214,7 +216,11 @@ describe('agentmark dev', () => {
           console.log(`Response status: ${listResp.status}, body: ${errorText}`);
         }
         expect(listResp.ok).toBe(true);
-        const { paths } = await listResp.json() as any;
+        // The api-server wraps responses in the canonical `{ data: ... }`
+        // envelope (see cli-src/api-server.ts and api-helpers.ts). The
+        // /v1/prompts response carries `{ data: { paths: string[] } }`.
+        const body = (await listResp.json()) as any;
+        const paths = body?.data?.paths;
         expect(Array.isArray(paths)).toBe(true);
         expect(paths.length).toBeGreaterThan(0);
 
@@ -250,13 +256,13 @@ describe('agentmark dev', () => {
       // Create agentmark.client.ts but NOT custom dev-server.ts
       fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
       fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
-      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
+      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: openai/gpt-4o\n---\n\n# Demo');
 
       const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
       const apiPort = await getFreePort();
       const webhookPort = await getFreePort();
 
-      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--no-ui', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -308,13 +314,13 @@ describe('agentmark dev', () => {
       // Create agentmark.client.ts but NOT custom dev-server.ts
       fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
       fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
-      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
+      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: openai/gpt-4o\n---\n\n# Demo');
 
       const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
       const apiPort = await getFreePort();
       const webhookPort = await getFreePort();
 
-      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--no-ui', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -365,14 +371,14 @@ describe('agentmark dev', () => {
       setupTestDir(tempDir);
 
       fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
-      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: gpt-4o\n---\n\n# Demo');
+      fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: openai/gpt-4o\n---\n\n# Demo');
       fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
 
       const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
       const customApiPort = await getFreePort();
       const customWebhookPort = await getFreePort();
 
-      const child = spawn(process.execPath, [cli, 'dev', '--api-port', String(customApiPort), '--webhook-port', String(customWebhookPort)], {
+      const child = spawn(process.execPath, [cli, 'dev', '--no-ui', '--api-port', String(customApiPort), '--webhook-port', String(customWebhookPort)], {
         cwd: tempDir,
         env: { ...process.env, OPENAI_API_KEY: 'test-key' },
         stdio: 'pipe',
@@ -400,4 +406,55 @@ describe('agentmark dev', () => {
       await safeRmDir(tempDir);
     }
   }, 30000); // Increase timeout for CI
+
+  describe('trace forwarding integration', () => {
+    it('starts successfully when forwarding config exists', async () => {
+      const tempDir = path.join(__dirname, '..', 'tmp-dev-with-forward-' + Date.now());
+      tmpDirs.push(tempDir);
+
+      try {
+        fs.mkdirSync(path.join(tempDir, 'agentmark'), { recursive: true });
+
+        // Setup test directory with node_modules
+        setupTestDir(tempDir);
+
+        // Create required files
+        fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
+        fs.writeFileSync(path.join(tempDir, 'agentmark', 'demo.prompt.mdx'), '---\ntext_config:\n  model_name: openai/gpt-4o\n---\n\n# Demo');
+        fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), createMinimalAgentMarkConfig());
+
+        const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
+        const apiPort = await getFreePort();
+        const webhookPort = await getFreePort();
+
+        const child = spawn(process.execPath, [cli, 'dev', '--no-ui', '--api-port', String(apiPort), '--webhook-port', String(webhookPort)], {
+          cwd: tempDir,
+          env: { ...process.env, OPENAI_API_KEY: 'test-key' },
+          stdio: 'pipe',
+          detached: true
+        });
+
+        processes.push(child);
+
+        try {
+          await wait(PLATFORM_TIMEOUTS.serverStartup);
+
+          // Verify server started (the key test - forwarding config shouldn't break startup)
+          const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
+          expect(serverReady).toBe(true);
+
+          // Verify we can actually use the server
+          const resp = await fetch(`http://127.0.0.1:${apiPort}/v1/prompts`);
+          expect(resp.ok).toBe(true);
+        } finally{
+          if (child.pid) {
+            killProcessTree(child.pid);
+          }
+          await wait(PLATFORM_TIMEOUTS.processCleanup);
+        }
+      } finally {
+        await safeRmDir(tempDir);
+      }
+    }, 30000);
+  });
 });

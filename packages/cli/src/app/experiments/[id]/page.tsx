@@ -53,13 +53,25 @@ export default function ExperimentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Guard against stale responses: if the user navigates between
+    // experiment IDs faster than the network can respond (e.g. via the
+    // browser back/forward buttons), a previous fetch can resolve AFTER
+    // the latest one and overwrite the fresh data. The cancelled flag is
+    // captured by the closure and flipped in the cleanup, so a late
+    // response is dropped instead of clobbering state. Mirrors the
+    // pattern in trace-drawer.tsx.
+    let cancelled = false;
     const fetchExperiment = async () => {
       setIsLoading(true);
       const data = await getExperimentById(experimentId);
+      if (cancelled) return;
       setExperiment(data ? toSharedDetail(data) : null);
       setIsLoading(false);
     };
     fetchExperiment();
+    return () => {
+      cancelled = true;
+    };
   }, [experimentId]);
 
   const translate = useCallback(

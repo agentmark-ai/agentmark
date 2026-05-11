@@ -24,12 +24,17 @@ import {
   findRootSpans,
   extractSpanInput,
   extractSpanExpectedOutput,
+  extractSpanPromptName,
+  extractSpanTemplateProps,
+  TestPromptDialog,
 } from "@agentmark-ai/ui-components";
-import { Box, Stack, Typography, Tabs, Tab, Button } from "@mui/material";
+import { Box, Stack, Typography, Tabs, Tab, Button, Tooltip } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { getTraceById, getTraceGraph, GraphData } from "../../lib/api/traces";
 import { getScoresByResourceId } from "../../lib/api/scores";
+import { getSpanIO } from "../../lib/api/spans";
+import { getPromptPathByName } from "../../lib/api/prompts";
 import { AddToDatasetDialog } from "./add-to-dataset-dialog";
 
 /** Available view tabs */
@@ -69,10 +74,17 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       return;
     }
 
+    // Guard against stale responses: when the user clicks trace A then
+    // quickly clicks trace B, A's pending fetch can resolve AFTER B's
+    // and overwrite B's data. The cancelled flag is captured by the
+    // closure and flipped in the cleanup, so a late-arriving response
+    // for a previous traceId is dropped instead of clobbering state.
+    let cancelled = false;
     const fetchTrace = async () => {
       setLoading(true);
       setError(null);
       const fetchedTrace = await getTraceById(traceId);
+      if (cancelled) return;
       if (!fetchedTrace) {
         setError("Trace not found");
         setTrace(null);
@@ -82,6 +94,9 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       setLoading(false);
     };
     fetchTrace();
+    return () => {
+      cancelled = true;
+    };
   }, [traceId]);
 
   useEffect(() => {
@@ -91,19 +106,29 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       return;
     }
 
+    // Same stale-response guard as the trace fetch above — the graph
+    // and the detail are two independent network calls and either can
+    // overtake the other when the user switches traces quickly.
+    let cancelled = false;
     const fetchGraphData = async () => {
       setGraphLoading(true);
       try {
         const data = await getTraceGraph(traceId);
+        if (cancelled) return;
         setGraphData(data);
       } catch (error) {
         console.error("Error fetching graph data:", error);
+        if (cancelled) return;
         setGraphData([]);
       } finally {
+        if (cancelled) return;
         setGraphLoading(false);
       }
     };
     fetchGraphData();
+    return () => {
+      cancelled = true;
+    };
   }, [traceId]);
 
   // Reset state when trace changes
@@ -131,6 +156,26 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
     if (span.id !== prevSpanId) {
       try {
         setScoresLoading(true);
+        // Score `resource_id` is keyed differently by source:
+        //   - CLI eval scores (postExperimentScores in run-experiment.ts)
+        //     write resource_id = traceId so list/detail/avg views can
+        //     JOIN on it.
+        //   - Dashboard annotations write resource_id = spanId so they
+        //     map to a specific UI node.
+        // (See project memory `experiment-scores-keying`.)
+        //
+        // Fetch by span.id only — never by traceId here. The synthetic
+        // root span the drawer renders at the top of the tree reuses
+        // the trace id as its span id (selectedSpanData.id === trace.id
+        // in the synthesised branch), so trace-keyed CLI evals naturally
+        // appear when the user clicks the root. A previous version of
+        // this code also queried by traceId for non-root spans and
+        // merged the results, in the belief that "trace-level evals
+        // apply to all spans"; the consequence was the same eval
+        // duplicated onto every child span in the tree, making it look
+        // like the leaf gen_ai/tool spans had been individually
+        // evaluated. Trace evals belong on the trace; one query, one
+        // place.
         const fetchedScores = await getScoresByResourceId(span.id);
         // Only apply if this span is still the current one (avoid stale overwrites)
         if (currentSpanIdRef.current === span.id) {
@@ -263,6 +308,33 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
 
   const datasetInput = useMemo(() => extractSpanInput(selectedSpanData), [selectedSpanData]);
   const datasetExpectedOutput = useMemo(() => extractSpanExpectedOutput(selectedSpanData), [selectedSpanData]);
+  const canAddToDataset = datasetInput != null || datasetExpectedOutput != null;
+  const selectedPromptName = useMemo(
+    () => extractSpanPromptName(selectedSpanData),
+    [selectedSpanData]
+  );
+  // For "Test prompt" we want the *template variables* (frontmatter `props`)
+  // — not `extractSpanInput`, which returns rendered chat messages for
+  // GENERATION spans. The CLI command needs the same `props` you'd write
+  // in `test_settings.props` to reproduce the run.
+  const templateProps = useMemo(
+    () => extractSpanTemplateProps(selectedSpanData),
+    [selectedSpanData]
+  );
+  const canTestPrompt = !!selectedPromptName && !!templateProps;
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+
+  // The dialog only mounts when `selectedPromptName` is truthy (gate at the
+  // bottom of this file). Without this effect, clicking the button on a
+  // valid span and switching to a prompt-less span before the next render
+  // would leave `promptDialogOpen=true` invisibly — then snap the dialog
+  // open the next time the user picked a span with a prompt name. Force the
+  // dialog closed any time the gate flips false.
+  useEffect(() => {
+    if (!selectedPromptName && promptDialogOpen) {
+      setPromptDialogOpen(false);
+    }
+  }, [selectedPromptName, promptDialogOpen]);
   // Details tab content
   const renderDetailsTab = () => (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -311,6 +383,7 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
       traceId={traceId || undefined}
       t={t}
       onSpanChange={handleSpanChange}
+      fetchSpanIO={getSpanIO}
     >
       <TraceDrawerComponent
         open={!!traceId}
@@ -418,16 +491,36 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
                     <Tab label="Graph" value="graph" />
                     <Tab label="Timeline" value="timeline" />
                   </Tabs>
-                  {(datasetInput != null || datasetExpectedOutput != null) && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => setDatasetDialogOpen(true)}
-                      sx={{ whiteSpace: "nowrap", flexShrink: 0, mr: 2 }}
-                    >
-                      {t("addToDataset")}
-                    </Button>
-                  )}
+                  <Tooltip
+                    title={!canAddToDataset ? t("noDatasetProps") : ""}
+                  >
+                    <span style={{ flexShrink: 0, marginRight: 8 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setDatasetDialogOpen(true)}
+                        disabled={!canAddToDataset}
+                        sx={{ whiteSpace: "nowrap" }}
+                      >
+                        {t("addToDataset")}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                  <Tooltip
+                    title={!canTestPrompt ? t("noPromptMetadata") : ""}
+                  >
+                    <span style={{ flexShrink: 0, marginRight: 16 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setPromptDialogOpen(true)}
+                        disabled={!canTestPrompt}
+                        sx={{ whiteSpace: "nowrap" }}
+                      >
+                        {t("testPrompt")}
+                      </Button>
+                    </span>
+                  </Tooltip>
                 </Box>
 
                 {/* Tab content */}
@@ -448,6 +541,16 @@ export const TraceDrawer = ({ t }: { t: (key: string) => string }) => {
         initialExpectedOutput={datasetExpectedOutput}
         t={t}
       />
+      {selectedPromptName && (
+        <TestPromptDialog
+          open={promptDialogOpen}
+          onClose={() => setPromptDialogOpen(false)}
+          promptName={selectedPromptName}
+          initialProps={templateProps}
+          resolveFilePath={getPromptPathByName}
+          t={t}
+        />
+      )}
     </TraceDrawerProvider>
   );
 };

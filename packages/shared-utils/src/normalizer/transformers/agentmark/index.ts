@@ -247,7 +247,15 @@ export class AgentMarkTransformer implements ScopeTransformer {
         }
 
         // Fallback: agentmark.input / agentmark.output (set by SDK's set_input/set_output)
-        const amInput = attributes['agentmark.input'];
+        // Also accept the legacy `agentmark.props` key as a fallback. Pre-2026-05
+        // adapter wrappers set props instead of input; the OtelGenAiTransformer
+        // already accepted both, this transformer didn't, which caused
+        // experiment wrapper spans (emitted under the "agentmark" scope) to
+        // render with empty Input panels in the trace drawer despite the
+        // adapter setting the attribute. Defense-in-depth: tolerate either
+        // key here so any external caller still using the legacy attribute
+        // works without forcing them to migrate.
+        const amInput = attributes['agentmark.input'] ?? attributes['agentmark.props'];
         if (amInput && typeof amInput === 'string' && !result.input) {
             result.input = [{ role: 'user', content: amInput }];
         }

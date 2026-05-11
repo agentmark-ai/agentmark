@@ -8,7 +8,7 @@ import {
   ExperimentCharts,
 } from "@agentmark-ai/ui-components";
 import type { ExperimentSummary } from "@agentmark-ai/ui-components";
-import { getExperiments } from "../../lib/api/experiments";
+import { getExperimentsWithTotal } from "../../lib/api/experiments";
 import type { ExperimentSummary as CliExperimentSummary } from "../../lib/api/experiments";
 
 function toSharedSummary(exp: CliExperimentSummary): ExperimentSummary {
@@ -30,16 +30,25 @@ export default function ExperimentsPage() {
   const t = useTranslations("experiments");
   const router = useRouter();
   const [experiments, setExperiments] = useState<ExperimentSummary[]>([]);
+  const [experimentTotal, setExperimentTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Guard against stale responses on remount/refetch — same pattern
+    // applied across the audit. Mirrors trace-drawer.tsx.
+    let cancelled = false;
     const fetchExperiments = async () => {
       setIsLoading(true);
-      const data = await getExperiments();
+      const { experiments: data, total } = await getExperimentsWithTotal();
+      if (cancelled) return;
       setExperiments(data.map(toSharedSummary));
+      setExperimentTotal(total);
       setIsLoading(false);
     };
     fetchExperiments();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const translate = useCallback((key: string) => t(key), [t]);
@@ -47,7 +56,7 @@ export default function ExperimentsPage() {
   return (
     <ExperimentsList
       experiments={experiments}
-      total={experiments.length}
+      total={experimentTotal || experiments.length}
       isLoading={isLoading}
       onExperimentClick={(id) =>
         router.push(`/experiments/${encodeURIComponent(id)}`)
