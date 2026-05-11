@@ -49,7 +49,15 @@ export function registerTools(server: McpServer, dataSource: DataSource) {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         const isTimeout = message.includes('timeout');
-        const isConnection = message.includes('ECONNREFUSED') || message.includes('fetch failed');
+        // Connection-failure detection. The HttpDataSource rewraps
+        // ECONNREFUSED as "Connection failed: …" before the error reaches
+        // here, so match the rewrapped prefix in addition to the raw
+        // node:net error codes — otherwise these tag as INVALID_QUERY,
+        // confusing the client about whether the server is even reachable.
+        const isConnection =
+          message.includes('ECONNREFUSED') ||
+          message.includes('fetch failed') ||
+          message.startsWith('Connection failed:');
 
         return {
           content: [
@@ -115,7 +123,15 @@ export function registerTools(server: McpServer, dataSource: DataSource) {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         const isTimeout = message.includes('timeout');
-        const isConnection = message.includes('ECONNREFUSED') || message.includes('fetch failed');
+        // Connection-failure detection. The HttpDataSource rewraps
+        // ECONNREFUSED as "Connection failed: …" before the error reaches
+        // here, so match the rewrapped prefix in addition to the raw
+        // node:net error codes — otherwise these tag as INVALID_QUERY,
+        // confusing the client about whether the server is even reachable.
+        const isConnection =
+          message.includes('ECONNREFUSED') ||
+          message.includes('fetch failed') ||
+          message.startsWith('Connection failed:');
 
         return {
           content: [

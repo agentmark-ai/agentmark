@@ -22,6 +22,8 @@ export {
 export {
   extractSpanInput,
   extractSpanExpectedOutput,
+  extractSpanPromptName,
+  extractSpanTemplateProps,
   getSpanInputKind,
   type DatasetInputKind,
 } from "./extract-span-data";

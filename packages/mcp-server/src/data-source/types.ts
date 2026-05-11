@@ -162,7 +162,7 @@ export interface ErrorResponse {
 }
 
 /**
- * Data source interface - abstraction for local or cloud backends
+ * Data source interface — abstraction for local or remote backends.
  */
 export interface DataSource {
   listTraces(options?: ListTracesOptions): Promise<PaginatedResult<TraceListItem>>;

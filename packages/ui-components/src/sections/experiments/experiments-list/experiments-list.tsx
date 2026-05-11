@@ -102,9 +102,13 @@ export const ExperimentsList = ({
   }, [chartsData, onSelectionChange]);
 
   if (error) {
+    const message =
+      typeof error.message === "string" && error.message.length > 0
+        ? error.message
+        : t("loadError");
     return (
       <Alert severity="error" sx={{ m: 2 }}>
-        {error.message ?? t("loadError")}
+        {message}
       </Alert>
     );
   }

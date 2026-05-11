@@ -38,8 +38,14 @@ export const getScoresByResourceId = async (
   resourceId: string
 ): Promise<ScoreData[]> => {
   try {
+    // The /v1/scores list endpoint accepts the snake_case `resource_id`
+    // query parameter (see ScoresListParamsSchema in
+    // @agentmark-ai/api-schemas). Sending camelCase `resourceId` was
+    // silently stripped by Zod's default object parsing and would
+    // return ALL scores instead of the resource-scoped subset, leading
+    // to scores from unrelated spans appearing in the trace drawer.
     const response = await fetch(
-      `${API_URL}/v1/scores?resourceId=${encodeURIComponent(resourceId)}`
+      `${API_URL}/v1/scores?resource_id=${encodeURIComponent(resourceId)}`
     );
 
     if (!response.ok) {
@@ -49,11 +55,21 @@ export const getScoresByResourceId = async (
       throw new Error(`Failed to fetch scores: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const body = await response.json();
 
-    // Map the API response to ScoreData format
+    // Canonical wire shape (matches `ScoresListResponseSchema` in
+    // @agentmark-ai/api-schemas):
+    //   { data: Score[], pagination: { total, limit, offset } }
+    // Tolerate the older `{ scores: [...] }` shape for safety.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data.scores || []).map((score: any) => ({
+    const rawScores: any[] = Array.isArray(body?.data)
+      ? body.data
+      : Array.isArray(body?.scores)
+        ? body.scores
+        : [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return rawScores.map((score: any) => ({
       id: score.id,
       name: score.name,
       score: score.score,

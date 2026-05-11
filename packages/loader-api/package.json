@@ -5,7 +5,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "description": "HTTP-based loader for AgentMark prompts - works with local dev server and cloud API",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "tsup": "^8.3.5",
     "typescript": "^5.6.3"

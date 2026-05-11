@@ -1,7 +1,7 @@
 {
   "name": "@agentmark-ai/claude-agent-sdk-v0-adapter",
   "version": "0.3.4",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

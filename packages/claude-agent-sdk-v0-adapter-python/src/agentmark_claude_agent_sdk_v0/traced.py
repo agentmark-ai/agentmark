@@ -400,7 +400,16 @@ def _set_result_on_span(span: Any, message: Any) -> None:
 
 
 def _set_telemetry_attributes(ctx: _TracingContext, props: dict[str, Any] | None, telemetry: Any) -> None:
-    """Set props and metadata attributes on the invoke_agent span."""
+    """Set props and metadata attributes on the invoke_agent span.
+
+    `agentmark.props` carries the frontmatter template variables. The
+    normalizer's agentmark-parser maps it to `result.props` (used by the
+    Test Prompt button), and AgentMarkTransformer's input fallback maps
+    it to `result.input` when no `agentmark.input` is set — so a single
+    write feeds both consumers. Don't also write `agentmark.input`:
+    duplicating loses the semantic distinction between "template vars"
+    (props — re-runnable) and "generic input data" (input — anything).
+    """
     if props:
         try:
             ctx.agent_span.set_attribute("agentmark.props", json.dumps(props))

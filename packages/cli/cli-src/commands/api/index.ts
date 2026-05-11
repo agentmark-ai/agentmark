@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { loadForwardingConfig } from '../../forwarding/config';
 import { DEFAULT_API_URL } from '../../auth/constants';
+import { format501Error } from './not-available-formatter';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -79,6 +80,7 @@ async function loadConfig(remote: boolean): Promise<ApiConfig> {
     };
   } catch (error) {
     if (error instanceof Error && error.message.includes('Not configured')) throw error;
+    console.error('[agentmark api] Failed to load forwarding config:', error);
     throw new Error(
       'Not configured for remote access. Run `agentmark login` and `agentmark link` first,\n' +
       'or set AGENTMARK_API_KEY and AGENTMARK_APP_ID environment variables.',
@@ -256,7 +258,12 @@ async function getResources(specText: string): Promise<string[]> {
   } finally {
     process.stdout.write = origWrite;
   }
-  const output = JSON.parse(chunks.join(''));
+  let output: { data?: { resources?: Array<{ name: string }> } };
+  try {
+    output = JSON.parse(chunks.join(''));
+  } catch {
+    return [];
+  }
   return ((output.data?.resources ?? []) as Array<{ name: string }>).map(
     (r) => r.name,
   );
@@ -271,7 +278,7 @@ async function runApi(passthrough: string[], forceRefresh: boolean, remote: bool
 
   const specText = await getSpecText(config.apiUrl, forceRefresh);
 
-  const target = config.isLocal ? `local (${config.apiUrl})` : `cloud (${config.apiUrl})`;
+  const target = config.isLocal ? `local (${config.apiUrl})` : `remote (${config.apiUrl})`;
   if (process.env.DEBUG) console.error(`[agentmark api] targeting ${target}`);
 
   // If no args beyond "api", or just --help / -h, show the resource list
@@ -329,9 +336,14 @@ export function registerApiCommand(program: Command): void {
       try {
         await runApi(passthrough, boolFlags['refresh'] ?? false, boolFlags['remote'] ?? false);
       } catch (error) {
-        cmd.error(
-          error instanceof Error ? error.message : String(error),
-        );
+        if (error instanceof Error) {
+          const formatted = format501Error(error);
+          if (formatted) {
+            cmd.error(formatted);
+          }
+          cmd.error(error.message);
+        }
+        cmd.error(String(error));
       }
     });
 }

@@ -36,6 +36,7 @@ from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING, Any
 
 from agentmark.prompt_core import AgentMark, EvalRegistry
+from pydantic_ai import Agent
 
 from .adapter import PydanticAIAdapter
 from .mcp import McpServerRegistry
@@ -55,6 +56,14 @@ from .types import (
     PydanticAITextParams,
 )
 from .webhook import PydanticAIWebhookHandler
+
+# Enable pydantic-ai's built-in OTel instrumentation as soon as this adapter is
+# imported. Without this, pydantic-ai's `Agent.run()` does not emit gen_ai spans,
+# so `AgentMarkSDK.init_tracing()` (which sets up the OTel TracerProvider) sees
+# no LLM calls and the dashboard shows zero traces. Setting it on import makes
+# instrumentation automatic for every consumer of this adapter — no template
+# touchpoint required, no per-call wiring.
+Agent.instrument_all()
 
 if TYPE_CHECKING:
     from collections.abc import Callable

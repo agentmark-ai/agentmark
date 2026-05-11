@@ -5,16 +5,19 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "description": "Filesystem-based loader for pre-built AgentMark prompts",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@types/node": "^22.8.1",
     "tsup": "^8.3.5",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^3.0.8"
   },
   "scripts": {
     "build": "tsup",
     "build:package": "yarn build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "files": [
     "dist",

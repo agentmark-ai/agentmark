@@ -83,7 +83,7 @@ export const TextSettingsConfig = z.object({
 export type TextSettings = z.infer<typeof TextSettingsConfig>;
 
 export const TestSettingsSchema = z.object({
-  props: z.record(z.any()).nullable().optional(),
+  props: z.record(z.string(), z.any()).nullable().optional(),
   dataset: z.string().optional(),
   /** Eval function names to run during experiments. */
   evals: z.array(z.string()).optional(),
@@ -104,7 +104,7 @@ export const ObjectSettingsConfig = z.object({
   seed: z.number().optional(),
   max_retries: z.number().optional(),
   tools: z.array(z.string()).optional(),
-  schema: z.record(z.any()),
+  schema: z.record(z.string(), z.any()),
   schema_name: z.string().optional(),
   schema_description: z.string().optional(),
 });
@@ -144,7 +144,7 @@ export const TextConfigSchema = z.object({
   messages: z.array(RichChatMessageSchema),
   text_config: TextSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
-  agentmark_meta: z.record(z.any()).optional(),
+  agentmark_meta: z.record(z.string(), z.any()).optional(),
 });
 
 export type TextConfig = z.infer<typeof TextConfigSchema>;
@@ -154,7 +154,7 @@ export const ObjectConfigSchema = z.object({
   messages: z.array(RichChatMessageSchema),
   object_config: ObjectSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
-  agentmark_meta: z.record(z.any()).optional(),
+  agentmark_meta: z.record(z.string(), z.any()).optional(),
 });
 
 export type ObjectConfig = z.infer<typeof ObjectConfigSchema>;
@@ -163,7 +163,7 @@ export const ImageConfigSchema = z.object({
   name: z.string(),
   image_config: ImageSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
-  agentmark_meta: z.record(z.any()).optional(),
+  agentmark_meta: z.record(z.string(), z.any()).optional(),
 });
 
 export type ImageConfig = z.infer<typeof ImageConfigSchema>;
@@ -172,7 +172,7 @@ export const SpeechConfigSchema = z.object({
   name: z.string(),
   speech_config: SpeechSettingsConfig,
   test_settings: TestSettingsSchema.optional(),
-  agentmark_meta: z.record(z.any()).optional(),
+  agentmark_meta: z.record(z.string(), z.any()).optional(),
 });
 
 export type SpeechConfig = z.infer<typeof SpeechConfigSchema>;

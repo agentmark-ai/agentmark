@@ -4,7 +4,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "description": "SDK for communicating with the Agentmark hosted platform",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "build": "tsup",
     "build:package": "yarn build",
@@ -18,15 +18,18 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^2.0.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
     "@opentelemetry/resources": "^2.2.0",
     "@opentelemetry/sdk-node": "^0.205.0",
     "@opentelemetry/sdk-trace-base": "^2.2.0",
+    "@opentelemetry/sdk-trace-node": "^2.2.0",
     "@opentelemetry/semantic-conventions": "^1.28.0"
   },
   "devDependencies": {
     "@agentmark-ai/loader-api": "0.1.0",
     "@agentmark-ai/prompt-core": "0.4.1",
+    "@sentry/node": "^10.0.0",
     "@types/node": "^20.0.0",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",

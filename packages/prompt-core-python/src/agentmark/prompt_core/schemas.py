@@ -145,12 +145,22 @@ class SpeechSettingsSchema(BaseModel):
 
 
 class TestSettingsSchema(BaseModel):
-    """Test settings schema."""
+    """Test settings schema.
+
+    `evals` was renamed to `scores` in prompt-core (TS) when score configs and
+    the human-annotation UI landed (#1804). The TS Zod schema accepts both
+    forms because Zod is passthrough-by-default; this Python schema is
+    `extra="forbid"`, so the rename has to be reflected here explicitly or
+    every fresh-scaffolded prompt that ships `scores:` blows up at
+    `client.load_*_prompt()` with a Pydantic ValidationError.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     props: dict[str, Any] | None = None
     dataset: str | None = None
+    # New name (preferred). `evals` is kept as a deprecated alias for back-compat.
+    scores: list[str] | None = None
     evals: list[str] | None = None
 
 

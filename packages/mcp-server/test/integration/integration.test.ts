@@ -65,7 +65,7 @@ describe('MCP Server Integration Tests', () => {
       const seededTrace = result.items.find(t => t.id === SEED_TRACE_ID);
       expect(seededTrace).toBeDefined();
       expect(seededTrace!.name).toBe(SEED_TRACE_NAME);
-      expect(seededTrace!.status).toBe('1'); // OK status
+      expect(seededTrace!.status).toBe('OK'); // canonical status name; older builds emitted '1'
       expect(seededTrace!.latency).toBe(1000); // 1 second (end - start)
       // CLI parses gen_ai.usage.input_tokens (100) + output_tokens (50) = 150
       expect(seededTrace!.tokens).toBe(150);
@@ -140,7 +140,7 @@ describe('MCP Server Integration Tests', () => {
       // Verify all expected fields exist with correct types
       expect(trace.id).toBe(SEED_TRACE_ID);
       expect(trace.name).toBe(SEED_TRACE_NAME);
-      expect(trace.status).toBe('1');
+      expect(trace.status).toBe('OK');
       expect(trace.latency).toBe(1000);
       expect(typeof trace.cost).toBe('number');
       expect(trace.tokens).toBe(150); // CLI parses gen_ai.usage: 100 input + 50 output

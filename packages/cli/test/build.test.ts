@@ -98,8 +98,18 @@ Parse the comma-separated list into an array.
     expect(await fs.pathExists(path.join(outputDir, 'greeting.prompt.json'))).toBe(true);
     expect(await fs.pathExists(path.join(outputDir, 'parser.prompt.json'))).toBe(true);
 
-    // Datasets should NOT be copied
-    expect(await fs.pathExists(path.join(outputDir, 'test-data.jsonl'))).toBe(false);
+    // Datasets ARE copied verbatim alongside the compiled prompts so
+    // FileLoader can resolve them at runtime. Without this, a built
+    // prompt that references `test-data.jsonl` in its frontmatter
+    // would throw "Dataset not found" because the file would exist
+    // only in source, not in the build output FileLoader points at.
+    expect(await fs.pathExists(path.join(outputDir, 'test-data.jsonl'))).toBe(true);
+    const copiedDataset = await fs.readFile(
+      path.join(outputDir, 'test-data.jsonl'),
+      'utf-8',
+    );
+    expect(copiedDataset).toContain('"name": "Alice"');
+    expect(copiedDataset).toContain('"name": "Bob"');
 
     // Check manifest was created
     expect(await fs.pathExists(path.join(outputDir, 'manifest.json'))).toBe(true);

@@ -130,21 +130,27 @@ async function generateTypeDefinitionsV1_0(
   for (const prompt of prompts) {
     const { path: promptPath, input_schema } = prompt;
     const name = getInterfaceName(promptPath);
-    let tools: any = {};
     try {
       let kind = "text";
       let output_schema = null;
+      let hasTools = false;
 
       if ("text_config" in prompt) {
         kind = "text";
-        tools = prompt.text_config.tools || {};
+        hasTools = Array.isArray(prompt.text_config.tools)
+          ? prompt.text_config.tools.length > 0
+          : !!prompt.text_config.tools;
       } else if ("object_config" in prompt) {
         kind = "object";
-        tools = prompt.object_config.tools || {};
+        hasTools = Array.isArray(prompt.object_config.tools)
+          ? prompt.object_config.tools.length > 0
+          : !!prompt.object_config.tools;
         output_schema = prompt.object_config.schema;
       } else if ("image_config" in prompt) {
         kind = "image";
-        tools = prompt.image_config.tools || {};
+        hasTools = Array.isArray(prompt.image_config.tools)
+          ? prompt.image_config.tools.length > 0
+          : !!prompt.image_config.tools;
       }
 
       const compile = await getCompile();
@@ -154,7 +160,6 @@ async function generateTypeDefinitionsV1_0(
             additionalProperties: false,
           })
         : `interface ${name}In { [key: string]: any }`;
-      const toolTypes = await generateToolTypes(tools);
       const outputInterface = output_schema
         ? await compile(output_schema, `${name}Out`, {
             bannerComment: "",
@@ -169,15 +174,16 @@ async function generateTypeDefinitionsV1_0(
           .replace("export interface", "interface")
       );
 
-      output += toolTypes || "";
-
+      // MDX `tools` is a list of tool names (per 2026-03-13 doctrine).
+      // Tool argument schemas live in the native SDK code, not in MDX
+      // frontmatter — so we don't generate `Tools`/`XxxArgs` types here.
       output += `type ${name} = {
   kind: '${kind}';
   input:  ${name}In;
   output: ${name}Out;${
-        toolTypes
+        hasTools
           ? `
-  tools?: Array<keyof Tools>;`
+  tools?: string[];`
           : ""
       }
 };\n\n`;
@@ -755,7 +761,15 @@ export async function fetchPromptsFrontmatter(options: {
         );
       }
 
-      const { paths } = await pathsResponse.json();
+      // Wire shape: `{ data: { paths } }` (canonical envelope). Tolerate
+      // the older flat `{ paths }` shape for forward-compat with any
+      // pinned mock servers / older fixtures still in the wild.
+      // TODO(envelope-cleanup): drop the `?? body?.paths` fallback once the
+      // OSS api-server cutover is fully rolled. Sister shims in
+      // `cli/src/lib/api/prompts.ts` and `cli-src/runner-server.ts` —
+      // remove all three together.
+      const body = await pathsResponse.json();
+      const paths: string[] = body?.data?.paths ?? body?.paths ?? [];
 
       return Promise.all(
         paths.map(async (promptPath: string) => {
@@ -835,47 +849,3 @@ export async function fetchPromptsFrontmatter(options: {
   throw new Error("Either --local or --root-dir must be specified");
 }
 
-async function generateToolTypes(tools: Record<string, any>) {
-  const toolArgTypes: string[] = [];
-
-  for (const [toolName, schema] of Object.entries(tools)) {
-    const typeName = `${getToolInterfaceName(toolName)}Args`;
-
-    try {
-      const compile = await getCompile();
-      const argInterface = schema.parameters
-        ? await compile(schema.parameters, typeName, {
-            bannerComment: "",
-            additionalProperties: false,
-          })
-        : `type ${typeName} = { ${Object.entries(schema.parameters || {})
-            .map(([key]) => `${key}: any`)
-            .join("; ")} };`;
-
-      toolArgTypes.push(
-        argInterface
-          .replace("export type", "type")
-          .replace("export interface", "interface")
-      );
-    } catch (error) {
-      console.error(`Error processing tool ${toolName}:`, error);
-      toolArgTypes.push(`type ${typeName} = { [key: string]: any };`);
-    }
-  }
-
-  if (Object.keys(tools).length > 0) {
-    // Generate the Tools interface that combines all tool types
-    const toolsInterface = `export interface Tools {
-${Object.keys(tools)
-  .map(
-    (toolName) =>
-      `  ${toolName}: { args: ${getToolInterfaceName(toolName)}Args };`
-  )
-  .join("\n")}
-}`;
-
-    return toolArgTypes.join("\n\n") + "\n\n" + toolsInterface + "\n\n";
-  }
-
-  return null;
-}

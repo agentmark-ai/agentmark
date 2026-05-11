@@ -1,9 +1,10 @@
-import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { AgentmarkSampler } from "./sampler";
 import api, { context, ROOT_CONTEXT, SpanStatusCode, Span, Tracer, Attributes } from "@opentelemetry/api";
+import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import {
   BatchSpanProcessor,
+  NodeTracerProvider,
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-node";
 import {
@@ -22,6 +23,49 @@ type InitProps = {
   baseUrl: string;
   disableBatch: boolean;
   mask?: MaskFunction;
+  /**
+   * If true, also register this provider as the OTel global tracer provider
+   * so third-party code calling `api.trace.getTracer()` flows into AgentMark.
+   *
+   * Default: false. AgentMark uses a dedicated provider so it coexists with
+   * other OTel-based SDKs (e.g. Sentry, Datadog) that already own the global
+   * provider. See https://github.com/agentmark-ai/app/issues/1131.
+   */
+  registerGlobally?: boolean;
+};
+
+// Module-level reference to the dedicated AgentMark provider. Set by
+// initialize(); read by getAgentmarkTracer() to bypass the OTel global
+// registry (which Sentry et al may have already claimed).
+let agentmarkTracerProvider: NodeTracerProvider | null = null;
+let warnedMissingProvider = false;
+
+/**
+ * Resolve the tracer used by AgentMark's span() and observe() helpers.
+ *
+ * When initialize() has been called, returns a tracer from AgentMark's
+ * dedicated provider — independent of whatever else has registered itself
+ * as the OTel global tracer provider. When initialize() has NOT been called,
+ * logs a one-time warning and falls back to the global tracer (noop unless
+ * a non-AgentMark SDK has registered one).
+ */
+export const getAgentmarkTracer = (): Tracer => {
+  if (agentmarkTracerProvider) {
+    return agentmarkTracerProvider.getTracer("agentmark");
+  }
+  if (!warnedMissingProvider) {
+    warnedMissingProvider = true;
+    console.warn(
+      "[agentmark] span()/observe() called before AgentMarkSDK#initTracing(); " +
+      "spans will not be exported. Call initTracing() at app startup."
+    );
+  }
+  return api.trace.getTracer("agentmark");
+};
+
+// Test-only: reset the warning state between test cases.
+export const _resetWarnedForTests = () => {
+  warnedMissingProvider = false;
 };
 
 export const initialize = ({
@@ -30,6 +74,7 @@ export const initialize = ({
   baseUrl,
   disableBatch,
   mask,
+  registerGlobally = false,
 }: InitProps) => {
   // Append the standard OTLP endpoint path to all URLs
   const exporterUrl = `${baseUrl}/${AGENTMARK_TRACE_ENDPOINT}`;
@@ -66,13 +111,49 @@ export const initialize = ({
     })
   );
 
-  const sdk = new NodeSDK({
+  const provider = new NodeTracerProvider({
     resource,
     sampler: new AgentmarkSampler(),
     spanProcessors: [spanProcessor],
   });
-  sdk.start();
-  return sdk;
+
+  // Ensure async context propagation works for parent/child spans across
+  // awaits. The OTel context API defaults to NoopContextManager — which
+  // makes api.context.with() inert — until something registers a real one.
+  // NodeSDK.start() used to do this as a side effect; the dedicated
+  // NodeTracerProvider does not. setGlobalContextManager() is "first writer
+  // wins" so this is a safe no-op if Sentry/Datadog already set one.
+  const contextManager = new AsyncLocalStorageContextManager();
+  contextManager.enable();
+  api.context.setGlobalContextManager(contextManager);
+
+  // If a previous AgentMark provider exists (e.g. re-init in tests), shut it
+  // down so its batched spans flush and its exporter doesn't leak.
+  if (agentmarkTracerProvider) {
+    void agentmarkTracerProvider.shutdown();
+  }
+  agentmarkTracerProvider = provider;
+
+  if (registerGlobally) {
+    // Opt-in: expose this provider as the OTel global so third-party
+    // auto-instrumentation flows into AgentMark. Note that this collides
+    // with vendors like Sentry that also claim the global — first writer
+    // wins, and a no-op warning is logged if we lose.
+    provider.register();
+  }
+
+  // NodeTracerProvider already has shutdown() and forceFlush(). Wrap
+  // shutdown so it also clears the module-level reference, otherwise
+  // getAgentmarkTracer() would keep returning a tracer from a dead provider.
+  const wrappedShutdown = provider.shutdown.bind(provider);
+  provider.shutdown = async () => {
+    if (agentmarkTracerProvider === provider) {
+      agentmarkTracerProvider = null;
+    }
+    await wrappedShutdown();
+  };
+
+  return provider;
 };
 
 /**
@@ -254,7 +335,7 @@ export const span = async <T>(
   options: SpanOptions,
   fn: (ctx: SpanContext) => Promise<T>
 ): Promise<SpanResult<T>> => {
-  const tracer = api.trace.getTracer("agentmark");
+  const tracer = getAgentmarkTracer();
 
   // Use an async callback inside context.with so the active span context
   // propagates through all awaited promises (via AsyncLocalStorage).

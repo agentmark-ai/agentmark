@@ -1,7 +1,7 @@
 {
   "name": "@agentmark-ai/fallback-adapter",
   "version": "1.0.4",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

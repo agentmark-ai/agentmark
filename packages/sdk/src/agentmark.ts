@@ -43,13 +43,17 @@ export class AgentMarkSDK<
     this.mask = mask;
   }
 
-  initTracing({ disableBatch }: { disableBatch?: boolean } = {}) {
+  initTracing({
+    disableBatch,
+    registerGlobally,
+  }: { disableBatch?: boolean; registerGlobally?: boolean } = {}) {
     return initialize({
       apiKey: this.apiKey,
       appId: this.appId,
       baseUrl: this.baseUrl,
       disableBatch: !!disableBatch,
       mask: this.mask,
+      registerGlobally,
     });
   }
 

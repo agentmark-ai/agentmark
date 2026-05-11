@@ -61,6 +61,13 @@ db.exec(`
         Props TEXT,               -- JSON or string metadata props
         Metadata TEXT,            -- JSON-encoded custom metadata (Record<string, string>)
         
+        -- Tags — user-supplied span/trace labels, extracted from the
+        -- agentmark.tags span/resource attribute on ingest. Stored as a
+        -- JSON-encoded string because SQLite has no array type. Default
+        -- '[]' so aggregations over traces without tags still parse
+        -- cleanly via json_each.
+        Tags TEXT NOT NULL DEFAULT '[]',
+
         -- Raw data for export/debug (JSON-encoded)
         ResourceAttributes TEXT,
         SpanAttributes TEXT,

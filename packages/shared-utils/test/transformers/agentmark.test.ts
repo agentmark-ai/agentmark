@@ -692,4 +692,61 @@ describe('AgentMarkTransformer', () => {
       expect(result.promptName).toBe('customer-support-agent');
     });
   });
+
+  // -------------------------------------------------------------------------
+  // agentmark.input / agentmark.props fallback
+  //
+  // The SDK exposes `set_input(...)` (writes `agentmark.input`) and adapters
+  // historically wrote `agentmark.props` for spans carrying frontmatter
+  // template variables. The transformer reads `agentmark.input ?? agentmark.props`
+  // for `result.input` so EITHER attribute populates the trace drawer's Input
+  // panel — letting adapters pick the semantically correct attribute without
+  // breaking the UI when only one of the two is present.
+  //
+  // The asymmetry is intentional: `agentmark.props -> result.input` (template
+  // variables ARE valid input data), but NOT `agentmark.input -> result.props`
+  // (input may be tool args, chat messages, raw blobs — not template vars).
+  // -------------------------------------------------------------------------
+  describe('input fallback (agentmark.input | agentmark.props)', () => {
+    function makeSpan(): OtelSpan {
+      return {
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        name: 'experiment-run-0',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+      };
+    }
+
+    it('populates result.input from agentmark.input when set', () => {
+      const result = transformer.transform(makeSpan(), {
+        'agentmark.input': 'hello there',
+      });
+      expect(result.input).toEqual([{ role: 'user', content: 'hello there' }]);
+    });
+
+    it('falls back to agentmark.props when agentmark.input is absent', () => {
+      const result = transformer.transform(makeSpan(), {
+        'agentmark.props': '{"topic":"sunsets"}',
+      });
+      expect(result.input).toEqual([{ role: 'user', content: '{"topic":"sunsets"}' }]);
+    });
+
+    it('prefers agentmark.input over agentmark.props when both are present', () => {
+      const result = transformer.transform(makeSpan(), {
+        'agentmark.input': 'from-input',
+        'agentmark.props': 'from-props',
+      });
+      expect(result.input).toEqual([{ role: 'user', content: 'from-input' }]);
+    });
+
+    it('does not populate result.input when neither attribute is set', () => {
+      const result = transformer.transform(makeSpan(), {});
+      // Neither attribute set → result.input is left as the transformer's
+      // default (undefined). Pin the negative so a future change can't
+      // silently fabricate a fake user message.
+      expect(result.input).toBeUndefined();
+    });
+  });
 });

@@ -108,6 +108,54 @@ function isMessagesArray(value: unknown): boolean {
 }
 
 /**
+ * Extract the prompt name (frontmatter `name`) from a span.
+ *
+ * Spans normalized by the AgentMark pipeline carry the value on
+ * `data.promptName`. The legacy ClickHouse column form `prompt_name` is also
+ * accepted so this helper works for hosts that read directly from CH rows.
+ * Returns `null` when no prompt name is present.
+ */
+export function extractSpanPromptName(span: SpanLike | null | undefined): string | null {
+  const d = span?.data;
+  if (!d) return null;
+  const value = (d as { promptName?: unknown }).promptName
+    ?? (d as { prompt_name?: unknown }).prompt_name;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/**
+ * Extract the *template variables* (frontmatter `props`) used to render
+ * this span's prompt — distinct from `extractSpanInput`, which returns the
+ * rendered chat messages for GENERATION spans.
+ *
+ * Use this when the consumer wants to re-run the same prompt with the same
+ * inputs (e.g. the "Test prompt" dialog feeds these into
+ * `agentmark run-prompt --props '<json>'`). For datasets, prefer
+ * `extractSpanInput` — datasets store rendered IO as ground truth.
+ *
+ * Returns `null` when the span carries no props.
+ */
+export function extractSpanTemplateProps(
+  span: SpanLike | null | undefined,
+): Record<string, unknown> | null {
+  const d = span?.data;
+  if (!d) return null;
+  const raw = (d as { props?: unknown }).props;
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    const parsed = safeParseJson<unknown>(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return null;
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return null;
+}
+
+/**
  * Derive the input kind label for a span.
  */
 export function getSpanInputKind(span: SpanLike | null | undefined): DatasetInputKind {

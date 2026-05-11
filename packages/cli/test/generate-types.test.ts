@@ -177,7 +177,11 @@ input_schema:
       expect(types).not.toContain("kind:"); // v0 doesn't have kind
     });
 
-    it('generates tool types when tools are defined', async () => {
+    it('declares tools as string[] when tools are listed (no per-tool args generated)', async () => {
+      // Per the 2026-03-13 doctrine ("remove tool registries, fix scaffolding"),
+      // MDX `tools` is a list of tool names. Tool argument schemas live in the
+      // native SDK code, not in MDX frontmatter — so the type generator must
+      // NOT emit `Tools`/`XxxArgs` interfaces from frontmatter.
       const promptsDir = path.join(testDir, 'prompts');
       fs.mkdirSync(promptsDir, { recursive: true });
 
@@ -187,14 +191,7 @@ input_schema:
 text_config:
   model_name: openai/gpt-4o
   tools:
-    search_web:
-      parameters:
-        type: object
-        properties:
-          query:
-            type: string
-        required:
-          - query
+    - search_web
 ---
 Search tool test
 `
@@ -203,10 +200,10 @@ Search tool test
       const prompts = await fetchPromptsFrontmatter({ rootDir: promptsDir });
       const types = await generateTypeDefinitions(prompts);
 
-      expect(types).toContain('SearchWebArgs');
-      expect(types).toContain('export interface Tools');
-      expect(types).toContain('search_web:');
-      expect(types).toContain('tools?: Array<keyof Tools>');
+      expect(types).toContain('tools?: string[]');
+      expect(types).not.toContain('SearchWebArgs');
+      expect(types).not.toContain('export interface Tools');
+      expect(types).not.toContain('Array<keyof Tools>');
     });
 
     it('handles nested directory structures', async () => {

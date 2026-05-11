@@ -73,13 +73,13 @@ describe("VercelAIAdapter type safety (v4)", () => {
       execute: async ({ query }) => [{ title: `Result for ${query}`, url: "https://example.com" }],
     });
 
-    const adapter = new VercelAIAdapter<TestPromptShape, MyTools>(
+    const _adapter = new VercelAIAdapter<TestPromptShape, MyTools>(
       modelRegistry,
       { weather: weatherTool, search: searchTool }
     );
 
     // The return type should be VercelAITextParams<MyTools>, not VercelAITextParams<Record<string, Tool>>
-    type AdaptTextReturn = Awaited<ReturnType<typeof adapter.adaptText<"test.prompt.mdx">>>;
+    type AdaptTextReturn = Awaited<ReturnType<typeof _adapter.adaptText<"test.prompt.mdx">>>;
 
     expectTypeOf<AdaptTextReturn>().toMatchTypeOf<VercelAITextParams<MyTools>>();
   });
@@ -129,12 +129,12 @@ describe("VercelAIObjectParams type safety (v4)", () => {
       execute: async ({ query }) => [{ title: `Result for ${query}`, url: "https://example.com" }],
     });
 
-    const adapter = new VercelAIAdapter<TestPromptShape, MyTools>(
+    const _adapter = new VercelAIAdapter<TestPromptShape, MyTools>(
       modelRegistry,
       { weather: weatherTool, search: searchTool }
     );
 
-    type AdaptObjectReturn = Awaited<ReturnType<typeof adapter.adaptObject<"test.prompt.mdx">>>;
+    type AdaptObjectReturn = Awaited<ReturnType<typeof _adapter.adaptObject<"test.prompt.mdx">>>;
     type ToolsField = AdaptObjectReturn["tools"];
 
     expectTypeOf<NonNullable<ToolsField>>().toMatchTypeOf<Record<string, WeatherTool | SearchTool>>();

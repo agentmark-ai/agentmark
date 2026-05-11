@@ -4,7 +4,7 @@ import {
   useContext,
   useState,
 } from "react";
-import type { SerializedScoreConfig } from "@agentmark-ai/prompt-core";
+import type { SerializedScoreConfig } from "@/scores";
 
 interface EvaluationContextValue {
   scores: ScoreData[];

@@ -19,6 +19,12 @@ function TracesContent() {
   const table = useTable();
 
   useEffect(() => {
+    // Guard against stale responses: when the user paginates quickly
+    // (page 0 → 1 → 2) or changes the runId filter mid-load, the
+    // previous fetch can resolve AFTER the latest one and overwrite the
+    // visible page with stale rows + a stale total. Mirrors the
+    // cancelled-flag pattern in trace-drawer.tsx.
+    let cancelled = false;
     const fetchTraces = async () => {
       setIsLoading(true);
       const { traces: fetched, total } = await getTraces({
@@ -26,11 +32,15 @@ function TracesContent() {
         limit: table.rowsPerPage,
         offset: table.page * table.rowsPerPage,
       });
+      if (cancelled) return;
       setTraces(fetched);
       setTraceCount(total);
       setIsLoading(false);
     };
     fetchTraces();
+    return () => {
+      cancelled = true;
+    };
   }, [runId, table.page, table.rowsPerPage]);
 
   return (

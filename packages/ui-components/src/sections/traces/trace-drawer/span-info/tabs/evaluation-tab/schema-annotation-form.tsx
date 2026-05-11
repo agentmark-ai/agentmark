@@ -11,13 +11,11 @@ import {
   InputLabel,
   Divider,
 } from "@mui/material";
-import {
-  toStoredScore,
-} from "@agentmark-ai/prompt-core";
+import { toStoredScore } from "@/scores";
 import type {
   SerializedScoreConfig,
   ScoreSchema,
-} from "@agentmark-ai/prompt-core";
+} from "@/scores";
 
 export interface AnnotationEntry {
   name: string;

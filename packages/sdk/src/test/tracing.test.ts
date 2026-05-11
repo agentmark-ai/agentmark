@@ -3,7 +3,6 @@ import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 import { span } from "../trace/tracing";
 import { AgentMarkSDK } from "../agentmark";
-import * as api from "@opentelemetry/api";
 
 interface OTLPRequest {
   resourceSpans: Array<{
@@ -41,9 +40,10 @@ describe("OTLP Exporter", () => {
   let activeSdk: any;
 
   async function flushSpans() {
-    const provider = api.trace.getTracerProvider() as any;
-    if (provider.forceFlush) {
-      await provider.forceFlush();
+    // AgentMark's tracer provider is now isolated (no longer the global
+    // OTel provider — see issue #1131), so flush the active SDK directly.
+    if (activeSdk?.forceFlush) {
+      await activeSdk.forceFlush();
     }
     // Give more time for the HTTP request to complete
     // Windows CI can be significantly slower for network operations

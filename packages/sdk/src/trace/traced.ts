@@ -5,8 +5,9 @@
  * as span input and return values as span output.
  */
 
-import api, { SpanStatusCode } from "@opentelemetry/api";
+import { SpanStatusCode } from "@opentelemetry/api";
 import { serializeValue } from "./serialize";
+import { getAgentmarkTracer } from "./tracing";
 
 /** Span kind for categorizing observed operations. */
 export const SpanKind = {
@@ -98,7 +99,7 @@ export function observe<TArgs extends unknown[], TReturn>(
   const processOutputs = options?.processOutputs;
 
   const wrapper = async (...args: TArgs): Promise<TReturn> => {
-    const tracer = api.trace.getTracer("agentmark");
+    const tracer = getAgentmarkTracer();
 
     return tracer.startActiveSpan(spanName, async (span) => {
       span.setAttribute(SPAN_KIND_KEY, kind);

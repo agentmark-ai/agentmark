@@ -28,7 +28,7 @@
     "scaffolding"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@agentmark-ai/shared-utils": "0.3.2",
     "fs-extra": "^11.2.0",

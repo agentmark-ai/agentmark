@@ -31,7 +31,11 @@ function makeCredentials(
 }
 
 describe('credentials', () => {
-  const testAuthDir = path.join(os.tmpdir(), '.agentmark-test', path.sep);
+  // Must mirror getAuthDir()'s per-worker suffix so the test sees the same
+  // path the implementation writes/reads. Workers can't collide because the
+  // suffix differs per worker process.
+  const workerId = process.env.VITEST_POOL_ID || String(process.pid);
+  const testAuthDir = path.join(os.tmpdir(), `.agentmark-test-${workerId}`, path.sep);
 
   beforeEach(() => {
     // Clean the test auth directory before each test to guarantee isolation.

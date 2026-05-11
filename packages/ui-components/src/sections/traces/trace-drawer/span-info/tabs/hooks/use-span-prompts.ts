@@ -36,7 +36,7 @@ export const extractPromptsFromSpan = (span: any): LLMPrompt[] => {
     // Prefer props (AgentMark prompt input)
     if (span?.data?.props) {
       try {
-        const props = typeof span.data.props === "string"
+        const props = (typeof span.data.props === "string" && span.data.props.length > 0)
           ? JSON.parse(span.data.props)
           : span.data.props;
         const content = JSON.stringify(props, null, 2);
@@ -61,7 +61,7 @@ export const extractPromptsFromSpan = (span: any): LLMPrompt[] => {
     // Prefer toolCalls args as input
     if (span?.data?.toolCalls) {
       try {
-        const toolCalls = typeof span.data.toolCalls === "string"
+        const toolCalls = (typeof span.data.toolCalls === "string" && span.data.toolCalls.length > 0)
           ? JSON.parse(span.data.toolCalls)
           : span.data.toolCalls;
         if (Array.isArray(toolCalls) && toolCalls.length > 0) {
@@ -112,7 +112,7 @@ export const extractOutputFromSpan = (span: any) => {
     if (span.data.outputObject) {
       try {
         objectResponse =
-          typeof span.data.outputObject === "string"
+          (typeof span.data.outputObject === "string" && span.data.outputObject.length > 0)
             ? JSON.parse(span.data.outputObject)
             : span.data.outputObject;
       } catch { objectResponse = null; }
@@ -131,7 +131,7 @@ export const extractOutputFromSpan = (span: any) => {
     // Extract toolCall from toolCalls data
     if (span?.data?.toolCalls) {
       try {
-        const toolCalls = typeof span.data.toolCalls === "string"
+        const toolCalls = (typeof span.data.toolCalls === "string" && span.data.toolCalls.length > 0)
           ? JSON.parse(span.data.toolCalls)
           : span.data.toolCalls;
         if (Array.isArray(toolCalls) && toolCalls.length > 0) {
@@ -161,7 +161,7 @@ export const extractOutputFromSpan = (span: any) => {
   let toolCall = null;
   let toolCalls = span.data.toolCalls;
 
-  if (toolCalls && typeof toolCalls === "string") {
+  if (toolCalls && typeof toolCalls === "string" && toolCalls.length > 0) {
     try {
       toolCalls = JSON.parse(toolCalls);
       if (Array.isArray(toolCalls) && toolCalls.length > 0) {
@@ -176,7 +176,7 @@ export const extractOutputFromSpan = (span: any) => {
   if (span.data.outputObject) {
     try {
       objectResponse =
-        typeof span.data.outputObject === "string"
+        (typeof span.data.outputObject === "string" && span.data.outputObject.length > 0)
           ? JSON.parse(span.data.outputObject)
           : span.data.outputObject;
     } catch {

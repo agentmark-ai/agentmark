@@ -1,7 +1,7 @@
 {
   "name": "@agentmark-ai/ai-sdk-v5-adapter",
   "version": "1.4.2",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

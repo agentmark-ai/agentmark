@@ -47,11 +47,14 @@ describe("PII Masking Integration (full OTLP pipeline)", () => {
     body: OTLPRequest;
     headers: Record<string, string | string[] | undefined>;
   }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let activeSdk: any;
 
   async function flushSpans() {
-    const provider = api.trace.getTracerProvider() as any;
-    if (provider.forceFlush) {
-      await provider.forceFlush();
+    // AgentMark's tracer provider is now isolated (no longer the global
+    // OTel provider — see issue #1131), so flush the active SDK directly.
+    if (activeSdk?.forceFlush) {
+      await activeSdk.forceFlush();
     }
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
@@ -149,7 +152,7 @@ describe("PII Masking Integration (full OTLP pipeline)", () => {
         baseUrl: serverUrl,
         mask: (s) => s.replace(/secret-\w+/g, "[MASKED]"),
       });
-      let activeSdk = sdk1.initTracing({ disableBatch: true });
+      activeSdk = sdk1.initTracing({ disableBatch: true });
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       await span({ name: "mask-fn-redacts-io" }, async (ctx) => {

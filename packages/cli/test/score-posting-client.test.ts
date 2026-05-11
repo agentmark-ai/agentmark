@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { CreateScoreBodySchema } from '@agentmark-ai/api-schemas';
 import { postExperimentScores } from '../cli-src/commands/run-experiment';
 
 describe('postExperimentScores', () => {
@@ -41,23 +42,23 @@ describe('postExperimentScores', () => {
 
     expect(postedScores[0].url).toBe('http://localhost:9418/v1/scores');
     expect(postedScores[0].body).toEqual({
-      resourceId: 'abc123',
+      resource_id: 'abc123',
       score: 0.9,
       label: 'PASS',
       reason: 'Good match',
       name: 'quality',
       type: 'experiment',
-      dataType: '',
+      data_type: '',
     });
 
     expect(postedScores[1].body).toEqual({
-      resourceId: 'abc123',
+      resource_id: 'abc123',
       score: 0.8,
       label: 'PASS',
       reason: '',
       name: 'relevance',
       type: 'experiment',
-      dataType: '',
+      data_type: '',
     });
   });
 
@@ -78,13 +79,13 @@ describe('postExperimentScores', () => {
 
     expect(postedScores.length).toBe(1);
     expect(postedScores[0].body).toEqual({
-      resourceId: 'trace-1',
+      resource_id: 'trace-1',
       score: 0,
       label: 'FAIL',
       reason: 'Mismatch',
       name: 'accuracy',
       type: 'experiment',
-      dataType: '',
+      data_type: '',
     });
   });
 
@@ -195,6 +196,9 @@ describe('postExperimentScores', () => {
         traceId: 'trace-1',
         result: {
           evals: [
+            // Eval-result shape (camelCase) is the application's internal
+            // type — see EvalResult in postExperimentScores. The wire body
+            // emits `data_type` (snake_case) per CreateScoreBodySchema.
             { name: 'accuracy', score: 1, label: 'PASS', reason: 'Exact match', dataType: 'boolean' },
             { name: 'tone', score: 1, label: 'professional', reason: '', dataType: 'categorical' },
             { name: 'helpfulness', score: 4.2, label: '4.2', reason: 'Good', dataType: 'numeric' },
@@ -209,33 +213,33 @@ describe('postExperimentScores', () => {
     expect(postedScores.length).toBe(3);
 
     expect(postedScores[0].body).toEqual({
-      resourceId: 'trace-1',
+      resource_id: 'trace-1',
       score: 1,
       label: 'PASS',
       reason: 'Exact match',
       name: 'accuracy',
       type: 'experiment',
-      dataType: 'boolean',
+      data_type: 'boolean',
     });
 
     expect(postedScores[1].body).toEqual({
-      resourceId: 'trace-1',
+      resource_id: 'trace-1',
       score: 1,
       label: 'professional',
       reason: '',
       name: 'tone',
       type: 'experiment',
-      dataType: 'categorical',
+      data_type: 'categorical',
     });
 
     expect(postedScores[2].body).toEqual({
-      resourceId: 'trace-1',
+      resource_id: 'trace-1',
       score: 4.2,
       label: '4.2',
       reason: 'Good',
       name: 'helpfulness',
       type: 'experiment',
-      dataType: 'numeric',
+      data_type: 'numeric',
     });
   });
 
@@ -256,13 +260,102 @@ describe('postExperimentScores', () => {
 
     expect(postedScores.length).toBe(1);
     expect(postedScores[0].body).toEqual({
-      resourceId: 'trace-1',
+      resource_id: 'trace-1',
       score: 1,
       label: 'PASS',
       reason: 'Old style',
       name: 'legacy-eval',
       type: 'experiment',
-      dataType: '',
+      data_type: '',
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Hardening — contract test against the canonical schema.
+//
+// Pre-2026-05 the wire body used camelCase keys (`resourceId`, `dataType`).
+// CreateScoreBodySchema declares snake_case (`resource_id`, `data_type`); Zod
+// silently strips unknown keys, so the bug was invisible at the unit level
+// and the POST landed at the endpoint with a missing required field. The
+// scores never persisted but client-side eval execution still printed
+// "PASS", masking the failure.
+//
+// This test imports the schema directly and asserts every POST body
+// emitted by postExperimentScores parses cleanly against it. Any future
+// camelCase regression fails this gate, not at "users find empty
+// Evaluations tabs in production."
+// ---------------------------------------------------------------------------
+
+describe('postExperimentScores — schema contract', () => {
+  let postedBodies: any[];
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    postedBodies = [];
+    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (_, options) => {
+      if (options?.method === 'POST' && options.body) {
+        postedBodies.push(JSON.parse(options.body as string));
+      }
+      return new Response('OK', { status: 200 });
+    });
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+    vi.clearAllMocks();
+  });
+
+  it('every emitted body parses against CreateScoreBodySchema', async () => {
+    postExperimentScores(
+      {
+        traceId: 'trace-contract-1',
+        result: {
+          evals: [
+            // Canonical-format eval (post 1bba0911d unify): score+label+dataType.
+            { name: 'accuracy', score: 1, label: 'PASS', reason: 'Exact', dataType: 'boolean' },
+            // Legacy-format eval: passed-only, derives score+label.
+            { name: 'legacy', passed: false },
+            // Numeric data_type with non-binary value.
+            { name: 'helpfulness', score: 4.2, label: '4.2', reason: '', dataType: 'numeric' },
+          ],
+        },
+      },
+      'http://localhost:9418',
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(postedBodies.length).toBe(3);
+    for (const body of postedBodies) {
+      // The schema is the source of truth for the POST contract. Each body
+      // must parse cleanly — no extra/missing/wrong-case keys, all required
+      // fields present, types match. Failure here is the early signal for
+      // any future shape drift.
+      const parsed = CreateScoreBodySchema.safeParse(body);
+      expect(parsed.success, `body did not match CreateScoreBodySchema: ${JSON.stringify(body)} — issue: ${JSON.stringify(parsed.error?.issues)}`).toBe(true);
+    }
+  });
+
+  it('does not include legacy camelCase keys in the body', async () => {
+    // Belt-and-suspenders: assert the historical wrong keys never appear.
+    postExperimentScores(
+      {
+        traceId: 'trace-contract-2',
+        result: {
+          evals: [{ name: 'q', score: 1, label: 'PASS', reason: '', dataType: 'boolean' }],
+        },
+      },
+      'http://localhost:9418',
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(postedBodies.length).toBe(1);
+    const keys = Object.keys(postedBodies[0]);
+    expect(keys).not.toContain('resourceId');
+    expect(keys).not.toContain('dataType');
+    expect(keys).toContain('resource_id');
+    expect(keys).toContain('data_type');
   });
 });
