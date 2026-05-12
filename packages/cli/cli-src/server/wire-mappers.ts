@@ -17,6 +17,7 @@ import type {
   TracesResponse,
   SessionsResponse,
   ScoresResponse,
+  RequestsResponse,
 } from "./services/types";
 
 /** Map an OTEL numeric status code (string) to the canonical name. */
@@ -404,6 +405,67 @@ export function toScoresListWire(result: ScoresResponse): {
 } {
   return {
     data: result.scores.map(toScoreWire),
+    pagination: {
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Requests list wire shape — used by /v1/requests
+//
+// A "request" is one LLM-call record (GENERATION-type trace). The service
+// returns camelCase (`promptTokens`, `modelUsed`, …); the wire form is
+// snake_case to match the rest of /v1/*. Mirrors the `RequestResponseSchema`
+// in `@agentmark-ai/api-schemas` — the wire-mappers test pins them together.
+// ---------------------------------------------------------------------------
+
+export interface RequestWire {
+  id: string;
+  tenant_id: string;
+  app_id: string;
+  cost: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  latency_ms: number;
+  model_used: string;
+  status: string;
+  input: string;
+  output: string | null;
+  ts: string;
+  user_id: string;
+  prompt_name: string;
+  trace_id: string;
+  status_message: string;
+  props: string;
+}
+
+export function toRequestsListWire(result: RequestsResponse): {
+  data: RequestWire[];
+  pagination: { total: number; limit: number; offset: number };
+} {
+  return {
+    data: result.requests.map((r) => ({
+      id: r.id,
+      tenant_id: r.tenantId,
+      app_id: r.appId,
+      cost: r.cost,
+      prompt_tokens: r.promptTokens,
+      completion_tokens: r.completionTokens,
+      latency_ms: r.latencyMs,
+      model_used: r.modelUsed,
+      status: r.status,
+      input: r.input,
+      output: r.output,
+      ts: r.ts,
+      user_id: r.userId,
+      prompt_name: r.promptName,
+      trace_id: r.traceId,
+      status_message: r.statusMessage,
+      props: r.props,
+    })),
     pagination: {
       total: result.total,
       limit: result.limit,

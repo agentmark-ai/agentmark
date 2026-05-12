@@ -7,6 +7,7 @@ export * from "./schemas/common";
 export * from "./schemas/traces";
 export * from "./schemas/spans";
 export * from "./schemas/sessions";
+export * from "./schemas/requests";
 export * from "./schemas/scores";
 export * from "./schemas/score-configs";
 export * from "./schemas/metrics";

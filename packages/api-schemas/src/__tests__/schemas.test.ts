@@ -37,6 +37,9 @@ import {
   MetricsTimeSeriesPointSchema,
   MetricsResponseSchema,
   AnnotationQueuesListParamsSchema,
+  RequestsListParamsSchema,
+  RequestResponseSchema,
+  RequestsListResponseSchema,
 } from '../index';
 
 // ---------------------------------------------------------------------------
@@ -1011,5 +1014,102 @@ describe('ListPromptsResponseSchema', () => {
 
   it('rejects the legacy flat `{ paths }` shape', () => {
     expect(() => ListPromptsResponseSchema.parse({ paths: [] })).toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Requests schemas — `/v1/requests`
+// ---------------------------------------------------------------------------
+
+describe('RequestsListParamsSchema', () => {
+  it('applies pagination + sort_order defaults on empty input', () => {
+    const result = RequestsListParamsSchema.parse({});
+    expect(result.limit).toBe(50);
+    expect(result.offset).toBe(0);
+    expect(result.sort_order).toBe('desc');
+  });
+
+  it('coerces string limit/offset and accepts the filter dimensions', () => {
+    const result = RequestsListParamsSchema.parse({
+      limit: '25',
+      offset: '10',
+      start_date: '2026-01-01T00:00:00.000Z',
+      end_date: '2026-01-02T00:00:00.000Z',
+      status: 'ERROR',
+      user_id: 'user-1',
+      model: 'gpt-4o',
+      sort_by: 'latency',
+      sort_order: 'asc',
+      filter: '[{"field":"model","operator":"equals","value":"gpt-4o"}]',
+    });
+    expect(result).toMatchObject({
+      limit: 25,
+      offset: 10,
+      status: 'ERROR',
+      user_id: 'user-1',
+      model: 'gpt-4o',
+      sort_by: 'latency',
+      sort_order: 'asc',
+    });
+  });
+
+  it('rejects an unknown status value', () => {
+    expect(() => RequestsListParamsSchema.parse({ status: 'WARN' })).toThrow();
+  });
+
+  it('rejects a non-datetime start_date', () => {
+    expect(() => RequestsListParamsSchema.parse({ start_date: '2026-01-01' })).toThrow();
+  });
+
+  it('rejects a negative limit', () => {
+    expect(() => RequestsListParamsSchema.parse({ limit: -1 })).toThrow();
+  });
+});
+
+describe('RequestResponseSchema / RequestsListResponseSchema', () => {
+  const sampleRecord = {
+    id: 'span-1',
+    tenant_id: 'tenant-1',
+    app_id: 'app-1',
+    cost: 0.0042,
+    prompt_tokens: 156,
+    completion_tokens: 89,
+    latency_ms: 1234,
+    model_used: 'gpt-4o',
+    status: 'OK',
+    input: 'What is the capital of France?',
+    output: 'Paris.',
+    ts: '2026-01-15T10:30:00.000Z',
+    user_id: 'user-1',
+    prompt_name: 'geography-qa',
+    trace_id: 'trace-abc',
+    status_message: '',
+    props: '{"lang":"en"}',
+  };
+
+  it('accepts a fully-populated record', () => {
+    expect(RequestResponseSchema.parse(sampleRecord)).toEqual(sampleRecord);
+  });
+
+  it('accepts a null output', () => {
+    const value = { ...sampleRecord, output: null };
+    expect(RequestResponseSchema.parse(value)).toEqual(value);
+  });
+
+  it('rejects camelCase field names', () => {
+    const { model_used: _omit, ...rest } = sampleRecord;
+    expect(() => RequestResponseSchema.parse({ ...rest, modelUsed: 'gpt-4o' })).toThrow();
+  });
+
+  it('wraps records in the canonical { data, pagination } envelope', () => {
+    const value = {
+      data: [sampleRecord],
+      pagination: { total: 1, limit: 50, offset: 0 },
+    };
+    expect(RequestsListResponseSchema.parse(value)).toEqual(value);
+  });
+
+  it('rejects the legacy flat `{ requests }` shape', () => {
+    expect(() => RequestsListResponseSchema.parse({ requests: [sampleRecord] })).toThrow();
   });
 });

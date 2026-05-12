@@ -22,7 +22,8 @@ export type {
   ExperimentParams,
   ExperimentsResponse,
   ExperimentDetail,
-  PromptLogsParams,
-  PromptLogsResponse,
+  RequestsParams,
+  RequestsResponse,
+  RequestRecord,
   SpanKindBreakdownRecord,
 } from '@agentmark-ai/api-types';

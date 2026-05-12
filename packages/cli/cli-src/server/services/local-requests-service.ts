@@ -1,23 +1,23 @@
 import type { Database } from 'better-sqlite3';
 import type {
   VerifiedAppId,
-  PromptLogsParams,
-  PromptLogsResponse,
+  RequestsParams,
+  RequestsResponse,
 } from './types';
 import { mapStatusNameToCode, mapStatusCodeToName, msToIso } from './helpers';
 
-export class LocalPromptLogsService {
+export class LocalRequestsService {
   private readonly db: Database;
 
   constructor(db: Database) {
     this.db = db;
   }
 
-  async getPromptLogs(
+  async getRequests(
     _appId: VerifiedAppId,
-    params: PromptLogsParams,
+    params: RequestsParams,
     _dataRetentionDays?: number,
-  ): Promise<PromptLogsResponse> {
+  ): Promise<RequestsResponse> {
     const limit = params.limit;
     const offset = params.offset;
 
@@ -75,7 +75,7 @@ export class LocalPromptLogsService {
       LIMIT ? OFFSET ?
     `).all(...queryParams, limit, offset) as Array<Record<string, unknown>>;
 
-    const logs = rows.map((row) => ({
+    const requests = rows.map((row) => ({
       id: row.id as string,
       tenantId: '',
       appId: '',
@@ -96,7 +96,7 @@ export class LocalPromptLogsService {
     }));
 
     return {
-      logs,
+      requests,
       total: countRow.total,
       limit,
       offset,

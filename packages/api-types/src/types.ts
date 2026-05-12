@@ -971,8 +971,8 @@ export interface IAnalyticsService {
   getScoreScatter(ctx: TenantContext, nameA: string, nameB: string, dateRange: DateRange, source?: string): Promise<ScoreScatterResponse>;
   getDistinctMetadataKeys(ctx: TenantContext): Promise<string[]>;
 
-  // Prompt logs
-  getPromptLogs(ctx: TenantContext, params: PromptLogsParams): Promise<PromptLogsResponse>;
+  // Requests (individual LLM-call records, a.k.a. "generations")
+  getRequests(ctx: TenantContext, params: RequestsParams): Promise<RequestsResponse>;
 
   // Dimension-grouped ranking data (for widget groupBy)
   getRankingData(ctx: TenantContext, dateRange: DateRange, dimension: string, limit?: number, filters?: AnalyticsFilter[]): Promise<RankingDataResponse>;
@@ -994,13 +994,18 @@ export interface SpanKindBreakdownRecord {
 }
 
 // ============================================================================
-// Prompt Logs Types
+// Requests Types
+//
+// A "request" is a single LLM-call record (a GENERATION-type trace with
+// input/output) — what other observability tools call a "generation" or
+// "run". Surfaced as `/v1/requests` on the local CLI dev server and
+// `/api/analytics/requests` on the cloud dashboard.
 // ============================================================================
 
 /**
- * Parameters for listing prompt logs.
+ * Parameters for listing requests.
  */
-export interface PromptLogsParams extends PaginationParams {
+export interface RequestsParams extends PaginationParams {
   startDate?: string;
   endDate?: string;
   model?: string;
@@ -1012,9 +1017,9 @@ export interface PromptLogsParams extends PaginationParams {
 }
 
 /**
- * Prompt log record (GENERATION type trace with input/output).
+ * Request record (GENERATION-type trace with input/output).
  */
-export interface PromptLogRecord {
+export interface RequestRecord {
   id: string;
   tenantId: string;
   appId: string;
@@ -1035,10 +1040,10 @@ export interface PromptLogRecord {
 }
 
 /**
- * Paginated response for prompt logs listing.
+ * Paginated response for requests listing.
  */
-export interface PromptLogsResponse {
-  logs: PromptLogRecord[];
+export interface RequestsResponse {
+  requests: RequestRecord[];
   total: number;
   limit: number;
   offset: number;
