@@ -231,6 +231,9 @@ describe('run-experiment', () => {
     await expect(runExperiment(dummyPath, {})).rejects.toThrow(/Loader or dataset is not defined/);
   });
 
+  // Four sequential runExperiment calls (two of which run the full experiment);
+  // the default 5s timeout is too tight on slower CI runners (notably Windows),
+  // so give it the same generous budget as the other experiment-running tests.
   it('validates threshold values (0-100 inclusive)', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
     runExperiment = (await import('../cli-src/commands/run-experiment')).default;
@@ -238,7 +241,7 @@ describe('run-experiment', () => {
     await expect(runExperiment(dummyPath, { thresholdPercent: -1 })).rejects.toThrow(/Invalid threshold/);
     await expect(runExperiment(dummyPath, { thresholdPercent: 0 })).resolves.toBeUndefined();
     await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).resolves.toBeUndefined();
-  });
+  }, 30000);
   it('outputs CSV format when --format=csv is specified', async () => {
     mockClientWithDataset([
       { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
