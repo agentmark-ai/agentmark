@@ -78,7 +78,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/api-schemas@workspace:*, @agentmark-ai/api-schemas@workspace:packages/api-schemas":
+"@agentmark-ai/api-schemas@npm:0.1.0, @agentmark-ai/api-schemas@workspace:packages/api-schemas":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/api-schemas@workspace:packages/api-schemas"
   dependencies:
@@ -89,11 +89,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/api-types@workspace:*, @agentmark-ai/api-types@workspace:packages/api-types":
+"@agentmark-ai/api-types@npm:0.1.0, @agentmark-ai/api-types@workspace:packages/api-types":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/api-types@workspace:packages/api-types"
   dependencies:
-    "@agentmark-ai/api-schemas": "workspace:*"
+    "@agentmark-ai/api-schemas": "npm:0.1.0"
     typescript: "npm:^5.5.3"
   languageName: unknown
   linkType: soft
@@ -131,8 +131,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/cli@workspace:packages/cli"
   dependencies:
-    "@agentmark-ai/api-schemas": "workspace:*"
-    "@agentmark-ai/api-types": "workspace:*"
+    "@agentmark-ai/api-schemas": "npm:0.1.0"
+    "@agentmark-ai/api-types": "npm:0.1.0"
     "@agentmark-ai/model-registry": "npm:0.2.4"
     "@agentmark-ai/prompt-core": "npm:0.4.2"
     "@agentmark-ai/shared-utils": "npm:0.3.3"
@@ -393,7 +393,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
-    "@agentmark-ai/api-schemas": "workspace:*"
+    "@agentmark-ai/api-schemas": "npm:0.1.0"
     "@agentmark-ai/prompt-core": "npm:0.4.2"
     "@chromatic-com/storybook": "npm:^4.1.1"
     "@codemirror/lang-json": "npm:^6.0.2"

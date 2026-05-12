@@ -151,7 +151,7 @@
     "vitest": "^4.0.4"
   },
   "dependencies": {
-    "@agentmark-ai/api-schemas": "workspace:*",
+    "@agentmark-ai/api-schemas": "0.1.0",
     "@agentmark-ai/prompt-core": "0.4.2",
     "@codemirror/lang-json": "^6.0.2",
     "@hookform/resolvers": "^5.2.2",

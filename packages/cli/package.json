@@ -24,8 +24,8 @@
     "agentmark": "dist/index.js"
   },
   "dependencies": {
-    "@agentmark-ai/api-schemas": "workspace:*",
-    "@agentmark-ai/api-types": "workspace:*",
+    "@agentmark-ai/api-schemas": "0.1.0",
+    "@agentmark-ai/api-types": "0.1.0",
     "@agentmark-ai/model-registry": "0.2.4",
     "@agentmark-ai/prompt-core": "0.4.2",
     "@agentmark-ai/shared-utils": "0.3.3",
