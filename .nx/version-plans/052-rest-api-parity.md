@@ -1,7 +1,7 @@
 ---
-"@agentmark-ai/api-schemas": major
-"@agentmark-ai/api-types": major
-"@agentmark-ai/cli": major
+"@agentmark-ai/api-schemas": minor
+"@agentmark-ai/api-types": minor
+"@agentmark-ai/cli": minor
 ---
 
 **REST API parity (spec 052):**

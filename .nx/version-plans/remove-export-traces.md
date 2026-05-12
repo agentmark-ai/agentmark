@@ -1,5 +1,5 @@
 ---
-"@agentmark-ai/cli": major
+"@agentmark-ai/cli": minor
 ---
 
 **BREAKING:** Remove `agentmark export traces` command.

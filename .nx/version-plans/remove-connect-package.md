@@ -1,5 +1,5 @@
 ---
-"@agentmark-ai/cli": major
+"@agentmark-ai/cli": minor
 ---
 
 **BREAKING:** Remove `@agentmark-ai/connect` package and the CLI `--remote` flag.
