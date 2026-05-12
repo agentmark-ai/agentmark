@@ -1,3 +1,30 @@
+## 0.10.6 (2026-05-12)
+
+### 🩹 Fixes
+
+- Accumulated small fixes shipped through OSS: ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/ui-components`: stop rendering `[object Object]` in the experiments error alert (surface the actual error message); show the Input/Output tab on trace reopen and avoid the placeholder flash; add `traceId` to the auto-displayed synthetic root span so the lazy IO fetch fires on first render.
+  - `@agentmark-ai/cli`: re-ships ui-components with the dashboard fixes above. Eval dispatch envelope handling normalized to accept both legacy and canonical shapes.
+  - `@agentmark-ai/create-agentmark`: scaffolded eval handler template aligned with the canonical dispatch envelope (paired with the cli fix).
+  - `@agentmark-ai/prompt-core`: internal rename `get-score-configs` → `get-evals` and removal of dead score-code paths. No exported API change.
+
+- **License change: MIT → AGPL-3.0-or-later.** ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  The runtime code is byte-identical to the previous patch release — only the
+  `LICENSE.md` file and the `license` field in each `package.json` change. Bumping
+  as a patch (not a major) because no compile/runtime behavior is affected.
+
+  **Downstream impact (please read before upgrading):** AGPL-3.0 has copyleft
+  and network-use obligations that MIT does not. Consumers using these packages
+  in proprietary or SaaS products may need to evaluate compatibility before
+  upgrading. Users who need the MIT terms can pin to the last MIT-licensed
+  release of each package.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/shared-utils to 0.3.3
+
 ## 0.10.5 (2026-04-14)
 
 ### 🩹 Fixes

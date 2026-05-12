@@ -1,3 +1,12 @@
+## 1.3.3 (2026-05-12)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.1
+- Updated @agentmark-ai/prompt-core to 0.4.2
+- Updated @agentmark-ai/templatedx to 0.3.1
+- Updated @agentmark-ai/sdk to 1.1.2
+
 ## 1.3.2 (2026-04-14)
 
 ### 🩹 Fixes

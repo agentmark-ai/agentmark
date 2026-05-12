@@ -1,3 +1,26 @@
+## 1.4.3 (2026-05-12)
+
+### 🩹 Fixes
+
+- **License change: MIT → AGPL-3.0-or-later.** ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  The runtime code is byte-identical to the previous patch release — only the
+  `LICENSE.md` file and the `license` field in each `package.json` change. Bumping
+  as a patch (not a major) because no compile/runtime behavior is affected.
+
+  **Downstream impact (please read before upgrading):** AGPL-3.0 has copyleft
+  and network-use obligations that MIT does not. Consumers using these packages
+  in proprietary or SaaS products may need to evaluate compatibility before
+  upgrading. Users who need the MIT terms can pin to the last MIT-licensed
+  release of each package.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.1
+- Updated @agentmark-ai/prompt-core to 0.4.2
+- Updated @agentmark-ai/templatedx to 0.3.1
+- Updated @agentmark-ai/sdk to 1.1.2
+
 ## 1.4.2 (2026-04-14)
 
 ### 🩹 Fixes
