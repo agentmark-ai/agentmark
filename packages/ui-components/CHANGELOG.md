@@ -1,3 +1,9 @@
+## 0.6.1 (2026-05-12)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.2.0
+
 ## 0.6.0 (2026-05-12)
 
 ### 🚀 Features
