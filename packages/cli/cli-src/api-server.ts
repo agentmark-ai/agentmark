@@ -32,6 +32,7 @@ import {
   toSessionsListWire,
   toScoresListWire,
   toScoreWire,
+  toRequestsListWire,
 } from "./server/wire-mappers";
 import db from "./server/database";
 import { getTemplateDXInstance } from "@agentmark-ai/prompt-core";
@@ -43,6 +44,7 @@ import {
   TracesListParamsSchema,
   SpansListParamsSchema,
   SessionsListParamsSchema,
+  RequestsListParamsSchema,
   ExperimentsListParamsSchema,
   DatasetsListParamsSchema,
   DatasetRowSchema,
@@ -1394,6 +1396,42 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting sessions:", error);
       return sendInternalError(res, "Failed to get sessions");
+    }
+  });
+
+  // /v1/requests — paginated list of LLM-call records (GENERATION-type
+  // traces with input/output, model, tokens, cost, latency). Same data
+  // the cloud dashboard surfaces at `/api/analytics/requests`.
+  app.get("/v1/requests", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(RequestsListParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
+    try {
+      // Map validated snake_case query → the service's camelCase params.
+      // The local SQLite backend honours model/status/pagination today;
+      // date-range, user_id, sort and the advanced `filter` DSL are part
+      // of the wire contract (cloud honours them) but ignored locally —
+      // same shape-vs-impl split as `/v1/traces`.
+      const {
+        start_date: startDate,
+        end_date: endDate,
+        user_id: userId,
+        sort_by: sortField,
+        sort_order: sortOrder,
+        filter: _filter,
+        ...rest
+      } = query.data as any;
+      const params: any = { ...rest };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (userId) params.userId = userId;
+      if (sortField) params.sortField = sortField;
+      if (sortOrder) params.sortOrder = sortOrder;
+
+      const result = await service.getRequests(localAppId, params);
+      return res.json(toRequestsListWire(result));
+    } catch (error) {
+      console.error("Error getting requests:", error);
+      return sendInternalError(res, "Failed to get requests");
     }
   });
 

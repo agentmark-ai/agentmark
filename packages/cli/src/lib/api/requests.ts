@@ -2,18 +2,25 @@ import { Request } from "@agentmark-ai/ui-components";
 import { API_URL } from "../../config/api";
 
 /**
- * Fetch the list of "requests" for the local CLI UI.
+ * Wire shape returned by `GET /v1/requests` (under `data`). snake_case,
+ * `ts` is an ISO datetime string — matches `RequestResponseSchema` in
+ * `@agentmark-ai/api-schemas`. The UI `Request` type is the same shape
+ * except `ts` is a `Date`, so the only transform on read is parsing it.
+ */
+interface RequestWire extends Omit<Request, "ts"> {
+  ts: string;
+}
+
+/**
+ * Fetch the list of "requests" (GENERATION-type traces) for the local
+ * CLI UI from `GET /v1/requests`.
  *
- * The api-server currently has no `/v1/requests` route, so this call
- * always 404s with the canonical error envelope. We treat that as an
- * empty list rather than crashing the page — the page is shipped in
- * the sidebar nav and visited by users browsing the dev UI; a blank
- * "no requests yet" state is the right surface until the route exists.
- *
- * The envelope-aware parsing matches the sibling consumers in this
- * folder (traces, sessions, experiments, scores) and keeps the read
- * forward-compatible if the server ever adds the endpoint with the
- * canonical `{ data, pagination }` shape.
+ * Envelope-aware parsing matches the sibling consumers in this folder
+ * (traces, sessions, experiments, scores): the canonical wire shape is
+ * `{ data: RequestWire[], pagination: { total, limit, offset } }`. The
+ * older flat `{ requests: [...] }` shape is tolerated for safety, and a
+ * non-OK response (e.g. the server predates this route) degrades to an
+ * empty list rather than crashing the page.
  */
 export const getRequests = async (): Promise<Request[]> => {
   try {
@@ -22,15 +29,12 @@ export const getRequests = async (): Promise<Request[]> => {
       return [];
     }
     const body = await response.json();
-    // Canonical wire shape (matches the rest of /v1/* on this server):
-    //   { data: Request[], pagination: { total, limit, offset } }
-    // Tolerate the older `{ requests: [...] }` shape for safety.
-    const requests: Request[] = Array.isArray(body?.data)
+    const rows: RequestWire[] = Array.isArray(body?.data)
       ? body.data
       : Array.isArray(body?.requests)
         ? body.requests
         : [];
-    return requests;
+    return rows.map((r) => ({ ...r, ts: new Date(r.ts) }));
   } catch (error) {
     console.error("Error fetching requests:", error);
     return [];

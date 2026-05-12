@@ -106,6 +106,20 @@ beforeAll(async () => {
     )
   `).run();
 
+  // Seed a GENERATION span on the same trace so GET /v1/requests has data.
+  testDb.prepare(`
+    INSERT INTO traces (
+      TraceId, SpanId, ParentSpanId, Type, Timestamp, Duration, SpanName, StatusCode,
+      Model, InputTokens, OutputTokens, Cost, Input, Output, UserId, PromptName,
+      StatusMessage, Props, CreatedAt
+    )
+    VALUES (
+      'trace-int-1', 'gen-int-1', 'span-int-1', 'GENERATION', '1704067200100000', 80,
+      'invoke gpt-4o', '1', 'gpt-4o', 156, 89, 0.0042, '{"q":"capital of France"}',
+      'Paris.', 'user-int-1', 'geography-qa', '', '{"lang":"en"}', datetime('now')
+    )
+  `).run();
+
   server = await createApiServer(0) as unknown as Server;
   const { port } = server.address() as AddressInfo;
   baseUrl = `http://localhost:${port}`;
@@ -377,6 +391,48 @@ describe('API server route integration', () => {
     expect(Array.isArray(body.data)).toBe(true);
   });
 
+  it('GET /v1/requests returns { data, pagination } with the seeded GENERATION span', async () => {
+    const res = await fetch(`${baseUrl}/v1/requests`);
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body).toHaveProperty('data');
+    expect(body).toHaveProperty('pagination');
+    expect(Array.isArray(body.data)).toBe(true);
+
+    const row = body.data.find((r: { id: string }) => r.id === 'gen-int-1');
+    expect(row).toBeDefined();
+    // snake_case wire shape — the contract external SDK consumers see.
+    expect(row).toMatchObject({
+      id: 'gen-int-1',
+      trace_id: 'trace-int-1',
+      model_used: 'gpt-4o',
+      prompt_tokens: 156,
+      completion_tokens: 89,
+      status: 'OK',
+      prompt_name: 'geography-qa',
+      user_id: 'user-int-1',
+    });
+    expect(row).not.toHaveProperty('modelUsed');
+  });
+
+  it('GET /v1/requests?model= filters to the matching model', async () => {
+    const match = await fetch(`${baseUrl}/v1/requests?model=gpt-4o`);
+    expect(match.status).toBe(200);
+    const matchBody = await match.json();
+    expect(matchBody.data.some((r: { id: string }) => r.id === 'gen-int-1')).toBe(true);
+
+    const miss = await fetch(`${baseUrl}/v1/requests?model=does-not-exist`);
+    const missBody = await miss.json();
+    expect(missBody.data).toEqual([]);
+    expect(missBody.pagination.total).toBe(0);
+  });
+
+  it('GET /v1/requests with invalid limit returns 400', async () => {
+    const res = await fetch(`${baseUrl}/v1/requests?limit=-1`);
+    expect(res.status).toBe(400);
+  });
+
   // Verify invalid limit/offset returns 400
   it('GET /v1/traces with invalid limit returns 400', async () => {
     const res = await fetch(`${baseUrl}/v1/traces?limit=-1`);
@@ -569,9 +625,4 @@ describe('API server route integration', () => {
     expect(body.endpoints.pricing).toBe(true);
   });
 
-  it('GET /v1/requests is removed (404)', async () => {
-    const res = await fetch(`${baseUrl}/v1/requests`);
-    // Express returns 404 for unregistered routes (via its default handler)
-    expect(res.status).not.toBe(200);
-  });
 });

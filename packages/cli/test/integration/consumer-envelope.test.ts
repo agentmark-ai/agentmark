@@ -402,23 +402,27 @@ describe('consumer-envelope - datasets', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getRequests - the api-server has no /v1/requests route, so the call
-// always 404s with the canonical error envelope. The pre-fix bug was
-// that getRequests read `data.requests` off the 404 body and returned
-// `undefined as Request[]`, which crashed the downstream `<Requests>`
-// component with `TypeError: Cannot read properties of undefined
-// (reading 'map')`. The 404 path now returns [] explicitly. The test
-// also covers the forward-compat path: if/when /v1/requests is added,
-// it must produce the canonical `{ data: [...] }` envelope and the
-// consumer must read it without regressing.
+// getRequests - reads `GET /v1/requests`, which lists GENERATION-type
+// traces in the canonical `{ data: [...], pagination }` envelope. The
+// seeded root span above is a GENERATION, so it surfaces here. The
+// consumer must (a) pull rows off `data`, never the legacy flat
+// `{ requests }`, and (b) parse the wire's ISO `ts` string into a
+// `Date` for the `<Requests>` UI component. A regression on either
+// re-introduces the original `Cannot read properties of undefined
+// (reading 'map')` / invalid-date crash.
 // ---------------------------------------------------------------------------
 
 describe('consumer-envelope - requests', () => {
-  it('getRequests returns [] when the route is absent (404 with error envelope)', async () => {
+  it('getRequests reads the canonical envelope and surfaces the seeded GENERATION span', async () => {
     const requests = await getRequests();
-    // The pre-fix bug returned `undefined` here because the consumer
-    // pulled `data.requests` off a 404 body without a status guard.
     expect(Array.isArray(requests)).toBe(true);
-    expect(requests).toHaveLength(0);
+
+    const seeded = requests.find((r) => r.id === SPAN_ID);
+    expect(seeded).toBeDefined();
+    expect(seeded!.model_used).toBe('gpt-4o-mini');
+    expect(seeded!.trace_id).toBe(TRACE_ID);
+    // The consumer parses the wire's ISO `ts` string into a Date.
+    expect(seeded!.ts).toBeInstanceOf(Date);
+    expect(Number.isNaN(seeded!.ts.getTime())).toBe(false);
   });
 });

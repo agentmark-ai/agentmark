@@ -18,8 +18,8 @@ import type {
   ExperimentParams,
   ExperimentsResponse,
   ExperimentDetail,
-  PromptLogsParams,
-  PromptLogsResponse,
+  RequestsParams,
+  RequestsResponse,
 } from './types';
 import { NotAvailableLocallyError } from './errors';
 import { LocalTracesService } from './local-traces-service';
@@ -27,7 +27,7 @@ import { LocalSessionsService } from './local-sessions-service';
 import { LocalScoresService } from './local-scores-service';
 import { LocalDatasetsService } from './local-datasets-service';
 import { LocalExperimentsService } from './local-experiments-service';
-import { LocalPromptLogsService } from './local-prompt-logs-service';
+import { LocalRequestsService } from './local-requests-service';
 
 /**
  * Local implementation of the analytics service backed by SQLite (better-sqlite3).
@@ -44,7 +44,7 @@ export class LocalObservabilityService {
   private readonly scores: LocalScoresService;
   private readonly datasets: LocalDatasetsService;
   private readonly experiments: LocalExperimentsService;
-  private readonly promptLogs: LocalPromptLogsService;
+  private readonly requests: LocalRequestsService;
 
   constructor(db: Database) {
     this.db = db;
@@ -53,7 +53,7 @@ export class LocalObservabilityService {
     this.scores = new LocalScoresService(db);
     this.datasets = new LocalDatasetsService(db);
     this.experiments = new LocalExperimentsService();
-    this.promptLogs = new LocalPromptLogsService(db);
+    this.requests = new LocalRequestsService(db);
   }
 
   // ---------------------------------------------------------------------------
@@ -314,15 +314,15 @@ export class LocalObservabilityService {
   }
 
   // ---------------------------------------------------------------------------
-  // Prompt Logs
+  // Requests
   // ---------------------------------------------------------------------------
 
-  async getPromptLogs(
+  async getRequests(
     appId: VerifiedAppId,
-    params: PromptLogsParams,
+    params: RequestsParams,
     dataRetentionDays?: number,
-  ): Promise<PromptLogsResponse> {
-    return this.promptLogs.getPromptLogs(appId, params, dataRetentionDays);
+  ): Promise<RequestsResponse> {
+    return this.requests.getRequests(appId, params, dataRetentionDays);
   }
 
   // ---------------------------------------------------------------------------

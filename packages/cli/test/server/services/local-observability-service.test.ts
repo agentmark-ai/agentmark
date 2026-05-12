@@ -883,15 +883,15 @@ describe('LocalObservabilityService', () => {
   });
 
   // -------------------------------------------------------------------------
-  // getPromptLogs
+  // getRequests
   // -------------------------------------------------------------------------
 
-  describe('getPromptLogs', () => {
-    it('should return empty logs when no generation spans exist', async () => {
-      const result = await service.getPromptLogs(APP_ID, { limit: 10, offset: 0 });
+  describe('getRequests', () => {
+    it('should return empty requests when no generation spans exist', async () => {
+      const result = await service.getRequests(APP_ID, { limit: 10, offset: 0 });
 
       expect(result).toEqual({
-        logs: [],
+        requests: [],
         total: 0,
         limit: 10,
         offset: 0,
@@ -902,32 +902,32 @@ describe('LocalObservabilityService', () => {
       insertTrace(testDb, { TraceId: 't1', SpanId: 'gen-1', Type: 'GENERATION', Model: 'claude', Cost: 0.05, InputTokens: 100, OutputTokens: 50, Duration: 500 });
       insertTrace(testDb, { TraceId: 't1', SpanId: 'span-1', Type: 'SPAN', Model: '', Duration: 1000 });
 
-      const result = await service.getPromptLogs(APP_ID, { limit: 50, offset: 0 });
+      const result = await service.getRequests(APP_ID, { limit: 50, offset: 0 });
 
       expect(result.total).toBe(1);
-      expect(result.logs).toHaveLength(1);
-      expect(result.logs[0].id).toBe('gen-1');
-      expect(result.logs[0].modelUsed).toBe('claude');
+      expect(result.requests).toHaveLength(1);
+      expect(result.requests[0].id).toBe('gen-1');
+      expect(result.requests[0].modelUsed).toBe('claude');
     });
 
     it('should filter by model', async () => {
       insertTrace(testDb, { TraceId: 't1', SpanId: 'gen-1', Type: 'GENERATION', Model: 'claude' });
       insertTrace(testDb, { TraceId: 't2', SpanId: 'gen-2', Type: 'GENERATION', Model: 'gpt-4' });
 
-      const result = await service.getPromptLogs(APP_ID, { limit: 50, offset: 0, model: 'claude' });
+      const result = await service.getRequests(APP_ID, { limit: 50, offset: 0, model: 'claude' });
 
       expect(result.total).toBe(1);
-      expect(result.logs[0].modelUsed).toBe('claude');
+      expect(result.requests[0].modelUsed).toBe('claude');
     });
 
     it('should filter by status name', async () => {
       insertTrace(testDb, { TraceId: 't1', SpanId: 'gen-1', Type: 'GENERATION', StatusCode: '1' });
       insertTrace(testDb, { TraceId: 't2', SpanId: 'gen-2', Type: 'GENERATION', StatusCode: '2' });
 
-      const result = await service.getPromptLogs(APP_ID, { limit: 50, offset: 0, status: 'ERROR' });
+      const result = await service.getRequests(APP_ID, { limit: 50, offset: 0, status: 'ERROR' });
 
       expect(result.total).toBe(1);
-      expect(result.logs[0].status).toBe('ERROR');
+      expect(result.requests[0].status).toBe('ERROR');
     });
   });
 
