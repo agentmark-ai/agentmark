@@ -1,3 +1,89 @@
+## 0.13.0 (2026-05-12)
+
+### 🚀 Features
+
+- Add POST /v1/scores/batch endpoint for bulk score ingestion (up to 1000 scores per request, 207-style per-item results). ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+- **REST API for managed deployments (spec 053):** ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/api-schemas`: New `schemas/deployments.ts` module with Zod schemas for managed deployment resources (additive — no breaking changes to existing schemas).
+  - `@agentmark-ai/api-types`: Regenerated to include the new deployment types.
+  - `@agentmark-ai/cli`: Local dev server now serves the deployment endpoints (cloud-only behavior returns 501 stubs); `openapi-spec.json` extended with deployment routes for consumers of the spec.
+
+- Add `?name=X` lookup to `/v1/prompts` (gateway + OSS): ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/api-schemas`: New `ListPromptsQuerySchema` accepting an optional `name` param, plus `ListPromptsBodySchema` (`{ paths: string[] }`) and `ListPromptsResponseSchema` envelope so consumers can resolve prompts by name without scanning a list.
+  - `@agentmark-ai/api-types`: Regenerated to include the new query/response types.
+  - `@agentmark-ai/cli`: Local dev server's `GET /v1/prompts` now accepts an optional `?name=X` query param and returns matching paths (single-element array on convention-match, possibly more on frontmatter scan).
+
+- Add "Test prompt" button to the trace drawer, surfacing the originating prompt's name/variables directly from a span: ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/ui-components`: New `TestPromptDialog` component plus `buildRunPromptCommand` (and `singleQuoteShellEscape` helper) under `./sections/traces/components`. New `extractSpanPromptName` and `extractSpanTemplateProps` helpers in `./sections/traces/utils/extract-span-data`. All additive — existing exports unchanged.
+  - `@agentmark-ai/cli`: Dashboard wires the new "Test prompt" button into the trace drawer; new `src/lib/api/prompts.ts` client + `src/lib/api/traces.ts` extensions for prompt resolution and wire-shape utilities used by the dialog.
+
+- Implement `GET /v1/pricing` on the local dev server. Serves the bundled `@agentmark-ai/model-registry` pricing snapshot so SDK consumers pointing at `agentmark dev` see the same cost data shape they'd get from cloud. ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+- **BREAKING:** Remove `@agentmark-ai/connect` package and the CLI `--remote` flag. ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - The `@agentmark-ai/connect` WebSocket client package is removed from the workspace. The package's last published version on npm (`0.2.1`) remains available for existing consumers but will not receive further updates.
+  - `agentmark dev --remote` is removed; the local dev server no longer establishes a websocket back to the cloud platform. Use platform-managed deployments instead (see spec 053 / `/v1/deployments`).
+  - The associated `JobHandler` and `WebSocketClient` imports in `cli-src/commands/dev.ts` are removed; the dev command no longer accepts `remote` in its options.
+
+- **BREAKING:** Remove `agentmark export traces` command. ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  The cloud gateway's `GET /v1/traces/export` endpoint has been deleted as part of the trace-API consolidation — the surface is now `GET /v1/traces` with filters, matching the industry convention (Langfuse, LangSmith, Arize). Client-side JSONL/CSV/OpenAI-format conversion is a three-line loop; see the `GET /v1/traces` docs for the replacement pattern.
+
+- **REST API parity (spec 052):** ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/api-schemas`: New Zod schemas for `score-configs` and `api-keys`. Extended `spans` with `start_date`, `end_date`, `user_id`, `session_id`, `filter` (JSON DSL). Added `session_id` to `scores`. Added `assigned_to_me` to `annotation-queues`. New canonical `DatasetSchema` + `DatasetsListParamsSchema`/`DatasetsListResponseSchema` for `/v1/datasets`. **Breaking:** `/v1/datasets` now returns the canonical `{ data: [{ name, row_count, created_at }], pagination }` envelope and accepts `name`/`limit`/`offset` query params. The legacy flat-shape response (`{ datasets: string[] }`) and `LegacyDatasetsListResponseSchema` are removed.
+  - `@agentmark-ai/api-types`: Regenerated to include the new schema-derived types.
+  - `@agentmark-ai/cli`: Local dev server now serves `GET /v1/score-configs` and `GET /v1/score-configs/{name}` from the local `agentmark.json`. Added 501 stubs for `/v1/api-keys` (cloud-only). **Breaking:** local `GET /v1/datasets` upgraded to the canonical paginated envelope (matches the cloud change). The dashboard `getDatasets()` helper now calls the new endpoint and extracts `name` from each row.
+
+
+### 🩹 Fixes
+
+- Fix route-ordering bug where `GET /v1/scores/aggregations` was being caught by `GET /v1/scores/:scoreId` (returning a 404 score-not-found instead of the intended 501 cloud-only stub). ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+- Build/lint fixes surfaced by the OSS Parity CI workflow (catches post-sync failures on PRs before they land): ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/ui-components`: Declare `@mui/system`, `@mui/x-data-grid`, and `@mui/x-date-pickers` as both peer- and dev-dependencies so TS `.d.ts` emission resolves these MUI internals at portable paths under the standalone install layout (yarn hoisting otherwise nests `@mui/system` under `@mui/material/node_modules/` and breaks TS2742 portability). Also add `@mui/utils@^7.3.11` as a direct devDep: `@mui/material@7.3.11` introduced internal subpath imports like `@mui/utils/useForcedRerendering` that only exist in `@mui/utils@7.3.11+`, but the root-hoisted `@mui/utils` would otherwise stay at 7.3.8 (constrained by `@mui/x-*`) and the nested `material/node_modules/@mui/utils@7.3.11` isn't visible to Vite/vitest's bare-specifier resolver — causing `Cannot find package '@mui/utils/useForcedRerendering'` failures in component tests that mount `Autocomplete`. Pinning utils at root keeps the subpath discoverable.
+  - `@agentmark-ai/cli`: Apply the existing `apiRateLimiter` (renamed from `templatesRateLimiter`) to `/v1/prompts`, `/v1/config`, and `POST /v1/datasets/:datasetName/rows` to address `js/missing-rate-limiting` CodeQL alerts. Convert two `let` declarations that were never reassigned (`useForwarding`, `metadata`) to `const`. Add a targeted ESLint suppression for the same-package `openapi-spec.json` import, which `import/no-restricted-paths` misfires on.
+  - `@agentmark-ai/loader-file`: Rename `vitest.config.ts` → `vitest.config.mts` so the test config loads as ESM in vitest 3.x without forcing the entire package to `type: module`.
+  - `@agentmark-ai/mcp-server`: Normalize the span shape returned by `HttpDataSource.fetchSpans()` from the CLI server's flat snake_case (`trace_id`, `duration_ms`, `input_tokens`, …) to the canonical camelCase `SpanData` shape. Previously the snake_case fields fell through to consumers undefined, breaking the trace drawer and any tool reading `span.traceId`. Older mocks/tests using the nested-camelCase shape continue to work.
+
+- Accumulated small fixes shipped through OSS: ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  - `@agentmark-ai/ui-components`: stop rendering `[object Object]` in the experiments error alert (surface the actual error message); show the Input/Output tab on trace reopen and avoid the placeholder flash; add `traceId` to the auto-displayed synthetic root span so the lazy IO fetch fires on first render.
+  - `@agentmark-ai/cli`: re-ships ui-components with the dashboard fixes above. Eval dispatch envelope handling normalized to accept both legacy and canonical shapes.
+  - `@agentmark-ai/create-agentmark`: scaffolded eval handler template aligned with the canonical dispatch envelope (paired with the cli fix).
+  - `@agentmark-ai/prompt-core`: internal rename `get-score-configs` → `get-evals` and removal of dead score-code paths. No exported API change.
+
+- Harden error parser to read gateway's canonical nested error envelope ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+  (`{ error: { code, message } }`). Previous flat-string shape is still
+  accepted as a fallback.
+
+- **License change: MIT → AGPL-3.0-or-later.** ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  The runtime code is byte-identical to the previous patch release — only the
+  `LICENSE.md` file and the `license` field in each `package.json` change. Bumping
+  as a patch (not a major) because no compile/runtime behavior is affected.
+
+  **Downstream impact (please read before upgrading):** AGPL-3.0 has copyleft
+  and network-use obligations that MIT does not. Consumers using these packages
+  in proprietary or SaaS products may need to evaluate compatibility before
+  upgrading. Users who need the MIT terms can pin to the last MIT-licensed
+  release of each package.
+
+- Bump `hono`, `next-intl`, and `ip-address` to satisfy Dependabot security advisories. No API or behavior changes. ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+- Periodic model-registry data sync — refreshes the bundled pricing/model snapshot served from the CLI's local `/v1/pricing` endpoint and consumed by SDKs that rely on the model-registry workspace dep. No API changes. ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/model-registry to 0.2.4
+- Updated @agentmark-ai/ui-components to 0.6.0
+- Updated @agentmark-ai/shared-utils to 0.3.3
+- Updated @agentmark-ai/api-schemas to 0.1.0
+- Updated @agentmark-ai/prompt-core to 0.4.2
+- Updated @agentmark-ai/templatedx to 0.3.1
+- Updated @agentmark-ai/api-types to 0.1.0
+
 ## 0.12.2 (2026-04-14)
 
 ### 🩹 Fixes

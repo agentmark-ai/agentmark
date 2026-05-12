@@ -1,3 +1,25 @@
+## 1.1.2 (2026-05-12)
+
+### 🩹 Fixes
+
+- Isolate the AgentMark tracer so it coexists with Sentry / other OpenTelemetry SDKs in the same process. Previously, registering AgentMark could clobber an existing global tracer provider (or vice-versa), causing both instrumentations to drop spans. The SDK now scopes its tracer to its own provider and only writes to the global as a fallback when none is set. ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+- **License change: MIT → AGPL-3.0-or-later.** ([#583](https://github.com/agentmark-ai/agentmark/pull/583))
+
+  The runtime code is byte-identical to the previous patch release — only the
+  `LICENSE.md` file and the `license` field in each `package.json` change. Bumping
+  as a patch (not a major) because no compile/runtime behavior is affected.
+
+  **Downstream impact (please read before upgrading):** AGPL-3.0 has copyleft
+  and network-use obligations that MIT does not. Consumers using these packages
+  in proprietary or SaaS products may need to evaluate compatibility before
+  upgrading. Users who need the MIT terms can pin to the last MIT-licensed
+  release of each package.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.4.2
+- Updated @agentmark-ai/loader-api to 0.1.1
+
 ## 1.1.1 (2026-04-14)
 
 ### 🧱 Updated Dependencies
