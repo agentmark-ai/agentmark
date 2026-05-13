@@ -30,7 +30,11 @@ beforeEach(() => {
 
 afterEach(() => {
   process.chdir(cwdBefore);
-  fs.rmSync(baseDir, { recursive: true, force: true });
+  // Windows: rmSync can race antivirus / file-system handles and fail
+  // with ENOTEMPTY even with `force: true`. maxRetries + retryDelay
+  // tell Node to back off and retry on ENOTEMPTY/EBUSY/EPERM/EMFILE/ENFILE.
+  // Effectively a no-op on Linux/macOS (succeeds first try).
+  fs.rmSync(baseDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
 /** Write a JSON-encoded BuiltPrompt envelope to the loader's base dir. */
