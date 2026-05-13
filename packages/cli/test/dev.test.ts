@@ -198,8 +198,9 @@ describe('agentmark dev', () => {
         child.stdout?.on('data', (data) => { stdout += data.toString(); });
         child.stderr?.on('data', (data) => { stderr += data.toString(); });
 
-        // Wait for servers to start
-        await wait(PLATFORM_TIMEOUTS.serverStartup);
+        // Poll until the API server accepts connections — a fixed sleep
+        // races the server bind and trips ECONNREFUSED under CI load.
+        const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
 
         // Debug: print output if servers didn't start
         if (stderr) {
@@ -208,6 +209,8 @@ describe('agentmark dev', () => {
         if (stdout) {
           console.log('STDOUT:', stdout);
         }
+
+        expect(serverReady).toBe(true);
 
         // Test API server /v1/prompts endpoint
         const listResp = await fetch(`http://127.0.0.1:${apiPort}/v1/prompts`);
