@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-11T01:06:12.666Z",
+  "generatedAt": "2026-05-13T01:10:01.648Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-11T01:06:12.666Z",
+      "fetchedAt": "2026-05-13T01:10:01.648Z",
       "modelCount": 1192
     },
     "openrouter": {
-      "fetchedAt": "2026-05-11T01:06:12.666Z",
-      "modelCount": 126
+      "fetchedAt": "2026-05-13T01:10:01.648Z",
+      "modelCount": 127
     }
   },
   "models": {
@@ -20099,8 +20099,8 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 1.3e-7,
-        "outputCostPerToken": 3.8e-7
+        "inputCostPerToken": 1.2e-7,
+        "outputCostPerToken": 3.7e-7
       },
       "context": {
         "maxInputTokens": 262144,
@@ -20473,12 +20473,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 1.5e-7,
-        "outputCostPerToken": 7.5e-7
+        "inputCostPerToken": 2.1e-7,
+        "outputCostPerToken": 7.9e-7
       },
       "context": {
-        "maxInputTokens": 32768,
-        "maxOutputTokens": 7168
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 32768
       },
       "capabilities": {
         "functionCalling": true,
@@ -23401,6 +23401,28 @@
         "maxOutputTokens": 163840
       },
       "deprecationDate": "2026-02-24"
+    },
+    "claude-opus-4.7-fast": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Opus 4.7 (Fast)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.00003,
+        "outputCostPerToken": 0.00015
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
     }
   }
 }
