@@ -285,9 +285,8 @@ const getAgentmarkClientContent = (deploymentMode: "cloud" | "static", adapter: 
   const loaderSetup = isCloud
     ? `# API loader for cloud deployment — fetches datasets from the AgentMark gateway
 loader = ApiLoader.cloud()`
-    : `# File loader for local development
-project_root = Path(__file__).parent.resolve()
-loader = FileLoader(base_dir=str(project_root))`;
+    : `# File loader for local development — reads pre-built prompts from the build output directory
+loader = FileLoader("./dist/agentmark")`;
 
   if (adapter === "claude-agent-sdk") {
     return `"""AgentMark client configuration.
@@ -298,7 +297,6 @@ Customize the model registry and eval registry as needed.
 
 import json
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 
 ${loaderImport}
@@ -366,7 +364,6 @@ Customize the model registry, tools, and eval registry as needed.
 
 import json
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 
 ${loaderImport}
