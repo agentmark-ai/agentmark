@@ -3,6 +3,7 @@ import fs from "fs";
 import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
+import { buildJUnitXml, type JUnitRow } from "../utils/junit-formatter.js";
 
 /**
  * Loads an AST from either a pre-built JSON file or an MDX file.
@@ -409,6 +410,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   let Table: any;
   let table: any;
   const jsonRows: any[] = []; // For buffering JSON format output
+  const junitRows: JUnitRow[] = []; // For buffering JUnit XML format output
   let experimentRunId: string | undefined; // Capture run ID for linking to all traces
 
   const reader = stream.getReader();
@@ -575,6 +577,24 @@ export default async function runExperiment(filepath: string, options: { skipEva
               obj[header] = row[idx] || '';
             });
             console.log(JSON.stringify(obj));
+          } else if (format === 'junit') {
+            // Buffer structured row data for JUnit XML emission after the
+            // stream completes. We capture raw values (not the table-display
+            // strings) so the formatter can decide how to stringify each
+            // payload type.
+            junitRows.push({
+              index,
+              input: r.input,
+              actualOutput: r.actualOutput,
+              expectedOutput: r.expectedOutput,
+              evals: evals.map((e: any) => ({
+                name: typeof e.name === 'string' ? e.name : 'unknown',
+                score: typeof e.score === 'number' ? e.score : undefined,
+                passed: typeof e.passed === 'boolean' ? e.passed : undefined,
+                label: typeof e.label === 'string' ? e.label : undefined,
+                reason: typeof e.reason === 'string' ? e.reason : undefined,
+              })),
+            });
           }
 
           // Print media paths immediately
@@ -598,6 +618,20 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // Output JSON format after streaming is complete
   if (format === 'json' && jsonRows.length > 0) {
     console.log(JSON.stringify(jsonRows, null, 2));
+  }
+
+  // Output JUnit XML after streaming is complete (one console.log call so
+  // users can redirect with `> results.xml` — the consumer's XML parser will
+  // ignore trailing whitespace).
+  if (format === 'junit') {
+    const suiteName = promptName || path.basename(resolvedFilepath);
+    const xml = buildJUnitXml(junitRows, {
+      suiteName,
+      promptPath: promptName,
+      commitSha,
+      runId: experimentRunId,
+    });
+    console.log(xml);
   }
 
   // Display link to view all experiment traces (only for text or object prompts)
@@ -625,10 +659,15 @@ export default async function runExperiment(filepath: string, options: { skipEva
       );
       throw new Error(`Experiment failed: pass rate ${passPct}% is below threshold ${t}%`);
     }
-    console.log(
-      `✅ Experiment passed threshold check\n` +
-      `   Pass rate: ${passPct}% (${passedEvals}/${totalEvals} evaluations passed)\n` +
-      `   Threshold: ${t}%`
-    );
+    // Skip the success banner for junit format: the XML is the only stdout
+    // payload, and trailing text would invalidate the document for any
+    // consumer redirecting with `> results.xml`.
+    if (format !== 'junit') {
+      console.log(
+        `✅ Experiment passed threshold check\n` +
+        `   Pass rate: ${passPct}% (${passedEvals}/${totalEvals} evaluations passed)\n` +
+        `   Threshold: ${t}%`
+      );
+    }
   }
 }

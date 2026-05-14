@@ -105,7 +105,7 @@ program
   .description('Run an experiment against its dataset, with evals by default')
   .option('--server <url>', 'URL of an AgentMark webhook server (e.g., http://localhost:9417)')
   .option('--skip-eval', 'Skip running evals even if they exist')
-  .option('--format <format>', 'Output format: table, csv, json, or jsonl (default: table)')
+  .option('--format <format>', 'Output format: table, csv, json, jsonl, or junit (default: table)')
   .option('--threshold <percent>', 'Fail if pass percentage is below threshold (0-100)', (v) => {
     const n = parseInt(v, 10);
     if (!Number.isFinite(n)) throw new Error('Threshold must be a number');
@@ -132,8 +132,8 @@ program
   .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number, truncate?: number }) => {
     try {
       const format = options.format || 'table';
-      if (!['table', 'csv', 'json', 'jsonl'].includes(format)) {
-        throw new Error('Format must be one of: table, csv, json, jsonl');
+      if (!['table', 'csv', 'json', 'jsonl', 'junit'].includes(format)) {
+        throw new Error('Format must be one of: table, csv, json, jsonl, junit');
       }
       const thresholdPercent = typeof options.threshold === 'number' ? options.threshold : undefined;
       await (runExperiment as any)(filepath, {
