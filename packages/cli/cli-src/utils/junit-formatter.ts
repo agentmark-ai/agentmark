@@ -19,6 +19,12 @@ export interface JUnitEval {
   passed?: boolean;
   label?: string;
   reason?: string;
+  /**
+   * Score for this `(row × scorer)` pair on the configured baseline run,
+   * when known. The regression gate fires when `score < baselineScore -
+   * regressionTolerance`. Absent for first-run / no-baseline cases.
+   */
+  baselineScore?: number;
 }
 
 export interface JUnitRow {
@@ -36,6 +42,15 @@ export interface JUnitSuiteOptions {
   commitSha?: string;
   promptPath?: string;
   runId?: string;
+  /**
+   * Fractional drop (0–1) below the baseline score that fails the regression
+   * gate. Only applied when an eval has a `baselineScore`. Suite-level —
+   * applies to every scorer that has a baseline. Reads from the prompt's
+   * `test_settings.regression_tolerance` frontmatter field at the call site.
+   */
+  regressionTolerance?: number;
+  /** Commit SHA used as the baseline for this run, if any. Recorded in `<properties>` for downstream tooling. */
+  baselineCommitSha?: string;
   /**
    * ISO 8601 timestamp for the suite. Defaults to `new Date().toISOString()` at
    * call time. Override in tests for deterministic output.
@@ -182,13 +197,28 @@ function buildTestcase(
   const rowName = row.rowId ?? `row-${row.index}`;
   const time = (row.durationSec ?? 0).toFixed(3);
 
-  const failed = evalResult?.passed === false;
+  // Two gate predicates, combined with OR — either failing fails the case.
+  //   absolute:    `passed === false` from the scorer itself
+  //   regression:  score dropped more than `regressionTolerance` below the
+  //                baseline. Skipped when no baseline is available, so first
+  //                runs and never-seen-before scorers don't false-fail.
+  const failedAbsolute = evalResult?.passed === false;
+  const regressionDelta = computeRegressionDelta(evalResult);
+  const tolerance = options.regressionTolerance;
+  const failedRegression =
+    typeof tolerance === 'number' &&
+    regressionDelta !== null &&
+    regressionDelta > tolerance;
+  const failed = failedAbsolute || failedRegression;
 
   const propertyLines: string[] = [];
   if (evalResult) {
     propertyLines.push(propertyLine('scorer', evalResult.name));
     if (typeof evalResult.score === 'number') {
       propertyLines.push(propertyLine('score', String(evalResult.score)));
+    }
+    if (typeof evalResult.baselineScore === 'number') {
+      propertyLines.push(propertyLine('baseline_score', String(evalResult.baselineScore)));
     }
     if (typeof evalResult.passed === 'boolean') {
       propertyLines.push(propertyLine('passed', String(evalResult.passed)));
@@ -197,8 +227,14 @@ function buildTestcase(
       propertyLines.push(propertyLine('label', evalResult.label));
     }
   }
+  if (typeof options.regressionTolerance === 'number') {
+    propertyLines.push(propertyLine('regression_tolerance', String(options.regressionTolerance)));
+  }
   if (options.commitSha) {
     propertyLines.push(propertyLine('commit_sha', options.commitSha));
+  }
+  if (options.baselineCommitSha) {
+    propertyLines.push(propertyLine('baseline_commit_sha', options.baselineCommitSha));
   }
   if (options.runId) {
     propertyLines.push(propertyLine('run_id', options.runId));
@@ -215,7 +251,7 @@ function buildTestcase(
   }
 
   if (failed) {
-    innerLines.push(buildFailureElement(row, evalResult));
+    innerLines.push(buildFailureElement(row, evalResult, { failedRegression, regressionDelta, tolerance }));
   }
 
   const testcaseAttrs = [
@@ -238,10 +274,48 @@ function buildTestcase(
   return { xml, failed };
 }
 
-function buildFailureElement(row: JUnitRow, evalResult: JUnitEval | null): string {
-  const message =
-    evalResult?.reason ||
-    (evalResult ? `${evalResult.name} did not pass` : 'no evaluator ran');
+/**
+ * Compute the fractional drop in this run's score relative to the baseline,
+ * or `null` if either side is missing. Returns a non-negative number; an
+ * improvement (score above baseline) returns 0 so the gate never fires on
+ * positive movement.
+ */
+function computeRegressionDelta(evalResult: JUnitEval | null): number | null {
+  if (!evalResult) return null;
+  if (typeof evalResult.score !== 'number') return null;
+  if (typeof evalResult.baselineScore !== 'number') return null;
+  if (evalResult.baselineScore <= 0) return null;
+  const delta = (evalResult.baselineScore - evalResult.score) / evalResult.baselineScore;
+  return delta > 0 ? delta : 0;
+}
+
+interface FailureContext {
+  failedRegression: boolean;
+  regressionDelta: number | null;
+  tolerance: number | undefined;
+}
+
+function buildFailureElement(
+  row: JUnitRow,
+  evalResult: JUnitEval | null,
+  ctx: FailureContext
+): string {
+  // Failure message reflects the actual gate that fired. Regression gate
+  // (when active) takes precedence in the message because it's the more
+  // surprising signal — the scorer itself "passed" but the run regressed
+  // below the configured tolerance.
+  let message: string;
+  if (ctx.failedRegression && ctx.regressionDelta !== null && typeof ctx.tolerance === 'number') {
+    const dropPct = (ctx.regressionDelta * 100).toFixed(1);
+    const tolPct = (ctx.tolerance * 100).toFixed(1);
+    message = evalResult
+      ? `${evalResult.name} regressed ${dropPct}% vs baseline (tolerance ${tolPct}%)`
+      : `regressed ${dropPct}% vs baseline (tolerance ${tolPct}%)`;
+  } else {
+    message =
+      evalResult?.reason ||
+      (evalResult ? `${evalResult.name} did not pass` : 'no evaluator ran');
+  }
 
   const label = (text: string) => text.padEnd(LABEL_WIDTH, ' ');
 
@@ -253,6 +327,12 @@ function buildFailureElement(row: JUnitRow, evalResult: JUnitEval | null): strin
   if (evalResult?.reason) bodyLines.push(`${label('Reason:')}${evalResult.reason}`);
   if (typeof evalResult?.score === 'number') {
     bodyLines.push(`${label('Score:')}${evalResult.score}`);
+  }
+  if (typeof evalResult?.baselineScore === 'number') {
+    bodyLines.push(`${label('Baseline:')}${evalResult.baselineScore}`);
+  }
+  if (ctx.failedRegression && ctx.regressionDelta !== null && typeof ctx.tolerance === 'number') {
+    bodyLines.push(`${label('Drop:')}${(ctx.regressionDelta * 100).toFixed(1)}% (tolerance ${(ctx.tolerance * 100).toFixed(1)}%)`);
   }
 
   return [

@@ -37,6 +37,7 @@
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.4.2",
     "@agentmark-ai/sdk": "1.1.2",
+    "@agentmark-ai/shared-utils": "*",
     "@agentmark-ai/templatedx": "*",
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.13.0",
@@ -46,6 +47,7 @@
     "vitest": "^3.0.8"
   },
   "dependencies": {
+    "@agentmark-ai/shared-utils": "*",
     "json-schema-to-zod": "^2.6.1",
     "zod": "^4.0.17"
   },

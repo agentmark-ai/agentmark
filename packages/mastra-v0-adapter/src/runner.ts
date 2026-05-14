@@ -7,6 +7,7 @@ import type { ToolsInput } from "@mastra/core/agent";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
 import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
+import { computeDatasetItemName } from "@agentmark-ai/shared-utils";
 import { span } from "@agentmark-ai/sdk";
 import type { SpanContext } from "@agentmark-ai/sdk";
 
@@ -337,11 +338,12 @@ export class MastraAdapterWebhookHandler<
                 ...(options.telemetry?.metadata ?? {}),
               };
 
+              const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
               const { result, traceId } = await span({
                 name: `ds-run-${datasetRunName}-${index}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
-                datasetItemName: String(index),
+                datasetItemName,
                 datasetExpectedOutput: item.dataset?.expected_output,
                 datasetPath: resolvedDatasetPath
               }, async (ctx: SpanContext) => {
@@ -453,11 +455,12 @@ export class MastraAdapterWebhookHandler<
                 ...(options.telemetry?.metadata ?? {}),
               };
 
+              const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
               const { result, traceId } = await span({
                 name: `ds-run-${datasetRunName}-${index}`,
                 datasetRunId: runId,
                 datasetRunName: datasetRunName,
-                datasetItemName: String(index),
+                datasetItemName,
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath
               }, async (ctx: SpanContext) => {

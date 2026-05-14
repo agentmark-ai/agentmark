@@ -105,6 +105,7 @@ __metadata:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.4.2"
     "@agentmark-ai/sdk": "npm:1.1.2"
+    "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@anthropic-ai/claude-agent-sdk": "npm:^0.1.0"
     "@opentelemetry/api": "npm:^1.9.0"
@@ -251,6 +252,7 @@ __metadata:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.4.2"
     "@agentmark-ai/sdk": "npm:1.1.2"
+    "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@mastra/core": "npm:^0.13.2"
     "@mastra/mcp": "npm:^0.13.0"
@@ -343,7 +345,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/shared-utils@npm:0.3.3, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
+"@agentmark-ai/shared-utils@npm:*, @agentmark-ai/shared-utils@npm:0.3.3, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/shared-utils@workspace:packages/shared-utils"
   dependencies:

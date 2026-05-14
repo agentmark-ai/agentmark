@@ -412,3 +412,136 @@ describe('buildJUnitXml — well-formedness', () => {
     expect(xml).toContain('</testsuites>');
   });
 });
+
+describe('buildJUnitXml — regression-vs-baseline gate', () => {
+  it('passes when score is at or above baseline (no regression)', () => {
+    const rows: JUnitRow[] = [
+      {
+        index: 1,
+        input: 'x',
+        actualOutput: 'y',
+        expectedOutput: 'z',
+        evals: [{ name: 'groundedness', score: 0.92, passed: true, baselineScore: 0.91 }],
+      },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(xml).toMatch(/failures="0"/);
+    expect(xml).not.toContain('<failure');
+    expect(xml).toContain('<property name="baseline_score" value="0.91"/>');
+    expect(xml).toContain('<property name="regression_tolerance" value="0.05"/>');
+  });
+
+  it('passes when drop is within tolerance', () => {
+    // baseline 0.90, score 0.87 → 3.3% drop → within 5% tolerance
+    const rows: JUnitRow[] = [
+      {
+        index: 1,
+        input: 'x',
+        actualOutput: 'y',
+        expectedOutput: 'z',
+        evals: [{ name: 'groundedness', score: 0.87, passed: true, baselineScore: 0.90 }],
+      },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(xml).toMatch(/failures="0"/);
+  });
+
+  it('fails when drop exceeds tolerance, even if absolute passed=true', () => {
+    // baseline 0.91, score 0.84 → ~7.7% drop → exceeds 5% tolerance
+    const rows: JUnitRow[] = [
+      {
+        index: 1,
+        input: 'x',
+        actualOutput: 'y',
+        expectedOutput: 'z',
+        evals: [{ name: 'groundedness', score: 0.84, passed: true, baselineScore: 0.91 }],
+      },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(xml).toMatch(/failures="1"/);
+    expect(xml).toContain('<failure message="groundedness regressed');
+    expect(xml).toContain('vs baseline');
+    expect(xml).toContain('tolerance 5.0%');
+  });
+
+  it('does not fire regression gate when no baseline is available', () => {
+    // Scorer passed absolutely; no baseline → regression check is skipped,
+    // case passes. This is the "first run" / "scorer added in PR only" path.
+    const rows: JUnitRow[] = [
+      {
+        index: 1,
+        input: 'x',
+        actualOutput: 'y',
+        expectedOutput: 'z',
+        evals: [{ name: 'new_scorer', score: 0.4, passed: true }],
+      },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(xml).toMatch(/failures="0"/);
+    expect(xml).not.toContain('baseline_score');
+  });
+
+  it('does not fire when tolerance is not configured', () => {
+    // Baseline present but no tolerance → behavior collapses to the absolute
+    // gate, which lets the case through here.
+    const rows: JUnitRow[] = [
+      {
+        index: 1,
+        input: 'x',
+        actualOutput: 'y',
+        expectedOutput: 'z',
+        evals: [{ name: 'groundedness', score: 0.5, passed: true, baselineScore: 0.99 }],
+      },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts());
+    expect(xml).toMatch(/failures="0"/);
+    expect(xml).not.toContain('regression_tolerance');
+  });
+
+  it('AND-combines: absolute pass + regression fail → fail; absolute fail + regression pass → fail', () => {
+    const rows: JUnitRow[] = [
+      // absolute pass, regression fail
+      { index: 1, input: 'x', actualOutput: 'y', expectedOutput: 'z',
+        evals: [{ name: 's', score: 0.5, passed: true, baselineScore: 1.0 }] },
+      // absolute fail, regression pass (improved)
+      { index: 2, input: 'x', actualOutput: 'y', expectedOutput: 'z',
+        evals: [{ name: 's', score: 0.9, passed: false, baselineScore: 0.8 }] },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(xml).toMatch(/failures="2"/);
+  });
+
+  it('regression-failure message names the scorer and quotes the drop', () => {
+    const rows: JUnitRow[] = [
+      {
+        index: 1,
+        input: 'x',
+        actualOutput: 'y',
+        expectedOutput: 'z',
+        evals: [{ name: 'faithfulness', score: 0.70, passed: true, baselineScore: 1.0 }],
+      },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.10 }));
+    expect(xml).toMatch(/<failure message="faithfulness regressed 30\.0% vs baseline \(tolerance 10\.0%\)"/);
+    expect(xml).toContain('Baseline:  1');
+    expect(xml).toContain('Drop:      30.0% (tolerance 10.0%)');
+  });
+
+  it('records baseline_commit_sha in <properties> when set', () => {
+    const rows: JUnitRow[] = [
+      { index: 1, input: 'x', actualOutput: 'y', expectedOutput: 'z',
+        evals: [{ name: 's', score: 0.9, passed: true, baselineScore: 0.9 }] },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ baselineCommitSha: 'abc1234' }));
+    expect(xml).toContain('<property name="baseline_commit_sha" value="abc1234"/>');
+  });
+
+  it('ignores baselineScore <= 0 (avoids division by zero / nonsense ratios)', () => {
+    const rows: JUnitRow[] = [
+      { index: 1, input: 'x', actualOutput: 'y', expectedOutput: 'z',
+        evals: [{ name: 's', score: 0.5, passed: true, baselineScore: 0 }] },
+    ];
+    const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(xml).toMatch(/failures="0"/);
+  });
+});
