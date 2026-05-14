@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-13T01:10:01.648Z",
+  "generatedAt": "2026-05-14T01:07:05.793Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-13T01:10:01.648Z",
-      "modelCount": 1192
+      "fetchedAt": "2026-05-14T01:07:05.793Z",
+      "modelCount": 1193
     },
     "openrouter": {
-      "fetchedAt": "2026-05-13T01:10:01.648Z",
-      "modelCount": 127
+      "fetchedAt": "2026-05-14T01:07:05.794Z",
+      "modelCount": 128
     }
   },
   "models": {
@@ -19930,12 +19930,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 1.4e-7,
-        "outputCostPerToken": 2.8e-7
+        "inputCostPerToken": 1.26e-7,
+        "outputCostPerToken": 2.52e-7
       },
       "context": {
         "maxInputTokens": 1048576,
-        "maxOutputTokens": 384000
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
@@ -23422,6 +23422,44 @@
         "vision": true,
         "functionCalling": true,
         "structuredOutput": true
+      }
+    },
+    "gpt-realtime-2": {
+      "provider": "openai",
+      "displayName": "Gpt Realtime 2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000004,
+        "outputCostPerToken": 0.000016,
+        "cacheReadCostPerToken": 4e-7
+      },
+      "context": {
+        "maxInputTokens": 32000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "audioInput": true,
+        "audioOutput": true
+      }
+    },
+    "deepseek-v4-flash:free": {
+      "provider": "deepseek",
+      "displayName": "DeepSeek: DeepSeek V4 Flash (free)",
+      "mode": "chat",
+      "source": "openrouter",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 256000
+      },
+      "capabilities": {
+        "functionCalling": true
       }
     }
   }

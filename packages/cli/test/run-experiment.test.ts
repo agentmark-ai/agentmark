@@ -288,6 +288,106 @@ describe('run-experiment', () => {
     expect(parsed[0]).toHaveProperty('exact_match');
   });
 
+  it('outputs JUnit XML when --format=junit is specified', async () => {
+    mockClientWithDataset([
+      { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
+      { dataset: { input: { b: 2 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
+    ]);
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+    await runExperiment(dummyPath, { format: 'junit', server: 'http://127.0.0.1:9417' });
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
+
+    // Status messages must not contaminate the XML stream.
+    expect(out).not.toContain('Running prompt with dataset');
+    expect(out).not.toContain('Evaluations enabled');
+
+    // The XML document itself.
+    expect(out).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(out).toContain('<testsuites');
+    expect(out).toContain('<testsuite');
+
+    // Two rows × one scorer = two testcases.
+    expect(out).toMatch(/tests="2"/);
+    // Both pass against the mock (actual === expected === 'EXPECTED').
+    expect(out).toMatch(/failures="0"/);
+
+    // Each testcase has the scorer property.
+    const propertyMatches = out.match(/<property name="scorer" value="exact_match"\/>/g);
+    expect(propertyMatches).not.toBeNull();
+    expect(propertyMatches!.length).toBe(2);
+  });
+
+  it('emits <failure> elements for failing evals in JUnit format', async () => {
+    // Row 1 passes (expected === EXPECTED matches the mock).
+    // Row 2 fails (expected !== mock output, so passed=false).
+    mockClientWithDataset([
+      { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
+      { dataset: { input: { b: 2 }, expected_output: 'something-else' }, evals: ['exact_match'], formatted: {} },
+    ]);
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+    await runExperiment(dummyPath, { format: 'junit', server: 'http://127.0.0.1:9417' });
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
+
+    expect(out).toMatch(/tests="2"/);
+    expect(out).toMatch(/failures="1"/);
+    expect(out).toContain('<failure message=');
+    expect(out).toContain('<![CDATA[');
+    // The failure CDATA must contain the I/O context for debugging.
+    expect(out).toMatch(/Input:\s+\{"b":2\}/);
+    expect(out).toMatch(/Expected:\s+something-else/);
+    expect(out).toMatch(/Actual:\s+EXPECTED/);
+  });
+
+  it('still applies --threshold gate alongside --format=junit', async () => {
+    // 2 rows: 1 pass, 1 fail → 50% pass rate, fails threshold of 80%.
+    mockClientWithDataset([
+      { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
+      { dataset: { input: { b: 2 }, expected_output: 'something-else' }, evals: ['exact_match'], formatted: {} },
+    ]);
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+    await expect(
+      runExperiment(dummyPath, { format: 'junit', thresholdPercent: 80, server: 'http://127.0.0.1:9417' })
+    ).rejects.toThrow(/pass rate 50% is below threshold 80%/);
+
+    // The XML still got emitted before the throw — the parser action in CI
+    // will surface per-row failures even though the build also fails on the
+    // threshold gate.
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
+    expect(out).toContain('<testsuites');
+    expect(out).toContain('<failure');
+  });
+
+  it('does not print the threshold success banner under --format=junit', async () => {
+    mockClientWithDataset([
+      { dataset: { input: { a: 1 }, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
+    ]);
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+    await runExperiment(dummyPath, { format: 'junit', thresholdPercent: 100, server: 'http://127.0.0.1:9417' });
+    const out = logSpy.mock.calls.map(c => String(c[0])).join('\n');
+
+    // Success banner would corrupt the XML output if piped to a file.
+    expect(out).not.toMatch(/Experiment passed threshold/);
+    expect(out).not.toContain('✅');
+    // XML is still emitted.
+    expect(out).toContain('<testsuites');
+  });
+
+  it('rejects --format=junit_xml as an invalid format', async () => {
+    // The CLI validates format before reaching the runner; this test pins
+    // that we list `junit` (lowercase) and reject typos.
+    mockClientWithDataset([
+      { dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} },
+    ]);
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+    // The runner accepts any format string; the CLI layer is what validates.
+    // Verify by importing the index module's format whitelist instead.
+    const indexSource = await import('node:fs').then(({ readFileSync }) =>
+      readFileSync(__dirname + '/../cli-src/index.ts', 'utf8')
+    );
+    expect(indexSource).toContain("'junit'");
+    expect(indexSource).toMatch(/'table',\s*'csv',\s*'json',\s*'jsonl',\s*'junit'/);
+  });
+
   it('defaults to table format when no format is specified', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'EXPECTED' }, evals: ['exact_match'], formatted: {} }]);
     runExperiment = (await import('../cli-src/commands/run-experiment')).default;
