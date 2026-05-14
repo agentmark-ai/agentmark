@@ -243,7 +243,12 @@ describe("experiment wrapper span (real OTel)", () => {
     expect(attrs["agentmark.dataset_run_name"]).toBe("my-experiment");
     expect(typeof attrs["agentmark.dataset_run_id"]).toBe("string");
     expect((attrs["agentmark.dataset_run_id"] as string).length).toBeGreaterThan(0);
-    expect(attrs["agentmark.dataset_item_name"]).toBe("0");
+    // Item name is a content-hashed identifier (computeDatasetItemName) —
+    // first 12 hex chars of MD5(canonical-JSON(dataset_input)). Verifying the
+    // format here pins that the runner is no longer writing the positional
+    // index, while leaving the specific hash undeclared so input-shape edits
+    // in this test don't cascade.
+    expect(attrs["agentmark.dataset_item_name"]).toMatch(/^[0-9a-f]{12}$/);
   });
 
   it("object experiment wrapper carries agentmark.input/output", async () => {

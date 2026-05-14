@@ -4,6 +4,7 @@ import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
 import { buildJUnitXml, type JUnitRow } from "../utils/junit-formatter.js";
+import { readTestSettings } from "../utils/test-settings.js";
 
 /**
  * Loads an AST from either a pre-built JSON file or an MDX file.
@@ -625,11 +626,17 @@ export default async function runExperiment(filepath: string, options: { skipEva
   // ignore trailing whitespace).
   if (format === 'junit') {
     const suiteName = promptName || path.basename(resolvedFilepath);
+    // Read test_settings from the AST on demand — the frontmatter is already
+    // part of the AST, so loadAst doesn't need to pre-extract individual
+    // fields. Validated against the canonical TestSettingsSchema; typos and
+    // out-of-range values yield `undefined` rather than silent behaviour.
+    const testSettings = await readTestSettings(ast);
     const xml = buildJUnitXml(junitRows, {
       suiteName,
       promptPath: promptName,
       commitSha,
       runId: experimentRunId,
+      regressionTolerance: testSettings?.regression_tolerance,
     });
     console.log(xml);
   }

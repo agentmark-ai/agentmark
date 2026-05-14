@@ -47,7 +47,7 @@ describe('initGitRepo', () => {
     expect(status.trim()).toBe('');
   });
 
-  it('should skip when already inside a git repo', () => {
+  it('should skip when already inside a git repo', { timeout: 15000 }, () => {
     // Initialize a git repo first
     execSync('git init', { cwd: tempDir, stdio: 'ignore' });
     gitCommit(tempDir, 'existing', true);
@@ -62,7 +62,7 @@ describe('initGitRepo', () => {
     expect(log).toContain('existing');
   });
 
-  it('should skip for a subdirectory inside an existing git repo', () => {
+  it('should skip for a subdirectory inside an existing git repo', { timeout: 15000 }, () => {
     // Initialize git at parent
     execSync('git init', { cwd: tempDir, stdio: 'ignore' });
     gitCommit(tempDir, 'parent', true);

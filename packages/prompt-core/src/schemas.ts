@@ -87,6 +87,17 @@ export const TestSettingsSchema = z.object({
   dataset: z.string().optional(),
   /** Eval function names to run during experiments. */
   evals: z.array(z.string()).optional(),
+  /**
+   * Maximum allowed drop in a scorer's score relative to its baseline before
+   * the case fails the regression gate. Expressed as a fraction (0.05 = 5%).
+   *
+   * Only fires when a baseline score is available for the row+scorer pair
+   * (i.e. when `agentmark run-experiment` was invoked with `--baseline-commit`
+   * and the baseline endpoint returned a score). When no baseline is
+   * available, this field has no effect and the case is gated only on its
+   * absolute pass/fail status.
+   */
+  regression_tolerance: z.number().min(0).max(1).optional(),
 });
 
 export type TestSettings = z.infer<typeof TestSettingsSchema>;

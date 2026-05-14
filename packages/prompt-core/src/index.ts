@@ -7,7 +7,7 @@ export { ObjectPrompt, TextPrompt } from "./prompts";
 export type { PromptFormatParams } from "./prompts";
 export type { AgentMarkOptions } from "./agentmark";
 
-export { TextConfigSchema, ObjectConfigSchema } from "./schemas";
+export { TextConfigSchema, ObjectConfigSchema, TestSettingsSchema } from "./schemas";
 
 export { applySampling, parseRowSelection, parseSplitSpec, validateSamplingOptions } from './sampling';
 

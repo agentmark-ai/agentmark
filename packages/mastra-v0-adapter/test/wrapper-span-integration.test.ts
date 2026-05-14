@@ -217,7 +217,10 @@ describe("experiment wrapper span (real OTel)", () => {
     expect(attrs["agentmark.dataset_run_name"]).toBe("my-experiment");
     expect(typeof attrs["agentmark.dataset_run_id"]).toBe("string");
     expect((attrs["agentmark.dataset_run_id"] as string).length).toBeGreaterThan(0);
-    expect(attrs["agentmark.dataset_item_name"]).toBe("0");
+    // Item name is a content-hashed identifier (computeDatasetItemName) —
+    // first 12 hex chars of MD5(canonical-JSON(dataset_input)). Pinning the
+    // format here guards against regressing to positional indices.
+    expect(attrs["agentmark.dataset_item_name"]).toMatch(/^[0-9a-f]{12}$/);
   });
 
   it("object experiment wrapper carries agentmark.input/output", async () => {
@@ -251,9 +254,17 @@ describe("experiment wrapper span (real OTel)", () => {
     const runIds = new Set(spans.map((s) => s.attributes["agentmark.dataset_run_id"]));
     expect(runIds.size).toBe(1);
 
-    // Each wrapper has its own item-name (the index).
-    for (let i = 0; i < spans.length; i++) {
-      expect(spans[i].attributes["agentmark.dataset_item_name"]).toBe(`${i}`);
+    // Each wrapper gets its own content-hashed item name. We assert
+    // (a) the format (12-char hex), and (b) uniqueness across distinct
+    // rows — the property that makes regression-vs-baseline comparison
+    // reliable. We deliberately don't pin the specific hash values so that
+    // edits to the fixture dataset don't cascade-break the assertion.
+    const itemNames = spans.map(
+      (s) => s.attributes["agentmark.dataset_item_name"] as string
+    );
+    for (const name of itemNames) {
+      expect(name).toMatch(/^[0-9a-f]{12}$/);
     }
+    expect(new Set(itemNames).size).toBe(itemNames.length);
   });
 });
