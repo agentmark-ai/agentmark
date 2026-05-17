@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-15T01:04:11.326Z",
+  "generatedAt": "2026-05-17T01:07:08.112Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-15T01:04:11.326Z",
+      "fetchedAt": "2026-05-17T01:07:08.112Z",
       "modelCount": 1193
     },
     "openrouter": {
-      "fetchedAt": "2026-05-15T01:04:11.326Z",
+      "fetchedAt": "2026-05-17T01:07:08.112Z",
       "modelCount": 128
     }
   },
@@ -7677,7 +7677,8 @@
       "capabilities": {
         "functionCalling": true,
         "promptCaching": true,
-        "reasoning": true
+        "reasoning": true,
+        "structuredOutput": true
       },
       "supportedParameters": [
         "frequency_penalty",
@@ -19930,12 +19931,11 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 1.26e-7,
-        "outputCostPerToken": 2.52e-7
+        "inputCostPerToken": 1.12e-7,
+        "outputCostPerToken": 2.24e-7
       },
       "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 131072
+        "maxInputTokens": 1048576
       },
       "capabilities": {
         "functionCalling": true,
@@ -20049,11 +20049,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 6e-8,
-        "outputCostPerToken": 3.3e-7
+        "inputCostPerToken": 7e-8,
+        "outputCostPerToken": 3.4e-7
       },
       "context": {
-        "maxInputTokens": 262144
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 16384
       },
       "capabilities": {
         "vision": true,
@@ -20521,10 +20522,11 @@
       ],
       "pricing": {
         "inputCostPerToken": 3.9e-8,
-        "outputCostPerToken": 1.8e-7
+        "outputCostPerToken": 1.9e-7
       },
       "context": {
-        "maxInputTokens": 131072
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
@@ -20939,7 +20941,7 @@
         "outputCostPerToken": 2.9e-7
       },
       "context": {
-        "maxInputTokens": 32768,
+        "maxInputTokens": 128000,
         "maxOutputTokens": 32768
       },
       "capabilities": {
