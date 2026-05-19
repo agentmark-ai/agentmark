@@ -17,3 +17,4 @@ export * from "./schemas/experiments";
 export * from "./schemas/api-keys";
 export * from "./schemas/prompts";
 export * from "./schemas/deployments";
+export * from "./schemas/alerts";
