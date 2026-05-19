@@ -1,3 +1,4 @@
+export * from "./expandable-cell";
 export * from "./experiment-charts";
 export * from "./experiment-detail";
 export * from "./experiment-comparison";
