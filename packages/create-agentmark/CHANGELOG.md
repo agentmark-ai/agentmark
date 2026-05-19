@@ -1,3 +1,9 @@
+## 0.10.8 (2026-05-19)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/shared-utils to 0.4.0
+
 ## 0.10.7 (2026-05-14)
 
 ### 🩹 Fixes

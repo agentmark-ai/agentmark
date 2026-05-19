@@ -1,3 +1,12 @@
+## 0.4.0 (2026-05-19)
+
+### 🚀 Features
+
+- Stable, content-hashed dataset item names for cross-runtime regression-vs-baseline comparison. ([#599](https://github.com/agentmark-ai/agentmark/pull/599))
+
+  - New shared utility `computeDatasetItemName(input, fallbackIndex)` in `@agentmark-ai/shared-utils` — first 12 hex chars of MD5 of canonical JSON, matching the pydantic-ai adapter's byte-for-byte format.
+  - Mastra and Claude Agent SDK adapters now use the new utility instead of `String(index)`. Item names survive dataset row reordering and produce identical identifiers across TypeScript and Python runtimes — a precondition for baseline lookup keying on `(prompt × scorer × row)`.
+
 ## 0.3.3 (2026-05-12)
 
 ### 🩹 Fixes
