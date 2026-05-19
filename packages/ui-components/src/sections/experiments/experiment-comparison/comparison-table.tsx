@@ -31,18 +31,14 @@ import type {
   ExperimentItemScore,
 } from "../types";
 import { ComparisonDiffView } from "./comparison-diff-view";
+import {
+  ExpandableCell,
+  OUTPUT_TRUNCATE_LENGTH,
+  scrollableCellSx,
+  truncateText,
+} from "../expandable-cell";
 
 // ----------------------------------------------------------------------
-
-const scrollableCellSx = {
-  maxWidth: 300,
-  maxHeight: 120,
-  overflow: "auto",
-  whiteSpace: "pre-wrap" as const,
-  wordBreak: "break-word" as const,
-};
-
-const OUTPUT_TRUNCATE_LENGTH = 120;
 
 const SORT_MODE_OPTIONS: ComparisonSortMode[] = [
   "item-name",
@@ -561,58 +557,6 @@ function ExperimentCells({
 
 // ----------------------------------------------------------------------
 
-function ExpandableCell({
-  text,
-  maxLength,
-  isExpanded,
-  onToggle,
-  t,
-}: {
-  text: string;
-  maxLength: number;
-  isExpanded: boolean;
-  onToggle: () => void;
-  t: (key: string) => string;
-}) {
-  if (!text) {
-    return (
-      <TableCell>
-        <Typography variant="body2" color="text.disabled">{"\u2013"}</Typography>
-      </TableCell>
-    );
-  }
-
-  const isTruncated = text.length > maxLength;
-  const displayText = isExpanded ? text : truncateText(text, maxLength);
-
-  return (
-    <TableCell sx={scrollableCellSx}>
-      <Stack spacing={0.5}>
-        <Typography
-          variant="caption"
-          component="div"
-          sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-        >
-          {displayText}
-        </Typography>
-        {isTruncated && (
-          <IconButton size="small" onClick={onToggle} sx={{ alignSelf: "flex-start" }}>
-            <Iconify
-              icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"}
-              width={16}
-            />
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              {isExpanded ? t("showLess") : t("showMore")}
-            </Typography>
-          </IconButton>
-        )}
-      </Stack>
-    </TableCell>
-  );
-}
-
-// ----------------------------------------------------------------------
-
 function EmptyCells() {
   return (
     <>
@@ -635,13 +579,6 @@ function EmptyCells() {
 // ----------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------
-
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return `${text.slice(0, maxLength)}...`;
-}
 
 function computeAvgDelta(deltas: ScoreDelta[]): number {
   if (deltas.length === 0) {
