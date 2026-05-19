@@ -102,6 +102,10 @@
       "name": "Deployments"
     },
     {
+      "description": "Threshold-based monitors with Slack/webhook triggers. The agent provisioning use case is the primary design target.",
+      "name": "Alerts"
+    },
+    {
       "name": "Requests",
       "description": "Individual LLM-call records (GENERATION-type traces)."
     }
