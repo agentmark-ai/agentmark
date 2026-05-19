@@ -495,6 +495,49 @@
             },
             "description": "Missing or invalid API key."
           },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "entitlement_required"
+                          ],
+                          "type": "string"
+                        },
+                        "current": {
+                          "type": "number"
+                        },
+                        "entitlement": {
+                          "type": "string"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "entitlement"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Tenant has reached the 'max_api_keys' limit for its tier."
+          },
           "403": {
             "content": {
               "application/json": {
