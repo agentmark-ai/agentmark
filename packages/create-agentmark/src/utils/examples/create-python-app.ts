@@ -26,13 +26,6 @@ const setupMCPServer = (client: string, targetPath: string) => {
         servers: {
           "agentmark-docs": {
             url: "https://docs.agentmark.co/mcp"
-          },
-          "agentmark-traces": {
-            command: "npx",
-            args: ["@agentmark-ai/mcp-server"],
-            env: {
-              AGENTMARK_URL: "http://localhost:9418"
-            }
           }
         }
       };
@@ -56,13 +49,6 @@ const setupMCPServer = (client: string, targetPath: string) => {
         context_servers: {
           "agentmark-docs": {
             url: "https://docs.agentmark.co/mcp"
-          },
-          "agentmark-traces": {
-            command: "npx",
-            args: ["@agentmark-ai/mcp-server"],
-            env: {
-              AGENTMARK_URL: "http://localhost:9418"
-            }
           }
         }
       };
@@ -86,13 +72,6 @@ const setupMCPServer = (client: string, targetPath: string) => {
         mcpServers: {
           "agentmark-docs": {
             url: "https://docs.agentmark.co/mcp"
-          },
-          "agentmark-traces": {
-            command: "npx",
-            args: ["@agentmark-ai/mcp-server"],
-            env: {
-              AGENTMARK_URL: "http://localhost:9418"
-            }
           }
         }
       };
@@ -115,13 +94,6 @@ const setupMCPServer = (client: string, targetPath: string) => {
           "agentmark-docs": {
             type: "http",
             url: "https://docs.agentmark.co/mcp"
-          },
-          "agentmark-traces": {
-            command: "npx",
-            args: ["@agentmark-ai/mcp-server"],
-            env: {
-              AGENTMARK_URL: "http://localhost:9418"
-            }
           }
         }
       };
@@ -815,6 +787,12 @@ export const createPythonApp = async (
       console.log("Note: You'll need to set up a virtual environment and install dependencies.");
       console.log("");
     }
+
+    // Install the AgentMark agent skill so this project's agents
+    // (Claude Code, Codex, Cursor, Copilot, etc.) know how to use AgentMark.
+    // Best-effort — failures are logged and do not break bootstrap.
+    const { installAgentmarkSkill } = await import("../install-skill");
+    installAgentmarkSkill(targetPath);
 
     // Success message
     console.log("\n✅ AgentMark Python initialization completed successfully!");

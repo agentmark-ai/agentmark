@@ -16,7 +16,12 @@
     "lint": "eslint --config cli-src/eslint.config.mjs cli-src",
     "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && yarn build:app",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate-skill-cli-reference": "tsx scripts/generate-skill-cli-reference.ts",
+    "generate-skill-frontmatter-reference": "tsx scripts/generate-skill-frontmatter-reference.ts",
+    "generate-skill-api-reference": "tsx scripts/generate-skill-api-reference.ts",
+    "generate-skill-models-reference": "tsx scripts/generate-skill-models-reference.ts",
+    "generate-skill-references": "yarn generate-skill-cli-reference && yarn generate-skill-frontmatter-reference && yarn generate-skill-api-reference && yarn generate-skill-models-reference"
   },
   "author": "",
   "license": "AGPL-3.0-or-later",
