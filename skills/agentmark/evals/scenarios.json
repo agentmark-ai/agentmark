@@ -1,0 +1,136 @@
+{
+  "$schema": "https://agentskills.io/eval-schema.json",
+  "comment": "Eval scenarios for the agentmark skill. Each positive scenario should auto-invoke the skill; each negative scenario should NOT. The `checks` array is machine-checkable by scripts/run-skill-evals.mjs; `expected_behavior` is human-readable rationale.",
+  "scenarios": [
+    {
+      "id": "create-prompt-positive",
+      "polarity": "positive",
+      "skills": ["agentmark"],
+      "query": "I just ran `npx create-agentmark` and have a project with agentmark.json. Create a text prompt that summarizes a paragraph passed in as a `text` prop.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Reads workflows/creating-prompts.md before scaffolding",
+        "Writes a .prompt.mdx file under the agentmarkPath directory",
+        "Frontmatter uses `text_config: { model_name: ... }`, NOT top-level model_name",
+        "Suggests running `npx agentmark run-prompt <path>` to test"
+      ],
+      "checks": [
+        { "type": "tool_used", "tool": "Skill" },
+        { "type": "file_read_match", "pattern": "workflows/creating-prompts\\.md" },
+        { "type": "file_written_match", "pattern": "\\.prompt\\.mdx$" },
+        { "type": "text_contains", "match": "run-prompt" }
+      ]
+    },
+    {
+      "id": "run-experiment-positive",
+      "polarity": "positive",
+      "skills": ["agentmark"],
+      "query": "How do I run my qa-bot prompt against my dataset and fail the build if pass rate drops below 80%?",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Reads workflows/running-experiments.md",
+        "Recommends `npx agentmark run-experiment ... --threshold 80`",
+        "Mentions CLI exits non-zero when below threshold",
+        "Distinguishes run-experiment from run-prompt"
+      ],
+      "checks": [
+        { "type": "tool_used", "tool": "Skill" },
+        { "type": "file_read_match", "pattern": "workflows/running-experiments\\.md" },
+        { "type": "text_contains", "match": "run-experiment" },
+        { "type": "text_contains", "match": "--threshold" }
+      ]
+    },
+    {
+      "id": "deploy-positive",
+      "polarity": "positive",
+      "skills": ["agentmark"],
+      "query": "I'm trying to deploy my agentmark project. I ran `npx agentmark deploy` and got an error. What do I do?",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Explains agentmark deploy was removed",
+        "Explains deployment is git-based",
+        "Does NOT attempt to invoke `agentmark deploy` again"
+      ],
+      "checks": [
+        { "type": "tool_used", "tool": "Skill" },
+        { "type": "text_contains", "match": "git" },
+        { "type": "text_contains_any", "matches": ["removed", "deprecated", "no longer"] },
+        { "type": "no_tool_call_command", "pattern": "agentmark deploy" }
+      ]
+    },
+    {
+      "id": "generic-llm-negative",
+      "polarity": "negative",
+      "skills": [],
+      "query": "What's the best prompt to summarize a paragraph using GPT-4?",
+      "fixture": "empty",
+      "expected_behavior": [
+        "Does NOT invoke the agentmark skill",
+        "Answers the prompt-engineering question directly",
+        "Does NOT push AgentMark conventions"
+      ],
+      "checks": [
+        { "type": "tool_not_used", "tool": "Skill" },
+        { "type": "text_does_not_contain", "match": ".prompt.mdx" },
+        { "type": "text_does_not_contain", "match": "agentmark.json" }
+      ]
+    },
+    {
+      "id": "openai-sdk-negative",
+      "polarity": "negative",
+      "skills": [],
+      "query": "Refactor chat.ts to add streaming.",
+      "fixture": "openai-project",
+      "expected_behavior": [
+        "Does NOT invoke the agentmark skill",
+        "Refactors using openai SDK streaming",
+        "Does NOT introduce @agentmark-ai/* imports"
+      ],
+      "checks": [
+        { "type": "tool_not_used", "tool": "Skill" },
+        { "type": "text_does_not_contain", "match": "@agentmark-ai" },
+        { "type": "text_contains_any", "matches": ["stream", "Stream"] }
+      ]
+    },
+    {
+      "id": "competitor-comparison-negative",
+      "polarity": "negative",
+      "skills": [],
+      "query": "Should I use AgentMark or Langfuse?",
+      "fixture": "empty",
+      "expected_behavior": [
+        "Does NOT invoke the agentmark skill",
+        "Answers the comparison fairly",
+        "Does NOT advocate for AgentMark beyond stating what it does"
+      ],
+      "checks": [
+        { "type": "tool_not_used", "tool": "Skill" },
+        { "type": "text_contains", "match": "Langfuse" }
+      ]
+    }
+  ],
+  "fixtures": {
+    "agentmark-project": {
+      "files": {
+        "agentmark.json": "{\"agentmarkPath\":\".\",\"version\":\"2.0.0\",\"mdxVersion\":\"1.0\"}",
+        "agentmark/qa-bot.prompt.mdx": "---\nname: qa-bot\ntext_config:\n  model_name: gpt-4o-mini\ninput_schema:\n  type: object\n  properties:\n    question:\n      type: string\n  required: [question]\ntest_settings:\n  dataset: ./qa-bot/data.jsonl\n---\n<System>You are a helpful assistant.</System>\n<User>{props.question}</User>\n",
+        "agentmark/qa-bot/data.jsonl": "{\"question\":\"What is 2+2?\"}\n"
+      }
+    },
+    "openai-project": {
+      "files": {
+        "chat.ts": "import OpenAI from \"openai\";\nconst client = new OpenAI();\nexport async function chat(messages: any[]) {\n  return await client.chat.completions.create({ model: \"gpt-4o\", messages });\n}\n"
+      }
+    },
+    "empty": {
+      "files": {}
+    }
+  },
+  "test_matrix": {
+    "models": ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-7"],
+    "comment": "Per Anthropic best practices, test all targeted models before shipping. The runner defaults to whatever model `claude -p` selects unless --model is passed."
+  }
+}
