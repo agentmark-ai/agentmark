@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-19T01:08:49.348Z",
+  "generatedAt": "2026-05-20T01:10:04.252Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-19T01:08:49.348Z",
-      "modelCount": 1193
+      "fetchedAt": "2026-05-20T01:10:04.252Z",
+      "modelCount": 1194
     },
     "openrouter": {
-      "fetchedAt": "2026-05-19T01:08:49.348Z",
-      "modelCount": 128
+      "fetchedAt": "2026-05-20T01:10:04.252Z",
+      "modelCount": 129
     }
   },
   "models": {
@@ -23461,6 +23461,38 @@
       "capabilities": {
         "functionCalling": true
       }
+    },
+    "gemini-3.5-flash": {
+      "provider": "google",
+      "displayName": "Google: Gemini 3.5 Flash",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000015,
+        "outputCostPerToken": 0.000009,
+        "cacheReadCostPerToken": 1.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65535
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioInput": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ]
     }
   }
 }
