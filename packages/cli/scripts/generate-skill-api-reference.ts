@@ -78,6 +78,18 @@ function loadSpec(): { byResource: Map<string, Op[]> } {
   return { byResource };
 }
 
+/**
+ * Markdown table cells use `|` as a column separator. Backslashes must be
+ * escaped first; CodeQL `js/incomplete-sanitization` flags pipe-escapes
+ * that don't precede with a backslash-escape.
+ */
+function escapeTableCell(s: string): string {
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\n/g, ' ');
+}
+
 function formatMarkdown(byResource: Map<string, Op[]>): string {
   const lines: string[] = [];
   lines.push('<!--');
@@ -108,7 +120,7 @@ function formatMarkdown(byResource: Map<string, Op[]>): string {
     lines.push('|---|---|---|---|');
     for (const op of byResource.get(r)!) {
       const cmd = '`npx agentmark api ' + r + ' ' + op.operationId + '`';
-      const summary = (op.summary ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+      const summary = escapeTableCell(op.summary ?? '');
       lines.push(`| ${cmd} | ${op.method} | \`${op.path}\` | ${summary} |`);
     }
     lines.push('');
@@ -133,7 +145,7 @@ function formatMarkdown(byResource: Map<string, Op[]>): string {
         lines.push('| Param | Where | Required? | Notes |');
         lines.push('|---|---|---|---|');
         for (const p of [...pathParams, ...queryParams]) {
-          const safeDesc = (p.description ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+          const safeDesc = escapeTableCell(p.description ?? '');
           lines.push(`| \`${p.name}\` | ${p.in} | ${p.required ? '✓' : ''} | ${safeDesc} |`);
         }
         lines.push('');

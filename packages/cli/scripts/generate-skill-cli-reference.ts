@@ -82,6 +82,19 @@ function extractCommands(sourceFile: ts.SourceFile): Command[] {
   return commands;
 }
 
+/**
+ * Markdown table cells use `|` as a column separator. Backslashes must be
+ * escaped first, otherwise `\|` in the source would render as a literal
+ * `\|` rather than an escaped pipe. CodeQL `js/incomplete-sanitization`
+ * flags any pipe-escape that doesn't precede with a backslash-escape.
+ */
+function escapeTableCell(s: string): string {
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\n/g, ' ');
+}
+
 function formatMarkdown(commands: Command[], cliVersion: string): string {
   const lines: string[] = [];
   lines.push('<!--');
@@ -123,8 +136,7 @@ function formatMarkdown(commands: Command[], cliVersion: string): string {
       lines.push('| Flag | Description |');
       lines.push('|---|---|');
       for (const opt of cmd.options) {
-        const safeDesc = opt.description.replace(/\|/g, '\\|').replace(/\n/g, ' ');
-        lines.push(`| \`${opt.flag}\` | ${safeDesc} |`);
+        lines.push(`| \`${opt.flag}\` | ${escapeTableCell(opt.description)} |`);
       }
       lines.push('');
     }

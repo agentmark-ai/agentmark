@@ -117,6 +117,18 @@ function extractSchemas(source: ts.SourceFile, raw: string): Schema[] {
   return schemas;
 }
 
+/**
+ * Markdown table cells use `|` as a column separator. Backslashes must be
+ * escaped first; CodeQL `js/incomplete-sanitization` flags pipe-escapes
+ * that don't precede with a backslash-escape.
+ */
+function escapeTableCell(s: string): string {
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\n/g, ' ');
+}
+
 function formatMarkdown(schemas: Schema[]): string {
   const lines: string[] = [];
   lines.push('<!--');
@@ -141,9 +153,9 @@ function formatMarkdown(schemas: Schema[]): string {
     lines.push('| Field | Type | Required? | Notes |');
     lines.push('|---|---|---|---|');
     for (const f of s.fields) {
-      const type = '`' + f.type.replace(/\|/g, '\\|') + '`';
+      const type = '`' + escapeTableCell(f.type) + '`';
       const required = f.optional ? '' : '✓';
-      const notes = (f.comment ?? '').replace(/\|/g, '\\|');
+      const notes = escapeTableCell(f.comment ?? '');
       lines.push(`| \`${f.name}\` | ${type} | ${required} | ${notes} |`);
     }
     lines.push('');

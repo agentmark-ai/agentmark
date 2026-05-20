@@ -131,8 +131,8 @@
 | `model_name` | `string` | ✓ |  |
 | `prompt` | `string` | ✓ |  |
 | `num_images` | `number` |  |  |
-| `size` | `z .string() .regex(/^\d+x\d+$/)` |  |  |
-| `aspect_ratio` | `z .string() .regex(/^\d+:\d+$/)` |  |  |
+| `size` | `z .string() .regex(/^\\d+x\\d+$/)` |  |  |
+| `aspect_ratio` | `z .string() .regex(/^\\d+:\\d+$/)` |  |  |
 | `seed` | `number` |  |  |
 
 ## `SpeechSettingsConfig`
