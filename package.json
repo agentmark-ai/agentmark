@@ -27,7 +27,7 @@
     "nx": "22.6.4",
     "shx": "^0.3.4",
     "tsup": "^8",
-    "turbo": "latest",
+    "turbo": "^2.9.14",
     "typescript": "^5"
   },
   "resolutions": {
