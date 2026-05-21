@@ -81,6 +81,7 @@ async def _handle_webhook(
                 data.get("datasetPath"),
                 data.get("sampling"),
                 data.get("commitSha"),
+                data.get("concurrency"),
             )
 
             # Dataset runs always stream

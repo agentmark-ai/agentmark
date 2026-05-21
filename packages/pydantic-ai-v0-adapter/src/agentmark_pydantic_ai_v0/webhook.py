@@ -30,7 +30,7 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
-from agentmark.prompt_core import AgentMark, get_front_matter
+from agentmark.prompt_core import AgentMark, get_front_matter, run_dataset_pool
 from agentmark.prompt_core.types import EvalFunction, EvalParams
 
 from .runner import run_object_prompt, run_text_prompt
@@ -341,6 +341,7 @@ class PydanticAIWebhookHandler:
         dataset_path: str | None = None,
         sampling: dict[str, Any] | None = None,
         commit_sha: str | None = None,
+        concurrency: int | None = None,
     ) -> dict[str, Any]:
         """Run an experiment across a dataset.
 
@@ -385,6 +386,7 @@ class PydanticAIWebhookHandler:
                 resolved_dataset_path,
                 sampling,
                 commit_sha,
+                concurrency,
             ),
             "streamHeaders": {"AgentMark-Streaming": "true"},
         }
@@ -398,6 +400,7 @@ class PydanticAIWebhookHandler:
         dataset_path: str | None,
         sampling: dict[str, Any] | None = None,
         commit_sha: str | None = None,
+        concurrency: int | None = None,
     ) -> AsyncIterator[str]:
         """Stream experiment results.
 
@@ -408,14 +411,14 @@ class PydanticAIWebhookHandler:
         if frontmatter.get("text_config"):
             async for chunk in self._stream_text_experiment(
                 prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling,
-                prompt_name, commit_sha,
+                prompt_name, commit_sha, concurrency,
             ):
                 yield chunk
 
         elif frontmatter.get("object_config"):
             async for chunk in self._stream_object_experiment(
                 prompt_ast, experiment_run_id, dataset_run_name, dataset_path, sampling,
-                prompt_name, commit_sha,
+                prompt_name, commit_sha, concurrency,
             ):
                 yield chunk
 
@@ -513,6 +516,7 @@ class PydanticAIWebhookHandler:
         sampling: dict[str, Any] | None = None,
         prompt_name: str | None = None,
         commit_sha: str | None = None,
+        concurrency: int | None = None,
     ) -> AsyncIterator[str]:
         """Stream text experiment results."""
         from agentmark_sdk import SpanOptions, span_context
@@ -521,15 +525,10 @@ class PydanticAIWebhookHandler:
         dataset = await prompt.format_with_dataset(dataset_path=dataset_path, sampling=sampling)
 
         reader = dataset.get_reader()
-        index = 0
-        while True:
-            read_result = await reader.read()
-            if read_result.get("done"):
-                break
 
-            item = read_result.get("value", {})
+        async def process_item(item: dict[str, Any], index: int) -> str:
             if item.get("type") == "error":
-                yield json.dumps(
+                return json.dumps(
                     {
                         "type": "error",
                         "error": item.get("error", "Unknown error"),
@@ -537,99 +536,111 @@ class PydanticAIWebhookHandler:
                         "runName": dataset_run_name,
                     }
                 )
-                continue
 
-            # Wrap in span with dataset attributes (for experiments tab)
-            dataset_input = item["dataset"].get("input")
-            async with span_context(SpanOptions(
-                name=f"experiment-{dataset_run_name}-{index}",
-                prompt_name=prompt_name,
-                dataset_run_id=experiment_run_id,
-                dataset_run_name=dataset_run_name,
-                dataset_item_name=hashlib.md5(
-                    json.dumps(dataset_input, sort_keys=True, default=str).encode()
-                ).hexdigest()[:12] if dataset_input else str(index),
-                dataset_expected_output=json.dumps(
-                    item["dataset"].get("expected_output")
-                ) if item["dataset"].get("expected_output") else None,
-                dataset_input=json.dumps(
-                    dataset_input, default=str
-                ) if dataset_input else None,
-                dataset_path=dataset_path,
-                metadata={"commit_sha": commit_sha} if commit_sha else None,
-            )) as ctx:
-                # Record the experiment iteration's template variables on the
-                # wrapper span as `agentmark.props`. The dataset row's `input`
-                # column IS the template variables for that iteration — that's
-                # what `format_with_dataset` consumed to render the prompt. The
-                # normalizer's agentmark-parser reads `agentmark.props` and
-                # populates `result.props`, which the trace drawer's Test
-                # Prompt button gates on; AgentMarkTransformer's input
-                # fallback (transformers/agentmark/index.ts:258) also maps
-                # this attribute to `result.input`, so the drawer's Input
-                # panel renders too. Don't ALSO write `agentmark.input` — it
-                # would erase the semantic distinction between "template vars"
-                # and "generic input data".
-                if dataset_input is not None:
+            try:
+                # Wrap in span with dataset attributes (for experiments tab)
+                dataset_input = item["dataset"].get("input")
+                async with span_context(SpanOptions(
+                    name=f"experiment-{dataset_run_name}-{index}",
+                    prompt_name=prompt_name,
+                    dataset_run_id=experiment_run_id,
+                    dataset_run_name=dataset_run_name,
+                    dataset_item_name=hashlib.md5(
+                        json.dumps(dataset_input, sort_keys=True, default=str).encode()
+                    ).hexdigest()[:12] if dataset_input else str(index),
+                    dataset_expected_output=json.dumps(
+                        item["dataset"].get("expected_output")
+                    ) if item["dataset"].get("expected_output") else None,
+                    dataset_input=json.dumps(
+                        dataset_input, default=str
+                    ) if dataset_input else None,
+                    dataset_path=dataset_path,
+                    metadata={"commit_sha": commit_sha} if commit_sha else None,
+                )) as ctx:
+                    # Record the experiment iteration's template variables on
+                    # the wrapper span as `agentmark.props`. The dataset row's
+                    # `input` column IS the template variables for that
+                    # iteration — that's what `format_with_dataset` consumed to
+                    # render the prompt. The normalizer's agentmark-parser
+                    # reads `agentmark.props` and populates `result.props`,
+                    # which the trace drawer's Test Prompt button gates on;
+                    # AgentMarkTransformer's input fallback
+                    # (transformers/agentmark/index.ts:258) also maps this
+                    # attribute to `result.input`, so the drawer's Input panel
+                    # renders too. Don't ALSO write `agentmark.input` — it
+                    # would erase the semantic distinction between "template
+                    # vars" and "generic input data".
+                    if dataset_input is not None:
+                        try:
+                            ctx.set_attribute(
+                                "agentmark.props",
+                                json.dumps(dataset_input, default=str),
+                            )
+                        except (TypeError, ValueError):
+                            pass
+
+                    # Run the formatted prompt
+                    result = await run_text_prompt(item["formatted"])
+
+                    # Record the model output on the wrapper span.
+                    # `agentmark.output` is the canonical attribute key (no
+                    # fallback needed; the transformer reads it directly).
                     try:
                         ctx.set_attribute(
-                            "agentmark.props",
-                            json.dumps(dataset_input, default=str),
+                            "agentmark.output",
+                            json.dumps(result.output, default=str),
                         )
                     except (TypeError, ValueError):
                         pass
 
-                # Run the formatted prompt
-                result = await run_text_prompt(item["formatted"])
-
-                # Record the model output on the wrapper span. `agentmark.output`
-                # is the canonical attribute key (no fallback needed; the
-                # transformer reads it directly).
-                try:
-                    ctx.set_attribute(
-                        "agentmark.output",
-                        json.dumps(result.output, default=str),
+                    # Execute evals if specified
+                    eval_names = item.get("evals") or []
+                    # Pass raw messages to evals (matching TS: formatted?.messages)
+                    formatted = item["formatted"]
+                    input_messages = (
+                        formatted._raw_messages
+                        if hasattr(formatted, "_raw_messages")
+                        else formatted.user_prompt
                     )
-                except (TypeError, ValueError):
-                    pass
+                    eval_results = await self._execute_evals(
+                        eval_names=eval_names,
+                        input_data=input_messages,
+                        output=result.output,
+                        expected_output=item["dataset"].get("expected_output"),
+                    )
 
-                # Execute evals if specified
-                eval_names = item.get("evals") or []
-                # Pass raw messages to evals (matching TS: formatted?.messages)
-                formatted = item["formatted"]
-                input_messages = (
-                    formatted._raw_messages
-                    if hasattr(formatted, "_raw_messages")
-                    else formatted.user_prompt
+                # Emit traceId as lowercase hex (matches OTLP JSON format used
+                # by the JSON exporter in agentmark_sdk). The server-side stream
+                # wrap in server.py consumes this and posts scores to /v1/scores.
+                trace_id_hex = ctx.trace_id
+
+                return json.dumps(
+                    {
+                        "type": "dataset",
+                        "result": {
+                            "input": item["dataset"].get("input"),
+                            "expectedOutput": item["dataset"].get("expected_output"),
+                            "actualOutput": result.output,
+                            "tokens": result.usage.total_tokens or 0,
+                            "evals": eval_results,
+                        },
+                        "traceId": trace_id_hex,
+                        "runId": experiment_run_id,
+                        "runName": dataset_run_name,
+                    }
                 )
-                eval_results = await self._execute_evals(
-                    eval_names=eval_names,
-                    input_data=input_messages,
-                    output=result.output,
-                    expected_output=item["dataset"].get("expected_output"),
+            except Exception as e:  # noqa: BLE001 — per-item policy is "emit error row, continue"
+                return json.dumps(
+                    {
+                        "type": "error",
+                        "error": str(e),
+                        "runId": experiment_run_id,
+                        "runName": dataset_run_name,
+                    }
                 )
 
-            # Emit traceId as lowercase hex (matches OTLP JSON format used
-            # by the JSON exporter in agentmark_sdk). The server-side stream
-            # wrap in server.py consumes this and posts scores to /v1/scores.
-            trace_id_hex = ctx.trace_id
-
-            yield json.dumps(
-                {
-                    "type": "dataset",
-                    "result": {
-                        "input": item["dataset"].get("input"),
-                        "expectedOutput": item["dataset"].get("expected_output"),
-                        "actualOutput": result.output,
-                        "tokens": result.usage.total_tokens or 0,
-                        "evals": eval_results,
-                    },
-                    "traceId": trace_id_hex,
-                    "runId": experiment_run_id,
-                    "runName": dataset_run_name,
-                }
-            )
-            index += 1
+        async for chunk in run_dataset_pool(reader, process_item, concurrency):
+            yield chunk
 
     async def _stream_object_experiment(
         self,
@@ -640,6 +651,7 @@ class PydanticAIWebhookHandler:
         sampling: dict[str, Any] | None = None,
         prompt_name: str | None = None,
         commit_sha: str | None = None,
+        concurrency: int | None = None,
     ) -> AsyncIterator[str]:
         """Stream object experiment results."""
         from agentmark_sdk import SpanOptions, span_context
@@ -648,15 +660,10 @@ class PydanticAIWebhookHandler:
         dataset = await prompt.format_with_dataset(dataset_path=dataset_path, sampling=sampling)
 
         reader = dataset.get_reader()
-        index = 0
-        while True:
-            read_result = await reader.read()
-            if read_result.get("done"):
-                break
 
-            item = read_result.get("value", {})
+        async def process_item(item: dict[str, Any], index: int) -> str:
             if item.get("type") == "error":
-                yield json.dumps(
+                return json.dumps(
                     {
                         "type": "error",
                         "error": item.get("error", "Unknown error"),
@@ -664,91 +671,102 @@ class PydanticAIWebhookHandler:
                         "runName": dataset_run_name,
                     }
                 )
-                continue
 
-            # Wrap in span with dataset attributes (for experiments tab)
-            dataset_input = item["dataset"].get("input")
-            async with span_context(SpanOptions(
-                name=f"experiment-{dataset_run_name}-{index}",
-                prompt_name=prompt_name,
-                dataset_run_id=experiment_run_id,
-                dataset_run_name=dataset_run_name,
-                dataset_item_name=hashlib.md5(
-                    json.dumps(dataset_input, sort_keys=True, default=str).encode()
-                ).hexdigest()[:12] if dataset_input else str(index),
-                dataset_expected_output=json.dumps(
-                    item["dataset"].get("expected_output")
-                ) if item["dataset"].get("expected_output") else None,
-                dataset_input=json.dumps(
-                    dataset_input, default=str
-                ) if dataset_input else None,
-                dataset_path=dataset_path,
-                metadata={"commit_sha": commit_sha} if commit_sha else None,
-            )) as ctx:
-                # Template variables — see _stream_text_experiment for the
-                # full rationale on writing `agentmark.props` here (parser →
-                # result.props for the Test Prompt button; transformer
-                # fallback → result.input for the drawer's Input panel).
-                if dataset_input is not None:
+            try:
+                # Wrap in span with dataset attributes (for experiments tab)
+                dataset_input = item["dataset"].get("input")
+                async with span_context(SpanOptions(
+                    name=f"experiment-{dataset_run_name}-{index}",
+                    prompt_name=prompt_name,
+                    dataset_run_id=experiment_run_id,
+                    dataset_run_name=dataset_run_name,
+                    dataset_item_name=hashlib.md5(
+                        json.dumps(dataset_input, sort_keys=True, default=str).encode()
+                    ).hexdigest()[:12] if dataset_input else str(index),
+                    dataset_expected_output=json.dumps(
+                        item["dataset"].get("expected_output")
+                    ) if item["dataset"].get("expected_output") else None,
+                    dataset_input=json.dumps(
+                        dataset_input, default=str
+                    ) if dataset_input else None,
+                    dataset_path=dataset_path,
+                    metadata={"commit_sha": commit_sha} if commit_sha else None,
+                )) as ctx:
+                    # Template variables — see _stream_text_experiment for the
+                    # full rationale on writing `agentmark.props` here (parser →
+                    # result.props for the Test Prompt button; transformer
+                    # fallback → result.input for the drawer's Input panel).
+                    if dataset_input is not None:
+                        try:
+                            ctx.set_attribute(
+                                "agentmark.props",
+                                json.dumps(dataset_input, default=str),
+                            )
+                        except (TypeError, ValueError):
+                            pass
+
+                    # Run the formatted prompt
+                    result = await run_object_prompt(item["formatted"])
+                    output = (
+                        result.output.model_dump()
+                        if hasattr(result.output, "model_dump")
+                        else result.output
+                    )
+
+                    # Record the model output on the wrapper span (canonical key).
                     try:
                         ctx.set_attribute(
-                            "agentmark.props",
-                            json.dumps(dataset_input, default=str),
+                            "agentmark.output",
+                            json.dumps(output, default=str),
                         )
                     except (TypeError, ValueError):
                         pass
 
-                # Run the formatted prompt
-                result = await run_object_prompt(item["formatted"])
-                output = (
-                    result.output.model_dump()
-                    if hasattr(result.output, "model_dump")
-                    else result.output
-                )
-
-                # Record the model output on the wrapper span (canonical key).
-                try:
-                    ctx.set_attribute(
-                        "agentmark.output",
-                        json.dumps(output, default=str),
+                    # Execute evals if specified
+                    eval_names = item.get("evals") or []
+                    # Pass raw messages to evals (matching TS: item.formatted.messages)
+                    formatted = item["formatted"]
+                    input_messages = (
+                        formatted._raw_messages
+                        if hasattr(formatted, "_raw_messages")
+                        else formatted.user_prompt
                     )
-                except (TypeError, ValueError):
-                    pass
+                    eval_results = await self._execute_evals(
+                        eval_names=eval_names,
+                        input_data=input_messages,
+                        output=output,
+                        expected_output=item["dataset"].get("expected_output"),
+                    )
 
-                # Execute evals if specified
-                eval_names = item.get("evals") or []
-                # Pass raw messages to evals (matching TS: item.formatted.messages)
-                formatted = item["formatted"]
-                input_messages = (
-                    formatted._raw_messages
-                    if hasattr(formatted, "_raw_messages")
-                    else formatted.user_prompt
+                # Emit traceId as lowercase hex (matches OTLP JSON format used
+                # by the JSON exporter in agentmark_sdk). The server-side stream
+                # wrap in server.py consumes this and posts scores to /v1/scores.
+                trace_id_hex = ctx.trace_id
+
+                return json.dumps(
+                    {
+                        "type": "dataset",
+                        "result": {
+                            "input": item["dataset"].get("input"),
+                            "expectedOutput": item["dataset"].get("expected_output"),
+                            "actualOutput": output,
+                            "tokens": result.usage.total_tokens or 0,
+                            "evals": eval_results,
+                        },
+                        "traceId": trace_id_hex,
+                        "runId": experiment_run_id,
+                        "runName": dataset_run_name,
+                    }
                 )
-                eval_results = await self._execute_evals(
-                    eval_names=eval_names,
-                    input_data=input_messages,
-                    output=output,
-                    expected_output=item["dataset"].get("expected_output"),
+            except Exception as e:  # noqa: BLE001 — per-item policy is "emit error row, continue"
+                return json.dumps(
+                    {
+                        "type": "error",
+                        "error": str(e),
+                        "runId": experiment_run_id,
+                        "runName": dataset_run_name,
+                    }
                 )
 
-            # Emit traceId as lowercase hex (matches OTLP JSON format used
-            # by the JSON exporter in agentmark_sdk). The server-side stream
-            # wrap in server.py consumes this and posts scores to /v1/scores.
-            trace_id_hex = ctx.trace_id
-
-            yield json.dumps(
-                {
-                    "type": "dataset",
-                    "result": {
-                        "input": item["dataset"].get("input"),
-                        "expectedOutput": item["dataset"].get("expected_output"),
-                        "actualOutput": output,
-                        "tokens": result.usage.total_tokens or 0,
-                        "evals": eval_results,
-                    },
-                    "traceId": trace_id_hex,
-                    "runId": experiment_run_id,
-                    "runName": dataset_run_name,
-                }
-            )
-            index += 1
+        async for chunk in run_dataset_pool(reader, process_item, concurrency):
+            yield chunk

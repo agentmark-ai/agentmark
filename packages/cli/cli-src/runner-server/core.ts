@@ -137,7 +137,7 @@ export async function handleWebhookRequest(
 
       let response;
       try {
-        response = await handler.runExperiment(data.ast, experimentId, data.datasetPath, data.sampling);
+        response = await handler.runExperiment(data.ast, experimentId, data.datasetPath, data.sampling, data.concurrency);
       } catch (e: any) {
         const errorMessage = e?.message || String(e);
         console.log(`   ❌ Experiment failed: ${errorMessage}`);

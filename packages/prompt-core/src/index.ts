@@ -39,6 +39,13 @@ export type { EvalFunction, EvalResult } from "./types";
 export { createPromptTelemetry } from "./runner";
 export type { WebhookDatasetResponse, WebhookDatasetChunk, WebhookPromptResponse, WebhookTextResponse, WebhookObjectResponse, WebhookImageResponse, WebhookSpeechResponse } from "./runner";
 
+// Experiment runner concurrency
+export {
+  runDatasetPool,
+  experimentErrorChunk,
+  DEFAULT_EXPERIMENT_CONCURRENCY,
+} from "./experiment";
+
 // MCP helpers and types
 export {
   parseMcpUri,

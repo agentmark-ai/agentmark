@@ -240,7 +240,7 @@ export function postExperimentScores(
   }
 }
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number; truncate?: number }) {
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number; truncate?: number; concurrency?: number }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
   const truncateLimit = options.truncate === 0 ? Infinity : (options.truncate ?? 1000);
@@ -340,7 +340,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(sampling ? { sampling } : {}), ...(commitSha ? { commitSha } : {}) } });
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(sampling ? { sampling } : {}), ...(commitSha ? { commitSha } : {}), ...(options.concurrency !== undefined ? { concurrency: options.concurrency } : {}) } });
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 

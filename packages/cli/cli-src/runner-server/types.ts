@@ -25,7 +25,7 @@ export interface TelemetryOptions {
  */
 export interface WebhookHandler {
   runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string, sampling?: Record<string, unknown>): Promise<WebhookDatasetResponse>;
+  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string, sampling?: Record<string, unknown>, concurrency?: number): Promise<WebhookDatasetResponse>;
 }
 
 /**
@@ -42,6 +42,7 @@ export interface WebhookRequest {
     datasetPath?: string;
     promptPath?: string;
     sampling?: Record<string, unknown>;
+    concurrency?: number;
   };
 }
 

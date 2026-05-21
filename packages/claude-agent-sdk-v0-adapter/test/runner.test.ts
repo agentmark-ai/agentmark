@@ -19,11 +19,17 @@ vi.mock("@agentmark-ai/templatedx", () => ({
   getFrontMatter: vi.fn(() => ({})),
 }));
 
-vi.mock("@agentmark-ai/prompt-core", () => ({
-  createPromptTelemetry: vi.fn(() => ({
-    telemetry: { isEnabled: false, promptName: "test" },
-  })),
-}));
+vi.mock("@agentmark-ai/prompt-core", async (importActual) => {
+  // Keep the real module (notably `runDatasetPool`, which the experiment
+  // runner depends on); only stub `createPromptTelemetry`.
+  const actual = await importActual<typeof import("@agentmark-ai/prompt-core")>();
+  return {
+    ...actual,
+    createPromptTelemetry: vi.fn(() => ({
+      telemetry: { isEnabled: false, promptName: "test" },
+    })),
+  };
+});
 
 // Import after mocks
 import { ClaudeAgentWebhookHandler } from "../src/runner";

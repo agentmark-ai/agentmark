@@ -324,6 +324,7 @@ class ClaudeAgentWebhookHandler:
         dataset_path: str | None = None,
         sampling: dict[str, Any] | None = None,
         commit_sha: str | None = None,
+        concurrency: int | None = None,
     ) -> ExperimentResult:
         """Run an experiment against a dataset.
 
@@ -394,6 +395,8 @@ class ClaudeAgentWebhookHandler:
             # pattern and avoids penalising module load when experiments are idle.
             from agentmark_sdk import SpanOptions, span_context
 
+            from agentmark.prompt_core import run_dataset_pool
+
             from .traced import traced_query
 
             # Emit experiment metadata
@@ -425,21 +428,22 @@ class ClaudeAgentWebhookHandler:
                     telemetry={"isEnabled": True},
                 )
 
-                item_index = 0
+                reader = dataset.get_reader()
+                processed = 0
 
-                async for item in dataset:
+                async def process_item(item: dict[str, Any], item_index: int) -> str:
+                    nonlocal processed
+                    processed += 1
+
                     # Check if this is an error chunk
                     if "error" in item:
-                        error_chunk = json.dumps(
+                        return json.dumps(
                             {
                                 "type": "experiment_item_error",
                                 "index": item_index,
                                 "error": item["error"],
                             }
                         )
-                        yield (error_chunk + "\n").encode()
-                        item_index += 1
-                        continue
 
                     # This is a valid data chunk
                     adapted = item.get("formatted")
@@ -555,7 +559,7 @@ class ClaudeAgentWebhookHandler:
                         # matches the pydantic adapter's structure. The server
                         # wrap in server.py consumes traceId from this chunk
                         # to post eval scores.
-                        result_chunk = json.dumps(
+                        return json.dumps(
                             {
                                 "type": "dataset",
                                 "result": {
@@ -570,10 +574,9 @@ class ClaudeAgentWebhookHandler:
                                 "runName": run_name,
                             }
                         )
-                        yield (result_chunk + "\n").encode()
 
                     except Exception as e:
-                        error_chunk = json.dumps(
+                        return json.dumps(
                             {
                                 "type": "experiment_item_error",
                                 "index": item_index,
@@ -581,12 +584,12 @@ class ClaudeAgentWebhookHandler:
                                 "error": str(e),
                             }
                         )
-                        yield (error_chunk + "\n").encode()
 
-                    item_index += 1
+                async for chunk in run_dataset_pool(reader, process_item, concurrency):
+                    yield (chunk + "\n").encode()
 
                 # Emit completion event
-                end_chunk = json.dumps({"type": "experiment_end", "totalItems": item_index})
+                end_chunk = json.dumps({"type": "experiment_end", "totalItems": processed})
                 yield (end_chunk + "\n").encode()
 
             except Exception as e:

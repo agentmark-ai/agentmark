@@ -28,6 +28,44 @@ vi.mock("ai", async () => {
   } as any;
 });
 
+// ---------------------------------------------------------------------------
+// Concurrency wire-threading (issue #2326)
+//
+// runner.ts imports `runDatasetPool` from @agentmark-ai/prompt-core and calls
+// it with the `concurrency` arg it received in runExperiment(...). The pool's
+// `concurrency` parameter is optional, so a dropped passthrough would not fail
+// typecheck. We partial-mock prompt-core: `runDatasetPool` becomes a spy that
+// still delegates to the real pool (via importActual), so the rest of the
+// adapter behaves normally while the `concurrency` argument stays observable.
+// ---------------------------------------------------------------------------
+const poolMock = vi.hoisted(() => ({
+  // The spy the runner actually calls.
+  runDatasetPool: vi.fn(),
+  // The real bounded pool, captured from the factory's importActual so we can
+  // re-install the passthrough after beforeEach's vi.clearAllMocks() wipes it.
+  realRunDatasetPool: undefined as
+    | typeof import("@agentmark-ai/prompt-core")["runDatasetPool"]
+    | undefined,
+}));
+
+vi.mock("@agentmark-ai/prompt-core", async (importActual) => {
+  const actual = await importActual<typeof import("@agentmark-ai/prompt-core")>();
+  poolMock.realRunDatasetPool = actual.runDatasetPool;
+  return { ...actual, runDatasetPool: poolMock.runDatasetPool };
+});
+
+/**
+ * Make the runDatasetPool spy delegate transparently to the real bounded pool.
+ * Called from beforeEach because vi.clearAllMocks() strips the implementation.
+ * With this in place the runner streams real dataset rows AND every call's
+ * `concurrency` argument is recorded on poolMock.runDatasetPool.mock.calls.
+ */
+function installPassthroughPool(): void {
+  poolMock.runDatasetPool.mockImplementation((...args: any[]) =>
+    (poolMock.realRunDatasetPool as any)(...args),
+  );
+}
+
 describe("VercelAdapterWebhookHandler", () => {
   let runner: VercelAdapterWebhookHandler;
   let client: ReturnType<typeof createAgentMarkClient<PromptShape<Record<string, never>>>>;
@@ -45,6 +83,9 @@ describe("VercelAdapterWebhookHandler", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // vi.clearAllMocks() also wiped the runDatasetPool spy's implementation —
+    // re-install the passthrough so the pool runs for real this test.
+    installPassthroughPool();
 
     const evals: EvalRegistry = {
       exact_match: async ({ output, expectedOutput }) => {
@@ -313,6 +354,56 @@ describe("VercelAdapterWebhookHandler", () => {
     }
     expect(rows.length).toBe(1);
     expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
+  });
+
+  // -------------------------------------------------------------------------
+  // concurrency threading: runExperiment(..., concurrency) → runDatasetPool
+  // -------------------------------------------------------------------------
+
+  /** Drain a dataset stream so the runner's runDatasetPool call actually runs. */
+  async function drainStream(stream: ReadableStream): Promise<void> {
+    const reader = stream.getReader();
+    for (;;) {
+      const { done } = await reader.read();
+      if (done) break;
+    }
+  }
+
+  it("should forward the concurrency argument to runDatasetPool when runExperiment is given one", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+    // runExperiment(promptAst, datasetRunName, datasetPath, sampling, concurrency)
+    const { stream } = await runner.runExperiment(ast, "run-concurrency", undefined, undefined, 3);
+    await drainStream(stream as ReadableStream);
+
+    expect(poolMock.runDatasetPool).toHaveBeenCalledTimes(1);
+    // Signature: runDatasetPool(reader, processItem, concurrency) — concurrency
+    // is the 3rd positional argument.
+    expect(poolMock.runDatasetPool.mock.calls[0][2]).toBe(3);
+  });
+
+  it("should pass concurrency=1 verbatim to runDatasetPool, not the pool default", async () => {
+    // 1 is a boundary value distinct from DEFAULT_EXPERIMENT_CONCURRENCY (20).
+    // If the passthrough were dropped, the 3rd arg would be undefined and the
+    // pool would silently fall back to 20 — this pins the literal value.
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+    const { stream } = await runner.runExperiment(ast, "run-concurrency-1", undefined, undefined, 1);
+    await drainStream(stream as ReadableStream);
+
+    expect(poolMock.runDatasetPool.mock.calls[0][2]).toBe(1);
+  });
+
+  it("should call runDatasetPool with an undefined concurrency when runExperiment is given none", async () => {
+    // No concurrency arg → runner forwards undefined → pool applies its own
+    // default. The assertion proves the runner does not substitute a value.
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+    const { stream } = await runner.runExperiment(ast, "run-no-concurrency");
+    await drainStream(stream as ReadableStream);
+
+    expect(poolMock.runDatasetPool).toHaveBeenCalledTimes(1);
+    expect(poolMock.runDatasetPool.mock.calls[0][2]).toBeUndefined();
   });
 
 });

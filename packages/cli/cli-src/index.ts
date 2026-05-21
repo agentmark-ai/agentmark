@@ -129,7 +129,12 @@ program
     if (!Number.isFinite(n) || n < 0) throw new Error('Truncate must be a non-negative integer');
     return n;
   })
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number, truncate?: number }) => {
+  .option('--concurrency <number>', 'Dataset rows to run in parallel (default: 20)', (v) => {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n) || n < 1) throw new Error('Concurrency must be a positive integer');
+    return n;
+  })
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number, truncate?: number, concurrency?: number }) => {
     try {
       const format = options.format || 'table';
       if (!['table', 'csv', 'json', 'jsonl', 'junit'].includes(format)) {
@@ -146,6 +151,7 @@ program
         split: options.split,
         seed: options.seed,
         truncate: options.truncate,
+        concurrency: options.concurrency,
       });
     } catch (error) {
       program.error((error as Error).message);

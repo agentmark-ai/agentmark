@@ -5,7 +5,7 @@ import type { MastraAdapter } from "./adapter";
 import { Agent } from "@mastra/core/agent";
 import type { ToolsInput } from "@mastra/core/agent";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
-import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
+import { createPromptTelemetry, runDatasetPool, experimentErrorChunk } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
 import { computeDatasetItemName } from "@agentmark-ai/shared-utils";
 import { span } from "@agentmark-ai/sdk";
@@ -304,7 +304,8 @@ export class MastraAdapterWebhookHandler<
     promptAst: Ast,
     datasetRunName: string,
     datasetPath?: string,
-    sampling?: Record<string, unknown>
+    sampling?: Record<string, unknown>,
+    concurrency?: number
   ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
@@ -324,101 +325,101 @@ export class MastraAdapterWebhookHandler<
       });
       const stream = new ReadableStream({
         async start(controller) {
-          let index = 0;
           const reader = dataset.getReader();
           try {
-            for (;;) {
-              const { value: item, done } = await reader.read();
-              if (done) break;
-              const formatted = item.formatted;
-              const [messages, options] = await formatted.formatMessages();
+            await runDatasetPool(reader, async (item, index) => {
+              try {
+                const formatted = item.formatted;
+                const [messages, options] = await formatted.formatMessages();
 
-              const agent = new Agent(formatted);
-              const telemetryMetadata: Record<string, any> = {
-                ...(options.telemetry?.metadata ?? {}),
-              };
+                const agent = new Agent(formatted);
+                const telemetryMetadata: Record<string, any> = {
+                  ...(options.telemetry?.metadata ?? {}),
+                };
 
-              const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
-              const { result, traceId } = await span({
-                name: `ds-run-${datasetRunName}-${index}`,
-                datasetRunId: runId,
-                datasetRunName: datasetRunName,
-                datasetItemName,
-                datasetExpectedOutput: item.dataset?.expected_output,
-                datasetPath: resolvedDatasetPath
-              }, async (ctx: SpanContext) => {
-                if (item.dataset?.input != null) {
-                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
-                }
-                const genResult = await agent.generate(messages, {
-                  ...options,
-                  telemetry: options.telemetry
-                    ? {
-                        ...options.telemetry,
-                        metadata: telemetryMetadata,
-                      }
-                    : undefined,
+                const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
+                const { result, traceId } = await span({
+                  name: `ds-run-${datasetRunName}-${index}`,
+                  datasetRunId: runId,
+                  datasetRunName: datasetRunName,
+                  datasetItemName,
+                  datasetExpectedOutput: item.dataset?.expected_output,
+                  datasetPath: resolvedDatasetPath
+                }, async (ctx: SpanContext) => {
+                  if (item.dataset?.input != null) {
+                    try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                  }
+                  const genResult = await agent.generate(messages, {
+                    ...options,
+                    telemetry: options.telemetry
+                      ? {
+                          ...options.telemetry,
+                          metadata: telemetryMetadata,
+                        }
+                      : undefined,
+                  });
+                  try {
+                    const outputText = (genResult as any).text || (genResult as any).content || String(genResult);
+                    ctx.setAttribute("agentmark.output", outputText);
+                  } catch { /* ignore */ }
+                  return genResult;
                 });
-                try {
-                  const outputText = (genResult as any).text || (genResult as any).content || String(genResult);
-                  ctx.setAttribute("agentmark.output", outputText);
-                } catch { /* ignore */ }
-                return genResult;
-              });
 
-              const response = await result;
-              const text =
-                (response as any).text ||
-                (response as any).content ||
-                String(response);
-              const usage = (response as any).usage;
+                const response = await result;
+                const text =
+                  (response as any).text ||
+                  (response as any).content ||
+                  String(response);
+                const usage = (response as any).usage;
 
-              let evalResults: any[] = [];
-              const scoreNames = item.evals ?? [];
-              if (
-                evalRegistry &&
-                Array.isArray(scoreNames) &&
-                scoreNames.length > 0
-              ) {
-                const evaluators = scoreNames
-                  .map((name: string) => {
-                    const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
-                    return fn ? { name, fn } : undefined;
-                  })
-                  .filter(Boolean) as Array<{ name: string; fn: any }>;
-                evalResults = await Promise.all(
-                  evaluators.map(async (e) => {
-                    const r = await e.fn({
-                      input: messages,
-                      output: text,
+                let evalResults: any[] = [];
+                const scoreNames = item.evals ?? [];
+                if (
+                  evalRegistry &&
+                  Array.isArray(scoreNames) &&
+                  scoreNames.length > 0
+                ) {
+                  const evaluators = scoreNames
+                    .map((name: string) => {
+                      const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
+                      return fn ? { name, fn } : undefined;
+                    })
+                    .filter(Boolean) as Array<{ name: string; fn: any }>;
+                  evalResults = await Promise.all(
+                    evaluators.map(async (e) => {
+                      const r = await e.fn({
+                        input: messages,
+                        output: text,
+                        expectedOutput: item.dataset?.expected_output,
+                      });
+                      return { name: e.name, ...r };
+                    })
+                  );
+                }
+
+                const chunk =
+                  JSON.stringify({
+                    type: "dataset",
+                    result: {
+                      input: item.dataset?.input,
                       expectedOutput: item.dataset?.expected_output,
-                    });
-                    return { name: e.name, ...r };
-                  })
-                );
+                      actualOutput: text,
+                      tokens:
+                        usage?.totalTokens ||
+                        (usage?.promptTokens &&
+                          usage?.completionTokens &&
+                          usage.promptTokens + usage.completionTokens),
+                      evals: evalResults,
+                    },
+                    runId,
+                    runName: datasetRunName,
+                    traceId,
+                  }) + "\n";
+                controller.enqueue(chunk);
+              } catch (err) {
+                controller.enqueue(experimentErrorChunk(err));
               }
-
-              const chunk =
-                JSON.stringify({
-                  type: "dataset",
-                  result: {
-                    input: item.dataset?.input,
-                    expectedOutput: item.dataset?.expected_output,
-                    actualOutput: text,
-                    tokens:
-                      usage?.totalTokens ||
-                      (usage?.promptTokens &&
-                        usage?.completionTokens &&
-                        usage.promptTokens + usage.completionTokens),
-                    evals: evalResults,
-                  },
-                  runId,
-                  runName: datasetRunName,
-                  traceId,
-                }) + "\n";
-              controller.enqueue(chunk);
-              index++;
-            }
+            }, concurrency);
             controller.close();
           } catch (error) {
             console.error("[Runner] Error processing dataset:", error);
@@ -441,99 +442,99 @@ export class MastraAdapterWebhookHandler<
       });
       const stream = new ReadableStream({
         async start(controller) {
-          let index = 0;
           const reader = dataset.getReader();
           try {
-            for (;;) {
-              const { value: item, done } = await reader.read();
-              if (done) break;
-              const formatted = item.formatted;
-              const [messages, options] = await formatted.formatMessages();
+            await runDatasetPool(reader, async (item, index) => {
+              try {
+                const formatted = item.formatted;
+                const [messages, options] = await formatted.formatMessages();
 
-              const agent = new Agent(formatted);
-              const telemetryMetadata: Record<string, any> = {
-                ...(options.telemetry?.metadata ?? {}),
-              };
+                const agent = new Agent(formatted);
+                const telemetryMetadata: Record<string, any> = {
+                  ...(options.telemetry?.metadata ?? {}),
+                };
 
-              const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
-              const { result, traceId } = await span({
-                name: `ds-run-${datasetRunName}-${index}`,
-                datasetRunId: runId,
-                datasetRunName: datasetRunName,
-                datasetItemName,
-                datasetExpectedOutput: item.dataset.expected_output,
-                datasetPath: resolvedDatasetPath
-              }, async (ctx: SpanContext) => {
-                if (item.dataset?.input != null) {
-                  try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
-                }
-                const genResult = await agent.generate(messages, {
-                  ...options,
-                  telemetry: options.telemetry
-                    ? {
-                        ...options.telemetry,
-                        metadata: telemetryMetadata,
-                      }
-                    : undefined,
+                const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
+                const { result, traceId } = await span({
+                  name: `ds-run-${datasetRunName}-${index}`,
+                  datasetRunId: runId,
+                  datasetRunName: datasetRunName,
+                  datasetItemName,
+                  datasetExpectedOutput: item.dataset.expected_output,
+                  datasetPath: resolvedDatasetPath
+                }, async (ctx: SpanContext) => {
+                  if (item.dataset?.input != null) {
+                    try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
+                  }
+                  const genResult = await agent.generate(messages, {
+                    ...options,
+                    telemetry: options.telemetry
+                      ? {
+                          ...options.telemetry,
+                          metadata: telemetryMetadata,
+                        }
+                      : undefined,
+                  });
+                  try {
+                    const obj = (genResult as any).object || genResult;
+                    const outputStr = typeof obj === 'string' ? obj : JSON.stringify(obj);
+                    ctx.setAttribute("agentmark.output", outputStr);
+                  } catch { /* ignore */ }
+                  return genResult;
                 });
-                try {
-                  const obj = (genResult as any).object || genResult;
-                  const outputStr = typeof obj === 'string' ? obj : JSON.stringify(obj);
-                  ctx.setAttribute("agentmark.output", outputStr);
-                } catch { /* ignore */ }
-                return genResult;
-              });
 
-              const response = await result;
-              const object = (response as any).object || response;
-              const usage = (response as any).usage;
+                const response = await result;
+                const object = (response as any).object || response;
+                const usage = (response as any).usage;
 
-              let evalResults: any[] = [];
-              const scoreNamesObj = item.evals ?? [];
-              if (
-                evalRegistry &&
-                Array.isArray(scoreNamesObj) &&
-                scoreNamesObj.length > 0
-              ) {
-                const evaluators = scoreNamesObj
-                  .map((name: string) => {
-                    const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
-                    return fn ? { name, fn } : undefined;
-                  })
-                  .filter(Boolean) as Array<{ name: string; fn: any }>;
-                evalResults = await Promise.all(
-                  evaluators.map(async (e) => {
-                    const r = await e.fn({
-                      input: messages,
-                      output: object,
+                let evalResults: any[] = [];
+                const scoreNamesObj = item.evals ?? [];
+                if (
+                  evalRegistry &&
+                  Array.isArray(scoreNamesObj) &&
+                  scoreNamesObj.length > 0
+                ) {
+                  const evaluators = scoreNamesObj
+                    .map((name: string) => {
+                      const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
+                      return fn ? { name, fn } : undefined;
+                    })
+                    .filter(Boolean) as Array<{ name: string; fn: any }>;
+                  evalResults = await Promise.all(
+                    evaluators.map(async (e) => {
+                      const r = await e.fn({
+                        input: messages,
+                        output: object,
+                        expectedOutput: item.dataset.expected_output,
+                      });
+                      return { name: e.name, ...r };
+                    })
+                  );
+                }
+
+                const chunk =
+                  JSON.stringify({
+                    type: "dataset",
+                    result: {
+                      input: item.dataset.input,
                       expectedOutput: item.dataset.expected_output,
-                    });
-                    return { name: e.name, ...r };
-                  })
-                );
+                      actualOutput: object,
+                      tokens:
+                        usage?.totalTokens ||
+                        (usage?.promptTokens &&
+                          usage?.completionTokens &&
+                          usage.promptTokens + usage.completionTokens),
+                      evals: evalResults,
+                    },
+                    runId,
+                    runName: datasetRunName,
+                    traceId,
+                  }) + "\n";
+                controller.enqueue(chunk);
+              } catch (err) {
+                controller.enqueue(experimentErrorChunk(err));
               }
-
-              const chunk =
-                JSON.stringify({
-                  type: "dataset",
-                  result: {
-                    input: item.dataset.input,
-                    expectedOutput: item.dataset.expected_output,
-                    actualOutput: object,
-                    tokens:
-                      usage?.totalTokens ||
-                      (usage?.promptTokens &&
-                        usage?.completionTokens &&
-                        usage.promptTokens + usage.completionTokens),
-                    evals: evalResults,
-                  },
-                  runId,
-                  runName: datasetRunName,
-                  traceId,
-                }) + "\n";
-              controller.enqueue(chunk);
-              index++;
-            }
+            }, concurrency);
             controller.close();
           } catch (error) {
             console.error("[Runner] Error processing dataset:", error);

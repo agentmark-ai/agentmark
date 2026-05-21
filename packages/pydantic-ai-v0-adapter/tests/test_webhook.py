@@ -410,6 +410,156 @@ class TestRunExperimentSampling:
     # The mocked version of this test passed even when webhook.py wrote
     # the wrong attribute key — see commit message of 316abe20d.
 
+
+@pytest.mark.asyncio
+class TestRunExperimentConcurrency:
+    """Concurrency wire-threading (issue #2326).
+
+    ``run_experiment(..., concurrency=N)`` must forward ``N`` down through
+    ``_stream_experiment`` / ``_stream_text_experiment`` into
+    ``run_dataset_pool(reader, process_item, concurrency)``. The pool's
+    ``concurrency`` parameter is optional (``None`` -> default 20), so a dropped
+    passthrough would not raise — this class is the guard for that gap.
+
+    webhook.py imports ``run_dataset_pool`` at module scope
+    (``from agentmark.prompt_core import ... run_dataset_pool``), so the patch
+    target is the name as bound in ``agentmark_pydantic_ai_v0.webhook``.
+    """
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create a mock AgentMark client with an empty dataset reader."""
+        client = MagicMock()
+        client.eval_registry = None
+
+        mock_prompt = MagicMock()
+        # Empty reader: run_dataset_pool is still called, just drains nothing.
+        mock_reader = MagicMock()
+        mock_reader.read = AsyncMock(return_value={"done": True})
+        mock_dataset = MagicMock()
+        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
+
+        mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
+        client.load_text_prompt = AsyncMock(return_value=mock_prompt)
+        return client
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> PydanticAIWebhookHandler:
+        """Create a webhook handler with mocked client."""
+        return PydanticAIWebhookHandler(mock_client)
+
+    @staticmethod
+    def _text_prompt_ast() -> dict[str, Any]:
+        return {
+            "type": "root",
+            "children": [
+                {
+                    "type": "yaml",
+                    "value": "text_config:\n  model_name: test\ntest_settings:\n  dataset: ./test.jsonl",
+                }
+            ],
+            "data": {},
+        }
+
+    @staticmethod
+    def _make_pool_spy() -> tuple[Any, list[Any]]:
+        """Build a stand-in for run_dataset_pool that records its 3rd argument.
+
+        The real ``run_dataset_pool`` is an async generator; the replacement
+        must be one too, or ``async for chunk in run_dataset_pool(...)`` in
+        webhook.py would raise. It records ``concurrency`` then yields nothing.
+        """
+        recorded: list[Any] = []
+
+        async def fake_pool(reader: Any, process_item: Any, concurrency: Any = None):  # noqa: ARG001
+            recorded.append(concurrency)
+            return
+            yield  # make this an async generator
+
+        return fake_pool, recorded
+
+    async def test_forwards_concurrency_to_run_dataset_pool(
+        self, handler: PydanticAIWebhookHandler
+    ) -> None:
+        """concurrency=4 passed to run_experiment must reach run_dataset_pool."""
+        fake_pool, recorded = self._make_pool_spy()
+
+        with patch(
+            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
+        ):
+            result = await handler.run_experiment(
+                self._text_prompt_ast(), "run-concurrency", concurrency=4
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert recorded == [4]
+
+    async def test_forwards_concurrency_one_verbatim(
+        self, handler: PydanticAIWebhookHandler
+    ) -> None:
+        """concurrency=1 (a boundary value distinct from the default 20) must
+        be forwarded verbatim — proving the runner does not substitute the
+        pool default for an explicit low value."""
+        fake_pool, recorded = self._make_pool_spy()
+
+        with patch(
+            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
+        ):
+            result = await handler.run_experiment(
+                self._text_prompt_ast(), "run-concurrency-1", concurrency=1
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert recorded == [1]
+
+    async def test_passes_none_concurrency_when_unset(
+        self, handler: PydanticAIWebhookHandler
+    ) -> None:
+        """With no concurrency arg, run_dataset_pool must be called with None
+        so the pool applies its own default — the runner must not invent a
+        value."""
+        fake_pool, recorded = self._make_pool_spy()
+
+        with patch(
+            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
+        ):
+            result = await handler.run_experiment(
+                self._text_prompt_ast(), "run-no-concurrency"
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert recorded == [None]
+
+    async def test_forwards_concurrency_from_positional_dispatch(
+        self, handler: PydanticAIWebhookHandler
+    ) -> None:
+        """server.py dispatches run_experiment with positional args. Calling it
+        exactly the way the dispatcher does — concurrency in the 6th slot,
+        after commit_sha — must still thread the value into run_dataset_pool."""
+        fake_pool, recorded = self._make_pool_spy()
+
+        with patch(
+            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
+        ):
+            # run_experiment(prompt_ast, dataset_run_name, dataset_path,
+            #                sampling, commit_sha, concurrency)
+            result = await handler.run_experiment(
+                self._text_prompt_ast(),
+                "run-positional",
+                None,   # dataset_path
+                None,   # sampling
+                None,   # commit_sha
+                7,      # concurrency — 6th positional arg
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert recorded == [7]
+
+
 @pytest.mark.asyncio
 class TestStreamTextDelta:
     """Regression: _stream_text must yield incremental text deltas, not accumulated."""
