@@ -115,6 +115,7 @@ npx agentmark run-experiment <filepath> [options]
 | `--split <spec>` | Train/test split (e.g., train:80, test:80) |
 | `--seed <number>` | Seed for reproducible sampling/splitting |
 | `--truncate <chars>` | Truncate table cell content to N chars (default: 1000, 0 = no limit) |
+| `--concurrency <number>` | Dataset rows to run in parallel (default: 20) |
 
 ---
 

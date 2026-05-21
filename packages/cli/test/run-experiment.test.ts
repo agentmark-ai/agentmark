@@ -495,3 +495,161 @@ ${yamlContent}
 
   afterEach(async () => { const { unlinkSync } = await import('node:fs'); try { unlinkSync(dummyPath); } catch {} });
 });
+
+// ---------------------------------------------------------------------------
+// Concurrency wire-threading (issue #2326)
+//
+// `agentmark run-experiment --concurrency <n>` must surface the value in the
+// `dataset-run` webhook request body as `data.concurrency`. run-experiment.ts
+// spreads it conditionally: `...(options.concurrency !== undefined ? { concurrency } : {})`.
+// The runner-server then forwards it into the adapter's `runExperiment`, which
+// hands it to `runDatasetPool`. The pool's `concurrency` arg is optional, so a
+// dropped passthrough would not fail typecheck — this suite is the guard.
+// ---------------------------------------------------------------------------
+describe('run-experiment --concurrency threading', () => {
+  // Spy created inside beforeEach (not at describe-body eval time) and fully
+  // restored in afterEach — a module-level vi.spyOn would replace console.log
+  // for the whole file and break the sibling describe's stdout assertions.
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let dummyPath: string;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    dummyPath = join(__dirname, '..', 'tmp-concurrency.mdx');
+    writeFileSync(dummyPath, `---\ntext_config:\n  model_name: ${MOCK_MODEL_NAME}\n---`);
+  });
+
+  afterEach(async () => {
+    logSpy.mockRestore();
+    const { unlinkSync } = await import('node:fs');
+    try { unlinkSync(dummyPath); } catch {}
+  });
+
+  /**
+   * Override global.fetch to capture the parsed `dataset-run` request body,
+   * returning a minimal one-row stream so runExperiment completes cleanly.
+   * Returns a getter for the captured body.
+   */
+  function captureDatasetRunBody(): { get: () => any } {
+    const captured: { body: any } = { body: undefined };
+    const originalFetch = global.fetch;
+    global.fetch = (async (_url: any, init?: any) => {
+      const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
+      if (body?.type === 'dataset-run') {
+        captured.body = body;
+        const stream = new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(JSON.stringify({
+              type: 'dataset',
+              result: { input: {}, expectedOutput: 'EXPECTED', actualOutput: 'EXPECTED', evals: [] },
+            }) + '\n'));
+            controller.close();
+          },
+        });
+        return new Response(stream as any, { status: 200 } as any) as any;
+      }
+      return new Response('Not found', { status: 500 } as any) as any;
+    }) as any;
+    return {
+      get: () => {
+        global.fetch = originalFetch;
+        return captured.body;
+      },
+    };
+  }
+
+  it('should put data.concurrency in the dataset-run body when a concurrency option is given', async () => {
+    const capture = captureDatasetRunBody();
+    const runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await runExperiment(dummyPath, { server: 'http://127.0.0.1:9417', skipEval: true, concurrency: 5 });
+
+    const body = capture.get();
+    expect(body).toBeDefined();
+    expect(body.data.concurrency).toBe(5);
+  });
+
+  it('should omit data.concurrency from the dataset-run body when no concurrency option is given', async () => {
+    const capture = captureDatasetRunBody();
+    const runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await runExperiment(dummyPath, { server: 'http://127.0.0.1:9417', skipEval: true });
+
+    const body = capture.get();
+    expect(body).toBeDefined();
+    // run-experiment.ts spreads concurrency conditionally — when absent the key
+    // must NOT appear, so the runner-server falls back to the pool default (20).
+    expect(body.data.concurrency).toBeUndefined();
+    expect('concurrency' in body.data).toBe(false);
+  });
+
+  it('should forward an explicit concurrency of 1 verbatim into the dataset-run body', async () => {
+    // A boundary value distinct from the default (20): proves the field is the
+    // caller's literal value, not a default substituted somewhere downstream.
+    const capture = captureDatasetRunBody();
+    const runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await runExperiment(dummyPath, { server: 'http://127.0.0.1:9417', skipEval: true, concurrency: 1 });
+
+    const body = capture.get();
+    expect(body.data.concurrency).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Commander --concurrency option validator (cli-src/index.ts)
+//
+// cli-src/index.ts is a CLI entrypoint: importing it runs program.parseAsync
+// at module load, so the --concurrency validator cannot be exercised as a unit
+// without a source change. Rather than reimplement the validator here (which
+// would be mirrored production logic), we run the REAL CLI as a child process
+// with a bad --concurrency value and assert it exits non-zero with the
+// documented error — the actual validator, end to end.
+// ---------------------------------------------------------------------------
+describe('--concurrency CLI flag validator', () => {
+  const cliEntry = path.join(__dirname, '..', 'cli-src', 'index.ts');
+
+  /**
+   * Run the real CLI via `tsx` with
+   * `run-experiment <dummy> --concurrency <value>` and capture exit code +
+   * stderr. The validator runs during Commander option coercion, before
+   * runExperiment is invoked, so a rejected value never touches the network.
+   */
+  async function runCliWithConcurrency(value: string): Promise<{ code: number | null; stderr: string }> {
+    const { spawn } = await import('node:child_process');
+    const tsxCli = require.resolve('tsx/cli');
+    return new Promise((resolve) => {
+      const child = spawn(
+        process.execPath,
+        [tsxCli, cliEntry, 'run-experiment', 'nonexistent-prompt.mdx', '--concurrency', value],
+        { cwd: path.join(__dirname, '..'), env: { ...process.env } },
+      );
+      let stderr = '';
+      child.stderr.on('data', (d) => { stderr += String(d); });
+      child.stdout.on('data', () => {});
+      child.on('close', (code) => resolve({ code, stderr }));
+    });
+  }
+
+  it('should reject a concurrency value of zero with a positive-integer error', async () => {
+    const { code, stderr } = await runCliWithConcurrency('0');
+    expect(code).not.toBe(0);
+    expect(stderr).toMatch(/Concurrency must be a positive integer/);
+  }, 30000);
+
+  it('should reject a negative concurrency value with a positive-integer error', async () => {
+    const { code, stderr } = await runCliWithConcurrency('-3');
+    expect(code).not.toBe(0);
+    expect(stderr).toMatch(/Concurrency must be a positive integer/);
+  }, 30000);
+
+  it('should reject a non-numeric concurrency value with a positive-integer error', async () => {
+    const { code, stderr } = await runCliWithConcurrency('abc');
+    expect(code).not.toBe(0);
+    expect(stderr).toMatch(/Concurrency must be a positive integer/);
+  }, 30000);
+});

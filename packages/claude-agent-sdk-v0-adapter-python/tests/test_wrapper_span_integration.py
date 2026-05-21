@@ -94,8 +94,38 @@ def _wrapper_spans(exporter: InMemorySpanExporter) -> list[ReadableSpan]:
     ]
 
 
+class _DatasetReader:
+    """Reader draining an async generator one item at a time.
+
+    Mirrors prompt-core's ``SimpleDatasetReader.read()`` contract
+    (``{"done": bool, "value": item}``) so it can drive ``run_dataset_pool``.
+    """
+
+    def __init__(self, agen: AsyncGenerator[dict[str, Any], None]) -> None:
+        self._agen = agen
+
+    async def read(self) -> dict[str, Any]:
+        try:
+            value = await self._agen.__anext__()
+        except StopAsyncIteration:
+            return {"done": True}
+        return {"done": False, "value": value}
+
+
+class _DatasetStream:
+    """Stream exposing ``get_reader()`` — matches the real ``format_with_dataset``
+    return type (``SimpleDatasetStream`` / ``FileDatasetStream``) now that the
+    experiment runner drives the dataset through ``get_reader()``."""
+
+    def __init__(self, agen: AsyncGenerator[dict[str, Any], None]) -> None:
+        self._agen = agen
+
+    def get_reader(self) -> _DatasetReader:
+        return _DatasetReader(self._agen)
+
+
 def _make_dataset(items: list[dict[str, Any]]):
-    """Build an async-generator factory matching the format_with_dataset
+    """Build a dataset stream matching the format_with_dataset
     return shape expected by webhook.py."""
     async def _gen() -> AsyncGenerator[dict[str, Any], None]:
         for item in items:
@@ -107,7 +137,7 @@ def _make_dataset(items: list[dict[str, Any]]):
                 "dataset": item,
                 "evals": [],
             }
-    return _gen()
+    return _DatasetStream(_gen())
 
 
 def _query_result(text: str = "hello", structured: Any = None) -> Any:

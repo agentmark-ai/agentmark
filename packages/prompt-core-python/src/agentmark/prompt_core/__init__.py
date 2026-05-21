@@ -6,6 +6,10 @@ from .adapters import Adapter, DefaultAdapter
 from .agentmark import AgentMark, create_agentmark
 from .api_loader import ApiDatasetReader, ApiDatasetStream, ApiLoader
 from .eval_registry import EvalRegistry
+from .experiment import (
+    DEFAULT_EXPERIMENT_CONCURRENCY,
+    run_dataset_pool,
+)
 from .loaders import FileDatasetReader, FileDatasetStream, FileLoader
 from .mcp import (
     McpServerConfig,
@@ -84,6 +88,9 @@ __all__ = [
     "SimpleDatasetReader",
     # Registries
     "EvalRegistry",
+    # Experiment runner concurrency
+    "run_dataset_pool",
+    "DEFAULT_EXPERIMENT_CONCURRENCY",
     # Loaders
     "ApiLoader",
     "ApiDatasetStream",

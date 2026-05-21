@@ -86,6 +86,47 @@ def make_mock_traced_query_error(error: Exception):
     return _mock
 
 
+class _AsyncGenDatasetReader:
+    """Reader that drains an async generator one item at a time.
+
+    Mirrors prompt-core's ``SimpleDatasetReader.read()`` contract
+    (``{"done": bool, "value": item}``) so it can drive ``run_dataset_pool``.
+    """
+
+    def __init__(self, agen: AsyncGenerator[dict[str, Any], None]) -> None:
+        self._agen = agen
+
+    async def read(self) -> dict[str, Any]:
+        try:
+            value = await self._agen.__anext__()
+        except StopAsyncIteration:
+            return {"done": True}
+        return {"done": False, "value": value}
+
+
+class _AsyncGenDatasetStream:
+    """Stream wrapper exposing ``get_reader()`` over an async generator.
+
+    The real ``format_with_dataset`` returns a ``SimpleDatasetStream`` /
+    ``FileDatasetStream`` — both expose ``get_reader()``. The experiment
+    runner now drives the dataset through ``get_reader()`` + ``run_dataset_pool``,
+    so test mocks must expose that surface, not just ``__aiter__``.
+    """
+
+    def __init__(self, agen: AsyncGenerator[dict[str, Any], None]) -> None:
+        self._agen = agen
+
+    def get_reader(self) -> _AsyncGenDatasetReader:
+        return _AsyncGenDatasetReader(self._agen)
+
+
+def as_dataset_stream(
+    agen: AsyncGenerator[dict[str, Any], None],
+) -> _AsyncGenDatasetStream:
+    """Wrap a mock async generator in a stream object with ``get_reader()``."""
+    return _AsyncGenDatasetStream(agen)
+
+
 def create_mock_ast() -> dict[str, Any]:
     """Create a mock AST."""
     return {"type": "root", "children": []}
@@ -779,7 +820,7 @@ class TestRunExperiment:
             return
             yield  # Make it a generator
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(empty_dataset())
 
         with patch.object(
             handler,
@@ -807,7 +848,7 @@ class TestRunExperiment:
             return
             yield  # Make it a generator
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(empty_dataset())
 
         with patch.object(
             handler,
@@ -854,7 +895,7 @@ class TestRunExperiment:
                 "dataset": {"input": {"q": "b"}, "expected_output": "B"},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {"type": "result", "subtype": "success", "result": "Response"}
@@ -898,7 +939,7 @@ class TestRunExperiment:
                 "dataset": {"input": {"question": "What is 2+2?"}, "expected_output": "4"},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {
@@ -949,7 +990,7 @@ class TestRunExperiment:
                 "dataset": {"input": {}, "expected_output": ""},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {
@@ -990,7 +1031,7 @@ class TestRunExperiment:
                 "dataset": {"input": {"q": "test"}, "expected_output": ""},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         with patch.object(
             handler,
@@ -1033,7 +1074,7 @@ class TestRunExperiment:
                 "dataset": {"input": {"i": 2}, "expected_output": "2"},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def multi_mock(adapted, *, default_mcp_servers=None):
             call_count[0] += 1
@@ -1077,7 +1118,7 @@ class TestRunExperiment:
                 "dataset": {"input": {}, "expected_output": ""},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {"type": "result", "subtype": "success", "result": "Done"}
@@ -1149,7 +1190,7 @@ class TestRunExperiment:
                 "dataset": {"input": {}, "expected_output": ""},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {"type": "result", "subtype": "success", "result": "Done"}
@@ -1188,7 +1229,7 @@ class TestRunExperiment:
                 "dataset": {"input": {}, "expected_output": {"result": True}},
             }
 
-        mock_client._mock_object_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_object_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {"type": "result", "subtype": "success", "structured_output": {"result": True}}
@@ -1220,7 +1261,7 @@ class TestRunExperiment:
             return
             yield  # Make it a generator
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(empty_dataset())
 
         with patch.object(
             handler,
@@ -1256,7 +1297,7 @@ class TestRunExperiment:
                 "dataset": {"input": {"q": "b"}, "expected_output": "B"},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         call_count = [0]
 
@@ -1325,7 +1366,7 @@ class TestRunExperiment:
             },
         ):
             # Run experiment first time
-            mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+            mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
             with patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
                 result1 = await handler.run_experiment(create_mock_ast(), "same-name")
             chunks1 = await drain_stream(result1.stream)
@@ -1335,7 +1376,7 @@ class TestRunExperiment:
             )
 
             # Run experiment second time
-            mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+            mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
             with patch(TRACED_QUERY_PATH, make_mock_traced_query_from_gen(mock_query_results)):
                 result2 = await handler.run_experiment(create_mock_ast(), "same-name")
             chunks2 = await drain_stream(result2.stream)
@@ -1376,7 +1417,7 @@ class TestRunExperimentSampling:
             return
             yield  # Make it a generator
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(empty_dataset())
 
         with patch.object(
             handler,
@@ -1413,7 +1454,7 @@ class TestRunExperimentSampling:
             return
             yield  # Make it a generator
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = empty_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(empty_dataset())
 
         with patch.object(
             handler,
@@ -1463,7 +1504,7 @@ class TestRunExperimentSampling:
                 "dataset": {"input": {"q": "hi"}, "expected_output": "ok"},
             }
 
-        mock_client._mock_text_prompt.format_with_dataset.return_value = mock_dataset()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = as_dataset_stream(mock_dataset())
 
         async def mock_query_results() -> AsyncGenerator[dict[str, Any], None]:
             yield {
@@ -1501,3 +1542,155 @@ class TestRunExperimentSampling:
     # metadata, null-input fallback) moved to
     # tests/test_wrapper_span_integration.py — they now run against a
     # real OTel TracerProvider instead of mocking agentmark_sdk.span_context.
+
+
+@pytest.mark.asyncio
+class TestRunExperimentConcurrency:
+    """Concurrency wire-threading (issue #2326).
+
+    ``run_experiment(..., concurrency=N)`` must forward ``N`` into
+    ``run_dataset_pool(reader, process_item, concurrency)`` inside
+    ``experiment_stream()``. The pool's ``concurrency`` parameter is optional
+    (``None`` -> default 20), so a dropped passthrough would not raise.
+
+    webhook.py imports ``run_dataset_pool`` *locally* inside
+    ``experiment_stream`` (``from agentmark.prompt_core import run_dataset_pool``),
+    so there is no module-level name to patch — the patch target is the source
+    attribute ``agentmark.prompt_core.run_dataset_pool``, resolved at call time.
+    """
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create mock client."""
+        return create_mock_client()
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> ClaudeAgentWebhookHandler:
+        """Create handler with mock client."""
+        return ClaudeAgentWebhookHandler(mock_client)
+
+    @staticmethod
+    def _make_pool_spy() -> tuple[Any, list[Any]]:
+        """Build a stand-in for run_dataset_pool that records its 3rd argument.
+
+        The real ``run_dataset_pool`` is an async generator; the replacement
+        must be one too, or ``async for chunk in run_dataset_pool(...)`` in
+        webhook.py would raise. It records ``concurrency`` then yields nothing.
+        """
+        recorded: list[Any] = []
+
+        async def fake_pool(reader: Any, process_item: Any, concurrency: Any = None):  # noqa: ARG001
+            recorded.append(concurrency)
+            return
+            yield  # make this an async generator
+
+        return fake_pool, recorded
+
+    @staticmethod
+    def _empty_dataset_stream() -> Any:
+        """A dataset stream whose reader immediately reports done."""
+
+        async def empty_dataset() -> AsyncGenerator[dict[str, Any], None]:
+            return
+            yield  # make it a generator
+
+        return as_dataset_stream(empty_dataset())
+
+    @staticmethod
+    def _text_frontmatter() -> dict[str, Any]:
+        return {
+            "name": "experiment-prompt",
+            "text_config": {},
+            "test_settings": {"dataset": "./test.jsonl"},
+        }
+
+    async def test_forwards_concurrency_to_run_dataset_pool(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """concurrency=4 passed to run_experiment must reach run_dataset_pool."""
+        fake_pool, recorded = self._make_pool_spy()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = (
+            self._empty_dataset_stream()
+        )
+
+        with patch.object(
+            handler, "_get_frontmatter", return_value=self._text_frontmatter()
+        ), patch("agentmark.prompt_core.run_dataset_pool", fake_pool):
+            result = await handler.run_experiment(
+                create_mock_ast(), "run-concurrency", concurrency=4
+            )
+            async for _ in result.stream:
+                pass
+
+        assert recorded == [4]
+
+    async def test_forwards_concurrency_one_verbatim(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """concurrency=1 (a boundary value distinct from the default 20) must
+        be forwarded verbatim — proving the runner does not substitute the
+        pool default for an explicit low value."""
+        fake_pool, recorded = self._make_pool_spy()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = (
+            self._empty_dataset_stream()
+        )
+
+        with patch.object(
+            handler, "_get_frontmatter", return_value=self._text_frontmatter()
+        ), patch("agentmark.prompt_core.run_dataset_pool", fake_pool):
+            result = await handler.run_experiment(
+                create_mock_ast(), "run-concurrency-1", concurrency=1
+            )
+            async for _ in result.stream:
+                pass
+
+        assert recorded == [1]
+
+    async def test_passes_none_concurrency_when_unset(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """With no concurrency arg, run_dataset_pool must be called with None
+        so the pool applies its own default — the runner must not invent a
+        value."""
+        fake_pool, recorded = self._make_pool_spy()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = (
+            self._empty_dataset_stream()
+        )
+
+        with patch.object(
+            handler, "_get_frontmatter", return_value=self._text_frontmatter()
+        ), patch("agentmark.prompt_core.run_dataset_pool", fake_pool):
+            result = await handler.run_experiment(create_mock_ast(), "run-no-concurrency")
+            async for _ in result.stream:
+                pass
+
+        assert recorded == [None]
+
+    async def test_forwards_concurrency_from_positional_dispatch(
+        self, handler: ClaudeAgentWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """server.py dispatches run_experiment with positional args. Calling it
+        exactly the way the dispatcher does — concurrency in the 6th slot,
+        after commit_sha — must still thread the value into run_dataset_pool."""
+        fake_pool, recorded = self._make_pool_spy()
+        mock_client._mock_text_prompt.format_with_dataset.return_value = (
+            self._empty_dataset_stream()
+        )
+
+        with patch.object(
+            handler, "_get_frontmatter", return_value=self._text_frontmatter()
+        ), patch("agentmark.prompt_core.run_dataset_pool", fake_pool):
+            # run_experiment(prompt_ast, dataset_run_name, dataset_path,
+            #                sampling, commit_sha, concurrency)
+            result = await handler.run_experiment(
+                create_mock_ast(),
+                "run-positional",
+                None,   # dataset_path
+                None,   # sampling
+                None,   # commit_sha
+                7,      # concurrency — 6th positional arg
+            )
+            async for _ in result.stream:
+                pass
+
+        assert recorded == [7]

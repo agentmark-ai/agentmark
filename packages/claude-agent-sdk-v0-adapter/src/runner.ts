@@ -1,7 +1,7 @@
 import { getFrontMatter } from "@agentmark-ai/templatedx";
 import type { Ast } from "@agentmark-ai/templatedx";
 import type { AgentMark } from "@agentmark-ai/prompt-core";
-import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
+import { createPromptTelemetry, runDatasetPool } from "@agentmark-ai/prompt-core";
 import type {
   WebhookPromptResponse,
   WebhookDatasetResponse,
@@ -352,7 +352,8 @@ export class ClaudeAgentWebhookHandler {
     promptAst: Ast,
     datasetRunName: string,
     datasetPath?: string,
-    sampling?: Record<string, unknown>
+    sampling?: Record<string, unknown>,
+    concurrency?: number
   ): Promise<WebhookDatasetResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     // Generate unique experiment run ID (similar to AI SDK v5)
@@ -447,12 +448,8 @@ export class ClaudeAgentWebhookHandler {
 
           // Use getReader() to consume the ReadableStream
           const reader = dataset.getReader();
-          let itemIndex = 0;
 
-          for (;;) {
-            const { value: item, done } = await reader.read();
-            if (done) break;
-
+          const total = await runDatasetPool(reader, async (item, itemIndex) => {
             // Check if this is an error chunk
             if ('error' in item) {
               controller.enqueue(
@@ -464,8 +461,7 @@ export class ClaudeAgentWebhookHandler {
                   }) + "\n"
                 )
               );
-              itemIndex++;
-              continue;
+              return;
             }
 
             // This is a valid data chunk with adapted prompt
@@ -595,15 +591,13 @@ export class ClaudeAgentWebhookHandler {
                 )
               );
             }
-
-            itemIndex++;
-          }
+          }, concurrency);
 
           controller.enqueue(
             encoder.encode(
               JSON.stringify({
                 type: "experiment_end",
-                totalItems: itemIndex,
+                totalItems: total,
               }) + "\n"
             )
           );
