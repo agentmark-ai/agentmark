@@ -1,3 +1,27 @@
+## 0.2.0 (2026-05-21)
+
+### 🚀 Features
+
+- Parallel experiment runner — dataset rows now execute concurrently through a bounded worker pool instead of one after another. ([#614](https://github.com/agentmark-ai/agentmark/pull/614))
+
+  - `prompt-core` / `prompt-core-python`: new bounded-concurrency helper — `runDatasetPool` / `run_dataset_pool` — and a `DEFAULT_EXPERIMENT_CONCURRENCY` (20) constant. A run processes 20 dataset rows at a time by default.
+  - adapters (`ai-sdk-v4`, `ai-sdk-v5`, `mastra-v0`, `claude-agent-sdk-v0`, and the Python `pydantic-ai-v0` / `claude-agent-sdk-v0`): `runExperiment` / `run_experiment` dispatch dataset rows through the pool, so a run is bounded by the slowest row rather than the sum of all rows.
+  - `cli`: `agentmark run-experiment` accepts a `--concurrency <n>` flag to override the default per run (any positive integer — the CLI runs on the user's own machine). The flag travels to the runner via the `dataset-run` webhook request.
+
+  Behavior changes worth noting for consumers:
+  - A single row failure no longer aborts the whole run — the failed row emits an error chunk and the run continues with the remaining rows.
+  - Result chunks stream in completion order, not dataset order. Each row still carries its own `traceId` / dataset item identity, so order-independent consumers are unaffected.
+
+  See: https://github.com/agentmark-ai/app/issues/2326
+
+
+### 🩹 Fixes
+
+- **Python `FileLoader` now matches the TypeScript `FileLoader` API.** ([#606](https://github.com/agentmark-ai/agentmark/pull/606))
+
+  - `agentmark-prompt-core`: `FileLoader` constructor now takes a single `build_dir` positional argument — pointing directly at the build output directory (`agentmark build`'s output), matching `new FileLoader('./dist/agentmark')` in TS. The argument defaults to `"./dist/agentmark"`, so `FileLoader()` from a project root with the conventional build layout Just Works (a Python ergonomic sugar — TS makes the same argument required). The previous `base_dir=` kwarg has been removed; both `load` and `load_dataset` resolve under the same `build_dir`, fixing the internal asymmetry where prompt resolution auto-appended `dist/agentmark` but dataset resolution did not — so `FileLoader("dist/agentmark")` could never be passed without breaking one of the two methods. `load_dataset` now also enforces the `.jsonl` extension, eager-checks file existence, and applies the same traversal validator as `load`. The dataset reader validates each row's shape (`{ input: object, ... }`) with line-number diagnostics on parse / shape failures and rejects empty datasets — closing TS divergences that previously let malformed datasets flow silently into experiment runners. Test suite rewritten to mirror `packages/loader-file/test/file-loader.test.ts` 1:1, with three Python-only suites: the default-arg equivalence guard, the extra path-normalization branches (`.prompt.json` / `.prompt`), and the `{ast, metadata}` unwrap regression. **Breaking**: callers passing `FileLoader(base_dir=...)` will now get `TypeError`; migrate to `FileLoader()` (from a project root) or `FileLoader(str(<project_root> / "dist" / "agentmark"))` for cwd-independent code.
+  - `create-agentmark`: Python scaffold updated to emit `FileLoader(str(build_dir))` pointing at `<project_root>/dist/agentmark`, matching the TS scaffold's `new FileLoader("./dist/agentmark")`.
+
 ## 0.1.4 (2026-05-14)
 
 ### 🩹 Fixes

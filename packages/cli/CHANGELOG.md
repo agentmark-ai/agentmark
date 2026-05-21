@@ -1,3 +1,39 @@
+## 0.15.0 (2026-05-21)
+
+### 🚀 Features
+
+- Parallel experiment runner — dataset rows now execute concurrently through a bounded worker pool instead of one after another. ([#614](https://github.com/agentmark-ai/agentmark/pull/614))
+
+  - `prompt-core` / `prompt-core-python`: new bounded-concurrency helper — `runDatasetPool` / `run_dataset_pool` — and a `DEFAULT_EXPERIMENT_CONCURRENCY` (20) constant. A run processes 20 dataset rows at a time by default.
+  - adapters (`ai-sdk-v4`, `ai-sdk-v5`, `mastra-v0`, `claude-agent-sdk-v0`, and the Python `pydantic-ai-v0` / `claude-agent-sdk-v0`): `runExperiment` / `run_experiment` dispatch dataset rows through the pool, so a run is bounded by the slowest row rather than the sum of all rows.
+  - `cli`: `agentmark run-experiment` accepts a `--concurrency <n>` flag to override the default per run (any positive integer — the CLI runs on the user's own machine). The flag travels to the runner via the `dataset-run` webhook request.
+
+  Behavior changes worth noting for consumers:
+  - A single row failure no longer aborts the whole run — the failed row emits an error chunk and the run continues with the remaining rows.
+  - Result chunks stream in completion order, not dataset order. Each row still carries its own `traceId` / dataset item identity, so order-independent consumers are unaffected.
+
+  See: https://github.com/agentmark-ai/app/issues/2326
+
+- Regression-vs-baseline gate predicate, opt-in via `test_settings.regression_tolerance`. ([#599](https://github.com/agentmark-ai/agentmark/pull/599))
+
+  - `prompt-core`: new optional `regression_tolerance` field on `TestSettingsSchema`; `TestSettingsSchema` now publicly exported for downstream validation.
+  - `cli`: JUnit formatter applies a second gate predicate when an eval's `baselineScore` is present and the run's score drops more than `regression_tolerance` below it. Failing cases emit a regression-aware `<failure>` message and embed `baseline_score` / `regression_tolerance` / `baseline_commit_sha` in `<properties>`.
+  - The predicate is fully opt-in: with no `regression_tolerance` set, or no baseline scores supplied, behaviour is identical to today. The CLI flag that fetches baseline scores from AgentMark Cloud (`--baseline-commit`) and the backend endpoint that serves them ship in a follow-up.
+
+- **`/v1/requests` endpoint on the local dev server:** ([#606](https://github.com/agentmark-ai/agentmark/pull/606))
+
+  - `@agentmark-ai/api-schemas`: New `schemas/requests.ts` module — `RequestsListParamsSchema` (pagination) plus `RequestResponseSchema` / `RequestsListResponseSchema` (`{ data, pagination }` envelope) describing the per-request (GENERATION-span) record. Additive — no changes to existing schemas.
+  - `@agentmark-ai/api-types`: Regenerated to include the new request types derived from the schemas above.
+  - `@agentmark-ai/cli`: Local dev server now serves `GET /v1/requests`, returning the canonical paginated envelope from the local trace store (the dashboard's "Requests" page is now backed by a real route instead of always 404-ing to an empty list). Internals: the former `local-prompt-logs-service` is renamed to `local-requests-service`, with matching `toRequestsListWire` wire mappers and an `openapi-spec.json` entry for `/v1/requests`.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.6.2
+- Updated @agentmark-ai/shared-utils to 0.4.0
+- Updated @agentmark-ai/api-schemas to 0.3.0
+- Updated @agentmark-ai/prompt-core to 0.5.0
+- Updated @agentmark-ai/api-types to 0.3.0
+
 ## 0.14.0 (2026-05-12)
 
 ### 🚀 Features

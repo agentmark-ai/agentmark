@@ -1,3 +1,13 @@
+## 1.1.3 (2026-05-21)
+
+### 🩹 Fixes
+
+- fix(sdk): filter Mastra internal getter/converter spans at sampler ([#608](https://github.com/agentmark-ai/agentmark/pull/608))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.5.0
+
 ## 1.1.2 (2026-05-12)
 
 ### 🩹 Fixes
