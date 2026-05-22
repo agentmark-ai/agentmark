@@ -298,7 +298,12 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
         }
       }
 
-      if (forwardingConfig?.apiKey && forwardingConfig?.baseUrl && forwardingConfig?.appId) {
+      // Start the forwarder when we have an app binding. The forwarder
+      // resolves auth itself: session bearer from `agentmark login`
+      // (preferred) or the legacy `apiKey` if a pre-refactor link still
+      // wrote one. Requiring `apiKey` here would block every project
+      // linked by current `agentmark link`, which no longer mints a key.
+      if (forwardingConfig?.baseUrl && forwardingConfig?.appId) {
         try {
           forwarder = new TraceForwarder(forwardingConfig);
           setForwarder(forwarder);

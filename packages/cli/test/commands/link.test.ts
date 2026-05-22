@@ -166,13 +166,13 @@ describe('link command', () => {
   });
 
   describe('single app auto-select', () => {
-    it('should auto-select when only one app exists', async () => {
+    it('should auto-select when only one app exists and write binding-only config', async () => {
       vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
       vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
       vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue(null);
-      vi.spyOn(forwardingConfig, 'saveForwardingConfig').mockImplementation(
-        () => {}
-      );
+      const saveSpy = vi
+        .spyOn(forwardingConfig, 'saveForwardingConfig')
+        .mockImplementation(() => {});
 
       const singleApp = {
         id: 'app-single',
@@ -182,24 +182,10 @@ describe('link command', () => {
         created_at: '2024-01-01',
       };
 
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ apps: [singleApp] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            key: 'sk_agentmark_dev_123',
-            key_id: 'key-1',
-            app_id: singleApp.id,
-            app_name: singleApp.name,
-            tenant_id: singleApp.tenant_id,
-            base_url: 'https://gateway.example.com',
-            expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-            scope: 'traces:write',
-          }),
-        });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ apps: [singleApp] }),
+      });
 
       await link();
 
@@ -207,14 +193,29 @@ describe('link command', () => {
         `✓ Auto-linked to "${singleApp.name}" (${singleApp.tenant_name}) - only app found`
       );
       expect(prompts).not.toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('/api/cli/dev-key'),
+
+      // Single fetch: list apps. NO call to /api/cli/dev-key.
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calls = (global.fetch as any).mock.calls as Array<[string, unknown]>;
+      const calledUrls = calls.map(([url]) => url);
+      expect(calledUrls.some((url) => url.includes('/api/cli/dev-key'))).toBe(false);
+
+      // saveForwardingConfig receives the binding fields and ONLY those.
+      // No `apiKey`, `apiKeyId`, or `expiresAt` — confirming we no longer
+      // mint a dev API key on link.
+      expect(saveSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining(singleApp.id),
-        })
+          appId: singleApp.id,
+          appName: singleApp.name,
+          tenantId: singleApp.tenant_id,
+          orgName: singleApp.tenant_name,
+          baseUrl: expect.any(String),
+        }),
       );
+      const written = saveSpy.mock.calls[0]![0];
+      expect(written.apiKey).toBeUndefined();
+      expect(written.apiKeyId).toBeUndefined();
+      expect(written.expiresAt).toBeUndefined();
     });
   });
 
@@ -323,8 +324,64 @@ describe('link command', () => {
     });
   });
 
-  describe('key creation', () => {
-    it('should create dev API key for selected app', async () => {
+  describe('no dev API key is minted', () => {
+    it('preserves legacy apiKey from existing config while writing a new binding', async () => {
+      // Regression guard: if a user previously linked with an older CLI
+      // version that minted a dev API key, re-running link should leave
+      // that legacy `apiKey` field intact (so they can downgrade without
+      // re-minting) while updating the binding. The forwarder always
+      // prefers the session bearer over the legacy key anyway.
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
+      vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
+      vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue({
+        appId: 'old-app',
+        appName: 'Old App',
+        tenantId: 'old-tenant',
+        apiKey: 'sk_agentmark_dev_legacy',
+        apiKeyId: 'legacy-key-id',
+        expiresAt: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
+        baseUrl: 'https://gateway.example.com',
+      });
+      const saveSpy = vi
+        .spyOn(forwardingConfig, 'saveForwardingConfig')
+        .mockImplementation(() => {});
+
+      const app = {
+        id: 'new-app',
+        name: 'New App',
+        tenant_id: 'new-tenant',
+        tenant_name: 'New Org',
+        created_at: '2024-01-01',
+      };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ apps: [app] }),
+      });
+
+      await link();
+
+      // Single fetch — list apps only. No POST to /api/cli/dev-key,
+      // no DELETE to /api/cli/dev-key/<id> for revoke.
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calls = (global.fetch as any).mock.calls as Array<[string, unknown]>;
+      const calledUrls = calls.map(([url]) => url);
+      expect(calledUrls.some((url) => url.includes('/api/cli/dev-key'))).toBe(false);
+
+      // saveForwardingConfig: binding fields updated to new app; legacy
+      // apiKey / apiKeyId / expiresAt preserved (via the existing spread).
+      const written = saveSpy.mock.calls[0]![0];
+      expect(written.appId).toBe(app.id);
+      expect(written.appName).toBe(app.name);
+      expect(written.tenantId).toBe(app.tenant_id);
+      expect(written.orgName).toBe(app.tenant_name);
+      // Legacy fields preserved on the row — agent that minted them can
+      // still find them.
+      expect(written.apiKey).toBe('sk_agentmark_dev_legacy');
+      expect(written.apiKeyId).toBe('legacy-key-id');
+    });
+
+    it('writes only the binding when no prior config exists (no legacy fields invented)', async () => {
       vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
       vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
       vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue(null);
@@ -333,228 +390,100 @@ describe('link command', () => {
         .mockImplementation(() => {});
 
       const app = {
-        id: 'app-xyz',
-        name: 'My App',
-        tenant_id: 'tenant-xyz',
-        tenant_name: 'My Org',
+        id: 'fresh-app',
+        name: 'Fresh App',
+        tenant_id: 'fresh-tenant',
+        tenant_name: 'Fresh Org',
         created_at: '2024-01-01',
       };
 
-      const keyResponse = {
-        key: 'sk_agentmark_dev_abc123',
-        key_id: 'key-abc',
-        app_id: app.id,
-        app_name: app.name,
-        tenant_id: app.tenant_id,
-        base_url: 'https://api.agentmark.co',
-        expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-        scope: 'traces:write',
-      };
-
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ apps: [app] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => keyResponse,
-        });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ apps: [app] }),
+      });
 
       await link();
 
-      expect(global.fetch).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('/api/cli/dev-key'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${mockCredentials.access_token}`,
-          }),
-          body: expect.stringContaining(app.id),
-        })
-      );
+      const written = saveSpy.mock.calls[0]![0];
+      expect(written.appId).toBe(app.id);
+      expect(written.appName).toBe(app.name);
+      expect(written.tenantId).toBe(app.tenant_id);
+      expect(written.orgName).toBe(app.tenant_name);
+      expect(written.baseUrl).toMatch(/^https?:\/\//);
 
-      expect(saveSpy).toHaveBeenCalledWith({
-        appId: keyResponse.app_id,
-        appName: keyResponse.app_name,
-        tenantId: keyResponse.tenant_id,
-        apiKey: keyResponse.key,
-        apiKeyId: keyResponse.key_id,
-        expiresAt: keyResponse.expires_at,
-        baseUrl: keyResponse.base_url,
-      });
-
-      expect(consoleMock.log).toHaveBeenCalledWith(
-        `✓ Linked to "${app.name}". Traces will forward to this app.`
-      );
-    });
-  });
-
-  describe('re-link revokes old key', () => {
-    it('should revoke existing key before creating new one', async () => {
-      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
-      vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
-      vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue({
-        appId: 'old-app',
-        appName: 'Old App',
-        tenantId: 'old-tenant',
-        apiKey: 'sk_agentmark_dev_old',
-        apiKeyId: 'old-key-id',
-        expiresAt: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
-        baseUrl: 'https://gateway.example.com',
-      });
-      vi.spyOn(forwardingConfig, 'saveForwardingConfig').mockImplementation(
-        () => {}
-      );
-
-      const app = {
-        id: 'new-app',
-        name: 'New App',
-        tenant_id: 'new-tenant',
-        tenant_name: 'New Org',
-        created_at: '2024-01-01',
-      };
-
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ apps: [app] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 204,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            key: 'sk_agentmark_dev_new',
-            key_id: 'new-key-id',
-            app_id: app.id,
-            app_name: app.name,
-            tenant_id: app.tenant_id,
-            base_url: 'https://gateway.example.com',
-            expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-            scope: 'traces:write',
-          }),
-        });
-
-      await link();
-
-      expect(global.fetch).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('/api/cli/dev-key/old-key-id'),
-        expect.objectContaining({
-          method: 'DELETE',
-          headers: expect.objectContaining({
-            Authorization: `Bearer ${mockCredentials.access_token}`,
-          }),
-        })
-      );
-
-      expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Previous dev API key revoked'
-      );
-    });
-
-    it('should continue when revoke returns 404', async () => {
-      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
-      vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
-      vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue({
-        appId: 'old-app',
-        appName: 'Old App',
-        tenantId: 'old-tenant',
-        apiKey: 'sk_agentmark_dev_old',
-        apiKeyId: 'already-deleted-key',
-        expiresAt: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
-        baseUrl: 'https://gateway.example.com',
-      });
-      vi.spyOn(forwardingConfig, 'saveForwardingConfig').mockImplementation(
-        () => {}
-      );
-
-      const app = {
-        id: 'new-app',
-        name: 'New App',
-        tenant_id: 'new-tenant',
-        tenant_name: 'New Org',
-        created_at: '2024-01-01',
-      };
-
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ apps: [app] }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 404,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            key: 'sk_agentmark_dev_new',
-            key_id: 'new-key-id',
-            app_id: app.id,
-            app_name: app.name,
-            tenant_id: app.tenant_id,
-            base_url: 'https://gateway.example.com',
-            expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-            scope: 'traces:write',
-          }),
-        });
-
-      await link();
-
-      // Should not throw and continue to create new key
-      expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Previous dev API key revoked'
+      // Whitelist check: nothing else lands in dev-config.json. If a future
+      // change reintroduces an apiKey mint by accident, this assertion fails.
+      expect(Object.keys(written).sort()).toEqual(
+        ['appId', 'appName', 'baseUrl', 'orgName', 'tenantId'].sort(),
       );
     });
   });
 
   describe('app-id flag', () => {
-    it('should skip app selection when --app-id is provided', async () => {
+    it('finds the named app in the listing and writes its binding (no picker, no key mint)', async () => {
       vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
       vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
       vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue(null);
-      vi.spyOn(forwardingConfig, 'saveForwardingConfig').mockImplementation(
-        () => {}
-      );
+      const saveSpy = vi
+        .spyOn(forwardingConfig, 'saveForwardingConfig')
+        .mockImplementation(() => {});
 
-      (global.fetch as any).mockResolvedValue({
+      const apps = [
+        { id: 'app-other', name: 'Other', tenant_id: 't1', tenant_name: 'T1', created_at: '2024' },
+        { id: 'specified-app-id', name: 'Specified', tenant_id: 't2', tenant_name: 'T2', created_at: '2024' },
+      ];
+      (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          key: 'sk_agentmark_dev_123',
-          key_id: 'key-1',
-          app_id: 'specified-app-id',
-          app_name: 'Specified App',
-          tenant_id: 'tenant-1',
-          base_url: 'https://gateway.example.com',
-          expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-          scope: 'traces:write',
-        }),
+        json: async () => ({ apps }),
       });
 
       await link({ appId: 'specified-app-id' });
 
-      // Should NOT fetch apps list
-      expect(global.fetch).not.toHaveBeenCalledWith(
-        expect.stringContaining('/api/cli/apps'),
-        expect.any(Object)
-      );
+      // Apps list IS fetched (needed for display name + tenant context),
+      // but no key endpoint is touched.
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrls = ((global.fetch as any).mock.calls as Array<[string, unknown]>).map(([u]) => u);
+      expect(calledUrls[0]).toContain('/api/cli/apps');
+      expect(calledUrls.some((url) => url.includes('/api/cli/dev-key'))).toBe(false);
 
-      // Should directly create key for specified app
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/cli/dev-key'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('specified-app-id'),
-        })
-      );
-
+      // Picker not shown — appId came from CLI flag.
       expect(prompts).not.toHaveBeenCalled();
+
+      // Saved config maps to the SPECIFIED app, not the first/other one.
+      expect(saveSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appId: 'specified-app-id',
+          appName: 'Specified',
+          tenantId: 't2',
+          orgName: 'T2',
+        }),
+      );
+    });
+
+    it('exits when --app-id does not match any app the user has access to', async () => {
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
+      vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
+      vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue(null);
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          apps: [
+            { id: 'app-other', name: 'Other', tenant_id: 't1', tenant_name: 'T1', created_at: '2024' },
+          ],
+        }),
+      });
+
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
+        throw new Error('process.exit called');
+      }) as any);
+
+      await expect(link({ appId: 'nope-doesnt-exist' })).rejects.toThrow('process.exit called');
+
+      expect(consoleMock.log).toHaveBeenCalledWith(
+        expect.stringContaining('not found on the platform'),
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
     });
   });
 });

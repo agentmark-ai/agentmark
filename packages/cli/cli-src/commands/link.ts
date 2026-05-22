@@ -1,28 +1,31 @@
 /**
  * CLI Link Command
- * Feature: 013-trace-tunnel
  *
- * Implements `agentmark link` - links current project to a platform app for trace forwarding.
+ * Binds the current project to an AgentMark Cloud app. Writes the binding
+ * (appId, appName, tenantId, tenantName, baseUrl) to
+ * `.agentmark/dev-config.json`. **No API key is minted here** — the trace
+ * forwarder authenticates with the user's session bearer from
+ * `~/.agentmark/auth.json` (written by `agentmark login`), matching the
+ * pattern used by wrangler, vercel, gh, supabase, and aws.
  *
  * Per cli-commands.md contract:
  * - Verify user is logged in
  * - Fetch user's apps from platform
  * - Display interactive picker (or auto-select if single app)
- * - Create dev API key for selected app
- * - Revoke old key if re-linking
  * - Save forwarding config to .agentmark/dev-config.json
  */
 
 import {
   loadCredentials,
   isExpired,
+  saveCredentials,
 } from '../auth/credentials';
 import { refreshAccessToken } from '../auth/token-refresh';
 import {
   loadForwardingConfig,
   saveForwardingConfig,
 } from '../forwarding/config';
-import { PlatformApp, DevKeyResponse } from '../auth/types';
+import { PlatformApp } from '../auth/types';
 import {
   DEFAULT_PLATFORM_URL,
   DEFAULT_API_URL,
@@ -30,7 +33,6 @@ import {
   DEFAULT_SUPABASE_ANON_KEY,
 } from '../auth/constants';
 import prompts from 'prompts';
-import os from 'os';
 
 export interface LinkOptions {
   appId?: string;
@@ -66,121 +68,92 @@ export default async function link(options: LinkOptions = {}): Promise<void> {
       console.log('✗ Token refresh failed. Run `agentmark login` again.');
       process.exit(1);
     }
+    // Persist the refreshed credentials so subsequent CLI calls don't pay
+    // the refresh round-trip again.
+    saveCredentials(refreshed);
     credentials = refreshed;
   }
 
-  let selectedAppId: string;
+  let selectedApp: PlatformApp | undefined;
 
-  // Step 2: Determine which app to link
-  if (options.appId) {
-    selectedAppId = options.appId;
-  } else {
-    // Fetch apps from platform
-    const appsUrl = `${platformUrl}/api/cli/apps`;
-    const appsResponse = await fetch(appsUrl, {
-      headers: {
-        Authorization: `Bearer ${credentials.access_token}`,
-      },
-    });
-
-    if (!appsResponse.ok) {
-      console.log('✗ Failed to fetch apps from platform.');
-      process.exit(1);
-    }
-
-    const appsData = (await appsResponse.json()) as { apps: PlatformApp[] };
-    const apps = appsData.apps;
-
-    if (apps.length === 0) {
-      console.log('✗ No apps found. Create an app on the platform first.');
-      process.exit(1);
-    }
-
-    if (apps.length === 1) {
-      // Auto-select the only app
-      selectedAppId = apps[0].id;
-      console.log(
-        `✓ Auto-linked to "${apps[0].name}" (${apps[0].tenant_name}) - only app found`
-      );
-    } else {
-      // Interactive picker
-      const choices = apps.map((app) => ({
-        title: `${app.name} (${app.tenant_name})`,
-        value: app.id,
-      }));
-
-      const response = await prompts({
-        type: 'select',
-        name: 'appId',
-        message: 'Select an app to link:',
-        choices,
-      });
-
-      if (!response.appId) {
-        console.log('✗ No app selected.');
-        process.exit(1);
-      }
-
-      selectedAppId = response.appId;
-    }
-  }
-
-  // Step 3: Revoke old key if re-linking
-  const existingConfig = loadForwardingConfig();
-  if (existingConfig?.apiKeyId) {
-    try {
-      const revokeUrl = `${platformUrl}/api/cli/dev-key/${existingConfig.apiKeyId}`;
-      const revokeResponse = await fetch(revokeUrl, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${credentials.access_token}`,
-        },
-      });
-
-      if (revokeResponse.ok || revokeResponse.status === 404) {
-        console.log('✓ Previous dev API key revoked');
-      }
-    } catch {
-      // Best effort - continue even if revocation fails
-    }
-  }
-
-  // Step 4: Create new dev key
-  const deviceName = `CLI - ${os.hostname()}`;
-  const createKeyUrl = `${platformUrl}/api/cli/dev-key`;
-  const createKeyResponse = await fetch(createKeyUrl, {
-    method: 'POST',
+  // Step 2: Determine which app to link.
+  // We always fetch the apps list (even when --app-id is provided) so the
+  // saved config has a friendly display name + tenant context. With no key
+  // mint to do, the round-trip cost is the only API call this command makes.
+  const appsUrl = `${platformUrl}/api/cli/apps`;
+  const appsResponse = await fetch(appsUrl, {
     headers: {
       Authorization: `Bearer ${credentials.access_token}`,
-      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      app_id: selectedAppId,
-      device_name: deviceName,
-    }),
   });
 
-  if (!createKeyResponse.ok) {
-    const errorText = await createKeyResponse.text();
-    console.log(`✗ Failed to create dev API key: ${errorText}`);
+  if (!appsResponse.ok) {
+    console.log('✗ Failed to fetch apps from platform.');
     process.exit(1);
   }
 
-  const keyData = (await createKeyResponse.json()) as DevKeyResponse;
+  const appsData = (await appsResponse.json()) as { apps: PlatformApp[] };
+  const apps = appsData.apps;
 
-  // Step 5: Save forwarding config
+  if (apps.length === 0) {
+    console.log('✗ No apps found. Create an app on the platform first.');
+    process.exit(1);
+  }
+
+  if (options.appId) {
+    selectedApp = apps.find((app) => app.id === options.appId);
+    if (!selectedApp) {
+      console.log(`✗ App "${options.appId}" not found on the platform.`);
+      process.exit(1);
+    }
+  } else if (apps.length === 1) {
+    // Auto-select the only app
+    selectedApp = apps[0];
+    console.log(
+      `✓ Auto-linked to "${selectedApp.name}" (${selectedApp.tenant_name}) - only app found`
+    );
+  } else {
+    // Interactive picker
+    const choices = apps.map((app) => ({
+      title: `${app.name} (${app.tenant_name})`,
+      value: app.id,
+    }));
+
+    const response = await prompts({
+      type: 'select',
+      name: 'appId',
+      message: 'Select an app to link:',
+      choices,
+    });
+
+    if (!response.appId) {
+      console.log('✗ No app selected.');
+      process.exit(1);
+    }
+
+    selectedApp = apps.find((app) => app.id === response.appId);
+    if (!selectedApp) {
+      console.log('✗ Selected app could not be resolved.');
+      process.exit(1);
+    }
+  }
+
+  // Step 3: Save forwarding config.
+  // Preserves any legacy `apiKey` / `apiKeyId` / `expiresAt` from a prior
+  // link (older CLI versions wrote them). The forwarder prefers the
+  // session bearer over the legacy key anyway, so leaving stale fields in
+  // place is harmless and avoids surprising users who downgrade.
+  const existing = loadForwardingConfig() ?? {};
   saveForwardingConfig({
-    appId: keyData.app_id,
-    appName: keyData.app_name,
-    orgName: keyData.org_name ?? undefined,
-    tenantId: keyData.tenant_id,
-    apiKey: keyData.key,
-    apiKeyId: keyData.key_id,
-    expiresAt: keyData.expires_at,
-    baseUrl: keyData.base_url || DEFAULT_API_URL,
+    ...existing,
+    appId: selectedApp.id,
+    appName: selectedApp.name,
+    tenantId: selectedApp.tenant_id,
+    orgName: selectedApp.tenant_name,
+    baseUrl: existing.baseUrl || process.env.AGENTMARK_API_URL || DEFAULT_API_URL,
   });
 
   console.log(
-    `✓ Linked to "${keyData.app_name}". Traces will forward to this app.`
+    `✓ Linked to "${selectedApp.name}". Traces will forward to this app using your login session.`
   );
 }

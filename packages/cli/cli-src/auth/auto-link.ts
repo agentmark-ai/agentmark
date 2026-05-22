@@ -1,20 +1,23 @@
 /**
  * Auto-link helper for dev command
- * Feature: 013-trace-tunnel
  *
- * Checks if user is logged in but not linked, and triggers interactive app selection.
+ * Checks if the user is logged in but the project isn't linked yet, and
+ * triggers interactive app selection. Writes the project↔app binding to
+ * `.agentmark/dev-config.json` (no API key minted — the trace forwarder
+ * authenticates with the session bearer from `agentmark login`).
  */
 
 import {
   loadCredentials,
   isExpired,
+  saveCredentials,
 } from './credentials';
 import { refreshAccessToken } from './token-refresh';
 import {
   loadForwardingConfig,
   saveForwardingConfig,
 } from '../forwarding/config';
-import { PlatformApp, DevKeyResponse } from './types';
+import { PlatformApp } from './types';
 import {
   DEFAULT_PLATFORM_URL,
   DEFAULT_API_URL,
@@ -22,7 +25,6 @@ import {
   DEFAULT_SUPABASE_ANON_KEY,
 } from './constants';
 import prompts from 'prompts';
-import os from 'os';
 
 /**
  * Attempts to auto-link the current project during dev startup.
@@ -38,9 +40,11 @@ export async function attemptAutoLink(options: {
   const supabaseUrl = options.supabaseUrl || DEFAULT_SUPABASE_URL;
   const supabaseAnonKey = options.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY;
 
-  // Check if already linked
+  // Check if already linked. "Linked" means we have an appId — the apiKey
+  // field is no longer written by new links, but legacy configs that
+  // still carry one are also fine.
   const existingConfig = loadForwardingConfig();
-  if (existingConfig?.apiKey) {
+  if (existingConfig?.appId) {
     return true; // Already linked
   }
 
@@ -60,6 +64,7 @@ export async function attemptAutoLink(options: {
     if (!refreshed) {
       return false; // Refresh failed - skip silently
     }
+    saveCredentials(refreshed);
     credentials = refreshed;
   }
 
@@ -86,13 +91,13 @@ export async function attemptAutoLink(options: {
       return false;
     }
 
-    let selectedAppId: string;
+    let selectedApp: PlatformApp;
 
     if (apps.length === 1) {
       // Auto-select the only app
-      selectedAppId = apps[0].id;
+      selectedApp = apps[0];
       console.log(
-        `\n✓ Auto-linked to "${apps[0].name}" (${apps[0].tenant_name}) - only app found`
+        `\n✓ Auto-linked to "${selectedApp.name}" (${selectedApp.tenant_name}) - only app found`
       );
     } else {
       // Interactive picker
@@ -114,45 +119,23 @@ export async function attemptAutoLink(options: {
         return false;
       }
 
-      selectedAppId = response.appId;
-      const selectedApp = apps.find((a) => a.id === selectedAppId);
-      if (selectedApp) {
-        console.log(`✓ Linked to "${selectedApp.name}" (${selectedApp.tenant_name})`);
+      const picked = apps.find((a) => a.id === response.appId);
+      if (!picked) {
+        console.log('⚠️  Selected app could not be resolved. Continuing without trace forwarding.\n');
+        return false;
       }
+      selectedApp = picked;
+      console.log(`✓ Linked to "${selectedApp.name}" (${selectedApp.tenant_name})`);
     }
 
-    // Create dev key
-    const deviceName = `CLI - ${os.hostname()}`;
-    const createKeyUrl = `${platformUrl}/api/cli/dev-key`;
-    const createKeyResponse = await fetch(createKeyUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${credentials.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        app_id: selectedAppId,
-        device_name: deviceName,
-      }),
-    });
-
-    if (!createKeyResponse.ok) {
-      console.log('⚠️  Failed to create dev API key. Continuing without trace forwarding.\n');
-      return false;
-    }
-
-    const keyData = (await createKeyResponse.json()) as DevKeyResponse;
-
-    // Save forwarding config
+    // Save forwarding config (binding only — no key mint).
     saveForwardingConfig({
-      appId: keyData.app_id,
-      appName: keyData.app_name,
-      orgName: keyData.org_name ?? undefined,
-      tenantId: keyData.tenant_id,
-      apiKey: keyData.key,
-      apiKeyId: keyData.key_id,
-      expiresAt: keyData.expires_at,
-      baseUrl: keyData.base_url || DEFAULT_API_URL,
+      ...existingConfig,
+      appId: selectedApp.id,
+      appName: selectedApp.name,
+      tenantId: selectedApp.tenant_id,
+      orgName: selectedApp.tenant_name,
+      baseUrl: existingConfig?.baseUrl || process.env.AGENTMARK_API_URL || DEFAULT_API_URL,
     });
 
     console.log('✓ Trace forwarding active\n');

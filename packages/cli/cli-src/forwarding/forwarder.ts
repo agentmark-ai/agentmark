@@ -14,7 +14,16 @@
  */
 
 import { ForwardingConfig } from './config';
-import { loadCredentials, isExpired } from '../auth/credentials';
+import {
+  loadCredentials,
+  isExpired,
+  saveCredentials,
+} from '../auth/credentials';
+import { refreshAccessToken } from '../auth/token-refresh';
+import {
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+} from '../auth/constants';
 
 interface ForwardingStats {
   sent: number;
@@ -181,29 +190,44 @@ export class TraceForwarder {
   /**
    * Resolves the Authorization header value.
    *
-   * Prefers the user's Supabase session JWT (written by `agentmark login`
-   * to `~/.agentmark/auth.json`) when present and unexpired — the gateway
-   * accepts it as `Bearer <jwt>` and runs queries through the dashboard's
-   * existing RLS under the `authenticated` role.
+   * Auth precedence (matches `agentmark api`):
+   *   1. **Session bearer** (written by `agentmark login` to
+   *      `~/.agentmark/auth.json`) — preferred when present. If expired,
+   *      refresh against the Supabase token endpoint and persist the new
+   *      tokens to disk so other CLI calls in this process tree (and the
+   *      next process) skip the refresh round-trip.
+   *   2. **Legacy `apiKey`** from `dev-config.json` — kept for
+   *      back-compat with link configs written by CLI versions that
+   *      minted a 30-day dev key. New `agentmark link` no longer writes
+   *      this field, but existing users' configs still carry it.
    *
-   * Falls back to the configured API key (legacy path) when no fresh
-   * session is available. This keeps every pre-`agentmark login` caller
-   * working unchanged.
+   * Returns '' (empty Authorization) only when neither path produces a
+   * credential. The 401 handler in `forwardOnce()` then stops the
+   * forwarder with an actionable message.
    *
    * See apps/gateway/src/lib/verify-bearer.ts for the gateway side.
    */
-  private resolveAuthHeader(): string {
-    const credentials = loadCredentials();
-    if (credentials && !isExpired(credentials) && credentials.access_token) {
+  private async resolveAuthHeader(): Promise<string> {
+    let credentials = loadCredentials();
+    if (credentials?.access_token && isExpired(credentials)) {
+      // Try to refresh in place. Failure is non-fatal — we'll fall back
+      // to the legacy apiKey if present, or 401.
+      const refreshed = await refreshAccessToken(
+        credentials,
+        DEFAULT_SUPABASE_URL,
+        DEFAULT_SUPABASE_ANON_KEY,
+      );
+      if (refreshed) {
+        saveCredentials(refreshed);
+        credentials = refreshed;
+      }
+    }
+    if (credentials?.access_token && !isExpired(credentials)) {
       return `Bearer ${credentials.access_token}`;
     }
     if (this.config.apiKey) {
       return this.config.apiKey;
     }
-    // Neither fresh credentials nor an API key — the request will 401.
-    // The 401 handler in forwardOnce() will stop the forwarder and print
-    // an actionable message. Returning an empty string lets that path run
-    // rather than throwing here and losing any buffered traces silently.
     return '';
   }
 
@@ -224,7 +248,7 @@ export class TraceForwarder {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: this.resolveAuthHeader(),
+          Authorization: await this.resolveAuthHeader(),
           'X-Agentmark-App-Id': this.config.appId!,
         },
         body: JSON.stringify(payload),
