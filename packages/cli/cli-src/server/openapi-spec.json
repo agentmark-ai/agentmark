@@ -2202,6 +2202,237 @@
         ]
       }
     },
+    "/v1/apps/{appId}/git/connect": {
+      "post": {
+        "description": "Returns a per-provider OAuth authorization URL plus a signed state token. Headless flow:\n\n1. Headless agent POSTs `{ provider }`.\n2. Gateway returns `{ authorization_url, state, expires_at }`.\n3. Agent surfaces the URL to a human (Slack DM, console output, etc.).\n4. Human clicks; provider redirects to the dashboard OAuth callback.\n5. Callback validates the state token and writes the `git_connection` row.\n6. Agent polls `GET /v1/apps/:appId/git` until `{ connected: true }`.\n\nThe `state` token is HMAC-signed (10-minute TTL) and binds the OAuth callback to the originating app + tenant + provider. Each call mints a fresh nonce — no replay across attempts.\n\nReturns 503 `git_connect_not_configured` when the relevant provider OAuth env vars are missing on this environment (e.g. `GITHUB_APP_SLUG` not set).",
+        "operationId": "start-app-git-connect",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "provider": {
+                    "enum": [
+                      "github",
+                      "gitlab"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "provider"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "authorization_url": {
+                          "format": "uri",
+                          "type": "string"
+                        },
+                        "expires_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "state": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "authorization_url",
+                        "state",
+                        "expires_at"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Authorization URL minted."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid request body."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Missing or invalid API key."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Caller lacks 'app.update' permission."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "App not found."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Git provider OAuth is not configured on this environment."
+          }
+        },
+        "summary": "Mint an OAuth authorization URL for git-provider connect",
+        "tags": [
+          "Apps"
+        ]
+      }
+    },
     "/v1/capabilities": {
       "get": {
         "description": "Returns a map of available API endpoints for the current target (cloud or local). Use this to discover which features are supported before calling other endpoints.\n\nThis endpoint does not require authentication.",
