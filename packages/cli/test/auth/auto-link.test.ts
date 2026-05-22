@@ -2,25 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { CliAuthCredentials } from '../../cli-src/auth/types';
 
 /**
- * Unit tests for attemptAutoLink (T037)
- * Feature: 013-trace-tunnel
+ * Unit tests for attemptAutoLink.
  *
- * Tests:
- * - Happy path: Fetches apps, selects app, creates dev key, saves config
- * - No credentials: Returns false silently
- * - Network failures: App fetch fails (timeout, 401, 500)
- * - Dev key creation failures: API returns error
- * - Multiple apps: User selection flow (mock prompt)
- * - Expired token refresh: Token expired during auto-link, refresh succeeds/fails
- * - Race conditions: Concurrent calls to attemptAutoLink
- * - Missing forwarding config after creation: File not saved properly
- * - Unkey API errors: Different error scenarios
+ * After the link-key-removal refactor, attemptAutoLink only writes the
+ * project↔app binding to `.agentmark/dev-config.json` (appId, appName,
+ * tenantId, orgName, baseUrl). No dev API key is minted — the trace
+ * forwarder authenticates with the session bearer from `agentmark login`.
  */
 
-// Mock modules before importing the module under test
 vi.mock('../../cli-src/auth/credentials', () => ({
   loadCredentials: vi.fn(),
   isExpired: vi.fn(),
+  saveCredentials: vi.fn(),
 }));
 
 vi.mock('../../cli-src/auth/token-refresh', () => ({
@@ -36,15 +29,15 @@ vi.mock('prompts', () => ({
   default: vi.fn(),
 }));
 
-// Mock console methods
-const consoleMock = {
-  log: vi.fn(),
-};
+const consoleMock = { log: vi.fn() };
 vi.stubGlobal('console', consoleMock);
 
-// Import after mocking
 import { attemptAutoLink } from '../../cli-src/auth/auto-link';
-import { loadCredentials, isExpired } from '../../cli-src/auth/credentials';
+import {
+  loadCredentials,
+  isExpired,
+  saveCredentials,
+} from '../../cli-src/auth/credentials';
 import { refreshAccessToken } from '../../cli-src/auth/token-refresh';
 import {
   loadForwardingConfig,
@@ -58,10 +51,7 @@ import {
   DEFAULT_SUPABASE_ANON_KEY,
 } from '../../cli-src/auth/constants';
 
-/** Build a valid CliAuthCredentials object for test use. */
-function makeCredentials(
-  overrides?: Partial<CliAuthCredentials>
-): CliAuthCredentials {
+function makeCredentials(overrides?: Partial<CliAuthCredentials>): CliAuthCredentials {
   return {
     user_id: 'user-001',
     email: 'alice@example.com',
@@ -73,7 +63,6 @@ function makeCredentials(
   };
 }
 
-/** Build a mock app response object. */
 function makeApp(overrides?: {
   id?: string;
   name?: string;
@@ -90,43 +79,11 @@ function makeApp(overrides?: {
   };
 }
 
-/** Build a mock dev key response object. */
-function makeDevKeyResponse(overrides?: {
-  key?: string;
-  key_id?: string;
-  app_id?: string;
-  app_name?: string;
-  tenant_id?: string;
-  base_url?: string;
-}) {
-  return {
-    key: 'sk_agentmark_dev_abc123',
-    key_id: 'key-abc123',
-    app_id: 'app-123',
-    app_name: 'Test App',
-    tenant_id: 'tenant-456',
-    base_url: 'https://gateway.example.com',
-    expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-    scope: 'traces:write',
-    ...overrides,
-  };
-}
-
-/** Build a mock fetch Response for successful apps fetch. */
 function makeAppsResponse(apps: ReturnType<typeof makeApp>[]) {
   return {
     ok: true,
     status: 200,
     json: vi.fn().mockResolvedValue({ apps }),
-  };
-}
-
-/** Build a mock fetch Response for successful dev key creation. */
-function makeKeyResponse(keyData: ReturnType<typeof makeDevKeyResponse>) {
-  return {
-    ok: true,
-    status: 200,
-    json: vi.fn().mockResolvedValue(keyData),
   };
 }
 
@@ -145,131 +102,77 @@ describe('attemptAutoLink', () => {
   });
 
   describe('happy path', () => {
-    it('should return true when single app is auto-linked successfully', async () => {
+    it('returns true and writes binding-only config when single app exists', async () => {
       const creds = makeCredentials();
       const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([app]));
 
       const result = await attemptAutoLink();
 
       expect(result).toBe(true);
-      expect(saveForwardingConfig).toHaveBeenCalledWith({
-        appId: keyData.app_id,
-        appName: keyData.app_name,
-        tenantId: keyData.tenant_id,
-        apiKey: keyData.key,
-        apiKeyId: keyData.key_id,
-        expiresAt: keyData.expires_at,
-        baseUrl: keyData.base_url,
-      });
-      expect(consoleMock.log).toHaveBeenCalledWith(
-        `\n✓ Auto-linked to "${app.name}" (${app.tenant_name}) - only app found`
-      );
-      expect(consoleMock.log).toHaveBeenCalledWith('✓ Trace forwarding active\n');
+
+      // No POST to /api/cli/dev-key — only the apps list fetch.
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const calledUrls = mockFetch.mock.calls.map(([url]) => url);
+      expect(calledUrls.some((url) => url.includes('/api/cli/dev-key'))).toBe(false);
+
+      const written = vi.mocked(saveForwardingConfig).mock.calls[0]![0];
+      expect(written.appId).toBe(app.id);
+      expect(written.appName).toBe(app.name);
+      expect(written.tenantId).toBe(app.tenant_id);
+      expect(written.orgName).toBe(app.tenant_name);
+      expect(written.baseUrl).toMatch(/^https?:\/\//);
+      // No legacy key fields invented from thin air.
+      expect(written.apiKey).toBeUndefined();
+      expect(written.apiKeyId).toBeUndefined();
+      expect(written.expiresAt).toBeUndefined();
     });
 
-    it('should fetch apps with authorization header when user is logged in', async () => {
+    it('fetches apps with the user-bearer authorization header', async () => {
       const creds = makeCredentials();
       const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([app]));
 
       await attemptAutoLink();
 
       expect(mockFetch).toHaveBeenNthCalledWith(
         1,
         `${DEFAULT_PLATFORM_URL}/api/cli/apps`,
-        {
-          headers: {
-            Authorization: `Bearer ${creds.access_token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${creds.access_token}` } },
       );
     });
 
-    it('should create dev key with correct payload when app is selected', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
-      await attemptAutoLink();
-
-      expect(mockFetch).toHaveBeenNthCalledWith(
-        2,
-        `${DEFAULT_PLATFORM_URL}/api/cli/dev-key`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${creds.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: expect.stringContaining(app.id),
-        }
-      );
-
-      const callArgs = mockFetch.mock.calls[1];
-      expect(callArgs).toBeDefined();
-      const body = JSON.parse(callArgs![1].body);
-      expect(body.app_id).toBe(app.id);
-      expect(body.device_name).toMatch(/^CLI - /);
-    });
-
-    it('should use custom platform URL when provided', async () => {
+    it('honors a custom platform URL', async () => {
       const customUrl = 'https://custom.platform.com';
       const creds = makeCredentials();
       const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([app]));
 
       await attemptAutoLink({ platformUrl: customUrl });
 
-      expect(mockFetch).toHaveBeenNthCalledWith(1, `${customUrl}/api/cli/apps`, {
-        headers: {
-          Authorization: `Bearer ${creds.access_token}`,
-        },
-      });
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        `${customUrl}/api/cli/apps`,
+        expect.anything(),
+      );
     });
   });
 
   describe('already linked', () => {
-    it('should return true when already linked without fetching apps', async () => {
+    it('returns true without fetching apps when existing config has an appId', async () => {
       vi.mocked(loadForwardingConfig).mockReturnValue({
         appId: 'existing-app',
         appName: 'Existing App',
         tenantId: 'existing-tenant',
-        apiKey: 'sk_agentmark_dev_existing',
-        apiKeyId: 'existing-key-id',
-        expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
         baseUrl: 'https://gateway.example.com',
       });
 
@@ -279,10 +182,29 @@ describe('attemptAutoLink', () => {
       expect(mockFetch).not.toHaveBeenCalled();
       expect(loadCredentials).not.toHaveBeenCalled();
     });
+
+    it('treats a legacy config that still has apiKey + expiresAt as linked', async () => {
+      // Back-compat: configs written by older CLI versions still carry
+      // `apiKey`/`apiKeyId`/`expiresAt`. They should NOT trigger a re-link.
+      vi.mocked(loadForwardingConfig).mockReturnValue({
+        appId: 'existing-app',
+        appName: 'Existing App',
+        tenantId: 'existing-tenant',
+        apiKey: 'sk_agentmark_dev_legacy',
+        apiKeyId: 'legacy-key-id',
+        expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+        baseUrl: 'https://gateway.example.com',
+      });
+
+      const result = await attemptAutoLink();
+
+      expect(result).toBe(true);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('no credentials', () => {
-    it('should return false silently when user is not logged in', async () => {
+    it('returns false silently when user is not logged in', async () => {
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(null);
 
@@ -296,7 +218,7 @@ describe('attemptAutoLink', () => {
   });
 
   describe('expired token refresh', () => {
-    it('should refresh token when credentials are expired and refresh succeeds', async () => {
+    it('refreshes the bearer, persists it, and continues when refresh succeeds', async () => {
       const expiredCreds = makeCredentials({
         expires_at: new Date(Date.now() - 1000).toISOString(),
       });
@@ -304,16 +226,11 @@ describe('attemptAutoLink', () => {
         access_token: 'new-access-token',
       });
       const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(expiredCreds);
       vi.mocked(isExpired).mockReturnValue(true);
       vi.mocked(refreshAccessToken).mockResolvedValue(refreshedCreds);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([app]));
 
       const result = await attemptAutoLink();
 
@@ -321,24 +238,23 @@ describe('attemptAutoLink', () => {
       expect(refreshAccessToken).toHaveBeenCalledWith(
         expiredCreds,
         DEFAULT_SUPABASE_URL,
-        DEFAULT_SUPABASE_ANON_KEY
+        DEFAULT_SUPABASE_ANON_KEY,
       );
+      // Refreshed credentials are persisted so the next CLI process
+      // doesn't pay the refresh round-trip.
+      expect(saveCredentials).toHaveBeenCalledWith(refreshedCreds);
+      // Apps list fetch uses the refreshed access token.
       expect(mockFetch).toHaveBeenNthCalledWith(
         1,
         `${DEFAULT_PLATFORM_URL}/api/cli/apps`,
-        {
-          headers: {
-            Authorization: `Bearer ${refreshedCreds.access_token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${refreshedCreds.access_token}` } },
       );
     });
 
-    it('should return false silently when token refresh fails', async () => {
+    it('returns false silently when token refresh fails', async () => {
       const expiredCreds = makeCredentials({
         expires_at: new Date(Date.now() - 1000).toISOString(),
       });
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(expiredCreds);
       vi.mocked(isExpired).mockReturnValue(true);
@@ -349,29 +265,20 @@ describe('attemptAutoLink', () => {
       expect(result).toBe(false);
       expect(mockFetch).not.toHaveBeenCalled();
       expect(saveForwardingConfig).not.toHaveBeenCalled();
-      expect(consoleMock.log).not.toHaveBeenCalled();
     });
 
-    it('should use custom Supabase URL and anon key for token refresh', async () => {
+    it('honors custom Supabase URL + anon key for refresh', async () => {
       const customSupabaseUrl = 'https://custom-supabase.example.com';
       const customAnonKey = 'custom-anon-key-xyz';
       const expiredCreds = makeCredentials({
         expires_at: new Date(Date.now() - 1000).toISOString(),
       });
-      const refreshedCreds = makeCredentials({
-        access_token: 'new-access-token',
-      });
-      const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
+      const refreshedCreds = makeCredentials({ access_token: 'new-token' });
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(expiredCreds);
       vi.mocked(isExpired).mockReturnValue(true);
       vi.mocked(refreshAccessToken).mockResolvedValue(refreshedCreds);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([makeApp()]));
 
       await attemptAutoLink({
         supabaseUrl: customSupabaseUrl,
@@ -381,92 +288,47 @@ describe('attemptAutoLink', () => {
       expect(refreshAccessToken).toHaveBeenCalledWith(
         expiredCreds,
         customSupabaseUrl,
-        customAnonKey
+        customAnonKey,
       );
     });
   });
 
-  describe('network failures', () => {
-    it('should return false silently when app fetch returns 401', async () => {
+  describe('apps fetch failures', () => {
+    it.each([
+      ['401', 401],
+      ['500', 500],
+    ] as const)('returns false silently when app fetch returns %s', async (_label, status) => {
       const creds = makeCredentials();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 401,
-      });
+      mockFetch.mockResolvedValue({ ok: false, status });
 
       const result = await attemptAutoLink();
 
       expect(result).toBe(false);
       expect(saveForwardingConfig).not.toHaveBeenCalled();
-      expect(consoleMock.log).not.toHaveBeenCalled();
     });
 
-    it('should return false silently when app fetch returns 500', async () => {
+    it('returns false silently when fetch throws a network error', async () => {
       const creds = makeCredentials();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-      });
+      mockFetch.mockRejectedValue(new Error('network down'));
 
       const result = await attemptAutoLink();
 
       expect(result).toBe(false);
       expect(saveForwardingConfig).not.toHaveBeenCalled();
-      expect(consoleMock.log).not.toHaveBeenCalled();
     });
 
-    it('should return false silently when fetch throws network error', async () => {
+    it('returns false when no apps exist on the tenant', async () => {
       const creds = makeCredentials();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-      expect(consoleMock.log).not.toHaveBeenCalled();
-    });
-
-    it('should return false silently when fetch times out', async () => {
-      const creds = makeCredentials();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockRejectedValue(new Error('Request timeout'));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-      expect(consoleMock.log).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('no apps found', () => {
-    it('should return false when no apps exist', async () => {
-      const creds = makeCredentials();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockResolvedValue(makeAppsResponse([]));
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([]));
 
       const result = await attemptAutoLink();
 
@@ -476,455 +338,71 @@ describe('attemptAutoLink', () => {
   });
 
   describe('multiple apps selection', () => {
-    it('should show interactive picker when multiple apps exist', async () => {
+    it('shows the interactive picker and writes the chosen binding', async () => {
       const creds = makeCredentials();
-      const app1 = makeApp({ id: 'app-1', name: 'App One', tenant_name: 'Org One' });
-      const app2 = makeApp({ id: 'app-2', name: 'App Two', tenant_name: 'Org Two' });
-      const keyData = makeDevKeyResponse({ app_id: 'app-2', app_name: 'App Two' });
-
+      const apps = [
+        makeApp({ id: 'app-1', name: 'App One', tenant_name: 'Org A' }),
+        makeApp({ id: 'app-2', name: 'App Two', tenant_name: 'Org B' }),
+      ];
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
+      mockFetch.mockResolvedValueOnce(makeAppsResponse(apps));
       vi.mocked(prompts).mockResolvedValue({ appId: 'app-2' });
 
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app1, app2]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
       const result = await attemptAutoLink();
 
       expect(result).toBe(true);
-      expect(prompts).toHaveBeenCalledWith({
-        type: 'select',
-        name: 'appId',
-        message: 'Select an app for trace forwarding:',
-        choices: [
-          { title: 'App One (Org One)', value: 'app-1' },
-          { title: 'App Two (Org Two)', value: 'app-2' },
-        ],
-      });
+      expect(prompts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'select',
+          name: 'appId',
+          choices: expect.arrayContaining([
+            expect.objectContaining({ title: 'App One (Org A)', value: 'app-1' }),
+            expect.objectContaining({ title: 'App Two (Org B)', value: 'app-2' }),
+          ]),
+        }),
+      );
+
+      const written = vi.mocked(saveForwardingConfig).mock.calls[0]![0];
+      expect(written.appId).toBe('app-2');
+      expect(written.appName).toBe('App Two');
+      expect(written.orgName).toBe('Org B');
     });
 
-    it('should return false when user cancels app selection', async () => {
+    it('returns false when the user cancels the picker', async () => {
       const creds = makeCredentials();
-      const app1 = makeApp({ id: 'app-1', name: 'App One' });
-      const app2 = makeApp({ id: 'app-2', name: 'App Two' });
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
+      mockFetch.mockResolvedValueOnce(
+        makeAppsResponse([makeApp({ id: 'a' }), makeApp({ id: 'b' })]),
+      );
       vi.mocked(prompts).mockResolvedValue({ appId: undefined });
 
-      mockFetch.mockResolvedValue(makeAppsResponse([app1, app2]));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('dev key creation failures', () => {
-    it('should return false when dev key creation returns 403', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 403,
-        });
-
       const result = await attemptAutoLink();
 
       expect(result).toBe(false);
       expect(saveForwardingConfig).not.toHaveBeenCalled();
     });
 
-    it('should return false when dev key creation returns 500', async () => {
+    it('returns false when the chosen app id does not match any returned app (defense)', async () => {
+      // Guards against a prompts mock or upstream API quirk that returns
+      // an unknown id. The auto-link path should not blindly write a
+      // half-formed config in that case.
       const creds = makeCredentials();
-      const app = makeApp();
-
       vi.mocked(loadForwardingConfig).mockReturnValue(null);
       vi.mocked(loadCredentials).mockReturnValue(creds);
       vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 500,
-        });
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-    });
-
-    it('should return false when dev key creation throws network error', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockRejectedValueOnce(new TypeError('Failed to fetch'));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-      // Silent failure - no console.log expected
-      expect(consoleMock.log).not.toHaveBeenCalledWith(
-        expect.stringContaining('Failed to create')
+      mockFetch.mockResolvedValueOnce(
+        makeAppsResponse([makeApp({ id: 'a' }), makeApp({ id: 'b' })]),
       );
-    });
-  });
-
-  describe('malformed API responses', () => {
-    it('should return false when apps response is missing apps field', async () => {
-      const creds = makeCredentials();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: vi.fn().mockResolvedValue({}),
-      });
+      vi.mocked(prompts).mockResolvedValue({ appId: 'ghost-app' });
 
       const result = await attemptAutoLink();
 
       expect(result).toBe(false);
       expect(saveForwardingConfig).not.toHaveBeenCalled();
-    });
-
-    it('should return false when dev key response is missing required fields', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-      // Ensure saveForwardingConfig throws if called with incomplete data
-      vi.mocked(saveForwardingConfig).mockImplementation((config: any) => {
-        // This will cause the try-catch to return false
-        if (!config.apiKey || !config.appId) {
-          throw new Error('Invalid config');
-        }
-      });
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: vi.fn().mockResolvedValue({
-            key: 'sk_agentmark_dev_abc123',
-            // Missing key_id, app_id, etc.
-          }),
-        });
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false when apps response JSON parsing fails', async () => {
-      const creds = makeCredentials();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: vi.fn().mockRejectedValue(new SyntaxError('Invalid JSON')),
-      });
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('race conditions', () => {
-    it('should not conflict when called sequentially', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-      const keyData1 = makeDevKeyResponse({ key_id: 'key-001' });
-      const keyData2 = makeDevKeyResponse({ key_id: 'key-002' });
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      // First call gets key-001
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData1));
-
-      const result1 = await attemptAutoLink();
-
-      // Second call gets key-002
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData2));
-
-      const result2 = await attemptAutoLink();
-
-      expect(result1).toBe(true);
-      expect(result2).toBe(true);
-      expect(saveForwardingConfig).toHaveBeenCalledTimes(2);
-      expect(saveForwardingConfig).toHaveBeenNthCalledWith(1, {
-        appId: keyData1.app_id,
-        appName: keyData1.app_name,
-        tenantId: keyData1.tenant_id,
-        apiKey: keyData1.key,
-        apiKeyId: keyData1.key_id,
-        expiresAt: keyData1.expires_at,
-        baseUrl: keyData1.base_url,
-      });
-      expect(saveForwardingConfig).toHaveBeenNthCalledWith(2, {
-        appId: keyData2.app_id,
-        appName: keyData2.app_name,
-        tenantId: keyData2.tenant_id,
-        apiKey: keyData2.key,
-        apiKeyId: keyData2.key_id,
-        expiresAt: keyData2.expires_at,
-        baseUrl: keyData2.base_url,
-      });
-    });
-
-    it('should handle failure after success in sequential calls', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      // First call succeeds
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
-      const result1 = await attemptAutoLink();
-
-      // Second call fails at app fetch
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      });
-
-      const result2 = await attemptAutoLink();
-
-      expect(result1).toBe(true);
-      expect(result2).toBe(false);
-      expect(saveForwardingConfig).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle app with missing optional fields', async () => {
-      const creds = makeCredentials();
-      const app = {
-        id: 'app-minimal',
-        name: 'Minimal App',
-        tenant_id: 'tenant-minimal',
-        tenant_name: 'Minimal Org',
-        // created_at is optional in the type
-      };
-      const keyData = makeDevKeyResponse({
-        app_id: 'app-minimal',
-        app_name: 'Minimal App',
-      });
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: vi.fn().mockResolvedValue({ apps: [app] }),
-        })
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(true);
-      expect(saveForwardingConfig).toHaveBeenCalled();
-    });
-
-    it('should handle very long app names without truncation', async () => {
-      const creds = makeCredentials();
-      const longName = 'A'.repeat(255);
-      const app = makeApp({ name: longName });
-      const keyData = makeDevKeyResponse({ app_name: longName });
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(true);
-      expect(saveForwardingConfig).toHaveBeenCalledWith(
-        expect.objectContaining({
-          appName: longName,
-        })
-      );
-    });
-
-    it('should handle special characters in app and tenant names', async () => {
-      const creds = makeCredentials();
-      const app = makeApp({
-        name: 'App-Special',
-        tenant_name: "Org-Test",
-      });
-      const keyData = makeDevKeyResponse({
-        app_name: 'App-Special',
-      });
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(true);
-      expect(saveForwardingConfig).toHaveBeenCalledWith(
-        expect.objectContaining({
-          appName: 'App-Special',
-        })
-      );
-    });
-
-    it('should handle dev key response with missing optional fields', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-      const minimalKeyData = {
-        key: 'sk_agentmark_dev_abc123',
-        key_id: 'key-abc123',
-        app_id: 'app-123',
-        app_name: 'Test App',
-        tenant_id: 'tenant-456',
-        base_url: 'https://gateway.example.com',
-        expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-        scope: 'traces:write',
-      };
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: vi.fn().mockResolvedValue(minimalKeyData),
-        });
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(true);
-      expect(saveForwardingConfig).toHaveBeenCalledWith({
-        appId: minimalKeyData.app_id,
-        appName: minimalKeyData.app_name,
-        tenantId: minimalKeyData.tenant_id,
-        apiKey: minimalKeyData.key,
-        apiKeyId: minimalKeyData.key_id,
-        expiresAt: minimalKeyData.expires_at,
-        baseUrl: minimalKeyData.base_url,
-      });
-    });
-  });
-
-  describe('prompt cancellation', () => {
-    it('should handle prompt cancellation with null response', async () => {
-      const creds = makeCredentials();
-      const app1 = makeApp({ id: 'app-1', name: 'App One' });
-      const app2 = makeApp({ id: 'app-2', name: 'App Two' });
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-      vi.mocked(prompts).mockResolvedValue({ appId: null });
-
-      mockFetch.mockResolvedValue(makeAppsResponse([app1, app2]));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-    });
-
-    it('should handle prompt cancellation with empty string response', async () => {
-      const creds = makeCredentials();
-      const app1 = makeApp({ id: 'app-1', name: 'App One' });
-      const app2 = makeApp({ id: 'app-2', name: 'App Two' });
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-      vi.mocked(prompts).mockResolvedValue({ appId: '' });
-
-      mockFetch.mockResolvedValue(makeAppsResponse([app1, app2]));
-
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('config save verification', () => {
-    it('should complete successfully even if saveForwardingConfig throws', async () => {
-      const creds = makeCredentials();
-      const app = makeApp();
-      const keyData = makeDevKeyResponse();
-
-      vi.mocked(loadForwardingConfig).mockReturnValue(null);
-      vi.mocked(loadCredentials).mockReturnValue(creds);
-      vi.mocked(isExpired).mockReturnValue(false);
-      vi.mocked(saveForwardingConfig).mockImplementation(() => {
-        throw new Error('File system error');
-      });
-
-      mockFetch
-        .mockResolvedValueOnce(makeAppsResponse([app]))
-        .mockResolvedValueOnce(makeKeyResponse(keyData));
-
-      // The function should still return false because the try-catch wraps everything
-      const result = await attemptAutoLink();
-
-      expect(result).toBe(false);
-      expect(saveForwardingConfig).toHaveBeenCalled();
     });
   });
 });

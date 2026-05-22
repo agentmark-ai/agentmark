@@ -4,7 +4,7 @@ AgentMark deployment is **git-based**. The standalone `agentmark deploy` CLI com
 
 ## How deployment works
 
-1. You connect a git provider (GitHub or GitLab) to your AgentMark Cloud app via the Dashboard.
+1. You connect a git provider (GitHub or GitLab) to your AgentMark Cloud app. Use either the Dashboard (interactive) or the CLI / API (`agentmark api apps start-app-git-connect …` — see [Headless deployment](#headless-deployment-autonomous-agents-ci-automation)).
 2. AgentMark watches the configured branch.
 3. On every push that touches the AgentMark project files (`agentmark.json`, anything under `agentmarkPath`), AgentMark builds and deploys.
 4. Prompts and config sync to Cloud; the version becomes loadable via the SDK in your runtime.
@@ -13,29 +13,85 @@ For setup and the git-provider connection flow, fetch `https://docs.agentmark.co
 
 ## Headless deployment (autonomous agents, CI, automation)
 
-Deployment is git-based, which means a headless agent (no human at a browser) can drive it **if and only if** the AgentMark app is already set up. The one-time setup steps below cannot currently be done from the CLI or API:
+Deployment is git-based, but most of the surrounding setup is now accessible from the CLI / API too. The only steps that **still** require a human at a browser are the one-click GitHub / GitLab OAuth install (the provider mandates the click-through) and the Dashboard-only branch picker.
 
-| Step | Headless? | Notes |
+| Step | Headless? | How |
 |---|---|---|
-| Create an AgentMark Cloud app | No — Dashboard | One-time, human-in-the-loop. |
-| Connect a git provider (GitHub / GitLab) | No — Dashboard OAuth | One-time, human-in-the-loop. |
-| Configure the watched branch + `agentmarkPath` | No — Dashboard | One-time. |
-| Mint an API key | No — Dashboard | One-time per environment. |
-| Commit + push prompt changes | **Yes** | The headless path starts here. |
-| Wait for build + deploy to complete | **Yes** | Poll `deployments list-deployments`. |
+| Create an AgentMark Cloud app | **Yes** | `agentmark api apps create-app --remote --name <name>` (see [Bootstrap a Cloud app headlessly](#bootstrap-a-cloud-app-headlessly)). |
+| Connect a git provider | **Partial** | API mints a one-time install URL via `agentmark api apps start-app-git-connect --remote …`; a human (or a service account with browser credentials) still has to click through GitHub's / GitLab's install screen. Once the install completes, the rest is fully headless. Poll status with `agentmark api apps get-app-git-connection --remote`. |
+| Configure the watched branch + `agentmarkPath` | No — Dashboard | The branch picker is Dashboard-only today. `agentmarkPath` lives in `agentmark.json` in git, not Cloud. |
+| Mint an API key | **Yes** | `agentmark api api-keys create-api-key --remote …` after the app exists. Plaintext returned ONCE — capture it. |
+| Commit + push prompt changes | **Yes** | The headless path continues here. |
+| Wait for build + deploy to complete | **Yes** | Poll `agentmark api deployments list-deployments --remote`. |
 | Consume the deployed prompt | **Yes** | Via SDK using `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID`. |
 
-If you are designing a fully autonomous system and the app isn't set up yet, treat the four "No" rows as setup tasks for a human. There is currently no CLI / API path to bootstrap a Cloud app or connect a git provider.
+So the *only* hard human-in-the-loop step left is the git-provider OAuth install. Everything else can be scripted.
 
-### Env vars (replaces `login` + `link`)
+### Auth: default is the login session, env-var key is the override
+
+After `agentmark login`, the session bearer cached at `~/.agentmark/auth.json` is the **default** authentication for every `agentmark api … --remote` call. You do not need to mint or pass an API key for normal use — the CLI picks up the bearer and refreshes it automatically. RLS-derived permissions (the user's role in the tenant) apply.
+
+The `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` env vars exist to **override** that default in non-interactive contexts (CI, production agents, scripted runs where opening a browser to log in isn't possible). Setting them bypasses the session bearer entirely and authenticates with an app-scoped key + role-scoped permissions.
 
 ```bash
+# CI / non-interactive override — env vars take precedence over the login session
 export AGENTMARK_API_URL=https://api.agentmark.co       # or stg / preview API URL
-export AGENTMARK_API_KEY=am_…                           # Dashboard → API Keys
-export AGENTMARK_APP_ID=<uuid>                          # Dashboard → App settings
+export AGENTMARK_API_KEY=am_…                           # from `agentmark api api-keys create-api-key`
+export AGENTMARK_APP_ID=<uuid>                          # the app this key is scoped to
 ```
 
-With these set, every `npx agentmark api … --remote` call and every SDK call authenticates without `agentmark login` / `agentmark link`. **Never call `agentmark login` from a headless context** — it opens a browser and hangs.
+The precedence order in `--remote` mode is (highest → lowest):
+
+1. `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` env vars
+2. Session bearer from `~/.agentmark/auth.json` (after `agentmark login`)
+3. Legacy forwarding config from `agentmark link`
+
+This matches the env-var-overrides-login pattern other major dev-tool CLIs follow — Wrangler (Cloudflare), gh (GitHub), gcloud Application Default Credentials, and AWS CLI all check env-var tokens before stored login credentials. An explicit env var always wins; the login session never silently overrides an explicit CI configuration.
+
+**Never call `agentmark login` from headless contexts** — it opens a browser and hangs. Set the env vars instead.
+
+### Bootstrap a Cloud app headlessly
+
+For a fresh user with zero apps. specli convention: path params are positional, body fields are `--<field>` flags. Run `agentmark api <resource> <action> --help` to see the exact shape for any step:
+
+```bash
+# 1. One-time interactive login (skip if using AGENTMARK_API_KEY env vars)
+agentmark login
+
+# 2. Create the app — tenant-scoped route, no X-Agentmark-App-Id header needed.
+#    CreateAppBodySchema = { name, runtime? } → --name + --runtime flags.
+APP_ID=$(agentmark api apps create-app --remote \
+           --name "my-agent" --runtime nodejs \
+           | jq -r '.data.id')
+
+# 3. Mint an install URL for GitHub.
+#    Path param <appId> is positional; body field `provider` is --provider.
+INSTALL_URL=$(agentmark api apps start-app-git-connect "$APP_ID" --remote \
+                --provider github \
+                | jq -r '.data.authorization_url')
+echo "Open this URL to grant the GitHub App access: $INSTALL_URL"
+
+# 4. After the human (or service account) completes the install,
+#    poll until the connection is registered.
+DEADLINE=$(( $(date +%s) + 300 ))
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+  CONNECTED=$(agentmark api apps get-app-git-connection "$APP_ID" --remote \
+                | jq -r '.data.connected')
+  case "$CONNECTED" in
+    true) echo "git connected"; break ;;
+    *) sleep 5 ;;
+  esac
+done
+
+# 5. Mint an API key for this app so downstream runtimes (SDK, CI)
+#    can authenticate without a session. Capture plaintext_key — it is
+#    returned ONCE.
+agentmark api api-keys create-api-key --remote \
+  --app_id "$APP_ID" --name "ci" --permissions '["template.read","trace.write"]' \
+  | jq -r '.data.plaintext_key'
+```
+
+The install URL is a one-shot signed envelope (HMAC-SHA256, ~10 min TTL). If the human takes longer than the TTL, re-run step 3 to mint a fresh URL. After the install completes, the `git_connection` row exists and step 4's poll flips to `connected: true`.
 
 ### Headless commit → push → poll pattern
 
@@ -81,18 +137,23 @@ The response includes `deployment_status`, `files_status`, `code_status`, commit
 
 ## Linking a local project to a Cloud app
 
-Before you can read Cloud state or have your local runs forward traces to Cloud, link the project:
+`agentmark login` and `agentmark link` cover different surfaces:
+
+- **`agentmark login`** authenticates the *user*. OAuth in the browser, session bearer stored at `~/.agentmark/auth.json`. After this, `agentmark api … --remote` talks to Cloud as that user, with permissions derived from the user's role in the tenant.
+- **`agentmark link`** binds the *project* (working directory) to a specific Cloud app. Interactive picker (or `--app-id`), writes `{ appId, appName, tenantId, orgName, baseUrl }` to `.agentmark/dev-config.json`. **No API key is minted.** The trace forwarder inside `agentmark dev` reads `appId` from this file and authenticates with the session bearer from `auth.json` (auto-refreshed when expired), so the user's actual permissions enforce — there is no scoped per-project key to leak, expire, or diverge from the user's real access.
 
 ```bash
-npx agentmark login           # OAuth in browser, stores credentials
-npx agentmark link            # Interactive app selection
+npx agentmark login           # OAuth in browser, stores session bearer at ~/.agentmark/auth.json
+npx agentmark link            # Interactive app selection — binds this project to a Cloud app
 # or:
 npx agentmark link --app-id <uuid>
 ```
 
-After `link`, `.agentmark/dev-config.json` stores the app ID and a dev API key. This file is gitignored — each developer links their own working copy.
+`.agentmark/dev-config.json` is gitignored — each developer links their own working copy.
 
-The dev API key expires after 30 days. Re-running `link` refreshes it.
+You can `login` without `link` (read Cloud state with `agentmark api … --remote`, no per-project binding). You can't meaningfully `link` without `login` first — the picker needs an authenticated session to fetch the app list.
+
+This mirrors the pattern wrangler, vercel, gh, and supabase use: one user-scoped credential drives every CLI surface. Pre-link configs that still carry a legacy `apiKey` field keep working — the forwarder prefers the session bearer but falls back to the legacy key when no fresh session is available.
 
 ## Trace forwarding from local
 
@@ -123,12 +184,15 @@ This is the authoritative answer to "what does Cloud think my config looks like 
 
 ## API keys
 
-Cloud API keys are created from the Dashboard. The CLI does not mint user-facing keys (only the dev API key used by `agentmark link`).
+You only need an API key for non-interactive contexts (CI, production SDK runtime, autonomous agents that can't open a browser). For everything else, the session bearer from `agentmark login` is sufficient.
+
+Two ways to mint a Cloud API key:
+
+- **Dashboard**: app's *Settings → API keys*. Pick a role (SDK / Read-Only / Full Access) or toggle individual permissions, copy the key — shown once.
+- **CLI / API**: `agentmark api api-keys create-api-key --remote --app_id <uuid> --name <name> --permissions '["template.read","trace.write"]'`. Response contains `data.plaintext_key` — capture it on the spot, subsequent reads expose only metadata. Auth via session bearer (after `agentmark login`) or another API key with `api_key.insert` permission.
 
 - For environment variable names (`AGENTMARK_API_KEY`, `AGENTMARK_APP_ID`, etc.), fetch `https://docs.agentmark.co/configure/environment-variables.md`.
 - For API key lifecycle and rotation, fetch `https://docs.agentmark.co/deploy/api-keys.md`.
-
-Use the dev API key (auto-created by `agentmark link`) for development; use a Dashboard-created key for production runtime SDK calls.
 
 ## Common mistakes
 
@@ -136,7 +200,7 @@ Use the dev API key (auto-created by `agentmark link`) for development; use a Da
 - **Passing `--remote` to `agentmark dev`** — removed in 0.13.0. Trace forwarding is automatic when the project is linked. The `--remote` flag on `agentmark api` is unaffected (it routes to Cloud instead of local).
 - **Editing `agentmark.json` in the Dashboard** — `agentmark.json` is the source of truth in git and syncs on deploy. Dashboard-side edits get overwritten on the next deploy.
 - **Forgetting to commit `agentmark.json` changes before pushing** — the deploy picks up only what's in git. Local-only changes don't ship.
-- **Sharing `.agentmark/dev-config.json`** — it's gitignored and per-developer. Sharing it leaks a dev API key.
+- **Sharing `.agentmark/dev-config.json`** — it's gitignored and per-developer. New configs hold only the project↔app binding; legacy configs from older CLI versions also carry a dev API key.
 - **Calling `agentmark login` from a headless context** — opens a browser and hangs the agent. Use `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` env vars instead (see "Headless deployment" above).
 - **Trying to consume a prompt immediately after `git push`** — the deploy is async. Poll `deployments list-deployments` until status is `succeeded` before reading the new version via the SDK.
 - **Expecting a `prompts run` or `POST /v1/prompts/{name}/run` endpoint** — there isn't one. Execution happens in customer code via the SDK; the gateway is observability + config storage. See `SKILL.md` § Runtime model.
