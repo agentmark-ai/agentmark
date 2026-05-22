@@ -12,6 +12,7 @@ Add `--remote` to any command to target AgentMark Cloud instead of the local dev
 ## Resources
 
 - [`api-keys`](#api-keys) — 3 action(s)
+- [`apps`](#apps) — 6 action(s)
 - [`capabilities`](#capabilities) — 1 action(s)
 - [`config`](#config) — 1 action(s)
 - [`datasets`](#datasets) — 4 action(s)
@@ -71,6 +72,89 @@ npx agentmark api api-keys revoke-api-key <apiKeyId> [--remote] [--refresh]
 | Param | Where | Required? | Notes |
 |---|---|---|---|
 | `apiKeyId` | path | ✓ |  |
+
+---
+
+## `apps`
+
+| Command | HTTP | Path | Summary |
+|---|---|---|---|
+| `npx agentmark api apps create-app` | POST | `/v1/apps` | Create app |
+| `npx agentmark api apps delete-app` | DELETE | `/v1/apps/{appId}` | Delete app |
+| `npx agentmark api apps get-app` | GET | `/v1/apps/{appId}` | Get app |
+| `npx agentmark api apps get-app-git-connection` | GET | `/v1/apps/{appId}/git` | Get git connection status for an app |
+| `npx agentmark api apps list-apps` | GET | `/v1/apps` | List apps |
+| `npx agentmark api apps update-app` | PATCH | `/v1/apps/{appId}` | Update app |
+
+### `apps create-app`
+
+Create app
+
+```bash
+npx agentmark api apps create-app [--remote] [--refresh]
+```
+
+### `apps delete-app`
+
+Delete app
+
+```bash
+npx agentmark api apps delete-app <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+
+### `apps get-app`
+
+Get app
+
+```bash
+npx agentmark api apps get-app <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+
+### `apps get-app-git-connection`
+
+Get git connection status for an app
+
+```bash
+npx agentmark api apps get-app-git-connection <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+
+### `apps list-apps`
+
+List apps
+
+```bash
+npx agentmark api apps list-apps [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `limit` | query |  |  |
+| `offset` | query |  |  |
+| `name` | query |  |  |
+
+### `apps update-app`
+
+Update app
+
+```bash
+npx agentmark api apps update-app <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
 
 ---
 
