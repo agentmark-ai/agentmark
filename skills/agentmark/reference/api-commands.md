@@ -12,7 +12,7 @@ Add `--remote` to any command to target AgentMark Cloud instead of the local dev
 ## Resources
 
 - [`api-keys`](#api-keys) — 3 action(s)
-- [`apps`](#apps) — 6 action(s)
+- [`apps`](#apps) — 7 action(s)
 - [`capabilities`](#capabilities) — 1 action(s)
 - [`config`](#config) — 1 action(s)
 - [`datasets`](#datasets) — 4 action(s)
@@ -84,6 +84,7 @@ npx agentmark api api-keys revoke-api-key <apiKeyId> [--remote] [--refresh]
 | `npx agentmark api apps get-app` | GET | `/v1/apps/{appId}` | Get app |
 | `npx agentmark api apps get-app-git-connection` | GET | `/v1/apps/{appId}/git` | Get git connection status for an app |
 | `npx agentmark api apps list-apps` | GET | `/v1/apps` | List apps |
+| `npx agentmark api apps start-app-git-connect` | POST | `/v1/apps/{appId}/git/connect` | Mint an OAuth authorization URL for git-provider connect |
 | `npx agentmark api apps update-app` | PATCH | `/v1/apps/{appId}` | Update app |
 
 ### `apps create-app`
@@ -143,6 +144,18 @@ npx agentmark api apps list-apps [--remote] [--refresh]
 | `limit` | query |  |  |
 | `offset` | query |  |  |
 | `name` | query |  |  |
+
+### `apps start-app-git-connect`
+
+Mint an OAuth authorization URL for git-provider connect
+
+```bash
+npx agentmark api apps start-app-git-connect <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
 
 ### `apps update-app`
 

@@ -136,3 +136,36 @@ export const GitConnectionStatusResponseSchema = z.object({
 });
 
 export type GitConnectionStatus = z.infer<typeof GitConnectionStatusSchema>;
+
+// ---------------------------------------------------------------------------
+// Git connect URL helper (POST /v1/apps/:appId/git/connect)
+//
+// Returns a per-provider authorization URL the caller can hand to a human
+// for one-click install. The state token in the URL is HMAC-signed by the
+// gateway; the OAuth callback validates the signature and TTL before
+// upserting the git_connection row.
+//
+// Headless flow:
+//   1. POST /v1/apps/:appId/git/connect { provider }  → { authorization_url, state, expires_at }
+//   2. Headless agent prints/sends URL to user; user clicks once.
+//   3. Provider redirects to AgentMark's OAuth callback with the state.
+//   4. Callback validates state and persists the connection.
+//   5. Agent polls GET /v1/apps/:appId/git until { connected: true }.
+// ---------------------------------------------------------------------------
+
+export const StartGitConnectBodySchema = z.object({
+  provider: z.enum(GIT_PROVIDER_VALUES),
+});
+
+export const GitConnectAuthorizationSchema = z.object({
+  authorization_url: z.string().url(),
+  state: z.string().min(1),
+  expires_at: z.string().datetime(),
+});
+
+export const GitConnectAuthorizationResponseSchema = z.object({
+  data: GitConnectAuthorizationSchema,
+});
+
+export type StartGitConnectBody = z.infer<typeof StartGitConnectBodySchema>;
+export type GitConnectAuthorization = z.infer<typeof GitConnectAuthorizationSchema>;
