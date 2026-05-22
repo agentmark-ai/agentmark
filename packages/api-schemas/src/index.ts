@@ -18,3 +18,4 @@ export * from "./schemas/api-keys";
 export * from "./schemas/prompts";
 export * from "./schemas/deployments";
 export * from "./schemas/alerts";
+export * from "./schemas/apps";

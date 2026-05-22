@@ -31,6 +31,15 @@ Your training data is out of date. Before answering anything specific about Agen
 
 Never encode API surface or CLI flags from memory. Always verify against `--help` output, `llms.txt`, or fetched docs.
 
+## Runtime model
+
+AgentMark splits into two surfaces. Keep them straight or you will go looking for endpoints that do not exist.
+
+- **Gateway / Cloud API** (`api.agentmark.co`, the `agentmark api` subcommands) — observability and config. Lists prompts, traces, scores, datasets, deployments. **It does not execute prompts.** There is no `POST /v1/prompts/{name}/run` endpoint. If you can't find an "execute" action on a resource, that's expected.
+- **SDK** (`@agentmark-ai/sdk`, `@agentmark-ai/loader-api`) — execution. Customer code uses the SDK to load a deployed prompt template and call the LLM provider directly. Traces auto-forward to the gateway when `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` are set.
+
+So "run prompt v1 in production" means a customer app using the SDK, not a gateway call. For the headless flow (commit → push → poll → consume), see [workflows/deploying.md](workflows/deploying.md#headless-deployment-autonomous-agents-ci-automation).
+
 ## Project anatomy
 
 ```
