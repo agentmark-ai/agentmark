@@ -1,6 +1,12 @@
 import { Command } from 'commander';
 import { loadForwardingConfig } from '../../forwarding/config';
-import { DEFAULT_API_URL } from '../../auth/constants';
+import {
+  DEFAULT_API_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+  DEFAULT_SUPABASE_URL,
+} from '../../auth/constants';
+import { loadCredentials, isExpired, saveCredentials } from '../../auth/credentials';
+import { refreshAccessToken } from '../../auth/token-refresh';
 import { format501Error } from './not-available-formatter';
 import fs from 'fs';
 import path from 'path';
@@ -16,7 +22,7 @@ const DEFAULT_LOCAL_URL = `http://localhost:${process.env.AGENTMARK_API_PORT || 
 // Config loading
 // ---------------------------------------------------------------------------
 
-interface ApiConfig {
+export interface ApiConfig {
   apiKey?: string;
   appId?: string;
   apiUrl: string;
@@ -40,9 +46,30 @@ async function isLocalRunning(): Promise<boolean> {
 /**
  * Load API config. Target is determined by the --remote flag:
  * - Default (no flag): targets local dev server. Errors if not running.
- * - --remote: targets cloud. Requires login + link.
+ * - --remote: targets cloud. Auth precedence below.
+ *
+ * Auth precedence for remote mode (highest to lowest):
+ *   1. **`AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` env vars** — explicit
+ *      override for CI / non-interactive agents that have a dedicated
+ *      AgentMark API key.
+ *   2. **`~/.agentmark/auth.json` session bearer** — the default for any
+ *      developer or agent that ran `agentmark login`. Refreshes the
+ *      session JWT if expired and writes the new tokens back to disk so
+ *      subsequent invocations don't pay the refresh round-trip. The
+ *      gateway accepts this bearer for every tenant-scoped route and
+ *      for per-app routes when the user has the requisite RLS-derived
+ *      permission. No `appId` is required upfront — handlers that need
+ *      it consume it from the per-command CLI args (e.g. `--appId`).
+ *   3. **`~/.agentmark/forwarding-config.json` (legacy `agentmark link`)** —
+ *      app-scoped API key. Kept for backward compatibility with the
+ *      trace-forwarding flow.
+ *
+ * Why this ordering: the user-session bearer is the user's primary
+ * identity; an API key is a delegated capability that overrides it. Env
+ * vars sit above both so CI explicitly says "use this key" without
+ * surprise fallthrough to a developer's local session.
  */
-async function loadConfig(remote: boolean): Promise<ApiConfig> {
+export async function loadConfig(remote: boolean): Promise<ApiConfig> {
   if (!remote) {
     // Local mode: no auth needed, just check the server is running
     const localUp = await isLocalRunning();
@@ -55,37 +82,64 @@ async function loadConfig(remote: boolean): Promise<ApiConfig> {
     return { apiUrl: DEFAULT_LOCAL_URL, isLocal: true };
   }
 
-  // Remote mode: need auth credentials
-  const apiKey = process.env.AGENTMARK_API_KEY;
-  const appId = process.env.AGENTMARK_APP_ID;
+  const envApiKey = process.env.AGENTMARK_API_KEY;
+  const envAppId = process.env.AGENTMARK_APP_ID;
   const apiUrl = process.env.AGENTMARK_API_URL || DEFAULT_API_URL;
 
-  if (apiKey && appId) {
-    return { apiKey, appId, apiUrl, isLocal: false };
+  // 1. Explicit env-var override (CI / dedicated API keys).
+  if (envApiKey && envAppId) {
+    return { apiKey: envApiKey, appId: envAppId, apiUrl, isLocal: false };
   }
 
+  // 2. Session bearer from `agentmark login`.
+  let creds = loadCredentials();
+  if (creds) {
+    if (isExpired(creds)) {
+      const refreshed = await refreshAccessToken(
+        creds,
+        DEFAULT_SUPABASE_URL,
+        DEFAULT_SUPABASE_ANON_KEY,
+      );
+      if (refreshed) {
+        // Persist refreshed tokens so the next call skips the round-trip.
+        saveCredentials(refreshed);
+        creds = refreshed;
+      }
+    }
+    if (creds && !isExpired(creds)) {
+      return {
+        apiKey: creds.access_token,
+        // App id is optional for tenant-scoped routes (POST /v1/apps,
+        // GET /v1/apps). Per-app routes accept it via specli CLI args
+        // (e.g. `--appId=<uuid>`). An env override still wins if set.
+        appId: envAppId ?? '',
+        apiUrl,
+        isLocal: false,
+      };
+    }
+  }
+
+  // 3. Legacy forwarding config (`agentmark link`).
   try {
     const forwardingConfig = loadForwardingConfig();
-    if (!forwardingConfig?.apiKey || !forwardingConfig?.appId) {
-      throw new Error(
-        'Not configured for remote access. Run `agentmark login` and `agentmark link` first,\n' +
-        'or set AGENTMARK_API_KEY and AGENTMARK_APP_ID environment variables.',
-      );
+    if (forwardingConfig?.apiKey && forwardingConfig?.appId) {
+      return {
+        apiKey: forwardingConfig.apiKey,
+        appId: forwardingConfig.appId,
+        apiUrl: forwardingConfig.baseUrl || apiUrl,
+        isLocal: false,
+      };
     }
-    return {
-      apiKey: forwardingConfig.apiKey,
-      appId: forwardingConfig.appId,
-      apiUrl: forwardingConfig.baseUrl || apiUrl,
-      isLocal: false,
-    };
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Not configured')) throw error;
+    // Surface unexpected forwarding-config read errors but don't block
+    // the user — they may still be able to log in.
     console.error('[agentmark api] Failed to load forwarding config:', error);
-    throw new Error(
-      'Not configured for remote access. Run `agentmark login` and `agentmark link` first,\n' +
-      'or set AGENTMARK_API_KEY and AGENTMARK_APP_ID environment variables.',
-    );
   }
+
+  throw new Error(
+    'Not configured for remote access. Run `agentmark login` (recommended), ' +
+    'or set AGENTMARK_API_KEY + AGENTMARK_APP_ID environment variables.',
+  );
 }
 
 // ---------------------------------------------------------------------------
