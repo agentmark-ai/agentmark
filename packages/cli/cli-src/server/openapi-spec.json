@@ -611,7 +611,7 @@
     },
     "/v1/api-keys/{apiKeyId}": {
       "delete": {
-        "description": "Revokes the API key by deleting it on Unkey and removing the local metadata row. Note: gateway userMeta cache TTL bounds the window where a revoked key may still verify; Unkey is authoritative on the next miss.",
+        "description": "Revokes the API key and removes its local metadata row. Note: a brief revocation lag may occur — the gateway caches verified credentials for a short TTL, so a freshly-revoked key may still verify until the cache expires.",
         "operationId": "revoke-api-key",
         "parameters": [
           {
@@ -787,7 +787,7 @@
     },
     "/v1/apps": {
       "get": {
-        "description": "Returns apps for the authenticated tenant, newest first. Use `?name=<exact>` to look up a specific app by name without paginating.\n\nThe X-Agentmark-App-Id header is required by auth middleware but its value is ignored — the listing is tenant-scoped, not app-scoped.",
+        "description": "Returns apps for the authenticated tenant, newest first. Use `?name=<exact>` to look up a specific app by name without paginating.\n\n**Auth headers:** `X-Agentmark-App-Id` is OPTIONAL for bearer (session JWT) auth — the listing is tenant-scoped, so headless agents on a cold tenant can call this without supplying any app id. API-key callers still send the header (API keys are app-scoped), but its value is ignored by this handler.",
         "operationId": "list-apps",
         "parameters": [
           {
@@ -1338,7 +1338,7 @@
     },
     "/v1/apps/{appId}": {
       "delete": {
-        "description": "Deletes an app. Cascades to all child rows via ON DELETE CASCADE (git_connection, git_branch, app_connection, llm_api_url, alerts, deployments, etc.).\n\n**Headless callers note:** Unkey API key rows are NOT cleaned up by this endpoint — the dashboard wraps DELETE + Unkey sweep separately. Headless agents that delete apps should either accept some orphan Unkey rows or call the Unkey delete API directly with the keys they minted.",
+        "description": "Deletes an app. Cascades to all child rows via ON DELETE CASCADE (git_connection, git_branch, app_connection, llm_api_url, alerts, deployments, etc.).\n\n**Headless callers note:** API key rows are NOT cleaned up by this endpoint — the dashboard wraps DELETE + key-revoke separately. Headless agents that delete apps should either accept some orphan API key rows or call the API-key revoke endpoint directly with the keys they minted.",
         "operationId": "delete-app",
         "parameters": [
           {
