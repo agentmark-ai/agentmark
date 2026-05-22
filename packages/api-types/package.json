@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/api-types",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared API contract types for AgentMark services",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +15,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@agentmark-ai/api-schemas": "0.2.0"
+    "@agentmark-ai/api-schemas": "0.3.0"
   },
   "devDependencies": {
     "typescript": "^5.5.3"

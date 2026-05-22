@@ -1,3 +1,16 @@
+## 0.10.8 (2026-05-21)
+
+### 🩹 Fixes
+
+- **Python `FileLoader` now matches the TypeScript `FileLoader` API.** ([#606](https://github.com/agentmark-ai/agentmark/pull/606))
+
+  - `agentmark-prompt-core`: `FileLoader` constructor now takes a single `build_dir` positional argument — pointing directly at the build output directory (`agentmark build`'s output), matching `new FileLoader('./dist/agentmark')` in TS. The argument defaults to `"./dist/agentmark"`, so `FileLoader()` from a project root with the conventional build layout Just Works (a Python ergonomic sugar — TS makes the same argument required). The previous `base_dir=` kwarg has been removed; both `load` and `load_dataset` resolve under the same `build_dir`, fixing the internal asymmetry where prompt resolution auto-appended `dist/agentmark` but dataset resolution did not — so `FileLoader("dist/agentmark")` could never be passed without breaking one of the two methods. `load_dataset` now also enforces the `.jsonl` extension, eager-checks file existence, and applies the same traversal validator as `load`. The dataset reader validates each row's shape (`{ input: object, ... }`) with line-number diagnostics on parse / shape failures and rejects empty datasets — closing TS divergences that previously let malformed datasets flow silently into experiment runners. Test suite rewritten to mirror `packages/loader-file/test/file-loader.test.ts` 1:1, with three Python-only suites: the default-arg equivalence guard, the extra path-normalization branches (`.prompt.json` / `.prompt`), and the `{ast, metadata}` unwrap regression. **Breaking**: callers passing `FileLoader(base_dir=...)` will now get `TypeError`; migrate to `FileLoader()` (from a project root) or `FileLoader(str(<project_root> / "dist" / "agentmark"))` for cwd-independent code.
+  - `create-agentmark`: Python scaffold updated to emit `FileLoader(str(build_dir))` pointing at `<project_root>/dist/agentmark`, matching the TS scaffold's `new FileLoader("./dist/agentmark")`.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/shared-utils to 0.4.0
+
 ## 0.10.7 (2026-05-14)
 
 ### 🩹 Fixes
