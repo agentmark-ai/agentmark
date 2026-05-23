@@ -127,7 +127,13 @@ describe('login command', () => {
       await login();
 
       expect(pkce.generateState).toHaveBeenCalled();
-      expect(callbackServer.startCallbackServer).toHaveBeenCalledWith('test_state');
+      // The second arg (timeout ms) defaults to undefined unless the
+      // user passes --timeout. Pinned as undefined here so a refactor
+      // that silently injects a value at the call site is caught.
+      expect(callbackServer.startCallbackServer).toHaveBeenCalledWith(
+        'test_state',
+        undefined,
+      );
     });
 
     it('should receive tokens from callback and save credentials', async () => {

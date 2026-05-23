@@ -174,9 +174,20 @@ program
   .command("login")
   .description('Authenticate with the AgentMark platform')
   .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
-  .action(async (options: { baseUrl?: string }) => {
+  .option(
+    '--timeout <seconds>',
+    'How long the CLI waits for the browser handoff before failing (default: 120 seconds / 2 minutes)',
+    (v) => {
+      const n = parseInt(v, 10);
+      if (!Number.isFinite(n) || n <= 0) {
+        throw new Error('--timeout must be a positive integer (seconds)');
+      }
+      return n;
+    },
+  )
+  .action(async (options: { baseUrl?: string; timeout?: number }) => {
     try {
-      await (login as any)(options);
+      await (login as any)({ ...options, timeoutSec: options.timeout });
     } catch (error) {
       program.error((error as Error).message);
     }

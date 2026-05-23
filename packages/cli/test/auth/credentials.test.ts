@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -39,6 +39,18 @@ describe('credentials', () => {
 
   beforeEach(() => {
     // Clean the test auth directory before each test to guarantee isolation.
+    if (fs.existsSync(testAuthDir)) {
+      fs.rmSync(testAuthDir, { recursive: true, force: true });
+    }
+  });
+
+  afterEach(() => {
+    // Also clean up AFTER each test. The auth.json this suite writes lives
+    // in the per-worker tmp dir; leaving it behind leaks into any test in
+    // the same worker that calls `loadCredentials()` without mocking
+    // (e.g. the forwarder tests, which expect "no credentials → apiKey
+    // fallback"). Cleanup on both sides means downstream tests never see
+    // residual state.
     if (fs.existsSync(testAuthDir)) {
       fs.rmSync(testAuthDir, { recursive: true, force: true });
     }

@@ -349,7 +349,7 @@ describe('startCallbackServer', () => {
       vi.useRealTimers();
     });
 
-    it('should reject waitForCallback with "Login timed out" after 30 seconds', async () => {
+    it('should reject waitForCallback with "Login timed out" after the default 2-minute timeout', async () => {
       const serverPromise = startCallbackServer('state');
       // Advance past the listen callback
       await vi.advanceTimersByTimeAsync(0);
@@ -363,15 +363,16 @@ describe('startCallbackServer', () => {
         rejectedError = err;
       });
 
-      // Advance time past the 30s timeout
-      await vi.advanceTimersByTimeAsync(30_000);
+      // The default is now 120 seconds (2 minutes) — agent-driven flow
+      // bump from the previous 30s.
+      await vi.advanceTimersByTimeAsync(120_000);
       await catchPromise;
 
       expect(rejectedError).toBeInstanceOf(Error);
       expect(rejectedError!.message).toBe('Login timed out');
     });
 
-    it('should not time out when callback arrives before 30 seconds', async () => {
+    it('should not time out when callback arrives before the default timeout', async () => {
       const serverPromise = startCallbackServer('my-state');
       await vi.advanceTimersByTimeAsync(0);
       const { port, waitForCallback, close } = await serverPromise;
