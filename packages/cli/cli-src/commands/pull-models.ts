@@ -3,7 +3,22 @@ import { getProviders } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
 
-const pullModels = async () => {
+export interface PullModelsOptions {
+  /**
+   * Skip the interactive provider picker. Must match a provider key
+   * registered in `getProviders()`.
+   */
+  provider?: string;
+  /**
+   * Skip the interactive multi-select. Comma-separated list of model
+   * IDs to add (e.g. `gpt-4o,gpt-4o-mini`). When both `--provider` and
+   * `--models` are passed, the command runs fully non-interactively
+   * and is safe for CI.
+   */
+  models?: string;
+}
+
+const pullModels = async (options: PullModelsOptions = {}) => {
   let agentmarkConfig = null;
 
   try {
@@ -18,17 +33,28 @@ const pullModels = async () => {
 
   const providers = await getProviders();
 
-  const { provider } = await prompts({
-    name: "provider",
-    type: "select",
-    message: "Select a provider",
-    choices: Object.entries(providers).map(([key, provider]) => {
-      return {
-        title: provider.label,
-        value: key,
-      };
-    }),
-  });
+  let provider: string;
+  if (options.provider) {
+    if (!(options.provider in providers)) {
+      throw new Error(
+        `Unknown provider "${options.provider}". Available: ${Object.keys(providers).join(", ")}`,
+      );
+    }
+    provider = options.provider;
+  } else {
+    const picked = await prompts({
+      name: "provider",
+      type: "select",
+      message: "Select a provider",
+      choices: Object.entries(providers).map(([key, provider]) => {
+        return {
+          title: provider.label,
+          value: key,
+        };
+      }),
+    });
+    provider = picked.provider;
+  }
 
   const providerData = providers[provider as keyof typeof providers];
 
@@ -62,13 +88,33 @@ const pullModels = async () => {
     return;
   }
 
-  const { models } = await prompts({
-    name: "models",
-    type: "multiselect",
-    message: "Select models",
-    choices: modelChoices,
-    min: 1,
-  });
+  let models: string[];
+  if (options.models) {
+    const requested = options.models
+      .split(",")
+      .map((m) => m.trim())
+      .filter((m) => m.length > 0);
+    const knownValues = new Set(modelChoices.map((m) => m.value));
+    const unknown = requested.filter((m) => !knownValues.has(m));
+    if (unknown.length > 0) {
+      throw new Error(
+        `Unknown or already-added models for provider "${provider}": ${unknown.join(", ")}`,
+      );
+    }
+    if (requested.length === 0) {
+      throw new Error("--models was empty after parsing. Pass a comma-separated list.");
+    }
+    models = requested;
+  } else {
+    const picked = await prompts({
+      name: "models",
+      type: "multiselect",
+      message: "Select models",
+      choices: modelChoices,
+      min: 1,
+    });
+    models = picked.models as string[];
+  }
 
   // Detect providers that need registration
   const selectedProviders = new Set<string>();

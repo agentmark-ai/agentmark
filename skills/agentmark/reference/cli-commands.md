@@ -78,6 +78,11 @@ Pull models from a provider
 npx agentmark pull-models [options]
 ```
 
+| Flag | Description |
+|---|---|
+| `--provider <name>` | Provider key (skips the interactive picker) |
+| `--models <csv>` | Comma-separated model IDs to add (skips the interactive multi-select) |
+
 ---
 
 ## `agentmark run-prompt`
@@ -143,7 +148,9 @@ npx agentmark login [options]
 
 | Flag | Description |
 |---|---|
-| `--base-url <url>` | Platform URL (default: https://app.agentmark.co) |
+| `--base-url <url>` | Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co) |
+| `--print-url` | Print the auth URL instead of opening a browser (for SSH/CI/IDE-embedded contexts) |
+| `--json` | Emit a single line of JSON on completion instead of human text |
 | `--timeout <seconds>` | How long the CLI waits for the browser handoff before failing (default: 120 seconds / 2 minutes) |
 
 ---
@@ -158,7 +165,8 @@ npx agentmark logout [options]
 
 | Flag | Description |
 |---|---|
-| `--base-url <url>` | Platform URL (default: https://app.agentmark.co) |
+| `--base-url <url>` | Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co) |
+| `--json` | Emit a single line of JSON on completion instead of human text |
 
 ---
 
@@ -173,7 +181,8 @@ npx agentmark link [options]
 | Flag | Description |
 |---|---|
 | `--app-id <uuid>` | App ID to link (skips interactive selection) |
-| `--base-url <url>` | Platform URL (default: https://app.agentmark.co) |
+| `--base-url <url>` | Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co) |
+| `--json` | Emit a single line of JSON on completion (e.g. for CI capture of appId) |
 
 ---
 

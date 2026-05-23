@@ -27,10 +27,10 @@ import {
 } from '../forwarding/config';
 import { PlatformApp } from '../auth/types';
 import {
-  DEFAULT_PLATFORM_URL,
-  DEFAULT_API_URL,
-  DEFAULT_SUPABASE_URL,
-  DEFAULT_SUPABASE_ANON_KEY,
+  getPlatformUrl,
+  getApiUrl,
+  getSupabaseUrl,
+  getSupabaseAnonKey,
 } from '../auth/constants';
 import prompts from 'prompts';
 
@@ -39,15 +39,17 @@ export interface LinkOptions {
   baseUrl?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  json?: boolean;
 }
 
 /**
  * Executes the link flow.
  */
 export default async function link(options: LinkOptions = {}): Promise<void> {
-  const platformUrl = options.baseUrl || DEFAULT_PLATFORM_URL;
-  const supabaseUrl = options.supabaseUrl || DEFAULT_SUPABASE_URL;
-  const supabaseAnonKey = options.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY;
+  const platformUrl = getPlatformUrl(options.baseUrl);
+  const supabaseUrl = getSupabaseUrl(options.supabaseUrl);
+  const supabaseAnonKey = getSupabaseAnonKey(options.supabaseAnonKey);
+  const json = options.json === true;
 
   // Step 1: Verify user is logged in
   let credentials = loadCredentials();
@@ -144,16 +146,32 @@ export default async function link(options: LinkOptions = {}): Promise<void> {
   // session bearer over the legacy key anyway, so leaving stale fields in
   // place is harmless and avoids surprising users who downgrade.
   const existing = loadForwardingConfig() ?? {};
-  saveForwardingConfig({
+  const saved = {
     ...existing,
     appId: selectedApp.id,
     appName: selectedApp.name,
     tenantId: selectedApp.tenant_id,
     orgName: selectedApp.tenant_name,
-    baseUrl: existing.baseUrl || process.env.AGENTMARK_API_URL || DEFAULT_API_URL,
-  });
+    baseUrl: existing.baseUrl || getApiUrl(),
+  };
+  saveForwardingConfig(saved);
 
-  console.log(
-    `✓ Linked to "${selectedApp.name}". Traces will forward to this app using your login session.`
-  );
+  if (json) {
+    // Machine-readable success — for CI / scripted workflows that need
+    // to capture the linked appId.
+    console.log(
+      JSON.stringify({
+        linked: true,
+        appId: selectedApp.id,
+        appName: selectedApp.name,
+        tenantId: selectedApp.tenant_id,
+        orgName: selectedApp.tenant_name,
+        baseUrl: saved.baseUrl,
+      }),
+    );
+  } else {
+    console.log(
+      `✓ Linked to "${selectedApp.name}". Traces will forward to this app using your login session.`,
+    );
+  }
 }

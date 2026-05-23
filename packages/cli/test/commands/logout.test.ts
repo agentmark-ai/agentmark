@@ -111,7 +111,7 @@ describe('logout command', () => {
       // Verify console output
       expect(consoleMock.log).toHaveBeenCalledWith('✓ Dev API key revoked');
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -161,7 +161,7 @@ describe('logout command', () => {
 
       // Should show success message
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
       expect(consoleMock.log).not.toHaveBeenCalledWith('✓ Dev API key revoked');
     });
@@ -217,7 +217,7 @@ describe('logout command', () => {
       expect(credentials.clearCredentials).toHaveBeenCalled();
       expect(forwardingConfig.clearForwardingConfig).toHaveBeenCalled();
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -244,7 +244,7 @@ describe('logout command', () => {
       expect(credentials.clearCredentials).toHaveBeenCalled();
       expect(forwardingConfig.clearForwardingConfig).toHaveBeenCalled();
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -271,7 +271,7 @@ describe('logout command', () => {
       expect(credentials.clearCredentials).toHaveBeenCalled();
       expect(forwardingConfig.clearForwardingConfig).toHaveBeenCalled();
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -297,7 +297,7 @@ describe('logout command', () => {
       expect(credentials.clearCredentials).toHaveBeenCalled();
       expect(forwardingConfig.clearForwardingConfig).toHaveBeenCalled();
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -323,7 +323,7 @@ describe('logout command', () => {
       expect(credentials.clearCredentials).toHaveBeenCalled();
       expect(forwardingConfig.clearForwardingConfig).toHaveBeenCalled();
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
   });
@@ -406,7 +406,7 @@ describe('logout command', () => {
       );
       expect(consoleMock.log).toHaveBeenNthCalledWith(
         2,
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -422,7 +422,7 @@ describe('logout command', () => {
 
       expect(consoleMock.log).toHaveBeenCalledTimes(1);
       expect(consoleMock.log).toHaveBeenCalledWith(
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
     });
 
@@ -450,8 +450,57 @@ describe('logout command', () => {
       );
       expect(consoleMock.log).toHaveBeenNthCalledWith(
         2,
-        '✓ Logged out. Dev API keys revoked.'
+        '✓ Logged out.'
       );
+    });
+  });
+
+  describe('--json', () => {
+    it('emits a single JSON line on success with the revoke status', async () => {
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
+      vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue(
+        mockForwardingConfig,
+      );
+      vi.spyOn(credentials, 'clearCredentials').mockImplementation(() => {});
+      vi.spyOn(forwardingConfig, 'clearForwardingConfig').mockImplementation(() => {});
+      (fetch as any).mockResolvedValue({ ok: true, status: 204 });
+
+      await logout({ json: true });
+
+      // Exactly one line of output, and it parses as the documented envelope.
+      const allLogs = consoleMock.log.mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
+      const jsonLines = allLogs.filter((line) => {
+        try {
+          JSON.parse(line);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      expect(jsonLines).toHaveLength(1);
+      expect(JSON.parse(jsonLines[0]!)).toEqual({
+        logged_out: true,
+        was_logged_in: true,
+        revoked_dev_key: true,
+      });
+    });
+
+    it('reports was_logged_in:false when no credentials exist', async () => {
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(null);
+
+      await logout({ json: true });
+
+      const allLogs = consoleMock.log.mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
+      expect(allLogs).toHaveLength(1);
+      expect(JSON.parse(allLogs[0]!)).toEqual({
+        logged_out: true,
+        was_logged_in: false,
+        revoked_dev_key: false,
+      });
     });
   });
 });

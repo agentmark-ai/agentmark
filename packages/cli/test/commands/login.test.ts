@@ -258,4 +258,118 @@ describe('login command', () => {
       expect(credentials.saveCredentials).toHaveBeenCalled();
     });
   });
+
+  // ============================================================
+  // --print-url: don't shell to open(), just print the URL.
+  // ============================================================
+
+  describe('--print-url', () => {
+    it('does not call open() when printUrl is true', async () => {
+      // The `open` module is hoisted-mocked at file top, so we can grab
+      // the mock fn directly without resetModules() / re-import. (The
+      // dynamic `await import('open')` inside login.ts returns the same
+      // hoisted mock.)
+      const { default: openMock } = await import('open');
+      vi.mocked(openMock).mockClear();
+
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(null);
+      vi.spyOn(pkce, 'generateState').mockReturnValue('test_state');
+      vi.spyOn(callbackServer, 'startCallbackServer').mockResolvedValue({
+        port: 54321,
+        waitForCallback: vi.fn().mockResolvedValue(mockCallbackResult()),
+        close: vi.fn(),
+      });
+      vi.spyOn(credentials, 'saveCredentials').mockImplementation(() => {});
+
+      await login({ printUrl: true });
+
+      // The whole point of --print-url: never shell to open().
+      expect(openMock).not.toHaveBeenCalled();
+
+      // And the URL is printed so the user can click it.
+      const allLogs = consoleMock.log.mock.calls
+        .map((c: unknown[]) => c[0] as string)
+        .join('\n');
+      expect(allLogs).toMatch(/Visit this URL/);
+      expect(allLogs).toContain('/auth/cli');
+      expect(allLogs).toContain('redirect_port=54321');
+      expect(allLogs).toContain('state=test_state');
+    });
+  });
+
+  // ============================================================
+  // --json: machine-readable success line.
+  // ============================================================
+
+  describe('--json', () => {
+    it('emits a JSON success line and suppresses the human text on completion', async () => {
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(null);
+      vi.spyOn(pkce, 'generateState').mockReturnValue('test_state');
+      vi.spyOn(callbackServer, 'startCallbackServer').mockResolvedValue({
+        port: 54321,
+        waitForCallback: vi.fn().mockResolvedValue(
+          mockCallbackResult({ user_id: 'u-9', email: 'machine@example.com' }),
+        ),
+        close: vi.fn(),
+      });
+      vi.spyOn(credentials, 'saveCredentials').mockImplementation(() => {});
+
+      await login({ json: true, printUrl: true });
+
+      const allLogs = consoleMock.log.mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
+      // No "✓ Logged in as ..." line in JSON mode.
+      expect(allLogs.find((line) => line?.includes?.('Logged in as'))).toBeUndefined();
+      // One of the lines parses as the success envelope.
+      const successLine = allLogs.find((line) => {
+        try {
+          const parsed = JSON.parse(line);
+          return parsed.logged_in === true && parsed.email === 'machine@example.com';
+        } catch {
+          return false;
+        }
+      });
+      expect(successLine).toBeDefined();
+      const parsed = JSON.parse(successLine!);
+      expect(parsed).toEqual({
+        logged_in: true,
+        user_id: 'u-9',
+        email: 'machine@example.com',
+      });
+    });
+
+    it('emits a JSON "awaiting" envelope before blocking on the callback', async () => {
+      // --print-url + --json: machine wrappers want to capture the URL
+      // *and* the port/state programmatically before the user clicks.
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(null);
+      vi.spyOn(pkce, 'generateState').mockReturnValue('test_state');
+      vi.spyOn(callbackServer, 'startCallbackServer').mockResolvedValue({
+        port: 54321,
+        waitForCallback: vi.fn().mockResolvedValue(mockCallbackResult()),
+        close: vi.fn(),
+      });
+      vi.spyOn(credentials, 'saveCredentials').mockImplementation(() => {});
+
+      await login({ json: true, printUrl: true });
+
+      const allLogs = consoleMock.log.mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
+      const awaitingLine = allLogs.find((line) => {
+        try {
+          const parsed = JSON.parse(line);
+          return parsed.awaiting_auth === true;
+        } catch {
+          return false;
+        }
+      });
+      expect(awaitingLine).toBeDefined();
+      const parsed = JSON.parse(awaitingLine!);
+      expect(parsed.url).toContain('/auth/cli');
+      expect(parsed.url).toContain('redirect_port=54321');
+      expect(parsed.port).toBe(54321);
+      expect(parsed.state).toBe('test_state');
+    });
+  });
 });

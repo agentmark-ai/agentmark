@@ -24,9 +24,9 @@ import {
 import { refreshAccessToken } from '../auth/token-refresh';
 import { CliAuthCredentials } from '../auth/types';
 import {
-  DEFAULT_PLATFORM_URL,
-  DEFAULT_SUPABASE_URL,
-  DEFAULT_SUPABASE_ANON_KEY,
+  getPlatformUrl,
+  getSupabaseUrl,
+  getSupabaseAnonKey,
 } from '../auth/constants';
 
 export interface LoginOptions {
@@ -43,37 +43,72 @@ export interface LoginOptions {
    * for tightly-scripted CI tests).
    */
   timeoutSec?: number;
+  /**
+   * Print the auth URL instead of shelling to `open()`. Use this in
+   * SSH'd shells, CI runners, IDE-embedded agents, or anywhere a
+   * background spawn of the system browser doesn't make sense. The
+   * user clicks the printed URL in their own browser; the local
+   * callback server receives the tokens exactly as in the default
+   * flow.
+   */
+  printUrl?: boolean;
+  /**
+   * Emit a single line of JSON on success instead of human text. The
+   * line shape is `{ logged_in: true, user_id, email }`. Errors still
+   * go to stderr / cause non-zero exit.
+   */
+  json?: boolean;
 }
 
 /**
  * Executes the login flow.
  */
 export default async function login(options: LoginOptions = {}): Promise<void> {
-  const platformUrl = options.baseUrl || DEFAULT_PLATFORM_URL;
-  const supabaseUrl = options.supabaseUrl || DEFAULT_SUPABASE_URL;
-  const supabaseAnonKey = options.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY;
+  const platformUrl = getPlatformUrl(options.baseUrl);
+  const supabaseUrl = getSupabaseUrl(options.supabaseUrl);
+  const supabaseAnonKey = getSupabaseAnonKey(options.supabaseAnonKey);
+  const json = options.json === true;
+  const printUrl = options.printUrl === true;
+
+  const out = (humanMsg: string, jsonObj?: Record<string, unknown>): void => {
+    if (json) {
+      if (jsonObj) console.log(JSON.stringify(jsonObj));
+    } else {
+      console.log(humanMsg);
+    }
+  };
 
   // Step 1: Check existing auth
   const existing = loadCredentials();
   if (existing) {
     if (!isExpired(existing)) {
-      console.log(`✓ Already logged in as ${existing.email}`);
+      out(`✓ Already logged in as ${existing.email}`, {
+        logged_in: true,
+        already: true,
+        user_id: existing.user_id,
+        email: existing.email,
+      });
       return;
     }
 
     // Try to refresh expired token
-    console.log('⚠️  Token expired, attempting refresh...');
+    if (!json) console.log('⚠️  Token expired, attempting refresh...');
     const refreshed = await refreshAccessToken(
       existing,
       supabaseUrl,
       supabaseAnonKey
     );
     if (refreshed) {
-      console.log(`✓ Token refreshed. Logged in as ${refreshed.email}`);
+      out(`✓ Token refreshed. Logged in as ${refreshed.email}`, {
+        logged_in: true,
+        refreshed: true,
+        user_id: refreshed.user_id,
+        email: refreshed.email,
+      });
       return;
     }
 
-    console.log('⚠️  Refresh failed. Starting new login...');
+    if (!json) console.log('⚠️  Refresh failed. Starting new login...');
   }
 
   try {
@@ -94,15 +129,49 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
     authUrl.searchParams.set('redirect_port', port.toString());
     authUrl.searchParams.set('state', state);
 
-    console.log('Opening browser to log in...\n');
-
-    // Step 5: Open browser
-    try {
-      const open = (await import('open')).default;
-      await open(authUrl.toString());
-    } catch {
-      console.log(`✗ Failed to open browser automatically.`);
-      console.log(`\nVisit this URL manually:\n${authUrl.toString()}\n`);
+    // Step 5: Either print the URL (headless / scripted contexts) or
+    // shell to `open()` to launch the system browser (default).
+    if (printUrl) {
+      if (json) {
+        // Emit a structured "awaiting" event so a wrapper can render
+        // the URL however it wants. The CLI still blocks waiting for
+        // the callback after this line.
+        console.log(
+          JSON.stringify({
+            awaiting_auth: true,
+            url: authUrl.toString(),
+            port,
+            state,
+          }),
+        );
+      } else {
+        console.log(
+          `\nVisit this URL in your browser to authenticate:\n\n  ${authUrl.toString()}\n\nWaiting for sign-in...\n`,
+        );
+      }
+    } else {
+      if (!json) console.log('Opening browser to log in...\n');
+      try {
+        const open = (await import('open')).default;
+        await open(authUrl.toString());
+      } catch {
+        // System `open` failed — fall back to printing the URL so the
+        // user can complete sign-in manually. Matches `--print-url`.
+        if (json) {
+          console.log(
+            JSON.stringify({
+              awaiting_auth: true,
+              url: authUrl.toString(),
+              port,
+              state,
+              note: 'system open() failed; visit url manually',
+            }),
+          );
+        } else {
+          console.log(`✗ Failed to open browser automatically.`);
+          console.log(`\nVisit this URL manually:\n${authUrl.toString()}\n`);
+        }
+      }
     }
 
     // Step 6: Wait for callback with session tokens (30s timeout)
@@ -120,12 +189,20 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
 
     saveCredentials(credentials);
 
-    console.log(`\n✓ Logged in as ${credentials.email}`);
+    out(`\n✓ Logged in as ${credentials.email}`, {
+      logged_in: true,
+      user_id: credentials.user_id,
+      email: credentials.email,
+    });
 
     close();
   } catch (error) {
     if ((error as Error).message.includes('timed out')) {
-      console.log('\n✗ Login timed out. Please try again.');
+      if (json) {
+        console.log(JSON.stringify({ logged_in: false, error: 'timed_out' }));
+      } else {
+        console.log('\n✗ Login timed out. Please try again.');
+      }
       process.exit(1);
     }
 

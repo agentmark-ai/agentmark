@@ -19,10 +19,10 @@ import {
 } from '../forwarding/config';
 import { PlatformApp } from './types';
 import {
-  DEFAULT_PLATFORM_URL,
-  DEFAULT_API_URL,
-  DEFAULT_SUPABASE_URL,
-  DEFAULT_SUPABASE_ANON_KEY,
+  getPlatformUrl,
+  getApiUrl,
+  getSupabaseUrl,
+  getSupabaseAnonKey,
 } from './constants';
 import prompts from 'prompts';
 
@@ -30,15 +30,18 @@ import prompts from 'prompts';
  * Attempts to auto-link the current project during dev startup.
  * Returns true if linking succeeded, false otherwise.
  * Silently returns false if user is not logged in (don't interrupt dev startup).
+ *
+ * If `AGENTMARK_APP_ID` env var is set, that app id is used directly —
+ * the interactive picker is skipped. Useful for CI / scripted onboarding.
  */
 export async function attemptAutoLink(options: {
   platformUrl?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
 } = {}): Promise<boolean> {
-  const platformUrl = options.platformUrl || DEFAULT_PLATFORM_URL;
-  const supabaseUrl = options.supabaseUrl || DEFAULT_SUPABASE_URL;
-  const supabaseAnonKey = options.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY;
+  const platformUrl = getPlatformUrl(options.platformUrl);
+  const supabaseUrl = getSupabaseUrl(options.supabaseUrl);
+  const supabaseAnonKey = getSupabaseAnonKey(options.supabaseAnonKey);
 
   // Check if already linked. "Linked" means we have an appId — the apiKey
   // field is no longer written by new links, but legacy configs that
@@ -93,7 +96,25 @@ export async function attemptAutoLink(options: {
 
     let selectedApp: PlatformApp;
 
-    if (apps.length === 1) {
+    // `AGENTMARK_APP_ID` env var fast-path — skips the picker entirely.
+    // Used by CI / scripted onboarding that already knows which app to
+    // link to. Resolves against the fetched list so display name +
+    // tenant context still populate dev-config.json (and so we fail
+    // loudly if the env points at an app the user can't see).
+    const envAppId = process.env.AGENTMARK_APP_ID;
+    if (envAppId) {
+      const matched = apps.find((a) => a.id === envAppId);
+      if (!matched) {
+        console.log(
+          `⚠️  AGENTMARK_APP_ID="${envAppId}" not found among your apps. Continuing without trace forwarding.\n`,
+        );
+        return false;
+      }
+      selectedApp = matched;
+      console.log(
+        `\n✓ Auto-linked to "${selectedApp.name}" (${selectedApp.tenant_name}) via AGENTMARK_APP_ID`,
+      );
+    } else if (apps.length === 1) {
       // Auto-select the only app
       selectedApp = apps[0];
       console.log(
@@ -135,7 +156,7 @@ export async function attemptAutoLink(options: {
       appName: selectedApp.name,
       tenantId: selectedApp.tenant_id,
       orgName: selectedApp.tenant_name,
-      baseUrl: existingConfig?.baseUrl || process.env.AGENTMARK_API_URL || DEFAULT_API_URL,
+      baseUrl: existingConfig?.baseUrl || getApiUrl(),
     });
 
     console.log('✓ Trace forwarding active\n');

@@ -48,6 +48,12 @@ describe('link command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleMock.log.mockClear();
+    // Stub saveCredentials so the link command's post-refresh persist
+    // step doesn't write into the shared per-worker auth dir. Without
+    // this, link tests that exercise the refresh branch leak an
+    // auth.json file that later tests (e.g. forwarder) then read,
+    // causing apiKey-fallback assertions to flip to bearer-path.
+    vi.spyOn(credentials, 'saveCredentials').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -458,6 +464,44 @@ describe('link command', () => {
           orgName: 'T2',
         }),
       );
+    });
+
+    it('--json mode emits one JSON line with the linked appId on success', async () => {
+      // Lets CI scripts capture the linked appId without parsing the
+      // emoji-prefixed human message. Shape is the contract; assert
+      // exact keys + values.
+      vi.spyOn(credentials, 'loadCredentials').mockReturnValue(mockCredentials);
+      vi.spyOn(credentials, 'isExpired').mockReturnValue(false);
+      vi.spyOn(forwardingConfig, 'loadForwardingConfig').mockReturnValue(null);
+      vi.spyOn(forwardingConfig, 'saveForwardingConfig').mockImplementation(() => {});
+
+      const app = {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'Test App',
+        tenant_id: 'tenant-1',
+        tenant_name: 'Test Org',
+        created_at: '2024-01-01',
+      };
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ apps: [app] }),
+      });
+
+      await link({ json: true });
+
+      // The human "Auto-linked to ..." line is suppressed in JSON mode.
+      const allLogs = consoleMock.log.mock.calls.map((c: unknown[]) => c[0] as string);
+      const jsonLine = allLogs.find((line) => line?.startsWith?.('{'));
+      expect(jsonLine).toBeDefined();
+      const parsed = JSON.parse(jsonLine!);
+      expect(parsed).toEqual({
+        linked: true,
+        appId: app.id,
+        appName: app.name,
+        tenantId: app.tenant_id,
+        orgName: app.tenant_name,
+        baseUrl: expect.stringMatching(/^https?:\/\//),
+      });
     });
 
     it('exits when --app-id does not match any app the user has access to', async () => {

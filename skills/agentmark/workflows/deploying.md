@@ -48,7 +48,64 @@ The precedence order in `--remote` mode is (highest → lowest):
 
 This matches the env-var-overrides-login pattern other major dev-tool CLIs follow — Wrangler (Cloudflare), gh (GitHub), gcloud Application Default Credentials, and AWS CLI all check env-var tokens before stored login credentials. An explicit env var always wins; the login session never silently overrides an explicit CI configuration.
 
-**Never call `agentmark login` from headless contexts** — it opens a browser and hangs. Set the env vars instead.
+### Pointing the CLI at a non-prod environment
+
+Every URL the CLI talks to is overridable via env var (env > flag > prod default). Set these once in your shell or CI config and every command targets the alternate environment:
+
+```bash
+# Dashboard / platform OAuth — where `agentmark login` opens the browser handoff,
+# and where `agentmark link` fetches the apps list.
+export AGENTMARK_PLATFORM_URL=https://stg.agentmark.co
+
+# Gateway — where `agentmark api … --remote` calls land and where the
+# trace forwarder sends OTLP. Also written to dev-config.json on link.
+export AGENTMARK_API_URL=https://api-stg.agentmark.co
+
+# Supabase project (auth refresh + session-bearer validation). REQUIRED
+# alongside AGENTMARK_PLATFORM_URL — login tokens minted by one Supabase
+# project can't refresh against another. Both values come from the
+# Supabase dashboard's API settings page for the project that backs
+# your AgentMark instance.
+export AGENTMARK_SUPABASE_URL=https://<your-project-ref>.supabase-host   # DEFAULT_SUPABASE_URL
+export AGENTMARK_SUPABASE_ANON_KEY=eyJ…   # public anon key for that project
+```
+
+The CLI also accepts `--base-url` on `login` / `logout` / `link` for one-shot overrides without exporting env vars.
+
+### Headless `agentmark login`
+
+`agentmark login` opens the system browser by default. In SSH'd shells, CI runners, or IDE-embedded agents where a background browser-open doesn't make sense, pass `--print-url` to print the auth URL instead. The user clicks the URL in their own browser; the local callback server in the CLI receives the tokens exactly as in the default flow.
+
+```bash
+# Print the URL instead of opening a browser. The CLI's local server still
+# listens on a random port and the dashboard still relays tokens back.
+agentmark login --print-url
+agentmark login --print-url --json     # machine-readable envelopes
+```
+
+With `--json`, login emits two events on stdout (one per line of JSON):
+
+1. `{"awaiting_auth": true, "url": "https://…/auth/cli?…", "port": 12345, "state": "…"}` — emitted before the CLI blocks waiting for the callback. A wrapper script can capture the URL programmatically.
+2. `{"logged_in": true, "user_id": "…", "email": "…"}` — emitted once the user completes sign-in.
+
+`agentmark logout --json` → `{"logged_out": true, "was_logged_in": <bool>, "revoked_dev_key": <bool>}`.
+
+`agentmark link --json` → `{"linked": true, "appId": "…", "appName": "…", "tenantId": "…", "orgName": "…", "baseUrl": "…"}` so CI can capture the linked appId.
+
+**Never call `agentmark login` without `--print-url` from headless contexts** — the default `open()` call hands the URL to a system browser that the agent doesn't control, then blocks for the callback.
+
+#### Recipe for an agent orchestrating login on behalf of a user
+
+When you (an agent) are getting a user signed in to AgentMark — e.g. inside Claude Code, an IDE plugin, a chat — drive the flow like this:
+
+1. **Pre-warn the user.** The CLI's callback server times out after ~2 minutes of inactivity. Tell the user explicitly: *"I'm about to print a URL. Click it in your browser within ~2 minutes."* Confirm they're ready BEFORE invoking the CLI — otherwise the URL prints, you spend turn-time formatting it for them, the user reads it, switches to a browser, and the window closes mid-click.
+2. **Invoke `agentmark login --print-url --json`** in the background. Don't run it foreground — it blocks until the user completes sign-in, and you can't surface the URL while blocked.
+3. **Read the first JSON line from stdout** — `{"awaiting_auth": true, "url": "...", "port": ..., "state": "..."}`. This appears within 1 second of launch.
+4. **Surface the `url` to the user with maximum prominence.** Render it as a clickable link or a fenced code block on its own line. Don't bury it in prose.
+5. **Wait for the process to exit.** Poll `~/.agentmark/auth.json` for existence, or wait for the CLI process to finish. The success line `{"logged_in": true, ...}` appears on completion; `{"logged_in": false, "error": "timed_out"}` appears if the user didn't click in time.
+6. **On timeout**, restart from step 1 with the SAME pre-warn. Don't dump the URL and run away — the user needs to be ready to click.
+
+What NOT to do: surface the URL without warning the user about the timing constraint, then chain on more analysis turns before checking back. By the time you check, the callback window has closed and the user clicks into a dead local port — they see `ERR_CONNECTION_REFUSED` from `localhost:<port>/callback?…` while their stg session tokens sit in the URL bar uselessly.
 
 ### Bootstrap a Cloud app headlessly
 

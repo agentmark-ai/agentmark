@@ -20,12 +20,15 @@ import {
   loadForwardingConfig,
   clearForwardingConfig,
 } from '../forwarding/config';
-
-// Default platform URL
-const DEFAULT_PLATFORM_URL = 'https://app.agentmark.co';
+import { getPlatformUrl } from '../auth/constants';
 
 export interface LogoutOptions {
   baseUrl?: string;
+  /**
+   * Emit a single line of JSON on success instead of human text.
+   * Shape: `{ logged_out: true, was_logged_in: boolean, revoked_dev_key: boolean }`.
+   */
+  json?: boolean;
 }
 
 /**
@@ -34,19 +37,28 @@ export interface LogoutOptions {
 export default async function logout(
   options: LogoutOptions = {}
 ): Promise<void> {
-  const platformUrl = options.baseUrl || DEFAULT_PLATFORM_URL;
+  const platformUrl = getPlatformUrl(options.baseUrl);
+  const json = options.json === true;
 
   // Step 1: Load credentials
   const credentials = loadCredentials();
   if (!credentials) {
-    console.log('Not logged in.');
+    if (json) {
+      console.log(
+        JSON.stringify({ logged_out: true, was_logged_in: false, revoked_dev_key: false }),
+      );
+    } else {
+      console.log('Not logged in.');
+    }
     return;
   }
 
   // Step 2: Load forwarding config
   const forwardingConfig = loadForwardingConfig();
 
-  // Step 3: Revoke dev API key if it exists
+  // Step 3: Revoke dev API key if it exists (legacy configs only;
+  // current `link` no longer mints these).
+  let revokedDevKey = false;
   if (forwardingConfig?.apiKeyId) {
     try {
       const revokeUrl = `${platformUrl}/api/cli/dev-key/${forwardingConfig.apiKeyId}`;
@@ -58,14 +70,15 @@ export default async function logout(
       });
 
       if (response.ok) {
-        console.log('✓ Dev API key revoked');
+        revokedDevKey = true;
+        if (!json) console.log('✓ Dev API key revoked');
       } else if (response.status === 404) {
         // Key already revoked or doesn't exist - that's fine
       } else {
-        console.log('⚠️  Failed to revoke dev API key (continuing anyway)');
+        if (!json) console.log('⚠️  Failed to revoke dev API key (continuing anyway)');
       }
     } catch {
-      console.log('⚠️  Failed to revoke dev API key (continuing anyway)');
+      if (!json) console.log('⚠️  Failed to revoke dev API key (continuing anyway)');
     }
   }
 
@@ -75,5 +88,11 @@ export default async function logout(
   // Step 5: Clear forwarding config
   clearForwardingConfig();
 
-  console.log('✓ Logged out. Dev API keys revoked.');
+  if (json) {
+    console.log(
+      JSON.stringify({ logged_out: true, was_logged_in: true, revoked_dev_key: revokedDevKey }),
+    );
+  } else {
+    console.log('✓ Logged out.');
+  }
 }

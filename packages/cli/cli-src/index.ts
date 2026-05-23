@@ -78,9 +78,11 @@ program
 program
   .command("pull-models")
   .description('Pull models from a provider')
-  .action(async () => {
+  .option('--provider <name>', 'Provider key (skips the interactive picker)')
+  .option('--models <csv>', 'Comma-separated model IDs to add (skips the interactive multi-select)')
+  .action(async (options: { provider?: string; models?: string }) => {
     try {
-      await (pullModels as any)();
+      await (pullModels as any)(options);
     } catch (error) {
       program.error((error as Error).message);
     }
@@ -173,7 +175,9 @@ program
 program
   .command("login")
   .description('Authenticate with the AgentMark platform')
-  .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
+  .option('--base-url <url>', 'Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co)')
+  .option('--print-url', 'Print the auth URL instead of opening a browser (for SSH/CI/IDE-embedded contexts)')
+  .option('--json', 'Emit a single line of JSON on completion instead of human text')
   .option(
     '--timeout <seconds>',
     'How long the CLI waits for the browser handoff before failing (default: 120 seconds / 2 minutes)',
@@ -185,7 +189,7 @@ program
       return n;
     },
   )
-  .action(async (options: { baseUrl?: string; timeout?: number }) => {
+  .action(async (options: { baseUrl?: string; printUrl?: boolean; json?: boolean; timeout?: number }) => {
     try {
       await (login as any)({ ...options, timeoutSec: options.timeout });
     } catch (error) {
@@ -196,8 +200,9 @@ program
 program
   .command("logout")
   .description('Clear CLI authentication and revoke dev API keys')
-  .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
-  .action(async (options: { baseUrl?: string }) => {
+  .option('--base-url <url>', 'Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co)')
+  .option('--json', 'Emit a single line of JSON on completion instead of human text')
+  .action(async (options: { baseUrl?: string; json?: boolean }) => {
     try {
       await (logout as any)(options);
     } catch (error) {
@@ -209,8 +214,9 @@ program
   .command("link")
   .description('Link current project to a platform app for trace forwarding')
   .option('--app-id <uuid>', 'App ID to link (skips interactive selection)')
-  .option('--base-url <url>', 'Platform URL (default: https://app.agentmark.co)')
-  .action(async (options: { appId?: string; baseUrl?: string }) => {
+  .option('--base-url <url>', 'Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co)')
+  .option('--json', 'Emit a single line of JSON on completion (e.g. for CI capture of appId)')
+  .action(async (options: { appId?: string; baseUrl?: string; json?: boolean }) => {
     try {
       await (link as any)(options);
     } catch (error) {

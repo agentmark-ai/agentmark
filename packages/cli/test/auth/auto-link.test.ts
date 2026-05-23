@@ -337,6 +337,65 @@ describe('attemptAutoLink', () => {
     });
   });
 
+  describe('AGENTMARK_APP_ID env var fast-path', () => {
+    const ORIGINAL_ENV = { ...process.env };
+
+    beforeEach(() => {
+      delete process.env.AGENTMARK_APP_ID;
+    });
+
+    afterEach(() => {
+      process.env = { ...ORIGINAL_ENV };
+    });
+
+    it('skips the picker and uses the env var even when multiple apps exist', async () => {
+      // The whole point of this env var is CI / scripted onboarding —
+      // multiple apps must NOT trigger the interactive prompt when the
+      // caller has pre-declared their pick.
+      process.env.AGENTMARK_APP_ID = 'app-2';
+
+      const creds = makeCredentials();
+      const apps = [
+        makeApp({ id: 'app-1', name: 'App One', tenant_name: 'Org A' }),
+        makeApp({ id: 'app-2', name: 'App Two', tenant_name: 'Org B' }),
+      ];
+      vi.mocked(loadForwardingConfig).mockReturnValue(null);
+      vi.mocked(loadCredentials).mockReturnValue(creds);
+      vi.mocked(isExpired).mockReturnValue(false);
+      mockFetch.mockResolvedValueOnce(makeAppsResponse(apps));
+
+      const result = await attemptAutoLink();
+
+      expect(result).toBe(true);
+      // No picker invoked.
+      expect(prompts).not.toHaveBeenCalled();
+
+      // Wrote the env-specified app, not the first one in the list.
+      const written = vi.mocked(saveForwardingConfig).mock.calls[0]![0];
+      expect(written.appId).toBe('app-2');
+      expect(written.appName).toBe('App Two');
+    });
+
+    it('returns false when AGENTMARK_APP_ID does not match any visible app', async () => {
+      // Defends against a CI misconfig where the env points at a
+      // tenant the runner can't see (revoked access, wrong env). The
+      // alternative — silently writing a half-formed config — would
+      // produce surprising downstream behavior.
+      process.env.AGENTMARK_APP_ID = 'ghost-app';
+
+      const creds = makeCredentials();
+      vi.mocked(loadForwardingConfig).mockReturnValue(null);
+      vi.mocked(loadCredentials).mockReturnValue(creds);
+      vi.mocked(isExpired).mockReturnValue(false);
+      mockFetch.mockResolvedValueOnce(makeAppsResponse([makeApp({ id: 'app-1' })]));
+
+      const result = await attemptAutoLink();
+
+      expect(result).toBe(false);
+      expect(saveForwardingConfig).not.toHaveBeenCalled();
+    });
+  });
+
   describe('multiple apps selection', () => {
     it('shows the interactive picker and writes the chosen binding', async () => {
       const creds = makeCredentials();
