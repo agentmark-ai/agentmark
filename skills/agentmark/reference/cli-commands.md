@@ -144,6 +144,7 @@ npx agentmark login [options]
 | Flag | Description |
 |---|---|
 | `--base-url <url>` | Platform URL (default: https://app.agentmark.co) |
+| `--timeout <seconds>` | How long the CLI waits for the browser handoff before failing (default: 120 seconds / 2 minutes) |
 
 ---
 

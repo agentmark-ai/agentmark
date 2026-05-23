@@ -33,6 +33,16 @@ export interface LoginOptions {
   baseUrl?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  /**
+   * How long the local callback server should wait for the browser
+   * handoff before failing the login with "timed out", in **seconds**.
+   * Defaults to 120 (2 minutes), set in
+   * `callback-server.ts::DEFAULT_TIMEOUT_MS`. Use a higher value for
+   * agent-driven flows where the user reads a prompt, switches to a
+   * browser, clicks the URL, and completes sign-in (or a lower value
+   * for tightly-scripted CI tests).
+   */
+  timeoutSec?: number;
 }
 
 /**
@@ -71,7 +81,13 @@ export default async function login(options: LoginOptions = {}): Promise<void> {
     const state = generateState();
 
     // Step 3: Start callback server
-    const { port, waitForCallback, close } = await startCallbackServer(state);
+    // Convert seconds → milliseconds. Undefined ⇒ use the default
+    // inside `startCallbackServer`.
+    const timeoutMs =
+      typeof options.timeoutSec === 'number' && Number.isFinite(options.timeoutSec)
+        ? options.timeoutSec * 1000
+        : undefined;
+    const { port, waitForCallback, close } = await startCallbackServer(state, timeoutMs);
 
     // Step 4: Build auth URL
     const authUrl = new URL(`${platformUrl}/auth/cli`);

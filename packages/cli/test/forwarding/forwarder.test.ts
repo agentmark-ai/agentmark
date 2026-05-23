@@ -49,12 +49,27 @@ describe('TraceForwarder', () => {
     ],
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     consoleMock.log.mockClear();
     consoleMock.warn.mockClear();
     consoleMock.error.mockClear();
+    // Defensive: ensure no leftover auth.json from another test file in
+    // the same worker tricks the forwarder's bearer-first auth path
+    // into using stale credentials. The "successful forward" and
+    // related tests expect the apiKey fallback to win — that only
+    // works when loadCredentials() returns null. credentials.test.ts
+    // writes a real auth.json in this worker's tmp dir; if its cleanup
+    // ever races or this test runs first against a stale file from a
+    // previous vitest invocation, this guard prevents the false-fail.
+    const { getAuthFilePath } = await import('../../cli-src/auth/credentials');
+    const fs = await import('fs');
+    try {
+      fs.unlinkSync(getAuthFilePath());
+    } catch {
+      // file may not exist — that's the desired state
+    }
   });
 
   afterEach(() => {

@@ -1,7 +1,14 @@
 import http from "http";
 import { CallbackResult } from "./types";
 
-const TIMEOUT_MS = 30_000;
+/**
+ * Default time the local callback server waits for the browser handoff
+ * before giving up. Bumped from 30s to 2 minutes for the agent-driven
+ * flow where the user reads a prompt, switches to a browser, clicks a
+ * URL, and completes sign-in — that round-trip routinely exceeds 30s.
+ * Override per-call via the `timeoutMs` argument to `startCallbackServer`.
+ */
+const DEFAULT_TIMEOUT_MS = 120_000;
 
 const SUCCESS_HTML = `<!DOCTYPE html>
 <html><body><h1>Authentication successful!</h1><p>You can close this tab.</p></body></html>`;
@@ -14,8 +21,16 @@ const ERROR_HTML = `<!DOCTYPE html>
  * the OAuth callback. Returns the assigned port, a promise-based
  * `waitForCallback()` to await the authorization code, and a `close()` method
  * for manual cleanup.
+ *
+ * `timeoutMs` caps how long the server waits for the browser handoff before
+ * rejecting `waitForCallback()` with `Login timed out`. Defaults to
+ * {@link DEFAULT_TIMEOUT_MS} (2 minutes). Pass an explicit value to override
+ * (e.g. `agentmark login --timeout 300` for a 5-minute window).
  */
-export function startCallbackServer(expectedState: string): Promise<{
+export function startCallbackServer(
+  expectedState: string,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<{
   port: number;
   waitForCallback: () => Promise<CallbackResult>;
   close: () => void;
@@ -109,7 +124,7 @@ export function startCallbackServer(expectedState: string): Promise<{
           callbackReject?.(new Error("Login timed out"));
           closeServer();
         }
-      }, TIMEOUT_MS);
+      }, timeoutMs);
 
       resolve({
         port: addr.port,
