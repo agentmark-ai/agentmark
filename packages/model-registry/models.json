@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-22T01:08:45.022Z",
+  "generatedAt": "2026-05-23T01:05:36.728Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-22T01:08:45.022Z",
-      "modelCount": 1194
+      "fetchedAt": "2026-05-23T01:05:36.728Z",
+      "modelCount": 1199
     },
     "openrouter": {
-      "fetchedAt": "2026-05-22T01:08:45.022Z",
+      "fetchedAt": "2026-05-23T01:05:36.728Z",
       "modelCount": 129
     }
   },
@@ -19846,15 +19846,11 @@
       "provider": "google",
       "displayName": "Google: Gemini 3.1 Flash Lite",
       "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "max_tokens",
-        "temperature",
-        "top_p"
-      ],
+      "source": "litellm",
       "pricing": {
         "inputCostPerToken": 2.5e-7,
-        "outputCostPerToken": 0.0000015
+        "outputCostPerToken": 0.0000015,
+        "cacheReadCostPerToken": 2.5e-8
       },
       "context": {
         "maxInputTokens": 1048576,
@@ -19862,10 +19858,21 @@
       },
       "capabilities": {
         "vision": true,
-        "audioInput": true,
         "functionCalling": true,
-        "structuredOutput": true
-      }
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioInput": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ]
     },
     "gpt-chat-latest": {
       "provider": "openai",
@@ -19931,11 +19938,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 1.12e-7,
-        "outputCostPerToken": 2.24e-7
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 2e-7
       },
       "context": {
-        "maxInputTokens": 1048576
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 16384
       },
       "capabilities": {
         "functionCalling": true,
@@ -23493,6 +23501,92 @@
         "temperature",
         "top_p"
       ]
+    },
+    "accounts/fireworks/models/glm-5p1": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/glm 5p1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000014,
+        "outputCostPerToken": 0.0000044,
+        "cacheReadCostPerToken": 2.6e-7
+      },
+      "context": {
+        "maxInputTokens": 202800,
+        "maxOutputTokens": 202800
+      },
+      "capabilities": {
+        "functionCalling": false,
+        "structuredOutput": false,
+        "reasoning": true
+      }
+    },
+    "glm-5p1": {
+      "provider": "fireworks_ai",
+      "displayName": "Glm 5p1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000014,
+        "outputCostPerToken": 0.0000044,
+        "cacheReadCostPerToken": 2.6e-7
+      },
+      "context": {
+        "maxInputTokens": 202800,
+        "maxOutputTokens": 202800
+      },
+      "capabilities": {
+        "functionCalling": false,
+        "structuredOutput": false,
+        "reasoning": true
+      }
+    },
+    "ministral-8b-2512": {
+      "provider": "mistral",
+      "displayName": "Ministral 8b 2512",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 1.5e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "vertex_ai/gemini-3.1-flash-lite": {
+      "provider": "google",
+      "displayName": "Vertex Ai/gemini 3.1 Flash Lite",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.5e-7,
+        "outputCostPerToken": 0.0000015,
+        "cacheReadCostPerToken": 2.5e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioInput": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      }
     }
   }
 }
