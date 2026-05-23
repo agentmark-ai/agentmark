@@ -21,8 +21,8 @@ import {
 } from '../auth/credentials';
 import { refreshAccessToken } from '../auth/token-refresh';
 import {
-  DEFAULT_SUPABASE_URL,
-  DEFAULT_SUPABASE_ANON_KEY,
+  getSupabaseUrl,
+  getSupabaseAnonKey,
 } from '../auth/constants';
 
 interface ForwardingStats {
@@ -214,8 +214,8 @@ export class TraceForwarder {
       // to the legacy apiKey if present, or 401.
       const refreshed = await refreshAccessToken(
         credentials,
-        DEFAULT_SUPABASE_URL,
-        DEFAULT_SUPABASE_ANON_KEY,
+        getSupabaseUrl(),
+        getSupabaseAnonKey(),
       );
       if (refreshed) {
         saveCredentials(refreshed);

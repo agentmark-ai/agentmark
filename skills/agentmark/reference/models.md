@@ -190,7 +190,7 @@ us/claude-opus-4-6
 
 ## Google (`google`)
 
-197 canonical chat-mode models.
+198 canonical chat-mode models.
 
 ```
 chat-bison
@@ -336,6 +336,7 @@ vertex_ai/codestral@latest
 vertex_ai/deepseek-ai/deepseek-r1-0528-maas
 vertex_ai/deepseek-ai/deepseek-v3.1-maas
 vertex_ai/deepseek-ai/deepseek-v3.2-maas
+vertex_ai/gemini-3.1-flash-lite
 vertex_ai/gemini-3.1-flash-lite-preview
 vertex_ai/jamba-1.5
 vertex_ai/jamba-1.5-large
@@ -457,7 +458,7 @@ qwen/qwen3-32b
 
 ## Mistral (`mistral`)
 
-45 canonical chat-mode models.
+46 canonical chat-mode models.
 
 ```
 codestral-2405
@@ -482,6 +483,7 @@ magistral-small-latest
 ministral-3-14b-2512
 ministral-3-3b-2512
 ministral-3-8b-2512
+ministral-8b-2512
 mistral-large-2407
 mistral-large-2411
 mistral-large-2512
