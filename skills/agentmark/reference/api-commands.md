@@ -12,7 +12,7 @@ Add `--remote` to any command to target AgentMark Cloud instead of the local dev
 ## Resources
 
 - [`api-keys`](#api-keys) — 3 action(s)
-- [`apps`](#apps) — 7 action(s)
+- [`apps`](#apps) — 11 action(s)
 - [`capabilities`](#capabilities) — 1 action(s)
 - [`config`](#config) — 1 action(s)
 - [`datasets`](#datasets) — 4 action(s)
@@ -83,8 +83,12 @@ npx agentmark api api-keys revoke-api-key <apiKeyId> [--remote] [--refresh]
 | `npx agentmark api apps delete-app` | DELETE | `/v1/apps/{appId}` | Delete app |
 | `npx agentmark api apps get-app` | GET | `/v1/apps/{appId}` | Get app |
 | `npx agentmark api apps get-app-git-connection` | GET | `/v1/apps/{appId}/git` | Get git connection status for an app |
+| `npx agentmark api apps link-app-repository` | POST | `/v1/apps/{appId}/git/link` | Link a repository and branch to an app |
+| `npx agentmark api apps list-app-git-branches` | GET | `/v1/apps/{appId}/git/branches` | List branches in a repository |
+| `npx agentmark api apps list-app-git-repositories` | GET | `/v1/apps/{appId}/git/repositories` | List repositories accessible to the app's git installation |
 | `npx agentmark api apps list-apps` | GET | `/v1/apps` | List apps |
 | `npx agentmark api apps start-app-git-connect` | POST | `/v1/apps/{appId}/git/connect` | Mint an OAuth authorization URL for git-provider connect |
+| `npx agentmark api apps unlink-app-repository` | DELETE | `/v1/apps/{appId}/git/link` | Clear the linked repository and branch |
 | `npx agentmark api apps update-app` | PATCH | `/v1/apps/{appId}` | Update app |
 
 ### `apps create-app`
@@ -131,6 +135,43 @@ npx agentmark api apps get-app-git-connection <appId> [--remote] [--refresh]
 |---|---|---|---|
 | `appId` | path | ✓ |  |
 
+### `apps link-app-repository`
+
+Link a repository and branch to an app
+
+```bash
+npx agentmark api apps link-app-repository <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+
+### `apps list-app-git-branches`
+
+List branches in a repository
+
+```bash
+npx agentmark api apps list-app-git-branches <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+| `repository` | query | ✓ | Repository identifier in `owner/repo` form, from the `full_name` field of the repositories list. |
+
+### `apps list-app-git-repositories`
+
+List repositories accessible to the app's git installation
+
+```bash
+npx agentmark api apps list-app-git-repositories <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+
 ### `apps list-apps`
 
 List apps
@@ -151,6 +192,18 @@ Mint an OAuth authorization URL for git-provider connect
 
 ```bash
 npx agentmark api apps start-app-git-connect <appId> [--remote] [--refresh]
+```
+
+| Param | Where | Required? | Notes |
+|---|---|---|---|
+| `appId` | path | ✓ |  |
+
+### `apps unlink-app-repository`
+
+Clear the linked repository and branch
+
+```bash
+npx agentmark api apps unlink-app-repository <appId> [--remote] [--refresh]
 ```
 
 | Param | Where | Required? | Notes |
