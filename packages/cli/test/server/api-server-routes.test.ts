@@ -219,23 +219,12 @@ describe('API server route integration', () => {
     );
   });
 
-  // Manual test item 4: GET /v1/openapi.json returns valid OpenAPI spec
-  it('GET /v1/openapi.json returns valid OpenAPI spec', async () => {
-    const res = await fetch(`${baseUrl}/v1/openapi.json`);
-    expect(res.status).toBe(200);
-
-    const spec = await res.json();
-    expect(spec.openapi).toMatch(/^3\./);
-    expect(spec).toHaveProperty('info');
-    expect(spec.info).toHaveProperty('title');
-    expect(spec).toHaveProperty('paths');
-
-    // Verify key paths are documented
-    expect(spec.paths).toHaveProperty('/v1/traces');
-    expect(spec.paths).toHaveProperty('/v1/capabilities');
-    expect(spec.paths).toHaveProperty('/v1/datasets/{datasetName}/rows/from-traces');
-    expect(spec.paths).toHaveProperty('/v1/datasets/{datasetName}/rows/from-spans');
-  });
+  // Removed: GET /v1/openapi.json. The local CLI dev server no longer
+  // bundles + serves the OpenAPI spec — that was the read endpoint
+  // for the retired `agentmark api` specli wrapper. The
+  // `agentmark-mcp` server now fetches the spec directly from
+  // `api.agentmark.co/v1/openapi.json` (cached locally for 24h), so
+  // the local dev server doesn't need to mirror it.
 
   it('POST /v1/datasets/:datasetName/rows enforces canonical dataset row shape', async () => {
     const res = await fetch(`${baseUrl}/v1/datasets/${testDatasetName}/rows`, {

@@ -17,7 +17,6 @@ import build from './commands/build';
 import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
-import { registerApiCommand } from './commands/api';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
 // Start async update check early (non-blocking)
@@ -240,8 +239,6 @@ program
     );
     process.exit(1);
   });
-
-registerApiCommand(program);
 
 // Parse and run command, then display update notification
 // Using parseAsync ensures notification displays after command completes

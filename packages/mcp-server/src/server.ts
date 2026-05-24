@@ -3,6 +3,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { createDataSource } from './data-source/index.js';
 import type { DataSource } from './data-source/types.js';
+import { resolveBaseUrl, resolveBearer } from './openapi/auth.js';
+import { fetchOpenAPISpec } from './openapi/spec-loader.js';
+import { registerOpenAPITools } from './openapi/register-tools.js';
 
 /**
  * Register all trace debugging tools on the MCP server
@@ -153,16 +156,62 @@ export function registerTools(server: McpServer, dataSource: DataSource) {
 }
 
 /**
- * Create and configure the MCP server
+ * Create and configure the MCP server.
+ *
+ * Two tool sets are registered:
+ *
+ *   1. **Trace-debugging tools** (existing) — backed by the local
+ *      ClickHouse / SQLite data source. These work without any
+ *      AgentMark Cloud auth and let an agent inspect traces from a
+ *      `agentmark dev` session.
+ *
+ *   2. **AgentMark Cloud tools** (new) — generated at startup from
+ *      the gateway's `/v1/openapi.json` spec. One MCP tool per
+ *      operation, names derived from the spec's operationIds. Auth
+ *      via the session bearer from `~/.agentmark/auth.json` (after
+ *      `agentmark login`) or `AGENTMARK_API_KEY` env. When neither
+ *      credential resolves, the OpenAPI tool set is skipped silently
+ *      so the trace-debugging tools still work.
+ *
+ * This is the headless surface for agents that need to provision
+ * apps, mint API keys, kick off deployments, etc. The CLI side
+ * stays curated for terminal humans; agents flow through here.
  */
 export async function createMCPServer() {
   const server = new McpServer({
-    name: 'agentmark-traces',
-    version: '0.1.0',
+    name: 'agentmark',
+    version: '0.2.0',
   });
 
   const dataSource = createDataSource();
   registerTools(server, dataSource);
+
+  // Try to register the OpenAPI-driven Cloud tools. If we can't
+  // resolve auth or fetch the spec, skip silently — the user may be
+  // running this MCP server purely for local trace debugging.
+  const bearer = resolveBearer();
+  if (bearer) {
+    const baseUrl = resolveBaseUrl();
+    try {
+      const spec = await fetchOpenAPISpec(baseUrl);
+      const registered = registerOpenAPITools(server, {
+        spec,
+        baseUrl,
+        bearer,
+      });
+      console.error(
+        `[agentmark-mcp] Registered ${registered.length} Cloud tools from ${baseUrl}/v1/openapi.json`,
+      );
+    } catch (err) {
+      console.error(
+        `[agentmark-mcp] Failed to load Cloud OpenAPI spec from ${baseUrl}; only local trace-debugging tools will be available. Error: ${(err as Error).message}`,
+      );
+    }
+  } else {
+    console.error(
+      '[agentmark-mcp] No auth credential found (run `agentmark login` or set AGENTMARK_API_KEY). Cloud tools disabled; local trace-debugging tools still work.',
+    );
+  }
 
   return server;
 }

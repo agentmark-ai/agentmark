@@ -112,7 +112,6 @@ function formatMarkdown(commands: Command[], cliVersion: string): string {
     const anchor = cmd.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
     lines.push(`- [\`agentmark ${cmd.name}\`](#agentmark-${anchor}) — ${cmd.description || '(no description)'}`);
   }
-  lines.push('- [`agentmark api`](#agentmark-api) — Gateway API access; subcommands auto-generated from OpenAPI');
   lines.push('');
 
   for (const cmd of commands) {
@@ -144,20 +143,9 @@ function formatMarkdown(commands: Command[], cliVersion: string): string {
 
   lines.push('---');
   lines.push('');
-  lines.push('## `agentmark api`');
+  lines.push('## Headless programmatic access');
   lines.push('');
-  lines.push('Subcommands are auto-generated from the gateway OpenAPI spec at runtime, so they are not extractable from `cli-src/index.ts`. Run `npx agentmark api __schema` (after `agentmark dev` is up, or with `--remote`) for the live resource/action tree. See `https://docs.agentmark.co/sdk-reference/cli/commands.md#agentmark-api` for the resource catalog.');
-  lines.push('');
-  lines.push('```bash');
-  lines.push('npx agentmark api [options]');
-  lines.push('# After `agentmark dev` is up, see actions for a resource:');
-  lines.push('npx agentmark api traces --help');
-  lines.push('```');
-  lines.push('');
-  lines.push('| Flag | Description |');
-  lines.push('|---|---|');
-  lines.push('| `--remote` | Target AgentMark Cloud gateway instead of the local dev server |');
-  lines.push('| `--refresh` | Force re-fetch of the OpenAPI spec (cached for 24 hours) |');
+  lines.push('The CLI is intentionally narrow. For programmatic access to the full AgentMark Cloud API surface (apps, deployments, alerts, datasets, experiments, scores, traces, …), run the `agentmark-mcp` MCP server alongside your IDE agent, or call the gateway REST endpoints directly with an `AGENTMARK_API_KEY`. See `workflows/headless-with-mcp.md` in the agentmark skill, or the gateway OpenAPI spec at `api.agentmark.co/v1/openapi.json`.');
   lines.push('');
 
   return lines.join('\n');

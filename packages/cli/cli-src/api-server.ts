@@ -7,12 +7,6 @@ import path from "path";
 import { findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark-ai/shared-utils";
 import cors from "cors";
 import { z } from "zod";
-// Import the OpenAPI spec as a JSON module so the build naturally
-// includes it in `dist/`. With `resolveJsonModule: true`, tsc copies
-// the imported JSON into the output directory alongside the emitted
-// JS — no manual copy step / postbuild needed.
-// eslint-disable-next-line import/no-restricted-paths -- same-package JSON import; rule misfires on .json
-import openapiSpec from "./server/openapi-spec.json";
 import {
   exportTraces,
   getTraceGraph,
@@ -290,15 +284,7 @@ export async function createApiServer(port: number) {
   // Local dev server doesn't use multi-tenancy - create a placeholder appId
   const localAppId = 'local' as any; // VerifiedAppId is a branded type
 
-  // Serve the static OpenAPI spec. The spec is imported as a JSON
-  // module above, so it's bundled with the build (no fs / dist copy
-  // needed at runtime).
-  app.get("/v1/openapi.json", (_req: Request, res: Response) => {
-    res.json(openapiSpec);
-  });
-
-  // Liveness probe used by `agentmark api` to detect a running local
-  // dev server. Tiny body, no auth, no DB hit.
+  // Liveness probe — tiny body, no auth, no DB hit.
   app.get("/health", (_req: Request, res: Response) => {
     res.status(200).json({ status: "ok" });
   });

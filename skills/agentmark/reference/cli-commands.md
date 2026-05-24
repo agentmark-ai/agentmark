@@ -20,7 +20,6 @@
 - [`agentmark logout`](#agentmark-logout) — Clear CLI authentication and revoke dev API keys
 - [`agentmark link`](#agentmark-link) — Link current project to a platform app for trace forwarding
 - [`agentmark deploy`](#agentmark-deploy) — [Removed] Use git-based deploys — see release notes
-- [`agentmark api`](#agentmark-api) — Gateway API access; subcommands auto-generated from OpenAPI
 
 ---
 
@@ -196,17 +195,6 @@ npx agentmark deploy [options]
 
 ---
 
-## `agentmark api`
+## Headless programmatic access
 
-Subcommands are auto-generated from the gateway OpenAPI spec at runtime, so they are not extractable from `cli-src/index.ts`. Run `npx agentmark api __schema` (after `agentmark dev` is up, or with `--remote`) for the live resource/action tree. See `https://docs.agentmark.co/sdk-reference/cli/commands.md#agentmark-api` for the resource catalog.
-
-```bash
-npx agentmark api [options]
-# After `agentmark dev` is up, see actions for a resource:
-npx agentmark api traces --help
-```
-
-| Flag | Description |
-|---|---|
-| `--remote` | Target AgentMark Cloud gateway instead of the local dev server |
-| `--refresh` | Force re-fetch of the OpenAPI spec (cached for 24 hours) |
+The CLI is intentionally narrow. For programmatic access to the full AgentMark Cloud API surface (apps, deployments, alerts, datasets, experiments, scores, traces, …), run the `agentmark-mcp` MCP server alongside your IDE agent, or call the gateway REST endpoints directly with an `AGENTMARK_API_KEY`. See `workflows/headless-with-mcp.md` in the agentmark skill, or the gateway OpenAPI spec at `api.agentmark.co/v1/openapi.json`.
