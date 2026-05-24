@@ -169,3 +169,95 @@ export const GitConnectAuthorizationResponseSchema = z.object({
 
 export type StartGitConnectBody = z.infer<typeof StartGitConnectBodySchema>;
 export type GitConnectAuthorization = z.infer<typeof GitConnectAuthorizationSchema>;
+
+// ---------------------------------------------------------------------------
+// Git repository discovery (GET /v1/apps/:appId/git/repositories)
+//
+// After the OAuth install completes, the caller still needs to know
+// which repos are accessible to the installation so they can pick one.
+// This endpoint surfaces that list for both GitHub (the App's
+// installation repositories) and GitLab (the user's accessible
+// projects).
+//
+// Stays per-app rather than per-tenant because the provider context
+// (GitHub installation_id / GitLab token) lives on `git_connection`
+// keyed by app_id.
+// ---------------------------------------------------------------------------
+
+export const GitRepositorySchema = z.object({
+  full_name: z.string().min(1).describe(
+    "Repository identifier in `owner/repo` form (GitHub) or `group/project` form (GitLab).",
+  ),
+  name: z.string().min(1).describe("Bare repository name (the part after the slash)."),
+  default_branch: z.string().min(1).describe(
+    "Provider-reported default branch. Useful for pre-selecting a sensible branch in UIs.",
+  ),
+});
+
+export const ListAppGitRepositoriesResponseSchema = z.object({
+  data: z.array(GitRepositorySchema),
+});
+
+export type GitRepository = z.infer<typeof GitRepositorySchema>;
+
+// ---------------------------------------------------------------------------
+// Git branch discovery (GET /v1/apps/:appId/git/branches?repository=X)
+//
+// Repo identifier is a query param rather than a path segment because
+// it contains a slash (`owner/repo`) and URL-encoding it as a path
+// segment causes Cloudflare Workers routing weirdness with some
+// installations. Query param sidesteps the issue and matches how the
+// dashboard already calls the equivalent server action.
+// ---------------------------------------------------------------------------
+
+export const ListAppGitBranchesQuerySchema = z.object({
+  repository: z.preprocess(stripNullBytes, z.string().min(1).max(255)).describe(
+    "Repository identifier in `owner/repo` form, from the `full_name` field of the repositories list.",
+  ),
+});
+
+export const ListAppGitBranchesResponseSchema = z.object({
+  data: z.array(z.string().min(1)),
+});
+
+// ---------------------------------------------------------------------------
+// Link / unlink a repository (POST/DELETE /v1/apps/:appId/git/link)
+//
+// `link` writes the chosen repository + branch onto the existing
+// `git_connection` row (set by the OAuth callback) and upserts a
+// `git_branch` record so the deploy pipeline knows which branch to
+// watch. It does NOT trigger the initial template import inline — that
+// happens on the next git push via the existing GitHub webhook
+// orchestrator (so headless agents push a starter commit after link
+// to materialize templates).
+//
+// `unlink` clears `git_connection.repository` and removes the
+// `git_branch` row, leaving the underlying OAuth installation intact
+// so the user can re-link without re-clicking the install URL.
+// Template + storage cleanup is deferred to a follow-up endpoint —
+// scoped Supabase clients can't reliably purge per-tenant storage
+// objects (needs admin client).
+// ---------------------------------------------------------------------------
+
+export const LinkAppRepositoryBodySchema = z.object({
+  repository: z.preprocess(stripNullBytes, z.string().min(1).max(255)).describe(
+    "Repository identifier in `owner/repo` form, from the `full_name` field of the repositories list.",
+  ),
+  branch: z.preprocess(stripNullBytes, z.string().min(1).max(255)).describe(
+    "Branch to watch for deploys. Must already exist on the remote.",
+  ),
+});
+
+export const LinkAppRepositoryResultSchema = z.object({
+  repository: z.string(),
+  branch: z.string(),
+  branch_id: z.string().uuid(),
+  commit_sha: z.string().nullable(),
+});
+
+export const LinkAppRepositoryResponseSchema = z.object({
+  data: LinkAppRepositoryResultSchema,
+});
+
+export type LinkAppRepositoryBody = z.infer<typeof LinkAppRepositoryBodySchema>;
+export type LinkAppRepositoryResult = z.infer<typeof LinkAppRepositoryResultSchema>;
