@@ -1,6 +1,6 @@
 ---
 name: agentmark
-description: "Build, debug, and ship AgentMark prompts, datasets, experiments, and evals. TRIGGER when: working with `.prompt.mdx` files, `agentmark.json`, `agentmark.client.ts`, `agentmark_client.py`, `.agentmark/`, or imports from `@agentmark-ai/*`; user runs or asks about `agentmark <cmd>` / `npx agentmark <cmd>` (`dev`, `run-prompt`, `run-experiment`, `build`, `generate-types`, `generate-schema`, `link`, `login`, `pull-models`, `api`); user mentions AgentMark or asks about prompt versioning, dataset experiments, prompt evaluations, prompt deployments, or trace observability in an AgentMark project. SKIP: provider-neutral prompt code with no AgentMark markers; LangChain / LlamaIndex / raw OpenAI / Anthropic SDK code; questions about prompt engineering or LLM observability in general with no AgentMark context; questions about competing platforms (Langfuse, LangSmith, Phoenix, Braintrust, Traceloop)."
+description: "Build, debug, and ship AgentMark prompts, datasets, experiments, and evals. TRIGGER when: working with `.prompt.mdx` files, `agentmark.json`, `agentmark.client.ts`, `agentmark_client.py`, `.agentmark/`, or imports from `@agentmark-ai/*`; user runs or asks about `agentmark <cmd>` / `npx agentmark <cmd>` (`dev`, `run-prompt`, `run-experiment`, `build`, `generate-types`, `generate-schema`, `link`, `login`, `pull-models`); user asks about driving AgentMark Cloud programmatically (the `agentmark-mcp` server, MCP tools, headless app provisioning); user mentions AgentMark or asks about prompt versioning, dataset experiments, prompt evaluations, prompt deployments, or trace observability in an AgentMark project. SKIP: provider-neutral prompt code with no AgentMark markers; LangChain / LlamaIndex / raw OpenAI / Anthropic SDK code; questions about prompt engineering or LLM observability in general with no AgentMark context; questions about competing platforms (Langfuse, LangSmith, Phoenix, Braintrust, Traceloop)."
 license: AGPL-3.0-or-later
 ---
 
@@ -27,7 +27,6 @@ Your training data is out of date. Before answering anything specific about Agen
 1. **CLI surface** — run `npx agentmark <command> --help`. This is the canonical source for command flags, arguments, and behavior. Do not infer flags from memory.
 2. **Docs navigation** — fetch `https://docs.agentmark.co/llms.txt` for a complete page index. Use it to find the right doc page before WebFetching content.
 3. **Specific doc pages** — append `.md` to any `docs.agentmark.co` URL and WebFetch it. Every doc page is served as both HTML and Markdown.
-4. **Gateway API** — run `npx agentmark api __schema` to discover available resources. Requires `agentmark dev` running locally, or pass `--remote` to target AgentMark Cloud (needs `agentmark login` + `agentmark link` first).
 
 Never encode API surface or CLI flags from memory. Always verify against `--help` output, `llms.txt`, or fetched docs.
 
@@ -35,7 +34,7 @@ Never encode API surface or CLI flags from memory. Always verify against `--help
 
 AgentMark splits into two surfaces. Keep them straight or you will go looking for endpoints that do not exist.
 
-- **Gateway / Cloud API** (`api.agentmark.co`, the `agentmark api` subcommands) — observability and config. Lists prompts, traces, scores, datasets, deployments. **It does not execute prompts.** There is no `POST /v1/prompts/{name}/run` endpoint. If you can't find an "execute" action on a resource, that's expected.
+- **Gateway / Cloud API** (`api.agentmark.co`) — observability and config. Stores prompts, traces, scores, datasets, deployments. **It does not execute prompts.** There is no `POST /v1/prompts/{name}/run` endpoint. If you can't find an "execute" action on a resource, that's expected. The CLI is intentionally curated (`dev`, `login`, `link`, `run-prompt`, `run-experiment`, `build`, `pull-models`, `generate-types`, `generate-schema`) and stays narrow on purpose. For programmatic access to the full Cloud API surface — provisioning apps, listing experiments, managing deployments, querying traces — run the **`agentmark-mcp` MCP server** locally and let your IDE agent call its tools. See [workflows/headless-with-mcp.md](workflows/headless-with-mcp.md). For bespoke automation that doesn't have an MCP client (e.g. a Python script in CI), the gateway speaks plain REST — call it with the session bearer from `~/.agentmark/auth.json` or an `AGENTMARK_API_KEY`.
 - **SDK** (`@agentmark-ai/sdk`, `@agentmark-ai/loader-api`) — execution. Customer code uses the SDK to load a deployed prompt template and call the LLM provider directly. Traces auto-forward to the gateway when `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` are set.
 
 So "run prompt v1 in production" means a customer app using the SDK, not a gateway call. For the headless flow (commit → push → poll → consume), see [workflows/deploying.md](workflows/deploying.md#headless-deployment-autonomous-agents-ci-automation).
@@ -75,9 +74,8 @@ my-project/
 - **`run-prompt` ≠ `run-experiment`.** `run-prompt <file>` executes a single prompt with the `--props` you pass. `run-experiment <file>` executes the prompt against every row in its linked dataset and runs evals. Do not use one for the other.
 - **`agentmark dev` runs a fully local server.** Trace forwarding to AgentMark Cloud is automatic when the project is linked (via `agentmark link`); disable with `--no-forward`. **There is no `--remote` flag on `dev`** — it was removed in 0.13.0 along with the `@agentmark-ai/connect` WebSocket package. If you see `--remote` on `dev` in older content, ignore it.
 - **`agentmark deploy` was removed.** Deployment is now git-based: connect a git provider in the Dashboard, push to the watched branch, and AgentMark builds and deploys automatically. The CLI keeps a stub that prints a migration hint if anyone runs `agentmark deploy`.
-- **`agentmark api` subcommands are auto-generated** from the gateway's live OpenAPI spec via specli. `npx agentmark api --help` run before `agentmark dev` is up shows only top-level usage. Resources/actions appear once the server is reachable, or with `--remote`. Resources are grouped by OpenAPI tag (e.g. `scoring`, `score-configs`, `datasets`, `deployments`); action names mirror operationIds (`list-scores`, `get-score-names`, `append-dataset-row`, …). **Always run `npx agentmark api <resource> --help` for the exact subcommand shape.**
+- **The CLI is for humans; the MCP server is for agents.** The `agentmark` CLI stays narrow on purpose: `dev`, `login`, `link`, `run-prompt`, `run-experiment`, `build`, `pull-models`, `generate-types`, `generate-schema`. When an agent needs to drive the Cloud API programmatically (create apps, mint API keys, connect a git provider, list deployments, query traces, …) it runs the `agentmark-mcp` MCP server and uses its tools. Tools are auto-generated from `api.agentmark.co/v1/openapi.json`, so the agent surface stays in lock-step with the gateway. See [workflows/headless-with-mcp.md](workflows/headless-with-mcp.md).
 - **Dataset name encoding differs by endpoint.** For the `?name=X` query filter on `GET /v1/datasets`, pass the leaf name without the `.jsonl` extension (exact match). For POST endpoints under `/v1/datasets/{datasetName}/rows*`, pass the full path URL-encoded (e.g. `agentmark%2Fqa-bot%2Fdata`), still without the extension.
-- **`agentmark api` local vs Cloud.** Defaults to the local dev server (`localhost:9418`). Pass `--remote` to target Cloud (requires `agentmark login` + `agentmark link`). This `--remote` is on the `api` subcommand only; it is not the removed `dev --remote`.
 
 ## Reference material
 
@@ -85,7 +83,7 @@ All `reference/*.md` files are **auto-generated** from upstream sources on every
 
 - **CLI commands**: [reference/cli-commands.md](reference/cli-commands.md) — from `cli-src/index.ts`. Prefer `npx agentmark <cmd> --help` for live verification.
 - **Frontmatter schema**: [reference/frontmatter-schema.md](reference/frontmatter-schema.md) — from `prompt-core/src/schemas.ts` (Zod). Runtime truth. If docs disagree, prefer docs.
-- **Gateway API**: [reference/api-commands.md](reference/api-commands.md) — from `cli-src/server/openapi-spec.json`. Resource names are tag slugs; actions are operationIds.
+- **Gateway API surface (for agents)**: fetched at startup by `agentmark-mcp` from `api.agentmark.co/v1/openapi.json`. Resource names are tag slugs; actions are operationIds. There is no static reference file for this — the spec is too large and changes often. List available tools by running `agentmark-mcp` and calling `tools/list`, or read the spec directly.
 - **Model registry**: [reference/models.md](reference/models.md) — from `@agentmark-ai/model-registry`. Canonical chat-mode IDs per provider. Verify a model exists here before suggesting it.
 - **Full docs**: https://docs.agentmark.co
 - **Docs index for LLMs**: https://docs.agentmark.co/llms.txt

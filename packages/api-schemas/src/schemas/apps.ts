@@ -85,9 +85,13 @@ export const AppSchema = z.object({
   fly_app_name: z.string().nullable(),
   fly_machine_id: z.string().nullable(),
   fly_machine_url: z.string().nullable(),
-  created_at: z.string().datetime().nullable(),
+  // `{ offset: true }`: Postgres + Hono return timestamps with a
+  // `+00:00` UTC offset, not the bare-Z form Zod's default `.datetime()`
+  // demands. Accepting both keeps the schema compatible with what the
+  // gateway actually emits.
+  created_at: z.string().datetime({ offset: true }).nullable(),
   created_by: z.string().nullable(),
-  updated_at: z.string().datetime().nullable(),
+  updated_at: z.string().datetime({ offset: true }).nullable(),
   updated_by: z.string().nullable(),
 });
 

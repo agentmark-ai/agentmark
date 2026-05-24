@@ -80,20 +80,28 @@ This is faster and cheaper. Re-enable evals (drop `--skip-eval`) when you're rea
 
 ## Reading experiment results from the API
 
-After running an experiment, you can list and inspect results via the gateway. Action names mirror operationIds — always run `npx agentmark api <resource> --help` for the canonical shape:
+After running an experiment, you can list and inspect results via the gateway. REST works for scripts; MCP works for IDE agents:
 
 ```bash
-# List recent experiments
-npx agentmark api experiments list-experiments --limit 10
+# REST — list recent experiments
+curl -fsS "$AGENTMARK_API_URL/v1/experiments?limit=10" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
 
-# Get details for one experiment (includes per-trace inputs, outputs, costs, scores)
-npx agentmark api experiments get-experiment <experimentId>
+# REST — get details for one experiment (per-trace inputs, outputs, costs, scores)
+curl -fsS "$AGENTMARK_API_URL/v1/experiments/<experimentId>" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
 
-# List individual traces in an experiment
-npx agentmark api traces list-traces --dataset-run-id <runId>
+# REST — list individual traces in an experiment
+curl -fsS "$AGENTMARK_API_URL/v1/traces?dataset_run_id=<runId>" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
 ```
 
-For Cloud-targeted queries, add `--remote` (requires `agentmark login` + `agentmark link`).
+MCP equivalents: `list_experiments({ limit })`, `get_experiment({ experimentId })`, `list_traces({ datasetRunId })`.
+
+After `agentmark login` the same calls work against your linked Cloud app using the cached session bearer — no API key required for interactive use.
 
 ## Common mistakes
 

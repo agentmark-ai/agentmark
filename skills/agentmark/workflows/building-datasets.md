@@ -46,16 +46,32 @@ Edit the `.jsonl` directly. Useful for the first 5–20 rows and edge cases.
 
 ### 2. Import from production traces
 
-Use the gateway API to materialize dataset rows from real traces or spans. The dataset name is a positional argument (URL-encoded path without `.jsonl`):
+Use the gateway API to materialize dataset rows from real traces or spans. Two equivalent surfaces (pick whichever fits your runtime):
+
+**REST** (scripts, CI):
 
 ```bash
-# Subcommand and flag shapes are auto-generated from the OpenAPI spec.
-# Always run --help to see the canonical form:
-npx agentmark api datasets --help
+# The dataset name in the URL path is URL-encoded and omits the `.jsonl` extension.
+DATASET=$(printf 'qa-bot/data' | jq -sRr @uri)
 
-# Once you know the shape, e.g.:
-npx agentmark api datasets import-dataset-rows-from-traces qa-bot/data --trace-ids <id1>,<id2>
-npx agentmark api datasets import-dataset-rows-from-spans  qa-bot/data --span-ids  <id1>,<id2>
+curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows/import-from-traces" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID" -H "Content-Type: application/json" \
+  -d '{"trace_ids":["<id1>","<id2>"]}'
+
+curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows/import-from-spans" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID" -H "Content-Type: application/json" \
+  -d '{"span_ids":["<id1>","<id2>"]}'
+```
+
+**MCP** (IDE agent):
+
+```text
+agent: import_dataset_rows_from_traces({ datasetName: "qa-bot/data",
+                                         trace_ids: ["<id1>", "<id2>"] })
+agent: import_dataset_rows_from_spans({  datasetName: "qa-bot/data",
+                                         span_ids:  ["<id1>", "<id2>"] })
 ```
 
 This is the canonical pattern for building a regression dataset from observed failures. The transformation rules (how trace I/O maps to dataset row shape) are documented at `https://docs.agentmark.co/evaluate/datasets.md`.
@@ -63,8 +79,12 @@ This is the canonical pattern for building a regression dataset from observed fa
 ### 3. Append programmatically
 
 ```bash
-# See `npx agentmark api datasets --help` for the canonical flag set.
-npx agentmark api datasets append-dataset-row qa-bot/data --row '{"name":"Carol"}'
+curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID" -H "Content-Type: application/json" \
+  -d '{"row":{"name":"Carol"}}'
+
+# MCP: append_dataset_row({ datasetName: "qa-bot/data", row: { name: "Carol" } })
 ```
 
 Useful when collecting rows from a feedback loop (e.g., user flagged a response as bad → append the inputs to the regression set).
@@ -72,7 +92,11 @@ Useful when collecting rows from a feedback loop (e.g., user flagged a response 
 ## Listing existing datasets
 
 ```bash
-npx agentmark api datasets list-datasets
+curl -fsS "$AGENTMARK_API_URL/v1/datasets" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
+
+# MCP: list_datasets()
 ```
 
 Returns each dataset's `row_count` and `created_at`. Use this before importing rows to confirm the dataset name.

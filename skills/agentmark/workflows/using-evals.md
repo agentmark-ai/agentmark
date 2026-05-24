@@ -40,7 +40,7 @@ Scores are declared in `agentmark.json` under a `scores` map. Each entry sets th
 }
 ```
 
-The score config schema has no `direction` field — value semantics are domain-driven and not captured in the config. For the authoritative schema, run `npx agentmark generate-schema` and inspect `.agentmark/agentmark.schema.json`. Score configs are read-only via the gateway (e.g. `npx agentmark api score-configs list-score-configs`); to change one, edit `agentmark.json` and redeploy.
+The score config schema has no `direction` field — value semantics are domain-driven and not captured in the config. For the authoritative schema, run `npx agentmark generate-schema` and inspect `.agentmark/agentmark.schema.json`. Score configs are read-only via the gateway (`GET /v1/score-configs`, or MCP `list_score_configs`); to change one, edit `agentmark.json` and redeploy.
 
 ## Wiring an eval to a prompt
 
@@ -83,16 +83,26 @@ When the eval is itself a prompt (LLM judging LLM), put the judge prompt in the 
 
 ## Score aggregation
 
-The gateway exposes score data under the `scoring` resource (OpenAPI tag → specli resource name). Always run `--help` for canonical action names; the auto-generated specli subcommands look like:
+The gateway exposes score data under the `scoring` resource. REST endpoints and MCP tool equivalents:
 
 ```bash
-# Show available actions under the scoring resource
-npx agentmark api scoring --help
+# Distinct score names that have been recorded
+curl -fsS "$AGENTMARK_API_URL/v1/scores/names" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
+# MCP: get_score_names()
 
-# Typical actions (action names mirror OpenAPI operationIds):
-npx agentmark api scoring get-score-names          # distinct score names
-npx agentmark api scoring get-score-aggregations   # mean / distribution per name
-npx agentmark api scoring list-scores --remote --limit 50   # raw scores
+# Mean / distribution per name
+curl -fsS "$AGENTMARK_API_URL/v1/scores/aggregations" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
+# MCP: get_score_aggregations()
+
+# Raw scores
+curl -fsS "$AGENTMARK_API_URL/v1/scores?limit=50" \
+  -H "Authorization: Bearer $AGENTMARK_API_KEY" \
+  -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID"
+# MCP: list_scores({ limit: 50 })
 ```
 
 Use this for tracking score drift over time, not for gating individual experiments (which is what `--threshold` is for).
@@ -103,7 +113,7 @@ Annotation queues let humans review traces and submit scores. The submitted scor
 
 ## Common mistakes
 
-- **Declaring a score in `agentmark.json` but never wiring it to a prompt** — the score config exists but no run produces it. Verify with `npx agentmark api scoring get-score-names` after running an experiment.
+- **Declaring a score in `agentmark.json` but never wiring it to a prompt** — the score config exists but no run produces it. Verify with `GET /v1/scores/names` (or MCP `get_score_names()`) after running an experiment.
 - **Adding a `direction` field to score config** — no such field exists in the schema. The score config only carries `type`, `description`, `min`/`max`, and `categories`. Direction is interpreted at read time, not declared.
 - **Adding evals after the dataset is huge** — re-running the experiment to backfill scores costs N × per-row eval cost. Add evals early.
 - **Treating LLM-as-judge as deterministic** — judge scores vary across runs. Use multiple seeds or aggregate over many runs before trusting a pass/fail.

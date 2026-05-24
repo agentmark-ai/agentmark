@@ -165,13 +165,11 @@ describe('live-contract - empty DB', () => {
     expect(r.body).toEqual(expect.objectContaining({ status: 'ok' }));
   });
 
-  it('GET /v1/openapi.json returns the embedded spec', async () => {
-    const r = await getJson('/v1/openapi.json');
-    expect(r.status).toBe(200);
-    expect(r.body).toEqual(
-      expect.objectContaining({ openapi: expect.any(String), info: expect.any(Object) }),
-    );
-  });
+  // Removed: GET /v1/openapi.json. The local CLI dev server no longer
+  // serves the OpenAPI spec — the agentmark-mcp server fetches it
+  // live from the gateway at startup, so bundling a stale snapshot
+  // into the CLI is no longer useful. Headless agents read the spec
+  // from `api.agentmark.co/v1/openapi.json` directly.
 
   it('GET /v1/capabilities returns target=local', async () => {
     const r = await getJson('/v1/capabilities');

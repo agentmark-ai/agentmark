@@ -19,9 +19,8 @@
     "test:watch": "vitest",
     "generate-skill-cli-reference": "tsx scripts/generate-skill-cli-reference.ts",
     "generate-skill-frontmatter-reference": "tsx scripts/generate-skill-frontmatter-reference.ts",
-    "generate-skill-api-reference": "tsx scripts/generate-skill-api-reference.ts",
     "generate-skill-models-reference": "tsx scripts/generate-skill-models-reference.ts",
-    "generate-skill-references": "yarn generate-skill-cli-reference && yarn generate-skill-frontmatter-reference && yarn generate-skill-api-reference && yarn generate-skill-models-reference"
+    "generate-skill-references": "yarn generate-skill-cli-reference && yarn generate-skill-frontmatter-reference && yarn generate-skill-models-reference"
   },
   "author": "",
   "license": "AGPL-3.0-or-later",
@@ -63,7 +62,6 @@
     "react": "19.1.0",
     "react-apexcharts": "^1.4.0",
     "react-dom": "19.1.0",
-    "specli": "^0.0.39",
     "tsx": "^4.19.2",
     "yaml": "^2.8.3",
     "zod": "^4.3.6"
