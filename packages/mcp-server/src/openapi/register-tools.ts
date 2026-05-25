@@ -48,6 +48,15 @@ export interface RegisterOpenAPIToolsOptions {
   baseUrl: string;
   bearer: string;
   /**
+   * Default `X-Agentmark-App-Id` for app-scoped routes whose path has
+   * no `{appId}` param (GET /v1/traces, /v1/spans, POST /v1/scores, …).
+   * Resolved from `AGENTMARK_APP_ID`. An explicit `{appId}` path param
+   * still takes precedence per-call. Without this, those routes 401
+   * with "Missing app id" and the whole trace/span/score read surface
+   * is unusable for a headless agent.
+   */
+  defaultAppId?: string;
+  /**
    * Operations to register. Defaults to "all under /v1/" that have an
    * operationId. Callers can pass a filter for development (e.g. to
    * narrow to just apps endpoints) or to exclude paths that don't
@@ -234,7 +243,7 @@ export function registerOpenAPITools(
   server: McpServer,
   options: RegisterOpenAPIToolsOptions,
 ): RegisteredOpenAPITool[] {
-  const { spec, baseUrl, bearer, include } = options;
+  const { spec, baseUrl, bearer, include, defaultAppId } = options;
   const registered: RegisteredOpenAPITool[] = [];
   // Defense against operationId collisions inside the spec. There used
   // to be a name-collision path here for the hand-rolled `list_traces` /
@@ -284,7 +293,12 @@ export function registerOpenAPITools(
             if (bearer) {
               headers.Authorization = `Bearer ${bearer}`;
             }
-            if (appIdHeader) headers['X-Agentmark-App-Id'] = appIdHeader;
+            // Path-param appId wins; otherwise fall back to the
+            // configured default (AGENTMARK_APP_ID). App-scoped routes
+            // that carry app-id as a header (not a path param) rely on
+            // this fallback — without it they 401 "Missing app id".
+            const resolvedAppId = appIdHeader ?? defaultAppId;
+            if (resolvedAppId) headers['X-Agentmark-App-Id'] = resolvedAppId;
             if (body !== undefined) headers['Content-Type'] = 'application/json';
 
             const response = await fetch(url, {

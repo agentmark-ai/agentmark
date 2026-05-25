@@ -1,5 +1,10 @@
 export { initialize, span, getAgentmarkTracer } from './tracing';
 export type { SpanContext, SpanOptions, SpanResult } from './tracing';
+export { streamWithSpan } from './streaming';
+export type {
+  StreamWithSpanOptions,
+  StreamWithSpanResult,
+} from './streaming';
 export { observe, SpanKind } from './traced';
 export type { ObserveOptions } from './traced';
 export { serializeValue } from './serialize';

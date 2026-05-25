@@ -8,7 +8,7 @@ import type { PromptShape } from "@agentmark-ai/prompt-core";
 import { createPromptTelemetry, runDatasetPool, experimentErrorChunk } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
 import { computeDatasetItemName } from "@agentmark-ai/shared-utils";
-import { span } from "@agentmark-ai/sdk";
+import { span, streamWithSpan } from "@agentmark-ai/sdk";
 import type { SpanContext } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
@@ -19,16 +19,6 @@ type Frontmatter = {
   speech_config?: unknown;
   test_settings?: { dataset?: string; evals?: string[] };
 };
-
-function extractErrorMessage(error: unknown): string {
-  if (!error) return "Unknown error";
-  if (typeof error === "string") return error;
-  if (typeof error === "object") {
-    const e = error as Record<string, any>;  // pre-existing pattern for error unwrapping
-    return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
-  }
-  return String(error);
-}
 
 export class MastraAdapterWebhookHandler<
   T extends PromptShape<T> | undefined = PromptShape<Record<string, never>>
@@ -59,81 +49,45 @@ export class MastraAdapterWebhookHandler<
 
       if (shouldStream) {
         try {
-          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-            return agent.stream(messages, generateOptions);
-          });
-          const streamResult = await result;
-          const fullStream = (streamResult as any).fullStream;
-          
-          if (fullStream) {
-            const stream = new ReadableStream({
-              async start(controller) {
-                const encoder = new TextEncoder();
-                try {
-                  for await (const chunk of fullStream) {
-                    if ((chunk as any).type === "error") {
-                      const message = extractErrorMessage((chunk as any)?.error);
-                      console.error("[Runner] Error during streaming:", message);
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({ type: "error", error: message }) + "\n"
-                        )
-                      );
-                      controller.close();
-                      return;
-                    }
-                    if ((chunk as any).type === "object") {
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({
-                            type: "object",
-                            result: (chunk as any).object,
-                          }) + "\n"
-                        )
-                      );
-                    }
-                    if ((chunk as any).type === "object-delta") {
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({
-                            type: "object",
-                            result: (chunk as any).objectDelta,
-                          }) + "\n"
-                        )
-                      );
-                    }
-                  }
-                  // Try to get usage if available
-                  if ((streamResult as any).usage) {
-                    const usageData = await (streamResult as any).usage;
-                    controller.enqueue(
-                      encoder.encode(
-                        JSON.stringify({ type: "object", usage: usageData }) + "\n"
-                      )
-                    );
-                  }
-                  controller.close();
-                } catch (error: any) {
-                  console.error("[Runner] Error during streaming:", error);
-                  controller.enqueue(
-                    encoder.encode(
-                      JSON.stringify({
-                        type: "error",
-                        error: extractErrorMessage(error),
-                      }) + "\n"
-                    )
-                  );
-                  controller.close();
+          const { stream, traceId } = await streamWithSpan({
+            name: frontmatter.name || 'prompt-run',
+            // Just the messages — generateOptions add noise (model
+            // spec, telemetry config) that the user doesn't need
+            // staring back at them in the Input panel.
+            input: messages,
+            produce: async (write, ctx) => {
+              const streamResult = await agent.stream(messages, generateOptions);
+              const fullStream = (streamResult as any).fullStream;
+              if (!fullStream) {
+                throw new Error("Stream not available — Mastra agent.stream() returned no fullStream");
+              }
+              let finalOutput: unknown = undefined;
+              for await (const chunk of fullStream) {
+                if ((chunk as any).type === "error") {
+                  throw (chunk as any)?.error ?? new Error("stream error");
                 }
-              },
-            });
-            return {
-              type: "stream",
-              stream,
-              streamHeader: { "AgentMark-Streaming": "true" },
-              traceId,
-            } as WebhookPromptResponse;
-          }
+                if ((chunk as any).type === "object") {
+                  finalOutput = (chunk as any).object;
+                  await write({ type: "object", result: (chunk as any).object });
+                }
+                if ((chunk as any).type === "object-delta") {
+                  finalOutput = (chunk as any).objectDelta;
+                  await write({ type: "object", result: (chunk as any).objectDelta });
+                }
+              }
+              if ((streamResult as any).usage) {
+                const usageData = await (streamResult as any).usage;
+                await write({ type: "object", usage: usageData });
+              }
+              if (finalOutput !== undefined) ctx.setOutput(finalOutput);
+            },
+          });
+          return {
+            type: "stream",
+            stream,
+            streamHeader: { "AgentMark-Streaming": "true" },
+            traceId,
+          } as WebhookPromptResponse;
         } catch (error) {
           // If streaming fails, fall back to non-streaming
           console.warn("[Runner] Streaming not available, falling back to non-streaming:", error);
@@ -169,101 +123,64 @@ export class MastraAdapterWebhookHandler<
 
       if (shouldStream) {
         try {
-          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-            return agent.stream(messages, generateOptions);
-          });
-          const streamResult = await result;
-          const fullStream = (streamResult as any).fullStream;
-          
-          if (fullStream) {
-            const stream = new ReadableStream({
-              async start(controller) {
-                const encoder = new TextEncoder();
-                try {
-                  for await (const chunk of fullStream) {
-                    if ((chunk as any).type === "error") {
-                      const message = extractErrorMessage((chunk as any)?.error);
-                      console.error("[Runner] Error during streaming:", message);
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({ type: "error", error: message }) + "\n"
-                        )
-                      );
-                      controller.close();
-                      return;
-                    }
-                    if ((chunk as any).type === "text-delta") {
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({
-                            type: "text",
-                            result: (chunk as any).textDelta,
-                          }) + "\n"
-                        )
-                      );
-                    }
-                    if ((chunk as any).type === "tool-call") {
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({
-                            type: "text",
-                            toolCall: {
-                              toolCallId: (chunk as any).toolCallId,
-                              toolName: (chunk as any).toolName,
-                              args: (chunk as any).args,
-                            },
-                          }) + "\n"
-                        )
-                      );
-                    }
-                    if ((chunk as any).type === "tool-result") {
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({
-                            type: "text",
-                            toolResult: {
-                              toolCallId: (chunk as any).toolCallId,
-                              toolName: (chunk as any).toolName,
-                              result: (chunk as any).result,
-                            },
-                          }) + "\n"
-                        )
-                      );
-                    }
-                    if ((chunk as any).type === "finish") {
-                      controller.enqueue(
-                        encoder.encode(
-                          JSON.stringify({
-                            type: "text",
-                            finishReason: (chunk as any).finishReason,
-                            usage: (chunk as any).usage,
-                          }) + "\n"
-                        )
-                      );
-                    }
-                  }
-                  controller.close();
-                } catch (error: any) {
-                  console.error("[Runner] Error during streaming:", error);
-                  controller.enqueue(
-                    encoder.encode(
-                      JSON.stringify({
-                        type: "error",
-                        error: extractErrorMessage(error),
-                      }) + "\n"
-                    )
-                  );
-                  controller.close();
+          const { stream, traceId } = await streamWithSpan({
+            name: frontmatter.name || 'prompt-run',
+            // Just the messages — generateOptions add noise (model
+            // spec, telemetry config) that the user doesn't need
+            // staring back at them in the Input panel.
+            input: messages,
+            produce: async (write, ctx) => {
+              const streamResult = await agent.stream(messages, generateOptions);
+              const fullStream = (streamResult as any).fullStream;
+              if (!fullStream) {
+                throw new Error("Stream not available — Mastra agent.stream() returned no fullStream");
+              }
+              let accumulatedText = '';
+              for await (const chunk of fullStream) {
+                if ((chunk as any).type === "error") {
+                  throw (chunk as any)?.error ?? new Error("stream error");
                 }
-              },
-            });
-            return {
-              type: "stream",
-              stream,
-              streamHeader: { "AgentMark-Streaming": "true" },
-              traceId,
-            } as WebhookPromptResponse;
-          }
+                if ((chunk as any).type === "text-delta") {
+                  accumulatedText += (chunk as any).textDelta;
+                  await write({ type: "text", result: (chunk as any).textDelta });
+                }
+                if ((chunk as any).type === "tool-call") {
+                  await write({
+                    type: "text",
+                    toolCall: {
+                      toolCallId: (chunk as any).toolCallId,
+                      toolName: (chunk as any).toolName,
+                      args: (chunk as any).args,
+                    },
+                  });
+                }
+                if ((chunk as any).type === "tool-result") {
+                  await write({
+                    type: "text",
+                    toolResult: {
+                      toolCallId: (chunk as any).toolCallId,
+                      toolName: (chunk as any).toolName,
+                      result: (chunk as any).result,
+                    },
+                  });
+                }
+                if ((chunk as any).type === "finish") {
+                  await write({
+                    type: "text",
+                    finishReason: (chunk as any).finishReason,
+                    usage: (chunk as any).usage,
+                  });
+                }
+              }
+              if (accumulatedText) ctx.setOutput(accumulatedText);
+            },
+          });
+          return {
+            type: "stream",
+            stream,
+            streamHeader: { "AgentMark-Streaming": "true" },
+            traceId,
+          } as WebhookPromptResponse;
         } catch (error) {
           // If streaming fails, fall back to non-streaming
           console.warn("[Runner] Streaming not available, falling back to non-streaming:", error);

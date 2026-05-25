@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolveBaseUrl, resolveBearer } from './openapi/auth.js';
+import { resolveBaseUrl, resolveBearer, resolveAppId } from './openapi/auth.js';
 import { fetchOpenAPISpec } from './openapi/spec-loader.js';
 import { registerOpenAPITools } from './openapi/register-tools.js';
 
@@ -41,12 +41,14 @@ export async function createMCPServer() {
 
   const baseUrl = resolveBaseUrl();
   const bearer = resolveBearer();
+  const defaultAppId = resolveAppId();
   try {
     const spec = await fetchOpenAPISpec(baseUrl);
     const registered = registerOpenAPITools(server, {
       spec,
       baseUrl,
       bearer: bearer ?? '',
+      defaultAppId,
     });
     console.error(
       `[agentmark-mcp] Registered ${registered.length} tools from ${baseUrl}/v1/openapi.json`,

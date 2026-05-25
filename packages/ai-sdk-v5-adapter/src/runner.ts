@@ -17,7 +17,7 @@ import type {
   WebhookDatasetResponse,
   WebhookPromptResponse,
 } from "@agentmark-ai/prompt-core";
-import { span } from "@agentmark-ai/sdk";
+import { span, streamWithSpan } from "@agentmark-ai/sdk";
 import type { SpanContext } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
@@ -29,15 +29,6 @@ type Frontmatter = {
   test_settings?: { dataset?: string; evals?: string[] };
 };
 
-function extractErrorMessage(error: unknown): string {
-  if (!error) return "Unknown error";
-  if (typeof error === "string") return error;
-  if (typeof error === "object") {
-    const e = error as Record<string, any>;
-    return e.message || e.error?.message || e.data?.error?.message || JSON.stringify(error);
-  }
-  return String(error);
-}
 
 export class VercelAdapterWebhookHandler<
   T extends PromptShape<T> = PromptShape<Record<string, never>>
@@ -69,49 +60,32 @@ export class VercelAdapterWebhookHandler<
         const experimental_output = Output.object({ schema });
 
         if (shouldStream) {
-          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-            return streamText({ ...textParams, experimental_output });
-          });
-          const streamResult = await result;
-          const stream = new ReadableStream({
-            async start(controller) {
-              const encoder = new TextEncoder();
-              try {
-                for await (const partialObject of streamResult.experimental_partialOutputStream) {
-                  controller.enqueue(
-                    encoder.encode(
-                      JSON.stringify({
-                        type: "object",
-                        result: partialObject,
-                      }) + "\n"
-                    )
-                  );
-                }
-                const usageData = await streamResult.usage;
-                if (usageData) {
-                  controller.enqueue(
-                    encoder.encode(
-                      JSON.stringify({
-                        type: "object",
-                        usage: {
-                          ...usageData,
-                          promptTokens: usageData.inputTokens,
-                          completionTokens: usageData.outputTokens,
-                        },
-                      }) + "\n"
-                    )
-                  );
-                }
-              } catch (err) {
-                const message = extractErrorMessage(err);
-                console.error("[WebhookHandler] Error during streaming:", message);
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({ type: "error", error: message }) + "\n"
-                  )
-                );
+          const { stream, traceId } = await streamWithSpan({
+            name: frontmatter.name || 'prompt-run',
+            // Record the assembled messages (what the LLM sees) as the
+            // span input — NOT the full SDK call payload, which leaks
+            // model spec, schema definitions, and telemetry config that
+            // the user already has on disk in the .prompt.mdx.
+            input: input.messages,
+            produce: async (write, ctx) => {
+              const streamResult = streamText({ ...textParams, experimental_output });
+              let finalOutput: unknown = undefined;
+              for await (const partialObject of streamResult.experimental_partialOutputStream) {
+                finalOutput = partialObject;
+                await write({ type: "object", result: partialObject });
               }
-              controller.close();
+              const usageData = await streamResult.usage;
+              if (usageData) {
+                await write({
+                  type: "object",
+                  usage: {
+                    ...usageData,
+                    promptTokens: usageData.inputTokens,
+                    completionTokens: usageData.outputTokens,
+                  },
+                });
+              }
+              if (finalOutput !== undefined) ctx.setOutput(finalOutput);
             },
           });
           return {
@@ -143,50 +117,41 @@ export class VercelAdapterWebhookHandler<
 
       // No tools: existing generateObject/streamObject path
       if (shouldStream) {
-        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-          return streamObject(input);
-        });
-        const { usage, fullStream } = await result;
-        const stream = new ReadableStream({
-          async start(controller) {
-            const encoder = new TextEncoder();
+        const { stream, traceId } = await streamWithSpan({
+          name: frontmatter.name || 'prompt-run',
+          // Just the messages — the rest of the SDK call payload
+          // (model spec, schema, telemetry config) is noise in the
+          // dashboard's Input panel.
+          input: input.messages,
+          produce: async (write, ctx) => {
+            const streamResult = streamObject(input);
+            const { usage, fullStream } = streamResult;
+            let finalOutput: unknown = undefined;
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const message = extractErrorMessage((chunk as any)?.error);
-                console.error("[WebhookHandler] Error during streaming:", message);
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({ type: "error", error: message }) + "\n"
-                  )
-                );
-                controller.close();
-                return;
+                // streamObject surfaces provider failures (auth 401,
+                // rate-limit 429, etc.) as in-stream `error` chunks
+                // rather than throwing. Re-throw so the AgentMark span
+                // observing the pump can mark the span as ERROR —
+                // otherwise the dashboard shows a green check on a
+                // call that failed at the provider.
+                throw (chunk as any)?.error ?? new Error("stream error");
               }
               if ((chunk as any).type === "object") {
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: "object",
-                      result: (chunk as any).object,
-                    }) + "\n"
-                  )
-                );
+                finalOutput = (chunk as any).object;
+                await write({ type: "object", result: (chunk as any).object });
               }
             }
             const usageData = await usage;
-            controller.enqueue(
-              encoder.encode(
-                JSON.stringify({
-                  type: "object",
-                  usage: {
-                    ...usageData,
-                    promptTokens: usageData.inputTokens,
-                    completionTokens: usageData.outputTokens,
-                  },
-                }) + "\n"
-              )
-            );
-            controller.close();
+            await write({
+              type: "object",
+              usage: {
+                ...usageData,
+                promptTokens: usageData.inputTokens,
+                completionTokens: usageData.outputTokens,
+              },
+            });
+            if (finalOutput !== undefined) ctx.setOutput(finalOutput);
           },
         });
         return {
@@ -221,81 +186,61 @@ export class VercelAdapterWebhookHandler<
       const shouldStream =
         options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-          return streamText(input);
-        });
-        const { fullStream } = await result;
-        const stream = new ReadableStream({
-          async start(controller) {
-            const encoder = new TextEncoder();
+        const { stream, traceId } = await streamWithSpan({
+          name: frontmatter.name || 'prompt-run',
+          // Just the messages — see notes on the object_config sites.
+          input: input.messages,
+          produce: async (write, ctx) => {
+            const streamResult = streamText(input);
+            const { fullStream } = streamResult;
+            let accumulatedText = '';
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const message = extractErrorMessage((chunk as any)?.error);
-                console.error("[WebhookHandler] Error during streaming:", message);
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({ type: "error", error: message }) + "\n"
-                  )
-                );
-                controller.close();
-                return;
+                // streamText surfaces provider failures as in-stream
+                // `error` chunks rather than throwing. Re-throw so the
+                // wrapping span gets marked ERROR instead of OK.
+                throw (chunk as any)?.error ?? new Error("stream error");
               }
               if (chunk.type === "text-delta") {
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: "text",
-                      result: chunk.text,
-                    }) + "\n"
-                  )
-                );
+                accumulatedText += chunk.text;
+                await write({ type: "text", result: chunk.text });
               }
               if ((chunk as any).type === "tool-call") {
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: "text",
-                      toolCall: {
-                        toolCallId: (chunk as any).toolCallId,
-                        toolName: (chunk as any).toolName,
-                        args: (chunk as any).args || (chunk as any).input,
-                      },
-                    }) + "\n"
-                  )
-                );
+                await write({
+                  type: "text",
+                  toolCall: {
+                    toolCallId: (chunk as any).toolCallId,
+                    toolName: (chunk as any).toolName,
+                    args: (chunk as any).args || (chunk as any).input,
+                  },
+                });
               }
               if ((chunk as any).type === "tool-result") {
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: "text",
-                      toolResult: {
-                        toolCallId: (chunk as any).toolCallId,
-                        toolName: (chunk as any).toolName,
-                        result: (chunk as any).result || (chunk as any).output,
-                      },
-                    }) + "\n"
-                  )
-                );
+                await write({
+                  type: "text",
+                  toolResult: {
+                    toolCallId: (chunk as any).toolCallId,
+                    toolName: (chunk as any).toolName,
+                    result: (chunk as any).result || (chunk as any).output,
+                  },
+                });
               }
               if ((chunk as any).type === "finish") {
                 const usageData = (chunk as any).usage || (chunk as any).totalUsage;
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: "text",
-                      finishReason: (chunk as any).finishReason,
-                      usage: usageData ? {
+                await write({
+                  type: "text",
+                  finishReason: (chunk as any).finishReason,
+                  usage: usageData
+                    ? {
                         ...usageData,
                         promptTokens: usageData.inputTokens,
                         completionTokens: usageData.outputTokens,
-                      } : undefined,
-                    }) + "\n"
-                  )
-                );
+                      }
+                    : undefined,
+                });
               }
             }
-            controller.close();
+            if (accumulatedText) ctx.setOutput(accumulatedText);
           },
         });
         return {
