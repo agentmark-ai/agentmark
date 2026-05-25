@@ -14,8 +14,16 @@ import { fetchPromptsFrontmatter, generateTypeDefinitions } from "@agentmark-ai/
 import { appendGitignore, appendEnv } from "../file-merge.js";
 import { shouldMergeFile } from "../conflict-resolution.js";
 import type { ProjectInfo, ConflictResolution } from "../types.js";
+import {
+  writeMcpConfig,
+  type McpClient,
+} from "./mcp-config.js";
 
-const setupMCPServer = (client: string, targetPath: string) => {
+const setupMCPServer = (
+  client: string,
+  targetPath: string,
+  customApiUrl?: string,
+) => {
   if (client === "skip") {
     console.log("Skipping MCP server setup.");
     return;
@@ -23,100 +31,31 @@ const setupMCPServer = (client: string, targetPath: string) => {
 
   // Keep ./ prefix for display in messages
   const folderName = targetPath;
+  const label =
+    client === "vscode"
+      ? "VS Code"
+      : client === "zed"
+        ? "Zed"
+        : client === "cursor"
+          ? "Cursor"
+          : client === "claude-code"
+            ? "Claude Code"
+            : client;
 
-  // Handle VS Code
-  if (client === "vscode") {
-    try {
-      console.log(`Setting up MCP server for VS Code in ${folderName}...`);
-      const vscodeDir = path.join(targetPath, ".vscode");
-      fs.ensureDirSync(vscodeDir);
-
-      const mcpConfig = {
-        servers: {
-          "agentmark-docs": {
-            url: "https://docs.agentmark.co/mcp"
-          }
-        }
-      };
-
-      fs.writeJsonSync(path.join(vscodeDir, "mcp.json"), mcpConfig, { spaces: 2 });
-      console.log(`✅ MCP server configured for VS Code in ${folderName}/.vscode/mcp.json`);
-    } catch (error) {
-      console.warn(`Warning: Could not set up MCP server for VS Code:`, error);
-      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
+  try {
+    console.log(`Setting up MCP server for ${label} in ${folderName}...`);
+    const result = writeMcpConfig(client as McpClient, targetPath, { customApiUrl });
+    if (result) {
+      const relativePath = path.relative(targetPath, result.configPath) || result.configPath;
+      console.log(
+        `✅ MCP server configured for ${label} in ${folderName}/${relativePath}`,
+      );
     }
-    return;
-  }
-
-  // Handle Zed
-  if (client === "zed") {
-    try {
-      console.log(`Setting up MCP server for Zed in ${folderName}...`);
-      const zedDir = path.join(targetPath, ".zed");
-      fs.ensureDirSync(zedDir);
-
-      const zedConfig = {
-        context_servers: {
-          "agentmark-docs": {
-            url: "https://docs.agentmark.co/mcp"
-          }
-        }
-      };
-
-      fs.writeJsonSync(path.join(zedDir, "settings.json"), zedConfig, { spaces: 2 });
-      console.log(`✅ MCP server configured for Zed in ${folderName}/.zed/settings.json`);
-    } catch (error) {
-      console.warn(`Warning: Could not set up MCP server for Zed:`, error);
-      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
-    }
-    return;
-  }
-
-  // Handle Cursor
-  if (client === "cursor") {
-    try {
-      console.log(`Setting up MCP server for Cursor in ${folderName}...`);
-      const cursorDir = path.join(targetPath, ".cursor");
-      fs.ensureDirSync(cursorDir);
-
-      const cursorConfig = {
-        mcpServers: {
-          "agentmark-docs": {
-            url: "https://docs.agentmark.co/mcp"
-          }
-        }
-      };
-
-      fs.writeJsonSync(path.join(cursorDir, "mcp.json"), cursorConfig, { spaces: 2 });
-      console.log(`✅ MCP server configured for Cursor in ${folderName}/.cursor/mcp.json`);
-    } catch (error) {
-      console.warn(`Warning: Could not set up MCP server for Cursor:`, error);
-      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
-    }
-    return;
-  }
-
-  // Handle Claude Code
-  if (client === "claude-code") {
-    try {
-      console.log(`Setting up MCP server for Claude Code in ${folderName}...`);
-
-      const mcpConfig = {
-        mcpServers: {
-          "agentmark-docs": {
-            type: "http",
-            url: "https://docs.agentmark.co/mcp"
-          }
-        }
-      };
-
-      fs.writeJsonSync(path.join(targetPath, ".mcp.json"), mcpConfig, { spaces: 2 });
-      console.log(`✅ MCP server configured for Claude Code in ${folderName}/.mcp.json`);
-    } catch (error) {
-      console.warn(`Warning: Could not set up MCP server for Claude Code:`, error);
-      console.log("See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.");
-    }
-    return;
+  } catch (error) {
+    console.warn(`Warning: Could not set up MCP server for ${label}:`, error);
+    console.log(
+      "See https://docs.agentmark.co/agentmark/further_reference/agentmark-mcp for setup instructions.",
+    );
   }
 };
 
@@ -128,7 +67,8 @@ export const createExampleApp = async (
   adapter: string = "ai-sdk",
   deploymentMode: "cloud" | "static" = "cloud",
   projectInfo: ProjectInfo | null = null,
-  resolutions: ConflictResolution[] = []
+  resolutions: ConflictResolution[] = [],
+  customApiUrl?: string,
 ): Promise<string[]> => {
   try {
     const modelProvider = adapter === 'claude-agent-sdk' ? 'anthropic' : 'openai';
@@ -147,7 +87,7 @@ export const createExampleApp = async (
     // Create directory structure
     fs.ensureDirSync(`${targetPath}/agentmark`);
 
-    setupMCPServer(client, targetPath);
+    setupMCPServer(client, targetPath, customApiUrl);
 
     // Create example prompts — returns the model IDs actually written
     const usedModels = createExamplePrompts(model, targetPath, adapter);

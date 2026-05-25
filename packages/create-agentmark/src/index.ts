@@ -16,6 +16,18 @@ interface CliArgs {
   apiKey?: string;
   client?: string;
   overwrite?: boolean;
+  /**
+   * Arbitrary AgentMark Cloud gateway URL for the `agentmark` MCP
+   * entry in the generated mcp.json. Defaults to
+   * `https://api.agentmark.co`. The `agentmark-local` entry always
+   * points at `http://localhost:9418` (the `agentmark dev` server).
+   *
+   * Intentionally NOT a customer-facing flow: this is the escape
+   * hatch for internal AgentMark engineers pointing at staging
+   * (`https://api-stg.agentmark.co`) and the rare customer who
+   * self-hosts. Not advertised in --help on purpose.
+   */
+  apiUrl?: string;
 }
 
 const VALID_ADAPTERS_TS = ["ai-sdk", "claude-agent-sdk", "mastra"];
@@ -56,6 +68,16 @@ const parseArgs = (): CliArgs => {
       case "--client":
         result.client = args[++i];
         break;
+      case "--api-url": {
+        // Undocumented escape hatch. Accepts any non-empty URL.
+        // Internal staging users: `--api-url https://api-stg.agentmark.co`.
+        const value = args[++i];
+        if (!value || !/^https?:\/\//.test(value)) {
+          throw new Error(`--api-url requires a full http(s) URL (got "${value}")`);
+        }
+        result.apiUrl = value;
+        break;
+      }
     }
   }
 
@@ -224,11 +246,12 @@ const main = async () => {
     process.exit(1);
   }
 
+  const customApiUrl = cliArgs.apiUrl;
   let usedModels: string[];
   if (language === "python") {
-    usedModels = await createPythonApp(client!, targetPath, apiKey, deploymentMode, adapter!, projectInfo, resolutions);
+    usedModels = await createPythonApp(client!, targetPath, apiKey, deploymentMode, adapter!, projectInfo, resolutions, customApiUrl);
   } else {
-    usedModels = await createExampleApp(client!, targetPath, apiKey, adapter!, deploymentMode, projectInfo, resolutions);
+    usedModels = await createExampleApp(client!, targetPath, apiKey, adapter!, deploymentMode, projectInfo, resolutions, customApiUrl);
   }
   config.builtInModels = usedModels;
 

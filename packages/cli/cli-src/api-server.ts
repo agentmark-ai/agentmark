@@ -289,6 +289,55 @@ export async function createApiServer(port: number) {
     res.status(200).json({ status: "ok" });
   });
 
+  // OpenAPI spec endpoint — proxies the cloud's `/v1/openapi.json` and
+  // rewrites the `servers` list so MCP tool calls land at this dev
+  // server, not the cloud they came from. Cached in-process so we make
+  // at most one upstream request per server lifetime.
+  //
+  // Why this exists: scaffolded projects ship with an
+  // `agentmark-local` MCP server entry pointing here. The MCP server
+  // fetches `/v1/openapi.json` at startup to register tools — without
+  // this route, that registration 404s and the local-trace workflow
+  // ("re-verify my fix against local agentmark dev traces") silently
+  // has no tools available.
+  //
+  // Operations the local server doesn't implement (e.g. `POST /v1/apps`)
+  // will 404 when called. That's an acceptable failure mode — the
+  // agent gets a clear HTTP-level signal rather than a missing-tool
+  // mystery. Most agent usage at this endpoint is read-only on
+  // /v1/traces and /v1/spans which the local server does implement.
+  let cachedOpenapiSpec: unknown = null;
+  app.get("/v1/openapi.json", async (req: Request, res: Response) => {
+    if (cachedOpenapiSpec) {
+      return res.json(cachedOpenapiSpec);
+    }
+    const cloudUrl = process.env.AGENTMARK_API_URL_FOR_SPEC
+      || 'https://api.agentmark.co';
+    try {
+      const response = await fetch(`${cloudUrl}/v1/openapi.json`);
+      if (!response.ok) {
+        return res.status(502).json({
+          error: `Failed to fetch upstream OpenAPI spec: HTTP ${response.status}`,
+          upstream: cloudUrl,
+        });
+      }
+      const spec = (await response.json()) as { servers?: unknown[]; [k: string]: unknown };
+      const localBase = `${req.protocol}://${req.get('host')}`;
+      spec.servers = [
+        { url: localBase, description: 'Local agentmark dev server' },
+      ];
+      cachedOpenapiSpec = spec;
+      return res.json(spec);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'unknown error';
+      return res.status(502).json({
+        error: 'Failed to fetch upstream OpenAPI spec',
+        detail: message,
+        upstream: cloudUrl,
+      });
+    }
+  });
+
   const currentPath = safePath();
   const basePath = path.join(currentPath);
   let agentmarkTemplatesBase = path.join(basePath, "agentmark");

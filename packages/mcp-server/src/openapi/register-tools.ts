@@ -236,12 +236,13 @@ export function registerOpenAPITools(
 ): RegisteredOpenAPITool[] {
   const { spec, baseUrl, bearer, include } = options;
   const registered: RegisteredOpenAPITool[] = [];
-  // Pre-seed with names already registered on the server (e.g. the
-  // hand-rolled `list_traces` / `get_trace` for local debugging). The
-  // OpenAPI spec carries gateway equivalents; the hand-rolled ones
-  // take precedence because they understand both the local SQLite
-  // store AND the remote gateway. Skipping the OpenAPI dupes prevents
-  // McpServer.tool() from throwing on second registration.
+  // Defense against operationId collisions inside the spec. There used
+  // to be a name-collision path here for the hand-rolled `list_traces` /
+  // `get_trace` tools (rename to `cloud_<name>`), but those were
+  // removed once the local dev server started serving its own
+  // `/v1/openapi.json` — every endpoint now goes through the same
+  // OpenAPI-driven path, so the only collision worth defending against
+  // is a malformed spec with duplicate operationIds.
   const claimedNames = new Set<string>(
     Object.keys(
       (server as unknown as { _registeredTools?: Record<string, unknown> })._registeredTools || {},
@@ -257,10 +258,6 @@ export function registerOpenAPITools(
       const binding = buildBindingForOperation(method, path, op, spec, baseUrl);
       if (!binding) continue;
 
-      // Defense against operationId collisions in the spec AND
-      // collisions with hand-rolled tools registered before this call.
-      // Skip the duplicate rather than crash registration (which is
-      // what specli does and what got us here).
       if (claimedNames.has(binding.name)) {
         console.error(
           `[agentmark-mcp] Skipping tool "${binding.name}" (${method.toUpperCase()} ${path}) — name already in use.`,
@@ -277,9 +274,16 @@ export function registerOpenAPITools(
           try {
             const { url, method: m, body, appIdHeader } = binding.buildRequest(rawArgs);
             const headers: Record<string, string> = {
-              Authorization: `Bearer ${bearer}`,
               Accept: 'application/json',
             };
+            // Omit the Authorization header entirely when no bearer is
+            // configured. Local dev calls (`agentmark dev` at
+            // localhost:9418) don't validate auth and would treat
+            // `Bearer ` as a malformed token; the cloud rejects
+            // missing-auth with 401 which is what we want to surface.
+            if (bearer) {
+              headers.Authorization = `Bearer ${bearer}`;
+            }
             if (appIdHeader) headers['X-Agentmark-App-Id'] = appIdHeader;
             if (body !== undefined) headers['Content-Type'] = 'application/json';
 
