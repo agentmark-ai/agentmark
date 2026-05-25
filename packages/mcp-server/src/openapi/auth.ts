@@ -54,3 +54,24 @@ export function resolveBearer(): string | null {
 export function resolveBaseUrl(): string {
   return process.env.AGENTMARK_API_URL || 'https://api.agentmark.co';
 }
+
+/**
+ * Resolves the default `X-Agentmark-App-Id` header value from the
+ * `AGENTMARK_APP_ID` env var.
+ *
+ * App-scoped gateway routes (`GET /v1/traces`, `GET /v1/traces/{id}`,
+ * `GET /v1/spans`, `POST /v1/scores`, …) require this header. The
+ * OpenAPI binding only derives it from a `{appId}` PATH parameter, so
+ * routes that take app-id as a header instead would otherwise send
+ * nothing and get a 401 "Missing app id" — making the entire
+ * trace/span/score read surface unusable for a headless agent.
+ *
+ * A headless MCP instance is scoped to one app (the scaffolded
+ * mcp.json sets `AGENTMARK_APP_ID` alongside `AGENTMARK_API_KEY`), so
+ * the env var is the right default. An explicit `{appId}` path param
+ * still wins when present.
+ */
+export function resolveAppId(): string | undefined {
+  const id = process.env.AGENTMARK_APP_ID;
+  return id && id.length > 0 ? id : undefined;
+}

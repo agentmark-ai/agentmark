@@ -1,9 +1,16 @@
 export { AgentMarkSDK } from "./agentmark";
-export { span } from "./trace";
+export { span, streamWithSpan } from "./trace";
 export { observe, SpanKind } from "./trace";
 export { serializeValue } from "./trace";
 export { createPiiMasker } from "./trace";
-export type { SpanContext, SpanOptions, SpanResult, ObserveOptions } from "./trace";
+export type {
+  SpanContext,
+  SpanOptions,
+  SpanResult,
+  ObserveOptions,
+  StreamWithSpanOptions,
+  StreamWithSpanResult,
+} from "./trace";
 export type { MaskFunction, PiiMaskerConfig } from "./trace";
 
 // Re-export ApiLoader from @agentmark-ai/loader-api for convenience

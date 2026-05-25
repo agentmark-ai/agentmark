@@ -6,7 +6,7 @@ import type { Tool } from "ai";
 import { generateObject, generateText, streamObject, streamText, Output, experimental_generateImage as generateImage, experimental_generateSpeech as generateSpeech } from "ai";
 import { createPromptTelemetry, runDatasetPool, experimentErrorChunk } from "@agentmark-ai/prompt-core";
 import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
-import { span } from "@agentmark-ai/sdk";
+import { span, streamWithSpan } from "@agentmark-ai/sdk";
 import type { SpanContext } from "@agentmark-ai/sdk";
 
 type Frontmatter = {
@@ -42,29 +42,25 @@ export class VercelAdapterWebhookHandler<
         const experimental_output = Output.object({ schema });
 
         if (shouldStream) {
-          const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-            return streamText({ ...textParams, experimental_output });
-          });
-          const streamResult = await result;
-          const stream = new ReadableStream({
-            async start(controller) {
-              const encoder = new TextEncoder();
-              try {
-                for await (const partialObject of streamResult.experimental_partialOutputStream) {
-                  controller.enqueue(encoder.encode(JSON.stringify({ type: "object", result: partialObject }) + "\n"));
-                }
-                const usageData = await streamResult.usage;
-                if (usageData) {
-                  controller.enqueue(encoder.encode(JSON.stringify({ type: "object", usage: usageData }) + "\n"));
-                }
-              } catch (err) {
-                const error = err as any;
-                const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
-                console.error("[WebhookHandler] Error during streaming:", error);
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
+          const { stream, traceId } = await streamWithSpan({
+            name: frontmatter.name || 'prompt-run',
+            // Record the assembled messages (what the LLM sees), not
+            // the full SDK call payload — keeps the dashboard's Input
+            // panel readable.
+            input: input.messages,
+            produce: async (write, ctx) => {
+              const streamResult = streamText({ ...textParams, experimental_output });
+              let finalOutput: unknown = undefined;
+              for await (const partialObject of streamResult.experimental_partialOutputStream) {
+                finalOutput = partialObject;
+                await write({ type: "object", result: partialObject });
               }
-              controller.close();
-            }
+              const usageData = await streamResult.usage;
+              if (usageData) {
+                await write({ type: "object", usage: usageData });
+              }
+              if (finalOutput !== undefined) ctx.setOutput(finalOutput);
+            },
           });
           return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
         }
@@ -85,30 +81,28 @@ export class VercelAdapterWebhookHandler<
 
       // No tools: existing generateObject/streamObject path
       if (shouldStream) {
-        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-          return streamObject(input);
-        });
-        const { usage, fullStream } = await result;
-        const stream = new ReadableStream({
-          async start(controller) {
-            const encoder = new TextEncoder();
+        const { stream, traceId } = await streamWithSpan({
+          name: frontmatter.name || 'prompt-run',
+          // Record the assembled messages (what the LLM sees), not
+          // the full SDK call payload.
+          input: input.messages,
+          produce: async (write, ctx) => {
+            const streamResult = streamObject(input);
+            const { usage, fullStream } = streamResult;
+            let finalOutput: unknown = undefined;
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const error = (chunk as any)?.error;
-                const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
-                console.error("[WebhookHandler] Error during streaming:", error);
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
-                controller.close();
-                return;
+                throw (chunk as any)?.error ?? new Error("stream error");
               }
               if ((chunk as any).type === "object") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "object", result: (chunk as any).object }) + "\n"));
+                finalOutput = (chunk as any).object;
+                await write({ type: "object", result: (chunk as any).object });
               }
             }
             const usageData = await usage;
-            controller.enqueue(encoder.encode(JSON.stringify({ type: "object", usage: usageData }) + "\n"));
-            controller.close();
-          }
+            await write({ type: "object", usage: usageData });
+            if (finalOutput !== undefined) ctx.setOutput(finalOutput);
+          },
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }
@@ -126,37 +120,35 @@ export class VercelAdapterWebhookHandler<
         : await prompt.formatWithTestProps({ telemetry });
       const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : true;
       if (shouldStream) {
-        const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-          return streamText(input);
-        });
-        const { fullStream } = await result;
-        const stream = new ReadableStream({
-          async start(controller) {
-            const encoder = new TextEncoder();
+        const { stream, traceId } = await streamWithSpan({
+          name: frontmatter.name || 'prompt-run',
+          // Record the assembled messages (what the LLM sees), not
+          // the full SDK call payload.
+          input: input.messages,
+          produce: async (write, ctx) => {
+            const streamResult = streamText(input);
+            const { fullStream } = streamResult;
+            let accumulatedText = '';
             for await (const chunk of fullStream) {
               if ((chunk as any).type === "error") {
-                const error = (chunk as any)?.error;
-                const message = error?.message || error?.data?.error?.message || error?.toString() || "Something went wrong during inference";
-                console.error("[WebhookHandler] Error during streaming:", error);
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "error", error: message }) + "\n"));
-                controller.close();
-                return;
+                throw (chunk as any)?.error ?? new Error("stream error");
               }
               if ((chunk as any).type === "text-delta") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", result: (chunk as any).textDelta }) + "\n"));
+                accumulatedText += (chunk as any).textDelta;
+                await write({ type: "text", result: (chunk as any).textDelta });
               }
               if ((chunk as any).type === "tool-call") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", toolCall: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, args: (chunk as any).args } }) + "\n"));
+                await write({ type: "text", toolCall: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, args: (chunk as any).args } });
               }
               if ((chunk as any).type === "tool-result") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", toolResult: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, result: (chunk as any).result } }) + "\n"));
+                await write({ type: "text", toolResult: { toolCallId: (chunk as any).toolCallId, toolName: (chunk as any).toolName, result: (chunk as any).result } });
               }
               if ((chunk as any).type === "finish") {
-                controller.enqueue(encoder.encode(JSON.stringify({ type: "text", finishReason: (chunk as any).finishReason, usage: (chunk as any).usage }) + "\n"));
+                await write({ type: "text", finishReason: (chunk as any).finishReason, usage: (chunk as any).usage });
               }
             }
-            controller.close();
-          }
+            if (accumulatedText) ctx.setOutput(accumulatedText);
+          },
         });
         return { type: "stream", stream, streamHeader: { "AgentMark-Streaming": "true" }, traceId } as WebhookPromptResponse;
       }

@@ -302,6 +302,74 @@ describe('registerOpenAPITools', () => {
     }
   });
 
+  it('injects X-Agentmark-App-Id from defaultAppId on app-scoped routes with no {appId} path param', async () => {
+    // The headline fix: GET /v1/traces (and ~50 other app-scoped
+    // routes) carry app-id as a header, not a path param. Without the
+    // defaultAppId fallback the gateway 401s "Missing app id" and the
+    // entire trace/span/score read surface is unusable for a headless
+    // agent. Resolved from AGENTMARK_APP_ID in production.
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: 'am_xyz',
+      defaultAppId: 'app-from-env',
+    });
+    const stub = stubFetch({ status: 200, body: { data: [] } });
+    try {
+      await invokeRegisteredTool(server, 'list_traces', {});
+      expect(stub.captured[0].headers['X-Agentmark-App-Id']).toBe('app-from-env');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('prefers a {appId} path param over defaultAppId when both are present', async () => {
+    // An explicit path-param appId is a per-call override and must win
+    // over the configured default — otherwise an agent operating on a
+    // specific app via /v1/apps/{appId}/... would silently hit the
+    // wrong app.
+    registerOpenAPITools(server, {
+      spec: simpleSpec, // has /v1/apps/{appId}/git/connect
+      baseUrl: 'https://api.test',
+      bearer: 'tok',
+      defaultAppId: 'env-default-app',
+    });
+    const stub = stubFetch({ status: 200, body: { url: 'x', state: 'y' } });
+    try {
+      await invokeRegisteredTool(server, 'start_app_git_connect', {
+        appId: '11111111-2222-4333-8444-555555555555',
+        provider: 'github',
+      });
+      expect(stub.captured[0].headers['X-Agentmark-App-Id']).toBe(
+        '11111111-2222-4333-8444-555555555555',
+      );
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('sends no X-Agentmark-App-Id when neither a path param nor defaultAppId is available', async () => {
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: 'am_xyz',
+      // no defaultAppId
+    });
+    const stub = stubFetch({ status: 200, body: { data: [] } });
+    try {
+      await invokeRegisteredTool(server, 'list_traces', {});
+      expect(stub.captured[0].headers['X-Agentmark-App-Id']).toBeUndefined();
+    } finally {
+      stub.restore();
+    }
+  });
+
   // Stub for next test (replaces the deleted defense-against-both-taken test).
   it('still skips when an operationId collides with a pre-claimed name on the server (defensive)', () => {
     // Edge case: someone has used the same server instance to register
