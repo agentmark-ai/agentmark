@@ -250,17 +250,80 @@ describe('registerOpenAPITools', () => {
       baseUrl: 'https://api.test',
       bearer: 'tok',
     });
-    // Only the first wins.
     expect(registered).toHaveLength(1);
     expect(registered[0].path).toBe('/v1/a');
     expect(warn).toHaveBeenCalled();
     const warnArgs = warn.mock.calls[0][0] as string;
-    // The collision-skip warning text was generalized when we
-    // started seeding `claimedNames` with tools the host already
-    // registered (e.g. local trace tools). Both phrasings would
-    // qualify as "I deliberately skipped this dupe."
     expect(warnArgs).toContain('"same"');
     expect(warnArgs).toMatch(/already in use|duplicate/);
+    warn.mockRestore();
+  });
+
+  it('omits the Authorization header when bearer is empty (local-dev unauth path)', async () => {
+    // Reason: `agentmark dev` (the local server) doesn't validate
+    // auth — sending `Bearer ` (empty token) would be misleading and
+    // some servers reject it. Cleanest behavior: when no bearer is
+    // configured, send no Authorization header at all. The cloud
+    // would 401, which is the right signal; the local dev server
+    // ignores the missing header and responds normally.
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'http://localhost:9418',
+      bearer: '',
+    });
+    const stub = stubFetch({ status: 200, body: { data: [] } });
+    try {
+      await invokeRegisteredTool(server, 'list_traces', {});
+      expect(stub.captured).toHaveLength(1);
+      expect(stub.captured[0].headers['Authorization']).toBeUndefined();
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('does include the Authorization header when a bearer IS provided', async () => {
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: 'am_xyz',
+    });
+    const stub = stubFetch({ status: 200, body: { data: [] } });
+    try {
+      await invokeRegisteredTool(server, 'list_traces', {});
+      expect(stub.captured[0].headers['Authorization']).toBe('Bearer am_xyz');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  // Stub for next test (replaces the deleted defense-against-both-taken test).
+  it('still skips when an operationId collides with a pre-claimed name on the server (defensive)', () => {
+    // Edge case: someone has used the same server instance to register
+    // a tool before calling registerOpenAPITools (no current production
+    // caller does this since the hand-rolled tools were removed, but
+    // the safety net should stay — McpServer throws on second
+    // registration with the same name, which would abort the entire
+    // OpenAPI pass).
+    server.tool('list_traces', 'preclaimed', {}, async () => ({
+      content: [{ type: 'text' as const, text: '[]' }],
+    }));
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const registered = registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.test',
+      bearer: 'tok',
+    });
+    expect(registered).toEqual([]);
+    expect(warn.mock.calls[0][0]).toMatch(/skipping/i);
     warn.mockRestore();
   });
 

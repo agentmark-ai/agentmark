@@ -306,8 +306,13 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           const { loadForwardingConfig } = await import('../forwarding/config.js');
           const fwdCfg = loadForwardingConfig();
           if (fwdCfg?.orgName && fwdCfg?.appName) {
-            const { DEFAULT_PLATFORM_URL } = await import('../auth/constants.js');
-            const remoteUrl = `${DEFAULT_PLATFORM_URL}/orgs/${fwdCfg.orgName}/apps/${fwdCfg.appName}/traces?tab=traces&traceId=${streamTraceId}`;
+            // Use the live getter so AGENTMARK_PLATFORM_URL is respected.
+            // The previous `DEFAULT_PLATFORM_URL` const was snapshotted at
+            // module-import time, so anyone forwarding to stg / a custom
+            // platform got a remote trace URL pointing at prod — and the
+            // trace they just generated didn't exist there.
+            const { getPlatformUrl } = await import('../auth/constants.js');
+            const remoteUrl = `${getPlatformUrl()}/orgs/${fwdCfg.orgName}/apps/${fwdCfg.appName}/traces?tab=traces&traceId=${streamTraceId}`;
             console.log(`\n📊 View trace (local):  http://localhost:${appPort}/traces?traceId=${streamTraceId}`);
             console.log(`🌐 View trace (remote): ${remoteUrl}`);
             console.log(`   ⚠️  Remote traces may take up to 1 minute to appear`);
@@ -366,8 +371,8 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
           const fwdCfg = loadForwardingConfig();
           const traceId = (resp as any).traceId;
           if (fwdCfg?.orgName && fwdCfg?.appName) {
-            const { DEFAULT_PLATFORM_URL } = await import('../auth/constants.js');
-            const remoteUrl = `${DEFAULT_PLATFORM_URL}/orgs/${fwdCfg.orgName}/apps/${fwdCfg.appName}/traces?tab=traces&traceId=${traceId}`;
+            const { getPlatformUrl } = await import('../auth/constants.js');
+            const remoteUrl = `${getPlatformUrl()}/orgs/${fwdCfg.orgName}/apps/${fwdCfg.appName}/traces?tab=traces&traceId=${traceId}`;
             console.log(`\n📊 View trace (local):  http://localhost:${appPort}/traces?traceId=${traceId}`);
             console.log(`🌐 View trace (remote): ${remoteUrl}`);
             console.log(`   ⚠️  Remote traces may take up to 1 minute to appear`);
