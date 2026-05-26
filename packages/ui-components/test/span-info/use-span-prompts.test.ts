@@ -14,6 +14,7 @@ import { describe, it, expect } from "vitest";
 import {
   isToolSpan,
   isAgentSpan,
+  isGenerationSpan,
   extractPromptsFromSpan,
   extractOutputFromSpan,
   extractSystemPromptFromTraces,
@@ -699,5 +700,69 @@ describe("mergeSpanIO", () => {
     const result = mergeSpanIO(span, sampleIO);
 
     expect(result.data.input).toBe("merged input");
+  });
+});
+
+// ============================================================================
+// Generation spans (ai.generateText / ai.generateObject and any LLM call).
+// Identified vendor-neutrally by the resolved semanticKind ("llm", surfaced as
+// spanKind) or the presence of a model (OTel gen_ai.request.model) — NOT by
+// framework-specific span names. They render as generations: messages in,
+// response/object out — never as tool/agent spans.
+// ============================================================================
+
+describe("generation spans (vendor-neutral classification)", () => {
+  it("isGenerationSpan keys off semanticKind / model, not the span name", () => {
+    // Resolved semantic kind (set by the normalizer for any framework)
+    expect(isGenerationSpan({ data: { spanKind: "llm" } })).toBe(true);
+    // Or the OTel gen_ai.request.model signal (also covers already-stored traces)
+    expect(isGenerationSpan({ data: { model: "gpt-4o-mini" } })).toBe(true);
+    // A Vercel-looking name ALONE must NOT make it a generation — that's the point
+    expect(isGenerationSpan({ name: "ai.generateText", data: { type: "SPAN" } })).toBe(false);
+    // Non-generation spans
+    expect(isGenerationSpan({ data: { type: "SPAN", spanKind: "tool" } })).toBe(false);
+    expect(isGenerationSpan({})).toBe(false);
+  });
+
+  it("is neither a tool nor an agent span when it has a model, even typed SPAN with props", () => {
+    const span = {
+      name: "ai.generateText",
+      data: { type: "SPAN", model: "gpt-4o-mini", props: '{"question":"q","tone":"friendly"}' },
+    };
+    expect(isToolSpan(span)).toBe(false);
+    expect(isAgentSpan(span)).toBe(false);
+  });
+
+  it("renders the messages as input for a generation span — NOT the props blob", () => {
+    const messages = [
+      { role: "system", content: "You are a friendly customer-support agent." },
+      { role: "user", content: "How long does shipping take?" },
+    ];
+    const span = {
+      name: "ai.generateText",
+      data: {
+        type: "SPAN",
+        model: "gpt-4o-mini",
+        props: '{"question":"How long does shipping take?","tone":"friendly"}',
+        input: JSON.stringify(messages),
+      },
+    };
+    const prompts = extractPromptsFromSpan(span);
+    expect(prompts).toEqual(messages);
+    // The props blob must not leak into the rendered input.
+    expect(JSON.stringify(prompts)).not.toContain('"tone"');
+  });
+
+  it("renders structured object output for a generation span (object-only, no text)", () => {
+    const span = {
+      name: "ai.generateObject",
+      data: { type: "SPAN", model: "gpt-4o-mini", output: "", outputObject: '{"score":0.9}' },
+    };
+    const result = extractOutputFromSpan(span);
+    expect(result).not.toBeNull();
+    expect(result!.objectResponse).toEqual({ score: 0.9 });
+    expect(result!.text).toBeUndefined();
+    // Not mislabeled as a tool call.
+    expect(result!.toolCall ?? null).toBeNull();
   });
 });

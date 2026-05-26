@@ -15,8 +15,22 @@ interface UseSpanPromptsResult {
   isLoadingIO: boolean;
 }
 
+// Identify an LLM generation span by data, not framework-specific span names —
+// the way the normalizer + OTel GenAI semantic conventions do. The authoritative
+// signal is the resolved semanticKind ("llm", surfaced as `spanKind`), which the
+// normalizer derives vendor-neutrally (incl. from the presence of a model). The
+// `|| !!model` is a back-compat shim for traces normalized BEFORE that resolver
+// fix shipped (stored with the old kind) — we render them correctly without a
+// ClickHouse backfill, since a span carrying a model is a model call regardless.
+// Generation spans render as generations — messages in, response/object out —
+// never as tool/agent spans (which would show the props blob or a synthetic
+// tool label and drop object output).
+export const isGenerationSpan = (span: any): boolean =>
+  span?.data?.spanKind === "llm" || !!span?.data?.model;
+
 export const isToolSpan = (span: any): boolean => {
   if (!span?.data) return false;
+  if (isGenerationSpan(span)) return false;
   // Has toolCalls data, or type is SPAN (not GENERATION)
   if (span.data.toolCalls) return true;
   if (span.data.type === "SPAN" && span.name && !span.name.startsWith("claude.")) return true;
@@ -24,6 +38,7 @@ export const isToolSpan = (span: any): boolean => {
 };
 
 export const isAgentSpan = (span: any): boolean => {
+  if (isGenerationSpan(span)) return false;
   if (span?.name?.startsWith("invoke_agent")) return true;
   // Trace wrapper node: has props, not a GENERATION span
   if (span?.data?.props && span?.data?.type !== "GENERATION") return true;
