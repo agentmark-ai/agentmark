@@ -108,47 +108,64 @@ export class AiSdkV4Strategy implements AttributeExtractor {
     }
 
     extractInput(attributes: Record<string, any>): Message[] | undefined {
-        // V4 can have input in ai.prompt.messages or ai.prompt
-        let messagesValue: any;
-        
-        if (attributes['ai.prompt.messages'] !== undefined) {
-            messagesValue = attributes['ai.prompt.messages'];
-        } else if (attributes['ai.prompt'] !== undefined) {
-            const promptValue = attributes['ai.prompt'];
-            // ai.prompt might be a JSON string with a messages property
-            if (typeof promptValue === 'string') {
-                try {
-                    const parsed = JSON.parse(promptValue);
-                    messagesValue = parsed.messages || parsed;
-                } catch {
-                    return undefined;
-                }
-            } else {
-                messagesValue = promptValue.messages || promptValue;
-            }
-        } else {
+        // The assembled messages live on `ai.prompt.messages` (present on the
+        // `.doGenerate` leaf spans). The parent `ai.*` wrapper spans carry
+        // `ai.prompt` instead — and `ai.prompt` is NOT always `{ messages }`:
+        // for a string `prompt:` call it's `{ prompt, system? }`. Coerce every
+        // shape to a messages array so wrapper spans (and any string-prompt
+        // generation) surface their input instead of rendering blank.
+        const raw =
+            attributes['ai.prompt.messages'] !== undefined
+                ? attributes['ai.prompt.messages']
+                : attributes['ai.prompt'];
+        if (raw === undefined) {
             return undefined;
         }
-        
-        // Parse if it's a string, otherwise use as-is
-        let messages: any;
-        if (typeof messagesValue === 'string') {
+
+        let value: any = raw;
+        if (typeof value === 'string') {
             try {
-                messages = JSON.parse(messagesValue);
+                value = JSON.parse(value);
             } catch {
-                return undefined;
+                // Not JSON — treat the raw string as the prompt text below.
             }
-        } else {
-            messages = messagesValue;
         }
-        
-        // Ensure it's an array
-        if (!Array.isArray(messages)) {
+
+        const messages = this.coerceToMessages(value);
+        if (!messages) {
             return undefined;
         }
-        
-        // Normalize messages from V4 format to standard format
         return this.normalizeMessages(messages);
+    }
+
+    /**
+     * Coerce the shapes `ai.prompt` / `ai.prompt.messages` can take into a
+     * messages array: a raw array, `{ messages, system? }`,
+     * `{ prompt, system? }` (string prompt), or a bare string.
+     */
+    private coerceToMessages(value: any): any[] | undefined {
+        if (typeof value === 'string') {
+            return [{ role: 'user', content: value }];
+        }
+        if (Array.isArray(value)) {
+            return value;
+        }
+        if (value && typeof value === 'object') {
+            if (Array.isArray(value.messages)) {
+                return typeof value.system === 'string'
+                    ? [{ role: 'system', content: value.system }, ...value.messages]
+                    : value.messages;
+            }
+            if (typeof value.prompt === 'string') {
+                const messages: any[] = [];
+                if (typeof value.system === 'string') {
+                    messages.push({ role: 'system', content: value.system });
+                }
+                messages.push({ role: 'user', content: value.prompt });
+                return messages;
+            }
+        }
+        return undefined;
     }
 
     extractOutput(attributes: Record<string, any>): string | undefined {
