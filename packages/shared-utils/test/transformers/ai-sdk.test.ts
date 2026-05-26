@@ -349,6 +349,44 @@ describe('AiSdkTransformer', () => {
       expect(result.input).toEqual(messagesFromMessages);
     });
 
+    // Regression: the parent `ai.generateText` / `ai.generateObject` WRAPPER
+    // spans carry `ai.prompt` as `{ prompt: "..." }` (string-prompt call), not
+    // `{ messages }`. Previously this returned undefined (not an array) → the
+    // wrapper rendered output but a BLANK input. It must coerce to a user
+    // message instead.
+    it('should extract input from ai.prompt as { prompt } string-prompt shape (v5 wrapper span)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1', spanId: 'span-1', name: 'ai.generateText', kind: 1,
+        startTimeUnixNano: '1000000000', endTimeUnixNano: '2000000000',
+      };
+      const attributes = {
+        'ai.prompt': JSON.stringify({ prompt: "A customer asks: 'How long does shipping take?'" }),
+        'ai.response.text': 'Shipping takes 3-7 business days.',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual([
+        { role: 'user', content: "A customer asks: 'How long does shipping take?'" },
+      ]);
+    });
+
+    it('should extract input from ai.prompt as { system, prompt } shape, prepending the system message (v5)', () => {
+      const span: OtelSpan = {
+        traceId: 'trace-1', spanId: 'span-1', name: 'ai.generateText', kind: 1,
+        startTimeUnixNano: '1000000000', endTimeUnixNano: '2000000000',
+      };
+      const attributes = {
+        'ai.prompt': JSON.stringify({ system: 'You are concise.', prompt: 'Say hi.' }),
+        'ai.response.text': 'Hi.',
+      };
+
+      const result = transformer.transform(span, attributes);
+      expect(result.input).toEqual([
+        { role: 'system', content: 'You are concise.' },
+        { role: 'user', content: 'Say hi.' },
+      ]);
+    });
+
     it('should extract output from ai.response.text (v5)', () => {
       const span: OtelSpan = {
         traceId: 'trace-1',
