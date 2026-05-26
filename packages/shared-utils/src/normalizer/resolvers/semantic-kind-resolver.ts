@@ -22,13 +22,20 @@ const OPENINFERENCE_MAP: Record<string, SemanticKind> = {
 const FRAMEWORK_MAPPINGS: Array<{ key: string; map: Record<string, SemanticKind> }> = [
     {
         key: 'ai.operationId', // Vercel AI SDK
+        // The AI SDK emits ai.operationId WITH the "ai." prefix (e.g.
+        // "ai.generateText"); accept both prefixed and unprefixed so generation
+        // wrappers resolve to "llm" instead of falling through to "function".
         map: {
             'embed': 'embedding',
             'ai.embed': 'embedding',
             'generateText': 'llm',
+            'ai.generateText': 'llm',
             'streamText': 'llm',
+            'ai.streamText': 'llm',
             'generateObject': 'llm',
+            'ai.generateObject': 'llm',
             'streamObject': 'llm',
+            'ai.streamObject': 'llm',
         },
     },
     {
@@ -46,7 +53,7 @@ const FRAMEWORK_MAPPINGS: Array<{ key: string; map: Record<string, SemanticKind>
 ];
 
 /**
- * Resolve the semantic kind of a span using an 8-level priority chain.
+ * Resolve the semantic kind of a span using a 9-level priority chain.
  *
  * Priority:
  * 1. normalized.semanticKind (from agentmark.span.kind attribute) — if valid
@@ -54,9 +61,11 @@ const FRAMEWORK_MAPPINGS: Array<{ key: string; map: Record<string, SemanticKind>
  * 3. Framework-specific attributes (Vercel AI SDK, Traceloop, LangChain, Genkit)
  * 4. gen_ai.operation.name → llm/embedding
  * 5. Type = GENERATION → llm
- * 6. Has non-empty ToolCalls → tool
- * 7. Name-based heuristics
- * 8. Default → function
+ * 6. Carries a model (gen_ai.request.model) → llm — vendor-neutral generation
+ *    signal; catches model calls the framework maps above don't name.
+ * 7. Has non-empty ToolCalls → tool
+ * 8. Name-based heuristics
+ * 9. Default → function
  */
 export function resolveSemanticKind(
     normalized: Partial<NormalizedSpan> & { type: SpanType; name: string },
@@ -96,17 +105,27 @@ export function resolveSemanticKind(
         return 'llm';
     }
 
-    // 6. Has non-empty ToolCalls → tool
+    // 6. Carries a model (OTel gen_ai.request.model) → llm. Vendor-neutral
+    // generation signal that catches model calls the framework maps above don't
+    // name (e.g. the Vercel ai.generateText wrapper, whose ai.operationId the
+    // map may not cover). A span with a resolved model is a model call —
+    // including an LLM that also requested tools — so this is checked before the
+    // ToolCalls heuristic.
+    if (normalized.model) {
+        return 'llm';
+    }
+
+    // 7. Has non-empty ToolCalls → tool
     if (normalized.toolCalls && normalized.toolCalls.length > 0) {
         return 'tool';
     }
 
-    // 7. Name-based heuristics
+    // 8. Name-based heuristics
     const name = (normalized.name || '').toLowerCase();
     if (/retriev|search|rag/i.test(name)) return 'retrieval';
     if (/embed/i.test(name)) return 'embedding';
     if (/guard|safety/i.test(name)) return 'guardrail';
 
-    // 8. Default
+    // 9. Default
     return 'function';
 }
