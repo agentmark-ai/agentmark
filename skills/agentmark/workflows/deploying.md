@@ -185,8 +185,10 @@ The install URL is a one-shot signed envelope (HMAC-SHA256, ~10 min TTL). If the
 
 ### Headless commit → push → poll pattern
 
+> **Any commit on the tracked branch deploys.** The committer can be the agent's own git identity — it does **not** need to map to an org member. Authorization comes from the connected repo and the tracked branch (a member set those up), not from who typed the commit. AgentMark records the committer for attribution only: if the committer email matches a member (or the pushing account is a registered git identity) the deploy is attributed to that member, otherwise it deploys with null attribution. Either way the push deploys.
+
 ```bash
-# 1. Commit prompt changes to the watched branch
+# 1. Commit prompt changes to the watched branch (any committer identity works).
 git add agentmark.json agentmark/triage.prompt.mdx
 git commit -m "feat: triage prompt v$VERSION"
 git push origin "$WATCHED_BRANCH"

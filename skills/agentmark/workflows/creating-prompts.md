@@ -1,10 +1,10 @@
 # Creating prompts
 
-A prompt is a `.prompt.mdx` file inside the directory referenced by `agentmarkPath` in `agentmark.json`. By convention this is `agentmark/` at the project root.
+A prompt is a `.prompt.mdx` file inside the **`agentmark/` directory**, which sits under the path named by `agentmarkPath` in `agentmark.json`. `agentmarkPath` names the folder *above* the prompt-root, **not** the prompt-root itself — the prompt-root resolves to `<agentmarkPath>/agentmark`. With the default `agentmarkPath: "."`, prompts live in **`agentmark/` at the repo root** (e.g. `agentmark/greeting.prompt.mdx`). A `.prompt.mdx` placed at the repo root next to `agentmark.json` is **not** discovered — see Common mistakes.
 
 ## Minimum viable prompt
 
-A text-generation prompt. Note that `model_name` lives **inside** `text_config`, not at the top level:
+A text-generation prompt, saved as **`agentmark/greeting.prompt.mdx`**. Note that `model_name` lives **inside** `text_config`, not at the top level:
 
 ```mdx
 ---
@@ -101,7 +101,7 @@ For TypeScript projects this is required before the SDK's `loadTextPrompt('greet
 ## Common mistakes
 
 - **Putting `model_name` at the top level of frontmatter** instead of inside `text_config` / `object_config` / `image_config` / `speech_config`. The schema rejects top-level `model_name`. Match the shape above.
-- **Putting prompts outside the `agentmarkPath` directory** — the dev server won't find them.
+- **Putting prompts at the repo root (or anywhere outside `agentmark/`)** — the prompt-root is `<agentmarkPath>/agentmark`, so the default `agentmarkPath: "."` means prompts go in `agentmark/`, *not* the repo root. A `.prompt.mdx` at the repo root is silently ignored: `agentmark dev` won't find it, and **a git deploy will report success while materializing zero templates** (`/v1/prompts?name=…` returns no paths). Always put prompts under `agentmark/`.
 - **Using `"/"` as `agentmarkPath`** instead of `"."` — known footgun; use `"."`.
 - **Hard-coding model IDs that don't exist** — run `npx agentmark pull-models` for a current list, or fetch `https://docs.agentmark.co/configure/client-config.md`. Real examples from the docs include `gpt-4o-mini`, `gpt-4o`, `claude-sonnet-4-20250514`. Do not invent versions.
 - **Forgetting to regenerate types** after adding a prompt — TypeScript will not see the new prompt path until you re-run `generate-types`.
