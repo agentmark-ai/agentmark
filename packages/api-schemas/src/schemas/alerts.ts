@@ -102,6 +102,11 @@ const CreateAlertBodyBase = z.object({
   use_slack: z.boolean().default(false),
   use_webhook: z.boolean().default(false),
 
+  // Feature 054 (FR-074): environment scope. NULL/omitted = app-wide; a real
+  // UUID restricts evaluation to traces tagged with that environment_id.
+  // The gateway/dashboard pass NULL through to the DB to mean "all envs".
+  environment_id: z.string().uuid().nullable().optional(),
+
   // Only valid when metric === "evaluation_score". The superRefine below
   // enforces the field-coupling rule so agents see "field: evaluation_name"
   // instead of a Postgres CHECK constraint name.
@@ -186,6 +191,8 @@ export const UpdateAlertBodySchema = CreateAlertBodySchema;
 export const AlertsListParamsSchema = PaginationParamsSchema.extend({
   status: z.enum(ALERT_STATUS_VALUES).optional(),
   metric: z.enum(ALERT_METRIC_VALUES).optional(),
+  /** Feature 057 (FR-007): filter to a specific environment. */
+  environment_id: z.string().uuid().optional(),
 });
 
 export const AlertHistoryListParamsSchema = PaginationParamsSchema;
@@ -198,6 +205,7 @@ export const AlertSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
   app_id: z.string().uuid(),
+  environment_id: z.string().uuid().nullable(),
   name: z.string(),
   metric: z.enum(ALERT_METRIC_VALUES),
   threshold: z.number(),

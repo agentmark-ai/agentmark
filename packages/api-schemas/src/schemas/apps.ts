@@ -82,9 +82,15 @@ export const AppSchema = z.object({
   runtime: z.enum(APP_RUNTIME_VALUES).nullable(),
   entry_point: z.string().nullable(),
   commit_sha: z.string().nullable(),
-  fly_app_name: z.string().nullable(),
-  fly_machine_id: z.string().nullable(),
-  fly_machine_url: z.string().nullable(),
+  // `fly_app_name` / `fly_machine_id` / `fly_machine_url` moved from `app`
+  // to `environment` in feature 054 (per-env Fly machines). The gateway no
+  // longer returns these on /v1/apps responses. Kept optional+nullable so
+  // older clients that still send them in writes don't fail validation,
+  // and new omitted responses still validate against the contract. Fetch
+  // these via /v1/environments/{id} now.
+  fly_app_name: z.string().nullable().optional(),
+  fly_machine_id: z.string().nullable().optional(),
+  fly_machine_url: z.string().nullable().optional(),
   // `{ offset: true }`: Postgres + Hono return timestamps with a
   // `+00:00` UTC offset, not the bare-Z form Zod's default `.datetime()`
   // demands. Accepting both keeps the schema compatible with what the
