@@ -84,6 +84,8 @@ agent (via MCP):
 
 No manual dashboard clicks except the GitHub authorization (which requires the user to be the authority on what repos to expose).
 
+**You never pass `tenant_id`.** Every tenant-scoped write (`create_app` and friends) is scoped to your authenticated tenant at the database layer — a `tenant_id` in a request body is silently ignored (forgery-proof by design, and it isn't in the request schemas). If a resource turns up under an unexpected tenant, the cause is the API key / session you authenticated with, not a missing field.
+
 ## Tool reference
 
 The full tool list comes from the gateway. To see what's registered at any moment:
