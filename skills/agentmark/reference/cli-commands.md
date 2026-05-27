@@ -5,7 +5,7 @@
 
 # AgentMark CLI commands
 
-> Reference for `@agentmark-ai/cli@0.13.0`. Always prefer `npx agentmark <cmd> --help` for the most current flag set.
+> Reference for `@agentmark-ai/cli@0.15.0`. Always prefer `npx agentmark <cmd> --help` for the most current flag set.
 
 ## Command index
 

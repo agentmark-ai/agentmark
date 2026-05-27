@@ -341,7 +341,15 @@ export class VercelAdapterWebhookHandler<
         async start(controller) {
           const reader = dataset.getReader();
           await runDatasetPool(reader, async (item, index) => {
-            if (item.type === "error") return;
+            if (item.type === "error") {
+              // Surface dataset-row parse errors (e.g. a row missing the
+              // `input` wrapper) instead of silently dropping them — otherwise
+              // an all-invalid dataset produces zero output and exits 0,
+              // reading as a pass. Emitting an error chunk makes the failure
+              // visible and counts against the experiment.
+              controller.enqueue(experimentErrorChunk(item.error));
+              return;
+            }
             try {
               const formatted = item.formatted as any;
               const { result, traceId } = await span({
@@ -433,7 +441,15 @@ export class VercelAdapterWebhookHandler<
         async start(controller) {
           const reader = dataset.getReader();
           await runDatasetPool(reader, async (item, index) => {
-            if (item.type === "error") return;
+            if (item.type === "error") {
+              // Surface dataset-row parse errors (e.g. a row missing the
+              // `input` wrapper) instead of silently dropping them — otherwise
+              // an all-invalid dataset produces zero output and exits 0,
+              // reading as a pass. Emitting an error chunk makes the failure
+              // visible and counts against the experiment.
+              controller.enqueue(experimentErrorChunk(item.error));
+              return;
+            }
             try {
               const formatted = item.formatted as any;
               const hasTools = formatted.tools && Object.keys(formatted.tools).length > 0;
@@ -572,7 +588,15 @@ export class VercelAdapterWebhookHandler<
         async start(controller) {
           const reader = dataset.getReader();
           await runDatasetPool(reader, async (item) => {
-            if (item.type === "error") return;
+            if (item.type === "error") {
+              // Surface dataset-row parse errors (e.g. a row missing the
+              // `input` wrapper) instead of silently dropping them — otherwise
+              // an all-invalid dataset produces zero output and exits 0,
+              // reading as a pass. Emitting an error chunk makes the failure
+              // visible and counts against the experiment.
+              controller.enqueue(experimentErrorChunk(item.error));
+              return;
+            }
             try {
               const { images } = await (
                 await import("ai")
@@ -619,7 +643,15 @@ export class VercelAdapterWebhookHandler<
         async start(controller) {
           const reader = dataset.getReader();
           await runDatasetPool(reader, async (item) => {
-            if (item.type === "error") return;
+            if (item.type === "error") {
+              // Surface dataset-row parse errors (e.g. a row missing the
+              // `input` wrapper) instead of silently dropping them — otherwise
+              // an all-invalid dataset produces zero output and exits 0,
+              // reading as a pass. Emitting an error chunk makes the failure
+              // visible and counts against the experiment.
+              controller.enqueue(experimentErrorChunk(item.error));
+              return;
+            }
             try {
               const { audio } = await (
                 await import("ai")

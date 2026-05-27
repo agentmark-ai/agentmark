@@ -14,7 +14,7 @@
  *   - Body fields are FLATTENED into the top-level input — agents
  *     just pass `name: "x"`, not `body: { name: "x" }`. This is
  *     ergonomically far better for LLM tool-calling and matches the
- *     pattern used by Stripe's Agent Toolkit and specli.
+ *     pattern used by Stripe's Agent Toolkit.
  *
  * Handler:
  *   - Pulls path params out and substitutes into the URL.
