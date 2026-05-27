@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-26T01:06:32.515Z",
+  "generatedAt": "2026-05-27T01:10:07.676Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-26T01:06:32.515Z",
+      "fetchedAt": "2026-05-27T01:10:07.676Z",
       "modelCount": 1200
     },
     "openrouter": {
-      "fetchedAt": "2026-05-26T01:06:32.515Z",
+      "fetchedAt": "2026-05-27T01:10:07.676Z",
       "modelCount": 129
     }
   },

@@ -205,6 +205,16 @@ export interface SavedViewConfig {
   dateRange?: { preset?: string; start?: string; end?: string };
   sortBy?: { field: string; order: 'asc' | 'desc' };
   columns?: Array<{ field: string; visible: boolean }>;
+  /**
+   * Env-scoped saved filter (feature 054, FR-122..FR-125). An array of env
+   * *name* strings (NOT ids — FR-124: names are immutable and match the
+   * trace-tag mechanism). Multi-select so "prod OR staging" round-trips.
+   * The evaluator translates this to `Environment IN (...)`. A saved view
+   * naming a deleted/renamed env keeps working — it matches historical
+   * traces tagged with that name; the editor surfaces a non-blocking note
+   * (FR-125) but never invalidates or auto-edits the field.
+   */
+  environments?: string[];
 }
 
 /**
@@ -258,6 +268,36 @@ export interface AggregateRequestsParams extends PaginationParams {
 }
 
 /**
+ * Environment scoping for analytics list queries (feature 054 — Environments
+ * & Promotion). `name` is the env tag stamped on `otel_traces.Environment` /
+ * `scores.Environment` by the gateway. `isDefault` drives the FR-051 legacy
+ * rule: rows with `Environment = ''` (pre-feature ingest) are included ONLY
+ * when scoping to the app's default env — for any non-default env those
+ * legacy rows are excluded.
+ */
+export interface EnvironmentScope {
+  name: string;
+  isDefault: boolean;
+}
+
+/**
+ * Combined env scope for analytics metric queries (feature 054, FR-126).
+ * Composes the single-env {@link EnvironmentScope} with the multi-env
+ * allow-list, mirroring the `environment` + `environments` field pair on
+ * {@link TracesParams} / {@link ScoresParams}. Used by the dashboard widget
+ * metric methods (`getMetrics`, `getModelStats`, `getRankingData`,
+ * `getPercentiles`) so a built-in or custom widget can be scoped to one env
+ * or — for cross-env comparison widgets — an env allow-list. Undefined on a
+ * call means "no env filter".
+ */
+export interface EnvironmentQueryScope {
+  /** Single-env scope (env-selector default / dashboard-view env). */
+  environment?: EnvironmentScope;
+  /** Multi-env allow-list — translates to `Environment IN (...)`. */
+  environments?: string[];
+}
+
+/**
  * Parameters for listing traces.
  */
 export interface TracesParams extends PaginationParams {
@@ -274,6 +314,14 @@ export interface TracesParams extends PaginationParams {
   filters?: AnalyticsFilter[];
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  /** Single-env scoping per FR-031/FR-051. Undefined = no env filter. */
+  environment?: EnvironmentScope;
+  /**
+   * Env-name allow-list from a saved filter's `environments` JSONB field
+   * (FR-122..FR-124). When set, translates to `Environment IN (...)`. Takes
+   * precedence over the single-env `environment` scope when both are present.
+   */
+  environments?: string[];
 }
 
 /**
@@ -290,6 +338,10 @@ export interface TraceSummary {
   tokens: number;
   spanCount: number;
   tags?: string[];
+  /** Env tag (feature 054). `''` marks legacy/no-pin rows per FR-051. */
+  environment?: string;
+  /** Env version at ingest (feature 054). `0` marks legacy/no-pin rows. */
+  environmentVersion?: number;
 }
 
 /**
@@ -382,10 +434,19 @@ export interface SessionsParams extends PaginationParams {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  /** Single-env scoping per FR-031/FR-051. Undefined = no env filter. */
+  environment?: EnvironmentScope;
+  /** Env-name allow-list from a saved filter (FR-122..FR-124). */
+  environments?: string[];
 }
 
 /**
  * Summary of a session for list views.
+ *
+ * Feature 054 (FR-118..FR-120): a session is identified by the tuple
+ * `(SessionId, Environment)`, not `SessionId` alone. `id` is the SessionId;
+ * `environment` is the second half of the identity. The same SessionId
+ * appearing under two envs yields two distinct `SessionSummary` rows.
  */
 export interface SessionSummary {
   id: string;
@@ -397,6 +458,10 @@ export interface SessionSummary {
   totalTokens: number;
   latencyMs: number;
   tags?: string[];
+  /** Env half of the `(SessionId, Environment)` identity (FR-118). */
+  environment?: string;
+  /** Env version at ingest (feature 054). `0` marks legacy/no-pin rows. */
+  environmentVersion?: number;
 }
 
 /**
@@ -573,6 +638,10 @@ export interface ExperimentParams extends Partial<PaginationParams> {
   endDate?: string;
   promptName?: string;
   datasetPath?: string;
+  /** Single-env scope — mirrors {@link TracesParams.environment} / {@link ScoresParams.environment}. */
+  environment?: EnvironmentScope;
+  /** Multi-env allow-list — mirrors {@link TracesParams.environments} / {@link ScoresParams.environments}. */
+  environments?: string[];
 }
 
 /**
@@ -620,6 +689,10 @@ export interface ScoresParams extends Partial<PaginationParams> {
   sessionId?: string;
   startDate?: string;
   endDate?: string;
+  /** Single-env scoping per FR-031/FR-051/FR-109. Undefined = no env filter. */
+  environment?: EnvironmentScope;
+  /** Env-name allow-list from a saved filter (FR-122..FR-124). */
+  environments?: string[];
 }
 
 /**
@@ -939,17 +1012,18 @@ export interface IAnalyticsService {
   // Health
   checkConnectivity(): Promise<boolean>;
 
-  // Core metrics
-  getMetrics(ctx: TenantContext, dateRange: DateRange, filters?: AnalyticsFilter[]): Promise<MetricsResponse>;
-  getExtendedMetrics(ctx: TenantContext, dateRange: DateRange): Promise<ExtendedMetricsResponse>;
-  getModelStats(ctx: TenantContext, dateRange: DateRange, limit?: number, filters?: AnalyticsFilter[]): Promise<ModelStatsResponse>;
+  // Core metrics. `env` (feature 054, FR-126) optionally scopes the query
+  // to one env or — for cross-env comparison widgets — an env allow-list.
+  getMetrics(ctx: TenantContext, dateRange: DateRange, filters?: AnalyticsFilter[], env?: EnvironmentQueryScope): Promise<MetricsResponse>;
+  getExtendedMetrics(ctx: TenantContext, dateRange: DateRange, env?: EnvironmentQueryScope): Promise<ExtendedMetricsResponse>;
+  getModelStats(ctx: TenantContext, dateRange: DateRange, limit?: number, filters?: AnalyticsFilter[], env?: EnvironmentQueryScope): Promise<ModelStatsResponse>;
   getTraces(ctx: TenantContext, params: TracesParams): Promise<TracesResponse>;
-  getTraceDetail(ctx: TenantContext, traceId: string): Promise<TraceDetail | null>;
-  getTraceDetailLightweight(ctx: TenantContext, traceId: string): Promise<TraceDetail | null>;
-  getSpanIO(ctx: TenantContext, traceId: string, spanId: string): Promise<SpanIO | null>;
+  getTraceDetail(ctx: TenantContext, traceId: string, env?: EnvironmentQueryScope): Promise<TraceDetail | null>;
+  getTraceDetailLightweight(ctx: TenantContext, traceId: string, env?: EnvironmentQueryScope): Promise<TraceDetail | null>;
+  getSpanIO(ctx: TenantContext, traceId: string, spanId: string, env?: EnvironmentQueryScope): Promise<SpanIO | null>;
   getSessions(ctx: TenantContext, params: SessionsParams): Promise<SessionsResponse>;
-  getSessionTraces(ctx: TenantContext, sessionId: string): Promise<TraceDetail[]>;
-  getPercentiles(ctx: TenantContext, params: PercentilesParams, filters?: AnalyticsFilter[]): Promise<PercentilesResponse>;
+  getSessionTraces(ctx: TenantContext, sessionId: string, env?: EnvironmentQueryScope): Promise<TraceDetail[]>;
+  getPercentiles(ctx: TenantContext, params: PercentilesParams, filters?: AnalyticsFilter[], env?: EnvironmentQueryScope): Promise<PercentilesResponse>;
 
   // Dataset analytics
   getDatasetRuns(ctx: TenantContext, params: DatasetRunParams): Promise<DatasetRunsResponse>;
@@ -957,13 +1031,13 @@ export interface IAnalyticsService {
 
   // Experiment analytics
   getExperiments(ctx: TenantContext, params: ExperimentParams): Promise<ExperimentsResponse>;
-  getExperimentDetail(ctx: TenantContext, experimentId: string): Promise<ExperimentDetail | null>;
+  getExperimentDetail(ctx: TenantContext, experimentId: string, env?: EnvironmentQueryScope): Promise<ExperimentDetail | null>;
 
   // Score tracking
   getScores(ctx: TenantContext, params: ScoresParams): Promise<ScoresResponse>;
   getScoresBySpanIds(ctx: TenantContext, spanIds: string[]): Promise<Record<string, Score[]>>;
-  getScoreAggregations(ctx: TenantContext, dateRange: DateRange): Promise<ScoreAggregationsResponse>;
-  getDistinctScoreNames(ctx: TenantContext): Promise<ScoreNamesResponse>;
+  getScoreAggregations(ctx: TenantContext, dateRange: DateRange, env?: EnvironmentQueryScope): Promise<ScoreAggregationsResponse>;
+  getDistinctScoreNames(ctx: TenantContext, env?: EnvironmentQueryScope): Promise<ScoreNamesResponse>;
   detectScoreType(ctx: TenantContext, name: string): Promise<ScoreType>;
   getScoreHistogram(ctx: TenantContext, name: string, dateRange: DateRange, source?: string): Promise<ScoreHistogramResponse>;
   getScoreTrend(ctx: TenantContext, name: string, interval: ScoreTrendInterval, dateRange: DateRange, source?: string): Promise<ScoreTrendResponse>;
@@ -975,7 +1049,7 @@ export interface IAnalyticsService {
   getRequests(ctx: TenantContext, params: RequestsParams): Promise<RequestsResponse>;
 
   // Dimension-grouped ranking data (for widget groupBy)
-  getRankingData(ctx: TenantContext, dateRange: DateRange, dimension: string, limit?: number, filters?: AnalyticsFilter[]): Promise<RankingDataResponse>;
+  getRankingData(ctx: TenantContext, dateRange: DateRange, dimension: string, limit?: number, filters?: AnalyticsFilter[], env?: EnvironmentQueryScope): Promise<RankingDataResponse>;
 
   // Aggregate requests (paginated ranking with sort)
   getAggregateRequests(ctx: TenantContext, params: AggregateRequestsParams): Promise<AggregateRequestsResponse>;
@@ -1014,6 +1088,10 @@ export interface RequestsParams extends PaginationParams {
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
   filters?: AnalyticsFilter[];
+  /** Single-env scoping (FR-005). Mirrors ScoresParams. Undefined = no env filter. */
+  environment?: EnvironmentScope;
+  /** Env-name allow-list from a saved filter. Mirrors ScoresParams. */
+  environments?: string[];
 }
 
 /**
