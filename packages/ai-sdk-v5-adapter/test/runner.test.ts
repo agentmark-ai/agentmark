@@ -267,6 +267,41 @@ describe("VercelAdapterWebhookHandler", () => {
     expect(dsRows[2].result.input.q).toBe('C');
   });
 
+  it("surfaces a dataset-row error as an error chunk instead of silently dropping it", async () => {
+    // A row that fails to format (here a null row, so `value.input` throws)
+    // must NOT vanish: otherwise an all-invalid dataset streams zero rows and
+    // run-experiment exits 0, reading as a pass. The runner now emits an error
+    // chunk for it. Regression guard for the silent-skip fix.
+    const lines: any[] = [{ input: { q: "ok" } }, null];
+    const fakeStream: any = {
+      getReader() {
+        let i = 0;
+        return {
+          async read() {
+            if (i >= lines.length) return { done: true, value: undefined };
+            return { done: false, value: lines[i++] };
+          }
+        };
+      }
+    };
+    (loader as any).loadDataset = vi.fn(async () => fakeStream);
+
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const { stream } = await runner.runExperiment(ast, "run-err");
+    const reader = (stream as ReadableStream).getReader();
+    const rows: any[] = [];
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = typeof value === "string" ? value : decoder.decode(value);
+      for (const line of chunk.split("\n")) { if (line.trim()) rows.push(JSON.parse(line)); }
+    }
+
+    const errors = rows.filter((r) => r.type === "error");
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
   it("streams dataset for object prompts and verifies rows", async () => {
     const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
 

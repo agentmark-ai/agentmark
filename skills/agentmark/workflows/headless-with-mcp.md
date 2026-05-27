@@ -100,7 +100,7 @@ Or send `tools/list` via the MCP client — **that is the authoritative set**, s
 
 ### Argument shape
 
-For each tool, **path parameters, query parameters, and request-body fields are flattened into a single input object**. An agent calling `start_app_git_connect` passes `{ appId, provider, return_to? }` directly, not `{ path: { appId }, body: { provider, return_to } }`. This matches Stripe's Agent Toolkit and specli's flattening — it's the ergonomically right shape for LLM tool-calling.
+For each tool, **path parameters, query parameters, and request-body fields are flattened into a single input object**. An agent calling `start_app_git_connect` passes `{ appId, provider, return_to? }` directly, not `{ path: { appId }, body: { provider, return_to } }`. This matches Stripe's Agent Toolkit's flattening — it's the ergonomically right shape for LLM tool-calling.
 
 Required fields are enforced by Zod schemas derived from the OpenAPI spec. The MCP client surfaces these schemas to the LLM so it knows what to pass.
 
