@@ -82,6 +82,8 @@ The CLI also accepts `--base-url` on `login` / `logout` / `link` for one-shot ov
 
 ### Headless `agentmark login`
 
+> **Verify your CLI first:** run `agentmark login --help`. The `--print-url` / `--json` flags below require a recent CLI build; if your installed (published) version lists only `--base-url`, the headless print-url/JSON flow isn't available yet and `login` will open the system browser (which blocks in headless contexts). This skill's CLI reference is generated from the development source and can run ahead of the published npm package — when in doubt, `--help` is the source of truth.
+
 `agentmark login` opens the system browser by default. In SSH'd shells, CI runners, or IDE-embedded agents where a background browser-open doesn't make sense, pass `--print-url` to print the auth URL instead. The user clicks the URL in their own browser; the local callback server in the CLI receives the tokens exactly as in the default flow.
 
 ```bash

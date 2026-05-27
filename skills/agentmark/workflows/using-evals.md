@@ -40,7 +40,7 @@ Scores are declared in `agentmark.json` under a `scores` map. Each entry sets th
 }
 ```
 
-The score config schema has no `direction` field — value semantics are domain-driven and not captured in the config. For the authoritative schema, run `npx agentmark generate-schema` and inspect `.agentmark/agentmark.schema.json`. Score configs are read-only via the gateway (`GET /v1/score-configs`, or MCP `list_score_configs`); to change one, edit `agentmark.json` and redeploy.
+The score config schema has no `direction` field — value semantics are domain-driven and not captured in the config. For the authoritative schema, run `npx agentmark generate-schema` and inspect `.agentmark/prompt.schema.json`. Score configs live in `agentmark.json` — to change one, edit it and redeploy. (The gateway exposes recorded score *values* under `/v1/scores*`; there is no `/v1/score-configs` endpoint for the config itself.)
 
 ## Wiring an eval to a prompt
 
