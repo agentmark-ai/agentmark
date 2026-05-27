@@ -1,5 +1,5 @@
 export { AgentMarkSDK } from "./agentmark";
-export { span, streamWithSpan } from "./trace";
+export { span, trace, streamWithSpan } from "./trace";
 export { observe, SpanKind } from "./trace";
 export { serializeValue } from "./trace";
 export { createPiiMasker } from "./trace";

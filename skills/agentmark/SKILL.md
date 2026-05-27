@@ -68,6 +68,7 @@ my-project/
 | Run a prompt against a dataset | [workflows/running-experiments.md](workflows/running-experiments.md) |
 | Add evals to gate quality | [workflows/using-evals.md](workflows/using-evals.md) |
 | Deploy to AgentMark Cloud | [workflows/deploying.md](workflows/deploying.md) |
+| See traces from a prompt run | [workflows/observability.md](workflows/observability.md) |
 
 ## Conventions that catch agents out
 
