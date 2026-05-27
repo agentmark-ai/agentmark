@@ -28,12 +28,12 @@ For the full `test_settings` schema, fetch `https://docs.agentmark.co/evaluate/d
 
 ## Row shape
 
-Each line is one JSON object with at least the props the prompt expects. Expected outputs and metadata are added per-row when evals need them.
+Each line is one JSON object with an **`input`** object holding the props your prompt expects, plus an optional **`expected_output`** (ground truth for evals). `run-experiment` reads `row.input` for the props — a flat row without an `input` wrapper is silently skipped, so a flat dataset runs **0 rows** and the experiment vacuously "passes". Always wrap props in `input`.
 
 ```jsonl
-{"name": "Alice"}
-{"name": "Bob"}
-{"name": "你好"}
+{"input": {"name": "Alice"}, "expected_output": "greeting-en"}
+{"input": {"name": "Bob"}}
+{"input": {"name": "你好"}, "expected_output": "greeting-zh"}
 ```
 
 Run an experiment against the dataset to see one row become one trace per execution.
@@ -54,12 +54,12 @@ Use the gateway API to materialize dataset rows from real traces or spans. Two e
 # The dataset name in the URL path is URL-encoded and omits the `.jsonl` extension.
 DATASET=$(printf 'qa-bot/data' | jq -sRr @uri)
 
-curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows/import-from-traces" \
+curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows/from-traces" \
   -H "Authorization: Bearer $AGENTMARK_API_KEY" \
   -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID" -H "Content-Type: application/json" \
   -d '{"trace_ids":["<id1>","<id2>"]}'
 
-curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows/import-from-spans" \
+curl -fsS -X POST "$AGENTMARK_API_URL/v1/datasets/$DATASET/rows/from-spans" \
   -H "Authorization: Bearer $AGENTMARK_API_KEY" \
   -H "X-Agentmark-App-Id: $AGENTMARK_APP_ID" -H "Content-Type: application/json" \
   -d '{"span_ids":["<id1>","<id2>"]}'

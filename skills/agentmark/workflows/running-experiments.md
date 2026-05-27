@@ -6,9 +6,9 @@ An experiment runs a prompt against every row in its linked dataset and (by defa
 
 ## Prerequisites
 
-- `agentmark dev` running locally (in another shell), OR pass `--server <url>` to target a non-default webhook server.
+- `agentmark dev` running locally (in another shell), OR pass `--server <url>` to target a non-default webhook server. **`agentmark dev` needs a runnable project**: a `package.json` with the adapter deps, an `agentmark.client.ts` (model registry + loader + `evals`), and a `dev-entry.ts` webhook entry point. A prompts-only repo (just `agentmark.json` + `.prompt.mdx` files) has none of these — run `npx create-agentmark` to scaffold them (it writes `dev-entry.ts` + `agentmark.client.ts`), or the dev server exits with "No dev server entry point found."
 - A `.prompt.mdx` file with a dataset reference in its frontmatter.
-- The dataset file exists and contains rows whose shape matches the prompt's `input_schema`.
+- The dataset file exists, with each row **wrapped as `{"input": {…props…}, "expected_output": …}`** (see [building-datasets.md](building-datasets.md)). Flat rows (props at the top level) are silently skipped — the experiment runs 0 rows and exits 0.
 
 ## Basic invocation
 
@@ -106,6 +106,7 @@ After `agentmark login` the same calls work against your linked Cloud app using 
 ## Common mistakes
 
 - **Running `run-experiment` without `agentmark dev` up** — the command will fail to reach the webhook server. Either start `dev` first or pass `--server` to a running instance.
+- **Flat dataset rows (no `input` wrapper)** — `run-experiment` reads `row.input` for props, so flat rows are silently skipped: the run prints "Evaluations enabled," produces 0 rows, and exits 0 (reads as a pass). Wrap every row as `{"input": {…}, "expected_output": …}` (see [building-datasets.md](building-datasets.md)).
 - **Confusing `--rows` with row count** — `--rows 5` means "row at index 5", not "first 5 rows". For first 5 use `--rows 0-4`.
 - **Different seeds across `--split train:80` and `--split test:80`** — the splits will overlap. Use the same `--seed` for both.
 - **Setting `--truncate 0` and getting unwieldy table output** — `--truncate 0` disables truncation entirely; use a finite value (default `1000`) for table format, or use `--format jsonl` for full output.

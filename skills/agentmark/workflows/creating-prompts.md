@@ -33,7 +33,7 @@ The frontmatter is YAML. Required fields depend on the generation type. For the 
 npx agentmark generate-schema
 ```
 
-This writes `.agentmark/agentmark.schema.json`, which gives you IDE squiggles for `model_name`, schema fields, and provider options.
+This writes `.agentmark/prompt.schema.json`, which gives you IDE squiggles for `model_name`, schema fields, and provider options.
 
 For the full frontmatter reference, fetch `https://docs.agentmark.co/build/syntax.md`.
 
@@ -103,5 +103,5 @@ For TypeScript projects this is required before the SDK's `loadTextPrompt('greet
 - **Putting `model_name` at the top level of frontmatter** instead of inside `text_config` / `object_config` / `image_config` / `speech_config`. The schema rejects top-level `model_name`. Match the shape above.
 - **Putting prompts at the repo root (or anywhere outside `agentmark/`)** — the prompt-root is `<agentmarkPath>/agentmark`, so the default `agentmarkPath: "."` means prompts go in `agentmark/`, *not* the repo root. A `.prompt.mdx` at the repo root is silently ignored: `agentmark dev` won't find it, and **a git deploy will report success while materializing zero templates** (`/v1/prompts?name=…` returns no paths). Always put prompts under `agentmark/`.
 - **Using `"/"` as `agentmarkPath`** instead of `"."` — known footgun; use `"."`.
-- **Hard-coding model IDs that don't exist** — run `npx agentmark pull-models` for a current list, or fetch `https://docs.agentmark.co/configure/client-config.md`. Real examples from the docs include `gpt-4o-mini`, `gpt-4o`, `claude-sonnet-4-20250514`. Do not invent versions.
+- **Hard-coding model IDs that don't exist** — run `npx agentmark pull-models` for a current list, or fetch `https://docs.agentmark.co/configure/client-config.md`. Real examples from the docs include `gpt-4o-mini`, `gpt-4o`, `claude-4-sonnet-20250514`. Do not invent versions.
 - **Forgetting to regenerate types** after adding a prompt — TypeScript will not see the new prompt path until you re-run `generate-types`.

@@ -96,7 +96,7 @@ AGENTMARK_API_URL=https://api.agentmark.co agentmark-mcp 2>&1 | head -3
 # → [agentmark-mcp] Registered N Cloud tools from https://api.agentmark.co/v1/openapi.json
 ```
 
-Or send `tools/list` via the MCP client. At the time of writing the surface includes apps, deployments, alerts, datasets, experiments, scores, score configs, annotation queues, API keys, metrics, traces, spans, sessions, pricing, capabilities — roughly **60 tools**.
+Or send `tools/list` via the MCP client — **that is the authoritative set**, since tools are generated from your gateway's `openapi.json`. The count and available resources depend on the gateway version + environment: the current prod gateway (`api.agentmark.co`) exposes **~43 tools** (datasets, experiments, scores, traces, spans, sessions, metrics, alerts, annotation queues, pricing, capabilities). **App / deployment / API-key management tools (`create_app`, `list_deployments`, `create_api_key`, git-connect, …) are not on prod yet — they're on staging (`api-stg.agentmark.co`).** Trust `tools/list` over any static list here.
 
 ### Argument shape
 
