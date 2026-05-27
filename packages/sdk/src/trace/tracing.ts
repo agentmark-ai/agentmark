@@ -362,3 +362,10 @@ export const span = async <T>(
     })
   );
 };
+
+/**
+ * Alias for {@link span}, provided for parity with the Python SDK's `trace()`
+ * and the common expectation that a tracing helper is named `trace`. Identical
+ * behavior: wraps `fn` in an AgentMark span and forwards it to the gateway.
+ */
+export const trace = span;
