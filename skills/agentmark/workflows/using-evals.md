@@ -13,34 +13,22 @@ Both kinds attach to a prompt via `test_settings.evals` in the prompt frontmatte
 
 ## Score config — declare in `agentmark.json`
 
-Scores are declared in `agentmark.json` under a `scores` map. Each entry sets the score's value type (`numeric`, `categorical`, or `boolean`), plus an optional human-readable `description`. Numeric scores take `min`/`max`; categorical scores take a `categories` array of `{label, value}` pairs:
+Scores are declared under a `scores` map in `agentmark.json`. Each entry sets a value type (`numeric`, `categorical`, or `boolean`) plus an optional `description`. Minimum viable shape:
 
 ```json
 {
   "scores": {
-    "accuracy": {
-      "type": "numeric",
-      "description": "How well the output matches the reference answer (1 = perfect)",
-      "min": 0,
-      "max": 1
-    },
-    "is_safe": {
-      "type": "boolean",
-      "description": "Whether the output is safe to display to a user"
-    },
-    "tone": {
-      "type": "categorical",
-      "categories": [
-        { "label": "friendly", "value": 1 },
-        { "label": "neutral",  "value": 0 },
-        { "label": "hostile",  "value": -1 }
-      ]
-    }
+    "accuracy": { "type": "numeric", "min": 0, "max": 1 }
   }
 }
 ```
 
-The score config schema has no `direction` field — value semantics are domain-driven and not captured in the config. For the authoritative schema, run `npx agentmark generate-schema` and inspect `.agentmark/prompt.schema.json`. Score configs live in `agentmark.json` — to change one, edit it and redeploy. (The gateway exposes recorded score *values* under `/v1/scores*`; there is no `/v1/score-configs` endpoint for the config itself.)
+**For the full field reference** (`min`/`max` on numeric, `categories` array on categorical, the absence of `direction`, all gotchas) fetch `https://docs.agentmark.co/evaluate/writing-evals.md`. The authoritative runtime schema comes from `npx agentmark generate-schema` (writes `.agentmark/prompt.schema.json`).
+
+Two facts worth carrying outside the docs because they catch agents out:
+
+- Score configs live in `agentmark.json` and sync on deploy. To change one, edit the file and redeploy. There is **no** `/v1/score-configs` endpoint — the gateway exposes recorded score *values* under `/v1/scores*`, not the config itself.
+- The schema has no `direction` field. Value semantics are domain-driven; do not invent one.
 
 ## Wiring an eval to a prompt
 

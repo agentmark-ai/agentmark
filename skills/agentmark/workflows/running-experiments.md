@@ -78,6 +78,32 @@ npx agentmark run-experiment agentmark/qa-bot.prompt.mdx --skip-eval
 
 This is faster and cheaper. Re-enable evals (drop `--skip-eval`) when you're ready to gate quality.
 
+## Tuning concurrency
+
+By default, `run-experiment` runs **20 dataset rows in parallel** through a bounded worker pool. The slowest row bounds wall-clock time, not the sum of all rows. Tune with `--concurrency`:
+
+```bash
+# Higher concurrency for fast models / generous rate limits
+npx agentmark run-experiment agentmark/qa-bot.prompt.mdx --concurrency 50
+
+# Drop to serial when you're hitting provider rate limits
+npx agentmark run-experiment agentmark/qa-bot.prompt.mdx --concurrency 1
+```
+
+Also overridable per-deployment via the `AGENTMARK_EXPERIMENT_CONCURRENCY` env var (clamped to `[1, 20]` unless you set the flag). A single row failure no longer aborts the whole run — the failed row emits an error chunk and the run continues with the remaining rows.
+
+## Regression gating against a prior run
+
+`--baseline-commit <ref>` compares this run against a prior run at the named commit (any git ref or tree hash). When combined with a `test_settings.regression_tolerance` block in the prompt frontmatter, the CLI exits non-zero if scores regress beyond the tolerance:
+
+```bash
+# Compare to the run that produced the merge-base of the current PR
+npx agentmark run-experiment agentmark/qa-bot.prompt.mdx \
+  --baseline-commit "$(git merge-base origin/main HEAD)"
+```
+
+Useful in PR CI: each push runs the experiment, compares to the baseline, and fails the build if the prompt change causes a regression. For the `regression_tolerance` schema, fetch `https://docs.agentmark.co/evaluate/running-experiments.md`.
+
 ## Reading experiment results from the API
 
 After running an experiment, you can list and inspect results via the gateway. REST works for scripts; MCP works for IDE agents:
