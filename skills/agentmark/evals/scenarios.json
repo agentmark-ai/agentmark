@@ -46,18 +46,19 @@
       "id": "deploy-positive",
       "polarity": "positive",
       "skills": ["agentmark"],
-      "query": "I'm trying to deploy my agentmark project. I ran `npx agentmark deploy` and got an error. What do I do?",
+      "query": "How do I deploy my AgentMark project?",
       "fixture": "agentmark-project",
       "expected_behavior": [
         "Invokes the agentmark skill",
-        "Explains agentmark deploy was removed",
-        "Explains deployment is git-based",
-        "Does NOT attempt to invoke `agentmark deploy` again"
+        "Reads workflows/deploying.md",
+        "Explains deployment is git-based: connect a git provider, push to the watched branch, and AgentMark builds and deploys automatically",
+        "Does NOT invent a `npx agentmark deploy` command (there isn't one)"
       ],
       "checks": [
         { "type": "tool_used", "tool": "Skill" },
+        { "type": "file_read_match", "pattern": "workflows/deploying\\.md" },
         { "type": "text_contains", "match": "git" },
-        { "type": "text_contains_any", "matches": ["removed", "deprecated", "no longer"] },
+        { "type": "text_contains_any", "matches": ["push", "branch", "provider"] },
         { "type": "no_tool_call_command", "pattern": "agentmark deploy" }
       ]
     },
@@ -110,6 +111,64 @@
         { "type": "tool_not_used", "tool": "Skill" },
         { "type": "text_contains", "match": "Langfuse" }
       ]
+    },
+    {
+      "id": "setup-integration-positive",
+      "polarity": "positive",
+      "skills": ["agentmark"],
+      "query": "Set up AgentMark in this project.",
+      "fixture": "nextjs-bootstrapped",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Reads workflows/setup-and-integration.md (the new workflow added for this scenario)",
+        "Verifies the Before-You-Start preconditions (agentmark.json, agentmark/, MCP config exist)",
+        "Detects this is a Next.js project via filesystem inspection",
+        "Surfaces the docs MCP as the source for framework-specific integration guidance instead of fabricating paths from memory",
+        "Proposes a concrete plan BEFORE writing any files (Step 2 of the workflow: 'Propose, don't act')"
+      ],
+      "checks": [
+        { "type": "tool_used", "tool": "Skill" },
+        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md" },
+        { "type": "text_contains_any", "matches": ["docs MCP", "docs.agentmark.co", "search_agent_mark_docs"] },
+        { "type": "text_contains_any", "matches": ["Next.js", "next"] },
+        { "type": "text_contains_any", "matches": ["plan", "propose", "Here's", "would"] }
+      ]
+    },
+    {
+      "id": "setup-bootstrap-missing-positive",
+      "polarity": "positive",
+      "skills": ["agentmark"],
+      "query": "Set up AgentMark in this project.",
+      "fixture": "nextjs-pre-bootstrap",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Detects no AgentMark markers exist via the SKILL.md 'Before you start' check (which handles this case at the metadata level — the workflow file is NOT required when bootstrap is missing)",
+        "Tells the user to run `npm create agentmark` (or `npx create-agentmark`) first instead of trying to scaffold those files itself",
+        "Does NOT silently scaffold agentmark.json or agentmark/ from within the skill"
+      ],
+      "checks": [
+        { "type": "tool_used", "tool": "Skill" },
+        { "type": "text_contains_any", "matches": ["npm create agentmark", "npx create-agentmark", "create-agentmark"] },
+        { "type": "text_does_not_contain", "match": "I'll create agentmark.json" }
+      ]
+    },
+    {
+      "id": "setup-defers-migration-positive",
+      "polarity": "positive",
+      "skills": ["agentmark"],
+      "query": "Set up AgentMark in this project.",
+      "fixture": "nextjs-streamtext-bootstrapped",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Reads workflows/setup-and-integration.md (the bootstrap IS present here, so the full workflow applies)",
+        "Notices the existing streamText() usage in app/api/chat/route.ts",
+        "Surfaces the existing LLM call as a follow-up migration the user can opt into separately (per Step 8: 'migration is a separate confirmation')"
+      ],
+      "checks": [
+        { "type": "tool_used", "tool": "Skill" },
+        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md" },
+        { "type": "text_contains_any", "matches": ["streamText", "existing", "migration", "migrate", "separately", "second confirmation"] }
+      ]
     }
   ],
   "fixtures": {
@@ -127,6 +186,34 @@
     },
     "empty": {
       "files": {}
+    },
+    "nextjs-bootstrapped": {
+      "comment": "Post-`npm create agentmark` state in a Next.js project. agentmark.json, empty agentmark/ with .gitkeep, and .mcp.json have been written; no client code is wired yet. The setup-and-integration workflow should accept this as a valid starting state.",
+      "files": {
+        "package.json": "{\"name\":\"my-nextjs-app\",\"version\":\"0.1.0\",\"private\":true,\"dependencies\":{\"next\":\"^14.0.0\",\"react\":\"^18.0.0\",\"react-dom\":\"^18.0.0\"},\"devDependencies\":{\"typescript\":\"^5.0.0\",\"@types/node\":\"^20.0.0\",\"@types/react\":\"^18.0.0\"}}",
+        "tsconfig.json": "{\"compilerOptions\":{\"target\":\"es5\",\"strict\":true,\"jsx\":\"preserve\",\"moduleResolution\":\"bundler\"}}",
+        "agentmark.json": "{\"$schema\":\"https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json\",\"version\":\"2.0.0\",\"mdxVersion\":\"1.0\",\"agentmarkPath\":\".\"}",
+        "agentmark/.gitkeep": "",
+        ".mcp.json": "{\"mcpServers\":{\"agentmark-docs\":{\"type\":\"http\",\"url\":\"https://docs.agentmark.co/mcp\"},\"agentmark\":{\"command\":\"npx\",\"args\":[\"-y\",\"@agentmark-ai/mcp-server\"],\"type\":\"stdio\"},\"agentmark-local\":{\"command\":\"npx\",\"args\":[\"-y\",\"@agentmark-ai/mcp-server\"],\"env\":{\"AGENTMARK_API_URL\":\"http://localhost:9418\"},\"type\":\"stdio\"}}}"
+      }
+    },
+    "nextjs-pre-bootstrap": {
+      "comment": "A Next.js project with NO AgentMark bootstrap files present — simulates the user skipping `npm create agentmark` and asking the skill to 'set up AgentMark' directly. The workflow's Before-You-Start gate should catch this and redirect to the CLI.",
+      "files": {
+        "package.json": "{\"name\":\"my-nextjs-app\",\"version\":\"0.1.0\",\"private\":true,\"dependencies\":{\"next\":\"^14.0.0\",\"react\":\"^18.0.0\"},\"devDependencies\":{\"typescript\":\"^5.0.0\"}}",
+        "tsconfig.json": "{\"compilerOptions\":{\"target\":\"es5\",\"strict\":true,\"jsx\":\"preserve\"}}"
+      }
+    },
+    "nextjs-streamtext-bootstrapped": {
+      "comment": "Post-bootstrap Next.js project with an existing AI SDK call site (streamText in app/api/chat/route.ts). The setup-and-integration workflow's Step 8 says migration is a separate confirmation — the skill should complete setup but NOT silently rewrite the existing route.",
+      "files": {
+        "package.json": "{\"name\":\"my-nextjs-app\",\"version\":\"0.1.0\",\"private\":true,\"dependencies\":{\"next\":\"^14.0.0\",\"react\":\"^18.0.0\",\"ai\":\"^4.0.0\",\"@ai-sdk/openai\":\"^1.0.0\"},\"devDependencies\":{\"typescript\":\"^5.0.0\"}}",
+        "tsconfig.json": "{\"compilerOptions\":{\"target\":\"es5\",\"strict\":true,\"jsx\":\"preserve\"}}",
+        "app/api/chat/route.ts": "import { openai } from '@ai-sdk/openai';\nimport { streamText } from 'ai';\n\nexport const maxDuration = 30;\n\nexport async function POST(req: Request) {\n  const { messages } = await req.json();\n  const result = streamText({\n    model: openai('gpt-4o'),\n    system: 'You are a helpful assistant.',\n    messages,\n  });\n  return result.toDataStreamResponse();\n}\n",
+        "agentmark.json": "{\"$schema\":\"https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json\",\"version\":\"2.0.0\",\"mdxVersion\":\"1.0\",\"agentmarkPath\":\".\"}",
+        "agentmark/.gitkeep": "",
+        ".mcp.json": "{\"mcpServers\":{\"agentmark-docs\":{\"type\":\"http\",\"url\":\"https://docs.agentmark.co/mcp\"},\"agentmark\":{\"command\":\"npx\",\"args\":[\"-y\",\"@agentmark-ai/mcp-server\"],\"type\":\"stdio\"}}}"
+      }
     }
   },
   "test_matrix": {

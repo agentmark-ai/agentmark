@@ -1,160 +1,48 @@
 /**
- * Project detection utilities for identifying existing projects.
- * Detects TypeScript/Python projects and their configurations.
+ * Project detection for the minimal `npm create agentmark` init flow.
+ *
+ * Two questions only: "is this an existing project?" (drives whether we
+ * run `git init`) and "does AgentMark already exist here?" (drives the
+ * `agentmark.json` conflict prompt). Everything else — language, package
+ * manager, Python venv, conflict file inventory — lives in the skill
+ * workflow now, which can ask the docs MCP for current guidance instead
+ * of encoding heuristics into the CLI.
  */
 
 import fs from 'fs-extra';
 import path from 'path';
-import {
-  type ProjectInfo,
-  type ConflictFile,
-  type PythonVenvInfo,
-  CONFLICT_FILES,
-} from './types.js';
-import { detectPackageManager } from './package-manager.js';
+import type { ProjectInfo } from './types.js';
 
-// Re-export for backwards compatibility
-export { detectPackageManager };
+const TYPESCRIPT_INDICATORS = ['package.json', 'tsconfig.json', 'node_modules'] as const;
+const PYTHON_INDICATORS = ['pyproject.toml', 'requirements.txt', 'setup.py', '.venv', 'venv'] as const;
 
-const IS_WINDOWS = process.platform === 'win32';
-
-/**
- * Detect if a TypeScript/Node.js project exists in the target directory.
- * Checks for package.json, tsconfig.json, or node_modules.
- */
+/** Any TypeScript/Node.js project marker present in the target directory. */
 export function detectTypeScriptProject(targetPath: string): boolean {
-  const indicators = ['package.json', 'tsconfig.json', 'node_modules'];
-  return indicators.some((file) => fs.existsSync(path.join(targetPath, file)));
+  return TYPESCRIPT_INDICATORS.some((file) => fs.existsSync(path.join(targetPath, file)));
 }
 
-/**
- * Detect if a Python project exists in the target directory.
- * Checks for pyproject.toml, requirements.txt, setup.py, or virtual environments.
- */
+/** Any Python project marker present in the target directory. */
 export function detectPythonProject(targetPath: string): boolean {
-  const indicators = ['pyproject.toml', 'requirements.txt', 'setup.py', '.venv', 'venv'];
-  return indicators.some((file) => fs.existsSync(path.join(targetPath, file)));
+  return PYTHON_INDICATORS.some((file) => fs.existsSync(path.join(targetPath, file)));
 }
 
 /**
- * Detect existing Python virtual environment.
- * Checks .venv and venv directories, returns platform-specific paths.
- */
-export function detectPythonVenv(targetPath: string): PythonVenvInfo | null {
-  const venvNames = ['.venv', 'venv'];
-
-  for (const name of venvNames) {
-    const venvPath = path.join(targetPath, name);
-    if (fs.existsSync(venvPath) && fs.statSync(venvPath).isDirectory()) {
-      // Check if it's actually a venv (has bin/Scripts and pyvenv.cfg or similar)
-      const binDir = IS_WINDOWS ? 'Scripts' : 'bin';
-      const binPath = path.join(venvPath, binDir);
-
-      if (fs.existsSync(binPath)) {
-        const pipExe = IS_WINDOWS ? 'pip.exe' : 'pip';
-
-        return {
-          path: venvPath,
-          name,
-          activateCmd: IS_WINDOWS
-            ? `${name}\\Scripts\\activate`
-            : `source ${name}/bin/activate`,
-          pipPath: path.join(binPath, pipExe),
-        };
-      }
-    }
-  }
-
-  // Check VIRTUAL_ENV environment variable
-  const envVenv = process.env.VIRTUAL_ENV;
-  if (envVenv && fs.existsSync(envVenv)) {
-    // Check if VIRTUAL_ENV is inside the target directory
-    const resolvedTarget = path.resolve(targetPath);
-    const resolvedVenv = path.resolve(envVenv);
-    const isInsideTarget = resolvedVenv.startsWith(resolvedTarget + path.sep) ||
-      resolvedVenv === resolvedTarget;
-
-    if (!isInsideTarget) {
-      // VIRTUAL_ENV points outside target directory - likely from another project
-      // Don't use it as it could give incorrect instructions
-      console.warn(
-        `⚠️  Note: VIRTUAL_ENV (${envVenv}) points outside the target directory. ` +
-        `It will not be used for this initialization.`
-      );
-      return null;
-    }
-
-    const binDir = IS_WINDOWS ? 'Scripts' : 'bin';
-    const pipExe = IS_WINDOWS ? 'pip.exe' : 'pip';
-    const name = path.basename(envVenv);
-
-    return {
-      path: envVenv,
-      name,
-      activateCmd: IS_WINDOWS
-        ? `${name}\\Scripts\\activate`
-        : `source ${name}/bin/activate`,
-      pipPath: path.join(envVenv, binDir, pipExe),
-    };
-  }
-
-  return null;
-}
-
-/**
- * Detect files that may conflict with AgentMark initialization.
- * Returns only the files that actually exist in the target directory.
- */
-export function detectConflictingFiles(targetPath: string): ConflictFile[] {
-  const existingConflicts: ConflictFile[] = [];
-
-  for (const conflictFile of CONFLICT_FILES) {
-    const fullPath = path.join(targetPath, conflictFile.path);
-    if (fs.existsSync(fullPath)) {
-      existingConflicts.push(conflictFile);
-    }
-  }
-
-  return existingConflicts;
-}
-
-/**
- * Detect all project information for the target directory.
- * This is the main function that combines all detection logic.
+ * Combined detection. `isExistingProject` is true if either language's
+ * markers are present; the init flow uses it only to decide whether to
+ * run `git init`.
  */
 export function detectProjectInfo(targetPath: string): ProjectInfo {
-  const isTypeScript = detectTypeScriptProject(targetPath);
-  const isPython = detectPythonProject(targetPath);
-  const isExistingProject = isTypeScript || isPython;
-
-  let type: 'typescript' | 'python' | 'unknown' = 'unknown';
-  if (isTypeScript && !isPython) {
-    type = 'typescript';
-  } else if (isPython && !isTypeScript) {
-    type = 'python';
-  } else if (isTypeScript && isPython) {
-    // If both, prefer TypeScript (more common case for polyglot projects)
-    type = 'typescript';
-  }
-
-  const packageManager = detectPackageManager(targetPath);
-  const conflictingFiles = detectConflictingFiles(targetPath);
-  const hasAgentmarkDir = fs.existsSync(path.join(targetPath, 'agentmark'));
-  const pythonVenv = detectPythonVenv(targetPath);
-
   return {
-    isExistingProject,
-    type,
-    packageManager,
-    conflictingFiles,
-    hasAgentmarkDir,
-    pythonVenv,
+    isExistingProject: detectTypeScriptProject(targetPath) || detectPythonProject(targetPath),
+    hasAgentmarkJson: fs.existsSync(path.join(targetPath, 'agentmark.json')),
+    hasAgentmarkDir: fs.existsSync(path.join(targetPath, 'agentmark')),
   };
 }
 
 /**
- * Check if the target path is the current directory.
- * Used to determine if we need to skip mkdir and cd instructions.
+ * True for any spelling of "current directory" the user might type at the
+ * folder prompt. Used to skip mkdir/cd noise when the user wants to wire
+ * AgentMark into the directory they're already in.
  */
 export function isCurrentDirectory(folderName: string): boolean {
   return folderName === '.' || folderName === './' || folderName === '.\\';

@@ -1,359 +1,151 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
-import { detectProjectInfo } from '../../src/utils/project-detection.js';
-import { mergePackageJson, appendGitignore, appendEnv } from '../../src/utils/file-merge.js';
-import { detectPackageManager } from '../../src/utils/package-manager.js';
 
-describe('Existing Repository Integration', () => {
+/**
+ * Integration: running `npm create agentmark` inside an existing
+ * non-AgentMark project (e.g. a Next.js / FastAPI repo) writes ONLY
+ * the AgentMark-specific files and leaves the host project alone.
+ *
+ * This is the "wire AgentMark into my existing repo" scenario — the
+ * minimal CLI must not touch package.json, tsconfig.json, .gitignore,
+ * or any source files that already exist. Integration-side wiring
+ * happens later via the setup-and-integration skill workflow.
+ */
+
+describe('Existing repo integration', () => {
   let tempDir: string;
+  let originalArgv: string[];
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentmark-integration-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentmark-existing-'));
+    originalArgv = process.argv;
+    vi.resetModules();
+    vi.doMock('child_process', () => ({
+      execSync: () => {},
+      execFileSync: () => {},
+    }));
   });
 
   afterEach(() => {
+    process.argv = originalArgv;
     fs.removeSync(tempDir);
+    vi.resetModules();
+    vi.doUnmock('child_process');
   });
 
-  describe('TypeScript Project Detection and Merge (User Story 1)', () => {
-    it('should detect existing Next.js project structure', () => {
-      // Simulate Next.js project
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {
-        name: 'my-nextjs-app',
-        version: '1.0.0',
-        scripts: {
-          dev: 'next dev',
-          build: 'next build',
-          start: 'next start',
-        },
-        dependencies: {
-          next: '^14.0.0',
-          react: '^18.0.0',
-          'react-dom': '^18.0.0',
-        },
-      });
-      fs.writeJsonSync(path.join(tempDir, 'tsconfig.json'), { compilerOptions: {} });
-      fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/\n.next/\n');
-      fs.writeFileSync(path.join(tempDir, '.env'), 'DATABASE_URL=postgres://localhost\n');
+  const runMain = async (argv: string[]): Promise<void> => {
+    process.argv = ['node', 'create-agentmark', ...argv];
+    const mod = await import('../../src/index.js');
+    await mod.main();
+  };
 
-      const projectInfo = detectProjectInfo(tempDir);
+  /**
+   * Simulate a typical Next.js project layout with the files the old
+   * scaffolder used to merge/append into. The new minimal CLI must
+   * not touch any of these.
+   */
+  const seedNextJsProject = (): {
+    packageJson: Record<string, unknown>;
+    tsConfig: Record<string, unknown>;
+    gitignore: string;
+    envFile: string;
+  } => {
+    const packageJson = {
+      name: 'my-nextjs-app',
+      version: '1.0.0',
+      scripts: { dev: 'next dev', build: 'next build' },
+      dependencies: { next: '^14.0.0', react: '^18.0.0' },
+      devDependencies: { typescript: '^5.0.0' },
+    };
+    const tsConfig = { compilerOptions: { strict: true } };
+    const gitignore = '# Custom\nnode_modules/\n.next/\n';
+    const envFile = 'DATABASE_URL=postgres://localhost\n';
 
-      expect(projectInfo.isExistingProject).toBe(true);
-      expect(projectInfo.type).toBe('typescript');
-      expect(projectInfo.conflictingFiles.length).toBeGreaterThan(0);
-    });
+    fs.writeJsonSync(path.join(tempDir, 'package.json'), packageJson);
+    fs.writeJsonSync(path.join(tempDir, 'tsconfig.json'), tsConfig);
+    fs.writeFileSync(path.join(tempDir, '.gitignore'), gitignore);
+    fs.writeFileSync(path.join(tempDir, '.env'), envFile);
 
-    it('should merge package.json without overwriting existing dependencies', () => {
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {
-        name: 'my-app',
-        scripts: { dev: 'next dev', build: 'next build' },
-        dependencies: { react: '^18.0.0', dotenv: '^16.0.0' },
-      });
+    return { packageJson, tsConfig, gitignore, envFile };
+  };
 
-      const result = mergePackageJson(
-        tempDir,
-        { '@agentmark-ai/cli': '^1.0.0', dotenv: '^17.0.0' }, // dotenv should be skipped
-        { typescript: '^5.0.0' },
-        { agentmark: 'agentmark' }
-      );
+  it('writes AgentMark files alongside an existing Next.js project', async () => {
+    seedNextJsProject();
 
-      expect(result.success).toBe(true);
+    await runMain(['--path', tempDir, '--client', 'all', '--overwrite']);
 
-      const updatedPkg = fs.readJsonSync(path.join(tempDir, 'package.json'));
-
-      // Existing dependencies preserved
-      expect(updatedPkg.dependencies.react).toBe('^18.0.0');
-      expect(updatedPkg.dependencies.dotenv).toBe('^16.0.0'); // Not updated
-
-      // New dependencies added
-      expect(updatedPkg.dependencies['@agentmark-ai/cli']).toBe('^1.0.0');
-      expect(updatedPkg.devDependencies.typescript).toBe('^5.0.0');
-
-      // Script added (no conflict with existing scripts)
-      expect(updatedPkg.scripts.dev).toBe('next dev'); // Preserved
-      expect(updatedPkg.scripts.agentmark).toBe('agentmark'); // Added
-    });
-
-    it('should append to .gitignore without duplicating entries', () => {
-      fs.writeFileSync(
-        path.join(tempDir, '.gitignore'),
-        '# Build\nnode_modules/\n.next/\ndist/\n'
-      );
-
-      const result = appendGitignore(tempDir, [
-        'node_modules/',
-        '.env',
-        '*.agentmark-outputs/',
-        '.agentmark/',
-        'dist/',
-      ]);
-
-      expect(result.success).toBe(true);
-      expect(result.skipped).toContain('node_modules/');
-      expect(result.skipped).toContain('dist/');
-      expect(result.added).toContain('.env');
-      expect(result.added).toContain('*.agentmark-outputs/');
-      expect(result.added).toContain('.agentmark/');
-
-      const content = fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8');
-      expect(content).toContain('# Build');
-      expect(content).toContain('.next/');
-      expect(content).toContain('# AgentMark');
-      expect(content).toContain('.agentmark/');
-    });
-
-    it('should append to .env without overwriting existing keys', () => {
-      fs.writeFileSync(
-        path.join(tempDir, '.env'),
-        'DATABASE_URL=postgres://localhost\nOPENAI_API_KEY=existing-key\n'
-      );
-
-      const result = appendEnv(tempDir, {
-        OPENAI_API_KEY: 'new-key',
-        ANTHROPIC_API_KEY: 'claude-key',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.skipped).toContain('OPENAI_API_KEY');
-      expect(result.added).toContain('ANTHROPIC_API_KEY');
-
-      const content = fs.readFileSync(path.join(tempDir, '.env'), 'utf-8');
-      expect(content).toContain('DATABASE_URL=postgres://localhost');
-      expect(content).toContain('OPENAI_API_KEY=existing-key'); // Unchanged
-      expect(content).not.toContain('new-key');
-      expect(content).toContain('ANTHROPIC_API_KEY=claude-key');
-    });
+    expect(fs.existsSync(path.join(tempDir, 'agentmark.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark', '.gitkeep'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.mcp.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.cursor', 'mcp.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.vscode', 'mcp.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.zed', 'settings.json'))).toBe(true);
   });
 
-  describe('Package Manager Detection (User Story 1)', () => {
-    it('should detect yarn from yarn.lock', () => {
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {});
-      fs.writeFileSync(path.join(tempDir, 'yarn.lock'), '');
+  it('does NOT modify existing package.json, tsconfig.json, .gitignore, or .env', async () => {
+    const seeded = seedNextJsProject();
 
-      const pm = detectPackageManager(tempDir);
-      expect(pm.name).toBe('yarn');
-      expect(pm.addCmd).toBe('yarn add');
-      expect(pm.addDevCmd).toBe('yarn add --dev');
-    });
+    await runMain(['--path', tempDir, '--client', 'all', '--overwrite']);
 
-    it('should detect pnpm from pnpm-lock.yaml', () => {
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {});
-      fs.writeFileSync(path.join(tempDir, 'pnpm-lock.yaml'), '');
-
-      const pm = detectPackageManager(tempDir);
-      expect(pm.name).toBe('pnpm');
-      expect(pm.addCmd).toBe('pnpm add');
-      expect(pm.addDevCmd).toBe('pnpm add --save-dev');
-    });
-
-    it('should detect bun from bun.lockb', () => {
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {});
-      fs.writeFileSync(path.join(tempDir, 'bun.lockb'), '');
-
-      const pm = detectPackageManager(tempDir);
-      expect(pm.name).toBe('bun');
-      expect(pm.addCmd).toBe('bun add');
-      expect(pm.addDevCmd).toBe('bun add --dev');
-    });
+    // Each file is byte-identical to what we seeded.
+    expect(fs.readJsonSync(path.join(tempDir, 'package.json'))).toEqual(seeded.packageJson);
+    expect(fs.readJsonSync(path.join(tempDir, 'tsconfig.json'))).toEqual(seeded.tsConfig);
+    expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8')).toBe(seeded.gitignore);
+    expect(fs.readFileSync(path.join(tempDir, '.env'), 'utf-8')).toBe(seeded.envFile);
   });
 
-  describe('Python Project Detection (User Story 2)', () => {
-    it('should detect existing FastAPI project', () => {
-      // Simulate FastAPI project
-      fs.writeFileSync(
-        path.join(tempDir, 'pyproject.toml'),
-        `[project]
-name = "my-fastapi-app"
-version = "0.1.0"
-dependencies = ["fastapi", "uvicorn"]
-`
-      );
-      fs.writeFileSync(path.join(tempDir, 'requirements.txt'), 'fastapi\nuvicorn\n');
-      const binDir = process.platform === 'win32' ? 'Scripts' : 'bin';
-      fs.mkdirSync(path.join(tempDir, '.venv', binDir), { recursive: true });
+  it('does NOT scaffold legacy adapter / template files into an existing project', async () => {
+    seedNextJsProject();
 
-      const projectInfo = detectProjectInfo(tempDir);
+    await runMain(['--path', tempDir, '--client', 'all', '--overwrite']);
 
-      expect(projectInfo.isExistingProject).toBe(true);
-      expect(projectInfo.type).toBe('python');
-      expect(projectInfo.pythonVenv).not.toBe(null);
-      expect(projectInfo.pythonVenv?.name).toBe('.venv');
-    });
-
-    it('should detect venv directory', () => {
-      fs.writeFileSync(path.join(tempDir, 'requirements.txt'), 'fastapi\n');
-      const binDir = process.platform === 'win32' ? 'Scripts' : 'bin';
-      fs.mkdirSync(path.join(tempDir, 'venv', binDir), { recursive: true });
-
-      const projectInfo = detectProjectInfo(tempDir);
-
-      expect(projectInfo.pythonVenv).not.toBe(null);
-      expect(projectInfo.pythonVenv?.name).toBe('venv');
-    });
+    // These were all part of the old scaffolder's output and are explicitly
+    // out-of-scope for the minimal CLI. The setup-and-integration skill
+    // workflow places these per-framework, querying the docs MCP.
+    expect(fs.existsSync(path.join(tempDir, 'agentmark.client.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'handler.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'index.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark', 'party-planner.prompt.mdx'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark', 'customer-support.prompt.mdx'))).toBe(false);
   });
 
-  describe('Current Directory Initialization (User Story 3)', () => {
-    it('should detect project in current directory', () => {
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {
-        name: 'current-dir-app',
-      });
+  it('does NOT init git in an existing project (existing git, or no git, either way)', async () => {
+    seedNextJsProject();
 
-      const projectInfo = detectProjectInfo(tempDir);
+    await runMain(['--path', tempDir, '--client', 'claude-code', '--overwrite']);
 
-      expect(projectInfo.isExistingProject).toBe(true);
-      expect(projectInfo.type).toBe('typescript');
-    });
+    // initGitRepo is gated by isExistingProject === false. With package.json
+    // present, isExistingProject is true, so no .git directory should be
+    // created by the CLI. (child_process is mocked so even if it tried, no
+    // real `git init` would have run — but the gate prevents the call entirely.)
+    expect(fs.existsSync(path.join(tempDir, '.git'))).toBe(false);
   });
 
-  describe('Conflict Detection (User Story 4)', () => {
-    it('should detect agentmark.json as conflict', () => {
-      fs.writeJsonSync(path.join(tempDir, 'agentmark.json'), {
-        version: '1.0.0',
-      });
+  it('preserves an existing agentmark.json when --overwrite is absent and user picks "skip"', async () => {
+    seedNextJsProject();
+    const custom = { version: '2.0.0', mdxVersion: '1.0', agentmarkPath: '.', custom: 'value' };
+    fs.writeJsonSync(path.join(tempDir, 'agentmark.json'), custom);
 
-      const projectInfo = detectProjectInfo(tempDir);
+    // Without --overwrite, shouldWriteAgentmarkJson fires the conflict
+    // prompt. Mock the `prompts` library to return the "skip" action so
+    // the test runs non-interactively. (Without this mock, prompts blocks
+    // waiting for stdin and the test times out.)
+    vi.doMock('prompts', () => ({
+      default: vi.fn().mockResolvedValue({ action: 'skip' }),
+    }));
 
-      const agentmarkConflict = projectInfo.conflictingFiles.find(
-        (f) => f.path === 'agentmark.json'
-      );
-      expect(agentmarkConflict).toBeDefined();
-      expect(agentmarkConflict?.strategy).toBe('prompt');
-    });
+    await runMain(['--path', tempDir, '--client', 'claude-code']);
 
-    it('should detect agentmark directory as conflict', () => {
-      fs.mkdirSync(path.join(tempDir, 'agentmark'));
-      fs.writeFileSync(
-        path.join(tempDir, 'agentmark', 'test.prompt.mdx'),
-        '---\nname: test\n---'
-      );
+    // agentmark.json is byte-identical to the seeded custom version —
+    // the CLI did not overwrite it.
+    expect(fs.readJsonSync(path.join(tempDir, 'agentmark.json'))).toEqual(custom);
+    // ...but the other files (MCP config, agentmark/) were still written.
+    expect(fs.existsSync(path.join(tempDir, '.mcp.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark', '.gitkeep'))).toBe(true);
 
-      const projectInfo = detectProjectInfo(tempDir);
-
-      const agentmarkDirConflict = projectInfo.conflictingFiles.find(
-        (f) => f.path === 'agentmark'
-      );
-      expect(agentmarkDirConflict).toBeDefined();
-      expect(agentmarkDirConflict?.type).toBe('directory');
-    });
-
-    it('should identify merge strategy for package.json', () => {
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), {});
-
-      const projectInfo = detectProjectInfo(tempDir);
-
-      const pkgJsonConflict = projectInfo.conflictingFiles.find(
-        (f) => f.path === 'package.json'
-      );
-      expect(pkgJsonConflict).toBeDefined();
-      expect(pkgJsonConflict?.strategy).toBe('merge');
-    });
-
-    it('should identify append strategy for .gitignore', () => {
-      fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/\n');
-
-      const projectInfo = detectProjectInfo(tempDir);
-
-      const gitignoreConflict = projectInfo.conflictingFiles.find(
-        (f) => f.path === '.gitignore'
-      );
-      expect(gitignoreConflict).toBeDefined();
-      expect(gitignoreConflict?.strategy).toBe('append');
-    });
-
-    it('should identify append strategy for .env', () => {
-      fs.writeFileSync(path.join(tempDir, '.env'), 'SECRET=value\n');
-
-      const projectInfo = detectProjectInfo(tempDir);
-
-      const envConflict = projectInfo.conflictingFiles.find((f) => f.path === '.env');
-      expect(envConflict).toBeDefined();
-      expect(envConflict?.strategy).toBe('append');
-    });
-  });
-
-  describe('Full Integration Scenario', () => {
-    it('should handle complete Next.js project initialization workflow', () => {
-      // Setup: Simulate existing Next.js project
-      const pkgJson = {
-        name: 'my-nextjs-app',
-        version: '1.0.0',
-        scripts: {
-          dev: 'next dev',
-          build: 'next build',
-          start: 'next start',
-          lint: 'next lint',
-        },
-        dependencies: {
-          next: '^14.0.0',
-          react: '^18.0.0',
-          'react-dom': '^18.0.0',
-        },
-        devDependencies: {
-          typescript: '^5.0.0',
-          '@types/node': '^20.0.0',
-          '@types/react': '^18.0.0',
-        },
-      };
-
-      fs.writeJsonSync(path.join(tempDir, 'package.json'), pkgJson);
-      fs.writeFileSync(path.join(tempDir, 'yarn.lock'), '');
-      fs.writeJsonSync(path.join(tempDir, 'tsconfig.json'), {});
-      fs.writeFileSync(
-        path.join(tempDir, '.gitignore'),
-        'node_modules/\n.next/\n.env*.local\n'
-      );
-      fs.writeFileSync(path.join(tempDir, '.env'), 'DATABASE_URL=postgres://localhost\n');
-
-      // Step 1: Detect project
-      const projectInfo = detectProjectInfo(tempDir);
-      expect(projectInfo.isExistingProject).toBe(true);
-      expect(projectInfo.type).toBe('typescript');
-      expect(projectInfo.packageManager.name).toBe('yarn');
-
-      // Step 2: Merge package.json
-      const mergeResult = mergePackageJson(
-        tempDir,
-        { '@agentmark-ai/prompt-core': '^1.0.0', '@agentmark-ai/sdk': '^1.0.0' },
-        { '@agentmark-ai/cli': '^1.0.0' },
-        {
-          agentmark: 'agentmark',
-        }
-      );
-
-      expect(mergeResult.success).toBe(true);
-
-      // Verify package.json
-      const updatedPkg = fs.readJsonSync(path.join(tempDir, 'package.json'));
-      expect(updatedPkg.scripts.dev).toBe('next dev'); // Preserved
-      expect(updatedPkg.scripts.agentmark).toBe('agentmark'); // Added
-      expect(updatedPkg.dependencies['@agentmark-ai/prompt-core']).toBe('^1.0.0');
-      expect(updatedPkg.devDependencies['@agentmark-ai/cli']).toBe('^1.0.0');
-      expect(updatedPkg.devDependencies.typescript).toBe('^5.0.0'); // Preserved
-
-      // Step 3: Append to .gitignore
-      const gitignoreResult = appendGitignore(tempDir, [
-        'node_modules/',
-        '.env',
-        '*.agentmark-outputs/',
-        '.agentmark/',
-      ]);
-
-      expect(gitignoreResult.success).toBe(true);
-      const gitignoreContent = fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf-8');
-      expect(gitignoreContent).toContain('.next/'); // Original
-      expect(gitignoreContent).toContain('.agentmark/'); // Added
-
-      // Step 4: Append to .env
-      const envResult = appendEnv(tempDir, {
-        OPENAI_API_KEY: 'your-key-here',
-      });
-
-      expect(envResult.success).toBe(true);
-      const envContent = fs.readFileSync(path.join(tempDir, '.env'), 'utf-8');
-      expect(envContent).toContain('DATABASE_URL=postgres://localhost'); // Original
-      expect(envContent).toContain('OPENAI_API_KEY=your-key-here'); // Added
-    });
+    vi.doUnmock('prompts');
   });
 });

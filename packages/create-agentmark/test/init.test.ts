@@ -1,595 +1,127 @@
-import { describe, it, expect, vi, afterAll, beforeEach } from 'vitest';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'fs-extra';
+import path from 'path';
+import os from 'os';
 
-describe('init', () => {
+/**
+ * End-to-end smoke tests for `npm create agentmark` against the new
+ * minimal flow. We patch `process.argv` to pass all flags so prompts
+ * never fire, run `main()` against a real tmp directory, and assert
+ * which files appear.
+ *
+ * `installAgentmarkSkill` self-skips when `VITEST=true` (set by vitest
+ * automatically), so the test doesn't shell out to `npx skills add`.
+ * `child_process` is mocked so `initGitRepo` doesn't actually run git.
+ */
+
+describe('main() — minimal init', () => {
+  let tempDir: string;
+  let originalArgv: string[];
+
   beforeEach(() => {
-    // Reset all mocks and module cache before each test to prevent mock pollution
-    vi.resetAllMocks();
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentmark-init-'));
+    originalArgv = process.argv;
     vi.resetModules();
-    // Explicitly unmock modules that may have been mocked in previous tests
-    vi.unmock('fs-extra');
-    vi.unmock('child_process');
-  });
-
-  afterAll(() => {
-    // Final cleanup: find and remove any remaining tmp-* directories
-    const testDir = path.join(__dirname, '..');
-    try {
-      const files = fs.readdirSync(testDir);
-      for (const file of files) {
-        if (file.startsWith('tmp-gitignore-') || file.startsWith('tmp-examples-') ||
-            file.startsWith('tmp-client-') || file.startsWith('tmp-express-') ||
-            file.startsWith('tmp-claude-sdk-')) {
-          const fullPath = path.join(testDir, file);
-          try {
-            if (fs.existsSync(fullPath)) {
-              fs.rmSync(fullPath, { recursive: true, force: true });
-            }
-          } catch (e) {
-            console.warn(`Failed to clean up ${fullPath}:`, e);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to perform final cleanup:', e);
-    }
-  });
-
-  it('pins install deps and writes .gitignore', { timeout: 30000 }, async () => {
-    const calls: string[] = [];
-    vi.doMock('fs-extra', async () => {
-      const actual = await vi.importActual<any>('fs-extra');
-      return {
-        ...actual,
-        default: {
-          ...actual,
-          existsSync: vi.fn().mockReturnValue(true),
-          readJsonSync: vi.fn().mockReturnValue({ name: 'tmp-app', version: '1.0.0', scripts: {} }),
-          writeJsonSync: vi.fn(),
-          writeFileSync: actual.writeFileSync,
-        },
-        existsSync: vi.fn().mockReturnValue(true),
-        readJsonSync: vi.fn().mockReturnValue({ name: 'tmp-app', version: '1.0.0', scripts: {} }),
-        writeJsonSync: vi.fn(),
-        writeFileSync: actual.writeFileSync,
-      };
-    });
-    vi.doMock('child_process', () => ({
-      execSync: (cmd: string) => { calls.push(cmd); },
-      execFileSync: (file: string, args: string[]) => { calls.push(`${file} ${args.join(' ')}`); }
-    }));
-    const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-    const tmpDir = path.join(__dirname, '..', 'tmp-gitignore-' + Date.now());
-    fs.mkdirSync(tmpDir, { recursive: true });
-    try {
-      await createExampleApp('skip', tmpDir, '');
-      const gi = fs.readFileSync(path.join(tmpDir, '.gitignore'), 'utf8');
-      expect(gi).toContain('node_modules');
-      expect(gi).toContain('.env');
-
-      // Verify CLI is installed as devDependency
-      const devDepsCmd = calls.find(c => c.includes('--save-dev')) || '';
-      expect(devDepsCmd).toContain('@agentmark-ai/cli');
-      expect(devDepsCmd).toContain('typescript');
-
-      // Find the main app install command (not the devDeps one)
-      const appInstallCmd = calls.find(c =>
-        c.startsWith('npm install ') &&
-        !c.includes('--save-dev') &&
-        c.includes('@agentmark-ai/ai-sdk-v5-adapter')
-      ) || '';
-      expect(appInstallCmd).toContain(' ai@^5');
-      expect(appInstallCmd).toMatch(/@ai-sdk\/openai@\^2/);
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it('uses ApiLoader in generated agentmark.client.ts', async () => {
-    const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const content = getClientConfigContent({ provider: 'openai', adapter: 'ai-sdk' });
-    expect(content).toContain("from \"@agentmark-ai/loader-api\"");
-    expect(content).toContain("ApiLoader");
-    expect(content).toContain("ApiLoader.local");
-  });
-  it('party-planner prompt includes evals list', async () => {
-    const { createExamplePrompts } = await import('../src/utils/examples/templates');
-    const tmpDir = path.join(__dirname, '..', 'tmp-examples-' + Date.now());
-    fs.mkdirSync(tmpDir, { recursive: true });
-
-    try {
-      createExamplePrompts('gpt-4o', tmpDir);
-      const filePath = path.join(tmpDir, 'agentmark', 'party-planner.prompt.mdx');
-      const content = fs.readFileSync(filePath, 'utf8');
-      expect(content).toContain('test_settings:');
-      // Frontmatter key was renamed `scores:` → `evals:` in the
-      // get-score-configs → get-evals refactor.
-      expect(content).toContain('evals:');
-      expect(content).toContain('- exact_match_json');
-    } finally {
-      // cleanup
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it('creates a TS client config and companion tools/evals that are syntactically valid', async () => {
-    const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const tmpDir = path.join(__dirname, '..', 'tmp-client-' + Date.now());
-    fs.mkdirSync(tmpDir, { recursive: true });
-    try {
-      const client = getClientConfigContent({ provider: 'openai', adapter: 'ai-sdk' });
-      fs.mkdirSync(path.join(tmpDir, 'agentmark'), { recursive: true });
-      fs.writeFileSync(path.join(tmpDir, 'agentmark.client.ts'), client);
-
-      expect(fs.existsSync(path.join(tmpDir, 'agentmark.client.ts'))).toBe(true);
-      // Tools/Evals now inline in the client
-
-      // Basic validity: importable with ts-node/tsx semantics isn't trivial in Vitest.
-      // Validate that provider registration is wired in the file content.
-      const generated = fs.readFileSync(path.join(tmpDir, 'agentmark.client.ts'), 'utf8');
-      expect(generated).toContain('registerProviders({ openai })');
-      expect(generated).toContain("@ai-sdk/openai");
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it('does not add image/speech extras for non-openai providers', async () => {
-    const { getClientConfigContent } = await import('../src/utils/examples/templates');
-    const content = getClientConfigContent({ provider: 'anthropic', adapter: 'ai-sdk' });
-    expect(content).toContain('registerProviders({ anthropic })');
-    expect(content).not.toContain('openai.image');
-    expect(content).not.toContain('openai.speech');
-  });
-
-  describe('claude-agent-sdk adapter', () => {
-    it('creates client config with ClaudeAgent classes', async () => {
-      const { getClientConfigContent } = await import('../src/utils/examples/templates');
-      const content = getClientConfigContent({
-        provider: 'anthropic',
-        adapter: 'claude-agent-sdk'
-      });
-
-      // Check imports
-      expect(content).toContain('@agentmark-ai/claude-agent-sdk-v0-adapter');
-      expect(content).toContain('ClaudeAgentModelRegistry');
-
-      // Tool registry has been removed — tools are no longer imported as a registry class
-      expect(content).not.toContain('ClaudeAgentToolRegistry');
-
-      // Should NOT have @ai-sdk provider import
-      expect(content).not.toContain("from '@ai-sdk/anthropic'");
-
-      // Check adapter options
-      expect(content).toContain('adapterOptions');
-      expect(content).toContain('permissionMode');
-      expect(content).toContain('bypassPermissions');
-      expect(content).toContain('maxTurns');
-
-      // Check model registry uses createDefault()
-      expect(content).toContain('ClaudeAgentModelRegistry.createDefault()');
-    });
-
-    it('creates index file with withTracing import', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('claude-agent-sdk');
-
-      // Check imports
-      expect(content).toContain("import { query } from \"@anthropic-ai/claude-agent-sdk\"");
-      expect(content).toContain("import { withTracing } from \"@agentmark-ai/claude-agent-sdk-v0-adapter\"");
-
-      // Check usage of withTracing
-      expect(content).toContain('withTracing(query, adapted)');
-      expect(content).toContain('tracedResult.traceId');
-
-      // Check iteration over traced result
-      expect(content).toContain('for await (const message of tracedResult)');
-    });
-
-    it('has correct adapter config with dependencies', async () => {
-      const { getAdapterConfig } = await import('../src/utils/examples/templates/adapters');
-      const config = getAdapterConfig('claude-agent-sdk', 'anthropic');
-
-      expect(config.package).toBe('@agentmark-ai/claude-agent-sdk-v0-adapter');
-      expect(config.dependencies).toContain('@anthropic-ai/claude-agent-sdk@^0.1.0');
-      expect(config.classes.modelRegistry).toBe('ClaudeAgentModelRegistry');
-      expect(config.classes.webhookHandler).toBe('ClaudeAgentWebhookHandler');
-    });
-
-    it('creates dev-entry.ts with ClaudeAgentWebhookHandler at project root', async () => {
-      const tmpDir = path.join(__dirname, '..', 'tmp-claude-sdk-' + Date.now());
-      fs.mkdirSync(tmpDir, { recursive: true });
-      // Pre-create package.json before setting up mocks
-      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-app', version: '1.0.0', scripts: {} }, null, 2));
-
-      vi.doMock('fs-extra', async () => {
-        const actual = await vi.importActual<any>('fs-extra');
-        return {
-          ...actual,
-          default: {
-            ...actual,
-            existsSync: (p: string) => actual.existsSync(p),
-            readJsonSync: (p: string) => actual.readJsonSync(p),
-            writeJsonSync: actual.writeJsonSync,
-            writeFileSync: actual.writeFileSync,
-          },
-          existsSync: (p: string) => actual.existsSync(p),
-          readJsonSync: (p: string) => actual.readJsonSync(p),
-          writeJsonSync: actual.writeJsonSync,
-          writeFileSync: actual.writeFileSync,
-        };
-      });
-      vi.doMock('child_process', () => ({
-        execSync: () => {},
-        execFileSync: () => {}
-      }));
-      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-      try {
-        // createExampleApp(client, targetPath, apiKey, adapter, deploymentMode)
-        await createExampleApp('skip', tmpDir, '', 'claude-agent-sdk');
-
-        // dev-entry.ts should be at project root (not .agentmark/)
-        const devEntryPath = path.join(tmpDir, 'dev-entry.ts');
-        expect(fs.existsSync(devEntryPath)).toBe(true);
-
-        const content = fs.readFileSync(devEntryPath, 'utf8');
-        expect(content).toContain("import { ClaudeAgentWebhookHandler } from '@agentmark-ai/claude-agent-sdk-v0-adapter/runner'");
-        expect(content).toContain('new ClaudeAgentWebhookHandler(client');
-
-        // Verify correct import path
-        expect(content).toContain("await import('./agentmark.client.js')");
-
-        // Check .env has ANTHROPIC_API_KEY
-        const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
-        expect(envContent).toContain('ANTHROPIC_API_KEY');
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
-  });
-
-  it('creates dev-entry.ts at project root (not .agentmark/)', async () => {
-    const tmpDir = path.join(__dirname, '..', 'tmp-express-' + Date.now());
-    fs.mkdirSync(tmpDir, { recursive: true });
-    // Pre-create package.json before setting up mocks
-    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-app', version: '1.0.0', scripts: {} }, null, 2));
-
-    vi.doMock('fs-extra', async () => {
-      const actual = await vi.importActual<any>('fs-extra');
-      return {
-        ...actual,
-        default: {
-          ...actual,
-          existsSync: (p: string) => actual.existsSync(p),
-          readJsonSync: (p: string) => actual.readJsonSync(p),
-          writeJsonSync: actual.writeJsonSync,
-          writeFileSync: actual.writeFileSync,
-        },
-        existsSync: (p: string) => actual.existsSync(p),
-        readJsonSync: (p: string) => actual.readJsonSync(p),
-        writeJsonSync: actual.writeJsonSync,
-        writeFileSync: actual.writeFileSync,
-      };
-    });
     vi.doMock('child_process', () => ({
       execSync: () => {},
-      execFileSync: () => {}
+      execFileSync: () => {},
     }));
-    const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-    try {
-      await createExampleApp('skip', tmpDir, '');
-
-      // Should create dev-entry.ts at project root (not .agentmark/)
-      const devEntryPath = path.join(tmpDir, 'dev-entry.ts');
-      expect(fs.existsSync(devEntryPath)).toBe(true);
-
-      // Should NOT create dev-entry.ts in .agentmark/
-      const legacyDevEntryPath = path.join(tmpDir, '.agentmark', 'dev-entry.ts');
-      expect(fs.existsSync(legacyDevEntryPath)).toBe(false);
-
-      const content = fs.readFileSync(devEntryPath, 'utf8');
-      expect(content).toContain("import { createWebhookServer } from '@agentmark-ai/cli/runner-server'");
-      expect(content).toContain("import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v5-adapter/runner'");
-      expect(content).toContain('new VercelAdapterWebhookHandler(client');
-      expect(content).toContain('createWebhookServer({');
-
-      // Verify correct import path (should be ./ not ../ since dev-entry.ts is at project root)
-      expect(content).toContain("await import('./agentmark.client.js')");
-      expect(content).not.toContain("await import('../agentmark.client.js')");
-
-      // Check .env has cloud deployment env vars and API key placeholder
-      const envContent = fs.readFileSync(path.join(tmpDir, '.env'), 'utf8');
-      expect(envContent).toContain('AGENTMARK_API_KEY');
-      expect(envContent).toContain('AGENTMARK_APP_ID');
-      expect(envContent).toContain('OPENAI_API_KEY');
-
-      // Check .gitignore does NOT contain .agentmark/ (dev-entry.ts is now version controlled at root)
-      const gitignoreContent = fs.readFileSync(path.join(tmpDir, '.gitignore'), 'utf8');
-      expect(gitignoreContent).not.toContain('.agentmark/');
-      expect(gitignoreContent).toContain('node_modules/');
-      expect(gitignoreContent).toContain('.env');
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    }
   });
 
-  describe('tracing initialization by deployment mode', () => {
-    it('cloud mode generates tracing init pointing to AgentMark Cloud for ai-sdk', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('ai-sdk', 'cloud');
+  afterEach(() => {
+    process.argv = originalArgv;
+    fs.removeSync(tempDir);
+    vi.resetModules();
+    vi.doUnmock('child_process');
+  });
 
-      // Should import AgentMarkSDK
-      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
+  const runMain = async (argv: string[]): Promise<void> => {
+    process.argv = ['node', 'create-agentmark', ...argv];
+    const mod = await import('../src/index.js');
+    await mod.main();
+  };
 
-      // Should use env vars for credentials
-      expect(content).toContain('process.env.AGENTMARK_API_KEY');
-      expect(content).toContain('process.env.AGENTMARK_APP_ID');
+  it('writes agentmark.json with the canonical default shape', async () => {
+    await runMain(['--path', tempDir, '--client', 'claude-code', '--overwrite']);
 
-      // Should NOT have baseUrl (defaults to cloud)
-      expect(content).not.toContain('baseUrl:');
-
-      // Should have cloud-specific comment
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
-
-      // Should call initTracing
-      expect(content).toContain('sdk.initTracing()');
-    });
-
-    it('static mode generates tracing init pointing to localhost for ai-sdk', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('ai-sdk', 'static');
-
-      // Should import AgentMarkSDK
-      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
-
-      // Should have baseUrl pointing to localhost
-      expect(content).toContain('baseUrl: "http://localhost:9418"');
-
-      // Should have static-specific comment
-      expect(content).toContain('traces will be sent to local dev server');
-      expect(content).toContain('npx agentmark dev');
-
-      // Should call initTracing
-      expect(content).toContain('sdk.initTracing()');
-    });
-
-    it('cloud mode generates tracing init for claude-agent-sdk', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('claude-agent-sdk', 'cloud');
-
-      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
-      expect(content).toContain('process.env.AGENTMARK_API_KEY');
-      expect(content).not.toContain('baseUrl:');
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
-    });
-
-    it('static mode generates tracing init for claude-agent-sdk', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('claude-agent-sdk', 'static');
-
-      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
-      expect(content).toContain('baseUrl: "http://localhost:9418"');
-      expect(content).toContain('traces will be sent to local dev server');
-    });
-
-    it('cloud mode generates tracing init for mastra', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('mastra', 'cloud');
-
-      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
-      expect(content).toContain('process.env.AGENTMARK_API_KEY');
-      expect(content).not.toContain('baseUrl:');
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
-    });
-
-    it('static mode generates tracing init for mastra', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('mastra', 'static');
-
-      expect(content).toContain('import { AgentMarkSDK } from "@agentmark-ai/sdk"');
-      expect(content).toContain('baseUrl: "http://localhost:9418"');
-      expect(content).toContain('traces will be sent to local dev server');
-    });
-
-    it('defaults to cloud mode when deploymentMode not specified', async () => {
-      const { getIndexFileContent } = await import('../src/utils/examples/templates');
-      const content = getIndexFileContent('ai-sdk');
-
-      // Should default to cloud behavior
-      expect(content).toContain('process.env.AGENTMARK_API_KEY');
-      expect(content).not.toContain('baseUrl:');
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
+    const config = fs.readJsonSync(path.join(tempDir, 'agentmark.json'));
+    expect(config).toEqual({
+      $schema:
+        'https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json',
+      version: '2.0.0',
+      mdxVersion: '1.0',
+      agentmarkPath: '.',
     });
   });
 
-  describe('builtInModels returned by createExampleApp', () => {
-    const mockFsExtra = async () => {
-      vi.doMock('fs-extra', async () => {
-        const actual = await vi.importActual<any>('fs-extra');
-        return {
-          ...actual,
-          default: {
-            ...actual,
-            existsSync: (p: string) => actual.existsSync(p),
-            readJsonSync: (p: string) => actual.readJsonSync(p),
-            writeJsonSync: actual.writeJsonSync,
-            writeFileSync: actual.writeFileSync,
-          },
-          existsSync: (p: string) => actual.existsSync(p),
-          readJsonSync: (p: string) => actual.readJsonSync(p),
-          writeJsonSync: actual.writeJsonSync,
-          writeFileSync: actual.writeFileSync,
-        };
-      });
-      vi.doMock('child_process', () => ({
-        execSync: () => {},
-        execFileSync: () => {}
-      }));
-    };
+  it('creates an empty agentmark/ directory with a .gitkeep', async () => {
+    await runMain(['--path', tempDir, '--client', 'claude-code', '--overwrite']);
 
-    it('ai-sdk: returns language model + image model + speech model', async () => {
-      const tmpDir = path.join(__dirname, '..', 'tmp-models-aisdk-' + Date.now());
-      fs.mkdirSync(tmpDir, { recursive: true });
-      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test', version: '1.0.0', scripts: {} }, null, 2));
-      await mockFsExtra();
-      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-      try {
-        const models = await createExampleApp('skip', tmpDir, '', 'ai-sdk');
-        expect(models).toEqual(['openai/dall-e-3', 'openai/gpt-4o', 'openai/tts-1-hd']);
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
-
-    it('claude-agent-sdk: returns only the language model', async () => {
-      const tmpDir = path.join(__dirname, '..', 'tmp-models-claude-' + Date.now());
-      fs.mkdirSync(tmpDir, { recursive: true });
-      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test', version: '1.0.0', scripts: {} }, null, 2));
-      await mockFsExtra();
-      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-      try {
-        const models = await createExampleApp('skip', tmpDir, '', 'claude-agent-sdk');
-        expect(models).toEqual(['anthropic/claude-sonnet-4-20250514']);
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
-
-    it('mastra: returns only the language model', async () => {
-      const tmpDir = path.join(__dirname, '..', 'tmp-models-mastra-' + Date.now());
-      fs.mkdirSync(tmpDir, { recursive: true });
-      fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test', version: '1.0.0', scripts: {} }, null, 2));
-      await mockFsExtra();
-      const { createExampleApp } = await import('../src/utils/examples/create-example-app');
-      try {
-        const models = await createExampleApp('skip', tmpDir, '', 'mastra');
-        expect(models).toEqual(['openai/gpt-4o']);
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
+    const agentmarkDir = path.join(tempDir, 'agentmark');
+    expect(fs.existsSync(agentmarkDir)).toBe(true);
+    expect(fs.statSync(agentmarkDir).isDirectory()).toBe(true);
+    expect(fs.existsSync(path.join(agentmarkDir, '.gitkeep'))).toBe(true);
+    // The folder is empty except for the .gitkeep — no scaffolded prompts.
+    expect(fs.readdirSync(agentmarkDir)).toEqual(['.gitkeep']);
   });
 
-  describe('builtInModels returned by createPythonApp', () => {
-    const mockFsExtra = async () => {
-      vi.doMock('fs-extra', async () => {
-        const actual = await vi.importActual<any>('fs-extra');
-        return {
-          ...actual,
-          default: {
-            ...actual,
-            existsSync: (p: string) => actual.existsSync(p),
-            readJsonSync: (p: string) => actual.readJsonSync(p),
-            writeJsonSync: actual.writeJsonSync,
-            writeFileSync: actual.writeFileSync,
-          },
-          existsSync: (p: string) => actual.existsSync(p),
-          readJsonSync: (p: string) => actual.readJsonSync(p),
-          writeJsonSync: actual.writeJsonSync,
-          writeFileSync: actual.writeFileSync,
-        };
-      });
-      vi.doMock('child_process', () => ({
-        execSync: () => {},
-        execFileSync: () => {}
-      }));
-    };
+  it('writes one MCP config per selected client (using "all")', async () => {
+    await runMain(['--path', tempDir, '--client', 'all', '--overwrite']);
 
-    it('pydantic-ai: returns only the language model', async () => {
-      const tmpDir = path.join(__dirname, '..', 'tmp-models-pydantic-' + Date.now());
-      fs.mkdirSync(tmpDir, { recursive: true });
-      await mockFsExtra();
-      const { createPythonApp } = await import('../src/utils/examples/create-python-app');
-      try {
-        const models = await createPythonApp('skip', tmpDir, '', 'cloud', 'pydantic-ai');
-        expect(models).toEqual(['openai/gpt-4o']);
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
-
-    it('claude-agent-sdk (Python): returns only the language model', async () => {
-      const tmpDir = path.join(__dirname, '..', 'tmp-models-pyclaude-' + Date.now());
-      fs.mkdirSync(tmpDir, { recursive: true });
-      await mockFsExtra();
-      const { createPythonApp } = await import('../src/utils/examples/create-python-app');
-      try {
-        const models = await createPythonApp('skip', tmpDir, '', 'cloud', 'claude-agent-sdk');
-        expect(models).toEqual(['anthropic/claude-sonnet-4-20250514']);
-      } finally {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      }
-    });
+    expect(fs.existsSync(path.join(tempDir, '.mcp.json'))).toBe(true);            // claude-code
+    expect(fs.existsSync(path.join(tempDir, '.cursor/mcp.json'))).toBe(true);     // cursor
+    expect(fs.existsSync(path.join(tempDir, '.vscode/mcp.json'))).toBe(true);     // vscode
+    expect(fs.existsSync(path.join(tempDir, '.zed/settings.json'))).toBe(true);   // zed
   });
 
-  describe('Python tracing initialization by deployment mode', () => {
-    it('cloud mode generates tracing init pointing to AgentMark Cloud for pydantic-ai', async () => {
-      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
-      const content = getMainPyContent('pydantic-ai', 'cloud');
+  it('writes only the MCP config for the single client passed', async () => {
+    await runMain(['--path', tempDir, '--client', 'cursor', '--overwrite']);
 
-      // Should import AgentMarkSDK
-      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
+    expect(fs.existsSync(path.join(tempDir, '.cursor/mcp.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.mcp.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, '.vscode'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, '.zed'))).toBe(false);
+  });
 
-      // Should use env vars for credentials
-      expect(content).toContain('os.environ.get("AGENTMARK_API_KEY"');
-      expect(content).toContain('os.environ.get("AGENTMARK_APP_ID"');
+  it('does NOT scaffold the legacy template files (agentmark.client.ts, handler.ts, .env, etc.)', async () => {
+    await runMain(['--path', tempDir, '--client', 'all', '--overwrite']);
 
-      // Should NOT have base_url (defaults to cloud)
-      expect(content).not.toContain('base_url=');
+    // Anything the old scaffolder used to write that we explicitly stopped writing:
+    expect(fs.existsSync(path.join(tempDir, 'agentmark.client.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'handler.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'handler.py'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'index.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'main.py'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark_client.py'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'pyproject.toml'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, '.env'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark/party-planner.prompt.mdx'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark/customer-support.prompt.mdx'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark/story-teller.prompt.mdx'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'agentmark/animal-drawing.prompt.mdx'))).toBe(false);
+  });
 
-      // Should have cloud-specific comment
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
+  it('respects --overwrite when agentmark.json already exists', async () => {
+    fs.writeJsonSync(path.join(tempDir, 'agentmark.json'), { custom: 'pre-existing' });
 
-      // Should call init_tracing
-      expect(content).toContain('sdk.init_tracing()');
-    });
+    await runMain(['--path', tempDir, '--client', 'claude-code', '--overwrite']);
 
-    it('static mode generates tracing init pointing to localhost for pydantic-ai', async () => {
-      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
-      const content = getMainPyContent('pydantic-ai', 'static');
+    const config = fs.readJsonSync(path.join(tempDir, 'agentmark.json'));
+    expect(config.version).toBe('2.0.0');
+    expect(config).not.toHaveProperty('custom');
+  });
 
-      // Should import AgentMarkSDK
-      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
+  it('preserves an existing agentmark/ directory and its contents', async () => {
+    const existingPromptPath = path.join(tempDir, 'agentmark', 'my-existing.prompt.mdx');
+    fs.ensureDirSync(path.join(tempDir, 'agentmark'));
+    fs.writeFileSync(existingPromptPath, '---\nname: existing\n---\n');
 
-      // Should have base_url pointing to localhost
-      expect(content).toContain('base_url="http://localhost:9418"');
+    await runMain(['--path', tempDir, '--client', 'claude-code', '--overwrite']);
 
-      // Should have static-specific comment
-      expect(content).toContain('traces will be sent to local dev server');
-      expect(content).toContain('npx agentmark dev');
-
-      // Should call init_tracing
-      expect(content).toContain('sdk.init_tracing()');
-    });
-
-    it('cloud mode generates tracing init for claude-agent-sdk Python', async () => {
-      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
-      const content = getMainPyContent('claude-agent-sdk', 'cloud');
-
-      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
-      expect(content).toContain('os.environ.get("AGENTMARK_API_KEY"');
-      expect(content).not.toContain('base_url=');
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
-    });
-
-    it('static mode generates tracing init for claude-agent-sdk Python', async () => {
-      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
-      const content = getMainPyContent('claude-agent-sdk', 'static');
-
-      expect(content).toContain('from agentmark_sdk import AgentMarkSDK');
-      expect(content).toContain('base_url="http://localhost:9418"');
-      expect(content).toContain('traces will be sent to local dev server');
-    });
-
-    it('defaults to cloud mode when deploymentMode not specified for Python', async () => {
-      const { getMainPyContent } = await import('../src/utils/examples/create-python-app');
-      const content = getMainPyContent('pydantic-ai');
-
-      // Should default to cloud behavior
-      expect(content).toContain('os.environ.get("AGENTMARK_API_KEY"');
-      expect(content).not.toContain('base_url=');
-      expect(content).toContain('traces will be sent to AgentMark Cloud');
-    });
+    // Existing file untouched
+    expect(fs.readFileSync(existingPromptPath, 'utf-8')).toBe('---\nname: existing\n---\n');
+    // .gitkeep NOT added — folder isn't empty
+    expect(fs.existsSync(path.join(tempDir, 'agentmark', '.gitkeep'))).toBe(false);
   });
 });

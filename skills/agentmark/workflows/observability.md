@@ -1,14 +1,24 @@
 # Observing a prompt run (traces)
 
-To see a run in AgentMark — with the **model-call ("generation") span** that
-carries the model, token usage, and input/output — your runtime must (1)
-register the AgentMark span processor **as the global OTel provider**
-(`registerGlobally: true`) and (2) run the prompt with **telemetry enabled**.
+For the **canonical tracing setup** — full provider config, every adapter,
+init order, AGENTMARK_API_KEY / AGENTMARK_APP_ID semantics — fetch
+`https://docs.agentmark.co/observe/tracing-setup.md`. This workflow exists
+to flag the **two non-obvious failure modes** that catch agents out, because
+they're hard to see in the docs:
 
-This is the step most often missed: wrapping your call in `span()` / `observe()`
-/ `trace()` records a *custom* span, but it does **not** produce the model-call
-span. The generation span comes from the AI SDK's telemetry, which
-`prompt.format({ telemetry })` wires up for you.
+1. To see the **model-call ("generation") span** — the one carrying model,
+   token usage, and input/output — your runtime must register the AgentMark
+   span processor **as the global OTel provider** (`registerGlobally: true`).
+   The generation span comes from the AI SDK's telemetry, which emits through
+   the **global** tracer. Without `registerGlobally: true`, the model-call
+   span goes to a no-op tracer and nothing is forwarded — even though custom
+   `span()`/`observe()` wrappers still work, so the failure looks like
+   "tracing is fine, just no model spans."
+2. Wrapping your call in `span()` / `observe()` / `trace()` records a *custom*
+   span — it does **not** produce the model-call span. For the generation
+   span you also need telemetry on `prompt.format({ telemetry })`, wired via
+   `createPromptTelemetry(...)`. Use both if you want custom spans plus the
+   generation span.
 
 ## Recipe (Vercel AI SDK adapter)
 

@@ -225,23 +225,6 @@ program
     }
   });
 
-// `deploy` was removed in 0.12.x — git-based deploys replace it. Keep an
-// explicit handler so users get a migration hint instead of Commander's
-// generic "unknown command 'deploy'" stack-trace-shaped message.
-program
-  .command('deploy')
-  .description('[Removed] Use git-based deploys — see release notes')
-  .allowUnknownOption(true)
-  .action(() => {
-    // eslint-disable-next-line no-console
-    console.error(
-      'agentmark deploy was removed.\n' +
-        '  Deployments are now driven from your linked git provider — see release notes:\n' +
-        '  https://docs.agentmark.co/changelog#cli-deploy-removed',
-    );
-    process.exit(1);
-  });
-
 // Parse and run command, then display update notification
 // Using parseAsync ensures notification displays after command completes
 program.parseAsync(process.argv).then(async () => {

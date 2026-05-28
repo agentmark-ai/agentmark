@@ -1,6 +1,8 @@
 # Deploying
 
-AgentMark deployment is **git-based**. The standalone `agentmark deploy` CLI command was removed; running it now prints a migration hint and exits non-zero. The `--remote` flag on `agentmark dev` was also removed in 0.13.0 along with the `@agentmark-ai/connect` WebSocket package. If you see either in older tutorials, blog posts, or the user's memory, they are stale.
+AgentMark deployment is **git-based**: connect a git provider (GitHub or GitLab) to your AgentMark Cloud app, push to the watched branch, and AgentMark builds + deploys automatically. The watched-branch push *is* the deploy trigger — no CLI command, no separate deploy step.
+
+For everything around git deployment that's *also* now headless — bootstrapping a fresh app, connecting a provider, minting API keys, polling deployment status — see [Headless deployment](#headless-deployment-autonomous-agents-ci-automation) below.
 
 ## How deployment works
 
@@ -315,7 +317,6 @@ Two ways to mint a Cloud API key:
 
 ## Common mistakes
 
-- **Running `agentmark deploy`** — removed; deployment is git-based. The CLI stub prints a migration hint. Point users at `https://docs.agentmark.co/deploy/deployment.md`.
 - **Passing `--remote` to `agentmark dev`** — removed in 0.13.0. Trace forwarding is automatic when the project is linked. For programmatic Cloud access (what `--remote` once enabled for the CLI's gateway-proxy commands), use the MCP server or call REST directly — see [headless-with-mcp.md](headless-with-mcp.md).
 - **Editing `agentmark.json` in the Dashboard** — `agentmark.json` is the source of truth in git and syncs on deploy. Dashboard-side edits get overwritten on the next deploy.
 - **Forgetting to commit `agentmark.json` changes before pushing** — the deploy picks up only what's in git. Local-only changes don't ship.

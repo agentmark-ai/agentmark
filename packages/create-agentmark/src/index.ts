@@ -1,282 +1,264 @@
 import fs from "fs-extra";
 import path from "path";
 import prompts from "prompts";
-import { createExampleApp } from "./utils/examples/create-example-app";
-import { createPythonApp } from "./utils/examples/create-python-app";
-import { detectProjectInfo, isCurrentDirectory } from "./utils/project-detection.js";
-import { displayProjectDetectionSummary, promptForResolutions } from "./utils/conflict-resolution.js";
-import type { ProjectInfo, ConflictResolution } from "./utils/types.js";
+import { pathToFileURL } from "url";
+import { writeMcpConfig, type McpClient } from "./utils/examples/mcp-config.js";
+import { installAgentmarkSkill } from "./utils/install-skill.js";
 import { initGitRepo } from "./utils/git-init.js";
+import { detectProjectInfo, isCurrentDirectory } from "./utils/project-detection.js";
 
-interface CliArgs {
+/**
+ * `npm create agentmark` — minimal init.
+ *
+ * Scope is deliberately small. The CLI does NOT scaffold example code,
+ * pick an LLM adapter, or handle login. Its job is:
+ *
+ *   1. Write `agentmark.json` (the SDK loader's config root)
+ *   2. Create an empty `agentmark/` directory (where prompts go)
+ *   3. Wire MCP configs for any IDE clients the user selects
+ *   4. Install the AgentMark agent skill (`npx skills add agentmark-ai/skills`)
+ *   5. Hand off to the AI tool: "Open Claude Code / Cursor and say:
+ *      Set up AgentMark in this project."
+ *
+ * Everything else — framework detection, package install, code wiring,
+ * first prompt — is the job of the `setup-and-integration` skill workflow,
+ * which runs inside the user's IDE agent. That keeps integration adaptive
+ * to whatever stack the user already has, instead of forcing a template.
+ */
+
+export interface CliArgs {
   path?: string;
-  language?: "typescript" | "python";
-  adapter?: string;
-  deploymentMode?: "cloud" | "static";
-  apiKey?: string;
-  client?: string;
-  overwrite?: boolean;
+  clients?: McpClient[];
   /**
-   * Arbitrary AgentMark Cloud gateway URL for the `agentmark` MCP
-   * entry in the generated mcp.json. Defaults to
-   * `https://api.agentmark.co`. The `agentmark-local` entry always
-   * points at `http://localhost:9418` (the `agentmark dev` server).
-   *
-   * Intentionally NOT a customer-facing flow: this is the escape
-   * hatch for internal AgentMark engineers pointing at staging
-   * (`https://api-stg.agentmark.co`) and the rare customer who
-   * self-hosts. Not advertised in --help on purpose.
+   * Undocumented escape hatch for internal staging
+   * (`https://api-stg.agentmark.co`) and rare self-hosters. Defaults to
+   * `https://api.agentmark.co`. The `agentmark-local` MCP entry always
+   * points at `http://localhost:9418` regardless of this flag.
    */
   apiUrl?: string;
+  overwrite?: boolean;
 }
 
-const VALID_ADAPTERS_TS = ["ai-sdk", "claude-agent-sdk", "mastra"];
-const VALID_ADAPTERS_PY = ["pydantic-ai", "claude-agent-sdk"];
-const VALID_CLIENTS = ["claude-code", "cursor", "vscode", "zed", "skip"];
+export const ALL_CLIENTS: readonly McpClient[] = ["claude-code", "cursor", "vscode", "zed"];
 
-const parseArgs = (): CliArgs => {
-  const args = process.argv.slice(2);
+export const AGENTMARK_JSON: Record<string, unknown> = {
+  $schema:
+    "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
+  version: "2.0.0",
+  mdxVersion: "1.0",
+  agentmarkPath: ".",
+};
+
+export const parseArgs = (argv: string[] = process.argv.slice(2)): CliArgs => {
   const result: CliArgs = {};
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    switch (arg) {
-      case "--cloud":
-        result.deploymentMode = "cloud";
-        break;
-      case "--self-host":
-        result.deploymentMode = "static";
-        break;
-      case "--python":
-        result.language = "python";
-        break;
-      case "--typescript":
-        result.language = "typescript";
-        break;
-      case "--overwrite":
-        result.overwrite = true;
-        break;
-      case "--path":
-        result.path = args[++i];
-        break;
-      case "--adapter":
-        result.adapter = args[++i];
-        break;
-      case "--api-key":
-        result.apiKey = args[++i];
-        break;
-      case "--client":
-        result.client = args[++i];
-        break;
-      case "--api-url": {
-        // Undocumented escape hatch. Accepts any non-empty URL.
-        // Internal staging users: `--api-url https://api-stg.agentmark.co`.
-        const value = args[++i];
-        if (!value || !/^https?:\/\//.test(value)) {
-          throw new Error(`--api-url requires a full http(s) URL (got "${value}")`);
-        }
-        result.apiUrl = value;
-        break;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--path") {
+      result.path = argv[++i];
+    } else if (arg === "--client") {
+      const value = argv[++i];
+      if (!value) throw new Error("--client requires a value");
+      const ids = value === "all"
+        ? [...ALL_CLIENTS]
+        : value.split(",").map((s) => s.trim()).filter(Boolean) as McpClient[];
+      result.clients = [...(result.clients ?? []), ...ids];
+    } else if (arg === "--overwrite") {
+      result.overwrite = true;
+    } else if (arg === "--api-url") {
+      const value = argv[++i];
+      if (!value || !/^https?:\/\//.test(value)) {
+        throw new Error(`--api-url requires a full http(s) URL (got "${value}")`);
       }
+      result.apiUrl = value;
+    } else if (arg && !arg.startsWith("--") && !result.path) {
+      // Positional: folder name, matches `npx create-next-app my-app` shape.
+      result.path = arg;
     }
   }
 
   return result;
 };
 
-const main = async () => {
-  const cliArgs = parseArgs();
-  const config: any = {
-    $schema:
-      "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
-    version: "2.0.0",
-    mdxVersion: "1.0",
-    agentmarkPath: ".",
-  };
-  console.log("Initializing project.");
+export const clientLabel = (id: string): string =>
+  id === "vscode" ? "VS Code"
+    : id === "zed" ? "Zed"
+      : id === "cursor" ? "Cursor"
+        : id === "claude-code" ? "Claude Code"
+          : id;
 
-  // Folder name — from --path flag or prompt
-  let folderName = cliArgs.path;
+/**
+ * Resolves the target folder via positional/flag arg or interactive prompt.
+ * Default to "." when cwd looks like an existing project (the common case
+ * for "wire AgentMark into my repo"); fall back to a fresh folder name when
+ * cwd is empty (the greenfield case).
+ */
+export const resolveTargetPath = async (
+  cliPath: string | undefined,
+): Promise<{ targetPath: string; isCurrentDir: boolean } | null> => {
+  let folderName = cliPath;
   if (!folderName) {
+    const cwd = process.cwd();
+    const cwdHasProject =
+      fs.existsSync(path.join(cwd, "package.json")) ||
+      fs.existsSync(path.join(cwd, "pyproject.toml"));
     const response = await prompts({
       name: "folderName",
       type: "text",
-      message: "Where would you like to create your AgentMark app?",
-      initial: "my-agentmark-app",
+      message: "Where would you like to set up AgentMark?",
+      initial: cwdHasProject ? "." : "my-agentmark-app",
     });
     folderName = response.folderName;
   }
+  if (!folderName) return null; // Ctrl+C / empty input
 
-  // Determine target path - handle "." for current directory
-  const isCurrentDir = isCurrentDirectory(folderName!);
-  const targetPath = isCurrentDir ? process.cwd() : path.resolve(folderName!);
+  const isCurrentDir = isCurrentDirectory(folderName);
+  const targetPath = isCurrentDir ? process.cwd() : path.resolve(folderName);
+  if (!isCurrentDir) fs.ensureDirSync(targetPath);
+  return { targetPath, isCurrentDir };
+};
 
-  // Create the target folder only if not using current directory
-  if (!isCurrentDir) {
-    fs.ensureDirSync(targetPath);
+/**
+ * Resolves which IDE clients to wire MCP into. All 4 are pre-selected on
+ * the prompt so the typical "I use everything" case is one keystroke
+ * (Enter). Empty selection is equivalent to the old "Skip" option — the
+ * caller just writes nothing.
+ */
+export const resolveClients = async (cliClients: McpClient[] | undefined): Promise<McpClient[]> => {
+  if (cliClients && cliClients.length > 0) {
+    for (const c of cliClients) {
+      if (!ALL_CLIENTS.includes(c)) {
+        throw new Error(`Invalid client "${c}". Valid: ${ALL_CLIENTS.join(", ")}`);
+      }
+    }
+    return cliClients;
   }
+  const response = await prompts({
+    name: "clients",
+    type: "multiselect",
+    message: "Wire AgentMark MCP into which IDE clients?",
+    instructions: false,
+    hint: "Space to toggle. Enter to submit. Skip all = empty selection.",
+    choices: ALL_CLIENTS.map((id) => ({
+      title: clientLabel(id),
+      value: id,
+      selected: true,
+    })),
+  });
+  return (response.clients ?? []) as McpClient[];
+};
 
-  // Detect existing project
-  const projectInfo: ProjectInfo = detectProjectInfo(targetPath);
+/**
+ * agentmark.json is the only file we conflict on (the others — MCP config
+ * dirs, agentmark/, .gitkeep — are either additive or no-ops if present).
+ * Default to "skip" so we never silently clobber an existing project's
+ * config; `--overwrite` is the explicit opt-in for re-init scripts.
+ */
+export const shouldWriteAgentmarkJson = async (
+  filePath: string,
+  overwrite: boolean | undefined,
+): Promise<boolean> => {
+  if (!fs.existsSync(filePath)) return true;
+  if (overwrite) return true;
+  const { action } = await prompts({
+    type: "select",
+    name: "action",
+    message: "agentmark.json already exists. What would you like to do?",
+    choices: [
+      { title: "Skip (keep existing)", value: "skip" },
+      { title: "Overwrite with default config", value: "overwrite" },
+    ],
+    initial: 0,
+  });
+  return action === "overwrite";
+};
 
-  // Show detection summary if existing project found
-  if (projectInfo.isExistingProject) {
-    displayProjectDetectionSummary(projectInfo);
+export const main = async (): Promise<void> => {
+  const cliArgs = parseArgs();
+
+  const target = await resolveTargetPath(cliArgs.path);
+  if (!target) {
+    console.log("Aborted.");
+    return;
   }
+  const { targetPath } = target;
 
-  // Prompt for conflict resolutions if needed (--overwrite skips prompts)
-  let resolutions: ConflictResolution[];
-  if (cliArgs.overwrite) {
-    resolutions = projectInfo.conflictingFiles.map((f) => ({
-      path: f.path,
-      action: "overwrite" as const,
-    }));
+  const projectInfo = detectProjectInfo(targetPath);
+  const clients = await resolveClients(cliArgs.clients);
+
+  console.log("");
+
+  // 1. agentmark.json — the SDK loader's config root
+  const agentmarkJsonPath = path.join(targetPath, "agentmark.json");
+  if (await shouldWriteAgentmarkJson(agentmarkJsonPath, cliArgs.overwrite)) {
+    fs.writeJsonSync(agentmarkJsonPath, AGENTMARK_JSON, { spaces: 2 });
+    console.log("✅ agentmark.json");
   } else {
-    resolutions = await promptForResolutions(projectInfo.conflictingFiles);
+    console.log("⏭️  agentmark.json (kept existing)");
   }
 
-  // Language selection — from flag or prompt
-  let language = cliArgs.language;
-  if (!language) {
-    const response = await prompts({
-      name: "language",
-      type: "select",
-      message: "Which language would you like to use?",
-      choices: [
-        { title: "TypeScript", value: "typescript" },
-        { title: "Python", value: "python" },
-      ],
-    });
-    language = response.language;
+  // 2. agentmark/ — where prompts go. Empty + .gitkeep so the folder is
+  //    discoverable and version-controlled before the user adds anything.
+  //    Matches agentmarkPath: "." in agentmark.json.
+  const agentmarkDirPath = path.join(targetPath, "agentmark");
+  if (!fs.existsSync(agentmarkDirPath)) {
+    fs.ensureDirSync(agentmarkDirPath);
+    fs.writeFileSync(path.join(agentmarkDirPath, ".gitkeep"), "");
+    console.log("✅ agentmark/ (empty, ready for your .prompt.mdx files)");
+  } else {
+    console.log("⏭️  agentmark/ (kept existing)");
   }
 
-  // Adapter selection — from flag or prompt
-  let adapter = cliArgs.adapter;
-  if (!adapter) {
-    if (language === "python") {
-      const response = await prompts({
-        name: "adapter",
-        type: "select",
-        message: "Which adapter would you like to use?",
-        choices: [
-          { title: "Pydantic AI", value: "pydantic-ai" },
-          { title: "Claude Agent SDK", value: "claude-agent-sdk" },
-        ],
-      });
-      adapter = response.adapter;
-    } else {
-      const response = await prompts({
-        name: "adapter",
-        type: "select",
-        message: "Which adapter would you like to use?",
-        choices: [
-          { title: "AI SDK (Vercel)", value: "ai-sdk" },
-          { title: "Claude Agent SDK", value: "claude-agent-sdk" },
-          { title: "Mastra", value: "mastra" },
-        ],
-      });
-      adapter = response.adapter;
+  // 3. MCP wiring — one config file per selected IDE client
+  for (const client of clients) {
+    try {
+      const result = writeMcpConfig(client, targetPath, { customApiUrl: cliArgs.apiUrl });
+      if (result) {
+        const rel = path.relative(targetPath, result.configPath) || result.configPath;
+        console.log(`✅ MCP wired (${clientLabel(client)}): ${rel}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`⚠️  Could not write MCP config for ${clientLabel(client)}: ${message}`);
     }
   }
 
-  // Validate adapter for the selected language
-  const validAdapters = language === "python" ? VALID_ADAPTERS_PY : VALID_ADAPTERS_TS;
-  if (!validAdapters.includes(adapter!)) {
-    console.error(`Invalid adapter "${adapter}" for ${language}. Valid: ${validAdapters.join(", ")}`);
-    process.exit(1);
-  }
+  // 4. AgentMark agent skill (best-effort; logs its own status)
+  installAgentmarkSkill(targetPath);
 
-  // API key — from flag or prompt
-  let apiKey = cliArgs.apiKey ?? "";
-  if (!cliArgs.apiKey && cliArgs.apiKey !== "") {
-    const apiKeyName = adapter === 'claude-agent-sdk' ? 'Anthropic' : 'OpenAI';
-    const { providedApiKey } = await prompts({
-      name: "providedApiKey",
-      type: "password",
-      message: `Enter your ${apiKeyName} API key (or press Enter to skip):`,
-      initial: "",
-    });
-    apiKey = providedApiKey || "";
-  }
-
-  // Deployment mode — from flag or prompt
-  let deploymentMode = cliArgs.deploymentMode;
-  if (!deploymentMode) {
-    const response = await prompts({
-      name: "deploymentMode",
-      type: "select",
-      message: "Use AgentMark Cloud or manage yourself?",
-      choices: [
-        {
-          title: "AgentMark Cloud (recommended)",
-          value: "cloud",
-          description: "Have AgentMark cloud manage prompts, datasets, traces, experiments, alerts & more"
-        },
-        {
-          title: "Self-hosted",
-          value: "static",
-          description: "Self-manage your prompts, datasets, traces & experiments"
-        },
-      ],
-    });
-    deploymentMode = response.deploymentMode;
-  }
-
-  // IDE client — from flag or prompt
-  let client = cliArgs.client;
-  if (!client) {
-    const response = await prompts({
-      name: "client",
-      type: "select",
-      message: "Make your IDE an AgentMark expert",
-      choices: [
-        { title: "Claude Code", value: "claude-code" },
-        { title: "Cursor", value: "cursor" },
-        { title: "VS Code", value: "vscode" },
-        { title: "Zed", value: "zed" },
-        { title: "Skip", value: "skip" },
-      ],
-    });
-    client = response.client;
-  }
-
-  // Validate client
-  if (!VALID_CLIENTS.includes(client!)) {
-    console.error(`Invalid client "${client}". Valid: ${VALID_CLIENTS.join(", ")}`);
-    process.exit(1);
-  }
-
-  const customApiUrl = cliArgs.apiUrl;
-  let usedModels: string[];
-  if (language === "python") {
-    usedModels = await createPythonApp(client!, targetPath, apiKey, deploymentMode, adapter!, projectInfo, resolutions, customApiUrl);
-  } else {
-    usedModels = await createExampleApp(client!, targetPath, apiKey, adapter!, deploymentMode, projectInfo, resolutions, customApiUrl);
-  }
-  config.builtInModels = usedModels;
-
-  if (deploymentMode === "cloud") {
-    config.handler = language === "python" ? "handler.py" : "handler.ts";
-  }
-
-  // Generate agentmark.json based on conflict resolution
-  const agentmarkJsonPath = path.join(targetPath, "agentmark.json");
-  const agentmarkJsonResolution = resolutions.find((r) => r.path === "agentmark.json");
-
-  // Write agentmark.json if it doesn't exist or if user chose to overwrite
-  if (!fs.existsSync(agentmarkJsonPath) || agentmarkJsonResolution?.action === "overwrite") {
-    fs.writeJsonSync(agentmarkJsonPath, config, { spaces: 2 });
-  } else if (agentmarkJsonResolution?.action === "skip") {
-    console.log("⏭️  Skipped agentmark.json (keeping existing file)");
-  }
-
-  // Initialize git repo after ALL files are written (including agentmark.json)
+  // 5. git init — only if this is a greenfield folder
   if (!projectInfo.isExistingProject) {
     initGitRepo(targetPath);
   }
+
+  // 6. Handoff to the AI tool. The integration logic lives in the skill
+  //    workflow (`setup-and-integration.md`), not here, so the rest of
+  //    onboarding adapts to whatever stack the user already has.
+  console.log("");
+  console.log("✨ AgentMark is wired up.");
+  console.log("");
+  console.log("   Next: open this project in Claude Code, Cursor, VS Code, or Zed and say:");
+  console.log("");
+  console.log("       \"Set up AgentMark in this project.\"");
+  console.log("");
+  console.log("   The AgentMark skill will detect your stack, propose the wiring against");
+  console.log("   the docs MCP (https://docs.agentmark.co/mcp), and integrate adaptively.");
 };
 
-main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
-});
+/**
+ * Run main() only when this module is invoked directly as the CLI entry —
+ * NOT when imported by a test or another module. The pathToFileURL/url
+ * comparison is the canonical ESM-friendly "is this the entry script?" check.
+ */
+const isDirectlyInvoked = (): boolean => {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(entry).href;
+};
+
+if (isDirectlyInvoked()) {
+  main().catch((error) => {
+    console.error("Error:", error);
+    process.exit(1);
+  });
+}

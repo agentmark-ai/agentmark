@@ -19,7 +19,6 @@
 - [`agentmark login`](#agentmark-login) — Authenticate with the AgentMark platform
 - [`agentmark logout`](#agentmark-logout) — Clear CLI authentication and revoke dev API keys
 - [`agentmark link`](#agentmark-link) — Link current project to a platform app for trace forwarding
-- [`agentmark deploy`](#agentmark-deploy) — [Removed] Use git-based deploys — see release notes
 
 ---
 
@@ -183,16 +182,6 @@ npx agentmark link [options]
 | `--app-id <uuid>` | App ID to link (skips interactive selection) |
 | `--base-url <url>` | Platform URL (default: $AGENTMARK_PLATFORM_URL or https://app.agentmark.co) |
 | `--json` | Emit a single line of JSON on completion (e.g. for CI capture of appId) |
-
----
-
-## `agentmark deploy`
-
-[Removed] Use git-based deploys — see release notes
-
-```bash
-npx agentmark deploy [options]
-```
 
 ---
 
