@@ -37,6 +37,16 @@ describe('AgentMark Parser', () => {
       expect(result.datasetPath).toBe('path/to/dataset.json');
     });
 
+    it('should extract experiment identity fields (regression-gate baseline matching)', () => {
+      const result = parseAgentMarkAttributes({
+        'agentmark.experiment_key': './prompts/qa.prompt.mdx',
+        'agentmark.source_tree_hash': 'tree-abc123',
+      });
+
+      expect(result.experimentKey).toBe('./prompts/qa.prompt.mdx');
+      expect(result.sourceTreeHash).toBe('tree-abc123');
+    });
+
     it('should extract span kind from agentmark.span.kind', () => {
       const attributes = {
         'agentmark.span.kind': 'tool',

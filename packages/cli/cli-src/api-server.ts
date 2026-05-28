@@ -15,6 +15,7 @@ import {
   searchSpans,
 } from "./server/routes/traces";
 import { createScore, createScoresBatch } from "./server/routes/scores";
+import { getBaselineScores } from "./server/routes/experiments";
 import { readAllScoreConfigs } from "./server/routes/score-configs";
 import { LOCAL_PRICING_MAP } from "./server/routes/pricing";
 import { LocalObservabilityService } from "./server/services/local-observability-service";
@@ -40,6 +41,7 @@ import {
   SessionsListParamsSchema,
   RequestsListParamsSchema,
   ExperimentsListParamsSchema,
+  ExperimentBaselineParamsSchema,
   DatasetsListParamsSchema,
   DatasetRowSchema,
   ImportDatasetRowsFromTracesBodySchema,
@@ -1497,6 +1499,24 @@ ${promptsList}
     } catch (error) {
       console.error("Error getting experiments:", error);
       return sendInternalError(res, "Failed to get experiments");
+    }
+  });
+
+  // Registered before `/v1/experiments/:experimentId` so the literal
+  // "baseline" segment isn't captured as an experiment ID.
+  app.get("/v1/experiments/baseline", async (req: Request, res: Response) => {
+    const query = parseOrBadRequest(ExperimentBaselineParamsSchema, req.query, res, 'query');
+    if (!query.ok) return;
+    try {
+      const result = await getBaselineScores(
+        query.data.experiment_key,
+        query.data.tree_hash,
+        query.data.dataset_path,
+      );
+      return res.json({ data: result });
+    } catch (error) {
+      console.error("Error getting baseline scores:", error);
+      return sendInternalError(res, "Failed to get baseline scores");
     }
   });
 

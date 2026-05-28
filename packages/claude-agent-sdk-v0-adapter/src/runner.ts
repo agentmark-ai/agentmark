@@ -353,7 +353,9 @@ export class ClaudeAgentWebhookHandler {
     datasetRunName: string,
     datasetPath?: string,
     sampling?: Record<string, unknown>,
-    concurrency?: number
+    concurrency?: number,
+    experimentKey?: string,
+    sourceTreeHash?: string
   ): Promise<WebhookDatasetResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     // Generate unique experiment run ID (similar to AI SDK v5)
@@ -483,6 +485,8 @@ export class ClaudeAgentWebhookHandler {
                 datasetItemName,
                 datasetExpectedOutput: item.dataset.expected_output,
                 datasetPath: resolvedDatasetPath,
+                experimentKey,
+                sourceTreeHash,
               }, async (ctx: SpanContext) => {
                 if (item.dataset?.input != null) {
                   try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }

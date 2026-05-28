@@ -1,4 +1,14 @@
 import db from "../../database";
+import { hashRowInput } from "@agentmark-ai/prompt-core";
+
+export interface BaselineScoreRow {
+  /** `hashRowInput` of the row's dataset input — the join key against a live run. */
+  inputHash: string;
+  /** Scorer name. */
+  scorer: string;
+  /** Numeric score recorded for this (row × scorer) on the baseline run. */
+  score: number;
+}
 
 export interface ExperimentSummary {
   id: string;
@@ -53,7 +63,7 @@ export const getExperiments = async (): Promise<ExperimentSummary[]> => {
     ) gen ON gen.TraceId = root.TraceId
     WHERE root.DatasetRunId IS NOT NULL
       AND root.DatasetRunId != ''
-      AND root.ParentSpanId IS NULL
+      AND (root.ParentSpanId IS NULL OR root.ParentSpanId = '')
     GROUP BY root.DatasetRunId
     ORDER BY MIN(root.CreatedAt) DESC
   `;
@@ -111,7 +121,7 @@ export const getExperimentById = async (
       GROUP BY TraceId
     ) gen ON gen.TraceId = root.TraceId
     WHERE root.DatasetRunId = ?
-      AND root.ParentSpanId IS NULL
+      AND (root.ParentSpanId IS NULL OR root.ParentSpanId = '')
     GROUP BY root.DatasetRunId
   `;
 
@@ -184,7 +194,7 @@ export const getExperimentById = async (
       GROUP BY TraceId
     ) gen ON gen.TraceId = root.TraceId
     WHERE root.DatasetRunId = ?
-      AND root.ParentSpanId IS NULL
+      AND (root.ParentSpanId IS NULL OR root.ParentSpanId = '')
     ORDER BY CAST(root.Timestamp AS REAL) ASC
   `;
 
@@ -220,4 +230,98 @@ export const getExperimentById = async (
   });
 
   return { summary, items };
+};
+
+/** Which baseline run was resolved (echoed back so the gate never matches silently). */
+export interface BaselineResolved {
+  runId: string;
+  treeHash: string;
+  /** false = no run at the exact tree hash; resolution fell back to the most recent prior run. */
+  matchedExactCommit: boolean;
+}
+
+/**
+ * Per-(row × scorer) scores from a prior "baseline" experiment run, used to
+ * power the regression gate. A run is identified by its `ExperimentKey` (the
+ * stable, composition-agnostic identity of the evaluation), preferring the run
+ * at the exact `SourceTreeHash` (the base code state), else the most recent
+ * prior run of that key. `datasetPath` is a soft signal only — row matching is
+ * inputHash-based, so it does not scope resolution (keying on it would
+ * reintroduce cross-eval collisions when prompts share a dataset).
+ *
+ * Rows are keyed by `hashRowInput(parsed DatasetInput)` so the caller can
+ * match them to a live run's rows regardless of row order — see
+ * `@agentmark-ai/prompt-core`'s `hashRowInput`.
+ */
+export const getBaselineScores = async (
+  experimentKey: string,
+  treeHash: string,
+  // Accepted for API/signature symmetry with the cloud endpoint; not used for
+  // resolution (see above).
+  _datasetPath?: string
+): Promise<{ resolved: BaselineResolved | null; rows: BaselineScoreRow[] }> => {
+  // 1. Resolve the baseline run for this experiment_key, preferring the run at
+  //    the exact tree hash, else the most recent prior run. `exact DESC` ranks
+  //    a tree-hash match first, then recency.
+  const runSql = `
+    SELECT
+      DatasetRunId AS runId,
+      MAX(NULLIF(SourceTreeHash, '')) AS treeHash,
+      CASE WHEN MAX(NULLIF(SourceTreeHash, '')) = ? THEN 1 ELSE 0 END AS exact
+    FROM traces
+    WHERE (ParentSpanId IS NULL OR ParentSpanId = '')
+      AND DatasetRunId IS NOT NULL AND DatasetRunId != ''
+      AND ExperimentKey = ?
+    GROUP BY DatasetRunId
+    ORDER BY exact DESC, MAX(CreatedAt) DESC
+    LIMIT 1
+  `;
+  const runRow = db
+    .prepare(runSql)
+    .get(treeHash, experimentKey) as { runId?: string; treeHash?: string; exact?: number } | undefined;
+  if (!runRow?.runId) return { resolved: null, rows: [] };
+  const resolved: BaselineResolved = {
+    runId: runRow.runId,
+    treeHash: runRow.treeHash ?? '',
+    matchedExactCommit: Number(runRow.exact) === 1,
+  };
+
+  // 2. Per-row inputs for that run (root spans carry the dataset input).
+  const itemsSql = `
+    SELECT
+      TraceId AS traceId,
+      COALESCE(NULLIF(DatasetInput, ''), NULLIF(Input, ''), '') AS input
+    FROM traces
+    WHERE DatasetRunId = ? AND (ParentSpanId IS NULL OR ParentSpanId = '')
+  `;
+  const itemRows = db.prepare(itemsSql).all(runRow.runId) as Array<{
+    traceId: string;
+    input: string;
+  }>;
+
+  // 3. Numeric scores per trace, hashed by parsed input.
+  const rows: BaselineScoreRow[] = [];
+  const scoresStmt = db.prepare(
+    `SELECT name, score FROM scores WHERE resource_id = ? AND score IS NOT NULL`
+  );
+  for (const item of itemRows) {
+    if (!item.input) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(item.input);
+    } catch {
+      continue; // Un-parseable input can't be matched to a live row.
+    }
+    const inputHash = hashRowInput(parsed);
+    const scoreRows = scoresStmt.all(item.traceId) as Array<{
+      name: string;
+      score: number;
+    }>;
+    for (const s of scoreRows) {
+      if (typeof s.score !== "number") continue;
+      rows.push({ inputHash, scorer: s.name, score: s.score });
+    }
+  }
+
+  return { resolved, rows };
 };

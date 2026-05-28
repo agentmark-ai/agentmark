@@ -16,6 +16,18 @@ export const ExperimentsListParamsSchema = z.object({
   dataset_path: z.string().optional(),
 });
 
+// Baseline-scores lookup: the prior run a candidate run is compared against for
+// the regression gate. Resolved by `experiment_key` (the stable, composition-
+// agnostic identity of the evaluation — prompt/workflow/agent) preferring the
+// run at the exact `tree_hash` (the base code state), else the most recent
+// prior run of that key. `dataset_path` is a soft signal only — row matching is
+// inputHash-based, so it does not scope resolution.
+export const ExperimentBaselineParamsSchema = z.object({
+  experiment_key: z.string().min(1),
+  tree_hash: z.string().min(1),
+  dataset_path: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Response schemas
 // ---------------------------------------------------------------------------
@@ -81,6 +93,32 @@ export const ExperimentDetailResponseSchema = z.object({
   data: ExperimentDetailSchema,
 });
 
+// One baseline (row × scorer) score. `inputHash` is `hashRowInput` of the
+// row's dataset input — the join key a live run uses to find its baseline.
+export const BaselineScoreRowSchema = z.object({
+  inputHash: z.string(),
+  scorer: z.string(),
+  score: z.number(),
+});
+
+// Which baseline run was resolved, echoed back so the CLI never gates silently.
+// `matchedExactCommit: false` means no run existed at the requested tree hash
+// and the endpoint fell back to the most recent prior run of the experiment_key.
+export const BaselineResolvedSchema = z.object({
+  runId: z.string(),
+  treeHash: z.string(),
+  matchedExactCommit: z.boolean(),
+});
+
+// Baseline response envelope — `{ data: { resolved, rows } }`. `resolved` is
+// null when no baseline run exists at all (gate degrades to absolute pass/fail).
+export const ExperimentBaselineResponseSchema = z.object({
+  data: z.object({
+    resolved: BaselineResolvedSchema.nullable(),
+    rows: z.array(BaselineScoreRowSchema),
+  }),
+});
+
 // ---------------------------------------------------------------------------
 // Inferred types (for callers who want TS types rather than Zod schemas).
 // ---------------------------------------------------------------------------
@@ -96,3 +134,7 @@ export type ExperimentDetail = z.infer<typeof ExperimentDetailSchema>;
 export type ExperimentsListParams = z.infer<typeof ExperimentsListParamsSchema>;
 export type ExperimentsListResponse = z.infer<typeof ExperimentsListResponseSchema>;
 export type ExperimentDetailResponse = z.infer<typeof ExperimentDetailResponseSchema>;
+export type ExperimentBaselineParams = z.infer<typeof ExperimentBaselineParamsSchema>;
+export type BaselineScoreRow = z.infer<typeof BaselineScoreRowSchema>;
+export type BaselineResolved = z.infer<typeof BaselineResolvedSchema>;
+export type ExperimentBaselineResponse = z.infer<typeof ExperimentBaselineResponseSchema>;

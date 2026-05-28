@@ -7,7 +7,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  target: 'es2019',
+  target: 'es2020',
   treeshake: true,
   noExternal: ['@agentmark-ai/templatedx'],
   outExtension({ format }) {

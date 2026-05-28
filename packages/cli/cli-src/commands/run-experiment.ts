@@ -3,8 +3,11 @@ import fs from "fs";
 import type { Root } from "mdast";
 import { pathToFileURL } from "url";
 import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
-import { buildJUnitXml, type JUnitRow } from "../utils/junit-formatter.js";
+import { buildJUnitReport, type JUnitRow } from "../utils/junit-formatter.js";
+import { evaluateExperimentGate, baselineRequestQuery, parseBaselineResponse, type GateRow, type BaselineResolved } from "@agentmark-ai/prompt-core";
 import { readTestSettings } from "../utils/test-settings.js";
+import { loadLocalConfig } from "../config.js";
+import { getApiUrl } from "../auth/constants.js";
 
 /**
  * Loads an AST from either a pre-built JSON file or an MDX file.
@@ -240,7 +243,117 @@ export function postExperimentScores(
   }
 }
 
-export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number; truncate?: number; concurrency?: number }) {
+/**
+ * Resolve the API base + headers for the baseline-scores lookup.
+ *
+ * Cloud (when an API key is present via `AGENTMARK_API_KEY` or a linked
+ * project): the gateway base URL with the api-key in `Authorization` and the
+ * app id in `X-Agentmark-App-Id` — the same convention the trace forwarder
+ * uses. Otherwise the local `agentmark dev` API server, which serves the
+ * identical `/v1/experiments/baseline` route from SQLite.
+ */
+function resolveBaselineApi(): { baseUrl: string; headers: Record<string, string> } {
+  const cfg = loadLocalConfig().forwarding;
+  const apiKey = process.env.AGENTMARK_API_KEY || cfg?.apiKey;
+  if (apiKey) {
+    const baseUrl = (cfg?.baseUrl || getApiUrl()).replace(/\/+$/, '');
+    const headers: Record<string, string> = { Authorization: apiKey };
+    const appId = process.env.AGENTMARK_APP_ID || cfg?.appId;
+    if (appId) headers['X-Agentmark-App-Id'] = appId;
+    return { baseUrl, headers };
+  }
+  return {
+    baseUrl: `http://localhost:${process.env.AGENTMARK_API_PORT || '9418'}`,
+    headers: {},
+  };
+}
+
+/**
+ * Fetch baseline scores for a prior run via the shared baseline protocol
+ * (`baselineRequestQuery` + `parseBaselineResponse` from prompt-core — the same
+ * the SDK uses, so the gate's input can't drift between entry points). This
+ * wrapper owns only the CLI's transport (`resolveBaselineApi`) and its
+ * degrade-on-failure semantics: a missing/unreachable baseline yields an empty
+ * map rather than hard-failing CI.
+ *
+ * Returns `{ map, resolved, error }`. `error` is set for a transport/auth/parse
+ * failure (HTTP non-2xx or a thrown fetch) and is left undefined for a
+ * successful-but-empty baseline — so the caller can tell a misconfigured key or
+ * unreachable endpoint from a genuinely absent baseline, instead of silently
+ * disabling the gate on both with the same "no baseline" message.
+ */
+export async function fetchBaselineScores(args: {
+  experimentKey: string;
+  datasetPath?: string;
+  treeHash: string;
+}): Promise<{ map: Map<string, number>; resolved: BaselineResolved | null; error?: string }> {
+  try {
+    const { baseUrl, headers } = resolveBaselineApi();
+    const res = await fetch(
+      `${baseUrl}/v1/experiments/baseline?${baselineRequestQuery(args)}`,
+      { method: 'GET', headers },
+    );
+    if (!res.ok) {
+      const auth = res.status === 401 || res.status === 403;
+      return {
+        map: new Map(),
+        resolved: null,
+        error: auth ? `HTTP ${res.status} — check AGENTMARK_API_KEY` : `HTTP ${res.status}`,
+      };
+    }
+    const { resolved, baseline } = parseBaselineResponse(await res.json());
+    return { map: baseline, resolved };
+  } catch (e) {
+    // Network/parse failure — proceed with no baseline, but flag it as an error
+    // (unreachable endpoint) so the caller doesn't report it as "no baseline".
+    return { map: new Map(), resolved: null, error: `unreachable — ${(e as Error)?.message || 'fetch failed'}` };
+  }
+}
+
+/**
+ * Resolve a git ref (branch, commit, or tree hash) to its **tree hash**, which
+ * is what runs are tagged with (`commit_sha` is content-addressed). Resolving
+ * `<ref>^{tree}` is idempotent for an already-resolved tree hash. Falls back to
+ * the raw value if git isn't available.
+ */
+async function resolveTreeHash(ref: string, cwd: string): Promise<string> {
+  try {
+    const { execFileSync } = await import('child_process');
+    return execFileSync('git', ['rev-parse', `${ref}^{tree}`], {
+      encoding: 'utf-8',
+      timeout: 5000,
+      cwd,
+    }).trim();
+  } catch {
+    return ref;
+  }
+}
+
+/**
+ * Derive the experiment identity (the regression gate's stable matching key)
+ * from the entrypoint, as a repo-relative path normalized to forward slashes
+ * with a leading `./` — stable regardless of where the CLI is invoked, and
+ * distinct per entrypoint so two evals sharing a dataset don't collide. Falls
+ * back to the prompt name / basename when git isn't available. Callers prefer
+ * an explicit `test_settings.experiment_key` over this default.
+ */
+async function deriveExperimentKey(resolvedFilepath: string, promptName?: string): Promise<string> {
+  try {
+    const { execFileSync } = await import('child_process');
+    const toplevel = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      encoding: 'utf-8',
+      timeout: 5000,
+      cwd: path.dirname(resolvedFilepath),
+    }).trim();
+    const rel = path.relative(toplevel, resolvedFilepath).split(path.sep).join('/');
+    if (rel && !rel.startsWith('..')) return `./${rel}`;
+  } catch {
+    // git unavailable / not a repo — fall through to a best-effort identity.
+  }
+  return promptName || path.basename(resolvedFilepath);
+}
+
+export default async function runExperiment(filepath: string, options: { skipEval?: boolean; format?: string; thresholdPercent?: number; server?: string; saveOutput?: string; sample?: number; rows?: string; split?: string; seed?: number; truncate?: number; concurrency?: number; baselineCommit?: string }) {
   const evalEnabled = !options.skipEval;
   const format = options.format || 'table';
   const truncateLimit = options.truncate === 0 ? Infinity : (options.truncate ?? 1000);
@@ -334,13 +447,55 @@ export default async function runExperiment(filepath: string, options: { skipEva
     // Not a git repo or git not available — skip
   }
 
+  // Read test_settings up front — needed for the experiment identity (below)
+  // and the regression tolerance, which is evaluated inline as the run streams
+  // so the gate fires for every output format, not only --format junit.
+  // Validated against the canonical TestSettingsSchema; typos / out-of-range
+  // values yield `undefined` rather than silent behaviour.
+  const testSettings = await readTestSettings(ast);
+  const regressionTolerance = testSettings?.regression_tolerance;
+
+  // Experiment identity: explicit `test_settings.experiment_key`, else the
+  // repo-relative entrypoint path. Stable across commits and composition-
+  // agnostic (prompt/workflow/agent), so two evals sharing a dataset don't
+  // collide. Tagged on this run's spans (via the dataset-run body → runner →
+  // span) and used as the baseline-lookup key. `sourceTreeHash` (commitSha) is
+  // the run's code state; together they resolve the baseline.
+  const experimentKey = testSettings?.experiment_key || await deriveExperimentKey(resolvedFilepath, promptName);
+
+  // Resolve the baseline run (if requested) and fetch its per-(row × scorer)
+  // scores. Keyed by hashRowInput so live rows match regardless of order.
+  // hashRowInput is loaded lazily (only when a baseline is in play) to keep
+  // prompt-core off the CLI's startup path.
+  let baselineMap = new Map<string, number>();
+  let baselineCommitSha: string | undefined;
+  let hashRowInput: ((input: unknown) => string) | undefined;
+  if (evalEnabled && options.baselineCommit) {
+    baselineCommitSha = await resolveTreeHash(options.baselineCommit, path.dirname(resolvedFilepath));
+    const baseline = await fetchBaselineScores({ experimentKey, datasetPath, treeHash: baselineCommitSha });
+    baselineMap = baseline.map;
+    if (baselineMap.size > 0) {
+      ({ hashRowInput } = await import("@agentmark-ai/prompt-core"));
+      if (baseline.resolved && !baseline.resolved.matchedExactCommit) {
+        // No run at the exact base tree hash — fell back to the most recent
+        // prior run of this experiment_key. Surface it on stderr (stdout stays
+        // clean for `> results.xml` / csv).
+        console.error(`⚠️  No run at ${baselineCommitSha} for "${experimentKey}"; comparing against the most recent prior run instead.`);
+      }
+    } else if (baseline.error) {
+      console.error(`⚠️  Could not fetch baseline for "${experimentKey}" (${baseline.error}) — regression gate inactive.`);
+    } else {
+      console.error(`⚠️  No baseline run found for "${experimentKey}" — regression gate inactive.`);
+    }
+  }
+
   // Only show status messages for table format
   if (format === 'table') {
     console.log("Running prompt with dataset...");
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(sampling ? { sampling } : {}), ...(commitSha ? { commitSha } : {}), ...(options.concurrency !== undefined ? { concurrency: options.concurrency } : {}) } });
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(experimentKey ? { experimentKey } : {}), ...(sampling ? { sampling } : {}), ...(commitSha ? { sourceTreeHash: commitSha } : {}), ...(options.concurrency !== undefined ? { concurrency: options.concurrency } : {}) } });
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
@@ -406,6 +561,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
 
   let index = 1;
   let totalEvals = 0; let passedEvals = 0;
+  // Lightweight per-row eval data buffered for the regression gate, which runs
+  // once at the end via the shared `evaluateExperimentGate` primitive — the same
+  // gate the SDK uses, so the two entry points never drift. Buffering (rather
+  // than the prior inline tally) keeps the gate format-independent and lets one
+  // primitive own both the regression and score_threshold predicates.
+  const gateRows: GateRow[] = [];
   let evalNames: string[] = [];
   let tableInitialized = false;
   let Table: any;
@@ -492,6 +653,21 @@ export default async function runExperiment(filepath: string, options: { skipEva
             actual = typeof ao === 'string' ? ao : JSON.stringify(ao ?? '');
           }
           const evals = Array.isArray(r.evals) ? r.evals : [];
+
+          // Input-hash join key for baseline matching — computed once per row,
+          // only when a baseline is in play (skips the hash cost otherwise).
+          // Reused by both the regression gate and the JUnit buffer below.
+          const rowInputHash = hashRowInput ? hashRowInput(r.input) : undefined;
+
+          // Buffer this row's eval scores for the shared regression gate, which
+          // runs once after streaming (evaluateExperimentGate). Format-independent.
+          gateRows.push({
+            inputHash: rowInputHash,
+            evals: evals.map((e: any) => ({
+              name: typeof e.name === 'string' ? e.name : 'unknown',
+              score: typeof e.score === 'number' ? e.score : undefined,
+            })),
+          });
 
           // Post eval scores to the API server (fire-and-forget)
           postExperimentScores(evt, `http://localhost:${process.env.AGENTMARK_API_PORT || '9418'}`);
@@ -582,19 +758,26 @@ export default async function runExperiment(filepath: string, options: { skipEva
             // Buffer structured row data for JUnit XML emission after the
             // stream completes. We capture raw values (not the table-display
             // strings) so the formatter can decide how to stringify each
-            // payload type.
+            // payload type. `rowInputHash` (computed above) attaches each
+            // scorer's matched baseline score for the per-row XML failure detail.
             junitRows.push({
               index,
               input: r.input,
               actualOutput: r.actualOutput,
               expectedOutput: r.expectedOutput,
-              evals: evals.map((e: any) => ({
-                name: typeof e.name === 'string' ? e.name : 'unknown',
-                score: typeof e.score === 'number' ? e.score : undefined,
-                passed: typeof e.passed === 'boolean' ? e.passed : undefined,
-                label: typeof e.label === 'string' ? e.label : undefined,
-                reason: typeof e.reason === 'string' ? e.reason : undefined,
-              })),
+              evals: evals.map((e: any) => {
+                const name = typeof e.name === 'string' ? e.name : 'unknown';
+                return {
+                  name,
+                  score: typeof e.score === 'number' ? e.score : undefined,
+                  passed: typeof e.passed === 'boolean' ? e.passed : undefined,
+                  label: typeof e.label === 'string' ? e.label : undefined,
+                  reason: typeof e.reason === 'string' ? e.reason : undefined,
+                  baselineScore: rowInputHash !== undefined
+                    ? baselineMap.get(`${rowInputHash}::${name}`)
+                    : undefined,
+                };
+              }),
             });
           }
 
@@ -621,24 +804,51 @@ export default async function runExperiment(filepath: string, options: { skipEva
     console.log(JSON.stringify(jsonRows, null, 2));
   }
 
+  // Evaluate the regression gate once, via the shared primitive (same gate the
+  // SDK uses). Format-independent: it fires for table/csv/json, not only junit.
+  const gate = evaluateExperimentGate({
+    rows: gateRows,
+    baseline: baselineMap,
+    regressionTolerance,
+    scoreThresholds: evalEnabled ? testSettings?.score_thresholds : undefined,
+  });
+
+  // Guard the silent no-op: a baseline run resolved, yet NONE of this run's rows
+  // matched it by input hash — so the per-row regression gate compared nothing
+  // and would pass green having checked nothing. Happens when inputs are masked
+  // (hideInputs / a mask fn rewrites the stored input the gate hashes), or when
+  // the experiment_key / dataset input differs from the baseline run. Warn
+  // loudly on stderr (stdout stays clean for `> results.xml`) rather than gate
+  // silently — same contract as the recency-fallback / no-baseline warnings.
+  if (baselineMap.size > 0) {
+    const matchedRows = gate.rowResults.filter((r) =>
+      r.evals.some((e) => e.baselineScore !== undefined),
+    ).length;
+    if (matchedRows === 0) {
+      console.error(
+        `⚠️  Baseline resolved but 0/${gate.rowResults.length} rows matched it by input hash — regression gate compared nothing. ` +
+        `Inputs may be masked (hideInputs/mask), or the experiment_key / dataset input may differ from the baseline run.`
+      );
+    }
+  }
+
   // Output JUnit XML after streaming is complete (one console.log call so
   // users can redirect with `> results.xml` — the consumer's XML parser will
   // ignore trailing whitespace).
   if (format === 'junit') {
     const suiteName = promptName || path.basename(resolvedFilepath);
-    // Read test_settings from the AST on demand — the frontmatter is already
-    // part of the AST, so loadAst doesn't need to pre-extract individual
-    // fields. Validated against the canonical TestSettingsSchema; typos and
-    // out-of-range values yield `undefined` rather than silent behaviour.
-    const testSettings = await readTestSettings(ast);
-    const xml = buildJUnitXml(junitRows, {
+    // The XML re-derives per-row failures from the same `isRegression` predicate
+    // the gate uses, so the count shown here and the gate's verdict agree.
+    const report = buildJUnitReport(junitRows, {
       suiteName,
       promptPath: promptName,
       commitSha,
+      baselineCommitSha,
       runId: experimentRunId,
-      regressionTolerance: testSettings?.regression_tolerance,
+      regressionTolerance,
+      scoreThresholds: gate.scoreThresholdResults,
     });
-    console.log(xml);
+    console.log(report.xml);
   }
 
   // Display link to view all experiment traces (only for text or object prompts)
@@ -676,5 +886,26 @@ export default async function runExperiment(filepath: string, options: { skipEva
         `   Threshold: ${t}%`
       );
     }
+  }
+
+  // New gates fail the process with a non-zero exit: the run-level per-scorer
+  // threshold gate (test_settings.score_thresholds) and the per-row
+  // regression-vs-baseline gate. Absolute per-row failures are intentionally
+  // NOT gated here — they're reported in the XML and gated by the consumer
+  // (mikepenz / --threshold), preserving long-standing CLI behaviour. The error
+  // goes to stderr, leaving any JUnit XML on stdout intact for `> out.xml`.
+  for (const r of gate.failedScoreThresholds) {
+    console.error(
+      `❌ Scorer "${r.scorer}" mean ${r.mean.toFixed(3)} is below threshold ${r.threshold} (n=${r.count})`
+    );
+  }
+  if (gate.regressionFailures > 0) {
+    console.error(`❌ ${gate.regressionFailures} scorer result(s) regressed beyond tolerance vs baseline`);
+  }
+  if (!gate.passed) {
+    const parts: string[] = [];
+    if (gate.regressionFailures > 0) parts.push(`${gate.regressionFailures} regression(s)`);
+    if (gate.failedScoreThresholds.length > 0) parts.push(`${gate.failedScoreThresholds.length} scorer threshold(s)`);
+    throw new Error(`Experiment failed: ${parts.join(', ')}`);
   }
 }

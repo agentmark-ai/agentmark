@@ -9,8 +9,12 @@
  *    fixtures).
  * 2. The value flows through to the JUnit XML output as a `<property>`.
  * 3. With a baselineScore supplied, the gate predicate fires and emits
- *    a `<failure>` — the only existing escape hatch for code-path users
- *    until the baseline endpoint ships.
+ *    a `<failure>`.
+ *
+ * The live CLI path that populates `baselineScore` (via `--baseline-commit`
+ * and the `/v1/experiments/baseline` endpoint) is exercised in
+ * `run-experiment.test.ts`; this file stays focused on the parser →
+ * readTestSettings → formatter contract.
  *
  * This catches the kind of integration drift the unit tests can miss —
  * e.g. if the templatedx AST shape ever changes so the yaml node isn't

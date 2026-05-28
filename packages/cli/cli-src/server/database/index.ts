@@ -55,6 +55,15 @@ db.exec(`
         DatasetItemName TEXT DEFAULT '',
         DatasetExpectedOutput TEXT DEFAULT '',
         DatasetInput TEXT DEFAULT '',
+
+        -- Experiment identity (regression-gate baseline matching)
+        -- ExperimentKey: stable, composition-agnostic identity of the evaluation
+        --   (prompt/workflow/agent), set on the DatasetRunId root span.
+        -- SourceTreeHash: git tree hash of the run's code state. Distinct from
+        --   any deployed-commit notion; the regression gate matches baselines
+        --   on this.
+        ExperimentKey TEXT DEFAULT '',
+        SourceTreeHash TEXT DEFAULT '',
         
         -- Prompt/template fields
         PromptName TEXT DEFAULT '',
@@ -99,6 +108,7 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_traces_session_id ON traces(SessionId);
     CREATE INDEX IF NOT EXISTS idx_traces_type_timestamp ON traces(Type, Timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_traces_dataset_run_id ON traces(DatasetRunId);
+    CREATE INDEX IF NOT EXISTS idx_traces_experiment_key ON traces(ExperimentKey);
 `)
 
 export default db;

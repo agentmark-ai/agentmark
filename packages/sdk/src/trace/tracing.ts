@@ -170,6 +170,21 @@ export type SpanOptions = {
   datasetItemName?: string;
   datasetExpectedOutput?: string;
   datasetPath?: string;
+  /**
+   * Experiment identity for the regression gate. Whoever sets `datasetRunId`
+   * (the run producers) MUST also set `experimentKey` — the stable,
+   * composition-agnostic identity of the evaluation (prompt/workflow/agent).
+   */
+  experimentKey?: string;
+  /** Git tree hash of the code state this run executed against (gate baseline key). */
+  sourceTreeHash?: string;
+  /**
+   * JSON-serialized dataset row input. Stored so the regression gate can hash it
+   * (`hashRowInput`) and match a later run's rows to this one. Required for an
+   * experiment run to serve as a baseline when the subject isn't an AI-SDK call
+   * (agents/workflows), which otherwise carry no input in telemetry.
+   */
+  datasetInput?: string;
 };
 
 /**
@@ -285,6 +300,15 @@ function setAgentmarkAttributes(otelSpan: Span, options: SpanOptions): void {
   }
   if (options.datasetPath) {
     otelSpan.setAttribute(`${AgentMarkKey}.dataset_path`, options.datasetPath);
+  }
+  if (options.experimentKey) {
+    otelSpan.setAttribute(`${AgentMarkKey}.experiment_key`, options.experimentKey);
+  }
+  if (options.sourceTreeHash) {
+    otelSpan.setAttribute(`${AgentMarkKey}.source_tree_hash`, options.sourceTreeHash);
+  }
+  if (options.datasetInput) {
+    otelSpan.setAttribute(`${AgentMarkKey}.dataset_input`, options.datasetInput);
   }
 
   if (options.metadata) {

@@ -19,11 +19,16 @@ const SENSITIVE_KEYS = new Set([
   "gen_ai.response.output",
   "gen_ai.response.output_object",
   "gen_ai.request.tool_calls",
+  // Carries the full JSON-serialized dataset row input (experiment runs). Must
+  // be listed here AND in INPUT_KEYS — keys not in SENSITIVE_KEYS are skipped
+  // entirely, so INPUT_KEYS membership alone would never redact it.
+  "agentmark.dataset_input",
 ]);
 
 const INPUT_KEYS = new Set([
   "gen_ai.request.input",
   "gen_ai.request.tool_calls",
+  "agentmark.dataset_input",
 ]);
 
 const OUTPUT_KEYS = new Set([

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import db from '../cli-src/server/database';
-import { getExperimentById } from '../cli-src/server/routes/experiments';
+import { getExperimentById, getExperiments, getBaselineScores } from '../cli-src/server/routes/experiments';
+import { hashRowInput } from '@agentmark-ai/prompt-core';
 
 // Helper to clean up the database between tests
 function clearDatabase() {
@@ -205,5 +206,178 @@ describe('getExperimentById', () => {
     expect(item).toHaveProperty('expectedOutput');
     expect(item).toHaveProperty('actualOutput');
     expect(item).toHaveProperty('scores');
+  });
+});
+
+describe('getBaselineScores', () => {
+  // Insert a root experiment span carrying the experiment identity (ExperimentKey
+  // + SourceTreeHash columns) and the dataset row input. Mirrors how a stored
+  // experiment run looks after the identity re-scope.
+  function insertBaselineRoot(data: {
+    traceId: string;
+    datasetRunId: string;
+    experimentKey: string;
+    sourceTreeHash: string;
+    datasetInput: string;
+    timestamp?: string;
+  }) {
+    db.prepare(`
+      INSERT INTO traces (
+        TraceId, SpanId, ParentSpanId, SpanName, Type, Timestamp, CreatedAt, Duration,
+        DatasetRunId, ExperimentKey, SourceTreeHash, DatasetInput
+      ) VALUES (?, ?, NULL, 'root', 'SPAN', ?, ?, 100, ?, ?, ?, ?)
+    `).run(
+      data.traceId,
+      `${data.traceId}-root`,
+      data.timestamp || new Date().toISOString(),
+      data.timestamp || new Date().toISOString(),
+      data.datasetRunId,
+      data.experimentKey,
+      data.sourceTreeHash,
+      data.datasetInput,
+    );
+  }
+
+  function insertScore(resourceId: string, name: string, score: number) {
+    db.prepare(`
+      INSERT INTO scores (id, resource_id, score, label, reason, name, type, source, created_at)
+      VALUES (?, ?, ?, '', '', ?, 'experiment', 'eval', ?)
+    `).run(`${resourceId}-${name}`, resourceId, score, name, new Date().toISOString());
+  }
+
+  const KEY = './prompts/qa.prompt.mdx';
+
+  beforeEach(() => clearDatabase());
+  afterEach(() => clearDatabase());
+
+  it('returns per-(row × scorer) scores keyed by the same hash as the live runner, with an exact match', async () => {
+    const inputA = { q: 'alpha' };
+    const inputB = { q: 'beta' };
+    insertBaselineRoot({ traceId: 'b-1', datasetRunId: 'run-1', experimentKey: KEY, sourceTreeHash: 'tree-abc', datasetInput: JSON.stringify(inputA) });
+    insertBaselineRoot({ traceId: 'b-2', datasetRunId: 'run-1', experimentKey: KEY, sourceTreeHash: 'tree-abc', datasetInput: JSON.stringify(inputB) });
+    insertScore('b-1', 'groundedness', 0.91);
+    insertScore('b-2', 'groundedness', 0.80);
+
+    const { resolved, rows } = await getBaselineScores(KEY, 'tree-abc');
+
+    expect(resolved).toEqual({ runId: 'run-1', treeHash: 'tree-abc', matchedExactCommit: true });
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { inputHash: hashRowInput(inputA), scorer: 'groundedness', score: 0.91 },
+        { inputHash: hashRowInput(inputB), scorer: 'groundedness', score: 0.80 },
+      ]),
+    );
+    expect(rows).toHaveLength(2);
+  });
+
+  it('prefers an exact tree-hash match over a more recent run at a different tree hash', async () => {
+    const input = { q: 'alpha' };
+    // Newer run is at a DIFFERENT tree hash; older run is the exact match.
+    insertBaselineRoot({ traceId: 'exact-1', datasetRunId: 'run-exact', experimentKey: KEY, sourceTreeHash: 'tree-abc', datasetInput: JSON.stringify(input), timestamp: '2026-01-01T00:00:00.000Z' });
+    insertScore('exact-1', 'groundedness', 0.50);
+    insertBaselineRoot({ traceId: 'recent-1', datasetRunId: 'run-recent', experimentKey: KEY, sourceTreeHash: 'tree-other', datasetInput: JSON.stringify(input), timestamp: '2026-05-01T00:00:00.000Z' });
+    insertScore('recent-1', 'groundedness', 0.95);
+
+    const { resolved, rows } = await getBaselineScores(KEY, 'tree-abc');
+
+    // Exact wins even though it's older.
+    expect(resolved).toEqual({ runId: 'run-exact', treeHash: 'tree-abc', matchedExactCommit: true });
+    expect(rows).toEqual([{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.50 }]);
+  });
+
+  it('falls back to the most recent run of the same experiment_key when no exact tree-hash match exists', async () => {
+    const input = { q: 'alpha' };
+    insertBaselineRoot({ traceId: 'old-1', datasetRunId: 'run-old', experimentKey: KEY, sourceTreeHash: 'tree-1', datasetInput: JSON.stringify(input), timestamp: '2026-01-01T00:00:00.000Z' });
+    insertScore('old-1', 'groundedness', 0.50);
+    insertBaselineRoot({ traceId: 'new-1', datasetRunId: 'run-new', experimentKey: KEY, sourceTreeHash: 'tree-2', datasetInput: JSON.stringify(input), timestamp: '2026-05-01T00:00:00.000Z' });
+    insertScore('new-1', 'groundedness', 0.95);
+
+    const { resolved, rows } = await getBaselineScores(KEY, 'tree-NONE');
+
+    // No exact match → most recent run, flagged as a non-exact (fallback) match.
+    expect(resolved).toEqual({ runId: 'run-new', treeHash: 'tree-2', matchedExactCommit: false });
+    expect(rows).toEqual([{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.95 }]);
+  });
+
+  it('does not cross-wire to a different experiment_key sharing the dataset (resolved:null)', async () => {
+    // A different eval ran at the same tree hash against the same input — must NOT match.
+    insertBaselineRoot({ traceId: 'other-1', datasetRunId: 'run-other', experimentKey: './prompts/OTHER.prompt.mdx', sourceTreeHash: 'tree-abc', datasetInput: JSON.stringify({ q: 'x' }) });
+    insertScore('other-1', 'groundedness', 0.91);
+
+    const { resolved, rows } = await getBaselineScores(KEY, 'tree-abc');
+    expect(resolved).toBeNull();
+    expect(rows).toEqual([]);
+  });
+});
+
+// Root spans can arrive with `ParentSpanId = ''` (OTEL exporters write empty
+// strings rather than NULL for missing parent IDs). All three root-span
+// queries — getExperiments, getExperimentById, getBaselineScores — must treat
+// empty string as a root. A regression here causes silent data discrepancies:
+// the baseline gate finds rows the list/detail queries miss.
+describe('root-span queries — empty-string ParentSpanId', () => {
+  beforeEach(() => clearDatabase());
+  afterEach(() => clearDatabase());
+
+  function insertRootWithEmptyParent(data: {
+    traceId: string;
+    spanId: string;
+    datasetRunId: string;
+    datasetRunName?: string;
+    experimentKey?: string;
+    sourceTreeHash?: string;
+    datasetInput?: string;
+  }) {
+    db.prepare(`
+      INSERT INTO traces (
+        TraceId, SpanId, ParentSpanId, SpanName, Type, Timestamp, CreatedAt, Duration,
+        DatasetRunId, DatasetRunName, ExperimentKey, SourceTreeHash, DatasetInput
+      ) VALUES (?, ?, '', 'root', 'SPAN', ?, ?, 100, ?, ?, ?, ?, ?)
+    `).run(
+      data.traceId,
+      data.spanId,
+      new Date().toISOString(),
+      new Date().toISOString(),
+      data.datasetRunId,
+      data.datasetRunName ?? '',
+      data.experimentKey ?? '',
+      data.sourceTreeHash ?? '',
+      data.datasetInput ?? '',
+    );
+  }
+
+  it('getExperiments returns runs whose root span has ParentSpanId=""', async () => {
+    insertRootWithEmptyParent({
+      traceId: 'er-1', spanId: 'er-root-1', datasetRunId: 'run-empty-parent', datasetRunName: 'empty-parent-exp',
+    });
+    const runs = await getExperiments();
+    expect(runs.map((r) => r.id)).toContain('run-empty-parent');
+  });
+
+  it('getExperimentById finds the run whose root span has ParentSpanId=""', async () => {
+    insertRootWithEmptyParent({
+      traceId: 'eb-1', spanId: 'eb-root-1', datasetRunId: 'run-by-id-empty', datasetRunName: 'detail-empty-parent',
+    });
+    const result = await getExperimentById('run-by-id-empty');
+    expect(result).not.toBeNull();
+    expect(result!.items).toHaveLength(1);
+    expect(result!.items[0]!.traceId).toBe('eb-1');
+  });
+
+  it('getBaselineScores resolves a run whose root span has ParentSpanId=""', async () => {
+    const input = { q: 'empty-parent' };
+    insertRootWithEmptyParent({
+      traceId: 'bs-1', spanId: 'bs-root-1', datasetRunId: 'run-baseline-empty',
+      experimentKey: './prompts/qa.prompt.mdx', sourceTreeHash: 'tree-zzz',
+      datasetInput: JSON.stringify(input),
+    });
+    db.prepare(`
+      INSERT INTO scores (id, resource_id, score, label, reason, name, type, source, created_at)
+      VALUES ('bs-1-sc', 'bs-1', 0.77, '', '', 'groundedness', 'experiment', 'eval', ?)
+    `).run(new Date().toISOString());
+
+    const { resolved, rows } = await getBaselineScores('./prompts/qa.prompt.mdx', 'tree-zzz');
+    expect(resolved).toEqual({ runId: 'run-baseline-empty', treeHash: 'tree-zzz', matchedExactCommit: true });
+    expect(rows).toEqual([{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.77 }]);
   });
 });

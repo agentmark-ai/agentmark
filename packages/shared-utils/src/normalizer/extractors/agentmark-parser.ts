@@ -54,6 +54,10 @@ export function parseAgentMarkAttributes(
     if (get('dataset_input')) result.datasetInput = String(get('dataset_input'));
     if (get('dataset_path')) result.datasetPath = String(get('dataset_path'));
 
+    // Experiment identity (regression-gate baseline matching).
+    if (get('experiment_key')) result.experimentKey = String(get('experiment_key'));
+    if (get('source_tree_hash')) result.sourceTreeHash = String(get('source_tree_hash'));
+
     return result;
 }
 

@@ -1,4 +1,5 @@
-export { AgentMarkSDK } from "./agentmark";
+export { AgentMarkSDK, experimentResultToJUnit } from "./agentmark";
+export type { RunExperimentOptions, RunExperimentResult, ExperimentEvaluator } from "./agentmark";
 export { span, trace, streamWithSpan } from "./trace";
 export { observe, SpanKind } from "./trace";
 export { serializeValue } from "./trace";
