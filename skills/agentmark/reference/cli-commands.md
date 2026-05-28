@@ -120,6 +120,7 @@ npx agentmark run-experiment <filepath> [options]
 | `--seed <number>` | Seed for reproducible sampling/splitting |
 | `--truncate <chars>` | Truncate table cell content to N chars (default: 1000, 0 = no limit) |
 | `--concurrency <number>` | Dataset rows to run in parallel (default: 20) |
+| `--baseline-commit <ref>` | Git ref (or tree hash) of a prior run to compare against; enables the regression gate via test_settings.regression_tolerance |
 
 ---
 

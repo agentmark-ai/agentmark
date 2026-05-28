@@ -12,9 +12,23 @@ const MOCK_MODEL_NAME = 'openai/gpt-4o';
 // Test state
 let runExperiment: any;
 let currentRunner: any = null;
+// Baseline rows returned by the mocked GET /v1/experiments/baseline. Tests set
+// this to drive the regression gate.
+let baselineRowsForTest: Array<{ inputHash: string; scorer: string; score: number }> = [];
+// HTTP status the mocked baseline endpoint returns. Tests set this to a non-2xx
+// (e.g. 401) to exercise the transport/auth-error degradation path.
+let baselineStatusForTest = 200;
 
 // Mock global fetch to simulate server dataset streaming
 global.fetch = (async (url: any, init?: any) => {
+  const urlStr = typeof url === 'string' ? url : String(url?.url ?? url);
+  if (urlStr.includes('/v1/experiments/baseline')) {
+    const body = baselineStatusForTest === 200 ? JSON.stringify({ data: { rows: baselineRowsForTest } }) : '{"error":{"code":"unauthorized","message":"bad key"}}';
+    return new Response(body, {
+      status: baselineStatusForTest,
+      headers: { 'Content-Type': 'application/json' },
+    } as any) as any;
+  }
   const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
   if (body?.type === 'dataset-run') {
     const resp = await currentRunner.runExperiment(body.data.ast, body.data.experimentId);
@@ -136,20 +150,25 @@ vi.mock('@agentmark-ai/prompt-core', async () => {
 
 describe('run-experiment', () => {
   const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   let dummyPath: string;
 
   beforeEach(async () => {
     vi.resetModules();
     logSpy.mockClear();
+    errSpy.mockClear();
     const { writeFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     dummyPath = join(__dirname, '..', 'tmp-experiment.mdx');
     writeFileSync(dummyPath, `---\ntext_config:\n  model_name: ${MOCK_MODEL_NAME}\n---`);
     currentRunner = null;
+    baselineRowsForTest = [];
+    baselineStatusForTest = 200;
   });
 
   afterEach(() => {
     logSpy.mockReset();
+    errSpy.mockReset();
     // Cleanup temp files created in tests
     const { unlinkSync, rmSync } = require('node:fs');
     const { join } = require('node:path');
@@ -174,6 +193,179 @@ describe('run-experiment', () => {
     runExperiment = (await import('../cli-src/commands/run-experiment')).default;
     await expect(runExperiment(dummyPath, { thresholdPercent: 100 })).rejects.toThrow(/Experiment failed/);
   });
+
+  // Emits a single dataset row with one scorer; lets tests drive the live score.
+  function runnerEmitting(input: unknown, scorer: string, score: number, passed = true) {
+    currentRunner = {
+      async runExperiment() {
+        const stream = new ReadableStream({
+          async start(controller) {
+            const enc = new TextEncoder();
+            const chunk = JSON.stringify({
+              type: 'dataset',
+              result: { input, expectedOutput: 'E', actualOutput: 'A', evals: [{ name: scorer, score, passed }] },
+            }) + '\n';
+            controller.enqueue(enc.encode(chunk));
+            controller.close();
+          },
+        });
+        return { stream };
+      },
+    } as any;
+  }
+
+  async function writePrompt(testSettingsYaml: string): Promise<string> {
+    const { writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const p = join(__dirname, '..', 'tmp-gate.prompt.mdx');
+    writeFileSync(p, `---\nname: gate-test\ntext_config:\n  model_name: ${MOCK_MODEL_NAME}\ntest_settings:\n${testSettingsYaml}\n---\nHello {props.name}!\n`);
+    return p;
+  }
+
+  it('fires the regression gate (JUnit) when a score drops more than tolerance below baseline', async () => {
+    const { hashRowInput } = await vi.importActual<any>('@agentmark-ai/prompt-core');
+    const input = { q: 'baseline-row' };
+    // Live 0.84 vs baseline 0.91 = 7.7% drop, tolerance 5% → regression fires.
+    baselineRowsForTest = [{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.91 }];
+    runnerEmitting(input, 'groundedness', 0.84, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await expect(
+      runExperiment(promptPath, { format: 'junit', baselineCommit: 'deadbeef' })
+    ).rejects.toThrow(/Experiment failed:.*regression/);
+
+    const xml = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(xml).toMatch(/<failure message="groundedness regressed 7\.7% vs baseline/);
+    expect(xml).toContain('<property name="baseline_score" value="0.91"/>');
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('does NOT fire the regression gate when the drop is within tolerance', async () => {
+    const { hashRowInput } = await vi.importActual<any>('@agentmark-ai/prompt-core');
+    const input = { q: 'baseline-row' };
+    // 2.2% drop, within 5% tolerance.
+    baselineRowsForTest = [{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.91 }];
+    runnerEmitting(input, 'groundedness', 0.89, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await runExperiment(promptPath, { format: 'junit', baselineCommit: 'deadbeef' });
+    const xml = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(xml).toMatch(/failures="0"/);
+    expect(xml).not.toContain('<failure');
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('degrades to no regression gate when no baseline scores are returned', async () => {
+    const input = { q: 'baseline-row' };
+    baselineRowsForTest = []; // baseline endpoint returns nothing
+    runnerEmitting(input, 'groundedness', 0.10, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    // No baseline → no regression failure → resolves (no throw), no <failure>.
+    await runExperiment(promptPath, { format: 'junit', baselineCommit: 'deadbeef' });
+    const xml = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(xml).toMatch(/failures="0"/);
+    expect(xml).not.toContain('baseline_score');
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('fires the regression gate in a non-JUnit (table) format too', async () => {
+    // Guards against the gate being coupled to --format junit: the regression
+    // tally is computed inline as the run streams, so it must fail the process
+    // even when no JUnit XML is emitted.
+    const { hashRowInput } = await vi.importActual<any>('@agentmark-ai/prompt-core');
+    const input = { q: 'baseline-row' };
+    // Live 0.84 vs baseline 0.91 = 7.7% drop, tolerance 5% → regression fires.
+    baselineRowsForTest = [{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.91 }];
+    runnerEmitting(input, 'groundedness', 0.84, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await expect(
+      runExperiment(promptPath, { format: 'table', baselineCommit: 'deadbeef' })
+    ).rejects.toThrow(/Experiment failed:.*regression/);
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('does NOT fire the regression gate in table format when within tolerance', async () => {
+    const { hashRowInput } = await vi.importActual<any>('@agentmark-ai/prompt-core');
+    const input = { q: 'baseline-row' };
+    // 2.2% drop, within 5% tolerance → no regression, run resolves cleanly.
+    baselineRowsForTest = [{ inputHash: hashRowInput(input), scorer: 'groundedness', score: 0.91 }];
+    runnerEmitting(input, 'groundedness', 0.89, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await expect(
+      runExperiment(promptPath, { format: 'table', baselineCommit: 'deadbeef' })
+    ).resolves.toBeUndefined();
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('fails the run-level score_thresholds gate when a scorer mean is below threshold', async () => {
+    runnerEmitting({ q: 'x' }, 'groundedness', 0.5, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  score_thresholds:\n    groundedness: 0.9');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await expect(
+      runExperiment(promptPath, { format: 'csv' })
+    ).rejects.toThrow(/Experiment failed:.*scorer threshold/);
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('emits a run-level threshold testcase in JUnit and fails the gate', async () => {
+    runnerEmitting({ q: 'x' }, 'groundedness', 0.5, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  score_thresholds:\n    groundedness: 0.9');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    await expect(
+      runExperiment(promptPath, { format: 'junit' })
+    ).rejects.toThrow(/scorer threshold/);
+    const xml = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(xml).toContain('name="run-threshold"');
+    expect(xml).toMatch(/<failure message="groundedness mean 0\.500 below threshold 0\.9"/);
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('warns instead of silently passing when a baseline resolves but no row matches by input hash', async () => {
+    const { hashRowInput } = await vi.importActual<any>('@agentmark-ai/prompt-core');
+    const liveInput = { q: 'live-row' };
+    // Baseline carries a score for a DIFFERENT input, so it resolves (size > 0)
+    // but the live row's hash never matches it. The live 0.10 would be a massive
+    // regression vs the 0.91 baseline IF it matched — proving the gate stays
+    // inert because nothing matched, not because the scores were fine.
+    baselineRowsForTest = [{ inputHash: hashRowInput({ q: 'a-different-row' }), scorer: 'groundedness', score: 0.91 }];
+    runnerEmitting(liveInput, 'groundedness', 0.10, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    // No match → no regression → no throw, but the no-op is surfaced (not silent).
+    await runExperiment(promptPath, { format: 'junit', baselineCommit: 'deadbeef' });
+    const xml = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(xml).toMatch(/failures="0"/);
+    expect(xml).not.toContain('baseline_score');
+    const err = errSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(err).toMatch(/0\/1 rows matched it by input hash/);
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
+
+  it('reports a baseline fetch error (HTTP 401) distinctly from an absent baseline', async () => {
+    baselineStatusForTest = 401; // simulate a bad/expired API key
+    runnerEmitting({ q: 'x' }, 'groundedness', 0.10, true);
+    const promptPath = await writePrompt('  dataset: ./data.jsonl\n  regression_tolerance: 0.05');
+    runExperiment = (await import('../cli-src/commands/run-experiment')).default;
+
+    // A transport/auth error degrades the gate (no throw), but says so explicitly
+    // rather than masquerading as "no baseline run found".
+    await runExperiment(promptPath, { format: 'junit', baselineCommit: 'deadbeef' });
+    const err = errSpy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(err).toMatch(/Could not fetch baseline .*HTTP 401 — check AGENTMARK_API_KEY/);
+    expect(err).not.toMatch(/No baseline run found/);
+    require('node:fs').unlinkSync(promptPath);
+  }, 15000);
 
   it('honors --skip-eval and does not enforce threshold', async () => {
     mockClientWithDataset([{ dataset: { input: {}, expected_output: 'NOT_IN_OUTPUT' }, evals: ['contains'], formatted: {} }]);

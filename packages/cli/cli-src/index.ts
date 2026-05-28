@@ -135,7 +135,8 @@ program
     if (!Number.isFinite(n) || n < 1) throw new Error('Concurrency must be a positive integer');
     return n;
   })
-  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number, truncate?: number, concurrency?: number }) => {
+  .option('--baseline-commit <ref>', 'Git ref (or tree hash) of a prior run to compare against; enables the regression gate via test_settings.regression_tolerance')
+  .action(async (filepath: string, options: { server?: string, skipEval?: boolean, format?: string, threshold?: number, sample?: number, rows?: string, split?: string, seed?: number, truncate?: number, concurrency?: number, baselineCommit?: string }) => {
     try {
       const format = options.format || 'table';
       if (!['table', 'csv', 'json', 'jsonl', 'junit'].includes(format)) {
@@ -153,6 +154,7 @@ program
         seed: options.seed,
         truncate: options.truncate,
         concurrency: options.concurrency,
+        baselineCommit: options.baselineCommit,
       });
     } catch (error) {
       program.error((error as Error).message);

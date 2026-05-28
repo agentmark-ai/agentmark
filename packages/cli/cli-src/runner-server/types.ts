@@ -25,7 +25,7 @@ export interface TelemetryOptions {
  */
 export interface WebhookHandler {
   runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string, sampling?: Record<string, unknown>, concurrency?: number): Promise<WebhookDatasetResponse>;
+  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string, sampling?: Record<string, unknown>, concurrency?: number, experimentKey?: string, sourceTreeHash?: string): Promise<WebhookDatasetResponse>;
 }
 
 /**
@@ -43,6 +43,11 @@ export interface WebhookRequest {
     promptPath?: string;
     sampling?: Record<string, unknown>;
     concurrency?: number;
+    // Experiment identity for the regression gate. experimentKey = stable,
+    // composition-agnostic eval identity; sourceTreeHash = git tree hash of the
+    // run's code state (the gate's baseline-match key).
+    experimentKey?: string;
+    sourceTreeHash?: string;
   };
 }
 

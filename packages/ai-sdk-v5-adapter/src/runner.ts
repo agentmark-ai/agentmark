@@ -318,7 +318,9 @@ export class VercelAdapterWebhookHandler<
     datasetRunName: string,
     datasetPath?: string,
     sampling?: Record<string, unknown>,
-    concurrency?: number
+    concurrency?: number,
+    experimentKey?: string,
+    sourceTreeHash?: string
   ): Promise<WebhookDatasetResponse> {
     const loader = this.client.getLoader();
     if (!loader) throw new Error("Loader not found");
@@ -358,7 +360,9 @@ export class VercelAdapterWebhookHandler<
                 datasetRunName: datasetRunName,
                 datasetItemName: `${index}`,
                 datasetExpectedOutput: item.dataset?.expected_output,
-                datasetPath: resolvedDatasetPath
+                datasetPath: resolvedDatasetPath,
+                experimentKey,
+                sourceTreeHash
               }, async (ctx: SpanContext) => {
                 if (item.dataset?.input != null) {
                   try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
@@ -467,7 +471,9 @@ export class VercelAdapterWebhookHandler<
                   datasetRunName: datasetRunName,
                   datasetItemName: `${index}`,
                   datasetExpectedOutput: item.dataset.expected_output,
-                  datasetPath: resolvedDatasetPath
+                  datasetPath: resolvedDatasetPath,
+                  experimentKey,
+                  sourceTreeHash
                 }, async (ctx: SpanContext) => {
                   if (item.dataset?.input != null) {
                     try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
@@ -499,7 +505,9 @@ export class VercelAdapterWebhookHandler<
                   datasetRunName: datasetRunName,
                   datasetItemName: `${index}`,
                   datasetExpectedOutput: item.dataset.expected_output,
-                  datasetPath: resolvedDatasetPath
+                  datasetPath: resolvedDatasetPath,
+                  experimentKey,
+                  sourceTreeHash
                 }, async (ctx: SpanContext) => {
                   if (item.dataset?.input != null) {
                     try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }

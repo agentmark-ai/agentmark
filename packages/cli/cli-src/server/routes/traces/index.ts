@@ -130,6 +130,8 @@ function normalizedSpanToSqliteRow(
     DatasetItemName: span.datasetItemName || "",
     DatasetExpectedOutput: span.datasetExpectedOutput || "",
     DatasetInput: span.datasetInput || "",
+    ExperimentKey: span.experimentKey || "",
+    SourceTreeHash: span.sourceTreeHash || "",
     PromptName: span.promptName || "",
     Props: span.props || null,
     Metadata: span.metadata ? JSON.stringify(span.metadata) : null,
@@ -153,9 +155,10 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
       Input, Output, OutputObject, ToolCalls, FinishReason, Settings,
       SessionId, SessionName, UserId, TraceName,
       DatasetRunId, DatasetRunName, DatasetPath, DatasetItemName, DatasetExpectedOutput, DatasetInput,
+      ExperimentKey, SourceTreeHash,
       PromptName, Props, Metadata, Tags
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   );
 
@@ -205,6 +208,8 @@ export const exportTraces = async (normalizedSpans: NormalizedSpan[]) => {
         row.DatasetItemName,
         row.DatasetExpectedOutput,
         row.DatasetInput,
+        row.ExperimentKey,
+        row.SourceTreeHash,
         row.PromptName,
         row.Props,
         row.Metadata,

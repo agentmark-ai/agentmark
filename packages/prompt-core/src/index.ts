@@ -11,6 +11,27 @@ export { TextConfigSchema, ObjectConfigSchema, TestSettingsSchema } from "./sche
 
 export { applySampling, parseRowSelection, parseSplitSpec, validateSamplingOptions } from './sampling';
 
+export { hashRowInput } from './hash-input';
+
+export { isRegression, evaluateExperimentGate } from './gate';
+export type { GateEval, GateRow, GateInput, GateResult, GateRowResult, ScoreThresholdResult } from './gate';
+
+// JUnit rendering of a gate result — single-sourced here so the CLI (prompt
+// experiments) and the SDK (code/agent/workflow experiments) emit the identical
+// report and surface the same way in CI.
+export {
+  buildJUnitXml,
+  buildJUnitReport,
+  escapeXmlAttribute,
+  escapeXmlText,
+  wrapCdata,
+  stringifyForXml,
+} from './junit';
+export type { JUnitRow, JUnitEval, JUnitSuiteOptions, JUnitReport } from './junit';
+
+export { baselineKey, baselineRequestQuery, parseBaselineResponse } from './baseline';
+export type { BaselineResolved, ParsedBaseline } from './baseline';
+
 export type {
   TextConfig,
   ImageConfig,

@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildJUnitXml,
+  buildJUnitReport,
   escapeXmlAttribute,
   escapeXmlText,
   wrapCdata,
   stringifyForXml,
   type JUnitRow,
-} from '../cli-src/utils/junit-formatter';
+} from '../src/junit';
+import { isRegression } from '../src/gate';
 
 const FIXED_TS = '2026-05-13T00:00:00.000Z';
 
@@ -543,5 +545,92 @@ describe('buildJUnitXml — regression-vs-baseline gate', () => {
     ];
     const xml = buildJUnitXml(rows, suiteOpts({ regressionTolerance: 0.05 }));
     expect(xml).toMatch(/failures="0"/);
+  });
+});
+
+describe('buildJUnitReport — failure tallies', () => {
+  const baseRow = (evals: JUnitRow['evals']): JUnitRow => ({
+    index: 1, input: 'i', actualOutput: 'a', expectedOutput: 'e', evals,
+  });
+
+  it('counts regression failures separately from absolute failures', () => {
+    const rows: JUnitRow[] = [
+      // absolute failure only (no baseline) — should NOT count as regression
+      baseRow([{ name: 'exact', score: 0, passed: false }]),
+      // regression failure: 0.8 vs baseline 0.95 = ~15.8% drop > 5% tolerance
+      baseRow([{ name: 'grounded', score: 0.8, passed: true, baselineScore: 0.95 }]),
+    ];
+    const report = buildJUnitReport(rows, suiteOpts({ regressionTolerance: 0.05 }));
+    expect(report.failures).toBe(2);
+    expect(report.regressionFailures).toBe(1);
+  });
+
+  it('reports zero regression failures when only absolute checks fail', () => {
+    const rows: JUnitRow[] = [baseRow([{ name: 'exact', score: 0, passed: false }])];
+    const report = buildJUnitReport(rows, suiteOpts());
+    expect(report.failures).toBe(1);
+    expect(report.regressionFailures).toBe(0);
+  });
+});
+
+describe('buildJUnitXml — run-level score_thresholds testcases', () => {
+  const noRows: JUnitRow[] = [];
+
+  it('emits a failing run-threshold testcase when mean is below threshold', () => {
+    const xml = buildJUnitXml(noRows, suiteOpts({
+      scoreThresholds: [{ scorer: 'groundedness', mean: 0.5, threshold: 0.9, count: 3 }],
+    }));
+    expect(xml).toMatch(/tests="1"/);
+    expect(xml).toMatch(/failures="1"/);
+    expect(xml).toContain('classname="groundedness" name="run-threshold"');
+    expect(xml).toMatch(/<failure message="groundedness mean 0\.500 below threshold 0\.9"/);
+    expect(xml).toContain('<property name="mean_score" value="0.5"/>');
+    expect(xml).toContain('<property name="threshold" value="0.9"/>');
+    expect(xml).toContain('<property name="sample_count" value="3"/>');
+  });
+
+  it('emits a passing run-threshold testcase when mean meets threshold', () => {
+    const report = buildJUnitReport(noRows, suiteOpts({
+      scoreThresholds: [{ scorer: 'groundedness', mean: 0.95, threshold: 0.9, count: 2 }],
+    }));
+    expect(report.tests).toBe(1);
+    expect(report.failures).toBe(0);
+    expect(report.regressionFailures).toBe(0);
+    expect(report.xml).not.toContain('<failure');
+  });
+});
+
+describe('isRegression', () => {
+  it('fires when the fractional drop exceeds the tolerance', () => {
+    // 0.91 → 0.84 is a 7.69% drop, over a 5% tolerance.
+    expect(isRegression(0.84, 0.91, 0.05)).toBe(true);
+  });
+
+  it('does not fire when the drop is within tolerance', () => {
+    // 0.91 → 0.89 is a 2.2% drop, under 5%.
+    expect(isRegression(0.89, 0.91, 0.05)).toBe(false);
+  });
+
+  it('does not fire exactly at the tolerance boundary (strict >)', () => {
+    // 1.0 → 0.9 is exactly a 10% drop; tolerance 0.1 → not a regression.
+    expect(isRegression(0.9, 1.0, 0.1)).toBe(false);
+  });
+
+  it('does not fire on improvement', () => {
+    expect(isRegression(0.95, 0.9, 0.05)).toBe(false);
+  });
+
+  it('returns false when tolerance is undefined (gate disabled)', () => {
+    expect(isRegression(0.1, 0.9, undefined)).toBe(false);
+  });
+
+  it('returns false when score or baseline is missing', () => {
+    expect(isRegression(undefined, 0.9, 0.05)).toBe(false);
+    expect(isRegression(0.5, undefined, 0.05)).toBe(false);
+  });
+
+  it('returns false for a non-positive baseline (fractional drop undefined)', () => {
+    expect(isRegression(0, 0, 0.05)).toBe(false);
+    expect(isRegression(-0.5, -0.1, 0.05)).toBe(false);
   });
 });

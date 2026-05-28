@@ -153,12 +153,21 @@ export interface NormalizedSpan {
     datasetExpectedOutput?: string;
     datasetInput?: string;
 
+    // Experiment identity (regression-gate baseline matching).
+    // experimentKey: stable, composition-agnostic identity of the evaluation
+    //   (prompt/workflow/agent), set on the dataset-run root span.
+    experimentKey?: string;
+
     // Prompt fields
     promptName?: string;
     props?: string;         // Props/metadata from ai.telemetry.metadata.props
 
-    // Version control field
+    // Version control fields.
+    // commitSha: deployed-commit notion (pinned envs override it gateway-side).
+    // sourceTreeHash: git tree hash of the code state the run executed against —
+    //   distinct from commitSha; the regression gate matches baselines on this.
     commitSha?: string;
+    sourceTreeHash?: string;
 
     // Custom metadata fields (keys from metadata prefixes that don't map to known fields)
     metadata?: Record<string, string>;

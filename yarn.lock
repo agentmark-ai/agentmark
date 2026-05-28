@@ -341,6 +341,7 @@ __metadata:
     vitest: "npm:^3.1.4"
   peerDependencies:
     "@agentmark-ai/loader-api": ">=0.0.0"
+    "@agentmark-ai/prompt-core": ">=0.0.0"
   languageName: unknown
   linkType: soft
 

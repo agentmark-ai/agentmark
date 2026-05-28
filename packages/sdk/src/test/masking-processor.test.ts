@@ -205,6 +205,25 @@ describe("MaskingSpanProcessor", () => {
     expect(inner.onEnd).toHaveBeenCalledOnce();
   });
 
+  it("redacts agentmark.dataset_input when hideInputs is true (experiment row input)", () => {
+    const inner = createMockProcessor();
+    const processor = new MaskingSpanProcessor({
+      innerProcessor: inner as unknown as SpanProcessor,
+      hideInputs: true,
+    });
+
+    const span = createMockSpan({
+      "agentmark.dataset_input": '{"q":"sensitive customer question"}',
+      "gen_ai.response.output": "visible response",
+    });
+    processor.onEnd(span);
+
+    // The dataset row input must be redacted alongside gen_ai inputs — without
+    // this it would export unmasked while gen_ai.request.input is redacted.
+    expect(span.attributes["agentmark.dataset_input"]).toBe("[REDACTED]");
+    expect(span.attributes["gen_ai.response.output"]).toBe("visible response");
+  });
+
   it("should replace output keys with [REDACTED] when hideOutputs is true", () => {
     const inner = createMockProcessor();
     const processor = new MaskingSpanProcessor({

@@ -88,6 +88,18 @@ export const TestSettingsSchema = z.object({
   /** Eval function names to run during experiments. */
   evals: z.array(z.string()).optional(),
   /**
+   * Stable, composition-agnostic identity of this evaluation — the key the
+   * regression gate uses to match a run against its baseline across commits.
+   * Independent of whether the subject is a single prompt, a workflow, an
+   * agent, or a multi-agent system (think "test name", not "prompt name").
+   *
+   * Defaults to the repo-relative entrypoint path the experiment was run
+   * against (e.g. `./prompts/qa.prompt.mdx`). Set this explicitly for
+   * code-assembled targets with no single entrypoint file, or to keep the
+   * identity stable across file renames.
+   */
+  experiment_key: z.string().optional(),
+  /**
    * Maximum allowed drop in a scorer's score relative to its baseline before
    * the case fails the regression gate. Expressed as a fraction (0.05 = 5%).
    *
@@ -98,6 +110,18 @@ export const TestSettingsSchema = z.object({
    * absolute pass/fail status.
    */
   regression_tolerance: z.number().min(0).max(1).optional(),
+  /**
+   * Minimum acceptable **mean score** per scorer across the whole run, keyed
+   * by scorer name (e.g. `{ groundedness: 0.9 }`). After a run completes, the
+   * mean of each listed scorer's numeric scores is compared against its
+   * threshold; falling below fails the run.
+   *
+   * This is a run-level aggregate gate — distinct from the per-row absolute
+   * gate (`passed === false`) and the per-row regression gate
+   * (`regression_tolerance`). It is the declarative equivalent of a
+   * run-level evaluator assertion in code-first eval frameworks.
+   */
+  score_thresholds: z.record(z.string(), z.number().min(0).max(1)).optional(),
 });
 
 export type TestSettings = z.infer<typeof TestSettingsSchema>;
