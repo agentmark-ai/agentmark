@@ -102,7 +102,7 @@ npx agentmark run-experiment agentmark/qa-bot.prompt.mdx \
   --baseline-commit "$(git merge-base origin/main HEAD)"
 ```
 
-Useful in PR CI: each push runs the experiment, compares to the baseline, and fails the build if the prompt change causes a regression. For the `regression_tolerance` schema, fetch `https://docs.agentmark.co/evaluate/running-experiments.md`.
+Useful in PR CI: each push runs the experiment, compares to the baseline, and fails the build if the prompt change causes a regression. For the `regression_tolerance` schema (and the per-scorer `score_thresholds` gate), fetch `https://docs.agentmark.co/deploy/regression-gates.md` — that page is now the canonical home (relocated from `evaluate/running-experiments.md`).
 
 ## Reading experiment results from the API
 
