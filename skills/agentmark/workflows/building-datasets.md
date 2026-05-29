@@ -74,7 +74,7 @@ agent: import_dataset_rows_from_spans({  datasetName: "qa-bot/data",
                                          span_ids:  ["<id1>", "<id2>"] })
 ```
 
-This is the canonical pattern for building a regression dataset from observed failures. The transformation rules (how trace I/O maps to dataset row shape) are documented at `https://docs.agentmark.co/evaluate/datasets.md`.
+This is the canonical pattern for building a regression dataset from observed failures. The transformation rules (how trace I/O maps to dataset row shape) are documented at `https://docs.agentmark.co/evaluate/annotations.md` — see the "Save to dataset" section, which is the canonical home for the trace→row mapping (relocated from `evaluate/datasets.md`).
 
 ### 3. Append programmatically
 
