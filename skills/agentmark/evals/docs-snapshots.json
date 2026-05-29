@@ -1,7 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "comment": "SHA-256 fingerprints of every docs.agentmark.co URL the skill references. Updated by scripts/update-docs-snapshots.mjs. Drift between these hashes and live docs is caught by validate-agentmark-skill.mjs T2.6 — when it fires, review the skill's references against the new docs content, then re-run this script to acknowledge.",
-  "updated_at": "2026-05-29T02:27:54.429Z",
   "snapshots": {
     "https://docs.agentmark.co/build/generation-types/image.md": {
       "sha256": "c9874a0a2800d796555bc6a51ff0d8f1a3de77ba324aaa0cc982cd9374487507",

@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-28T01:03:36.411Z",
+  "generatedAt": "2026-05-29T01:13:14.039Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-28T01:03:36.411Z",
+      "fetchedAt": "2026-05-29T01:13:14.039Z",
       "modelCount": 1200
     },
     "openrouter": {
-      "fetchedAt": "2026-05-28T01:03:36.411Z",
-      "modelCount": 129
+      "fetchedAt": "2026-05-29T01:13:14.039Z",
+      "modelCount": 131
     }
   },
   "models": {
@@ -23593,6 +23593,50 @@
       "displayName": "Speech/azure Stt",
       "mode": "audio_transcription",
       "source": "litellm"
+    },
+    "claude-opus-4.8-fast": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Opus 4.8 (Fast)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.00001,
+        "outputCostPerToken": 0.00005
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "claude-opus-4.8": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Opus 4.8",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
     }
   }
 }

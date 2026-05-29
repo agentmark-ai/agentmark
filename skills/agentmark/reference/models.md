@@ -151,7 +151,7 @@ sora-2-pro-high-res
 
 ## Anthropic (`anthropic`)
 
-32 canonical chat-mode models (16 fine-tuned / date-stamped duplicates filtered out).
+34 canonical chat-mode models (16 fine-tuned / date-stamped duplicates filtered out).
 
 ```
 claude-3-5-haiku-latest
@@ -178,6 +178,8 @@ claude-opus-4.6
 claude-opus-4.6-fast
 claude-opus-4.7
 claude-opus-4.7-fast
+claude-opus-4.8
+claude-opus-4.8-fast
 claude-sonnet-4
 claude-sonnet-4-5
 claude-sonnet-4-6
