@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-29T01:13:14.039Z",
+  "generatedAt": "2026-05-30T01:07:58.065Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-29T01:13:14.039Z",
-      "modelCount": 1200
+      "fetchedAt": "2026-05-30T01:07:58.065Z",
+      "modelCount": 1203
     },
     "openrouter": {
-      "fetchedAt": "2026-05-29T01:13:14.039Z",
-      "modelCount": 131
+      "fetchedAt": "2026-05-30T01:07:58.065Z",
+      "modelCount": 129
     }
   },
   "models": {
@@ -9758,7 +9758,7 @@
     },
     "gpt-4o-audio-preview": {
       "provider": "openai",
-      "displayName": "OpenAI: GPT-4o Audio",
+      "displayName": "Gpt 4o Audio Preview",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
@@ -9773,16 +9773,8 @@
         "functionCalling": true,
         "parallelFunctionCalling": true,
         "audioInput": true,
-        "audioOutput": true,
-        "structuredOutput": true
-      },
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_p"
-      ]
+        "audioOutput": true
+      }
     },
     "gpt-4o-audio-preview-2025-06-03": {
       "provider": "openai",
@@ -19938,12 +19930,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 1e-7,
-        "outputCostPerToken": 2e-7
+        "inputCostPerToken": 9.83e-8,
+        "outputCostPerToken": 1.966e-7
       },
       "context": {
         "maxInputTokens": 1048576,
-        "maxOutputTokens": 16384
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
@@ -20241,7 +20233,8 @@
       },
       "capabilities": {
         "structuredOutput": true
-      }
+      },
+      "deprecationDate": "2026-05-30"
     },
     "claude-opus-4.5": {
       "provider": "anthropic",
@@ -23636,6 +23629,78 @@
         "vision": true,
         "functionCalling": true,
         "structuredOutput": true
+      }
+    },
+    "claude-opus-4-8": {
+      "provider": "anthropic",
+      "displayName": "Claude Opus 4 8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "vertex_ai/claude-opus-4-8": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Opus 4 8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "vertex_ai/claude-opus-4-8@default": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Opus 4 8@default",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
       }
     }
   }

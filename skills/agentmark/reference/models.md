@@ -151,7 +151,7 @@ sora-2-pro-high-res
 
 ## Anthropic (`anthropic`)
 
-34 canonical chat-mode models (16 fine-tuned / date-stamped duplicates filtered out).
+35 canonical chat-mode models (16 fine-tuned / date-stamped duplicates filtered out).
 
 ```
 claude-3-5-haiku-latest
@@ -172,6 +172,7 @@ claude-opus-4-1
 claude-opus-4-5
 claude-opus-4-6
 claude-opus-4-7
+claude-opus-4-8
 claude-opus-4.1
 claude-opus-4.5
 claude-opus-4.6
@@ -192,7 +193,7 @@ us/claude-opus-4-6
 
 ## Google (`google`)
 
-198 canonical chat-mode models.
+200 canonical chat-mode models.
 
 ```
 chat-bison
@@ -323,6 +324,8 @@ vertex_ai/claude-opus-4-6
 vertex_ai/claude-opus-4-6@default
 vertex_ai/claude-opus-4-7
 vertex_ai/claude-opus-4-7@default
+vertex_ai/claude-opus-4-8
+vertex_ai/claude-opus-4-8@default
 vertex_ai/claude-opus-4@20250514
 vertex_ai/claude-sonnet-4
 vertex_ai/claude-sonnet-4-5
