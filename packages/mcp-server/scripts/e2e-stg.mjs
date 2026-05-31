@@ -153,7 +153,13 @@ async function main() {
       connectBody.authorization_url ||
       connectBody.url;
     const state = connectBody.data?.state || connectBody.state;
-    if (url && url.includes('github.com')) {
+    let oauthHost = '';
+    try {
+      oauthHost = url ? new URL(url).hostname : '';
+    } catch {
+      oauthHost = '';
+    }
+    if (oauthHost === 'github.com' || oauthHost.endsWith('.github.com')) {
       pass(`got github oauth url (state=${(state || '').slice(0, 8)}...)`);
     } else {
       fail(`unexpected git-connect response: ${JSON.stringify(connectBody).slice(0, 400)}`);
