@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-05-31T01:14:57.814Z",
+  "generatedAt": "2026-06-01T01:17:12.101Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-05-31T01:14:57.814Z",
+      "fetchedAt": "2026-06-01T01:17:12.101Z",
       "modelCount": 1203
     },
     "openrouter": {
-      "fetchedAt": "2026-05-31T01:14:57.814Z",
-      "modelCount": 129
+      "fetchedAt": "2026-06-01T01:17:12.101Z",
+      "modelCount": 128
     }
   },
   "models": {
@@ -23460,7 +23460,8 @@
       },
       "capabilities": {
         "functionCalling": true
-      }
+      },
+      "deprecationDate": "2026-06-01"
     },
     "gemini-3.5-flash": {
       "provider": "google",
