@@ -47,6 +47,11 @@ describe('link command', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // vitest 4's `vi.restoreAllMocks()` (afterEach) no longer resets `vi.fn()`
+    // mocks, only `vi.spyOn` spies — so an unconsumed `mockResolvedValueOnce`
+    // on the module-scoped `global.fetch` queue would leak into the next test
+    // and surface the wrong response shape. Reset the fetch mock per test.
+    (global.fetch as any).mockReset();
     consoleMock.log.mockClear();
     // Stub saveCredentials so the link command's post-refresh persist
     // step doesn't write into the shared per-worker auth dir. Without
