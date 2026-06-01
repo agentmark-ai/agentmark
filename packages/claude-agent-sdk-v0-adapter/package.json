@@ -61,7 +61,7 @@
     "@types/node": "^22.8.1",
     "tsup": "^8.3.5",
     "typescript": "^5.6.2",
-    "vitest": "^3.0.8",
+    "vitest": "^4.1.8",
     "zod": "^4.3.5"
   },
   "peerDependencies": {

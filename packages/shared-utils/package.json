@@ -21,7 +21,7 @@
     "@types/js-yaml": "^4.0.9",
     "tsup": "^8.5.1",
     "typescript": "^5",
-    "vitest": "^3.1.4"
+    "vitest": "^4.1.8"
   },
   "license": "AGPL-3.0-or-later",
   "files": [

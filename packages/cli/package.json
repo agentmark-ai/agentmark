@@ -84,7 +84,7 @@
     "msw": "^2.10.4",
     "tsup": "^8",
     "typescript": "^5",
-    "vitest": "^3.0.8"
+    "vitest": "^4.1.8"
   },
   "files": [
     "dist",
