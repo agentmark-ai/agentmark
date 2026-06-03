@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-02T01:16:38.812Z",
+  "generatedAt": "2026-06-03T01:22:37.023Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-02T01:16:38.812Z",
+      "fetchedAt": "2026-06-03T01:22:37.023Z",
       "modelCount": 1203
     },
     "openrouter": {
-      "fetchedAt": "2026-06-02T01:16:38.812Z",
+      "fetchedAt": "2026-06-03T01:22:37.023Z",
       "modelCount": 126
     }
   },
@@ -20650,7 +20650,6 @@
       "supportedParameters": [
         "max_tokens",
         "temperature",
-        "top_k",
         "top_p"
       ],
       "pricing": {
