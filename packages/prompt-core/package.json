@@ -30,6 +30,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "build": "tsup && cpy ../../README.md ../../assets ./",
     "lint": "eslint ."

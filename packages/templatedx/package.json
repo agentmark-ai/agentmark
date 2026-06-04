@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "build": "tsup && shx cp src/global.d.ts dist/",
     "lint": "eslint ."
