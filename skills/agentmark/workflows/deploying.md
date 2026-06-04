@@ -18,13 +18,13 @@ For setup and the git-provider connection flow, fetch `https://docs.agentmark.co
 Deployment is git-based, but the surrounding setup is fully accessible from headless surfaces. Pick the right tool for the runtime:
 
 - **IDE agent (Claude Code, Cursor, VS Code Copilot)** → run the `agentmark-mcp` MCP server and call its tools. See [headless-with-mcp.md](headless-with-mcp.md). This is the recommended path; it's how the user's IDE agent typed `set up an agentmark app and connect github` and got it done in three tool calls.
-- **CI / shell script with no MCP client** → call the gateway's REST API with `curl` and an `AGENTMARK_API_KEY`. The MCP tools are generated from the same OpenAPI spec, so the request shapes are identical — only the transport differs.
+- **CI / shell script with no MCP client** → call the gateway's REST API with `curl` and an `AGENTMARK_API_KEY`. The MCP tools are generated from the same OpenAPI spec, so the request shapes are identical — only the transport differs. **Caveat:** an `AGENTMARK_API_KEY` is app-scoped and **cannot create/update/delete apps** — those are tenant-tier, so the app must already exist before CI runs; CI keys operate within it.
 
-The only steps that **still** require a human at a browser are the one-click GitHub / GitLab OAuth install (the provider mandates the click-through) and the Dashboard-only branch picker.
+The only steps that **still** require a human are the one-click GitHub / GitLab OAuth install (the provider mandates the click-through), the Dashboard-only branch picker, and **creating the app itself** (interactive `agentmark login` or the Dashboard — an app-scoped CI API key can't provision an app).
 
 | Step | Headless? | MCP tool | REST endpoint |
 |---|---|---|---|
-| Create an AgentMark Cloud app | **Yes** | `create_app` | `POST /v1/apps` |
+| Create an AgentMark Cloud app | **Yes**, but session-bearer auth only (not an app API key) | `create_app` | `POST /v1/apps` |
 | Mint a git-connect URL | **Yes** | `start_app_git_connect` | `POST /v1/apps/{appId}/git/connect` |
 | User clicks the URL to authorize the GitHub App | No (provider-mandated) | — | — |
 | Poll until the connection registers | **Yes** | `get_app_git_connection` | `GET /v1/apps/{appId}/git/connection` |
@@ -321,6 +321,6 @@ Two ways to mint a Cloud API key:
 - **Editing `agentmark.json` in the Dashboard** — `agentmark.json` is the source of truth in git and syncs on deploy. Dashboard-side edits get overwritten on the next deploy.
 - **Forgetting to commit `agentmark.json` changes before pushing** — the deploy picks up only what's in git. Local-only changes don't ship.
 - **Sharing `.agentmark/dev-config.json`** — it's gitignored and per-developer. New configs hold only the project↔app binding; legacy configs from older CLI versions also carry a dev API key.
-- **Calling `agentmark login` from a headless context** — opens a browser and hangs the agent. Use `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` env vars instead (see "Headless deployment" above).
+- **Calling `agentmark login` from a headless context** — opens a browser and hangs the agent. Use `AGENTMARK_API_KEY` + `AGENTMARK_APP_ID` env vars instead (see "Headless deployment" above). Corollary: because app provisioning needs a session bearer and a CI key is app-scoped, **a fully headless CI run cannot create its own app** — create it once interactively (`agentmark login`) or in the Dashboard, then hand CI the resulting `AGENTMARK_APP_ID`.
 - **Trying to consume a prompt immediately after `git push`** — the deploy is async. Poll `GET /v1/deployments` (or MCP `list_deployments`) until status is `succeeded` before reading the new version via the SDK.
 - **Expecting a `prompts run` or `POST /v1/prompts/{name}/run` endpoint** — there isn't one. Execution happens in customer code via the SDK; the gateway is observability + config storage. See `SKILL.md` § Runtime model.
