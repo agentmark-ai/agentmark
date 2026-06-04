@@ -61,13 +61,17 @@ Two sources, checked in this order:
 1. **`AGENTMARK_API_KEY` env var** — long-lived API key minted in the dashboard (Settings → API keys). The right choice for CI / agent infrastructure / shared dev boxes. Recommended pattern: put it in the same `env` block as `AGENTMARK_API_URL`.
 2. **Session bearer in `~/.agentmark/auth.json`** — written by `agentmark login`. The right choice on a developer's personal machine; the MCP server uses the same identity as your CLI.
 
-If **neither** resolves, the MCP server still starts but only the local trace-debugging tools are registered. Cloud tools are silently omitted. The client's tool list shows you what's available — if `create_app` and friends are missing, you need to run `agentmark login` (then restart the MCP client to re-read the file) or set `AGENTMARK_API_KEY`.
+> **The two credentials do not have the same authority.** An **API key is app-scoped** — it is bound to one app and carries only app-scoped permissions, so it **cannot create, update, or delete apps** (`create_app` / `update_app` / `delete_app`). Those operate at the tenant tier. A **session bearer is tenant-wide**, so it can provision and manage apps. Practical consequence: app management runs under `agentmark login` (a developer's laptop) or the dashboard — *not* under an `AGENTMARK_API_KEY`. An API key still does everything *within* its app (traces, scores, datasets, deployments, alerts, environments, minting more keys for that app).
+>
+> This is by design: a key minted "for app A" must not be able to delete sibling app B in the same tenant.
+
+If **neither** resolves, the MCP server still starts but only the local trace-debugging tools are registered. Cloud tools are silently omitted. The client's tool list shows you what's available. App-management tools (`create_app`, `update_app`, `delete_app`) only appear under a session bearer — if they're missing, run `agentmark login` and restart the MCP client. App-scoped tools also need *some* credential — set `AGENTMARK_API_KEY` (with `AGENTMARK_APP_ID`) or log in.
 
 Tokens are **not refreshed** by the MCP server. If a session JWT expires mid-session, calls start returning 401. Re-run `agentmark login` and restart the MCP client. (We deliberately keep refresh in the CLI; it owns the Supabase OAuth state machine.)
 
 ## The headless flow, end to end
 
-The motivating use case is "user types one sentence to their IDE agent, project is provisioned, traces start flowing." With the MCP server in place, that flow is purely tool calls:
+The motivating use case is "user types one sentence to their IDE agent, project is provisioned, traces start flowing." With the MCP server in place, that flow is purely tool calls. Step 1 (`create_app`) is tenant-tier, so this flow requires **session-bearer auth** — the developer has run `agentmark login`. (A bare `AGENTMARK_API_KEY` can't create the app; see Authentication above.)
 
 ```
 user → "set up a new agentmark app and connect it to my github"
@@ -84,7 +88,7 @@ agent (via MCP):
 
 No manual dashboard clicks except the GitHub authorization (which requires the user to be the authority on what repos to expose).
 
-**You never pass `tenant_id`.** Every tenant-scoped write (`create_app` and friends) is scoped to your authenticated tenant at the database layer — a `tenant_id` in a request body is silently ignored (forgery-proof by design, and it isn't in the request schemas). If a resource turns up under an unexpected tenant, the cause is the API key / session you authenticated with, not a missing field.
+**You never pass `tenant_id`.** Every tenant-scoped write is scoped to your authenticated tenant at the database layer — a `tenant_id` in a request body is silently ignored (forgery-proof by design, and it isn't in the request schemas). If a resource turns up under an unexpected tenant, the cause is the session you authenticated with, not a missing field. (App provisioning specifically requires the session bearer — see Authentication.)
 
 ## Tool reference
 
@@ -122,7 +126,7 @@ Non-2xx responses become MCP `isError: true` blocks with the HTTP status and gat
 
 ## When NOT to use the MCP server
 
-- **Custom CI scripts that need scripted output.** MCP is conversational. For "create app X, capture its ID, write it to env" CI pipelines, call the gateway REST endpoints directly with `curl` / a thin SDK — same auth, no MCP client required.
+- **Custom CI scripts that need scripted output.** MCP is conversational. For scripted pipelines that operate *within* an app (capture a deployment ID, append dataset rows, mint a key), call the gateway REST endpoints directly with `curl` / a thin SDK and an `AGENTMARK_API_KEY` — same shapes, no MCP client. Note: **app provisioning is not available to a CI `AGENTMARK_API_KEY`** (it's app-scoped). Create the app first via the dashboard or an interactive `agentmark login` session, then pass its `AGENTMARK_APP_ID` to CI.
 - **Bulk data movement.** For migrations or backfills (thousands of items), use the gateway's bulk endpoints directly. The MCP server isn't optimized for high-throughput sequential calls; each tool call is a round-trip from the IDE.
 - **Anywhere the `agentmark` CLI already has a typed command** (e.g. `agentmark login`, `agentmark dev`, `agentmark link`, `agentmark run-experiment`). The CLI commands have hand-curated UX (project detection, interactive prompts, structured output) that's better for humans than raw API calls.
 
