@@ -16,6 +16,7 @@
     "lint": "eslint --config cli-src/eslint.config.mjs cli-src",
     "build": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true })\" && tsc -p tsconfig.app.json && yarn build:app",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "generate-skill-cli-reference": "tsx scripts/generate-skill-cli-reference.ts",
     "generate-skill-frontmatter-reference": "tsx scripts/generate-skill-frontmatter-reference.ts",

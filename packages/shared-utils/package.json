@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsup",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "fs-extra": "^11.2.0",

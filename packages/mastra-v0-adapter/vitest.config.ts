@@ -10,7 +10,15 @@ export default defineConfig({
       "**/node_modules/**",
       "**/dist/**",
       "**/.yalc/**",
+      "**/.stryker-tmp/**",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary", "lcov", "html", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.{test,spec}.{ts,tsx}"],
+    },
   },
 });
 
