@@ -257,7 +257,7 @@ describe("AgentMark Integration", () => {
 describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
   it("should resolve languageModel when registerProviders({ openai }) + getModelFunction('openai/gpt-4o', 'languageModel')", () => {
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ id: "gpt-4o" }),
+      languageModel: vi.fn().mockReturnValue({ id: "gpt-4o" } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -272,7 +272,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should call provider.imageModel() when getModelFunction('openai/dall-e-3', 'imageModel')", () => {
     const mockProvider = {
-      imageModel: vi.fn().mockReturnValue({ id: "dall-e-3" }),
+      imageModel: vi.fn().mockReturnValue({ id: "dall-e-3" } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -287,7 +287,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should call provider.speechModel() when getModelFunction('openai/tts-1-hd', 'speechModel')", () => {
     const mockProvider = {
-      speechModel: vi.fn().mockReturnValue({ id: "tts-1-hd" }),
+      speechModel: vi.fn().mockReturnValue({ id: "tts-1-hd" } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -312,7 +312,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should throw descriptive error when provider is missing the requested model type method", () => {
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ id: "gpt-4o" }),
+      languageModel: vi.fn().mockReturnValue({ id: "gpt-4o" } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -325,7 +325,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should bypass provider resolution for bare model names without a slash", () => {
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ id: "from-provider" }),
+      languageModel: vi.fn().mockReturnValue({ id: "from-provider" } as never),
     };
     const defaultCreator = vi.fn().mockReturnValue({ id: "from-default" });
 
@@ -342,10 +342,10 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should merge providers across multiple registerProviders calls", () => {
     const mockOpenai = {
-      languageModel: vi.fn().mockReturnValue({ id: "gpt-4o" }),
+      languageModel: vi.fn().mockReturnValue({ id: "gpt-4o" } as never),
     };
     const mockAnthropic = {
-      languageModel: vi.fn().mockReturnValue({ id: "claude-3" }),
+      languageModel: vi.fn().mockReturnValue({ id: "claude-3" } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -373,9 +373,9 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should resolve 5+ different models from a single registered provider across all model types", () => {
     const mockProvider = {
-      languageModel: vi.fn().mockImplementation((id: string) => ({ type: "language", id })),
-      imageModel: vi.fn().mockImplementation((id: string) => ({ type: "image", id })),
-      speechModel: vi.fn().mockImplementation((id: string) => ({ type: "speech", id })),
+      languageModel: vi.fn().mockImplementation((id: string) => ({ type: "language", id }) as never),
+      imageModel: vi.fn().mockImplementation((id: string) => ({ type: "image", id }) as never),
+      speechModel: vi.fn().mockImplementation((id: string) => ({ type: "speech", id }) as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -418,7 +418,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
   it("should give explicit registerModels precedence over registerProviders for same model", () => {
     const customFn = vi.fn().mockReturnValue({ custom: true });
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ provider: true }),
+      languageModel: vi.fn().mockReturnValue({ provider: true } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -434,7 +434,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
   it("should give pattern registerModels precedence over provider auto-resolution", () => {
     const patternFn = vi.fn().mockReturnValue({ pattern: true });
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ provider: true }),
+      languageModel: vi.fn().mockReturnValue({ provider: true } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -449,7 +449,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
   it("should give provider auto-resolution precedence over default creator", () => {
     const defaultFn = vi.fn().mockReturnValue({ default: true });
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ provider: true }),
+      languageModel: vi.fn().mockReturnValue({ provider: true } as never),
     };
 
     const registry = new VercelAIModelRegistry(defaultFn);
@@ -465,7 +465,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
   it("should use default creator for bare model names even when providers are registered", () => {
     const defaultFn = vi.fn().mockReturnValue({ default: true });
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ provider: true }),
+      languageModel: vi.fn().mockReturnValue({ provider: true } as never),
     };
 
     const registry = new VercelAIModelRegistry(defaultFn);
@@ -479,7 +479,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
   // Edge case tests
   it("should split on first slash only for model names with multiple slashes", () => {
     const mockProvider = {
-      languageModel: vi.fn().mockReturnValue({ id: "org/model" }),
+      languageModel: vi.fn().mockReturnValue({ id: "org/model" } as never),
     };
 
     const registry = new VercelAIModelRegistry();

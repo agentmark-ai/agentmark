@@ -9,24 +9,25 @@ import type {
   WebhookSpeechResponse,
 } from "@agentmark-ai/prompt-core";
 import { finalizeUsage, normalizeError } from "@agentmark-ai/prompt-core";
+import type { MastraTextParams, MastraObjectParams } from "./adapter";
 
 /**
  * MastraExecutor — translates Mastra `agent.stream()` / `agent.generate()`
  * events into the canonical AgentEvent stream consumed by WebhookRunner.
  *
- * The adapter's `adaptText` / `adaptObject` already pre-computes the
- * `{messages, generateOptions}` pair under `_runnable` so this executor
- * doesn't need to redo the compile dance. Legacy `MastraAdapterWebhookHandler`
- * continues to work via its own formatAgent + formatMessages two-stage flow.
+ * Input is the runnable bundle (`MastraTextParams` / `MastraObjectParams`)
+ * the adapter's `adaptText` / `adaptObject` produce: `{agent, messages,
+ * generateOptions}`. The user-facing two-stage `formatAgent` flow never
+ * reaches this executor — it composes `adaptTextAgent` + `adaptTextMessages`
+ * directly and its callers run the Agent themselves.
+ * (`MastraAdapterWebhookHandler` is a thin shim over WebhookRunner + this
+ * executor — see runner.ts.)
  *
- * Capabilities: Mastra's adapter doesn't currently support image/speech
- * (the legacy runner throws). Declared accordingly.
+ * Capabilities: Mastra's adapter doesn't currently support image/speech.
+ * Declared accordingly.
  */
 
-type FormattedWithRunnable = {
-  _runnable?: { messages: any; generateOptions: any };
-  [key: string]: any;
-};
+type RunnableBundle = MastraTextParams | MastraObjectParams;
 
 /**
  * Mastra-shaped field name mapping — every Mastra provider I've seen uses
@@ -43,29 +44,38 @@ function extractUsage(raw: any) {
   });
 }
 
-function buildAgent(formatted: FormattedWithRunnable): {
+/**
+ * `finish` is the single canonical usage carrier — it always carries usage,
+ * zero-defaulted when the SDK reports none (matches `createExecutor`'s
+ * builder and the shared Vercel executor).
+ */
+const usageOrZero = (u: ReturnType<typeof extractUsage>) =>
+  u ?? { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+
+function buildAgent(formatted: RunnableBundle): {
   agent: Agent;
   messages: any;
   generateOptions: any;
 } {
-  const runnable = formatted._runnable;
-  if (!runnable) {
+  const bundle = formatted as Partial<RunnableBundle> | null | undefined;
+  if (
+    !bundle ||
+    typeof bundle !== "object" ||
+    !bundle.agent ||
+    !bundle.messages
+  ) {
     throw new Error(
-      "MastraExecutor expected `_runnable` on the formatted payload. " +
-        "Ensure you're running through WebhookRunner (or a caller that invokes " +
-        "`prompt.format()` with metadata) — the legacy formatAgent two-stage " +
-        "flow does not populate `_runnable`."
+      "MastraExecutor expected the runnable bundle ({ agent, messages, " +
+        "generateOptions }) that MastraAdapter.adaptText/adaptObject produce — " +
+        "run through WebhookRunner or `prompt.format()`. " +
+        "`formatAgent()` output is the user-facing AgentConfig for callers " +
+        "that construct the Agent themselves; it is not executable here."
     );
   }
-  // Strip adapter-internal keys that shouldn't reach Agent's constructor.
-  const { _runnable, adaptMessages, ...agentConfig } = formatted;
-  void _runnable;
-  void adaptMessages;
-  const agent = new Agent(agentConfig as any);
   return {
-    agent,
-    messages: runnable.messages,
-    generateOptions: runnable.generateOptions,
+    agent: new Agent(bundle.agent as any),
+    messages: bundle.messages,
+    generateOptions: bundle.generateOptions,
   };
 }
 
@@ -82,7 +92,7 @@ export class MastraExecutor implements Executor {
   ): AsyncIterable<TextStreamEvent> {
     let built: ReturnType<typeof buildAgent>;
     try {
-      built = buildAgent(formatted as FormattedWithRunnable);
+      built = buildAgent(formatted as RunnableBundle);
     } catch (err) {
       yield { type: "error", error: normalizeError(err) };
       return;
@@ -118,7 +128,7 @@ export class MastraExecutor implements Executor {
         yield {
           type: "finish",
           reason: (res as any).finishReason ?? "stop",
-          usage: extractUsage((res as any).usage),
+          usage: usageOrZero(extractUsage((res as any).usage)),
         };
       } catch (err) {
         yield { type: "error", error: normalizeError(err) };
@@ -141,11 +151,18 @@ export class MastraExecutor implements Executor {
         yield {
           type: "finish",
           reason: (res as any).finishReason ?? "stop",
-          usage: extractUsage((res as any).usage),
+          usage: usageOrZero(extractUsage((res as any).usage)),
         };
         return;
       }
 
+      // Capture + suppress native finish chunks and emit exactly ONE
+      // terminal `finish` after the loop — covers SDK streams that omit the
+      // finish chunk entirely (or emit several). `finish` is the single
+      // canonical usage carrier, so it zero-defaults rather than going out
+      // usage-less (matches `createExecutor`'s builder).
+      let finishReason: string | undefined;
+      let finishUsage: ReturnType<typeof extractUsage>;
       for await (const chunk of fullStream) {
         const c = chunk as any;
         if (c.type === "error") {
@@ -169,13 +186,15 @@ export class MastraExecutor implements Executor {
             result: c.result,
           };
         } else if (c.type === "finish") {
-          yield {
-            type: "finish",
-            reason: c.finishReason ?? "stop",
-            usage: extractUsage(c.usage ?? c.totalUsage),
-          };
+          finishReason = c.finishReason ?? "stop";
+          finishUsage = extractUsage(c.usage ?? c.totalUsage);
         }
       }
+      yield {
+        type: "finish",
+        reason: finishReason ?? "stop",
+        usage: usageOrZero(finishUsage),
+      };
     } catch (err) {
       yield { type: "error", error: normalizeError(err) };
     }
@@ -187,7 +206,7 @@ export class MastraExecutor implements Executor {
   ): AsyncIterable<ObjectStreamEvent> {
     let built: ReturnType<typeof buildAgent>;
     try {
-      built = buildAgent(formatted as FormattedWithRunnable);
+      built = buildAgent(formatted as RunnableBundle);
     } catch (err) {
       yield { type: "error", error: normalizeError(err) };
       return;
@@ -202,7 +221,7 @@ export class MastraExecutor implements Executor {
         yield {
           type: "finish",
           reason: (res as any).finishReason ?? "stop",
-          usage: extractUsage((res as any).usage),
+          usage: usageOrZero(extractUsage((res as any).usage)),
         };
       } catch (err) {
         yield { type: "error", error: normalizeError(err) };
@@ -220,7 +239,7 @@ export class MastraExecutor implements Executor {
         yield {
           type: "finish",
           reason: (res as any).finishReason ?? "stop",
-          usage: extractUsage((res as any).usage),
+          usage: usageOrZero(extractUsage((res as any).usage)),
         };
         return;
       }
@@ -242,8 +261,10 @@ export class MastraExecutor implements Executor {
       }
 
       // Mastra's streamResult exposes usage as a Promise when available.
-      // Funnel it onto the single terminal `finish` (usage is best-effort on
-      // the streaming path — finish still terminates the stream without it).
+      // Funnel it onto the single terminal `finish`. Zero-default when the
+      // side channel reports nothing — `finish` is the single canonical
+      // usage carrier, so it always carries usage (matches `createExecutor`'s
+      // builder and the shared Vercel executor).
       let usage: ReturnType<typeof extractUsage> | undefined;
       const usagePromise = (streamResult as any).usage;
       if (usagePromise && typeof usagePromise.then === "function") {
@@ -253,7 +274,11 @@ export class MastraExecutor implements Executor {
           /* ignore — usage is best-effort on streaming path */
         }
       }
-      yield { type: "finish", reason: "stop", usage: usage ?? undefined };
+      yield {
+        type: "finish",
+        reason: "stop",
+        usage: usageOrZero(usage),
+      };
     } catch (err) {
       yield { type: "error", error: normalizeError(err) };
     }

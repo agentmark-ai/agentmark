@@ -6,32 +6,92 @@ import type {
   PromptMetadata,
   AdaptOptions,
   RichChatMessage,
+  ParamMap,
 } from "@agentmark-ai/prompt-core";
 import { MastraModelRegistry } from "./model-registry";
 import { AgentConfig, AgentGenerateOptions, ToolsInput } from "@mastra/core/agent";
 import { resolveSerializedZodOutput } from "@mastra/core/utils";
 import { parseSchema } from "json-schema-to-zod";
-import { parseMcpUri } from "@agentmark-ai/prompt-core";
+import {
+  applyParamMap,
+  buildTelemetryMetadata,
+  parseMcpUri,
+} from "@agentmark-ai/prompt-core";
 import type { McpServers } from "@agentmark-ai/prompt-core";
 import { MCPClientManager } from "./mcp/mcp-client-manager";
 
-function getTelemetryConfig(
-  telemetry: AdaptOptions["telemetry"],
-  props: Record<string, unknown>,
-  promptName: string,
-  agentmarkMeta?: Record<string, unknown>
-) {
-  return telemetry
-    ? {
-        ...telemetry,
-        metadata: {
-          ...telemetry.metadata,
-          prompt_name: promptName,
-          props: JSON.stringify(props ?? {}),
-          ...(agentmarkMeta ? { ...agentmarkMeta } : {}),
-        },
-      }
-    : undefined;
+/**
+ * Declarative field maps — translate snake_case AgentMark config to the
+ * camelCase keys Mastra's `AgentGenerateOptions` expects. Shared
+ * `applyParamMap` semantics: undefined values and unmapped keys
+ * (`model_name`, `tools` — consumed by the agent builders) are dropped.
+ */
+const MASTRA_TEXT_PARAM_MAP: ParamMap = {
+  temperature: "temperature",
+  max_tokens: "maxTokens",
+  top_p: "topP",
+  top_k: "topK",
+  presence_penalty: "presencePenalty",
+  frequency_penalty: "frequencyPenalty",
+  stop_sequences: "stopSequences",
+  seed: "seed",
+  max_retries: "maxRetries",
+  max_calls: "maxSteps",
+  tool_choice: "toolChoice",
+};
+
+const MASTRA_OBJECT_PARAM_MAP: ParamMap = {
+  temperature: "temperature",
+  max_tokens: "maxTokens",
+  top_p: "topP",
+  top_k: "topK",
+  presence_penalty: "presencePenalty",
+  frequency_penalty: "frequencyPenalty",
+  seed: "seed",
+  max_retries: "maxRetries",
+  max_calls: "maxSteps",
+  // Mastra wants a Zod schema on `output`; prompts carry JSON Schema.
+  schema: {
+    key: "output",
+    transform: (schema) => resolveSerializedZodOutput(parseSchema(schema)),
+  },
+};
+
+/** `agent.generate` options for text prompts — param-mapped settings with the
+ * object-output channels explicitly fenced off. */
+export type MastraTextGenerateOptions = AgentGenerateOptions<
+  undefined,
+  undefined
+> & {
+  output?: never;
+  experimental_output?: never;
+};
+
+/** `agent.generate` options for object prompts — param-mapped settings plus
+ * the Zod `output` derived from the prompt's JSON schema (always present;
+ * `object_config.schema` is required). Refine `output` with your prompt's
+ * typed Zod schema via `MastraObjectPrompt.formatAgent`'s `formatMessages`. */
+export type MastraObjectGenerateOptions = Record<string, unknown> & {
+  output: unknown;
+};
+
+/**
+ * The runnable bundle `adaptText` produces for the executor path: everything
+ * `MastraExecutor` needs to construct the Agent and invoke it in one shot.
+ * The user-facing `formatAgent` flow does NOT use this shape — it composes
+ * `adaptTextAgent` + `adaptTextMessages` directly so callers own the Agent.
+ */
+export interface MastraTextParams {
+  agent: AgentConfig;
+  messages: RichChatMessage[];
+  generateOptions: MastraTextGenerateOptions;
+}
+
+/** Object-kind twin of {@link MastraTextParams}, produced by `adaptObject`. */
+export interface MastraObjectParams {
+  agent: AgentConfig;
+  messages: RichChatMessage[];
+  generateOptions: MastraObjectGenerateOptions;
 }
 
 const extractInstructions = (messages: TextConfig["messages"]) => {
@@ -65,47 +125,45 @@ export class MastraAdapter<
     return this._mcp;
   }
 
-  async adaptText(input: TextConfig, options: AdaptOptions, metadata?: PromptMetadata) {
+  /**
+   * Protocol method consumed by the WebhookRunner→MastraExecutor path (via
+   * `prompt.format()`). Returns the honest runnable bundle — everything the
+   * executor needs to `new Agent(agent)` + `agent.generate(messages,
+   * generateOptions)` in one shot.
+   *
+   * The user-facing two-stage flow does NOT come through here:
+   * `MastraTextPrompt.formatAgent` composes {@link adaptTextAgent} +
+   * {@link adaptTextMessages} directly, because its consumers construct and
+   * own the `Agent` themselves (register it with a Mastra instance, attach
+   * memory, re-derive messages with merged props per call).
+   */
+  async adaptText(
+    input: TextConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): Promise<MastraTextParams> {
     const agent = await this.adaptTextAgent(input, options);
-    // Pre-compute the messages + generateOptions that the shared
-    // WebhookRunner's executor path needs. `formatAgent` still destructures
-    // `adaptMessages` to build its two-stage formatMessages helper, so the
-    // public two-stage API is unaffected. We stash the runnable bundle
-    // under `_runnable` so `formatAgent` can strip it before returning.
-    const runnable = metadata
-      ? this.adaptTextMessages({ input, options, metadata })
-      : undefined;
-
-    return {
-      ...agent,
-      adaptMessages: this.adaptTextMessages,
-      _runnable: runnable
-        ? { messages: runnable.messages, generateOptions: runnable.options }
-        : undefined,
-    };
+    const { messages, options: generateOptions } = this.adaptTextMessages({
+      input,
+      options,
+      metadata,
+    });
+    return { agent, messages, generateOptions };
   }
 
-  async adaptObject(input: ObjectConfig, options: AdaptOptions, metadata?: PromptMetadata) {
-    const baseAgent = await this.adaptObjectAgent(input, options);
-    const runnable = metadata
-      ? this.adaptObjectMessages(input, options, metadata)
-      : undefined;
-
-    return {
-      ...baseAgent,
-      adaptMessages: ({
-        input,
-        options,
-        metadata,
-      }: {
-        input: ObjectConfig;
-        options: AdaptOptions;
-        metadata: PromptMetadata;
-      }) => this.adaptObjectMessages(input, options, metadata),
-      _runnable: runnable
-        ? { messages: runnable.messages, generateOptions: runnable.options }
-        : undefined,
-    };
+  /** Object-kind twin of {@link adaptText} — see its doc for the two-path split. */
+  async adaptObject(
+    input: ObjectConfig,
+    options: AdaptOptions,
+    metadata: PromptMetadata
+  ): Promise<MastraObjectParams> {
+    const agent = await this.adaptObjectAgent(input, options);
+    const { messages, options: generateOptions } = this.adaptObjectMessages(
+      input,
+      options,
+      metadata
+    );
+    return { agent, messages, generateOptions };
   }
 
   adaptImage(): any {
@@ -116,6 +174,16 @@ export class MastraAdapter<
     throw new Error("Not implemented");
   }
 
+  /**
+   * Deliberately NOT `BaseAdapter.resolveTools`: Mastra keys resolved MCP
+   * tools by their full `mcp://server/tool` URI (and matches the
+   * `server_tool` / `server.tool` namespacing `MCPClientManager` produces),
+   * whereas `BaseAdapter` keys by bare tool name via `McpServerRegistry`.
+   * The tool-map keys become the tool names the model sees, so unifying the
+   * two would be a behavior change for existing Mastra prompts. The
+   * param-map + telemetry duplication this adapter used to carry now comes
+   * from `applyParamMap` / `buildTelemetryMetadata` instead.
+   */
   private async resolveTools(
     toolNames: string[]
   ): Promise<Record<string, TTools[keyof TTools]>> {
@@ -183,7 +251,15 @@ export class MastraAdapter<
     return toolsObj;
   }
 
-  private async adaptTextAgent(input: TextConfig, options?: AdaptOptions) {
+  /**
+   * Building block for `MastraTextPrompt.formatAgent`: the durable
+   * `AgentConfig` (instructions from `<System>`, resolved model, resolved
+   * tools) the caller hands to `new Agent(...)` and keeps across calls.
+   */
+  async adaptTextAgent(
+    input: TextConfig,
+    options?: AdaptOptions
+  ): Promise<AgentConfig> {
     const { model_name, tools } = input.text_config;
     const modelCreator = this.modelRegistry?.getModelFunction(model_name);
     const model = modelCreator(model_name, options ?? {});
@@ -196,13 +272,18 @@ export class MastraAdapter<
 
     return {
       name: input.name,
-      instructions: instructions!,
+      // Prompts without a <System> block produce no instructions. Mastra's
+      // `AgentConfig` types the field as required but the Agent tolerates an
+      // absent value at runtime — pass it through (cast, not `!`) so the
+      // declared type stays source-compatible for `formatAgent` consumers.
+      instructions: instructions as string,
       model,
       tools: toolsObj,
     };
   }
 
-  private async adaptObjectAgent(
+  /** Object-kind twin of {@link adaptTextAgent}. */
+  async adaptObjectAgent(
     input: ObjectConfig,
     options?: AdaptOptions
   ): Promise<AgentConfig> {
@@ -218,13 +299,19 @@ export class MastraAdapter<
 
     return {
       name: input.name,
-      instructions: instructions!,
+      // See adaptTextAgent — deliberate cast for system-less prompts.
+      instructions: instructions as string,
       model,
       tools: toolsObj,
     };
   }
 
-  private adaptTextMessages({
+  /**
+   * Building block for `formatMessages`: the per-call `(messages,
+   * generateOptions)` pair — re-derivable with different/merged props on
+   * every call while the Agent from {@link adaptTextAgent} stays fixed.
+   */
+  adaptTextMessages({
     input,
     options,
     metadata,
@@ -234,110 +321,63 @@ export class MastraAdapter<
     metadata: PromptMetadata;
   }): {
     messages: RichChatMessage[];
-    options: AgentGenerateOptions<undefined, undefined> & {
-      output?: never;
-      experimental_output?: never;
-    };
+    options: MastraTextGenerateOptions;
   } {
-    const settings = input.text_config;
-
-    const baseOptions = {
-      ...(settings.temperature !== undefined
-        ? { temperature: settings.temperature }
-        : {}),
-      ...(settings.max_tokens !== undefined
-        ? { maxTokens: settings.max_tokens }
-        : {}),
-      ...(settings.top_p !== undefined ? { topP: settings.top_p } : {}),
-      ...(settings.top_k !== undefined ? { topK: settings.top_k } : {}),
-      ...(settings.presence_penalty !== undefined
-        ? { presencePenalty: settings.presence_penalty }
-        : {}),
-      ...(settings.frequency_penalty !== undefined
-        ? { frequencyPenalty: settings.frequency_penalty }
-        : {}),
-      ...(settings.stop_sequences !== undefined
-        ? { stopSequences: settings.stop_sequences }
-        : {}),
-      ...(settings.seed !== undefined ? { seed: settings.seed } : {}),
-      ...(options?.telemetry
-        ? {
-            telemetry: getTelemetryConfig(
-              options?.telemetry,
-              metadata.props,
-              input.name,
-              input.agentmark_meta
-            ),
-          }
-        : {}),
-      ...(settings.max_retries !== undefined
-        ? { maxRetries: settings.max_retries }
-        : {}),
-      ...(settings.max_calls !== undefined
-        ? { maxSteps: settings.max_calls }
-        : {}),
-      ...(settings.tool_choice !== undefined
-        ? { toolChoice: settings.tool_choice as any }
-        : {}),
-    };
+    const mapped = applyParamMap(
+      input.text_config as Record<string, unknown>,
+      MASTRA_TEXT_PARAM_MAP
+    );
+    const telemetry = options?.telemetry
+      ? buildTelemetryMetadata(
+          options.telemetry,
+          metadata.props ?? {},
+          input.name,
+          input.agentmark_meta
+        )
+      : undefined;
 
     return {
       messages: extractMessages(input.messages),
       options: {
-        ...baseOptions,
+        ...mapped,
+        ...(telemetry ? { telemetry } : {}),
         output: undefined,
         experimental_output: undefined,
-      },
+      } as MastraTextGenerateOptions,
     };
   }
 
-  private adaptObjectMessages(
+  /** Object-kind twin of {@link adaptTextMessages}. */
+  adaptObjectMessages(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ) {
-    const { ...settings } = input.object_config;
-
-    const baseOptions = {
-      ...(settings.temperature !== undefined
-        ? { temperature: settings.temperature }
-        : {}),
-      ...(settings.max_tokens !== undefined
-        ? { maxTokens: settings.max_tokens }
-        : {}),
-      ...(settings.top_p !== undefined ? { topP: settings.top_p } : {}),
-      ...(settings.top_k !== undefined ? { topK: settings.top_k } : {}),
-      ...(settings.presence_penalty !== undefined
-        ? { presencePenalty: settings.presence_penalty }
-        : {}),
-      output: resolveSerializedZodOutput(parseSchema(settings.schema)),
-      ...(settings.frequency_penalty !== undefined
-        ? { frequencyPenalty: settings.frequency_penalty }
-        : {}),
-      ...(settings.seed !== undefined ? { seed: settings.seed } : {}),
-      ...(options?.telemetry
-        ? {
-            telemetry: getTelemetryConfig(
-              options?.telemetry,
-              metadata.props,
-              input.name,
-              input.agentmark_meta
-            ),
-          }
-        : {}),
-      ...(settings.max_retries !== undefined
-        ? { maxRetries: settings.max_retries }
-        : {}),
-      ...(settings.max_calls !== undefined
-        ? { maxSteps: settings.max_calls }
-        : {}),
-    };
+  ): {
+    messages: RichChatMessage[];
+    options: MastraObjectGenerateOptions;
+  } {
+    const mapped = applyParamMap(
+      input.object_config as Record<string, unknown>,
+      MASTRA_OBJECT_PARAM_MAP
+    );
+    const telemetry = options?.telemetry
+      ? buildTelemetryMetadata(
+          options.telemetry,
+          metadata.props ?? {},
+          input.name,
+          input.agentmark_meta
+        )
+      : undefined;
 
     return {
       messages: input.messages,
+      // `output` is statically invisible through applyParamMap's
+      // Record<string, unknown>, but always present: `object_config.schema`
+      // is schema-required and the param map transforms it to `output`.
       options: {
-        ...baseOptions,
-      },
+        ...mapped,
+        ...(telemetry ? { telemetry } : {}),
+      } as MastraObjectGenerateOptions,
     };
   }
 }

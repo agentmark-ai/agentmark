@@ -69,9 +69,26 @@ export {
 
 // NDJSON wire contract — the typed line format the WebhookRunner streams and
 // the cloud + dashboard consume. Import `WireChunk` on the consumer side to
-// parse with the same union the producer is checked against.
-export { wireJson } from "./wire";
-export type { WireChunk, WireUsage, WireDatasetResult } from "./wire";
+// parse with the same union the producer is checked against. The event→chunk
+// mappers are exported for the cross-language wire vectors (and any BYO
+// runner that wants byte-identical chunks).
+export {
+  wireJson,
+  usageToWire,
+  textEventToWire,
+  objectEventToWire,
+  datasetRowToWire,
+  textResponseToWire,
+  objectResponseToWire,
+} from "./wire";
+export type {
+  WireChunk,
+  WireUsage,
+  WireDatasetResult,
+  DatasetRowParams,
+  WireTextResponse,
+  WireObjectResponse,
+} from "./wire";
 
 // MCP helpers and types
 export {

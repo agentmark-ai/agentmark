@@ -17,9 +17,25 @@ import { createAgentMarkClient } from "../src";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
 
 // ---- Real tool definitions for type testing ----
+// Derived from the real tool() helper: ai@4's Tool<PARAMETERS, RESULT>
+// constrains PARAMETERS to Zod/Schema types — hand-rolled aliases with raw
+// object shapes (the previous form) never satisfied it, which went
+// unnoticed until typecheck mode gave this file teeth.
+const weatherToolDef = tool({
+  description: "Get weather for a location",
+  parameters: z.object({ location: z.string() }),
+  execute: async ({ location }) => `Sunny in ${location}`,
+});
+const searchToolDef = tool({
+  description: "Search the web",
+  parameters: z.object({ query: z.string() }),
+  execute: async ({ query }) => [
+    { title: `Result for ${query}`, url: "https://example.com" },
+  ],
+});
 
-type WeatherTool = Tool<{ location: string }, string>;
-type SearchTool = Tool<{ query: string }, { title: string; url: string }[]>;
+type WeatherTool = typeof weatherToolDef;
+type SearchTool = typeof searchToolDef;
 
 type MyTools = {
   weather: WeatherTool;
@@ -79,7 +95,8 @@ describe("VercelAIAdapter type safety (v4)", () => {
     );
 
     // The return type should be VercelAITextParams<MyTools>, not VercelAITextParams<Record<string, Tool>>
-    type AdaptTextReturn = Awaited<ReturnType<typeof _adapter.adaptText<"test.prompt.mdx">>>;
+    // adaptText is no longer generic (phantom param removed from the interface).
+    type AdaptTextReturn = Awaited<ReturnType<typeof _adapter.adaptText>>;
 
     expectTypeOf<AdaptTextReturn>().toMatchTypeOf<VercelAITextParams<MyTools>>();
   });
@@ -134,7 +151,7 @@ describe("VercelAIObjectParams type safety (v4)", () => {
       { weather: weatherTool, search: searchTool }
     );
 
-    type AdaptObjectReturn = Awaited<ReturnType<typeof _adapter.adaptObject<"test.prompt.mdx">>>;
+    type AdaptObjectReturn = Awaited<ReturnType<typeof _adapter.adaptObject>>;
     type ToolsField = AdaptObjectReturn["tools"];
 
     expectTypeOf<NonNullable<ToolsField>>().toMatchTypeOf<Record<string, WeatherTool | SearchTool>>();

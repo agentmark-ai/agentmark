@@ -69,9 +69,10 @@ text_config:
     const prompt = await client.loadTextPrompt(promptAst as any);
     const params = await prompt.format({ props: {} });
 
-    // Step 4: Verify model was resolved
-    expect(params.model).toBeDefined();
-    expect(params.model.modelId).toContain("gpt-4o-mini");
+    // Step 4: Verify model was resolved (format() returns the runnable
+    // bundle — the resolved model lives on the agent config)
+    expect(params.agent.model).toBeDefined();
+    expect((params.agent.model as any).modelId).toContain("gpt-4o-mini");
   });
 
   it("should support multiple providers registered at once", async () => {
@@ -121,8 +122,8 @@ text_config:
 
     const prompt1 = await client.loadTextPrompt(openaiPrompt as any);
     const params1 = await prompt1.format({ props: {} });
-    expect(params1.model).toBeDefined();
-    expect(params1.model.provider).toBe("openai");
+    expect(params1.agent.model).toBeDefined();
+    expect((params1.agent.model as any).provider).toBe("openai");
 
     // Test Anthropic
     const anthropicPrompt = {
@@ -147,8 +148,8 @@ text_config:
 
     const prompt2 = await client.loadTextPrompt(anthropicPrompt as any);
     const params2 = await prompt2.format({ props: {} });
-    expect(params2.model).toBeDefined();
-    expect(params2.model.provider).toBe("anthropic");
+    expect(params2.agent.model).toBeDefined();
+    expect((params2.agent.model as any).provider).toBe("anthropic");
   });
 
   it("should fail with clear error when provider is not registered", async () => {

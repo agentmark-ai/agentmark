@@ -230,7 +230,7 @@ export class TextPrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptText"]>>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptText<K>(compiled, options, this.metadata(props)) as Awaited<
+    return this.adapter.adaptText(compiled, options, this.metadata(props)) as Awaited<
       ReturnType<A["adaptText"]>
     >;
   }

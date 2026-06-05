@@ -10,8 +10,15 @@ import type {
 } from "./runner";
 import { createPromptTelemetry } from "./runner";
 import { runDatasetPool, experimentErrorChunk } from "./experiment";
-import { wireJson, type WireUsage } from "./wire";
-import type { AgentEvent, AgentUsage, Executor, ExecCtx } from "./executor";
+import {
+  wireJson,
+  textEventToWire,
+  objectEventToWire,
+  datasetRowToWire,
+  textResponseToWire,
+  objectResponseToWire,
+} from "./wire";
+import type { AgentEvent, Executor, ExecCtx } from "./executor";
 import type {
   AgentMarkObservation,
   AgentMarkToolInvocation,
@@ -60,6 +67,10 @@ export interface RunExperimentOptions {
   experimentKey?: string;
   /** Source-tree hash the run is tagged with, for baseline attribution. */
   sourceTreeHash?: string;
+  /** Telemetry seed (mirrors `RunPromptOptions`). Threaded into each row's
+   * `formatWithDataset` so the adapter authors `experimental_telemetry` per
+   * row — without it the AI SDK emits no generation span for experiments. */
+  telemetry?: { isEnabled: boolean; metadata?: Record<string, any> };
   /** Cancellation: when it fires, the pool stops dispatching new rows and
    * in-flight rows abort their SDK calls (threaded into each row's ExecCtx). */
   signal?: AbortSignal;
@@ -142,20 +153,9 @@ function extractErrorMessage(error: unknown): string {
   return String(error);
 }
 
-/**
- * Translate an AgentUsage payload into the wire-compat shape the AgentMark
- * cloud + dashboard consumers expect, preserving the deprecated
- * `promptTokens` / `completionTokens` aliases alongside `inputTokens` /
- * `outputTokens`. A total transform — null-handling lives at the call sites
- * (each already knows whether it has usage), so callers need no `!`.
- */
-function usageToWire(u: AgentUsage): WireUsage {
-  return {
-    ...u,
-    promptTokens: u.inputTokens,
-    completionTokens: u.outputTokens,
-  };
-}
+// usageToWire / textEventToWire / objectEventToWire live in ./wire — the
+// event→chunk mapping is a pure function so the shared conformance vectors
+// (wire-chunks.json) can pin it against the Python runner's mirror.
 
 /**
  * Generic webhook runner — consumes an Executor, emits the canonical
@@ -355,59 +355,17 @@ export class WebhookRunner<
           try {
             const events = await eventsPromise;
             for await (const ev of events) {
-              if (ev.type === "text-delta") {
-                controller.enqueue(
-                  encoder.encode(wireJson({ type: "text", result: ev.text }))
-                );
-              } else if (ev.type === "tool-call") {
-                controller.enqueue(
-                  encoder.encode(
-                    wireJson({
-                      type: "text",
-                      toolCall: {
-                        toolCallId: ev.id,
-                        toolName: ev.name,
-                        args: ev.args,
-                      },
-                    })
-                  )
-                );
-              } else if (ev.type === "tool-result") {
-                controller.enqueue(
-                  encoder.encode(
-                    wireJson({
-                      type: "text",
-                      toolResult: {
-                        toolCallId: ev.id,
-                        toolName: ev.name,
-                        result: ev.result,
-                      },
-                    })
-                  )
-                );
-              } else if (ev.type === "finish") {
-                // Match legacy wire: AI SDK v5's fullStream delivers the
-                // finish chunk with totalUsage on the same event, and the
-                // old runner emitted one combined NDJSON line. `finish` is the
-                // single canonical usage carrier; the runner collapses to one
-                // chunk.
-                controller.enqueue(
-                  encoder.encode(
-                    wireJson({
-                      type: "text",
-                      finishReason: ev.reason,
-                      usage: ev.usage ? usageToWire(ev.usage) : undefined,
-                    })
-                  )
-                );
-              } else if (ev.type === "error") {
+              // Pure event→chunk mapping lives in ./wire, pinned by the
+              // shared wire-chunks.json golden vectors that the Python
+              // runner's mirror also runs. Terminal handling stays here.
+              const chunk = textEventToWire(ev);
+              if (ev.type === "error") {
                 console.error("[WebhookRunner] Error during streaming:", ev.error);
-                controller.enqueue(
-                  encoder.encode(wireJson({ type: "error", error: ev.error }))
-                );
+                controller.enqueue(encoder.encode(wireJson(chunk!)));
                 controller.close();
                 return;
               }
+              if (chunk) controller.enqueue(encoder.encode(wireJson(chunk)));
             }
           } catch (err) {
             const message = extractErrorMessage(err);
@@ -490,15 +448,18 @@ export class WebhookRunner<
     );
     if (caughtError) throw caughtError;
 
-    return {
-      type: "text",
+    // Envelope assembly is the pure textResponseToWire (./wire), pinned by
+    // the shared response-envelopes.json golden vectors that the Python
+    // runner's mirror also runs. Note traceId is now omitted when empty
+    // (null hooks) instead of riding as "" — consumers probe by key.
+    return textResponseToWire({
       result: text,
-      usage: usage ? usageToWire(usage) : undefined,
+      usage,
       finishReason,
       toolCalls,
       toolResults,
       traceId,
-    } as WebhookPromptResponse;
+    }) as WebhookPromptResponse;
   }
 
   private async runObject(
@@ -535,39 +496,19 @@ export class WebhookRunner<
           try {
             const events = await eventsPromise;
             for await (const ev of events) {
-              if (ev.type === "object-delta") {
-                controller.enqueue(
-                  encoder.encode(wireJson({ type: "object", result: ev.partial }))
-                );
-              } else if (ev.type === "object-final") {
-                // object-final is the canonical resolved value — also emit
-                // as a "result" chunk so non-streaming dashboards that look
-                // at the last result chunk see the final object.
-                controller.enqueue(
-                  encoder.encode(wireJson({ type: "object", result: ev.value }))
-                );
-              } else if (ev.type === "finish") {
-                // `finish` is the single canonical usage carrier. Emit the
-                // usage chunk only when usage is present, preserving the
-                // historical wire (object streams without usage emit no chunk).
-                if (ev.usage) {
-                  controller.enqueue(
-                    encoder.encode(
-                      wireJson({
-                        type: "object",
-                        usage: usageToWire(ev.usage),
-                      })
-                    )
-                  );
-                }
-              } else if (ev.type === "error") {
+              // Pure event→chunk mapping lives in ./wire, pinned by the
+              // shared wire-chunks.json golden vectors that the Python
+              // runner's mirror also runs: usage-less finish emits nothing,
+              // object-final emits a "result" chunk so non-streaming
+              // dashboards see the final object.
+              const chunk = objectEventToWire(ev);
+              if (ev.type === "error") {
                 console.error("[WebhookRunner] Error during streaming:", ev.error);
-                controller.enqueue(
-                  encoder.encode(wireJson({ type: "error", error: ev.error }))
-                );
+                controller.enqueue(encoder.encode(wireJson(chunk!)));
                 controller.close();
                 return;
               }
+              if (chunk) controller.enqueue(encoder.encode(wireJson(chunk)));
             }
           } catch (err) {
             const message = extractErrorMessage(err);
@@ -635,13 +576,13 @@ export class WebhookRunner<
     );
     if (caughtError) throw caughtError;
 
-    return {
-      type: "object",
+    // See runText — vector-pinned envelope assembly.
+    return objectResponseToWire({
       result: value,
-      usage: usage ? usageToWire(usage) : undefined,
+      usage,
       finishReason,
       traceId,
-    } as WebhookPromptResponse;
+    }) as WebhookPromptResponse;
   }
 
   private async runImage(
@@ -735,6 +676,15 @@ export class WebhookRunner<
     const resolvedDatasetPath =
       datasetPath ?? frontmatter?.test_settings?.dataset;
 
+    // Enable telemetry per row (mirrors runPrompt). formatWithDataset spreads
+    // these options into each row's format(), where the adapter authors
+    // `experimental_telemetry`. Omitting this is why experiments produced no
+    // generation span while run-prompt did.
+    const { telemetry } = createPromptTelemetry(
+      frontmatter?.name,
+      options?.telemetry
+    );
+
     const executor = this.executor;
     const experimentItemSpanHook = this.experimentItemSpanHook;
 
@@ -746,6 +696,7 @@ export class WebhookRunner<
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
         ...(sampling ? { sampling } : {}),
+        telemetry,
       });
 
       const stream = new ReadableStream({
@@ -858,9 +809,10 @@ export class WebhookRunner<
                   evalResults = await Promise.all(
                     evaluators.map(async (e) => {
                       const r = await e.fn({
-                        input:
-                          (formatted as any)?._runnable?.messages ??
-                          (formatted as any)?.messages,
+                        // Adapters expose the compiled messages on their
+                        // formatted payload (Mastra/claude: `.messages`) —
+                        // that's the eval's `input`.
+                        input: (formatted as any)?.messages,
                         output,
                         expectedOutput: item.dataset?.expected_output,
                       });
@@ -874,19 +826,21 @@ export class WebhookRunner<
                 // legacy ordering and v5's legacy text ordering; it flattens
                 // the v5 object-legacy quirk (which had traceId last) in favor
                 // of consistency. Downstream JSON consumers are order-agnostic.
-                const chunk = wireJson({
-                  type: "dataset",
-                  result: {
+                // Row assembly is the pure datasetRowToWire (./wire), pinned
+                // by the shared dataset-rows.json golden vectors that the
+                // Python runner's mirror also runs.
+                const chunk = wireJson(
+                  datasetRowToWire({
                     input: item.dataset?.input,
                     expectedOutput: item.dataset?.expected_output,
                     actualOutput: output,
                     tokens: usage?.totalTokens,
                     evals: evalResults,
-                  },
-                  ...(traceId ? { traceId } : {}),
-                  runId: experimentRunId,
-                  runName: datasetRunName,
-                });
+                    traceId,
+                    runId: experimentRunId,
+                    runName: datasetRunName,
+                  })
+                );
                 controller.enqueue(chunk);
               } catch (err) {
                 controller.enqueue(experimentErrorChunk(err));
@@ -919,6 +873,7 @@ export class WebhookRunner<
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
         ...(sampling ? { sampling } : {}),
+        telemetry,
       });
       const stream = new ReadableStream({
         async start(controller) {
@@ -972,6 +927,7 @@ export class WebhookRunner<
       const dataset = await prompt.formatWithDataset({
         datasetPath: resolvedDatasetPath,
         ...(sampling ? { sampling } : {}),
+        telemetry,
       });
       const stream = new ReadableStream({
         async start(controller) {

@@ -289,7 +289,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
 
   it("should call provider.speechModel() when getModelFunction('openai/tts-1-hd', 'speechModel')", () => {
     const mockProvider = {
-      speechModel: vi.fn().mockReturnValue({ id: "tts-1-hd" }),
+      speechModel: vi.fn().mockReturnValue({ id: "tts-1-hd" } as never),
     };
 
     const registry = new VercelAIModelRegistry();
@@ -377,7 +377,7 @@ describe("VercelAIModelRegistry - Provider Auto-Resolution", () => {
     const mockProvider = {
       languageModel: vi.fn().mockImplementation((id: string) => ({ type: "language", id })),
       imageModel: vi.fn().mockImplementation((id: string) => ({ type: "image", id })),
-      speechModel: vi.fn().mockImplementation((id: string) => ({ type: "speech", id })),
+      speechModel: vi.fn().mockImplementation((id: string) => ({ type: "speech", id }) as never),
     };
 
     const registry = new VercelAIModelRegistry();

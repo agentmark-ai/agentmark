@@ -6,13 +6,13 @@
  * MastraExecutor's job is pure event translation, which is what this test
  * verifies end-to-end through the shared conformance assertions.
  *
- * Status: additive. Mastra's public webhook (MastraAdapterWebhookHandler)
- * still uses its legacy runner; the executor is an opt-in BYO-style path
- * for users who want the shared WebhookRunner. A future port flipping the
- * runner to WebhookRunner would require updating mastra's skip-worktree'd
- * tsconfig to support subpath `exports` (moduleResolution: node16/nodenext).
+ * This IS the production path: MastraAdapterWebhookHandler is a thin shim
+ * over WebhookRunner + MastraExecutor (see runner.ts). The executor consumes
+ * the runnable bundle ({agent, messages, generateOptions}) that
+ * adaptText/adaptObject produce; the user-facing formatAgent flow never
+ * reaches it.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from "vitest";
 import type { AgentEvent, Executor } from "@agentmark-ai/prompt-core";
 import {
   assertTextStream,
@@ -55,6 +55,16 @@ beforeAll(async () => {
 });
 afterAll(() => cleanupFixtures());
 
+// Every test owns its scripted SDK state. Without this reset, tests inherit
+// the previous test's generate/chunks — stable under vitest's fixed order,
+// but Stryker's per-test coverage subsets reorder execution and the
+// inherited state made mutation results nondeterministic.
+beforeEach(async () => {
+  const s = await script();
+  s.chunks = [];
+  s.generate = undefined;
+});
+
 async function script() {
   // Pull the scripted state out of the mocked module.
   const mod: any = await import("@mastra/core/agent");
@@ -64,18 +74,18 @@ async function script() {
   };
 }
 
-// Build a formatted payload with the `_runnable` field the executor expects.
+// Build the runnable bundle adaptText/adaptObject produce for the executor.
 function makeFormatted(extra?: Record<string, any>): any {
   return {
-    name: "probe",
-    instructions: "you are helpful",
-    model: {} as any,
-    tools: {},
-    ...extra,
-    _runnable: {
-      messages: [{ role: "user", content: "hello" }],
-      generateOptions: {},
+    agent: {
+      name: "probe",
+      instructions: "you are helpful",
+      model: {} as any,
+      tools: {},
     },
+    messages: [{ role: "user", content: "hello" }],
+    generateOptions: {},
+    ...extra,
   };
 }
 
@@ -104,17 +114,22 @@ describe("MastraExecutor — protocol conformance", () => {
     void _asExecutor;
   });
 
-  it("throws a clear error when formatted lacks _runnable", async () => {
+  it("emits a clear terminal error when given a non-bundle payload (e.g. formatAgent output)", async () => {
     const { MastraExecutor } = await import("../src/executor");
     const ex = new MastraExecutor();
     const ctx = { shouldStream: false } as any;
-    const events = ex.executeText({ name: "bad" } as any, ctx);
+    // formatAgent output spreads AgentConfig at the top level — no `agent`
+    // key — so the executor must reject it with an actionable message.
+    const events = ex.executeText(
+      { name: "bad", instructions: "x", model: {}, tools: {} } as any,
+      ctx
+    );
     // The error event path emits a terminal ErrorEvent carrying the
     // explanation instead of throwing out of the AsyncIterable.
     const observed = await collect(events);
     expect(observed[observed.length - 1].type).toBe("error");
     expect((observed[observed.length - 1] as any).error).toMatch(
-      /_runnable/
+      /runnable bundle/
     );
   });
 });
@@ -208,6 +223,29 @@ describe("MastraExecutor — text flow", () => {
     expect(events[events.length - 1].type).toBe("error");
     expect((events[events.length - 1] as any).error).toBe("boom");
   });
+
+  it("streaming: synthesizes the terminal finish when fullStream omits it", async () => {
+    // Regression: the executor previously ended the stream with NO finish
+    // event when the SDK stream completed without a finish chunk.
+    const s = await script();
+    s.chunks = [{ type: "text-delta", textDelta: "hi" }];
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    async function* replay() {
+      for (const e of events) yield e;
+    }
+    await assertTextStream(replay());
+    expect(events.map((e) => e.type)).toEqual(["text-delta", "finish"]);
+    expect((events.at(-1) as any).usage).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    });
+  });
 });
 
 describe("MastraExecutor — object flow", () => {
@@ -247,16 +285,339 @@ describe("MastraExecutor — object flow", () => {
     );
 
     // Each chunk becomes an object-delta, and the stream ends with a single
-    // terminal `finish` (the canonical contract — `finish` is the sole usage
-    // carrier; here the mock's usage promise resolves undefined, so finish
-    // carries no usage but still terminates the stream).
+    // terminal `finish`. `finish` is the sole usage carrier and ALWAYS
+    // carries usage — the mock's usage promise resolves undefined, so the
+    // executor zero-defaults it (same contract as `createExecutor`'s builder).
+    async function* replay() {
+      for (const e of events) yield e;
+    }
+    await assertObjectStream(replay());
     expect(events.map((e) => e.type)).toEqual([
       "object-delta",
       "object-delta",
       "finish",
     ]);
     const finish = events.at(-1) as { type: "finish"; usage?: unknown };
-    expect(finish.usage).toBeUndefined();
+    expect(finish.usage).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    });
+  });
+});
+
+describe("MastraExecutor — provider shape variance and error paths", () => {
+  it("rejects null / non-object payloads with the runnable-bundle error", async () => {
+    const { MastraExecutor } = await import("../src/executor");
+    const ex = new MastraExecutor();
+    for (const bad of [null, "formatted-as-string", 42]) {
+      const events = await collect(
+        ex.executeText(bad as any, { shouldStream: false } as any)
+      );
+      expect(events[events.length - 1].type).toBe("error");
+      expect((events[events.length - 1] as any).error).toMatch(/runnable bundle/);
+    }
+  });
+
+  it("one-shot: tolerates toolCalls without toolResults (no phantom events)", async () => {
+    const s = await script();
+    s.generate = {
+      text: "done",
+      usage: { inputTokens: 1, outputTokens: 1 },
+      finishReason: "stop",
+      toolCalls: [{ toolCallId: "t1", toolName: "a", args: 1 }],
+      // no toolResults key at all
+    };
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect(events.map((e) => e.type)).toEqual([
+      "tool-call",
+      "text-delta",
+      "finish",
+    ]);
+  });
+
+  it("one-shot: falls back to `content` when the provider omits `text`", async () => {
+    const s = await script();
+    s.generate = {
+      content: "from-content",
+      usage: { inputTokens: 1, outputTokens: 1 },
+      finishReason: "stop",
+    };
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect(events[0]).toEqual({ type: "text-delta", text: "from-content" });
+  });
+
+  it("one-shot: empty text emits no delta (finish only)", async () => {
+    const s = await script();
+    s.generate = {
+      text: "",
+      usage: { inputTokens: 1, outputTokens: 0 },
+      finishReason: "stop",
+    };
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect(events.map((e) => e.type)).toEqual(["finish"]);
+  });
+
+  it("object one-shot: unwraps `.object` but accepts a bare object result", async () => {
+    const s = await script();
+    s.generate = { answer: 42 }; // provider returned the object directly
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect(events[0]).toEqual({
+      type: "object-final",
+      value: { answer: 42 },
+    });
+  });
+
+  it("object paths surface thrown SDK errors as terminal error events", async () => {
+    const mod: any = await import("@mastra/core/agent");
+    const { MastraExecutor } = await import("../src/executor");
+
+    // One-shot: generate throws.
+    const genSpy = vi
+      .spyOn(mod.Agent.prototype, "generate")
+      .mockRejectedValueOnce(new Error("object oneshot boom"));
+    const a = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect(a.at(-1)).toEqual({ type: "error", error: "object oneshot boom" });
+
+    // Streaming: stream() itself rejects.
+    const streamSpy = vi
+      .spyOn(mod.Agent.prototype, "stream")
+      .mockRejectedValueOnce(new Error("object stream boom"));
+    const b = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(b.at(-1)).toEqual({ type: "error", error: "object stream boom" });
+
+    genSpy.mockRestore();
+    streamSpy.mockRestore();
+  });
+
+  it("object streaming: falls back to generate() when fullStream is unavailable", async () => {
+    const mod: any = await import("@mastra/core/agent");
+    const { MastraExecutor } = await import("../src/executor");
+    const s = await script();
+    s.generate = {
+      object: { fell: "back" },
+      usage: { inputTokens: 2, outputTokens: 2 },
+      finishReason: "stop",
+    };
+    const streamSpy = vi
+      .spyOn(mod.Agent.prototype, "stream")
+      .mockResolvedValueOnce({} as any); // no fullStream property
+    const events = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(events.map((e) => e.type)).toEqual(["object-final", "finish"]);
+    expect((events[0] as any).value).toEqual({ fell: "back" });
+    streamSpy.mockRestore();
+  });
+
+  it("object streaming: error chunks are terminal; object-delta chunks carry objectDelta", async () => {
+    const s = await script();
+    s.chunks = [
+      { type: "object-delta", objectDelta: { partial: 1 } },
+      { type: "error", error: { message: "object mid-stream boom" } },
+      { type: "object", object: { unreachable: true } },
+    ];
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(events).toEqual([
+      { type: "object-delta", partial: { partial: 1 } },
+      { type: "error", error: "object mid-stream boom" },
+    ]);
+  });
+
+  it("object streaming: a non-thenable usage side channel is ignored (zero-default)", async () => {
+    const mod: any = await import("@mastra/core/agent");
+    const { MastraExecutor } = await import("../src/executor");
+    const streamSpy = vi
+      .spyOn(mod.Agent.prototype, "stream")
+      .mockResolvedValueOnce({
+        fullStream: (async function* () {
+          yield { type: "object", object: { a: 1 } };
+        })(),
+        usage: { inputTokens: 9, outputTokens: 9 }, // plain object, not a promise
+      } as any);
+    const events = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    const finish = events.at(-1) as any;
+    expect(finish.usage).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    });
+    streamSpy.mockRestore();
+  });
+});
+
+describe("MastraExecutor — text-path variants", () => {
+  it("text paths surface thrown SDK errors as terminal error events", async () => {
+    const mod: any = await import("@mastra/core/agent");
+    const { MastraExecutor } = await import("../src/executor");
+
+    const genSpy = vi
+      .spyOn(mod.Agent.prototype, "generate")
+      .mockRejectedValueOnce(new Error("text oneshot boom"));
+    const a = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect(a.at(-1)).toEqual({ type: "error", error: "text oneshot boom" });
+
+    const streamSpy = vi
+      .spyOn(mod.Agent.prototype, "stream")
+      .mockRejectedValueOnce(new Error("text stream boom"));
+    const b = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(b.at(-1)).toEqual({ type: "error", error: "text stream boom" });
+
+    genSpy.mockRestore();
+    streamSpy.mockRestore();
+  });
+
+  it("one-shot: provider finishReason passes through unclobbered", async () => {
+    const s = await script();
+    s.generate = {
+      text: "t",
+      usage: { inputTokens: 1, outputTokens: 1 },
+      finishReason: "length",
+    };
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: false,
+      } as any)
+    );
+    expect((events.at(-1) as any).reason).toBe("length");
+  });
+
+  it("streaming: reads `text`-keyed delta chunks (v5-style) too", async () => {
+    const s = await script();
+    s.chunks = [
+      { type: "text-delta", text: "v5-shaped" },
+      { type: "finish", finishReason: "stop", usage: { inputTokens: 1, outputTokens: 1 } },
+    ];
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(events[0]).toEqual({ type: "text-delta", text: "v5-shaped" });
+  });
+
+  it("object streaming: a RESOLVING usage promise funnels onto the finish", async () => {
+    const mod: any = await import("@mastra/core/agent");
+    const { MastraExecutor } = await import("../src/executor");
+    const streamSpy = vi
+      .spyOn(mod.Agent.prototype, "stream")
+      .mockResolvedValueOnce({
+        fullStream: (async function* () {
+          yield { type: "object", object: { a: 1 } };
+        })(),
+        usage: Promise.resolve({ inputTokens: 8, outputTokens: 2 }),
+      } as any);
+    const events = await collect(
+      new MastraExecutor().executeObject(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect((events.at(-1) as any).usage).toEqual({
+      inputTokens: 8,
+      outputTokens: 2,
+      totalTokens: 10,
+    });
+    streamSpy.mockRestore();
+  });
+
+  it("streaming: captured finish carries the chunk's reason and v5-style totalUsage", async () => {
+    const s = await script();
+    s.chunks = [
+      { type: "text-delta", textDelta: "x" },
+      {
+        type: "finish",
+        finishReason: "length",
+        totalUsage: { inputTokens: 6, outputTokens: 4 }, // no `usage` key
+      },
+    ];
+    const { MastraExecutor } = await import("../src/executor");
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(events.at(-1)).toEqual({
+      type: "finish",
+      reason: "length",
+      usage: { inputTokens: 6, outputTokens: 4, totalTokens: 10 },
+    });
+  });
+
+  it("streaming: falls back to generate() when fullStream is unavailable (content + reason preserved)", async () => {
+    const mod: any = await import("@mastra/core/agent");
+    const { MastraExecutor } = await import("../src/executor");
+    const s = await script();
+    s.generate = {
+      content: "fallback-content", // no `text` key — exercises the ?? chain
+      usage: { inputTokens: 1, outputTokens: 1 },
+      finishReason: "length",
+    };
+    const streamSpy = vi
+      .spyOn(mod.Agent.prototype, "stream")
+      .mockResolvedValueOnce({} as any);
+    const events = await collect(
+      new MastraExecutor().executeText(makeFormatted(), {
+        shouldStream: true,
+      } as any)
+    );
+    expect(events).toEqual([
+      { type: "text-delta", text: "fallback-content" },
+      {
+        type: "finish",
+        reason: "length",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    ]);
+    streamSpy.mockRestore();
   });
 });
 

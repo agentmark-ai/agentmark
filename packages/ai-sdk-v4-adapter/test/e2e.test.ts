@@ -28,7 +28,7 @@ describe("E2E: Seamless Pull-Models Flow (AI SDK v4)", () => {
       languageModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, provider: "openai" })),
       imageModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, type: "image" })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     // Step 2: Verify model resolution via getModelFunction
     const creator = registry.getModelFunction("openai/gpt-4o-mini", "languageModel");
@@ -44,7 +44,7 @@ describe("E2E: Seamless Pull-Models Flow (AI SDK v4)", () => {
     const mockOpenAI = {
       languageModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}` })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     // Test gpt-4o-mini
     const creator1 = registry.getModelFunction("openai/gpt-4o-mini", "languageModel");
@@ -70,7 +70,7 @@ describe("E2E: Seamless Pull-Models Flow (AI SDK v4)", () => {
     const mockOpenAI = {
       imageModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, type: "image" })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     const creator = registry.getModelFunction("openai/dall-e-3", "imageModel");
     const model = creator("openai/dall-e-3");
@@ -84,7 +84,7 @@ describe("E2E: Seamless Pull-Models Flow (AI SDK v4)", () => {
     const mockOpenAI = {
       speechModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, type: "speech" })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     const creator = registry.getModelFunction("openai/tts-1", "speechModel");
     const model = creator("openai/tts-1");
@@ -103,7 +103,7 @@ describe("E2E: Seamless Pull-Models Flow (AI SDK v4)", () => {
         modelId,
       })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     // Step 2: Create client
     const loader = new FileLoader(fixturesPath);
@@ -152,7 +152,7 @@ text_config:
         modelId,
       })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     const adapter = new VercelAIAdapter(registry);
     const loader = new FileLoader(fixturesPath);
@@ -186,7 +186,7 @@ text_config:
 
     // Passes validation (model is in builtInModels) AND resolves via registerProviders
     const prompt = await agentMark.loadTextPrompt(promptAst as any);
-    const params = await prompt.format({ props: {} });
+    const params = await prompt.format({ props: {} as never });
 
     expect(params.model.modelId).toBe("gpt-4o-mini");
     expect(mockOpenAI.languageModel).toHaveBeenCalledWith("gpt-4o-mini");
@@ -197,7 +197,7 @@ text_config:
     const mockOpenAI = {
       languageModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, modelId })),
     };
-    registry.registerProviders({ openai: mockOpenAI });
+    registry.registerProviders({ openai: mockOpenAI as never });
 
     const adapter = new VercelAIAdapter(registry);
     const loader = new FileLoader(fixturesPath);

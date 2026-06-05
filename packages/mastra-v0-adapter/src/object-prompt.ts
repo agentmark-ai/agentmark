@@ -10,7 +10,7 @@ import {
   type RichChatMessage,
   type SamplingOptions,
 } from "@agentmark-ai/prompt-core";
-import { MastraAdapter } from "./adapter";
+import { MastraAdapter, type MastraObjectGenerateOptions } from "./adapter";
 import {
   FormatAgentProps,
   FormatMessagesProps,
@@ -43,35 +43,33 @@ export class MastraObjectPrompt<
     const { props, options } = params || {};
     const input = await this.compile(props);
 
-    const adaptedFull = await this.adapter.adaptObject(input, options ?? {});
-    // Strip `_runnable` so Agent constructor never sees it. The shared
-    // WebhookRunner consumes `_runnable` via the standard format() path,
-    // not via formatAgent.
-    const { _runnable: _runnable, ...adaptedAgent } = adaptedFull;
+    // Compose the adapter's building blocks directly (see MastraTextPrompt.
+    // formatAgent). Note this also stops leaking the adapter-internal
+    // `adaptMessages` closure into the returned AgentConfig spread.
+    const adaptedAgent = await this.adapter.adaptObjectAgent(input, options ?? {});
 
     const formatMessages = async <M extends Partial<T[K]["input"]>>(msgParams?: {
       props?: FormatMessagesProps<T, UsedProps, M, K>;
     }): Promise<
       [
         RichChatMessage[],
-        ReturnType<typeof adaptedAgent.adaptMessages>["options"] & {
+        MastraObjectGenerateOptions & {
           output: z.ZodType<T[K]["output"]>;
         }
       ]
     > => {
       const messageInput = await this.compile({...(props || {}), ...(msgParams?.props || {})} as any);
-      const messageAdapted = adaptedAgent.adaptMessages({
-        input: messageInput,
-        options: options ?? {},
-        metadata: this.metadata({
+      const messageAdapted = this.adapter.adaptObjectMessages(
+        messageInput,
+        options ?? {},
+        this.metadata({
           ...(props || {}),
           ...((msgParams && msgParams.props) || {}),
-        }),
-      });
+        })
+      );
 
-      // Type assertion needed: adaptMessages returns `functionId?: string` but the
-      // intersection type expects `functionId?: string | undefined` (strict optional).
-      // Both are functionally identical at runtime.
+      // `output` is the untyped Zod schema at the adapter layer; the tuple
+      // type refines it to the prompt's typed schema for callers.
       return [messageAdapted.messages, messageAdapted.options] as any;
     };
 

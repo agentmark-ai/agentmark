@@ -41,27 +41,8 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
   }),
 }));
 
-// Frontmatter is read from the AST via getFrontMatter. We supply a
-// minimal mock so the tests can swap in different configs per case.
-vi.mock("@agentmark-ai/templatedx", () => ({
-  getFrontMatter: vi.fn(() => ({})),
-}));
-
-vi.mock("@agentmark-ai/prompt-core", async (importActual) => {
-  // Keep the real module (notably `runDatasetPool`, which the experiment
-  // runner depends on); only stub `createPromptTelemetry`.
-  const actual = await importActual<typeof import("@agentmark-ai/prompt-core")>();
-  return {
-    ...actual,
-    createPromptTelemetry: vi.fn(() => ({
-      telemetry: { isEnabled: false, promptName: "test" },
-    })),
-  };
-});
-
 // Import after mocks
 import { ClaudeAgentWebhookHandler } from "../src/runner";
-import { getFrontMatter } from "@agentmark-ai/templatedx";
 
 // ---------------------------------------------------------------------------
 // OTel test harness
@@ -89,9 +70,21 @@ function wrapperSpans(): ReadableSpan[] {
 // ---------------------------------------------------------------------------
 // Helpers (lifted verbatim from experiment-attributes.test.ts)
 // ---------------------------------------------------------------------------
-function createMockAst(): Ast {
-  return { type: "root", children: [] };
+/** Real parseable AST — the shared WebhookRunner reads frontmatter with the
+ * real templatedx, so each test supplies actual yaml. */
+function astWithFrontmatter(yaml: string): Ast {
+  return {
+    type: "root",
+    children: [{ type: "yaml", value: yaml }],
+  } as unknown as Ast;
 }
+
+const TEXT_EXPERIMENT_AST = astWithFrontmatter(
+  "name: experiment-prompt\ntext_config:\n  model_name: anthropic/claude-sonnet-4-20250514\ntest_settings:\n  dataset: ./test.jsonl"
+);
+const OBJECT_EXPERIMENT_AST = astWithFrontmatter(
+  "name: experiment-prompt\nobject_config:\n  model_name: anthropic/claude-sonnet-4-20250514\ntest_settings:\n  dataset: ./test.jsonl"
+);
 
 function createMockReadableStream<T>(generator: AsyncGenerator<T>): ReadableStream<T> {
   return new ReadableStream({
@@ -111,7 +104,7 @@ async function drainStream(stream: ReadableStream): Promise<string[]> {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const text = decoder.decode(value);
+      const text = typeof value === "string" ? value : decoder.decode(value);
       chunks.push(...text.split("\n").filter((s) => s.trim()));
     }
   } finally {
@@ -191,22 +184,17 @@ describe("experiment wrapper span (real OTel)", () => {
   });
 
   it("text experiment wrapper carries agentmark.input/output and dataset metadata", async () => {
-    vi.mocked(getFrontMatter).mockReturnValue({
-      name: "experiment-prompt",
-      text_config: {},
-      test_settings: { dataset: "./test.jsonl" },
-    });
-
     const dataset_input = { question: "What is 2+2?" };
     mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
       createMockReadableStream(
         (async function* () {
           yield {
-            formatted: Promise.resolve({
+            type: "dataset",
+            formatted: {
               query: { prompt: "test", options: {} },
               telemetry: { isEnabled: true, promptName: "test" },
               messages: [],
-            }),
+            },
             dataset: { input: dataset_input, expected_output: "4" },
           };
         })(),
@@ -220,7 +208,7 @@ describe("experiment wrapper span (real OTel)", () => {
       usage: { input_tokens: 10, output_tokens: 1 },
     });
 
-    const result = await handler.runExperiment(createMockAst(), "my-experiment");
+    const result = await handler.runExperiment(TEXT_EXPERIMENT_AST, "my-experiment");
     await drainStream(result.stream);
 
     const spans = wrapperSpans();
@@ -258,23 +246,18 @@ describe("experiment wrapper span (real OTel)", () => {
   });
 
   it("object experiment wrapper carries agentmark.input/output", async () => {
-    vi.mocked(getFrontMatter).mockReturnValue({
-      name: "experiment-prompt",
-      object_config: {},
-      test_settings: { dataset: "./test.jsonl" },
-    });
-
     const structuredOutput = { answer: 42 };
     const dataset_input = { question: "What is 6*7?" };
     mockClient._mockObjectPrompt.formatWithDataset.mockReturnValue(
       createMockReadableStream(
         (async function* () {
           yield {
-            formatted: Promise.resolve({
+            type: "dataset",
+            formatted: {
               query: { prompt: "test", options: {} },
               telemetry: { isEnabled: true, promptName: "test" },
               messages: [],
-            }),
+            },
             dataset: { input: dataset_input, expected_output: JSON.stringify(structuredOutput) },
           };
         })(),
@@ -289,7 +272,7 @@ describe("experiment wrapper span (real OTel)", () => {
       usage: { input_tokens: 10, output_tokens: 5 },
     });
 
-    const result = await handler.runExperiment(createMockAst(), "obj-run");
+    const result = await handler.runExperiment(OBJECT_EXPERIMENT_AST, "obj-run");
     await drainStream(result.stream);
 
     const spans = wrapperSpans();
@@ -301,12 +284,6 @@ describe("experiment wrapper span (real OTel)", () => {
   });
 
   it("multi-item dataset emits one wrapper per item, sharing dataset_run_id", async () => {
-    vi.mocked(getFrontMatter).mockReturnValue({
-      name: "experiment-prompt",
-      text_config: {},
-      test_settings: { dataset: "./test.jsonl" },
-    });
-
     const items = [
       { input: { q: "first" }, expected_output: "a1" },
       { input: { q: "second" }, expected_output: "a2" },
@@ -316,11 +293,12 @@ describe("experiment wrapper span (real OTel)", () => {
         (async function* () {
           for (const it of items) {
             yield {
-              formatted: Promise.resolve({
+              type: "dataset",
+              formatted: {
                 query: { prompt: "test", options: {} },
                 telemetry: { isEnabled: true, promptName: "test" },
                 messages: [],
-              }),
+              },
               dataset: it,
             };
           }
@@ -344,7 +322,7 @@ describe("experiment wrapper span (real OTel)", () => {
       usage: { input_tokens: 1, output_tokens: 1 },
     });
 
-    const result = await handler.runExperiment(createMockAst(), "multi");
+    const result = await handler.runExperiment(TEXT_EXPERIMENT_AST, "multi");
     await drainStream(result.stream);
 
     const spans = wrapperSpans().sort((a, b) => a.name.localeCompare(b.name));
