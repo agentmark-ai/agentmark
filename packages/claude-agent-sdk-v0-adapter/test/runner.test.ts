@@ -1,1066 +1,512 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+/**
+ * Tests for ClaudeAgentWebhookHandler — now a thin shim over the shared
+ * WebhookRunner + ClaudeAgentExecutor.
+ *
+ * Style matches mastra-v0-adapter's runner tests: REAL fixtures via
+ * FileLoader, REAL client/adapter/prompt-core/templatedx — only the Claude
+ * Agent SDK `query()` is mocked. The pre-port suite hand-mocked the client,
+ * templatedx, and prompt-core, which pinned the bespoke runner's wiring;
+ * these tests pin externally observable behavior instead (canonical wire
+ * chunks, rejection contracts, dataset rows, sampling).
+ *
+ * Contract changes from the port (deliberate, matching v5 + Mastra + the
+ * Python claude adapter):
+ *   - Streaming emits canonical WireChunks ({type:"text", result} deltas,
+ *     finish chunk carrying full WireUsage) instead of {type, delta}.
+ *   - Non-streaming failures REJECT instead of returning an error-shaped
+ *     result payload.
+ *   - Experiments resolve format-time failures (e.g. missing dataset) as
+ *     rejections instead of error chunks.
+ */
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from "vitest";
+import { fileURLToPath } from "url";
+import path from "path";
 import type { Ast } from "@agentmark-ai/templatedx";
-import type { AgentMark } from "@agentmark-ai/prompt-core";
-import type { ClaudeAgentAdapter } from "../src/adapter";
-import type { ClaudeAgentTextParams, ClaudeAgentObjectParams } from "../src/types";
+import type { EvalRegistry } from "@agentmark-ai/prompt-core";
+import { FileLoader } from "@agentmark-ai/loader-file";
+import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
-// Mock the claude-agent-sdk query function
-const mockQueryResults: Array<any> = [];
+// Mock ONLY the Claude Agent SDK. `scripted.messages` is replayed per query
+// call; `scripted.impl` overrides wholesale for multi-call scenarios.
+const scripted: {
+  messages: Array<Record<string, any>>;
+  impl?: (params: any) => AsyncGenerator<any>;
+  lastParams?: any;
+} = { messages: [] };
+
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: vi.fn(async function* () {
-    for (const result of mockQueryResults) {
-      yield result;
-    }
+  query: vi.fn((params: any) => {
+    scripted.lastParams = params;
+    if (scripted.impl) return scripted.impl(params);
+    return (async function* () {
+      for (const m of scripted.messages) yield m;
+    })();
   }),
 }));
 
-// Mock getFrontMatter and createPromptTelemetry
-vi.mock("@agentmark-ai/templatedx", () => ({
-  getFrontMatter: vi.fn(() => ({})),
-}));
-
-vi.mock("@agentmark-ai/prompt-core", async (importActual) => {
-  // Keep the real module (notably `runDatasetPool`, which the experiment
-  // runner depends on); only stub `createPromptTelemetry`.
-  const actual = await importActual<typeof import("@agentmark-ai/prompt-core")>();
-  return {
-    ...actual,
-    createPromptTelemetry: vi.fn(() => ({
-      telemetry: { isEnabled: false, promptName: "test" },
-    })),
-  };
-});
-
-// Import after mocks
 import { ClaudeAgentWebhookHandler } from "../src/runner";
-import { getFrontMatter } from "@agentmark-ai/templatedx";
+import { createAgentMarkClient } from "../src";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
-// Helper to create mock AST
-function createMockAst(): Ast {
-  return { type: "root", children: [] };
-}
+const assistant = (text: string) => ({
+  type: "assistant",
+  message: { content: [{ type: "text", text }] },
+});
+const success = (over?: Record<string, unknown>) => ({
+  type: "result",
+  subtype: "success",
+  result: "Final answer",
+  usage: { input_tokens: 10, output_tokens: 5 },
+  ...over,
+});
 
-// Helper to create mock AgentMark client
-function createMockClient() {
-  const mockTextPrompt = {
-    format: vi.fn().mockResolvedValue({
-      prompt: "test prompt",
-      options: { model: "claude-sonnet-4-20250514" },
-      messages: [],
-    } as ClaudeAgentTextParams),
-    formatWithTestProps: vi.fn().mockResolvedValue({
-      prompt: "test prompt from test props",
-      options: { model: "claude-sonnet-4-20250514" },
-      messages: [],
-    } as ClaudeAgentTextParams),
-    formatWithDataset: vi.fn(),
-  };
-
-  const mockObjectPrompt = {
-    format: vi.fn().mockResolvedValue({
-      prompt: "object prompt",
-      options: {
-        model: "claude-sonnet-4-20250514",
-        outputFormat: { type: "json_schema", schema: {} },
-      },
-      messages: [],
-    } as ClaudeAgentObjectParams),
-    formatWithTestProps: vi.fn().mockResolvedValue({
-      prompt: "object prompt from test props",
-      options: {
-        model: "claude-sonnet-4-20250514",
-        outputFormat: { type: "json_schema", schema: {} },
-      },
-      messages: [],
-    } as ClaudeAgentObjectParams),
-    formatWithDataset: vi.fn(),
-  };
-
-  return {
-    loadTextPrompt: vi.fn().mockResolvedValue(mockTextPrompt),
-    loadObjectPrompt: vi.fn().mockResolvedValue(mockObjectPrompt),
-    getEvalRegistry: vi.fn().mockReturnValue({}),
-    _mockTextPrompt: mockTextPrompt,
-    _mockObjectPrompt: mockObjectPrompt,
-  } as unknown as AgentMark<
-    Record<string, { input: unknown; output: unknown }>,
-    ClaudeAgentAdapter<Record<string, { input: unknown; output: unknown }>>
-  > & {
-    _mockTextPrompt: typeof mockTextPrompt;
-    _mockObjectPrompt: typeof mockObjectPrompt;
-  };
-}
-
-// Helper to create a mock ReadableStream from an async generator
-function createMockReadableStream<T>(generator: AsyncGenerator<T>): ReadableStream<T> {
-  return new ReadableStream({
-    async pull(controller) {
-      const { value, done } = await generator.next();
-      if (done) {
-        controller.close();
-      } else {
-        controller.enqueue(value);
-      }
-    },
-  });
-}
-
-// Helper to drain a ReadableStream and collect chunks
-async function drainStream(stream: ReadableStream): Promise<string[]> {
+async function drainStream(stream: ReadableStream): Promise<any[]> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
-  const chunks: string[] = [];
-
+  const lines: string[] = [];
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const text = decoder.decode(value);
-      // Split by newlines and filter empty
-      chunks.push(...text.split("\n").filter((s) => s.trim()));
+      // Prompt streams enqueue encoded bytes; the shared experiment stream
+      // enqueues wireJson strings — accept both.
+      const text = typeof value === "string" ? value : decoder.decode(value);
+      lines.push(...text.split("\n").filter((s) => s.trim()));
     }
   } finally {
     reader.releaseLock();
   }
-
-  return chunks;
+  return lines.map((l) => JSON.parse(l));
 }
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 describe("ClaudeAgentWebhookHandler", () => {
   let handler: ClaudeAgentWebhookHandler;
-  let mockClient: ReturnType<typeof createMockClient>;
+  let loader: FileLoader;
+
+  beforeAll(async () => {
+    await setupFixtures();
+  });
+  afterAll(() => cleanupFixtures());
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockQueryResults.length = 0;
-    mockClient = createMockClient();
-    handler = new ClaudeAgentWebhookHandler(mockClient);
+    scripted.messages = [];
+    scripted.impl = undefined;
+    scripted.lastParams = undefined;
+
+    const evals: EvalRegistry = {
+      exact_match: async ({ output, expectedOutput }) => {
+        const out = typeof output === "string" ? output : JSON.stringify(output);
+        const exp =
+          typeof expectedOutput === "string"
+            ? expectedOutput
+            : JSON.stringify(expectedOutput);
+        return { score: out === exp ? 1 : 0, passed: out === exp };
+      },
+    };
+
+    const base = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
+    loader = new FileLoader(base);
+    const client = createAgentMarkClient({ loader, evals });
+    handler = new ClaudeAgentWebhookHandler(client as any);
   });
 
-  describe("constructor", () => {
-    it("should initialize with client", () => {
-      const client = createMockClient();
-      const h = new ClaudeAgentWebhookHandler(client);
-      expect(h).toBeInstanceOf(ClaudeAgentWebhookHandler);
+  describe("runPrompt — text (non-streaming default)", () => {
+    it("returns the result with canonical WireUsage and finishReason", async () => {
+      scripted.messages = [assistant("thinking..."), success()];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+      const res: any = await handler.runPrompt(ast, {
+        customProps: { userMessage: "hi" },
+      });
+
+      expect(res.type).toBe("text");
+      expect(res.result).toBe("Final answer");
+      expect(res.finishReason).toBe("stop");
+      expect(res.usage).toEqual({
+        inputTokens: 10,
+        outputTokens: 5,
+        totalTokens: 15,
+        promptTokens: 10,
+        completionTokens: 5,
+      });
+      expect(typeof res.traceId).toBe("string");
     });
-  });
 
-  describe("runPrompt", () => {
-    describe("text prompts", () => {
-      beforeEach(() => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          name: "test-prompt",
-          text_config: { model_name: "anthropic/claude-sonnet-4-20250514" },
-        });
+    it("defaults to a non-streaming response when shouldStream is omitted", async () => {
+      // The shared runner defaults to streaming; the shim must preserve the
+      // claude handler's historical non-streaming default.
+      scripted.messages = [success()];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+      const res = await handler.runPrompt(ast, {
+        customProps: { userMessage: "hi" },
+      });
+      expect(res.type).toBe("text");
+    });
+
+    it("compiles custom props into the SDK prompt", async () => {
+      scripted.messages = [success()];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+      await handler.runPrompt(ast, {
+        customProps: { userMessage: "What is the capital of France?" },
       });
 
-      it("should execute text prompt and return response", async () => {
-        mockQueryResults.push({
-          type: "assistant",
-          message: { content: [{ type: "text", text: "Hello" }] },
-        });
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "Final answer",
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+      // The adapter flattens compiled messages into the query prompt string.
+      expect(JSON.stringify(scripted.lastParams)).toContain(
+        "What is the capital of France?"
+      );
+    });
 
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.type).toBe("text");
-        expect(result.result).toBe("Final answer");
-        expect(result.usage).toEqual({
-          promptTokens: 10,
-          completionTokens: 5,
-          totalTokens: 15,
-        });
-      });
-
-      it("should use formatWithTestProps when no custom props", async () => {
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "Done",
-        });
-
-        await handler.runPrompt(createMockAst());
-
-        expect(mockClient._mockTextPrompt.formatWithTestProps).toHaveBeenCalled();
-        expect(mockClient._mockTextPrompt.format).not.toHaveBeenCalled();
-      });
-
-      it("should use format when custom props provided", async () => {
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "Done",
-        });
-
-        await handler.runPrompt(createMockAst(), {
-          customProps: { userMessage: "Hello" },
-        });
-
-        expect(mockClient._mockTextPrompt.format).toHaveBeenCalledWith(
-          expect.objectContaining({
-            props: { userMessage: "Hello" },
-          })
-        );
-      });
-
-      it("should set finishReason to stop on success", async () => {
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "Done",
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.finishReason).toBe("stop");
-      });
-
-      it("should set finishReason to error on failure", async () => {
-        mockQueryResults.push({
+    it("rejects on SDK error subtypes (shared-runner contract)", async () => {
+      // Pre-port the handler returned an error-shaped result; the shared
+      // WebhookRunner throws on a terminal error event.
+      scripted.messages = [
+        {
           type: "result",
           subtype: "error_during_execution",
           errors: ["Something went wrong"],
-        });
+        },
+      ];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.finishReason).toBe("error");
-        expect(result.result).toContain("Something went wrong");
-      });
-
-      it("should include traceId in result", async () => {
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "Done",
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        // traceId is now generated by withTracing() wrapper (32-char hex string)
-        expect(result.traceId).toBeDefined();
-        expect(typeof result.traceId).toBe("string");
-        expect(result.traceId.length).toBe(32);
-      });
+      await expect(
+        handler.runPrompt(ast, { customProps: { userMessage: "hi" } })
+      ).rejects.toThrow("Something went wrong");
     });
 
-    describe("object prompts", () => {
-      beforeEach(() => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          name: "object-prompt",
-          object_config: {
-            model_name: "anthropic/claude-sonnet-4-20250514",
-            output: { schema: { type: "object" } },
-          },
-        });
-      });
+    it("rejects on error_max_turns", async () => {
+      scripted.messages = [
+        { type: "result", subtype: "error_max_turns", errors: ["Max turns exceeded"] },
+      ];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-      it("should execute object prompt with structured output", async () => {
-        const structuredOutput = { answer: 42, reasoning: "test" };
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "",
-          structured_output: structuredOutput,
-          usage: { input_tokens: 20, output_tokens: 10 },
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.type).toBe("object");
-        expect(result.result).toEqual(structuredOutput);
-      });
-
-      it("should use formatWithTestProps for object prompts without custom props", async () => {
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          structured_output: {},
-        });
-
-        await handler.runPrompt(createMockAst());
-
-        expect(mockClient._mockObjectPrompt.formatWithTestProps).toHaveBeenCalled();
-      });
+      await expect(
+        handler.runPrompt(ast, { customProps: { userMessage: "hi" } })
+      ).rejects.toThrow("Max turns exceeded");
     });
 
-    describe("unsupported prompt types", () => {
-      it("should return error for image_config prompts", async () => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          name: "image-prompt",
-          image_config: { model_name: "openai/dall-e-3" },
-        });
+    it("rejects when the SDK query throws", async () => {
+      // eslint-disable-next-line require-yield -- error thrown before any yield
+      scripted.impl = async function* () {
+        throw new Error("Network error");
+      };
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.type).toBe("text");
-        expect(result.result).toContain("Image generation is not supported");
-        expect(result.finishReason).toBe("error");
-        expect(result.usage?.totalTokens).toBe(0);
-      });
-
-      it("should return error for speech_config prompts", async () => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          name: "speech-prompt",
-          speech_config: { model_name: "openai/tts-1", voice: "alloy" },
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.type).toBe("text");
-        expect(result.result).toContain("Speech generation is not supported");
-        expect(result.finishReason).toBe("error");
-      });
-
-      it("should throw for unrecognized config types", async () => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          name: "unknown-prompt",
-        });
-
-        await expect(handler.runPrompt(createMockAst())).rejects.toThrow(
-          "Invalid prompt: No recognized config type"
-        );
-      });
+      await expect(
+        handler.runPrompt(ast, { customProps: { userMessage: "hi" } })
+      ).rejects.toThrow("Network error");
     });
 
-    describe("error handling", () => {
-      beforeEach(() => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          name: "test",
-          text_config: {},
-        });
-      });
+    it("throws the shared runner's invalid-prompt error for unknown configs", async () => {
+      // A real (parseable) AST whose frontmatter has no recognized config.
+      const ast = {
+        type: "root",
+        children: [{ type: "yaml", value: "name: mystery" }],
+      } as unknown as Ast;
 
-      it("should handle query errors gracefully", async () => {
-        // eslint-disable-next-line require-yield -- Testing error thrown before any yield
-        vi.mocked(query).mockImplementationOnce(async function* () {
-          throw new Error("Network error");
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.finishReason).toBe("error");
-        expect(result.result).toContain("Network error");
-      });
-
-      it("should handle error_max_turns subtype", async () => {
-        mockQueryResults.push({
-          type: "result",
-          subtype: "error_max_turns",
-          errors: ["Max turns exceeded"],
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        expect(result.finishReason).toBe("error");
-        expect(result.result).toContain("Max turns exceeded");
-      });
-
-      it("should include traceId even when prompt name is missing", async () => {
-        vi.mocked(getFrontMatter).mockReturnValue({
-          text_config: {},
-        });
-        mockQueryResults.push({
-          type: "result",
-          subtype: "success",
-          result: "Done",
-        });
-
-        const result = await handler.runPrompt(createMockAst());
-
-        // traceId is now generated by withTracing() wrapper (32-char hex string)
-        expect(result.traceId).toBeDefined();
-        expect(typeof result.traceId).toBe("string");
-        expect(result.traceId.length).toBe(32);
-      });
+      await expect(handler.runPrompt(ast)).rejects.toThrow("Invalid prompt");
     });
   });
 
-  describe("streaming responses", () => {
-    beforeEach(() => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "stream-test",
-        text_config: {},
+  describe("runPrompt — object (non-streaming default)", () => {
+    it("returns structured output as the result", async () => {
+      scripted.messages = [
+        success({ structured_output: { answer: "8" }, result: "" }),
+      ];
+      const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
+
+      const res: any = await handler.runPrompt(ast, {
+        customProps: { userMessage: "What is 4+4?" },
       });
+
+      expect(res.type).toBe("object");
+      expect(res.result).toEqual({ answer: "8" });
+    });
+  });
+
+  describe("runPrompt — unsupported kinds (legacy payloads preserved)", () => {
+    it("returns the legacy text-shaped error for image prompts", async () => {
+      // Inline real AST — the shim intercepts on frontmatter before any
+      // loading/SDK work happens, so no pre-built fixture is needed.
+      const ast = {
+        type: "root",
+        children: [
+          { type: "yaml", value: "name: img\nimage_config:\n  model_name: openai/dall-e-3" },
+        ],
+      } as unknown as Ast;
+
+      const res: any = await handler.runPrompt(ast);
+
+      expect(res.type).toBe("text");
+      expect(res.result).toContain("Image generation is not supported");
+      expect(res.finishReason).toBe("error");
+      expect(res.usage?.totalTokens).toBe(0);
+      expect(vi.mocked(query)).not.toHaveBeenCalled();
     });
 
-    it("should create ReadableStream when shouldStream=true", async () => {
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-      });
+    it("returns the legacy text-shaped error for speech prompts", async () => {
+      const ast = {
+        type: "root",
+        children: [
+          { type: "yaml", value: "name: spk\nspeech_config:\n  model_name: openai/tts-1" },
+        ],
+      } as unknown as Ast;
 
-      const result = await handler.runPrompt(createMockAst(), {
+      const res: any = await handler.runPrompt(ast);
+
+      expect(res.type).toBe("text");
+      expect(res.result).toContain("Speech generation is not supported");
+      expect(res.finishReason).toBe("error");
+    });
+  });
+
+  describe("runPrompt — streaming (canonical wire)", () => {
+    it("emits {type:'text', result} deltas and a finish chunk with full WireUsage", async () => {
+      scripted.messages = [
+        assistant("Hello "),
+        assistant("World"),
+        success({ usage: { input_tokens: 100, output_tokens: 50 } }),
+      ];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+      const res = await handler.runPrompt(ast, {
         shouldStream: true,
+        customProps: { userMessage: "hi" },
       });
+      expect(res.type).toBe("stream");
+      expect(res.streamHeader).toEqual({ "AgentMark-Streaming": "true" });
 
-      expect(result.type).toBe("stream");
-      expect(result.stream).toBeInstanceOf(ReadableStream);
+      const parsed = await drainStream(res.stream!);
+      const deltas = parsed.filter(
+        (p) => p.type === "text" && typeof p.result === "string"
+      );
+      expect(deltas.map((d) => d.result)).toEqual(["Hello ", "World"]);
+
+      const finish = parsed.find((p) => p.finishReason);
+      expect(finish).toEqual({
+        type: "text",
+        finishReason: "stop",
+        usage: {
+          inputTokens: 100,
+          outputTokens: 50,
+          totalTokens: 150,
+          promptTokens: 100,
+          completionTokens: 50,
+        },
+      });
     });
 
-    it("should yield assistant messages with content", async () => {
-      mockQueryResults.push({
-        type: "assistant",
-        message: { content: [{ type: "text", text: "Hello " }] },
-      });
-      mockQueryResults.push({
-        type: "assistant",
-        message: { content: [{ type: "text", text: "World" }] },
-      });
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Final",
-      });
+    it("object streams emit fragment deltas, the resolved value, then a usage chunk", async () => {
+      scripted.messages = [
+        assistant('{"answer":'),
+        success({
+          structured_output: { answer: "8" },
+          result: "",
+          usage: { input_tokens: 20, output_tokens: 10 },
+        }),
+      ];
+      const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
 
-      const result = await handler.runPrompt(createMockAst(), {
+      const res = await handler.runPrompt(ast, {
         shouldStream: true,
+        customProps: { userMessage: "What is 4+4?" },
       });
+      const parsed = await drainStream(res.stream!);
 
-      const chunks = await drainStream(result.stream!);
-      const parsed = chunks.map((c) => JSON.parse(c));
+      const results = parsed.filter((p) => p.type === "object" && "result" in p);
+      // JSON fragment delta first, canonical object-final last.
+      expect(results.at(0)?.result).toBe('{"answer":');
+      expect(results.at(-1)?.result).toEqual({ answer: "8" });
 
-      // Should have delta chunks for assistant messages plus final result
-      const deltas = parsed.filter((p) => p.delta);
-      expect(deltas).toHaveLength(2);
-      expect(deltas[0].delta).toBe("Hello ");
-      expect(deltas[1].delta).toBe("World");
+      const usageChunk = parsed.find((p) => p.type === "object" && "usage" in p);
+      expect(usageChunk.usage).toEqual({
+        inputTokens: 20,
+        outputTokens: 10,
+        totalTokens: 30,
+        promptTokens: 20,
+        completionTokens: 10,
+      });
     });
 
-    it("should accumulate token usage across messages", async () => {
-      mockQueryResults.push({
-        type: "assistant",
-        message: { content: [{ type: "text", text: "Test" }] },
-      });
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-        usage: { input_tokens: 100, output_tokens: 50 },
-      });
+    it("emits a terminal error chunk on SDK error subtypes", async () => {
+      scripted.messages = [
+        assistant("partial"),
+        {
+          type: "result",
+          subtype: "error_during_execution",
+          errors: ["Execution failed"],
+        },
+      ];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-      const result = await handler.runPrompt(createMockAst(), {
+      const res = await handler.runPrompt(ast, {
         shouldStream: true,
+        customProps: { userMessage: "hi" },
       });
+      const parsed = await drainStream(res.stream!);
 
-      const chunks = await drainStream(result.stream!);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const final = parsed.find((p) => p.finishReason);
-
-      expect(final.usage).toEqual({
-        promptTokens: 100,
-        completionTokens: 50,
+      expect(parsed.at(-1)).toEqual({
+        type: "error",
+        error: "Execution failed",
       });
     });
 
-    it("should capture structured output from result", async () => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "object-stream",
-        object_config: { model_name: "anthropic/claude-sonnet" },
-      });
-
-      const structuredOutput = { key: "value" };
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        structured_output: structuredOutput,
-      });
-
-      const result = await handler.runPrompt(createMockAst(), {
-        shouldStream: true,
-      });
-
-      const chunks = await drainStream(result.stream!);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const final = parsed.find((p) => p.finishReason);
-
-      expect(final.result).toEqual(structuredOutput);
-    });
-
-    it("should handle result with error subtype", async () => {
-      mockQueryResults.push({
-        type: "result",
-        subtype: "error_during_execution",
-        errors: ["Execution failed"],
-      });
-
-      const result = await handler.runPrompt(createMockAst(), {
-        shouldStream: true,
-      });
-
-      const chunks = await drainStream(result.stream!);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const errorChunk = parsed.find((p) => p.type === "error");
-
-      expect(errorChunk).toBeDefined();
-      expect(errorChunk.error).toContain("Execution failed");
-    });
-
-    it("should handle missing message.content", async () => {
-      mockQueryResults.push({
-        type: "assistant",
-        message: {}, // No content
-      });
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-      });
-
-      const result = await handler.runPrompt(createMockAst(), {
-        shouldStream: true,
-      });
-
-      // Should not throw
-      const chunks = await drainStream(result.stream!);
-      expect(chunks.length).toBeGreaterThan(0);
-    });
-
-    it("should close stream on completion", async () => {
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-      });
-
-      const result = await handler.runPrompt(createMockAst(), {
-        shouldStream: true,
-      });
-
-      // Draining should complete without hanging
-      await drainStream(result.stream!);
-    });
-
-    it("should handle errors during streaming", async () => {
-      vi.mocked(query).mockImplementationOnce(async function* () {
-        yield { type: "assistant", message: { content: [{ type: "text", text: "Start" }] } };
+    it("emits a terminal error chunk when the SDK throws mid-stream", async () => {
+      scripted.impl = async function* () {
+        yield assistant("Start");
         throw new Error("Stream interrupted");
-      });
+      };
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-      const result = await handler.runPrompt(createMockAst(), {
+      const res = await handler.runPrompt(ast, {
         shouldStream: true,
+        customProps: { userMessage: "hi" },
       });
+      const parsed = await drainStream(res.stream!);
 
-      const chunks = await drainStream(result.stream!);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const errorChunk = parsed.find((p) => p.type === "error");
-
-      expect(errorChunk).toBeDefined();
-      expect(errorChunk.error).toContain("Stream interrupted");
-    });
-
-    it("should include stream header", async () => {
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-      });
-
-      const result = await handler.runPrompt(createMockAst(), {
-        shouldStream: true,
-      });
-
-      expect(result.streamHeader).toEqual({ "AgentMark-Streaming": "true" });
+      expect(parsed.at(-1).type).toBe("error");
+      expect(parsed.at(-1).error).toContain("Stream interrupted");
     });
   });
 
   describe("runExperiment", () => {
-    beforeEach(() => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "experiment-prompt",
-        text_config: {},
-        test_settings: { dataset: "./test.jsonl" },
-      });
-    });
+    it("emits a {type:'dataset'} row per item with tokens, evals, and a shared UUID runId", async () => {
+      scripted.messages = [
+        success({ result: "4", usage: { input_tokens: 10, output_tokens: 1 } }),
+      ];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-    it("should emit error when no dataset configured", async () => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "no-dataset-prompt",
-        text_config: {},
-      });
+      const res = await handler.runExperiment(ast, "my-run");
+      expect(res.streamHeaders).toEqual({ "AgentMark-Streaming": "true" });
 
-      const result = await handler.runExperiment(createMockAst(), "run-1");
+      const parsed = await drainStream(res.stream);
+      const rows = parsed.filter((p) => p.type === "dataset");
+      expect(rows).toHaveLength(2); // text.dataset.jsonl has 2 rows
 
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-
-      expect(parsed[0].type).toBe("error");
-      expect(parsed[0].error).toContain("No dataset path provided");
-    });
-
-    it("should use provided dataset path over frontmatter", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            // Empty iterator
-          })()
-        )
-      );
-
-      await handler.runExperiment(
-        createMockAst(),
-        "run-1",
-        { datasetPath: "./override.jsonl" }
-      );
-
-      // The unified wire format carries no experiment_start envelope, so the
-      // override path is verified at the formatWithDataset call site instead.
-      expect(
-        mockClient._mockTextPrompt.formatWithDataset
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({ datasetPath: "./override.jsonl" })
-      );
-    });
-
-    it("emits no experiment_start/experiment_end envelope (unified wire format)", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            // Empty iterator
-          })()
-        )
-      );
-
-      const result = await handler.runExperiment(createMockAst(), "my-run");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-
-      // No envelope markers — claude-agent experiments now emit the same
-      // {type:"dataset"} / {type:"error"} shape as the AI SDK + Python adapters.
-      expect(parsed.find((p) => p.type === "experiment_start")).toBeUndefined();
-      expect(parsed.find((p) => p.type === "experiment_end")).toBeUndefined();
-    });
-
-    it("should iterate through all dataset items", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "p1", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { q: "a" }, expected_output: "A" },
-            };
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "p2", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { q: "b" }, expected_output: "B" },
-            };
-          })()
-        )
-      );
-
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Response",
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const itemEvents = parsed.filter((p) => p.type === "dataset");
-
-      expect(itemEvents).toHaveLength(2);
-    });
-
-    it("should emit result for each item with input/output/expected", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { question: "What is 2+2?" }, expected_output: "4" },
-            };
-          })()
-        )
-      );
-
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "4",
-        usage: { input_tokens: 10, output_tokens: 1 },
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const itemEvent = parsed.find((p) => p.type === "dataset");
-
-      expect(itemEvent).toEqual({
+      expect(rows[0]).toEqual({
         type: "dataset",
         result: {
-          input: { question: "What is 2+2?" },
+          input: { userMessage: "What is 2+2?" },
           expectedOutput: "4",
           actualOutput: "4",
           tokens: 11,
-          evals: [],
+          evals: [{ name: "exact_match", score: 1, passed: true }],
         },
         traceId: expect.any(String),
         runId: expect.any(String),
-        runName: "run-1",
+        runName: "my-run",
       });
-      // Verify runId is a UUID format
-      expect(itemEvent.runId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+      // One UUID runId across all rows of a run.
+      expect(rows[0].runId).toMatch(UUID_RE);
+      for (const row of rows) expect(row.runId).toBe(rows[0].runId);
     });
 
-    it("should include tokens in item results", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: {}, expected_output: "" },
-            };
-          })()
-        )
-      );
+    it("generates a fresh runId per experiment execution", async () => {
+      scripted.messages = [success({ result: "4" })];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "result",
-        usage: { input_tokens: 50, output_tokens: 25 },
-      });
+      const first = await drainStream((await handler.runExperiment(ast, "same-name")).stream);
+      const second = await drainStream((await handler.runExperiment(ast, "same-name")).stream);
 
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const itemEvent = parsed.find((p) => p.type === "dataset");
-
-      expect(itemEvent.result.tokens).toBe(75);
+      const id1 = first.find((p) => p.type === "dataset")?.runId;
+      const id2 = second.find((p) => p.type === "dataset")?.runId;
+      expect(id1).toMatch(UUID_RE);
+      expect(id2).toMatch(UUID_RE);
+      expect(id1).not.toBe(id2);
     });
 
-    it("should handle item execution errors gracefully", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { q: "test" }, expected_output: "" },
-            };
-          })()
-        )
+    it("surfaces a failed row as an error chunk and continues with the rest", async () => {
+      let call = 0;
+      scripted.impl = async function* () {
+        call++;
+        if (call === 1) throw new Error("First item failed");
+        yield success({ result: "Hello" });
+      };
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+      const parsed = await drainStream(
+        (await handler.runExperiment(ast, "run-1")).stream
       );
 
-      // eslint-disable-next-line require-yield -- Testing error thrown before any yield
-      vi.mocked(query).mockImplementationOnce(async function* () {
-        throw new Error("Item execution failed");
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const errorEvent = parsed.find((p) => p.type === "error");
-
-      expect(errorEvent).toBeDefined();
-      expect(errorEvent.error).toContain("Item execution failed");
-    });
-
-    it("should continue after item errors", async () => {
-      let callCount = 0;
-      vi.mocked(query).mockImplementation(async function* () {
-        callCount++;
-        if (callCount === 1) {
-          throw new Error("First item failed");
-        }
-        yield {
-          type: "result",
-          subtype: "success",
-          result: "Second item succeeded",
-        };
-      });
-
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "p1", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { i: 1 }, expected_output: "1" },
-            };
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "p2", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { i: 2 }, expected_output: "2" },
-            };
-          })()
-        )
-      );
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-
-      const errorEvent = parsed.find((p) => p.type === "error");
-      const successEvent = parsed.find((p) => p.type === "dataset");
-
-      expect(errorEvent).toBeDefined();
-      expect(successEvent).toBeDefined();
-      // One failed row + one succeeded row, both surfaced (no early abort).
       expect(parsed.filter((p) => p.type === "error")).toHaveLength(1);
+      expect(parsed.find((p) => p.type === "error").error).toContain(
+        "First item failed"
+      );
       expect(parsed.filter((p) => p.type === "dataset")).toHaveLength(1);
     });
 
-    it("emits a {type:'dataset'} row per item with no completion envelope", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: {}, expected_output: "" },
-            };
-          })()
-        )
+    it("runs object experiments against the object dataset", async () => {
+      scripted.messages = [
+        success({ structured_output: { answer: "8" }, result: "" }),
+      ];
+      const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
+
+      const parsed = await drainStream(
+        (await handler.runExperiment(ast, "run-1")).stream
+      );
+      const row = parsed.find((p) => p.type === "dataset");
+
+      expect(row.result.actualOutput).toEqual({ answer: "8" });
+      expect(row.result.expectedOutput).toEqual({ answer: "8" });
+    });
+
+    it("applies sampling before running rows", async () => {
+      scripted.messages = [success({ result: "4" })];
+      const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+      const parsed = await drainStream(
+        (
+          await handler.runExperiment(ast, "run-sampled", {
+            sampling: { rows: [0] },
+          })
+        ).stream
       );
 
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-
+      // Real applySampling limits execution to the selected row.
       expect(parsed.filter((p) => p.type === "dataset")).toHaveLength(1);
-      expect(parsed.find((p) => p.type === "experiment_end")).toBeUndefined();
+      expect(
+        parsed.find((p) => p.type === "dataset").result.input
+      ).toEqual({ userMessage: "What is 2+2?" });
     });
 
-    it("should reject image prompts in experiments", async () => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "image-experiment",
-        image_config: { model_name: "openai/dall-e-3" },
-      });
+    it("rejects when no dataset is configured (shared-runner contract)", async () => {
+      // Real parseable AST: text_config but no test_settings.dataset.
+      const ast = {
+        type: "root",
+        children: [
+          {
+            type: "yaml",
+            value: "name: no-dataset\ntext_config:\n  model_name: anthropic/claude-sonnet-4-20250514",
+          },
+        ],
+      } as unknown as Ast;
 
-      const result = await handler.runExperiment(createMockAst(), "run-1");
+      await expect(handler.runExperiment(ast, "run-1")).rejects.toThrow(
+        /dataset/i
+      );
+    });
 
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
+    it("emits the legacy error chunk for image/speech experiments", async () => {
+      const ast = {
+        type: "root",
+        children: [
+          { type: "yaml", value: "name: img\nimage_config:\n  model_name: openai/dall-e-3" },
+        ],
+      } as unknown as Ast;
+
+      const parsed = await drainStream(
+        (await handler.runExperiment(ast, "run-1")).stream
+      );
 
       expect(parsed[0].type).toBe("error");
       expect(parsed[0].error).toContain("not supported");
-    });
-
-    it("should reject speech prompts in experiments", async () => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "speech-experiment",
-        speech_config: { model_name: "openai/tts-1" },
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-
-      expect(parsed[0].type).toBe("error");
-      expect(parsed[0].error).toContain("not supported");
-    });
-
-    it("should handle dataset error chunks", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield { error: "Invalid JSON at line 3" };
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "valid", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: {}, expected_output: "" },
-            };
-          })()
-        )
-      );
-
-      mockQueryResults.push({
-        type: "result",
-        subtype: "success",
-        result: "Done",
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const errorEvents = parsed.filter((p) => p.type === "error");
-      const successEvents = parsed.filter((p) => p.type === "dataset");
-
-      expect(errorEvents).toHaveLength(1);
-      expect(errorEvents[0].error).toBe("Invalid JSON at line 3");
-      expect(successEvents).toHaveLength(1);
-    });
-
-    it("should use object prompt for object_config", async () => {
-      vi.mocked(getFrontMatter).mockReturnValue({
-        name: "object-experiment",
-        object_config: { model_name: "anthropic/claude-sonnet", output: {} },
-        test_settings: { dataset: "./test.jsonl" },
-      });
-
-      mockClient._mockObjectPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: {}, expected_output: { result: true } },
-            };
-          })()
-        )
-      );
-
-      // Use custom implementation for this test
-      vi.mocked(query).mockImplementationOnce(async function* () {
-        yield {
-          type: "result",
-          subtype: "success",
-          structured_output: { result: true },
-        };
-      });
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const itemEvent = parsed.find((p) => p.type === "dataset");
-
-      expect(mockClient.loadObjectPrompt).toHaveBeenCalled();
-      expect(itemEvent.result.actualOutput).toEqual({ result: true });
-    });
-
-    it("should include streaming headers in response", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            // Empty
-          })()
-        )
-      );
-
-      const result = await handler.runExperiment(createMockAst(), "run-1");
-
-      expect(result.streamHeaders).toEqual({ "AgentMark-Streaming": "true" });
-    });
-
-    it("should use consistent runId (UUID) across all events in a single experiment", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "p1", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { q: "a" }, expected_output: "A" },
-            };
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "p2", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: { q: "b" }, expected_output: "B" },
-            };
-          })()
-        )
-      );
-
-      mockQueryResults.push(
-        { type: "result", subtype: "success", result: "R1" },
-        { type: "result", subtype: "success", result: "R2" }
-      );
-
-      const result = await handler.runExperiment(createMockAst(), "my-experiment");
-
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-
-      const datasetEvents = parsed.filter((p) => p.type === "dataset");
-      expect(datasetEvents.length).toBeGreaterThan(0);
-
-      // All dataset rows share one runId (UUID) — the consistency previously
-      // anchored on the experiment_start envelope now holds across the rows.
-      const runId = datasetEvents[0].runId;
-      expect(runId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-
-      for (const event of datasetEvents) {
-        expect(event.runId).toBe(runId);
-      }
-
-      // runName should be the user-provided name, not the UUID
-      for (const event of datasetEvents) {
-        expect(event.runName).toBe("my-experiment");
-      }
-    });
-
-    it("should generate different runId for each experiment execution", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: {}, expected_output: "" },
-            };
-          })()
-        )
-      );
-
-      mockQueryResults.push(
-        { type: "result", subtype: "success", result: "R1" },
-        { type: "result", subtype: "success", result: "R2" }
-      );
-
-      // Run experiment twice
-      const result1 = await handler.runExperiment(createMockAst(), "same-name");
-      const chunks1 = await drainStream(result1.stream);
-      const parsed1 = chunks1.map((c) => JSON.parse(c));
-      const runId1 = parsed1.find((p) => p.type === "dataset")?.runId;
-
-      // Reset mock for second run
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            yield {
-              formatted: Promise.resolve({ query: { prompt: "test", options: {} }, telemetry: { isEnabled: true, promptName: "test" } }),
-              dataset: { input: {}, expected_output: "" },
-            };
-          })()
-        )
-      );
-
-      const result2 = await handler.runExperiment(createMockAst(), "same-name");
-      const chunks2 = await drainStream(result2.stream);
-      const parsed2 = chunks2.map((c) => JSON.parse(c));
-      const runId2 = parsed2.find((p) => p.type === "dataset")?.runId;
-
-      // Both should be valid UUIDs
-      expect(runId1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-      expect(runId2).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-
-      // But they should be different from each other
-      expect(runId1).not.toBe(runId2);
-    });
-
-    it("should pass sampling options to formatWithDataset", async () => {
-      mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
-        createMockReadableStream(
-          (async function* () {
-            // Empty dataset - we just verify the call args
-          })()
-        )
-      );
-
-      const result = await handler.runExperiment(
-        createMockAst(),
-        "run-sampling",
-        { sampling: { rows: [0] } }
-      );
-      await drainStream(result.stream);
-
-      expect(mockClient._mockTextPrompt.formatWithDataset).toHaveBeenCalledWith(
-        expect.objectContaining({ sampling: { rows: [0] } })
-      );
+      expect(vi.mocked(query)).not.toHaveBeenCalled();
     });
   });
 });

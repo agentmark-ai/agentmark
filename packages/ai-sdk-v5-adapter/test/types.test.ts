@@ -79,7 +79,9 @@ describe("VercelAIAdapter type safety (v5)", () => {
     );
 
     // The return type should be VercelAITextParams<MyTools>, not VercelAITextParams<Record<string, Tool>>
-    type AdaptTextReturn = Awaited<ReturnType<typeof adapter.adaptText<"test.prompt.mdx">>>;
+    // adaptText is no longer generic (the per-key param was phantom on the
+    // interface); per-key typing flows through the prompt classes instead.
+    type AdaptTextReturn = Awaited<ReturnType<typeof adapter.adaptText>>;
 
     expectTypeOf<AdaptTextReturn>().toMatchTypeOf<VercelAITextParams<MyTools>>();
   });
@@ -134,7 +136,7 @@ describe("VercelAIObjectParams type safety (v5)", () => {
       { weather: weatherTool, search: searchTool }
     );
 
-    type AdaptObjectReturn = Awaited<ReturnType<typeof adapter.adaptObject<"test.prompt.mdx">>>;
+    type AdaptObjectReturn = Awaited<ReturnType<typeof adapter.adaptObject>>;
     type ToolsField = AdaptObjectReturn["tools"];
 
     expectTypeOf<NonNullable<ToolsField>>().toMatchTypeOf<Record<string, WeatherTool | SearchTool>>();

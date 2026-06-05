@@ -11,9 +11,27 @@ import { createAgentMarkClient, MastraModelRegistry } from "../src";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
 
 // ---- Minimal mock tool shapes for type testing ----
+// Must satisfy @mastra/core's ToolsInput (ToolAction | VercelTool) — the
+// previous hand-rolled shapes (bare description/execute objects) never did,
+// which went unnoticed until typecheck mode gave this file teeth.
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
 
-type WeatherTool = { description: string; execute: (args: { location: string }) => Promise<string> };
-type SearchTool = { description: string; execute: (args: { query: string }) => Promise<{ title: string }[]> };
+const weatherToolDef = createTool({
+  id: "weather",
+  description: "Get weather for a location",
+  inputSchema: z.object({ location: z.string() }),
+  execute: async () => "Sunny",
+});
+const searchToolDef = createTool({
+  id: "search",
+  description: "Search the web",
+  inputSchema: z.object({ query: z.string() }),
+  execute: async () => [{ title: "Result" }],
+});
+
+type WeatherTool = typeof weatherToolDef;
+type SearchTool = typeof searchToolDef;
 
 type MyTools = {
   weather: WeatherTool;
@@ -27,8 +45,8 @@ type TestPromptShape = PromptShape<{
 describe("MastraAdapter type safety", () => {
   it("constructor accepts specific tools record without widening to Record<string, any>", () => {
     const modelRegistry = new MastraModelRegistry();
-    const weatherTool = {} as WeatherTool;
-    const searchTool = {} as SearchTool;
+    const weatherTool = weatherToolDef;
+    const searchTool = searchToolDef;
 
     const _adapter = new MastraAdapter<TestPromptShape, MyTools>(
       modelRegistry,
@@ -53,12 +71,13 @@ describe("MastraAdapter type safety", () => {
 });
 
 describe("createAgentMarkClient type inference (mastra)", () => {
-  it("infers TTools from opts.tools when specific tools provided", () => {
-    const weatherTool = {} as WeatherTool;
-    const searchTool = {} as SearchTool;
-
-    const client = createAgentMarkClient<TestPromptShape, MyTools>({
-      tools: { weather: weatherTool, search: searchTool },
+  // NOTE: this suite was written against an older two-generic
+  // createAgentMarkClient<D, TTools> signature and rotted unnoticed while
+  // type tests were unenforced. The current factory takes ONE generic
+  // (the dict) and types `tools` as ToolsInput.
+  it("accepts specific tools records under the ToolsInput constraint", () => {
+    const client = createAgentMarkClient<TestPromptShape>({
+      tools: { weather: weatherToolDef, search: searchToolDef },
     });
 
     expectTypeOf(client).not.toBeNever();
@@ -70,14 +89,10 @@ describe("createAgentMarkClient type inference (mastra)", () => {
     expectTypeOf(client).not.toBeNever();
   });
 
-  it("tools field in opts is typed as TTools (not Record<string, any>)", () => {
-    type ClientOpts<D extends PromptShape<D>, TTools extends ToolsInput> = Parameters<
-      typeof createAgentMarkClient<D, TTools>
-    >[0];
+  it("tools opt accepts MyTools (satisfies ToolsInput)", () => {
+    type ClientOpts = Parameters<typeof createAgentMarkClient<TestPromptShape>>[0];
+    type ToolsParam = ClientOpts["tools"];
 
-    type ToolsParam = ClientOpts<TestPromptShape, MyTools>["tools"];
-
-    // tools param should accept MyTools
     expectTypeOf<MyTools>().toMatchTypeOf<NonNullable<ToolsParam>>();
   });
 });

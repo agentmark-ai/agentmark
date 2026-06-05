@@ -125,30 +125,21 @@ const pullModels = async (options: PullModelsOptions = {}) => {
   }
 
   if (selectedProviders.size > 0) {
-    const adapterType = agentmarkConfig?.adapter || "ai-sdk";
     const providerList = Array.from(selectedProviders);
 
+    // The hint assumes `@ai-sdk/*` providers — correct for the Vercel AI SDK
+    // adapters (the default) AND Mastra (whose model registry consumes the
+    // same providers). This used to branch on an `agentmark.json#adapter`
+    // field, but nothing else in the ecosystem reads or writes that field
+    // and the schema (additionalProperties: false) rejected it anyway —
+    // adapter selection lives in the IDE-skill integration flow, not here.
     console.log("\n📦 Provider setup reminder:");
     console.log(
       "Make sure these providers are registered in your model registry:\n"
     );
 
     for (const provider of providerList) {
-      if (
-        adapterType === "ai-sdk" ||
-        adapterType === "ai-sdk-v5" ||
-        adapterType === "ai-sdk-v4"
-      ) {
-        console.log(
-          `  import { ${provider} } from "@ai-sdk/${provider}";`
-        );
-      } else if (adapterType === "mastra") {
-        console.log(`  // Register ${provider} provider for Mastra`);
-      } else if (adapterType === "claude-agent-sdk") {
-        console.log(
-          `  // Claude Agent SDK handles models natively — no registration needed`
-        );
-      }
+      console.log(`  import { ${provider} } from "@ai-sdk/${provider}";`);
     }
 
     const providerObj = providerList.map((p) => p).join(", ");

@@ -417,7 +417,9 @@ describe("WebhookRunner — non-streaming text runPrompt", () => {
       finishReason: "stop",
       toolCalls: [{ toolCallId: "c1", toolName: "search", args: { q: "x" } }],
       toolResults: [{ toolCallId: "c1", toolName: "search", result: ["hit"] }],
-      traceId: "",
+      // traceId omitted: null span hooks yield an empty trace id, and the
+      // canonical envelope (response-envelopes.json vectors) drops the key
+      // rather than emitting "" — matching the Python runner.
     });
   });
 
@@ -503,7 +505,7 @@ describe("WebhookRunner — non-streaming object runPrompt", () => {
         completionTokens: 10,
       },
       finishReason: "stop",
-      traceId: "",
+      // traceId omitted — see the text run above (canonical empty-omission).
     });
   });
 
@@ -819,5 +821,81 @@ describe("WebhookRunner — runExperiment guards", () => {
     await expect(runner.runExperiment(EMPTY_AST, "run-invalid")).rejects.toThrow(
       "Invalid prompt"
     );
+  });
+});
+
+// ── REGRESSION: runExperiment must enable telemetry per row ───────────────────
+//
+// Bug: runExperiment called `formatWithDataset({ datasetPath, sampling })`
+// without telemetry, so the adapter never authored `experimental_telemetry` and
+// the AI SDK emitted NO generation span for experiments (run-prompt threaded it
+// via createPromptTelemetry and was unaffected). The wrapper span survived
+// because it comes from the span hook, masking the gap. Lock the contract:
+// telemetry must reach formatWithDataset so the adapter can author it per row.
+
+describe("WebhookRunner — runExperiment enables telemetry per row (regression)", () => {
+  function makeCapturingClient() {
+    const calls: any[] = [];
+    const prompt = {
+      async format() {
+        return { _formatted: true };
+      },
+      async formatWithTestProps() {
+        return { _formatted: true };
+      },
+      async formatWithDataset(opts: any) {
+        calls.push(opts);
+        return new ReadableStream({
+          pull(c) {
+            c.close();
+          },
+        });
+      },
+    };
+    const client = {
+      getLoader: () => ({}),
+      getEvalRegistry: () => undefined,
+      loadTextPrompt: async () => prompt,
+      loadObjectPrompt: async () => prompt,
+      loadImagePrompt: async () => prompt,
+      loadSpeechPrompt: async () => prompt,
+    } as any;
+    return { client, calls };
+  }
+
+  it("threads enabled telemetry into formatWithDataset for a text experiment", async () => {
+    const { client, calls } = makeCapturingClient();
+    const exec = makeExecutor({
+      async *text() {
+        yield { type: "finish", reason: "stop" };
+      },
+    });
+
+    await new WebhookRunner(client, exec).runExperiment(TEXT_AST, "run-1");
+
+    expect(calls).toHaveLength(1);
+    // Exact shape: enabled + default trace_name (TEXT_AST declares no name).
+    expect(calls[0].telemetry).toEqual({
+      isEnabled: true,
+      metadata: { trace_name: "prompt-run" },
+    });
+  });
+
+  it("merges caller-supplied telemetry into formatWithDataset", async () => {
+    const { client, calls } = makeCapturingClient();
+    const exec = makeExecutor({
+      async *object() {
+        yield { type: "finish", reason: "stop" };
+      },
+    });
+
+    await new WebhookRunner(client, exec).runExperiment(OBJECT_AST, "run-2", {
+      telemetry: { isEnabled: true, metadata: { user_id: "u1" } },
+    });
+
+    expect(calls[0].telemetry).toEqual({
+      isEnabled: true,
+      metadata: { user_id: "u1", trace_name: "prompt-run" },
+    });
   });
 });

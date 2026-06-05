@@ -91,6 +91,12 @@ export function createAgentMarkClient<
 // Re-export core classes
 export { ClaudeAgentAdapter } from "./adapter";
 export { ClaudeAgentModelRegistry } from "./model-registry";
+// Executor-protocol translation for the shared WebhookRunner — mirrors the
+// Python adapter's ClaudeAgentExecutor. Exported for BYO WebhookRunner
+// composition; ClaudeAgentWebhookHandler wires it up for you.
+export { ClaudeAgentExecutor } from "./executor";
+// Pulls the compile-time prompt-type pins into the build's type graph.
+export type { PromptTypesAsserted } from "./prompt-type-assertions";
 
 // Re-export telemetry hooks
 export {

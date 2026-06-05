@@ -1,0 +1,272 @@
+{
+  "description": "AgentEvent → NDJSON wire-chunk mapping. Pins the streaming wire format the WebhookRunner emits in BOTH languages: TS `textEventToWire`/`objectEventToWire` (prompt-core/src/wire.ts) and Python `_text_event_to_wire`/`_object_event_to_wire` (prompt_core/webhook_runner.py). `expected: null` means the event emits NO chunk. Comparison is on parsed JSON (key-order-agnostic — TS and Python key orders differ, documented in _usage_to_wire). Events use the TS AgentEvent field names; the Python suite maps them onto its dataclasses (isError → is_error, usage fields → snake_case). Changing any expected value is a wire-format break for cloud + dashboard consumers AND a cross-language break — treat as semver-major.",
+  "cases": [
+    {
+      "name": "text-delta emits a text result chunk",
+      "kind": "text",
+      "event": {
+        "type": "text-delta",
+        "text": "hello"
+      },
+      "expected": {
+        "type": "text",
+        "result": "hello"
+      }
+    },
+    {
+      "name": "empty text-delta still emits (empty string is a valid delta)",
+      "kind": "text",
+      "event": {
+        "type": "text-delta",
+        "text": ""
+      },
+      "expected": {
+        "type": "text",
+        "result": ""
+      }
+    },
+    {
+      "name": "tool-call maps id/name/args to toolCallId/toolName/args",
+      "kind": "text",
+      "event": {
+        "type": "tool-call",
+        "id": "call_1",
+        "name": "search",
+        "args": {
+          "q": "weather",
+          "n": 3
+        }
+      },
+      "expected": {
+        "type": "text",
+        "toolCall": {
+          "toolCallId": "call_1",
+          "toolName": "search",
+          "args": {
+            "q": "weather",
+            "n": 3
+          }
+        }
+      }
+    },
+    {
+      "name": "tool-result maps id/name/result to toolCallId/toolName/result",
+      "kind": "text",
+      "event": {
+        "type": "tool-result",
+        "id": "call_1",
+        "name": "search",
+        "result": {
+          "hits": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      "expected": {
+        "type": "text",
+        "toolResult": {
+          "toolCallId": "call_1",
+          "toolName": "search",
+          "result": {
+            "hits": [
+              "a",
+              "b"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "tool-result isError flag is NOT wired (dropped from the chunk)",
+      "kind": "text",
+      "event": {
+        "type": "tool-result",
+        "id": "call_2",
+        "name": "search",
+        "result": "rate limited",
+        "isError": true
+      },
+      "expected": {
+        "type": "text",
+        "toolResult": {
+          "toolCallId": "call_2",
+          "toolName": "search",
+          "result": "rate limited"
+        }
+      }
+    },
+    {
+      "name": "finish with full usage carries both field families + totalTokens",
+      "kind": "text",
+      "event": {
+        "type": "finish",
+        "reason": "stop",
+        "usage": {
+          "inputTokens": 3,
+          "outputTokens": 7,
+          "totalTokens": 10
+        }
+      },
+      "expected": {
+        "type": "text",
+        "finishReason": "stop",
+        "usage": {
+          "inputTokens": 3,
+          "outputTokens": 7,
+          "totalTokens": 10,
+          "promptTokens": 3,
+          "completionTokens": 7
+        }
+      }
+    },
+    {
+      "name": "finish usage without totalTokens omits the key (no zero-fill on the wire)",
+      "kind": "text",
+      "event": {
+        "type": "finish",
+        "reason": "stop",
+        "usage": {
+          "inputTokens": 1,
+          "outputTokens": 2
+        }
+      },
+      "expected": {
+        "type": "text",
+        "finishReason": "stop",
+        "usage": {
+          "inputTokens": 1,
+          "outputTokens": 2,
+          "promptTokens": 1,
+          "completionTokens": 2
+        }
+      }
+    },
+    {
+      "name": "usage-less text finish emits finishReason alone (no usage key)",
+      "kind": "text",
+      "event": {
+        "type": "finish",
+        "reason": "length"
+      },
+      "expected": {
+        "type": "text",
+        "finishReason": "length"
+      }
+    },
+    {
+      "name": "error event becomes the terminal error chunk",
+      "kind": "text",
+      "event": {
+        "type": "error",
+        "error": "boom"
+      },
+      "expected": {
+        "type": "error",
+        "error": "boom"
+      }
+    },
+    {
+      "name": "reasoning-delta is NOT wired (no chunk)",
+      "kind": "text",
+      "event": {
+        "type": "reasoning-delta",
+        "text": "thinking..."
+      },
+      "expected": null
+    },
+    {
+      "name": "object-delta emits an object result chunk",
+      "kind": "object",
+      "event": {
+        "type": "object-delta",
+        "partial": {
+          "a": 1
+        }
+      },
+      "expected": {
+        "type": "object",
+        "result": {
+          "a": 1
+        }
+      }
+    },
+    {
+      "name": "object-final emits an object result chunk (canonical resolved value)",
+      "kind": "object",
+      "event": {
+        "type": "object-final",
+        "value": {
+          "a": 1,
+          "b": [
+            2,
+            3
+          ]
+        }
+      },
+      "expected": {
+        "type": "object",
+        "result": {
+          "a": 1,
+          "b": [
+            2,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "name": "object finish with usage emits the usage chunk",
+      "kind": "object",
+      "event": {
+        "type": "finish",
+        "reason": "stop",
+        "usage": {
+          "inputTokens": 5,
+          "outputTokens": 11,
+          "totalTokens": 16
+        }
+      },
+      "expected": {
+        "type": "object",
+        "usage": {
+          "inputTokens": 5,
+          "outputTokens": 11,
+          "totalTokens": 16,
+          "promptTokens": 5,
+          "completionTokens": 11
+        }
+      }
+    },
+    {
+      "name": "usage-less object finish emits NO chunk (historical wire)",
+      "kind": "object",
+      "event": {
+        "type": "finish",
+        "reason": "stop"
+      },
+      "expected": null
+    },
+    {
+      "name": "object error event becomes the terminal error chunk",
+      "kind": "object",
+      "event": {
+        "type": "error",
+        "error": "schema validation failed"
+      },
+      "expected": {
+        "type": "error",
+        "error": "schema validation failed"
+      }
+    },
+    {
+      "name": "wrong-kind event in the object mapper emits nothing (defensive default)",
+      "kind": "object",
+      "event": {
+        "type": "reasoning-delta",
+        "text": "thinking..."
+      },
+      "expected": null
+    }
+  ]
+}

@@ -194,9 +194,12 @@ describe("Mastra Adapter Integration", () => {
     expect(mockModelFn).toHaveBeenCalledWith("test-model", expect.any(Object));
 
     // Agent should have the calculator tool passed through
-    expect(agent.tools).toBeDefined();
-    expect(agent.tools).toHaveProperty("calculator");
-    expect(agent.tools.calculator).toBe(calculatorTool);
+    // AgentConfig.tools is a DynamicArgument (value-or-function) in
+    // @mastra/core's types; the adapter always supplies the plain record.
+    const tools = agent.tools as Record<string, unknown>;
+    expect(tools).toBeDefined();
+    expect(tools).toHaveProperty("calculator");
+    expect(tools.calculator).toBe(calculatorTool);
 
     // formatMessages should still work and return the output schema
     const [messages, opts] = await agent.formatMessages({

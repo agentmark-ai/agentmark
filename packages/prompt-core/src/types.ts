@@ -102,30 +102,28 @@ export interface Adapter<D extends PromptShape<D>> {
   // get `any`'s silent property access. Concrete adapters override with their
   // real return type (e.g. DefaultAdapter → TextConfig), so the typed BYO path
   // is unaffected.
-  adaptText<_K extends KeysWithKind<D, "text"> & string>(
+  //
+  // No per-key type parameter here: the input config is the same shape for
+  // every prompt key, so a generic would be phantom on the interface. Concrete
+  // adapters MAY declare their own `<K extends KeysWithKind<...>>` methods to
+  // type per-key returns (e.g. a typed object schema) — a generic method is
+  // assignable to these non-generic signatures, so both styles implement
+  // `Adapter` without casts.
+  adaptText(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
   ): unknown;
 
-  adaptObject<_K extends KeysWithKind<D, "object"> & string>(
+  adaptObject(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
   ): unknown;
 
-  adaptImage<_K extends KeysWithKind<D, "image"> & string>(
-    input: ImageConfig,
-    options: AdaptOptions
-  ): unknown;
+  adaptImage(input: ImageConfig, options: AdaptOptions): unknown;
 
-  adaptSpeech<_K extends KeysWithKind<D, "speech"> & string>(
-    input: SpeechConfig,
-    options: AdaptOptions
-  ): unknown;
-
-  // Optional: Adapters that support dev mode provide this
-  getDevServerFactory?(): (options: { port: number; client: any }) => Promise<any>;
+  adaptSpeech(input: SpeechConfig, options: AdaptOptions): unknown;
 }
 
 export interface EvalParams {

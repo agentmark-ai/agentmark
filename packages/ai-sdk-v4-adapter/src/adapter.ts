@@ -26,6 +26,10 @@ import type {
   TelemetrySettings,
 } from "ai";
 import { jsonSchema } from "ai";
+import {
+  VercelAIModelRegistry as SharedVercelAIModelRegistry,
+  type ModelFunctionCreator as SharedModelFunctionCreator,
+} from "@agentmark-ai/ai-sdk-shared";
 
 export type VercelAITextParams<TS extends Record<string, Tool>> = {
   model: LanguageModel;
@@ -80,16 +84,9 @@ export interface VercelAISpeechParams {
   speed?: number;
 }
 
-export type ModelFunctionCreator = (
-  modelName: string,
-  options?: AdaptOptions
-) => LanguageModel | ImageModel | SpeechModel;
+type VercelModel = LanguageModel | ImageModel | SpeechModel;
 
-type AIProvider = {
-  languageModel?: (modelId: string) => LanguageModel;
-  imageModel?: (modelId: string) => ImageModel;
-  speechModel?: (modelId: string) => SpeechModel;
-};
+export type ModelFunctionCreator = SharedModelFunctionCreator<VercelModel>;
 
 const TEXT_PARAM_MAP: ParamMap = {
   temperature: "temperature",
@@ -147,86 +144,13 @@ const vercelV4McpClientFactory: McpClientFactory<Tool> = async (cfg) => {
   return client as { tools(): Promise<Record<string, Tool>> };
 };
 
-export class VercelAIModelRegistry {
-  private exactMatches: Record<string, ModelFunctionCreator> = {};
-  private patternMatches: Array<[RegExp, ModelFunctionCreator]> = [];
-  private defaultCreator?: ModelFunctionCreator;
-  private providers: Record<string, AIProvider> = {};
-
-  constructor(defaultCreator?: ModelFunctionCreator) {
-    this.defaultCreator = defaultCreator;
-  }
-
-  registerModels(
-    modelPattern: string | RegExp | Array<string>,
-    creator: ModelFunctionCreator
-  ): this {
-    if (typeof modelPattern === "string") {
-      this.exactMatches[modelPattern] = creator;
-    } else if (Array.isArray(modelPattern)) {
-      modelPattern.forEach((model) => {
-        this.exactMatches[model] = creator;
-      });
-    } else {
-      this.patternMatches.push([modelPattern, creator]);
-    }
-    return this;
-  }
-
-  registerProviders(providers: Record<string, AIProvider>): this {
-    Object.assign(this.providers, providers);
-    return this;
-  }
-
-  getModelFunction(
-    modelName: string,
-    modelType?: "languageModel" | "imageModel" | "speechModel"
-  ): ModelFunctionCreator {
-    if (this.exactMatches[modelName]) return this.exactMatches[modelName];
-
-    for (const [pattern, creator] of this.patternMatches) {
-      if (pattern.test(modelName)) return creator;
-    }
-
-    if (modelName.includes("/")) {
-      const slashIndex = modelName.indexOf("/");
-      const providerName = modelName.substring(0, slashIndex);
-      const modelId = modelName.substring(slashIndex + 1);
-
-      if (!providerName || !modelId) {
-        throw new Error(
-          `Invalid model name format: '${modelName}'. Expected 'provider/model'.`
-        );
-      }
-
-      const provider = this.providers[providerName];
-      if (!provider) {
-        throw new Error(
-          `Provider '${providerName}' is not registered. Add .registerProviders({ ${providerName} }) to your model registry.`
-        );
-      }
-
-      const type = modelType ?? "languageModel";
-      const factory = provider[type];
-      if (typeof factory !== "function") {
-        throw new Error(
-          `Provider '${providerName}' does not support ${type} models. The model '${modelName}' cannot be created as a ${type}.`
-        );
-      }
-
-      const boundFactory = (factory as (modelId: string) => LanguageModel).bind(
-        provider
-      );
-      return () => boundFactory(modelId);
-    }
-
-    if (this.defaultCreator) return this.defaultCreator;
-
-    throw new Error(
-      `No model function found for: '${modelName}'. Register it with .registerModels() or use provider/model format with .registerProviders().`
-    );
-  }
-}
+/**
+ * Concretely-typed registry for AI SDK v4 models. The implementation lives
+ * in `@agentmark-ai/ai-sdk-shared` (version-agnostic, bundled at build
+ * time); this subclass pins `TModel` to v4's model union so the public
+ * typing is unchanged from when the class body lived here.
+ */
+export class VercelAIModelRegistry extends SharedVercelAIModelRegistry<VercelModel> {}
 
 export class VercelAIAdapter<
   T extends PromptShape<T>,
@@ -243,7 +167,7 @@ export class VercelAIAdapter<
     super(vercelV4McpClientFactory, tools as Record<string, Tool> | undefined, mcpServers);
   }
 
-  async adaptText<_K extends KeysWithKind<T, "text"> & string>(
+  async adaptText(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -314,7 +238,7 @@ export class VercelAIAdapter<
     };
   }
 
-  adaptImage<_K extends KeysWithKind<T, "image"> & string>(
+  adaptImage(
     input: ImageConfig,
     options: AdaptOptions
   ): VercelAIImageParams {
@@ -329,7 +253,7 @@ export class VercelAIAdapter<
     return { model, ...mapped } as VercelAIImageParams;
   }
 
-  adaptSpeech<_K extends KeysWithKind<T, "speech"> & string>(
+  adaptSpeech(
     input: SpeechConfig,
     options: AdaptOptions
   ): VercelAISpeechParams {

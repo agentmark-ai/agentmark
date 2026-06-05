@@ -1,0 +1,193 @@
+{
+  "description": "Non-streaming response envelope assembly: args → the {type:\"text\"|\"object\"} WebhookPromptResponse both runners return. Pins TS `textResponseToWire`/`objectResponseToWire` (prompt-core/src/wire.ts) and Python `_text_response_to_wire`/`_object_response_to_wire` (prompt_core/webhook_runner.py). Args carry usage in CANONICAL AgentUsage form ({inputTokens, outputTokens, totalTokens?}); the builders apply the wire alias expansion, so the dual field families are pinned here too. Absence semantics (the drift this vector was created to catch — Python emitted `\"usage\": null` and TS emitted `\"traceId\": \"\"` where the other side omitted): usage / finishReason / result(object kind) are OMITTED when missing from args, never null; traceId is omitted when missing OR empty; toolCalls/toolResults are ALWAYS arrays on text envelopes. Comparison is on parsed JSON (key-order-agnostic). Changing any expected value is a wire-format break — treat as semver-major.",
+  "cases": [
+    {
+      "name": "text: full envelope with tools, usage aliases expanded",
+      "kind": "text",
+      "args": {
+        "result": "Final answer",
+        "usage": { "inputTokens": 10, "outputTokens": 5, "totalTokens": 15 },
+        "finishReason": "stop",
+        "toolCalls": [
+          { "toolCallId": "t1", "toolName": "search", "args": { "q": "x" } }
+        ],
+        "toolResults": [
+          { "toolCallId": "t1", "toolName": "search", "result": "hit" }
+        ],
+        "traceId": "0af7651916cd43dd8448eb211c80319c"
+      },
+      "expected": {
+        "type": "text",
+        "result": "Final answer",
+        "usage": {
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15,
+          "promptTokens": 10,
+          "completionTokens": 5
+        },
+        "finishReason": "stop",
+        "toolCalls": [
+          { "toolCallId": "t1", "toolName": "search", "args": { "q": "x" } }
+        ],
+        "toolResults": [
+          { "toolCallId": "t1", "toolName": "search", "result": "hit" }
+        ],
+        "traceId": "0af7651916cd43dd8448eb211c80319c"
+      }
+    },
+    {
+      "name": "text: no usage → key omitted, never null",
+      "kind": "text",
+      "args": {
+        "result": "ok",
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": [],
+        "traceId": "abc"
+      },
+      "expected": {
+        "type": "text",
+        "result": "ok",
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": [],
+        "traceId": "abc"
+      }
+    },
+    {
+      "name": "text: empty traceId omitted (null span hooks)",
+      "kind": "text",
+      "args": {
+        "result": "ok",
+        "usage": { "inputTokens": 1, "outputTokens": 2, "totalTokens": 3 },
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": [],
+        "traceId": ""
+      },
+      "expected": {
+        "type": "text",
+        "result": "ok",
+        "usage": {
+          "inputTokens": 1,
+          "outputTokens": 2,
+          "totalTokens": 3,
+          "promptTokens": 1,
+          "completionTokens": 2
+        },
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": []
+      }
+    },
+    {
+      "name": "text: empty result string is a real value; tool arrays always present",
+      "kind": "text",
+      "args": {
+        "result": "",
+        "usage": { "inputTokens": 0, "outputTokens": 0, "totalTokens": 0 },
+        "finishReason": "stop",
+        "traceId": "abc"
+      },
+      "expected": {
+        "type": "text",
+        "result": "",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "promptTokens": 0,
+          "completionTokens": 0
+        },
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": [],
+        "traceId": "abc"
+      }
+    },
+    {
+      "name": "text: usage without totalTokens passes absence through",
+      "kind": "text",
+      "args": {
+        "result": "ok",
+        "usage": { "inputTokens": 4, "outputTokens": 6 },
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": [],
+        "traceId": "abc"
+      },
+      "expected": {
+        "type": "text",
+        "result": "ok",
+        "usage": {
+          "inputTokens": 4,
+          "outputTokens": 6,
+          "promptTokens": 4,
+          "completionTokens": 6
+        },
+        "finishReason": "stop",
+        "toolCalls": [],
+        "toolResults": [],
+        "traceId": "abc"
+      }
+    },
+    {
+      "name": "object: full envelope",
+      "kind": "object",
+      "args": {
+        "result": { "answer": "8", "confidence": 0.9 },
+        "usage": { "inputTokens": 20, "outputTokens": 10, "totalTokens": 30 },
+        "finishReason": "stop",
+        "traceId": "abc"
+      },
+      "expected": {
+        "type": "object",
+        "result": { "answer": "8", "confidence": 0.9 },
+        "usage": {
+          "inputTokens": 20,
+          "outputTokens": 10,
+          "totalTokens": 30,
+          "promptTokens": 20,
+          "completionTokens": 10
+        },
+        "finishReason": "stop",
+        "traceId": "abc"
+      }
+    },
+    {
+      "name": "object: no resolved value → result omitted, never null",
+      "kind": "object",
+      "args": {
+        "usage": { "inputTokens": 5, "outputTokens": 0, "totalTokens": 5 },
+        "finishReason": "stop",
+        "traceId": "abc"
+      },
+      "expected": {
+        "type": "object",
+        "usage": {
+          "inputTokens": 5,
+          "outputTokens": 0,
+          "totalTokens": 5,
+          "promptTokens": 5,
+          "completionTokens": 0
+        },
+        "finishReason": "stop",
+        "traceId": "abc"
+      }
+    },
+    {
+      "name": "object: no usage and no traceId → both omitted",
+      "kind": "object",
+      "args": {
+        "result": { "ok": true },
+        "finishReason": "stop"
+      },
+      "expected": {
+        "type": "object",
+        "result": { "ok": true },
+        "finishReason": "stop"
+      }
+    }
+  ]
+}

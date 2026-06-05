@@ -1,0 +1,250 @@
+{
+  "description": "Experiment-row chunk assembly: args → the {type:\"dataset\"} WireChunk both runners emit per dataset item. Pins TS `datasetRowToWire` (prompt-core/src/wire.ts) and Python `_dataset_row_to_wire` (prompt_core/webhook_runner.py) to ONE canonical shape. Absence semantics (the drift this vector was created to catch — Python used to emit `\"expectedOutput\": null` where TS omitted the key): expectedOutput / actualOutput / tokens are OMITTED when missing from args, never null; traceId is omitted when missing OR empty-string; evals is ALWAYS present (possibly []). Comparison is on parsed JSON (key-order-agnostic). Changing any expected value is a wire-format break for the experiments UI AND a cross-language break — treat as semver-major.",
+  "cases": [
+    {
+      "name": "full text row: tokens, evals, traceId all present",
+      "args": {
+        "input": { "userMessage": "What is 2+2?" },
+        "expectedOutput": "4",
+        "actualOutput": "4",
+        "tokens": 11,
+        "evals": [{ "name": "exact_match", "score": 1, "passed": true }],
+        "traceId": "0af7651916cd43dd8448eb211c80319c",
+        "runId": "run-123",
+        "runName": "my-experiment"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "userMessage": "What is 2+2?" },
+          "expectedOutput": "4",
+          "actualOutput": "4",
+          "tokens": 11,
+          "evals": [{ "name": "exact_match", "score": 1, "passed": true }]
+        },
+        "traceId": "0af7651916cd43dd8448eb211c80319c",
+        "runId": "run-123",
+        "runName": "my-experiment"
+      }
+    },
+    {
+      "name": "object row: structured expected/actual outputs pass through",
+      "args": {
+        "input": { "userMessage": "What is 4+4?" },
+        "expectedOutput": { "answer": "8" },
+        "actualOutput": { "answer": "8", "confidence": 0.99 },
+        "tokens": 30,
+        "evals": [],
+        "traceId": "abc",
+        "runId": "run-456",
+        "runName": "obj-run"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "userMessage": "What is 4+4?" },
+          "expectedOutput": { "answer": "8" },
+          "actualOutput": { "answer": "8", "confidence": 0.99 },
+          "tokens": 30,
+          "evals": []
+        },
+        "traceId": "abc",
+        "runId": "run-456",
+        "runName": "obj-run"
+      }
+    },
+    {
+      "name": "unknown usage: tokens key omitted (never 0-filled or null)",
+      "args": {
+        "input": { "q": "x" },
+        "expectedOutput": "y",
+        "actualOutput": "z",
+        "evals": [],
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "x" },
+          "expectedOutput": "y",
+          "actualOutput": "z",
+          "evals": []
+        },
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      }
+    },
+    {
+      "name": "row without expected output: key omitted, never null",
+      "args": {
+        "input": { "q": "open-ended" },
+        "actualOutput": "anything",
+        "tokens": 5,
+        "evals": [],
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "open-ended" },
+          "actualOutput": "anything",
+          "tokens": 5,
+          "evals": []
+        },
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      }
+    },
+    {
+      "name": "no resolved output: actualOutput omitted, never null",
+      "args": {
+        "input": { "q": "x" },
+        "expectedOutput": "y",
+        "tokens": 5,
+        "evals": [],
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "x" },
+          "expectedOutput": "y",
+          "tokens": 5,
+          "evals": []
+        },
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      }
+    },
+    {
+      "name": "empty traceId: key omitted (hooks disabled / no-op tracer)",
+      "args": {
+        "input": { "q": "x" },
+        "expectedOutput": "y",
+        "actualOutput": "y",
+        "tokens": 2,
+        "evals": [],
+        "traceId": "",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "x" },
+          "expectedOutput": "y",
+          "actualOutput": "y",
+          "tokens": 2,
+          "evals": []
+        },
+        "runId": "r",
+        "runName": "n"
+      }
+    },
+    {
+      "name": "eval results: name merged with score/label/reason/passed",
+      "args": {
+        "input": { "q": "x" },
+        "expectedOutput": "y",
+        "actualOutput": "n",
+        "tokens": 2,
+        "evals": [
+          {
+            "name": "exact_match",
+            "score": 0,
+            "label": "incorrect",
+            "reason": "Output does not match expected",
+            "passed": false
+          },
+          { "name": "length_check", "score": 1, "passed": true }
+        ],
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "x" },
+          "expectedOutput": "y",
+          "actualOutput": "n",
+          "tokens": 2,
+          "evals": [
+            {
+              "name": "exact_match",
+              "score": 0,
+              "label": "incorrect",
+              "reason": "Output does not match expected",
+              "passed": false
+            },
+            { "name": "length_check", "score": 1, "passed": true }
+          ]
+        },
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      }
+    },
+    {
+      "name": "empty-string actualOutput is a real value, not absence",
+      "args": {
+        "input": { "q": "x" },
+        "expectedOutput": "y",
+        "actualOutput": "",
+        "tokens": 2,
+        "evals": [],
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "x" },
+          "expectedOutput": "y",
+          "actualOutput": "",
+          "tokens": 2,
+          "evals": []
+        },
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      }
+    },
+    {
+      "name": "zero tokens is a real value, not absence",
+      "args": {
+        "input": { "q": "x" },
+        "expectedOutput": "y",
+        "actualOutput": "y",
+        "tokens": 0,
+        "evals": [],
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      },
+      "expected": {
+        "type": "dataset",
+        "result": {
+          "input": { "q": "x" },
+          "expectedOutput": "y",
+          "actualOutput": "y",
+          "tokens": 0,
+          "evals": []
+        },
+        "traceId": "abc",
+        "runId": "r",
+        "runName": "n"
+      }
+    }
+  ]
+}

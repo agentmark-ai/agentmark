@@ -56,10 +56,11 @@ export class MastraTextPrompt<
     const { props, options } = params || {};
     const input = await this.compile(props);
 
-    const { adaptMessages, _runnable: _runnable, ...adaptedAgent } = await this.adapter.adaptText(
-      input,
-      options ?? {}
-    );
+    // Compose the adapter's building blocks directly: the durable
+    // AgentConfig now, the per-call (messages, generateOptions) pair on each
+    // formatMessages call. The runnable bundle `adaptText` returns is the
+    // executor path's contract and never flows through here.
+    const adaptedAgent = await this.adapter.adaptTextAgent(input, options ?? {});
 
     const formatMessages = async <
       M extends Partial<T[K]["input"]>
@@ -75,7 +76,7 @@ export class MastraTextPrompt<
       ]
     > => {
       const messageInput = await this.compile({...(props || {}), ...(msgParams?.props || {})} as any);
-      const messageAdapted = adaptMessages({
+      const messageAdapted = this.adapter.adaptTextMessages({
         input: messageInput,
         options: options ?? {},
         metadata: this.metadata({

@@ -1,0 +1,70 @@
+{
+  "description": "NORMATIVE variant catalog for the cross-language protocol types: every AgentEvent variant and WireChunk shape, with required/optional fields and primitive kinds. Both languages assert AGAINST it from their REAL types: TS builds one sample per variant via a mapped type keyed by the AgentEvent union (a variant added to the union without a catalog entry — or vice versa — fails compile/test), and Python reflects the actual dataclass union via typing.get_args so its inventory can't drift from its implementation either. Field kinds: 'string' | 'number' | 'boolean' | 'any' (unchecked) | 'usage' (the AgentUsage shape below). Adding a variant or field here without implementing it in BOTH languages fails the other language's suite — that is the point. Changing existing entries is a protocol break: semver-major.",
+  "agentUsage": {
+    "required": { "inputTokens": "number", "outputTokens": "number" },
+    "optional": { "totalTokens": "number" }
+  },
+  "agentEvents": {
+    "text-delta": { "required": { "text": "string" }, "optional": {} },
+    "reasoning-delta": { "required": { "text": "string" }, "optional": {} },
+    "tool-call": {
+      "required": { "id": "string", "name": "string" },
+      "optional": { "args": "any" }
+    },
+    "tool-result": {
+      "required": { "id": "string", "name": "string" },
+      "optional": { "result": "any", "isError": "boolean" }
+    },
+    "object-delta": { "required": { "partial": "any" }, "optional": {} },
+    "object-final": { "required": { "value": "any" }, "optional": {} },
+    "finish": { "required": { "reason": "string" }, "optional": { "usage": "usage" } },
+    "error": { "required": { "error": "string" }, "optional": {} }
+  },
+  "wireChunks": {
+    "text-result": {
+      "discriminant": { "type": "text" },
+      "required": { "result": "string" },
+      "optional": {}
+    },
+    "text-toolCall": {
+      "discriminant": { "type": "text" },
+      "required": { "toolCall": "any" },
+      "optional": {}
+    },
+    "text-toolResult": {
+      "discriminant": { "type": "text" },
+      "required": { "toolResult": "any" },
+      "optional": {}
+    },
+    "text-finish": {
+      "discriminant": { "type": "text" },
+      "required": { "finishReason": "string" },
+      "optional": { "usage": "any" }
+    },
+    "object-result": {
+      "discriminant": { "type": "object" },
+      "required": { "result": "any" },
+      "optional": {}
+    },
+    "object-usage": {
+      "discriminant": { "type": "object" },
+      "required": { "usage": "any" },
+      "optional": {}
+    },
+    "dataset-row": {
+      "discriminant": { "type": "dataset" },
+      "required": { "result": "any", "runId": "string", "runName": "string" },
+      "optional": { "traceId": "string" }
+    },
+    "error": {
+      "discriminant": { "type": "error" },
+      "required": { "error": "string" },
+      "optional": {}
+    },
+    "done": {
+      "discriminant": { "type": "done" },
+      "required": {},
+      "optional": { "traceId": "string" }
+    }
+  }
+}

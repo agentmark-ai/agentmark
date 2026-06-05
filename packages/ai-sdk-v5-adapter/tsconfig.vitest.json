@@ -1,0 +1,5 @@
+{
+  "// purpose": "vitest typecheck mode runs tsc with THIS config — the package tsconfig only includes src/ (tsup build scope), which made type tests vacuously pass: tsc never saw test/. See vitest.config.ts typecheck block.",
+  "extends": "./tsconfig.json",
+  "include": ["src", "test"]
+}

@@ -34,7 +34,7 @@ type TestPromptTypes = {
 
 describe("Vercel adapter MCP integration", () => {
   let modelRegistry: VercelAIModelRegistry;
-  let fileLoader: FileLoader<any>;
+  let fileLoader: FileLoader;
 
   // Build pre-compiled fixtures before tests run
   beforeAll(async () => {

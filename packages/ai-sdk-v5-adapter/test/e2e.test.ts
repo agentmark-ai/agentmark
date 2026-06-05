@@ -261,7 +261,7 @@ text_config:
   it("should resolve speech models via registerProviders", () => {
     const registry = new VercelAIModelRegistry();
     const mockOpenAI = {
-      speechModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, type: "speech" })),
+      speechModel: vi.fn((modelId: string) => ({ id: `openai:${modelId}`, type: "speech" }) as never),
     };
     registry.registerProviders({ openai: mockOpenAI });
 

@@ -175,6 +175,166 @@ def _usage_to_wire(usage: UsageData | None) -> dict[str, Any] | None:
     return out
 
 
+def _text_event_to_wire(ev: AgentEvent) -> dict[str, Any] | None:
+    """Map one TEXT-stream AgentEvent to its wire chunk dict, or ``None``
+    when the event isn't wired (e.g. reasoning deltas — deliberately not on
+    the wire).
+
+    Parity contract: behavior-identical to ``textEventToWire`` in
+    prompt-core's ``wire.ts``. Both are exercised against the shared
+    ``conformance-vectors/wire-chunks.json`` golden cases so the NDJSON the
+    two runners emit cannot drift silently.
+    """
+    if isinstance(ev, TextDeltaEvent):
+        return {"type": "text", "result": ev.text}
+    if isinstance(ev, ToolCallEvent):
+        return {
+            "type": "text",
+            "toolCall": {
+                "toolCallId": ev.id,
+                "toolName": ev.name,
+                "args": ev.args,
+            },
+        }
+    if isinstance(ev, ToolResultEvent):
+        return {
+            "type": "text",
+            "toolResult": {
+                "toolCallId": ev.id,
+                "toolName": ev.name,
+                "result": ev.result,
+            },
+        }
+    if isinstance(ev, FinishEvent):
+        # `finish` is the single canonical usage carrier; usage-less finishes
+        # emit the reason alone — the key is omitted, matching TS where
+        # JSON.stringify drops the undefined property.
+        payload: dict[str, Any] = {"type": "text", "finishReason": ev.reason}
+        if ev.usage is not None:
+            payload["usage"] = _usage_to_wire(ev.usage)
+        return payload
+    if isinstance(ev, ErrorEvent):
+        return {"type": "error", "error": ev.error}
+    return None
+
+
+def _text_response_to_wire(
+    *,
+    result: str,
+    usage: UsageData | None,
+    finish_reason: str | None,
+    tool_calls: list[dict[str, Any]],
+    tool_results: list[dict[str, Any]],
+    trace_id: str | None,
+) -> dict[str, Any]:
+    """Build the non-streaming TEXT response envelope.
+
+    Parity contract: behavior-identical to ``textResponseToWire`` in
+    prompt-core's ``wire.ts``; both run against the shared
+    ``conformance-vectors/response-envelopes.json`` golden cases.
+
+    Canonical absence semantics follow TS: ``usage`` / ``finishReason`` are
+    OMITTED when unknown — never null (pre-vector this runner emitted
+    ``"usage": null``) — and ``traceId`` is omitted when empty.
+    ``toolCalls``/``toolResults`` are always arrays.
+    """
+    payload: dict[str, Any] = {"type": "text", "result": result}
+    wire_usage = _usage_to_wire(usage)
+    if wire_usage is not None:
+        payload["usage"] = wire_usage
+    if finish_reason is not None:
+        payload["finishReason"] = finish_reason
+    payload["toolCalls"] = tool_calls
+    payload["toolResults"] = tool_results
+    if trace_id:
+        payload["traceId"] = trace_id
+    return payload
+
+
+def _object_response_to_wire(
+    *,
+    result: Any,
+    usage: UsageData | None,
+    finish_reason: str | None,
+    trace_id: str | None,
+) -> dict[str, Any]:
+    """Object twin of :func:`_text_response_to_wire` — mirrors
+    ``objectResponseToWire`` in ``wire.ts``. ``result`` is omitted (never
+    null) when the run produced no resolved value."""
+    payload: dict[str, Any] = {"type": "object"}
+    if result is not None:
+        payload["result"] = result
+    wire_usage = _usage_to_wire(usage)
+    if wire_usage is not None:
+        payload["usage"] = wire_usage
+    if finish_reason is not None:
+        payload["finishReason"] = finish_reason
+    if trace_id:
+        payload["traceId"] = trace_id
+    return payload
+
+
+def _dataset_row_to_wire(
+    *,
+    input_data: Any,
+    expected_output: Any,
+    actual_output: Any,
+    tokens: int | None,
+    evals: list[dict[str, Any]],
+    trace_id: str | None,
+    run_id: str,
+    run_name: str,
+) -> dict[str, Any]:
+    """Build the ``{type:"dataset"}`` experiment-row chunk.
+
+    Parity contract: behavior-identical to ``datasetRowToWire`` in
+    prompt-core's ``wire.ts``; both run against the shared
+    ``conformance-vectors/dataset-rows.json`` golden cases.
+
+    Canonical absence semantics follow TS (where JSON.stringify drops
+    undefined): ``expectedOutput`` / ``actualOutput`` / ``tokens`` are
+    OMITTED when unknown — never emitted as null — and ``traceId`` is
+    omitted when empty. (Pre-vector, this runner emitted
+    ``"expectedOutput": null`` for rows without one — a silent divergence
+    from the TS wire that consumers tolerated only because they probe by
+    key.)
+    """
+    result: dict[str, Any] = {"input": input_data}
+    if expected_output is not None:
+        result["expectedOutput"] = expected_output
+    if actual_output is not None:
+        result["actualOutput"] = actual_output
+    if tokens is not None:
+        result["tokens"] = tokens
+    result["evals"] = evals
+
+    payload: dict[str, Any] = {"type": "dataset", "result": result}
+    if trace_id:
+        payload["traceId"] = trace_id
+    payload["runId"] = run_id
+    payload["runName"] = run_name
+    return payload
+
+
+def _object_event_to_wire(ev: AgentEvent) -> dict[str, Any] | None:
+    """Map one OBJECT-stream AgentEvent to its wire chunk dict, or ``None``
+    when no chunk is emitted (usage-less ``finish`` — historical wire emits
+    nothing). Parity contract: mirrors ``objectEventToWire`` in ``wire.ts``;
+    see ``_text_event_to_wire``.
+    """
+    if isinstance(ev, ObjectDeltaEvent):
+        return {"type": "object", "result": _serialize_value(ev.partial)}
+    if isinstance(ev, ObjectFinalEvent):
+        return {"type": "object", "result": _serialize_value(ev.value)}
+    if isinstance(ev, FinishEvent):
+        if ev.usage is None:
+            return None
+        return {"type": "object", "usage": _usage_to_wire(ev.usage)}
+    if isinstance(ev, ErrorEvent):
+        return {"type": "error", "error": ev.error}
+    return None
+
+
 async def _drain_events(
     events: AsyncIterator[AgentEvent],
 ) -> tuple[
@@ -316,16 +476,16 @@ class WebhookRunner:
                 raise RuntimeError(err)
             with suppress(Exception):
                 span.set_attribute("agentmark.output", text)
-            return self._with_trace_id(
-                {
-                    "type": "text",
-                    "result": text,
-                    "usage": _usage_to_wire(usage),
-                    "finishReason": finish_reason,
-                    "toolCalls": tool_calls,
-                    "toolResults": tool_results,
-                },
-                ctx.trace_id,
+            # Envelope assembly is the pure _text_response_to_wire, pinned by
+            # the shared response-envelopes.json golden vectors that the TS
+            # runner's mirror also runs.
+            return _text_response_to_wire(
+                result=text,
+                usage=usage,
+                finish_reason=finish_reason,
+                tool_calls=tool_calls,
+                tool_results=tool_results,
+                trace_id=ctx.trace_id,
             )
 
     async def _run_object(
@@ -367,14 +527,12 @@ class WebhookRunner:
             serialized = _serialize_value(obj_value)
             with suppress(Exception):
                 span.set_attribute("agentmark.output", json.dumps(serialized, default=str))
-            return self._with_trace_id(
-                {
-                    "type": "object",
-                    "result": serialized,
-                    "usage": _usage_to_wire(usage),
-                    "finishReason": finish_reason,
-                },
-                ctx.trace_id,
+            # See _run_text — vector-pinned envelope assembly.
+            return _object_response_to_wire(
+                result=serialized,
+                usage=usage,
+                finish_reason=finish_reason,
+                trace_id=ctx.trace_id,
             )
 
     async def _run_image(
@@ -464,36 +622,13 @@ class WebhookRunner:
     ) -> AsyncIterator[str]:
         try:
             async for ev in self._executor.execute_text(formatted, ctx):
-                if isinstance(ev, TextDeltaEvent):
-                    yield json.dumps({"type": "text", "result": ev.text}) + "\n"
-                elif isinstance(ev, ToolCallEvent):
-                    yield json.dumps({
-                        "type": "text",
-                        "toolCall": {
-                            "toolCallId": ev.id,
-                            "toolName": ev.name,
-                            "args": ev.args,
-                        },
-                    }) + "\n"
-                elif isinstance(ev, ToolResultEvent):
-                    yield json.dumps({
-                        "type": "text",
-                        "toolResult": {
-                            "toolCallId": ev.id,
-                            "toolName": ev.name,
-                            "result": ev.result,
-                        },
-                    }) + "\n"
-                elif isinstance(ev, FinishEvent):
-                    payload: dict[str, Any] = {
-                        "type": "text",
-                        "finishReason": ev.reason,
-                    }
-                    if ev.usage is not None:
-                        payload["usage"] = _usage_to_wire(ev.usage)
-                    yield json.dumps(payload) + "\n"
-                elif isinstance(ev, ErrorEvent):
-                    yield json.dumps({"type": "error", "error": ev.error}) + "\n"
+                # Pure event→chunk mapping is module-level, pinned by the
+                # shared wire-chunks.json golden vectors that the TS runner's
+                # mirror also runs. Terminal handling stays here.
+                chunk = _text_event_to_wire(ev)
+                if chunk is not None:
+                    yield json.dumps(chunk) + "\n"
+                if isinstance(ev, ErrorEvent):
                     return
         except Exception as exc:  # noqa: BLE001 — executor errors become wire errors
             yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
@@ -503,26 +638,12 @@ class WebhookRunner:
     ) -> AsyncIterator[str]:
         try:
             async for ev in self._executor.execute_object(formatted, ctx):
-                if isinstance(ev, ObjectDeltaEvent):
-                    yield json.dumps({
-                        "type": "object",
-                        "result": _serialize_value(ev.partial),
-                    }) + "\n"
-                elif isinstance(ev, ObjectFinalEvent):
-                    yield json.dumps({
-                        "type": "object",
-                        "result": _serialize_value(ev.value),
-                    }) + "\n"
-                elif isinstance(ev, FinishEvent):
-                    # `finish` is the single usage carrier. Emit the usage chunk
-                    # only when usage is present, preserving the historical wire.
-                    if ev.usage is not None:
-                        yield json.dumps({
-                            "type": "object",
-                            "usage": _usage_to_wire(ev.usage),
-                        }) + "\n"
-                elif isinstance(ev, ErrorEvent):
-                    yield json.dumps({"type": "error", "error": ev.error}) + "\n"
+                # Pure event→chunk mapping is module-level (vector-pinned, see
+                # _stream_text_ndjson): usage-less finish emits nothing.
+                chunk = _object_event_to_wire(ev)
+                if chunk is not None:
+                    yield json.dumps(chunk) + "\n"
+                if isinstance(ev, ErrorEvent):
                     return
         except Exception as exc:  # noqa: BLE001
             yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
@@ -770,25 +891,19 @@ class WebhookRunner:
                         })
                         eval_results.append({"name": name, **(r or {})})
 
-                total_tokens = usage.total_tokens if usage is not None else None
-                payload: dict[str, Any] = {
-                    "type": "dataset",
-                    "result": {
-                        "input": input_data,
-                        "expectedOutput": expected,
-                        "actualOutput": output,
-                        # Match TS: omit `tokens` entirely when there's no usage
-                        # (TS emits `tokens: usage?.totalTokens`, which
-                        # JSON.stringify drops when undefined) rather than
-                        # emitting `tokens: null`.
-                        **({"tokens": total_tokens} if total_tokens is not None else {}),
-                        "evals": eval_results,
-                    },
-                    "runId": experiment_run_id,
-                    "runName": dataset_run_name,
-                }
-                if trace_id:
-                    payload["traceId"] = trace_id
+                # Row assembly is the pure _dataset_row_to_wire (module
+                # level), pinned by the shared dataset-rows.json golden
+                # vectors that the TS runner's mirror also runs.
+                payload = _dataset_row_to_wire(
+                    input_data=input_data,
+                    expected_output=expected,
+                    actual_output=output,
+                    tokens=usage.total_tokens if usage is not None else None,
+                    evals=eval_results,
+                    trace_id=trace_id,
+                    run_id=experiment_run_id,
+                    run_name=dataset_run_name,
+                )
                 return json.dumps(payload)
             except Exception as exc:  # noqa: BLE001
                 # Pool policy: a row failure becomes an error row and the run

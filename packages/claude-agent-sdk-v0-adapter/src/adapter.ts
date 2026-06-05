@@ -256,7 +256,7 @@ export class ClaudeAgentAdapter<
    * @param metadata - Prompt metadata including props
    * @returns Configuration for Claude Agent SDK query() with telemetry context
    */
-  async adaptText<_K extends KeysWithKind<T, "text"> & string>(
+  async adaptText(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
@@ -344,7 +344,7 @@ export class ClaudeAgentAdapter<
    *
    * @throws Error with guidance to use a different adapter
    */
-  adaptImage<_K extends KeysWithKind<T, "image"> & string>(
+  adaptImage(
     _input: ImageConfig,
     _options: AdaptOptions
   ): never {
@@ -359,7 +359,7 @@ export class ClaudeAgentAdapter<
    *
    * @throws Error with guidance to use a different adapter
    */
-  adaptSpeech<_K extends KeysWithKind<T, "speech"> & string>(
+  adaptSpeech(
     _input: SpeechConfig,
     _options: AdaptOptions
   ): never {

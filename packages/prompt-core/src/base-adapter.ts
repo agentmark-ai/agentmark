@@ -69,8 +69,8 @@ export function buildTelemetryMetadata(
 }
 
 /**
- * Base class every SDK adapter extends. Absorbs the three responsibilities
- * that were duplicated across ai-sdk-v4, ai-sdk-v5, and mastra adapters:
+ * Base class for SDK adapters. Absorbs three responsibilities that would
+ * otherwise be duplicated per adapter:
  *
  *   1. Holding a registry of in-process tools + an McpServerRegistry.
  *   2. Resolving `tools: [...]` lists — including `mcp://server/*` wildcards.
@@ -80,6 +80,14 @@ export function buildTelemetryMetadata(
  * MCP client factory in their constructor. Beyond that, subclasses only
  * implement `adaptText` / `adaptObject` / `adaptImage` / `adaptSpeech`
  * by calling `resolveTools()` + `applyParamMap()` with their SDK's paramMap.
+ *
+ * Adoption map (keep honest): ai-sdk-v4 and ai-sdk-v5 extend this class.
+ * The Mastra adapter shares `applyParamMap` + `buildTelemetryMetadata` but
+ * keeps its own MCP tool resolution — it keys resolved tools by full
+ * `mcp://server/tool` URI (Mastra-namespaced), which `resolveTools` here
+ * (bare-name keys) can't express without changing what tool names Mastra
+ * models see. The claude-agent-sdk adapter implements `Adapter` directly
+ * (its SDK takes a prompt string + options, not a param bag).
  */
 export abstract class BaseAdapter<TTool = unknown> {
   protected readonly tools: Record<string, TTool> | undefined;
