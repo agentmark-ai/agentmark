@@ -1,3 +1,17 @@
+## 0.6.3 (2026-06-05)
+
+### 🩹 Fixes
+
+- Trace-drawer and number-formatting fixes. ([#658](https://github.com/agentmark-ai/agentmark/pull/658))
+
+  - **`use-span-prompts`**: a new `isGenerationSpan` predicate (matches `spanKind === "llm"` or the presence of a `model` field — a back-compat shim for older traces) now guards `isToolSpan` / `isAgentSpan`, fixing LLM generations being rendered as tool/agent nodes in the trace drawer.
+  - **`fCurrency`**: sub-precision non-zero values (e.g. `$0.0000001`) no longer round to `"$0"` — they render with up to 2 significant digits; invalid inputs return `''` before any formatting.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.4.0
+- Updated @agentmark-ai/prompt-core to 0.6.0
+
 ## 0.6.2 (2026-05-21)
 
 ### 🧱 Updated Dependencies

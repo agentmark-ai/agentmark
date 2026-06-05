@@ -1,3 +1,59 @@
+## 0.16.0 (2026-06-05)
+
+### 🚀 Features
+
+- Environment-scoped types + alerts schema extension + regenerated CLI OpenAPI spec, accompanying features 054 (Environments & Promotion) and 055 (Environment-Centric Navigation). ([#631](https://github.com/agentmark-ai/agentmark/pull/631))
+
+  - `api-types`: types updated to surface environment context on resources that gain env scoping (trace / score / session env-tagging; environment lifecycle; promotion history).
+  - `api-schemas`: `alert` create/read schemas gain an optional, nullable `environment_id` so an alert can be scoped to a single environment of an app (NULL = app-wide, the existing behaviour). Backwards-compatible — every existing producer/consumer continues to round-trip without the field.
+  - `cli`: bundled `openapi-spec.json` regenerated to include the new `/v1/environments/*` and promote/rollback routes shipping with 054; minor cleanup in `index.ts`.
+
+- Consolidate the per-adapter runners behind a shared `Executor` protocol + a ([#665](https://github.com/agentmark-ai/agentmark/pull/665))
+  single `WebhookRunner` (TS + Python), and tighten the resulting interface.
+
+  **Minor, not major:** these packages are pre-1.0 (0.x) and explicitly unstable,
+  so breaking changes ride the minor slot for now.
+
+  Breaking / behavior changes in this release:
+
+  - **Executor protocol** is the new SDK-integration contract. Each adapter is now
+    a thin `Executor` + paramMap over the shared `WebhookRunner` instead of a
+    per-SDK runner. `AgentEvent` is kind-split (`TextStreamEvent` /
+    `ObjectStreamEvent`); usage rides on a single terminal `finish` event (the
+    standalone `usage` event variant is gone).
+  - **`WebhookRunner.runExperiment` signature** changed from trailing positional
+    args (`datasetPath`, `sampling`, `concurrency`, `experimentKey`,
+    `sourceTreeHash`) to a `RunExperimentOptions` bag, with `signal` added for
+    cancellation. The per-adapter `*WebhookHandler.runExperiment` shims and the
+    CLI runner-server dispatch follow suit.
+  - **`Adapter.adaptText/adaptObject/adaptImage/adaptSpeech`** return `unknown`
+    instead of `any`. Concrete adapters override with their real return type, so
+    the typed BYO/Default path is unaffected; generic-`Adapter` holders must
+    narrow.
+  - **Experiment NDJSON wire unified**: the claude-agent (TS + Python) adapters
+    drop the `experiment_start` / `experiment_item_error` / `experiment_end`
+    envelope in favor of the shared `{type:"dataset"}` / `{type:"error"}` shape
+    every other adapter already emits. Verified: no consumer (gateway, builder
+    auto-score, dashboard) parses the old envelope.
+  - **`datasetItemName`** for the AI-SDK adapters is now `md5(input)[:12]` (parity
+    with the Python adapters) instead of the raw row index.
+
+  Additive:
+
+  - BYO bootstrapping primitives: `createExecutor` / `create_executor`,
+    `createWebhookRunner`, `runExecutorConformance`.
+  - `WireChunk` — the now-typed NDJSON stream contract, exported from prompt-core.
+  - New packages `@agentmark-ai/ai-sdk-shared` (shared Vercel executor factory)
+    and `@agentmark-ai/conformance-vectors` (cross-language test fixtures).
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.6.3
+- Updated @agentmark-ai/shared-utils to 0.5.0
+- Updated @agentmark-ai/api-schemas to 0.4.0
+- Updated @agentmark-ai/prompt-core to 0.6.0
+- Updated @agentmark-ai/api-types to 0.4.0
+
 ## 0.15.0 (2026-05-21)
 
 ### 🚀 Features
