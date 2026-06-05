@@ -51,6 +51,7 @@ describe('main() — minimal init', () => {
       version: '2.0.0',
       mdxVersion: '1.0',
       agentmarkPath: '.',
+      builtInModels: ['openai/gpt-5.5'],
     });
   });
 
