@@ -47,6 +47,10 @@ export const AGENTMARK_JSON: Record<string, unknown> = {
   version: "2.0.0",
   mdxVersion: "1.0",
   agentmarkPath: ".",
+  // Seed one model so the dashboard prompt editor isn't an empty dropdown on
+  // first run. Add more with `npx agentmark pull-models` (writes provider/model
+  // entries here) — see https://docs.agentmark.co/configure/model-schemas.
+  builtInModels: ["openai/gpt-5.5"],
 };
 
 export const parseArgs = (argv: string[] = process.argv.slice(2)): CliArgs => {
