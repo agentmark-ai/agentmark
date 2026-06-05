@@ -18,7 +18,7 @@ Reference the dataset from the prompt's frontmatter under `test_settings.dataset
 ---
 name: qa-bot
 text_config:
-  model_name: gpt-4o-mini
+  model_name: gpt-5-mini
 test_settings:
   dataset: ./data.jsonl
 ---

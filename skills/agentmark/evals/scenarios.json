@@ -175,13 +175,13 @@
     "agentmark-project": {
       "files": {
         "agentmark.json": "{\"agentmarkPath\":\".\",\"version\":\"2.0.0\",\"mdxVersion\":\"1.0\"}",
-        "agentmark/qa-bot.prompt.mdx": "---\nname: qa-bot\ntext_config:\n  model_name: gpt-4o-mini\ninput_schema:\n  type: object\n  properties:\n    question:\n      type: string\n  required: [question]\ntest_settings:\n  dataset: ./qa-bot/data.jsonl\n---\n<System>You are a helpful assistant.</System>\n<User>{props.question}</User>\n",
+        "agentmark/qa-bot.prompt.mdx": "---\nname: qa-bot\ntext_config:\n  model_name: gpt-5-mini\ninput_schema:\n  type: object\n  properties:\n    question:\n      type: string\n  required: [question]\ntest_settings:\n  dataset: ./qa-bot/data.jsonl\n---\n<System>You are a helpful assistant.</System>\n<User>{props.question}</User>\n",
         "agentmark/qa-bot/data.jsonl": "{\"question\":\"What is 2+2?\"}\n"
       }
     },
     "openai-project": {
       "files": {
-        "chat.ts": "import OpenAI from \"openai\";\nconst client = new OpenAI();\nexport async function chat(messages: any[]) {\n  return await client.chat.completions.create({ model: \"gpt-4o\", messages });\n}\n"
+        "chat.ts": "import OpenAI from \"openai\";\nconst client = new OpenAI();\nexport async function chat(messages: any[]) {\n  return await client.chat.completions.create({ model: \"gpt-5\", messages });\n}\n"
       }
     },
     "empty": {
@@ -209,7 +209,7 @@
       "files": {
         "package.json": "{\"name\":\"my-nextjs-app\",\"version\":\"0.1.0\",\"private\":true,\"dependencies\":{\"next\":\"^14.0.0\",\"react\":\"^18.0.0\",\"ai\":\"^4.0.0\",\"@ai-sdk/openai\":\"^1.0.0\"},\"devDependencies\":{\"typescript\":\"^5.0.0\"}}",
         "tsconfig.json": "{\"compilerOptions\":{\"target\":\"es5\",\"strict\":true,\"jsx\":\"preserve\"}}",
-        "app/api/chat/route.ts": "import { openai } from '@ai-sdk/openai';\nimport { streamText } from 'ai';\n\nexport const maxDuration = 30;\n\nexport async function POST(req: Request) {\n  const { messages } = await req.json();\n  const result = streamText({\n    model: openai('gpt-4o'),\n    system: 'You are a helpful assistant.',\n    messages,\n  });\n  return result.toDataStreamResponse();\n}\n",
+        "app/api/chat/route.ts": "import { openai } from '@ai-sdk/openai';\nimport { streamText } from 'ai';\n\nexport const maxDuration = 30;\n\nexport async function POST(req: Request) {\n  const { messages } = await req.json();\n  const result = streamText({\n    model: openai('gpt-5'),\n    system: 'You are a helpful assistant.',\n    messages,\n  });\n  return result.toDataStreamResponse();\n}\n",
         "agentmark.json": "{\"$schema\":\"https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json\",\"version\":\"2.0.0\",\"mdxVersion\":\"1.0\",\"agentmarkPath\":\".\"}",
         "agentmark/.gitkeep": "",
         ".mcp.json": "{\"mcpServers\":{\"agentmark-docs\":{\"type\":\"http\",\"url\":\"https://docs.agentmark.co/mcp\"},\"agentmark\":{\"command\":\"npx\",\"args\":[\"-y\",\"@agentmark-ai/mcp-server\"],\"type\":\"stdio\"}}}"

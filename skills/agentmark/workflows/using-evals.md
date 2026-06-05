@@ -38,7 +38,7 @@ Add the eval names to `test_settings.evals` in the prompt's frontmatter:
 ---
 name: qa-bot
 text_config:
-  model_name: gpt-4o-mini
+  model_name: gpt-5-mini
 test_settings:
   dataset: ./data.jsonl
   evals: [accuracy, is_safe]
