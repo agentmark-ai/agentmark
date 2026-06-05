@@ -7,28 +7,28 @@
       "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/build/generation-types/object.md": {
-      "sha256": "9402efe6d9232a7cd26e01d5c69507d1884fb6e43ef7e520fbe9e1c87140e8fc",
-      "captured_at": "2026-06-05T15:53:50.820Z"
+      "sha256": "0c1550bd909766f1007367d02bb258e5dafb306e0788fc0eb4dadc0c2907df24",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     },
     "https://docs.agentmark.co/build/generation-types/speech.md": {
       "sha256": "1fa49fd9b5516e96bbe212cb959bb004324dc259b9f96c49d5ab16a6e7af4886",
       "captured_at": "2026-05-29T02:27:54.429Z"
     },
     "https://docs.agentmark.co/build/generation-types/text.md": {
-      "sha256": "510bcb6950a283a22e4abc2d8a02262dfc9480bbbe353464ee1bf70ec99a53fd",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "f4073bd8fb0b1056d620172c555f57f908652cfc453fdb5da8f92b5a31b216e2",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     },
     "https://docs.agentmark.co/build/schema-references.md": {
-      "sha256": "6c951799b54460e42f54a6f42dd6742b46be52a5c80043f799a6b69420d774f0",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "1c2abd85112f9fefcb0b90fec2c8ad6ab774a02564469111f923ec18cd52b1a8",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     },
     "https://docs.agentmark.co/build/syntax.md": {
-      "sha256": "fd5b0a133ef5b24df987fef9c77d47021cc3d912b89eb96419b024cca606a6f1",
-      "captured_at": "2026-06-05T15:53:50.820Z"
+      "sha256": "28d9ec48cd9a80c5e0ee53388feda62b23e6a2036723ad682865deef12912c0d",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     },
     "https://docs.agentmark.co/configure/client-config.md": {
-      "sha256": "58642454f0339226c97bc71ca4d78c8865402f48bd70a165ade04f10360b6a54",
-      "captured_at": "2026-06-05T15:53:50.820Z"
+      "sha256": "aad0ea4ab85a6405e321e46a8847da646912daaa779ef3752fde24c73733d3a6",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     },
     "https://docs.agentmark.co/configure/environment-variables.md": {
       "sha256": "ecd825d13deaacacd3cee565b964a4748bffd49a5a0a37bde837753323682f45",
@@ -55,12 +55,12 @@
       "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/evaluate/writing-evals.md": {
-      "sha256": "bb2ecf94a6e044281bf3c8d0a026aa5c1339671f99c628792250ee5702edc060",
-      "captured_at": "2026-06-05T15:53:50.820Z"
+      "sha256": "7b507b218d29b6daa1a9f52dd7c3484a8329c4e28e3128e328cc1a6f32a21866",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     },
     "https://docs.agentmark.co/observe/tracing-setup.md": {
-      "sha256": "06dd7e04c701fcdb21c08b89d4e80dc51dca53f07769271fc35d5fee4057eeeb",
-      "captured_at": "2026-06-05T15:53:50.820Z"
+      "sha256": "324848a66a821aa8c7ce5393719216ab5d8258794199565fe900dcc7d16a1273",
+      "captured_at": "2026-06-05T17:25:01.869Z"
     }
   }
 }
