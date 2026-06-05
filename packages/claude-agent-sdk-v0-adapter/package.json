@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/claude-agent-sdk-v0-adapter",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -50,8 +50,8 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "0.6.0",
-    "@agentmark-ai/sdk": "1.2.0",
+    "@agentmark-ai/prompt-core": "0.7.0",
+    "@agentmark-ai/sdk": "1.2.1",
     "@agentmark-ai/shared-utils": "*",
     "@agentmark-ai/templatedx": "*",
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
