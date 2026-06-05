@@ -3,12 +3,12 @@
   "comment": "SHA-256 fingerprints of every docs.agentmark.co URL the skill references. Updated by scripts/update-docs-snapshots.mjs. Drift between these hashes and live docs is caught by validate-agentmark-skill.mjs T2.6 — when it fires, review the skill's references against the new docs content, then re-run this script to acknowledge.",
   "snapshots": {
     "https://docs.agentmark.co/build/generation-types/image.md": {
-      "sha256": "c9874a0a2800d796555bc6a51ff0d8f1a3de77ba324aaa0cc982cd9374487507",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "6b0a67621006c037acaab49cdccf5ae3707eda83c455554a162bf68703f7925d",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/build/generation-types/object.md": {
-      "sha256": "21615204f6628262e40ac9e0f0412cb3919590e3d661bdebe2eebb7601cf37da",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "9402efe6d9232a7cd26e01d5c69507d1884fb6e43ef7e520fbe9e1c87140e8fc",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/build/generation-types/speech.md": {
       "sha256": "1fa49fd9b5516e96bbe212cb959bb004324dc259b9f96c49d5ab16a6e7af4886",
@@ -23,16 +23,16 @@
       "captured_at": "2026-05-29T02:27:54.429Z"
     },
     "https://docs.agentmark.co/build/syntax.md": {
-      "sha256": "062da16de25a30bf1a8be4cc911dad7c003734fc1ab27e755cac59ec925194f3",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "fd5b0a133ef5b24df987fef9c77d47021cc3d912b89eb96419b024cca606a6f1",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/configure/client-config.md": {
-      "sha256": "a91875e6b10ff65f68e16c487f5224590df0c4b61152c142e5e7337761d4564b",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "58642454f0339226c97bc71ca4d78c8865402f48bd70a165ade04f10360b6a54",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/configure/environment-variables.md": {
-      "sha256": "eeac65cfdc50391a3dd30f129a9a0fcf27c24a78fc1dc2b44e5e3f1434b08113",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "ecd825d13deaacacd3cee565b964a4748bffd49a5a0a37bde837753323682f45",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/deploy/api-keys.md": {
       "sha256": "c971031b92f5a4c77a7ed1ab0f6bf8aa002ae762753eccb958bd145bda8e52b7",
@@ -43,24 +43,24 @@
       "captured_at": "2026-05-29T15:56:34.654Z"
     },
     "https://docs.agentmark.co/deploy/regression-gates.md": {
-      "sha256": "1dac5a57a56decee3e312d093afc7bec0ff8ac80da88f9b6dc54879ca93a2916",
-      "captured_at": "2026-05-29T13:23:42.262Z"
+      "sha256": "42b90fa66ed04d0bd4f4f9118bcd12fab83b2d25e3c3a8f7d59a78bbf6c7aa2f",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/evaluate/annotations.md": {
       "sha256": "8b074beb86faec9ae493420e538b62d2627a1545dd3dfa3ddb5785e8b907a1f7",
       "captured_at": "2026-05-29T02:27:54.429Z"
     },
     "https://docs.agentmark.co/evaluate/datasets.md": {
-      "sha256": "0e698e9faf5a8c0d82d6dcad9600d3bea2a97dc766fc653c226cbb357d92ecf2",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "478a5bf9fb43b9196d112ad089d37fdc4bc1e78a32f395492135d019c811b192",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/evaluate/writing-evals.md": {
-      "sha256": "82fd82716222f9088b149acb30c86b76a4f789b0c9be7d28eaf9ed01616cf92c",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "bb2ecf94a6e044281bf3c8d0a026aa5c1339671f99c628792250ee5702edc060",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     },
     "https://docs.agentmark.co/observe/tracing-setup.md": {
-      "sha256": "ec94dd4633f91cd6ea42654ca907b29d140334cabe3068ccc6a734c0772b45ab",
-      "captured_at": "2026-05-29T02:27:54.429Z"
+      "sha256": "06dd7e04c701fcdb21c08b89d4e80dc51dca53f07769271fc35d5fee4057eeeb",
+      "captured_at": "2026-06-05T15:53:50.820Z"
     }
   }
 }
