@@ -1,3 +1,60 @@
+## 1.2.0 (2026-06-05)
+
+### 🚀 Features
+
+- Consolidate the per-adapter runners behind a shared `Executor` protocol + a ([#665](https://github.com/agentmark-ai/agentmark/pull/665))
+  single `WebhookRunner` (TS + Python), and tighten the resulting interface.
+
+  **Minor, not major:** these packages are pre-1.0 (0.x) and explicitly unstable,
+  so breaking changes ride the minor slot for now.
+
+  Breaking / behavior changes in this release:
+
+  - **Executor protocol** is the new SDK-integration contract. Each adapter is now
+    a thin `Executor` + paramMap over the shared `WebhookRunner` instead of a
+    per-SDK runner. `AgentEvent` is kind-split (`TextStreamEvent` /
+    `ObjectStreamEvent`); usage rides on a single terminal `finish` event (the
+    standalone `usage` event variant is gone).
+  - **`WebhookRunner.runExperiment` signature** changed from trailing positional
+    args (`datasetPath`, `sampling`, `concurrency`, `experimentKey`,
+    `sourceTreeHash`) to a `RunExperimentOptions` bag, with `signal` added for
+    cancellation. The per-adapter `*WebhookHandler.runExperiment` shims and the
+    CLI runner-server dispatch follow suit.
+  - **`Adapter.adaptText/adaptObject/adaptImage/adaptSpeech`** return `unknown`
+    instead of `any`. Concrete adapters override with their real return type, so
+    the typed BYO/Default path is unaffected; generic-`Adapter` holders must
+    narrow.
+  - **Experiment NDJSON wire unified**: the claude-agent (TS + Python) adapters
+    drop the `experiment_start` / `experiment_item_error` / `experiment_end`
+    envelope in favor of the shared `{type:"dataset"}` / `{type:"error"}` shape
+    every other adapter already emits. Verified: no consumer (gateway, builder
+    auto-score, dashboard) parses the old envelope.
+  - **`datasetItemName`** for the AI-SDK adapters is now `md5(input)[:12]` (parity
+    with the Python adapters) instead of the raw row index.
+
+  Additive:
+
+  - BYO bootstrapping primitives: `createExecutor` / `create_executor`,
+    `createWebhookRunner`, `runExecutorConformance`.
+  - `WireChunk` — the now-typed NDJSON stream contract, exported from prompt-core.
+  - New packages `@agentmark-ai/ai-sdk-shared` (shared Vercel executor factory)
+    and `@agentmark-ai/conformance-vectors` (cross-language test fixtures).
+
+- Experiment runner, baseline fetch, JUnit output, and streaming-span tracing. ([#658](https://github.com/agentmark-ai/agentmark/pull/658))
+
+  - **`AgentMarkSDK.runExperiment()`** — runs any callable (agent / workflow / multi-step pipeline) over a dataset inside instrumented spans, applies per-scorer evaluators, posts scores to the gateway, and returns a structured `RunExperimentResult` with per-row regression detail and score-threshold gate results. Supports configurable concurrency, optional JUnit XML, and an optional baseline regression gate.
+  - **`AgentMarkSDK.getBaselineScores()`** — fetches a prior run's per-`(row × scorer)` baseline scores from the gateway, keyed by `experimentKey` + `sourceTreeHash` (the shared baseline protocol used by the CLI).
+  - **`experimentResultToJUnit()`** — renders a `RunExperimentResult` as CLI-compatible JUnit XML for CI pipelines.
+  - **`streamWithSpan()`** — wraps a streaming producer in a span so failures during stream *consumption* (after the producer callback returns) correctly mark the span ERROR instead of leaving it green.
+  - **`trace`** — alias for `span`, for parity with the Python SDK.
+  - New `SpanOptions` fields `experimentKey`, `sourceTreeHash`, `datasetInput`; the masking processor now redacts `agentmark.dataset_input`. New exported types: `RunExperimentOptions` / `RunExperimentResult`, `ExperimentEvaluator`, `BaselineResolved`, `ScoreThresholdResult`, `StreamWithSpanOptions` / `StreamWithSpanResult`.
+
+  All additive — no existing API changed.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.6.0
+
 ## 1.1.3 (2026-05-21)
 
 ### 🩹 Fixes
