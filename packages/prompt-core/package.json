@@ -6,6 +6,16 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "webhook-runner": [
+        "./dist/webhook-runner.d.ts"
+      ],
+      "test-utils": [
+        "./dist/test-utils.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {
@@ -26,6 +36,16 @@
         "types": "./dist/test-utils.d.cts",
         "default": "./dist/test-utils.cjs"
       }
+    },
+    "./webhook-runner": {
+      "import": {
+        "types": "./dist/webhook-runner.d.ts",
+        "default": "./dist/webhook-runner.js"
+      },
+      "require": {
+        "types": "./dist/webhook-runner.d.cts",
+        "default": "./dist/webhook-runner.cjs"
+      }
     }
   },
   "scripts": {
@@ -36,6 +56,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@agentmark-ai/conformance-vectors": "*",
     "@agentmark-ai/loader-file": "*",
     "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",

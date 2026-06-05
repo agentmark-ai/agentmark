@@ -43,7 +43,11 @@ export class MastraObjectPrompt<
     const { props, options } = params || {};
     const input = await this.compile(props);
 
-    const adaptedAgent = await this.adapter.adaptObject(input, options ?? {});
+    const adaptedFull = await this.adapter.adaptObject(input, options ?? {});
+    // Strip `_runnable` so Agent constructor never sees it. The shared
+    // WebhookRunner consumes `_runnable` via the standard format() path,
+    // not via formatAgent.
+    const { _runnable: _runnable, ...adaptedAgent } = adaptedFull;
 
     const formatMessages = async <M extends Partial<T[K]["input"]>>(msgParams?: {
       props?: FormatMessagesProps<T, UsedProps, M, K>;

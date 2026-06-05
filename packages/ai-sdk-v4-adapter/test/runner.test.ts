@@ -13,6 +13,7 @@ import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 vi.mock("ai", async () => {
   return {
     jsonSchema: (s: any) => s,
+    Output: { object: (_opts: any) => ({ __experimental_output: true }) },
     generateText: vi.fn(async (_input: any) => ({ text: "TEXT", usage: { totalTokens: 10 }, finishReason: "stop", steps: [] })),
     generateObject: vi.fn(async (_input: any) => ({ object: { ok: true }, usage: { totalTokens: 15 }, finishReason: "stop" })),
     experimental_generateImage: vi.fn(async (_input: any) => ({ images: [{ mimeType: "image/png", base64: "iVBORw0KGgo=" }] })),
@@ -81,6 +82,20 @@ describe("VercelAdapterWebhookHandler", () => {
     const res = await runner.runPrompt(ast, { shouldStream: false });
     expect((ai as any).generateText).toHaveBeenCalled();
     expect(res).toMatchObject({ type: "text", result: "TEXT" });
+  });
+
+  it("threads AbortSignal through runPrompt into the executor call", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const controller = new AbortController();
+
+    await runner.runPrompt(ast, {
+      shouldStream: false,
+      signal: controller.signal,
+    });
+
+    expect((ai as any).generateText).toHaveBeenCalledWith(
+      expect.objectContaining({ abortSignal: controller.signal })
+    );
   });
 
   it("runs object prompt", async () => {
@@ -155,30 +170,37 @@ describe("VercelAdapterWebhookHandler", () => {
     }
 
     expect(rows.length).toBe(2);
+    expect(rows.every((r) => r.type === "dataset")).toBe(true);
 
-    // Row 0
-    expect(rows[0].type).toBe("dataset");
-    expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
-    expect(rows[0].result.expectedOutput).toBe("4");
-    expect(rows[0].result.actualOutput).toBe("TEXT");
-    expect(rows[0].result.tokens).toBe(10);
-    if (Array.isArray(rows[0].result.evals) && rows[0].result.evals.length > 0) {
-      expect(rows[0].result.evals[0].name).toBeDefined();
-      expect(rows[0].result.evals[0].score).toBe(0);
-      expect(rows[0].result.evals[0].label).toBe("incorrect");
-    }
+    // Order-robust: experiments run in PARALLEL (completion order ≠ dataset
+    // order), so look each row up by its own input rather than by position —
+    // this also pins input↔output attribution (no cross-talk between rows).
+    const byMsg = new Map<string, any>(
+      rows.map((r) => [r.result.input.userMessage, r.result])
+    );
 
-    // Row 1
-    expect(rows[1].type).toBe("dataset");
-    expect(rows[1].result.input.userMessage).toBe("Say hello");
-    expect(rows[1].result.expectedOutput).toBe("Hello");
-    expect(rows[1].result.actualOutput).toBe("TEXT");
-    expect(rows[1].result.tokens).toBe(10);
-    if (Array.isArray(rows[1].result.evals) && rows[1].result.evals.length > 0) {
-      expect(rows[1].result.evals[0].name).toBeDefined();
-      expect(rows[1].result.evals[0].score).toBe(0);
-      expect(rows[1].result.evals[0].label).toBe("incorrect");
-    }
+    const q1 = byMsg.get("What is 2+2?");
+    expect(q1).toBeTruthy();
+    expect(q1.expectedOutput).toBe("4");
+    expect(q1.actualOutput).toBe("TEXT");
+    expect(q1.tokens).toBe(10);
+    // Evals run UNCONDITIONALLY — the prompt declares
+    // `test_settings.evals: [exact_match]` and the client wires the registry,
+    // so a regression that drops eval execution must fail here (not be skipped).
+    expect(q1.evals).toHaveLength(1);
+    expect(q1.evals[0].name).toBe("exact_match");
+    expect(q1.evals[0].score).toBe(0);
+    expect(q1.evals[0].label).toBe("incorrect");
+
+    const q2 = byMsg.get("Say hello");
+    expect(q2).toBeTruthy();
+    expect(q2.expectedOutput).toBe("Hello");
+    expect(q2.actualOutput).toBe("TEXT");
+    expect(q2.tokens).toBe(10);
+    expect(q2.evals).toHaveLength(1);
+    expect(q2.evals[0].name).toBe("exact_match");
+    expect(q2.evals[0].score).toBe(0);
+    expect(q2.evals[0].label).toBe("incorrect");
   });
 
   it("streams all JSONL rows when using SDK loader (dataset over HTTP)", async () => {
@@ -300,7 +322,7 @@ describe("VercelAdapterWebhookHandler", () => {
   it("passes sampling options through runExperiment and returns only sampled rows", async () => {
     const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
     // Dataset has 2 rows; { rows: [0] } should return only row 0
-    const { stream } = await runner.runExperiment(ast, "run-sampling", undefined, { rows: [0] });
+    const { stream } = await runner.runExperiment(ast, "run-sampling", { sampling: { rows: [0] } });
     const reader = (stream as ReadableStream).getReader();
     const rows: any[] = [];
     for (;;) {
@@ -312,5 +334,40 @@ describe("VercelAdapterWebhookHandler", () => {
     }
     expect(rows.length).toBe(1);
     expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
+  });
+
+  // Regression: after Phase 3 (telemetry ownership), the adapter is the
+  // single author of `experimental_telemetry`. See v5 runner.test for the
+  // full rationale. Assert all flavors still reach the SDK.
+  it("delivers full telemetry metadata to generateText (runner-enriched + adapter-enriched)", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+
+    await runner.runPrompt(ast, {
+      shouldStream: false,
+      telemetry: { isEnabled: true, metadata: { user_override: "x" } },
+    });
+
+    expect((ai as any).generateText).toHaveBeenCalled();
+    const call = (ai as any).generateText.mock.calls[0][0];
+    expect(call.experimental_telemetry.metadata.prompt_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.props).toBeDefined();
+    expect(call.experimental_telemetry.metadata.trace_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.user_override).toBe("x");
+    expect(call.experimental_telemetry.isEnabled).toBe(true);
+  });
+
+  it("delivers full telemetry metadata to generateObject (runner-enriched + adapter-enriched)", async () => {
+    const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
+
+    await runner.runPrompt(ast, {
+      shouldStream: false,
+      telemetry: { isEnabled: true, metadata: { user_override: "y" } },
+    });
+
+    expect((ai as any).generateObject).toHaveBeenCalled();
+    const call = (ai as any).generateObject.mock.calls[0][0];
+    expect(call.experimental_telemetry.metadata.prompt_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.trace_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.user_override).toBe("y");
   });
 });

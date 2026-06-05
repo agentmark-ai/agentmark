@@ -119,16 +119,29 @@ export class LocalTracesService {
     _dataRetentionDays?: number,
   ): Promise<SpanIO | null> {
     const row = this.db.prepare(
-      `SELECT Input, Output, OutputObject, ToolCalls FROM traces WHERE TraceId = ? AND SpanId = ?`
+      `SELECT Input, Output, OutputObject, ToolCalls, Metadata FROM traces WHERE TraceId = ? AND SpanId = ?`
     ).get(traceId, spanId) as Record<string, unknown> | undefined;
 
     if (!row) return null;
+
+    // Metadata is stored as a JSON string; coerce values to strings to match
+    // the Record<string, string> wire shape (same handling as the span-list
+    // mapper).
+    const parsedMeta = safeParse<Record<string, unknown>>(
+      typeof row.Metadata === 'string' ? row.Metadata : '',
+      {},
+    );
+    const metadata: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsedMeta)) {
+      metadata[k] = typeof v === 'string' ? v : JSON.stringify(v);
+    }
 
     return {
       input: (row.Input as string) || '',
       output: (row.Output as string) || '',
       outputObject: (row.OutputObject as string) || null,
       toolCalls: (row.ToolCalls as string) || null,
+      metadata,
     };
   }
 

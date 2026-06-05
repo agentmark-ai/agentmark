@@ -1,0 +1,801 @@
+"""Generic webhook runner — Python mirror of the TS WebhookRunner.
+
+Consumes an Executor, emits the canonical wire format that AgentMark Cloud
+and dashboard consumers expect. Byte-equivalent with the TypeScript runner
+for text/object/experiment flows (within the tolerance of Python vs JS
+JSON emission).
+
+Pydantic support: `ObjectFinalEvent.value` may be a Pydantic model
+instance. The runner serializes via `model_dump()` when building the wire
+response so downstream dashboards see plain JSON regardless of the SDK's
+native return type.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import uuid
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, suppress
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Protocol
+
+from .executor import (
+    AgentEvent,
+    ErrorEvent,
+    ExecCtx,
+    Executor,
+    FinishEvent,
+    ObjectDeltaEvent,
+    ObjectFinalEvent,
+    TextDeltaEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    UsageData,
+)
+from .experiment import run_dataset_pool
+from .template_engines import get_front_matter
+
+if TYPE_CHECKING:
+    from .agentmark import AgentMark
+
+
+@dataclass
+class ExperimentItemParams:
+    """Parameters the shared runner hands to per-item span hooks.
+
+    The hook builds SDK-specific tracing (e.g. agentmark_sdk SpanOptions)
+    from these fields. The runner itself stays SDK-agnostic — it only
+    knows that the hook returns an async context manager yielding an
+    `ExperimentItemSpan` with `trace_id` + `set_attribute`.
+
+    `dataset_item_name` is pre-computed by the runner as a 12-char md5
+    digest of the JSON-serialized input (or the raw index when input is
+    empty) — the canonical "stable item id" used for both TS + Python so
+    re-runs of the same dataset keep the same item identity across the
+    Experiments UI.
+    """
+
+    index: int
+    experiment_run_id: str
+    dataset_run_name: str
+    prompt_name: str | None
+    dataset_path: str | None
+    dataset_item_name: str
+    dataset_input: Any
+    dataset_expected_output: Any
+    commit_sha: str | None
+
+
+class ExperimentItemSpan(Protocol):
+    """Context yielded by an item span hook. Carries the wire trace_id and
+    accepts per-attribute recording from the shared runner."""
+
+    trace_id: str
+
+    def set_attribute(self, key: str, value: str) -> None: ...
+
+
+ExperimentItemSpanHook = Callable[
+    [ExperimentItemParams], AbstractAsyncContextManager[ExperimentItemSpan]
+]
+"""Adapter-provided hook that wraps each experiment item in an SDK-native
+span. When the hook is omitted, the runner runs items without spans and
+emits `traceId: None` in each dataset chunk."""
+
+
+@dataclass
+class PromptSpanParams:
+    """Parameters the shared runner hands to prompt-level span hooks."""
+
+    name: str
+    prompt_name: str | None
+
+
+class PromptSpan(Protocol):
+    """Context yielded by a prompt span hook."""
+
+    trace_id: str
+
+    def set_attribute(self, key: str, value: str) -> None: ...
+
+
+PromptSpanHook = Callable[
+    [PromptSpanParams], AbstractAsyncContextManager[PromptSpan]
+]
+"""Adapter-provided hook that wraps each prompt run in an SDK-native span."""
+
+
+@dataclass
+class _NullSpan:
+    trace_id: str | None = None
+
+    def set_attribute(self, key: str, value: str) -> None:  # no-op
+        pass
+
+
+@asynccontextmanager
+async def _null_span_hook(_params: ExperimentItemParams) -> AsyncIterator[_NullSpan]:
+    yield _NullSpan()
+
+
+@asynccontextmanager
+async def _null_prompt_span_hook(_params: PromptSpanParams) -> AsyncIterator[_NullSpan]:
+    yield _NullSpan()
+
+
+def _serialize_value(value: Any) -> Any:
+    """Serialize a value for the wire. Pydantic instances → model_dump()."""
+    if hasattr(value, "model_dump"):
+        return value.model_dump()
+    return value
+
+
+def _compute_dataset_item_name(dataset_input: Any, index: int) -> str:
+    """Canonical dataset item name — 12-char md5 of the sorted-keys JSON of
+    the input, falling back to the raw index when there's nothing to hash.
+    Same formula as TS so re-runs of the same dataset keep identical item
+    identity across both languages."""
+    if dataset_input is None or dataset_input == "" or dataset_input == {}:
+        return str(index)
+    try:
+        # Must match TS stableStringify byte-for-byte: compact separators,
+        # no whitespace. Default `json.dumps` separators are `(", ", ": ")`
+        # which produces a different digest and silently breaks cross-
+        # language dataset item identity.
+        digest_input = json.dumps(
+            dataset_input, sort_keys=True, separators=(",", ":"), default=str
+        )
+    except (TypeError, ValueError):
+        return str(index)
+    return hashlib.md5(digest_input.encode()).hexdigest()[:12]
+
+
+def _usage_to_wire(usage: UsageData | None) -> dict[str, Any] | None:
+    """Translate the canonical UsageData into the legacy wire shape carrying
+    both the `inputTokens`/`outputTokens` and the deprecated
+    `promptTokens`/`completionTokens` field families.
+
+    Field-compatible with the TS runner (same keys; `totalTokens` present only
+    when known), but NOT byte-identical: TS places `totalTokens` between the
+    output and prompt fields, and Python's `json.dumps` uses spaced separators.
+    The cloud + dashboard consumers parse by key (order-agnostic), so this is
+    interchangeable with the TS wire — it just isn't a literal byte match."""
+    if usage is None:
+        return None
+    out: dict[str, Any] = {
+        "inputTokens": usage.input_tokens,
+        "outputTokens": usage.output_tokens,
+        "promptTokens": usage.input_tokens,
+        "completionTokens": usage.output_tokens,
+    }
+    if usage.total_tokens is not None:
+        out["totalTokens"] = usage.total_tokens
+    return out
+
+
+async def _drain_events(
+    events: AsyncIterator[AgentEvent],
+) -> tuple[
+    str,
+    Any,
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    UsageData | None,
+    str,
+    str | None,
+]:
+    """Collect an AgentEvent stream into (text, obj_value, tool_calls,
+    tool_results, usage, finish_reason, error_message).
+
+    For streaming callers, the text/object paths instead iterate events
+    directly and emit NDJSON as they go."""
+    text_buf = ""
+    obj_value: Any = None
+    tool_calls: list[dict[str, Any]] = []
+    tool_results: list[dict[str, Any]] = []
+    usage: UsageData | None = None
+    finish_reason = "stop"
+    error_message: str | None = None
+    async for ev in events:
+        if isinstance(ev, TextDeltaEvent):
+            text_buf += ev.text
+        elif isinstance(ev, ObjectFinalEvent):
+            obj_value = ev.value
+        elif isinstance(ev, ObjectDeltaEvent):
+            obj_value = ev.partial
+        elif isinstance(ev, ToolCallEvent):
+            tool_calls.append(
+                {"toolCallId": ev.id, "toolName": ev.name, "args": ev.args}
+            )
+        elif isinstance(ev, ToolResultEvent):
+            tool_results.append(
+                {"toolCallId": ev.id, "toolName": ev.name, "result": ev.result}
+            )
+        elif isinstance(ev, FinishEvent):
+            finish_reason = ev.reason
+            if ev.usage is not None:
+                usage = ev.usage
+        elif isinstance(ev, ErrorEvent):
+            error_message = ev.error
+            break
+    return text_buf, obj_value, tool_calls, tool_results, usage, finish_reason, error_message
+
+
+class WebhookRunner:
+    """Shared runner over an Executor. Replaces per-adapter runner duplication.
+
+    Accepts an AgentMark client + any conformant Executor implementation.
+    Emits wire-compatible dicts for text/object/image/speech and an
+    AsyncIterator of NDJSON strings for experiments.
+    """
+
+    def __init__(
+        self,
+        client: AgentMark,
+        executor: Executor,
+        *,
+        prompt_span_hook: PromptSpanHook | None = None,
+    ) -> None:
+        self._client = client
+        self._executor = executor
+        self._prompt_span_hook = prompt_span_hook or _null_prompt_span_hook
+
+    async def run_prompt(
+        self,
+        prompt_ast: Any,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        options = options or {}
+        frontmatter = get_front_matter(prompt_ast)
+        should_stream = options.get("shouldStream", True)
+        custom_props = options.get("customProps")
+        telemetry = options.get("telemetry")
+        prompt_name = frontmatter.get("name") if isinstance(frontmatter, dict) else None
+
+        # Use `in` rather than `.get(...)` — an empty config dict is valid
+        # (users sometimes declare just `text_config: {}` to pick up
+        # adapter defaults) but `{}` is falsy via .get().
+        if "object_config" in frontmatter:
+            return await self._run_object(
+                prompt_ast, should_stream, custom_props, telemetry, prompt_name
+            )
+        if "text_config" in frontmatter:
+            return await self._run_text(
+                prompt_ast, should_stream, custom_props, telemetry, prompt_name
+            )
+        if "image_config" in frontmatter:
+            return await self._run_image(
+                prompt_ast, custom_props, telemetry, prompt_name
+            )
+        if "speech_config" in frontmatter:
+            return await self._run_speech(
+                prompt_ast, custom_props, telemetry, prompt_name
+            )
+        raise ValueError(
+            "Invalid prompt: no text_config, object_config, image_config, or speech_config found"
+        )
+
+    async def _run_text(
+        self,
+        prompt_ast: Any,
+        should_stream: bool,
+        custom_props: dict[str, Any] | None,
+        telemetry: dict[str, Any] | None,
+        prompt_name: str | None,
+    ) -> dict[str, Any]:
+        async with self._prompt_span(prompt_name) as span:
+            prompt = await self._client.load_text_prompt(prompt_ast)
+            formatted = (
+                await prompt.format(props=custom_props)
+                if custom_props
+                else await prompt.format_with_test_props()
+            )
+            ctx = ExecCtx(
+                telemetry=telemetry,
+                trace_id=getattr(span, "trace_id", None),
+                prompt_name=prompt_name,
+                should_stream=should_stream,
+                extra={"span": span},
+            )
+            if should_stream:
+                return self._with_trace_id(
+                    {
+                        "type": "stream",
+                        "stream": self._stream_text_ndjson(formatted, ctx),
+                    },
+                    ctx.trace_id,
+                )
+
+            events = self._executor.execute_text(formatted, ctx)
+            text, _obj, tool_calls, tool_results, usage, finish_reason, err = (
+                await _drain_events(events)
+            )
+            if err is not None:
+                raise RuntimeError(err)
+            with suppress(Exception):
+                span.set_attribute("agentmark.output", text)
+            return self._with_trace_id(
+                {
+                    "type": "text",
+                    "result": text,
+                    "usage": _usage_to_wire(usage),
+                    "finishReason": finish_reason,
+                    "toolCalls": tool_calls,
+                    "toolResults": tool_results,
+                },
+                ctx.trace_id,
+            )
+
+    async def _run_object(
+        self,
+        prompt_ast: Any,
+        should_stream: bool,
+        custom_props: dict[str, Any] | None,
+        telemetry: dict[str, Any] | None,
+        prompt_name: str | None,
+    ) -> dict[str, Any]:
+        async with self._prompt_span(prompt_name) as span:
+            prompt = await self._client.load_object_prompt(prompt_ast)
+            formatted = (
+                await prompt.format(props=custom_props)
+                if custom_props
+                else await prompt.format_with_test_props()
+            )
+            ctx = ExecCtx(
+                telemetry=telemetry,
+                trace_id=getattr(span, "trace_id", None),
+                prompt_name=prompt_name,
+                should_stream=should_stream,
+                extra={"span": span},
+            )
+            if should_stream:
+                return self._with_trace_id(
+                    {
+                        "type": "stream",
+                        "stream": self._stream_object_ndjson(formatted, ctx),
+                    },
+                    ctx.trace_id,
+                )
+            events = self._executor.execute_object(formatted, ctx)
+            _text, obj_value, _tc, _tr, usage, finish_reason, err = await _drain_events(
+                events
+            )
+            if err is not None:
+                raise RuntimeError(err)
+            serialized = _serialize_value(obj_value)
+            with suppress(Exception):
+                span.set_attribute("agentmark.output", json.dumps(serialized, default=str))
+            return self._with_trace_id(
+                {
+                    "type": "object",
+                    "result": serialized,
+                    "usage": _usage_to_wire(usage),
+                    "finishReason": finish_reason,
+                },
+                ctx.trace_id,
+            )
+
+    async def _run_image(
+        self,
+        prompt_ast: Any,
+        custom_props: dict[str, Any] | None,
+        telemetry: dict[str, Any] | None,
+        prompt_name: str | None,
+    ) -> dict[str, Any]:
+        if not self._executor.capabilities().image:
+            raise ValueError(
+                f"Executor '{self._executor.name}' does not support image prompts."
+            )
+        execute_image = getattr(self._executor, "execute_image", None)
+        if execute_image is None:
+            raise ValueError(
+                f"Executor '{self._executor.name}' does not implement execute_image()."
+            )
+
+        async with self._prompt_span(prompt_name) as span:
+            prompt = await self._client.load_image_prompt(prompt_ast)
+            formatted = (
+                await prompt.format(props=custom_props, telemetry=telemetry)
+                if custom_props
+                else await prompt.format_with_test_props(telemetry=telemetry)
+            )
+            ctx = ExecCtx(
+                telemetry=telemetry,
+                trace_id=getattr(span, "trace_id", None),
+                prompt_name=prompt_name,
+                should_stream=False,
+                extra={"span": span},
+            )
+            result = await execute_image(formatted, ctx)
+            return self._with_trace_id(dict(result), ctx.trace_id)
+
+    async def _run_speech(
+        self,
+        prompt_ast: Any,
+        custom_props: dict[str, Any] | None,
+        telemetry: dict[str, Any] | None,
+        prompt_name: str | None,
+    ) -> dict[str, Any]:
+        if not self._executor.capabilities().speech:
+            raise ValueError(
+                f"Executor '{self._executor.name}' does not support speech prompts."
+            )
+        execute_speech = getattr(self._executor, "execute_speech", None)
+        if execute_speech is None:
+            raise ValueError(
+                f"Executor '{self._executor.name}' does not implement execute_speech()."
+            )
+
+        async with self._prompt_span(prompt_name) as span:
+            prompt = await self._client.load_speech_prompt(prompt_ast)
+            formatted = (
+                await prompt.format(props=custom_props, telemetry=telemetry)
+                if custom_props
+                else await prompt.format_with_test_props(telemetry=telemetry)
+            )
+            ctx = ExecCtx(
+                telemetry=telemetry,
+                trace_id=getattr(span, "trace_id", None),
+                prompt_name=prompt_name,
+                should_stream=False,
+                extra={"span": span},
+            )
+            result = await execute_speech(formatted, ctx)
+            return self._with_trace_id(dict(result), ctx.trace_id)
+
+    @asynccontextmanager
+    async def _prompt_span(self, prompt_name: str | None) -> AsyncIterator[PromptSpan]:
+        async with self._prompt_span_hook(
+            PromptSpanParams(name=prompt_name or "prompt-run", prompt_name=prompt_name)
+        ) as span:
+            yield span
+
+    def _with_trace_id(
+        self, payload: dict[str, Any], trace_id: str | None
+    ) -> dict[str, Any]:
+        if trace_id:
+            payload["traceId"] = trace_id
+        return payload
+
+    async def _stream_text_ndjson(
+        self, formatted: Any, ctx: ExecCtx
+    ) -> AsyncIterator[str]:
+        try:
+            async for ev in self._executor.execute_text(formatted, ctx):
+                if isinstance(ev, TextDeltaEvent):
+                    yield json.dumps({"type": "text", "result": ev.text}) + "\n"
+                elif isinstance(ev, ToolCallEvent):
+                    yield json.dumps({
+                        "type": "text",
+                        "toolCall": {
+                            "toolCallId": ev.id,
+                            "toolName": ev.name,
+                            "args": ev.args,
+                        },
+                    }) + "\n"
+                elif isinstance(ev, ToolResultEvent):
+                    yield json.dumps({
+                        "type": "text",
+                        "toolResult": {
+                            "toolCallId": ev.id,
+                            "toolName": ev.name,
+                            "result": ev.result,
+                        },
+                    }) + "\n"
+                elif isinstance(ev, FinishEvent):
+                    payload: dict[str, Any] = {
+                        "type": "text",
+                        "finishReason": ev.reason,
+                    }
+                    if ev.usage is not None:
+                        payload["usage"] = _usage_to_wire(ev.usage)
+                    yield json.dumps(payload) + "\n"
+                elif isinstance(ev, ErrorEvent):
+                    yield json.dumps({"type": "error", "error": ev.error}) + "\n"
+                    return
+        except Exception as exc:  # noqa: BLE001 — executor errors become wire errors
+            yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
+
+    async def _stream_object_ndjson(
+        self, formatted: Any, ctx: ExecCtx
+    ) -> AsyncIterator[str]:
+        try:
+            async for ev in self._executor.execute_object(formatted, ctx):
+                if isinstance(ev, ObjectDeltaEvent):
+                    yield json.dumps({
+                        "type": "object",
+                        "result": _serialize_value(ev.partial),
+                    }) + "\n"
+                elif isinstance(ev, ObjectFinalEvent):
+                    yield json.dumps({
+                        "type": "object",
+                        "result": _serialize_value(ev.value),
+                    }) + "\n"
+                elif isinstance(ev, FinishEvent):
+                    # `finish` is the single usage carrier. Emit the usage chunk
+                    # only when usage is present, preserving the historical wire.
+                    if ev.usage is not None:
+                        yield json.dumps({
+                            "type": "object",
+                            "usage": _usage_to_wire(ev.usage),
+                        }) + "\n"
+                elif isinstance(ev, ErrorEvent):
+                    yield json.dumps({"type": "error", "error": ev.error}) + "\n"
+                    return
+        except Exception as exc:  # noqa: BLE001
+            yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
+
+    async def run_experiment(
+        self,
+        prompt_ast: Any,
+        dataset_run_name: str,
+        dataset_path: str | None = None,
+        sampling: dict[str, Any] | None = None,
+        *,
+        item_span_hook: ExperimentItemSpanHook | None = None,
+        commit_sha: str | None = None,
+        concurrency: int | None = None,
+    ) -> dict[str, Any]:
+        """Run a prompt across a dataset, emitting per-item NDJSON chunks.
+
+        Args:
+            item_span_hook: Optional per-item span wrapper. Adapters that
+                need rich per-item tracing (e.g. agentmark_sdk
+                span_context with dataset_run_id / dataset_item_name /
+                commit_sha) provide a hook here. The runner hands the
+                hook an ExperimentItemParams, awaits its async context
+                manager around each item's execution, and uses the
+                resulting span's `trace_id` in the wire chunk.
+            commit_sha: Surfaced to the hook so SDK spans can record it;
+                otherwise ignored.
+        """
+        frontmatter = get_front_matter(prompt_ast)
+        experiment_run_id = str(uuid.uuid4())
+        eval_registry = self._client.get_eval_registry()
+        resolved_dataset_path = dataset_path or (
+            frontmatter.get("test_settings", {}).get("dataset")
+            if isinstance(frontmatter, dict)
+            else None
+        )
+        prompt_name = frontmatter.get("name") if isinstance(frontmatter, dict) else None
+
+        if "text_config" in frontmatter:
+            kind = "text"
+        elif "object_config" in frontmatter:
+            kind = "object"
+        else:
+            raise ValueError("Invalid prompt: no text_config or object_config")
+
+        hook = item_span_hook or _null_span_hook
+        return {
+            "stream": self._stream_experiment(
+                prompt_ast,
+                kind,
+                dataset_run_name,
+                experiment_run_id,
+                resolved_dataset_path,
+                sampling,
+                eval_registry,
+                prompt_name,
+                hook,
+                commit_sha,
+                concurrency,
+            ),
+            "streamHeaders": {"AgentMark-Streaming": "true"},
+        }
+
+    async def _stream_experiment(
+        self,
+        prompt_ast: Any,
+        kind: str,
+        dataset_run_name: str,
+        experiment_run_id: str,
+        dataset_path: str | None,
+        sampling: dict[str, Any] | None,
+        eval_registry: Any,
+        prompt_name: str | None,
+        item_span_hook: ExperimentItemSpanHook,
+        commit_sha: str | None,
+        concurrency: int | None,
+    ) -> AsyncIterator[str]:
+        if kind == "text":
+            prompt = await self._client.load_text_prompt(prompt_ast)
+        else:
+            prompt = await self._client.load_object_prompt(prompt_ast)
+
+        # Python's prompt.format_with_dataset uses snake_case kwargs —
+        # `dataset_path`, not `datasetPath`. Per-item span wrapping happens
+        # via item_span_hook, so no `telemetry` flag is needed here.
+        kwargs: dict[str, Any] = {"dataset_path": dataset_path}
+        if sampling is not None:
+            kwargs["sampling"] = sampling
+        dataset = await prompt.format_with_dataset(**kwargs)
+
+        def _get(container: Any, key: str, default: Any = None) -> Any:
+            """Duck-typed accessor — real DatasetStreamChunk exposes attrs,
+            test mocks + dict-based producers expose dict keys. Accept both."""
+            if container is None:
+                return default
+            if isinstance(container, dict):
+                return container.get(key, default)
+            return getattr(container, key, default)
+
+        # Iterate via get_reader() since that's what the DatasetStream
+        # Protocol mandates. SimpleDatasetStream also supports `async for`
+        # but real/mocked custom streams may only implement get_reader().
+        async def _iter_dataset() -> AsyncIterator[Any]:
+            if hasattr(dataset, "get_reader"):
+                reader = dataset.get_reader()
+                while True:
+                    read_result = await reader.read()
+                    if isinstance(read_result, dict):
+                        if read_result.get("done"):
+                            break
+                        yield read_result.get("value")
+                    else:
+                        # Duck-typed — older/alt readers may yield items directly.
+                        done = getattr(read_result, "done", None)
+                        if done:
+                            break
+                        yield getattr(read_result, "value", read_result)
+            else:
+                async for item in dataset:
+                    yield item
+
+        # Wrap the dual reader/async-for iterator into a `read()`-shaped reader
+        # so the bounded pool can drain it. run_dataset_pool yields finished
+        # chunks as they complete (completion order, not read order); each
+        # chunk carries its own input/error, so order-independence is fine.
+        class _GenReader:
+            def __init__(self, agen: AsyncIterator[Any]) -> None:
+                self._agen = agen
+
+            async def read(self) -> dict[str, Any]:
+                try:
+                    value = await self._agen.__anext__()
+                except StopAsyncIteration:
+                    return {"done": True}
+                return {"done": False, "value": value}
+
+        async def process_item(item: Any, index: int) -> str | None:
+            # Dataset load errors (typed `type="error"`, or the legacy
+            # top-level `error` key without `formatted`) surface as a unified
+            # error chunk — `{type:"error"}`, matching the TS runner and the
+            # CLI/cloud consumer — instead of being silently dropped.
+            err_reason = None
+            if _get(item, "type") == "error":
+                err_reason = _get(item, "error") or "dataset error"
+            elif (
+                isinstance(item, dict)
+                and "error" in item
+                and "formatted" not in item
+            ):
+                err_reason = item["error"]
+            if err_reason is not None:
+                return json.dumps({"type": "error", "error": err_reason})
+
+            formatted = _get(item, "formatted")
+            ctx = ExecCtx(
+                telemetry={"isEnabled": True},
+                prompt_name=prompt_name,
+                should_stream=False,
+            )
+
+            dataset_meta = _get(item, "dataset")
+            expected = _get(dataset_meta, "expected_output")
+            input_data = _get(dataset_meta, "input")
+            span_params = ExperimentItemParams(
+                index=index,
+                experiment_run_id=experiment_run_id,
+                dataset_run_name=dataset_run_name,
+                prompt_name=prompt_name,
+                dataset_path=dataset_path,
+                dataset_item_name=_compute_dataset_item_name(input_data, index),
+                dataset_input=input_data,
+                dataset_expected_output=expected,
+                commit_sha=commit_sha,
+            )
+
+            try:
+                # Wrap the executor call in the adapter's per-item span. The
+                # shared runner sets two conventional attributes — props
+                # (input) before execution and output after — so SDK-native
+                # span hooks don't each re-implement the same recording.
+                async with item_span_hook(span_params) as item_span:
+                    if input_data is not None:
+                        with suppress(TypeError, ValueError):
+                            item_span.set_attribute(
+                                "agentmark.props",
+                                json.dumps(input_data, default=str),
+                            )
+
+                    events = (
+                        self._executor.execute_text(formatted, ctx)
+                        if kind == "text"
+                        else self._executor.execute_object(formatted, ctx)
+                    )
+                    text, obj_value, _tc, _tr, usage, _fr, err = (
+                        await _drain_events(events)
+                    )
+                    if err is not None:
+                        # Capture error on the span too so tracing shows the
+                        # failure point, not just a missing success.
+                        with suppress(TypeError, ValueError):
+                            item_span.set_attribute("agentmark.error", str(err))
+
+                    output: Any = (
+                        text if kind == "text" else _serialize_value(obj_value)
+                    )
+
+                    if err is None:
+                        with suppress(TypeError, ValueError):
+                            item_span.set_attribute(
+                                "agentmark.output",
+                                json.dumps(output, default=str),
+                            )
+
+                    trace_id = getattr(item_span, "trace_id", None)
+
+                if err is not None:
+                    # Executor-level failure → unified error chunk.
+                    return json.dumps({"type": "error", "error": err})
+
+                eval_results: list[dict[str, Any]] = []
+                score_names = _get(item, "evals") or []
+                if eval_registry and isinstance(score_names, list) and score_names:
+                    for name in score_names:
+                        fn = (
+                            eval_registry.get(name)
+                            if hasattr(eval_registry, "get")
+                            else None
+                        )
+                        if fn is None:
+                            continue
+                        # Adapter-specific formatted shapes expose the prompt
+                        # messages under different field names. Prefer the AI
+                        # SDK-style `messages`, fall back to pydantic-ai's
+                        # `_raw_messages`, finally surface `user_prompt` so
+                        # evals never silently receive None.
+                        eval_input = (
+                            getattr(formatted, "messages", None)
+                            or getattr(formatted, "_raw_messages", None)
+                            or getattr(formatted, "user_prompt", None)
+                        )
+                        r = await fn({
+                            "input": eval_input,
+                            "output": output,
+                            "expectedOutput": expected,
+                        })
+                        eval_results.append({"name": name, **(r or {})})
+
+                total_tokens = usage.total_tokens if usage is not None else None
+                payload: dict[str, Any] = {
+                    "type": "dataset",
+                    "result": {
+                        "input": input_data,
+                        "expectedOutput": expected,
+                        "actualOutput": output,
+                        # Match TS: omit `tokens` entirely when there's no usage
+                        # (TS emits `tokens: usage?.totalTokens`, which
+                        # JSON.stringify drops when undefined) rather than
+                        # emitting `tokens: null`.
+                        **({"tokens": total_tokens} if total_tokens is not None else {}),
+                        "evals": eval_results,
+                    },
+                    "runId": experiment_run_id,
+                    "runName": dataset_run_name,
+                }
+                if trace_id:
+                    payload["traceId"] = trace_id
+                return json.dumps(payload)
+            except Exception as exc:  # noqa: BLE001
+                # Pool policy: a row failure becomes an error row and the run
+                # continues — an exception escaping process_item would abort
+                # the whole pool.
+                return json.dumps({"type": "error", "error": str(exc)})
+
+        reader = _GenReader(_iter_dataset())
+        async for chunk in run_dataset_pool(reader, process_item, concurrency):
+            yield chunk + "\n"

@@ -9,6 +9,8 @@
  * See: https://github.com/agentmark-ai/app/issues/2326
  */
 
+import { wireJson } from "./wire";
+
 /**
  * Dataset rows processed concurrently when the caller doesn't specify.
  *
@@ -25,12 +27,10 @@ export const DEFAULT_EXPERIMENT_CONCURRENCY = 20;
  * whole run.
  */
 export function experimentErrorChunk(err: unknown): string {
-  return (
-    JSON.stringify({
-      type: "error",
-      error: err instanceof Error ? err.message : String(err),
-    }) + "\n"
-  );
+  return wireJson({
+    type: "error",
+    error: err instanceof Error ? err.message : String(err),
+  });
 }
 
 /**
@@ -51,17 +51,24 @@ export function experimentErrorChunk(err: unknown): string {
  * `processItem` and surfaced as an error chunk — a throw escaping it will
  * reject the whole pool.
  *
+ * If `signal` is provided and fires, workers stop pulling NEW items (rows
+ * already in flight run to completion — they abort their own SDK calls via the
+ * signal threaded into their ExecCtx). This is how a cancelled experiment stops
+ * burning rows rather than running the whole dataset.
+ *
  * @returns the total number of items processed (excludes the terminal `done`)
  */
 export async function runDatasetPool<T>(
   reader: ReadableStreamDefaultReader<T>,
   processItem: (item: T, index: number) => Promise<void>,
-  concurrency: number = DEFAULT_EXPERIMENT_CONCURRENCY
+  concurrency: number = DEFAULT_EXPERIMENT_CONCURRENCY,
+  signal?: AbortSignal
 ): Promise<number> {
   let nextIndex = 0;
 
   const worker = async (): Promise<void> => {
     for (;;) {
+      if (signal?.aborted) return; // stop dispatching new rows once cancelled
       const { value, done } = await reader.read();
       if (done) return;
       const index = nextIndex++;

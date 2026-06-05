@@ -4,38 +4,25 @@ import { FileLoader } from "@agentmark-ai/loader-file";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
-vi.mock("../src/mcp/mcp-server-registry", () => {
-  class MockTool {
-    parameters = {} as any;
-    description = "mock tool";
-    execute = vi.fn(async () => ({ ok: true }));
-  }
-
-  class McpServerRegistry {
-    private servers = new Map();
-
-    register(name: string, config: any) {
-      this.servers.set(name, config);
-      return this;
-    }
-
-    registerServers(servers: Record<string, any>) {
-      for (const [name, config] of Object.entries(servers)) {
-        this.register(name, config);
-      }
-      return this;
-    }
-
-    has(name: string) {
-      return this.servers.has(name);
-    }
-
-    async getTool(_server: string, _toolName: string) {
-      return new MockTool();
-    }
-  }
-
-  return { McpServerRegistry };
+// Mock at the SDK boundary — the shared McpServerRegistry in prompt-core
+// calls `experimental_createMCPClient` via the adapter's McpClientFactory.
+vi.mock("ai", async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  const makeMockTool = () => ({
+    parameters: {} as any,
+    description: "mock tool",
+    execute: vi.fn(async () => ({ ok: true })),
+  });
+  return {
+    ...actual,
+    experimental_createMCPClient: vi.fn(async () => ({
+      tools: async () => ({
+        "web-search": makeMockTool(),
+        search: makeMockTool(),
+        sum: makeMockTool(),
+      }),
+    })),
+  };
 });
 
 type TestPromptTypes = {

@@ -141,6 +141,32 @@ describe("VercelAIObjectParams type safety (v5)", () => {
   });
 });
 
+describe("adaptText return type preserves scalar field types after applyParamMap", () => {
+  it("numeric paramMap fields stay typed (not widened to unknown)", () => {
+    // Regression guard: applyParamMap returns Record<string, unknown>.
+    // If the adapter's return annotation is missing or too loose,
+    // spreading it into the return literal would widen scalar fields
+    // like maxTokens/temperature to `unknown`. These assertions compile
+    // only if the public VercelAITextParams<TTools> preserves scalars.
+    type Params = VercelAITextParams<Record<string, Tool>>;
+
+    expectTypeOf<Params["temperature"]>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<Params["maxTokens"]>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<Params["topP"]>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<Params["topK"]>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<Params["frequencyPenalty"]>().toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf<Params["presencePenalty"]>().toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf<Params["seed"]>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<Params["stopSequences"]>().toEqualTypeOf<
+      string[] | undefined
+    >();
+  });
+});
+
 describe("createAgentMarkClient type inference (v5)", () => {
   it("infers TTools from opts.tools when specific tools provided", () => {
     const modelRegistry = new VercelAIModelRegistry();

@@ -134,6 +134,15 @@ describe("MastraAdapterWebhookHandler", () => {
     expect(res).toMatchObject({ type: "object", result: { answer: "8" } });
   });
 
+  it("defaults to a non-streaming response when shouldStream is omitted", async () => {
+    // Mastra's standalone handler historically defaulted to non-streaming. The
+    // shared WebhookRunner defaults to streaming, so the shim must preserve the
+    // old default — omitting the flag must NOT return a stream.
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const res = await runner.runPrompt(ast);
+    expect(res).toMatchObject({ type: "text", result: "TEXT" });
+  });
+
   it("runs text prompt with streaming", async () => {
     const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
     const res = await runner.runPrompt(ast, { shouldStream: true });
@@ -320,7 +329,7 @@ describe("MastraAdapterWebhookHandler", () => {
   it("passes sampling options through runExperiment and returns only sampled rows", async () => {
     const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
     // Dataset has 2 rows; { rows: [0] } should return only row 0
-    const { stream } = await runner.runExperiment(ast, "run-sampling", undefined, { rows: [0] });
+    const { stream } = await runner.runExperiment(ast, "run-sampling", { sampling: { rows: [0] } });
     const reader = (stream as ReadableStream).getReader();
     const rows: any[] = [];
     for (;;) {

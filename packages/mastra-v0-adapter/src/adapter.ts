@@ -65,17 +65,31 @@ export class MastraAdapter<
     return this._mcp;
   }
 
-  async adaptText(input: TextConfig, options: AdaptOptions) {
+  async adaptText(input: TextConfig, options: AdaptOptions, metadata?: PromptMetadata) {
     const agent = await this.adaptTextAgent(input, options);
+    // Pre-compute the messages + generateOptions that the shared
+    // WebhookRunner's executor path needs. `formatAgent` still destructures
+    // `adaptMessages` to build its two-stage formatMessages helper, so the
+    // public two-stage API is unaffected. We stash the runnable bundle
+    // under `_runnable` so `formatAgent` can strip it before returning.
+    const runnable = metadata
+      ? this.adaptTextMessages({ input, options, metadata })
+      : undefined;
 
     return {
       ...agent,
       adaptMessages: this.adaptTextMessages,
+      _runnable: runnable
+        ? { messages: runnable.messages, generateOptions: runnable.options }
+        : undefined,
     };
   }
 
-  async adaptObject(input: ObjectConfig, options: AdaptOptions) {
+  async adaptObject(input: ObjectConfig, options: AdaptOptions, metadata?: PromptMetadata) {
     const baseAgent = await this.adaptObjectAgent(input, options);
+    const runnable = metadata
+      ? this.adaptObjectMessages(input, options, metadata)
+      : undefined;
 
     return {
       ...baseAgent,
@@ -88,6 +102,9 @@ export class MastraAdapter<
         options: AdaptOptions;
         metadata: PromptMetadata;
       }) => this.adaptObjectMessages(input, options, metadata),
+      _runnable: runnable
+        ? { messages: runnable.messages, generateOptions: runnable.options }
+        : undefined,
     };
   }
 

@@ -1,0 +1,30 @@
+{
+  "description": "finalizeUsage / finalize_usage — fills in totalTokens when the provider omits it. Trusts the provider when it does report it. Pinned here so the TS + Python helpers can't drift.",
+  "cases": [
+    {
+      "name": "returns_undefined_for_null",
+      "input":    { "inputTokens": null, "outputTokens": null, "totalTokens": null },
+      "expected": null
+    },
+    {
+      "name": "trusts_provider_total_when_present",
+      "input":    { "inputTokens": 3,  "outputTokens": 7,  "totalTokens": 12 },
+      "expected": { "inputTokens": 3,  "outputTokens": 7,  "totalTokens": 12 }
+    },
+    {
+      "name": "derives_total_from_input_plus_output_when_absent",
+      "input":    { "inputTokens": 42, "outputTokens": 8,  "totalTokens": null },
+      "expected": { "inputTokens": 42, "outputTokens": 8,  "totalTokens": 50 }
+    },
+    {
+      "name": "zero_values_pass_through",
+      "input":    { "inputTokens": 0,  "outputTokens": 0,  "totalTokens": 0 },
+      "expected": { "inputTokens": 0,  "outputTokens": 0,  "totalTokens": 0 }
+    },
+    {
+      "name": "derives_when_only_outputs_present",
+      "input":    { "inputTokens": 0,  "outputTokens": 15, "totalTokens": null },
+      "expected": { "inputTokens": 0,  "outputTokens": 15, "totalTokens": 15 }
+    }
+  ]
+}

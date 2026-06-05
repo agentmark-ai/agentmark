@@ -314,6 +314,7 @@ export interface SpanIOWire {
   output: string;
   output_object: string | null;
   tool_calls: string | null;
+  metadata: Record<string, string>;
 }
 
 export function toSpanIOWire(io: SpanIO): SpanIOWire {
@@ -322,6 +323,7 @@ export function toSpanIOWire(io: SpanIO): SpanIOWire {
     output: io.output ?? "",
     output_object: io.outputObject ?? null,
     tool_calls: io.toolCalls ?? null,
+    metadata: io.metadata ?? {},
   };
 }
 

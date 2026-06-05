@@ -604,20 +604,22 @@ describe("ClaudeAgentWebhookHandler", () => {
         )
       );
 
-      const result = await handler.runExperiment(
+      await handler.runExperiment(
         createMockAst(),
         "run-1",
-        "./override.jsonl"
+        { datasetPath: "./override.jsonl" }
       );
 
-      const chunks = await drainStream(result.stream);
-      const parsed = chunks.map((c) => JSON.parse(c));
-      const startEvent = parsed.find((p) => p.type === "experiment_start");
-
-      expect(startEvent.datasetPath).toBe("./override.jsonl");
+      // The unified wire format carries no experiment_start envelope, so the
+      // override path is verified at the formatWithDataset call site instead.
+      expect(
+        mockClient._mockTextPrompt.formatWithDataset
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ datasetPath: "./override.jsonl" })
+      );
     });
 
-    it("should emit experiment metadata at start", async () => {
+    it("emits no experiment_start/experiment_end envelope (unified wire format)", async () => {
       mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
         createMockReadableStream(
           (async function* () {
@@ -631,15 +633,10 @@ describe("ClaudeAgentWebhookHandler", () => {
       const chunks = await drainStream(result.stream);
       const parsed = chunks.map((c) => JSON.parse(c));
 
-      expect(parsed[0]).toEqual({
-        type: "experiment_start",
-        runId: expect.any(String),
-        runName: "my-run",
-        datasetPath: "./test.jsonl",
-        promptName: "experiment-prompt",
-      });
-      // Verify runId is a UUID format
-      expect(parsed[0].runId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      // No envelope markers — claude-agent experiments now emit the same
+      // {type:"dataset"} / {type:"error"} shape as the AI SDK + Python adapters.
+      expect(parsed.find((p) => p.type === "experiment_start")).toBeUndefined();
+      expect(parsed.find((p) => p.type === "experiment_end")).toBeUndefined();
     });
 
     it("should iterate through all dataset items", async () => {
@@ -764,11 +761,10 @@ describe("ClaudeAgentWebhookHandler", () => {
 
       const chunks = await drainStream(result.stream);
       const parsed = chunks.map((c) => JSON.parse(c));
-      const errorEvent = parsed.find((p) => p.type === "experiment_item_error");
+      const errorEvent = parsed.find((p) => p.type === "error");
 
       expect(errorEvent).toBeDefined();
       expect(errorEvent.error).toContain("Item execution failed");
-      expect(errorEvent.input).toEqual({ q: "test" });
     });
 
     it("should continue after item errors", async () => {
@@ -805,16 +801,17 @@ describe("ClaudeAgentWebhookHandler", () => {
       const chunks = await drainStream(result.stream);
       const parsed = chunks.map((c) => JSON.parse(c));
 
-      const errorEvent = parsed.find((p) => p.type === "experiment_item_error");
+      const errorEvent = parsed.find((p) => p.type === "error");
       const successEvent = parsed.find((p) => p.type === "dataset");
-      const endEvent = parsed.find((p) => p.type === "experiment_end");
 
       expect(errorEvent).toBeDefined();
       expect(successEvent).toBeDefined();
-      expect(endEvent.totalItems).toBe(2);
+      // One failed row + one succeeded row, both surfaced (no early abort).
+      expect(parsed.filter((p) => p.type === "error")).toHaveLength(1);
+      expect(parsed.filter((p) => p.type === "dataset")).toHaveLength(1);
     });
 
-    it("should emit completion event", async () => {
+    it("emits a {type:'dataset'} row per item with no completion envelope", async () => {
       mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
         createMockReadableStream(
           (async function* () {
@@ -836,12 +833,9 @@ describe("ClaudeAgentWebhookHandler", () => {
 
       const chunks = await drainStream(result.stream);
       const parsed = chunks.map((c) => JSON.parse(c));
-      const endEvent = parsed.find((p) => p.type === "experiment_end");
 
-      expect(endEvent).toEqual({
-        type: "experiment_end",
-        totalItems: 1,
-      });
+      expect(parsed.filter((p) => p.type === "dataset")).toHaveLength(1);
+      expect(parsed.find((p) => p.type === "experiment_end")).toBeUndefined();
     });
 
     it("should reject image prompts in experiments", async () => {
@@ -897,7 +891,7 @@ describe("ClaudeAgentWebhookHandler", () => {
 
       const chunks = await drainStream(result.stream);
       const parsed = chunks.map((c) => JSON.parse(c));
-      const errorEvents = parsed.filter((p) => p.type === "experiment_item_error");
+      const errorEvents = parsed.filter((p) => p.type === "error");
       const successEvents = parsed.filter((p) => p.type === "dataset");
 
       expect(errorEvents).toHaveLength(1);
@@ -982,11 +976,12 @@ describe("ClaudeAgentWebhookHandler", () => {
       const chunks = await drainStream(result.stream);
       const parsed = chunks.map((c) => JSON.parse(c));
 
-      const startEvent = parsed.find((p) => p.type === "experiment_start");
       const datasetEvents = parsed.filter((p) => p.type === "dataset");
+      expect(datasetEvents.length).toBeGreaterThan(0);
 
-      // All events should have the same runId (UUID)
-      const runId = startEvent.runId;
+      // All dataset rows share one runId (UUID) — the consistency previously
+      // anchored on the experiment_start envelope now holds across the rows.
+      const runId = datasetEvents[0].runId;
       expect(runId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
       for (const event of datasetEvents) {
@@ -994,7 +989,6 @@ describe("ClaudeAgentWebhookHandler", () => {
       }
 
       // runName should be the user-provided name, not the UUID
-      expect(startEvent.runName).toBe("my-experiment");
       for (const event of datasetEvents) {
         expect(event.runName).toBe("my-experiment");
       }
@@ -1021,7 +1015,7 @@ describe("ClaudeAgentWebhookHandler", () => {
       const result1 = await handler.runExperiment(createMockAst(), "same-name");
       const chunks1 = await drainStream(result1.stream);
       const parsed1 = chunks1.map((c) => JSON.parse(c));
-      const runId1 = parsed1.find((p) => p.type === "experiment_start")?.runId;
+      const runId1 = parsed1.find((p) => p.type === "dataset")?.runId;
 
       // Reset mock for second run
       mockClient._mockTextPrompt.formatWithDataset.mockReturnValue(
@@ -1038,7 +1032,7 @@ describe("ClaudeAgentWebhookHandler", () => {
       const result2 = await handler.runExperiment(createMockAst(), "same-name");
       const chunks2 = await drainStream(result2.stream);
       const parsed2 = chunks2.map((c) => JSON.parse(c));
-      const runId2 = parsed2.find((p) => p.type === "experiment_start")?.runId;
+      const runId2 = parsed2.find((p) => p.type === "dataset")?.runId;
 
       // Both should be valid UUIDs
       expect(runId1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
@@ -1060,8 +1054,7 @@ describe("ClaudeAgentWebhookHandler", () => {
       const result = await handler.runExperiment(
         createMockAst(),
         "run-sampling",
-        undefined,
-        { rows: [0] }
+        { sampling: { rows: [0] } }
       );
       await drainStream(result.stream);
 

@@ -1,0 +1,19 @@
+{
+  "description": "computeDatasetItemName / _compute_dataset_item_name — the 12-char md5 of sorted-keys compact JSON of the dataset input. Falls back to the raw index string when there's nothing meaningful to hash. Changing any expected digest is a silent cross-language break; treat as a semver-major invariant.",
+  "cases": [
+    { "name": "null_input",                 "input": null,                    "index": 0, "expected": "0" },
+    { "name": "empty_string_input",         "input": "",                      "index": 7, "expected": "7" },
+    { "name": "empty_object_input",         "input": {},                      "index": 2, "expected": "2" },
+    { "name": "canonical_object",           "input": {"a": 1, "b": [2, 3]}, "index": 0, "expected": "94dc2faee24e" },
+    { "name": "canonical_object_key_order", "input": {"b": [2, 3], "a": 1}, "index": 0, "expected": "94dc2faee24e" },
+    { "name": "array_order_significant_asc","input": {"xs": [1, 2, 3]},     "index": 0, "expected": "413ec960d6b8" },
+    { "name": "array_order_significant_desc","input": {"xs": [3, 2, 1]},    "index": 0, "expected": "ca304d7dbc5a" },
+    { "name": "bare_array",                 "input": [1, 2, 3],               "index": 0, "expected": "f1e46f328e6d" },
+    { "name": "bare_string",                "input": "hello",                 "index": 0, "expected": "5deaee1c1332" },
+    { "name": "bare_number",                "input": 42,                      "index": 0, "expected": "a1d0c6e83f02" },
+    { "name": "bare_bool",                  "input": true,                    "index": 0, "expected": "b326b5062b2f" },
+    { "name": "unicode_value_bmp",          "input": {"name": "café"},        "index": 0, "expected": "2650e617efa5" },
+    { "name": "unicode_key_and_value",      "input": {"clé": "naïve"},        "index": 0, "expected": "91befeb2393a" },
+    { "name": "unicode_astral_emoji",       "input": {"x": "a😀b"},           "index": 0, "expected": "7dcb3ddff94c" }
+  ]
+}

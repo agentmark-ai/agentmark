@@ -6,7 +6,8 @@ import type {
   WebhookPromptResponse,
   WebhookDatasetResponse,
 } from "@agentmark-ai/prompt-core";
-import { computeDatasetItemName } from "@agentmark-ai/shared-utils";
+import type { RunExperimentOptions } from "@agentmark-ai/prompt-core/webhook-runner";
+import { computeDatasetItemName } from "@agentmark-ai/prompt-core/webhook-runner";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { withTracing } from "./traced";
 import { span } from "@agentmark-ai/sdk";
@@ -351,12 +352,16 @@ export class ClaudeAgentWebhookHandler {
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    datasetPath?: string,
-    sampling?: Record<string, unknown>,
-    concurrency?: number,
-    experimentKey?: string,
-    sourceTreeHash?: string
+    options?: RunExperimentOptions
   ): Promise<WebhookDatasetResponse> {
+    const {
+      datasetPath,
+      sampling,
+      concurrency,
+      experimentKey,
+      sourceTreeHash,
+      signal,
+    } = options ?? {};
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
     // Generate unique experiment run ID (similar to AI SDK v5)
     const experimentRunId = crypto.randomUUID();
@@ -419,18 +424,9 @@ export class ClaudeAgentWebhookHandler {
         const encoder = new TextEncoder();
 
         try {
-          // Emit experiment metadata
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                type: "experiment_start",
-                runId,
-                runName: datasetRunName,
-                datasetPath: resolvedDatasetPath,
-                promptName: frontmatter.name,
-              }) + "\n"
-            )
-          );
+          // Unified experiment wire format (matches the AI SDK + Python
+          // adapters): no experiment_start/experiment_end envelope — rows are
+          // emitted as {type:"dataset"} and failures as {type:"error"}.
 
           // Load the prompt for dataset execution
           const isObjectPrompt = !!frontmatter.object_config;
@@ -451,14 +447,15 @@ export class ClaudeAgentWebhookHandler {
           // Use getReader() to consume the ReadableStream
           const reader = dataset.getReader();
 
-          const total = await runDatasetPool(reader, async (item, itemIndex) => {
-            // Check if this is an error chunk
+          await runDatasetPool(reader, async (item, itemIndex) => {
+            // Check if this is an error chunk — surface as the unified
+            // {type:"error"} row (matches the AI SDK + Python adapters and the
+            // CLI/cloud consumer) instead of a silent drop or a bespoke marker.
             if ('error' in item) {
               controller.enqueue(
                 encoder.encode(
                   JSON.stringify({
-                    type: "experiment_item_error",
-                    index: itemIndex,
+                    type: "error",
                     error: item.error,
                   }) + "\n"
                 )
@@ -587,24 +584,13 @@ export class ClaudeAgentWebhookHandler {
               controller.enqueue(
                 encoder.encode(
                   JSON.stringify({
-                    type: "experiment_item_error",
-                    index: itemIndex,
-                    input: item.dataset.input,
+                    type: "error",
                     error: itemError instanceof Error ? itemError.message : String(itemError),
                   }) + "\n"
                 )
               );
             }
-          }, concurrency);
-
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                type: "experiment_end",
-                totalItems: total,
-              }) + "\n"
-            )
-          );
+          }, concurrency, signal);
 
           controller.close();
         } catch (error) {

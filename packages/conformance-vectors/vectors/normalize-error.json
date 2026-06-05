@@ -1,0 +1,11 @@
+{
+  "description": "normalizeError / normalize_error — canonicalize arbitrary error shapes into a readable string. Some adapters historically had slightly different fallback orders; this pins the behavior.",
+  "cases": [
+    { "name": "null_is_unknown",              "input": null,                                 "expected": "Unknown error" },
+    { "name": "empty_string_is_unknown",      "input": "",                                   "expected": "Unknown error" },
+    { "name": "plain_string_passthrough",     "input": "boom",                               "expected": "boom" },
+    { "name": "object_message",               "input": { "message": "hit" },                 "expected": "hit" },
+    { "name": "nested_error_message",         "input": { "error": { "message": "nested" } }, "expected": "nested" },
+    { "name": "nested_data_error_message",    "input": { "data": { "error": { "message": "deep" } } }, "expected": "deep" }
+  ]
+}

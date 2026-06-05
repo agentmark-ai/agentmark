@@ -4,6 +4,7 @@
  */
 
 import type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark-ai/prompt-core';
+import type { RunExperimentOptions } from '@agentmark-ai/prompt-core/webhook-runner';
 
 /**
  * Telemetry options for tracking prompt execution.
@@ -25,7 +26,7 @@ export interface TelemetryOptions {
  */
 export interface WebhookHandler {
   runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, datasetPath?: string, sampling?: Record<string, unknown>, concurrency?: number, experimentKey?: string, sourceTreeHash?: string): Promise<WebhookDatasetResponse>;
+  runExperiment(promptAst: any, datasetRunName: string, options?: RunExperimentOptions): Promise<WebhookDatasetResponse>;
 }
 
 /**

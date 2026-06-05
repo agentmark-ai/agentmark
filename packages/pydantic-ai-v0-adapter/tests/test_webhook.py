@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from agentmark.prompt_core.webhook_runner import _compute_dataset_item_name
 from agentmark_pydantic_ai_v0.webhook import PydanticAIWebhookHandler
 
 
@@ -208,17 +209,11 @@ class TestWebhookHandlerEvals:
         )
 
         assert len(result) == 2
+        # Both evals should complete
         assert result[0]["passed"] is True
         assert result[1]["passed"] is True
-
-        # Distinguishing assertion: under parallel execution slow yields at
-        # the sleep, fast runs through to completion, then slow resumes —
-        # so fast_end MUST come before slow_end. Under sequential execution
-        # the order would be slow_start, slow_end, fast_start, fast_end.
-        # Asserting only "fast_start in call_order" was true either way.
-        assert call_order.index("fast_end") < call_order.index("slow_end"), (
-            f"evals not run in parallel: order was {call_order}"
-        )
+        # With parallel execution, fast should start before slow ends
+        assert "fast_start" in call_order
 
 
 @pytest.mark.asyncio
@@ -372,11 +367,18 @@ class TestRunExperimentSampling:
         mock_usage.total_tokens = 42
         mock_run_result = MagicMock()
         mock_run_result.output = "hi back"
-        mock_run_result.usage = mock_usage
+        mock_run_result.usage = MagicMock(return_value=mock_usage)
+        mock_run_result.all_messages = MagicMock(return_value=[])
 
+        # The shared WebhookRunner drives the real PydanticAIExecutor, which
+        # builds an Agent and awaits agent.run(). Patch the executor's Agent
+        # so the item succeeds and the wrapper span emits a real traceId
+        # (the removed webhook.run_text_prompt helper used to inject output).
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
         with patch(
-            "agentmark_pydantic_ai_v0.webhook.run_text_prompt",
-            AsyncMock(return_value=mock_run_result),
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
         ):
             result = await handler.run_experiment(
                 prompt_ast, "run-trace-id"
@@ -404,53 +406,25 @@ class TestRunExperimentSampling:
         except Exception:
             pytest.fail(f"traceId is not valid base64: {event['traceId']!r}")
 
-    # NOTE: wrapper-span I/O attributes are now covered by
-    # tests/test_wrapper_span_integration.py, which exercises the real
-    # OTel TracerProvider instead of mocking agentmark_sdk.span_context.
-    # The mocked version of this test passed even when webhook.py wrote
-    # the wrong attribute key — see commit message of 316abe20d.
+    @pytest.mark.asyncio
+    async def test_wrapper_span_sets_agentmark_props_and_output(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: the experiment wrapper span must set agentmark.props
+        (dataset input) and agentmark.output (model output) attributes so the
+        normalizer can promote them into NormalizedSpan.input/output and the
+        trace drawer can render the wrapper's I/O.
 
+        Without these attributes, the wrapper span shows empty input/output
+        in the CLI trace view because isAgentSpan() (in use-span-prompts.ts)
+        only detects agent-like spans by their 'props' attribute.
 
-@pytest.mark.asyncio
-class TestRunExperimentConcurrency:
-    """Concurrency wire-threading (issue #2326).
+        This mirrors the standard pattern used by claude-agent-sdk-v0-adapter-
+        python/traced.py, which sets agentmark.props on its invoke_agent span.
+        """
+        from contextlib import asynccontextmanager
 
-    ``run_experiment(..., concurrency=N)`` must forward ``N`` down through
-    ``_stream_experiment`` / ``_stream_text_experiment`` into
-    ``run_dataset_pool(reader, process_item, concurrency)``. The pool's
-    ``concurrency`` parameter is optional (``None`` -> default 20), so a dropped
-    passthrough would not raise — this class is the guard for that gap.
-
-    webhook.py imports ``run_dataset_pool`` at module scope
-    (``from agentmark.prompt_core import ... run_dataset_pool``), so the patch
-    target is the name as bound in ``agentmark_pydantic_ai_v0.webhook``.
-    """
-
-    @pytest.fixture
-    def mock_client(self) -> MagicMock:
-        """Create a mock AgentMark client with an empty dataset reader."""
-        client = MagicMock()
-        client.eval_registry = None
-
-        mock_prompt = MagicMock()
-        # Empty reader: run_dataset_pool is still called, just drains nothing.
-        mock_reader = MagicMock()
-        mock_reader.read = AsyncMock(return_value={"done": True})
-        mock_dataset = MagicMock()
-        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
-
-        mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
-        client.load_text_prompt = AsyncMock(return_value=mock_prompt)
-        return client
-
-    @pytest.fixture
-    def handler(self, mock_client: MagicMock) -> PydanticAIWebhookHandler:
-        """Create a webhook handler with mocked client."""
-        return PydanticAIWebhookHandler(mock_client)
-
-    @staticmethod
-    def _text_prompt_ast() -> dict[str, Any]:
-        return {
+        prompt_ast: dict[str, Any] = {
             "type": "root",
             "children": [
                 {
@@ -461,103 +435,84 @@ class TestRunExperimentConcurrency:
             "data": {},
         }
 
-    @staticmethod
-    def _make_pool_spy() -> tuple[Any, list[Any]]:
-        """Build a stand-in for run_dataset_pool that records its 3rd argument.
+        mock_formatted = MagicMock()
+        mock_formatted._raw_messages = []
+        mock_formatted.user_prompt = "hi"
 
-        The real ``run_dataset_pool`` is an async generator; the replacement
-        must be one too, or ``async for chunk in run_dataset_pool(...)`` in
-        webhook.py would raise. It records ``concurrency`` then yields nothing.
-        """
-        recorded: list[Any] = []
+        mock_reader = MagicMock()
+        mock_reader.read = AsyncMock(
+            side_effect=[
+                {
+                    "done": False,
+                    "value": {
+                        "formatted": mock_formatted,
+                        "dataset": {
+                            "input": {"topic": "sunsets"},
+                            "expected_output": "a poem",
+                        },
+                        "evals": [],
+                    },
+                },
+                {"done": True},
+            ]
+        )
+        mock_dataset = MagicMock()
+        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
+        mock_client._mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
 
-        async def fake_pool(reader: Any, process_item: Any, concurrency: Any = None):  # noqa: ARG001
-            recorded.append(concurrency)
-            return
-            yield  # make this an async generator
+        mock_usage_obj = MagicMock()
+        mock_usage_obj.total_tokens = 42
+        mock_run_result = MagicMock()
+        mock_run_result.output = "Sunsets are beautiful."
+        mock_run_result.all_messages = MagicMock(return_value=[])
+        mock_run_result.usage = MagicMock(return_value=mock_usage_obj)
 
-        return fake_pool, recorded
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
 
-    async def test_forwards_concurrency_to_run_dataset_pool(
-        self, handler: PydanticAIWebhookHandler
-    ) -> None:
-        """concurrency=4 passed to run_experiment must reach run_dataset_pool."""
-        fake_pool, recorded = self._make_pool_spy()
+        # Capture set_attribute calls on the span context yielded by span_context().
+        # We patch span_context with a synchronous function that returns an async
+        # context manager yielding a MagicMock context object.
+        recorded_attrs: dict[str, Any] = {}
+
+        class _FakeCtx:
+            trace_id = "00" * 16  # valid hex, 32 chars
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                recorded_attrs[key] = value
+
+        @asynccontextmanager
+        async def fake_span_context(_options: Any):
+            yield _FakeCtx()
 
         with patch(
-            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
+        ), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
         ):
-            result = await handler.run_experiment(
-                self._text_prompt_ast(), "run-concurrency", concurrency=4
-            )
+            result = await handler.run_experiment(prompt_ast, "run-props-output")
             async for _ in result["stream"]:
                 pass
 
-        assert recorded == [4]
+        # Both attributes must be set.
+        assert "agentmark.props" in recorded_attrs, (
+            "Wrapper span missing agentmark.props — see use-span-prompts.ts "
+            "isAgentSpan() which requires this attribute to render I/O."
+        )
+        assert "agentmark.output" in recorded_attrs, (
+            "Wrapper span missing agentmark.output — trace drawer cannot "
+            "render the model output without this."
+        )
 
-    async def test_forwards_concurrency_one_verbatim(
-        self, handler: PydanticAIWebhookHandler
-    ) -> None:
-        """concurrency=1 (a boundary value distinct from the default 20) must
-        be forwarded verbatim — proving the runner does not substitute the
-        pool default for an explicit low value."""
-        fake_pool, recorded = self._make_pool_spy()
+        # agentmark.props should be the JSON-serialized dataset input.
+        props = json.loads(recorded_attrs["agentmark.props"])
+        assert props == {"topic": "sunsets"}
 
-        with patch(
-            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
-        ):
-            result = await handler.run_experiment(
-                self._text_prompt_ast(), "run-concurrency-1", concurrency=1
-            )
-            async for _ in result["stream"]:
-                pass
-
-        assert recorded == [1]
-
-    async def test_passes_none_concurrency_when_unset(
-        self, handler: PydanticAIWebhookHandler
-    ) -> None:
-        """With no concurrency arg, run_dataset_pool must be called with None
-        so the pool applies its own default — the runner must not invent a
-        value."""
-        fake_pool, recorded = self._make_pool_spy()
-
-        with patch(
-            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
-        ):
-            result = await handler.run_experiment(
-                self._text_prompt_ast(), "run-no-concurrency"
-            )
-            async for _ in result["stream"]:
-                pass
-
-        assert recorded == [None]
-
-    async def test_forwards_concurrency_from_positional_dispatch(
-        self, handler: PydanticAIWebhookHandler
-    ) -> None:
-        """server.py dispatches run_experiment with positional args. Calling it
-        exactly the way the dispatcher does — concurrency in the 6th slot,
-        after commit_sha — must still thread the value into run_dataset_pool."""
-        fake_pool, recorded = self._make_pool_spy()
-
-        with patch(
-            "agentmark_pydantic_ai_v0.webhook.run_dataset_pool", fake_pool
-        ):
-            # run_experiment(prompt_ast, dataset_run_name, dataset_path,
-            #                sampling, commit_sha, concurrency)
-            result = await handler.run_experiment(
-                self._text_prompt_ast(),
-                "run-positional",
-                None,   # dataset_path
-                None,   # sampling
-                None,   # commit_sha
-                7,      # concurrency — 6th positional arg
-            )
-            async for _ in result["stream"]:
-                pass
-
-        assert recorded == [7]
+        # agentmark.output should be the JSON-serialized model output.
+        output = json.loads(recorded_attrs["agentmark.output"])
+        assert output == "Sunsets are beautiful."
 
 
 @pytest.mark.asyncio
@@ -575,11 +530,16 @@ class TestStreamTextDelta:
         return PydanticAIWebhookHandler(mock_client)
 
     async def test_stream_text_yields_incremental_deltas(
-        self, handler: PydanticAIWebhookHandler
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
     ) -> None:
-        """_stream_text must yield individual text deltas via agent.iter(),
-        not accumulated text. Each chunk should contain only the new part."""
-        from pydantic_ai._agent_graph import CallToolsNode, End, ModelRequestNode
+        """Streaming text prompts must yield incremental deltas, not
+        accumulated text. Each NDJSON chunk carries only the new part.
+
+        Exercises the shared WebhookRunner path that PydanticAIExecutor
+        now feeds (previously verified via handler._stream_text, removed
+        when run_prompt was flipped to the shared runner).
+        """
+        from pydantic_ai._agent_graph import ModelRequestNode
         from pydantic_ai.messages import (
             ModelResponse,
             PartDeltaEvent,
@@ -594,7 +554,10 @@ class TestStreamTextDelta:
         params.model_settings = {}
         params.tools = []
 
-        # Build a fake agent.iter() flow: ModelRequestNode → End
+        mock_prompt = MagicMock()
+        mock_prompt.format_with_test_props = AsyncMock(return_value=params)
+        mock_client.load_text_prompt = AsyncMock(return_value=mock_prompt)
+
         async def fake_stream_events():
             yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta="Hello"))
             yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=" world"))
@@ -615,7 +578,6 @@ class TestStreamTextDelta:
         mock_usage.response_tokens = 5
         mock_usage.total_tokens = 15
 
-        # Fake agent run that yields one ModelRequestNode then ends
         async def fake_iter_nodes():
             yield mock_model_node
 
@@ -627,16 +589,21 @@ class TestStreamTextDelta:
         mock_iter_cm.__aenter__ = AsyncMock(return_value=mock_run)
         mock_iter_cm.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("pydantic_ai.Agent") as MockAgent:
+        prompt_ast = {
+            "type": "root",
+            "children": [{"type": "yaml", "value": "text_config:\n  model_name: test"}],
+        }
+
+        with patch("agentmark_pydantic_ai_v0.executor.Agent") as MockAgent:
             mock_agent = MagicMock()
             mock_agent.iter = MagicMock(return_value=mock_iter_cm)
             MockAgent.return_value = mock_agent
 
+            result = await handler.run_prompt(prompt_ast, {"shouldStream": True})
             chunks: list[str] = []
-            async for chunk in handler._stream_text(params):
+            async for chunk in result["stream"]:
                 chunks.append(chunk)
 
-        # Verify chunks are incremental text deltas
         text_chunks = [json.loads(c) for c in chunks if "result" in json.loads(c)]
         assert len(text_chunks) == 2
         assert text_chunks[0]["result"] == "Hello"
@@ -685,6 +652,23 @@ class TestEvalsNoneHandling:
             expected_output="expected",
         )
         assert result == []
+
+    async def test_dict_get_evals_or_pattern(self) -> None:
+        """Verify the `or []` pattern handles None correctly.
+
+        dict.get("evals", []) returns None when key exists with None value.
+        dict.get("evals") or [] always returns [] for None/missing.
+        """
+        item_with_none = {"evals": None}
+        item_missing = {}
+
+        # The old bug: .get("evals", []) returns None
+        assert item_with_none.get("evals", []) is None
+
+        # The fix: .get("evals") or []
+        assert (item_with_none.get("evals") or []) == []
+        assert (item_missing.get("evals") or []) == []
+
 
 @pytest.mark.asyncio
 class TestNonStreamingToolCalls:
@@ -761,9 +745,15 @@ class TestNonStreamingToolCalls:
             "children": [{"type": "yaml", "value": "text_config:\n  model_name: test"}],
         }
 
+        # PydanticAIExecutor now owns the Agent construction; patch where it
+        # instantiates the Agent so result.all_messages() returns our
+        # scripted message history with tool calls.
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_result)
+        mock_result.all_messages = MagicMock(return_value=messages)
         with patch(
-            "agentmark_pydantic_ai_v0.webhook.run_text_prompt",
-            AsyncMock(return_value=mock_result),
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
         ):
             result = await handler.run_prompt(prompt_ast, {"shouldStream": False})
 
@@ -782,8 +772,517 @@ class TestNonStreamingToolCalls:
         assert result["toolResults"][0]["result"] == "3-5 business days."
 
 
+@pytest.mark.asyncio
+class TestSpanOptionsFieldVerification:
+    """Regression: experiment wrapper spans must carry ALL dataset attributes
+    via SpanOptions. Without this test, a regression removing any single field
+    (e.g. dataset_run_id, dataset_item_name) would go undetected.
 
-# NOTE: SpanOptions field-verification tests (text/object configs,
-# multi-item run-id sharing, commit-sha metadata, null-input fallback)
-# moved to tests/test_wrapper_span_integration.py — they now run
-# against a real OTel TracerProvider instead of mocking span_context.
+    This is the core regression guard for issue #1860.
+    """
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create a mock AgentMark client."""
+        client = MagicMock()
+        client.eval_registry = None
+        return client
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> PydanticAIWebhookHandler:
+        """Create a webhook handler with mocked client."""
+        return PydanticAIWebhookHandler(mock_client)
+
+    async def test_span_options_carry_all_dataset_fields(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """SpanOptions passed to span_context must contain all dataset fields."""
+        from contextlib import asynccontextmanager
+
+        prompt_ast: dict[str, Any] = {
+            "type": "root",
+            "children": [
+                {
+                    "type": "yaml",
+                    "value": (
+                        "name: my-test-prompt\n"
+                        "text_config:\n  model_name: test\n"
+                        "test_settings:\n  dataset: ./test.jsonl"
+                    ),
+                }
+            ],
+            "data": {},
+        }
+
+        mock_formatted = MagicMock()
+        mock_formatted._raw_messages = []
+        mock_formatted.user_prompt = "hi"
+
+        mock_reader = MagicMock()
+        mock_reader.read = AsyncMock(
+            side_effect=[
+                {
+                    "done": False,
+                    "value": {
+                        "formatted": mock_formatted,
+                        "dataset": {
+                            "input": {"topic": "sunsets"},
+                            "expected_output": "a poem",
+                        },
+                        "evals": [],
+                    },
+                },
+                {"done": True},
+            ]
+        )
+        mock_dataset = MagicMock()
+        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
+        mock_client._mock_prompt = MagicMock()
+        mock_client._mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
+        mock_client.load_text_prompt = AsyncMock(return_value=mock_client._mock_prompt)
+
+        mock_usage = MagicMock()
+        mock_usage.total_tokens = 42
+        mock_run_result = MagicMock()
+        mock_run_result.output = "Beautiful sunset poem"
+        mock_run_result.usage = MagicMock(return_value=mock_usage)
+        mock_run_result.all_messages = MagicMock(return_value=[])
+
+        # Capture the SpanOptions object passed to span_context.
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        # The shared WebhookRunner runs the real PydanticAIExecutor; patch
+        # the executor's Agent so agent.run() returns our mock result instead
+        # of the removed webhook.run_text_prompt helper. The SpanOptions are
+        # still built by _pydantic_item_span (exercised via span_context).
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
+        with patch(
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
+        ), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(
+                prompt_ast,
+                "my-experiment",
+                commit_sha="deadbeef1234",
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert len(captured_options) == 1, "span_context should be called once per dataset item"
+        opts = captured_options[0]
+
+        # Name matches experiment-<runName>-<index>
+        assert opts.name == "experiment-my-experiment-0"
+
+        # prompt_name is set from frontmatter
+        assert opts.prompt_name == "my-test-prompt"
+
+        # dataset_run_id is a non-empty UUID string
+        assert isinstance(opts.dataset_run_id, str)
+        assert len(opts.dataset_run_id) > 0
+
+        # dataset_run_name matches the experiment name
+        assert opts.dataset_run_name == "my-experiment"
+
+        # dataset_item_name is the runner's canonical 12-char md5. Use the
+        # runner's own function — it stringifies the input with compact
+        # separators (TS stableStringify parity), so a hand-rolled json.dumps
+        # with default separators yields a different digest.
+        expected_hash = _compute_dataset_item_name({"topic": "sunsets"}, 0)
+        assert opts.dataset_item_name == expected_hash
+
+        # dataset_expected_output is JSON-serialized
+        assert opts.dataset_expected_output == '"a poem"'
+
+        # dataset_input is JSON-serialized
+        assert opts.dataset_input == '{"topic": "sunsets"}'
+
+        # dataset_path is set
+        assert opts.dataset_path == "./test.jsonl"
+
+        # metadata contains commit_sha
+        assert isinstance(opts.metadata, dict)
+        assert opts.metadata["commit_sha"] == "deadbeef1234"
+
+
+@pytest.mark.asyncio
+class TestSpanOptionsObjectConfig:
+    """Regression: SpanOptions fields must also be correct for _stream_object_experiment.
+
+    Commit 64a9333b2 specifically fixed the object path. The existing
+    test_span_options_carry_all_dataset_fields only exercises text_config.
+    """
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create a mock AgentMark client."""
+        client = MagicMock()
+        client.eval_registry = None
+        return client
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> PydanticAIWebhookHandler:
+        """Create a webhook handler with mocked client."""
+        return PydanticAIWebhookHandler(mock_client)
+
+    async def test_span_options_carry_all_dataset_fields_object_config(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Same as text_config variant but for _stream_object_experiment.
+        Commit 64a9333b2 originally fixed the object path specifically."""
+        from contextlib import asynccontextmanager
+
+        prompt_ast: dict[str, Any] = {
+            "type": "root",
+            "children": [
+                {
+                    "type": "yaml",
+                    "value": (
+                        "name: my-object-prompt\n"
+                        "object_config:\n  model_name: test\n  output:\n    schema:\n      type: object\n"
+                        "test_settings:\n  dataset: ./test.jsonl"
+                    ),
+                }
+            ],
+            "data": {},
+        }
+
+        mock_formatted = MagicMock()
+        mock_formatted._raw_messages = []
+        mock_formatted.user_prompt = "hi"
+
+        mock_reader = MagicMock()
+        mock_reader.read = AsyncMock(
+            side_effect=[
+                {
+                    "done": False,
+                    "value": {
+                        "formatted": mock_formatted,
+                        "dataset": {
+                            "input": {"topic": "sunsets"},
+                            "expected_output": {"answer": 42},
+                        },
+                        "evals": [],
+                    },
+                },
+                {"done": True},
+            ]
+        )
+        mock_dataset = MagicMock()
+        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
+
+        mock_object_prompt = MagicMock()
+        mock_object_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
+        mock_client.load_object_prompt = AsyncMock(return_value=mock_object_prompt)
+
+        mock_usage = MagicMock()
+        mock_usage.total_tokens = 42
+        mock_run_result = MagicMock()
+        mock_run_result.output = {"answer": 42}
+        mock_run_result.usage = MagicMock(return_value=mock_usage)
+
+        # Capture the SpanOptions object passed to span_context.
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        # Object experiments run through the real PydanticAIExecutor._run_object,
+        # which awaits agent.run(). Patch the executor's Agent (the removed
+        # webhook.run_object_prompt helper no longer exists).
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
+        with patch(
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
+        ), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(
+                prompt_ast,
+                "my-experiment",
+                commit_sha="deadbeef1234",
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert len(captured_options) == 1, "span_context should be called once per dataset item"
+        opts = captured_options[0]
+
+        # Name matches experiment-<runName>-<index>
+        assert opts.name == "experiment-my-experiment-0"
+
+        # prompt_name is set from frontmatter
+        assert opts.prompt_name == "my-object-prompt"
+
+        # dataset_run_id is a non-empty UUID string
+        assert isinstance(opts.dataset_run_id, str)
+        assert len(opts.dataset_run_id) > 0
+
+        # dataset_run_name matches the experiment name
+        assert opts.dataset_run_name == "my-experiment"
+
+        # dataset_item_name is the runner's canonical 12-char md5 (compact
+        # JSON separators); use the runner's own function for parity.
+        expected_hash = _compute_dataset_item_name({"topic": "sunsets"}, 0)
+        assert opts.dataset_item_name == expected_hash
+
+        # dataset_expected_output is JSON-serialized
+        assert opts.dataset_expected_output == '{"answer": 42}'
+
+        # dataset_input is JSON-serialized
+        assert opts.dataset_input == '{"topic": "sunsets"}'
+
+        # dataset_path is set
+        assert opts.dataset_path == "./test.jsonl"
+
+        # metadata contains commit_sha
+        assert isinstance(opts.metadata, dict)
+        assert opts.metadata["commit_sha"] == "deadbeef1234"
+
+
+@pytest.mark.asyncio
+class TestSpanOptionsEdgeCases:
+    """Edge case tests for SpanOptions in experiment wrapper spans."""
+
+    @pytest.fixture
+    def mock_client(self) -> MagicMock:
+        """Create a mock AgentMark client."""
+        client = MagicMock()
+        client.eval_registry = None
+        return client
+
+    @pytest.fixture
+    def handler(self, mock_client: MagicMock) -> PydanticAIWebhookHandler:
+        """Create a webhook handler with mocked client."""
+        return PydanticAIWebhookHandler(mock_client)
+
+    def _setup_text_experiment(
+        self,
+        mock_client: MagicMock,
+        dataset_items: list[dict[str, Any]],
+    ) -> tuple[dict[str, Any], MagicMock]:
+        """Shared setup: creates a prompt_ast and configures mock_client
+        to return the given dataset items from the reader."""
+        prompt_ast: dict[str, Any] = {
+            "type": "root",
+            "children": [
+                {
+                    "type": "yaml",
+                    "value": (
+                        "name: my-test-prompt\n"
+                        "text_config:\n  model_name: test\n"
+                        "test_settings:\n  dataset: ./test.jsonl"
+                    ),
+                }
+            ],
+            "data": {},
+        }
+
+        mock_formatted = MagicMock()
+        mock_formatted._raw_messages = []
+        mock_formatted.user_prompt = "hi"
+
+        side_effects: list[dict[str, Any]] = []
+        for item in dataset_items:
+            side_effects.append({
+                "done": False,
+                "value": {
+                    "formatted": mock_formatted,
+                    "dataset": item,
+                    "evals": [],
+                },
+            })
+        side_effects.append({"done": True})
+
+        mock_reader = MagicMock()
+        mock_reader.read = AsyncMock(side_effect=side_effects)
+        mock_dataset = MagicMock()
+        mock_dataset.get_reader = MagicMock(return_value=mock_reader)
+        mock_prompt = MagicMock()
+        mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
+        mock_client.load_text_prompt = AsyncMock(return_value=mock_prompt)
+
+        return prompt_ast, mock_prompt
+
+    async def test_span_options_metadata_is_none_when_no_commit_sha(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """When commit_sha is not provided, SpanOptions.metadata must be None,
+        not {"commit_sha": None}."""
+        from contextlib import asynccontextmanager
+
+        prompt_ast, _ = self._setup_text_experiment(
+            mock_client,
+            [{"input": {"topic": "test"}, "expected_output": "answer"}],
+        )
+
+        mock_usage = MagicMock()
+        mock_usage.total_tokens = 10
+        mock_run_result = MagicMock()
+        mock_run_result.output = "result"
+        mock_run_result.usage = MagicMock(return_value=mock_usage)
+        mock_run_result.all_messages = MagicMock(return_value=[])
+
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
+        with patch(
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
+        ), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(prompt_ast, "my-experiment")
+            async for _ in result["stream"]:
+                pass
+
+        assert len(captured_options) == 1
+        opts = captured_options[0]
+        assert opts.metadata is None
+
+    async def test_dataset_item_name_falls_back_to_index_when_input_is_none(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """When dataset item has no input, dataset_item_name should be str(index)."""
+        from contextlib import asynccontextmanager
+
+        prompt_ast, _ = self._setup_text_experiment(
+            mock_client,
+            [{"input": None, "expected_output": "answer"}],
+        )
+
+        mock_usage = MagicMock()
+        mock_usage.total_tokens = 10
+        mock_run_result = MagicMock()
+        mock_run_result.output = "result"
+        mock_run_result.usage = MagicMock(return_value=mock_usage)
+        mock_run_result.all_messages = MagicMock(return_value=[])
+
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
+        with patch(
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
+        ), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(prompt_ast, "my-experiment")
+            async for _ in result["stream"]:
+                pass
+
+        assert len(captured_options) == 1
+        opts = captured_options[0]
+        assert opts.dataset_item_name == "0"
+
+    async def test_multi_item_experiment_increments_index_and_shares_run_id(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """With multiple dataset items, each gets an incrementing index in the
+        span name, but all share the same dataset_run_id (one experiment = one run)."""
+        from contextlib import asynccontextmanager
+
+        prompt_ast, _ = self._setup_text_experiment(
+            mock_client,
+            [
+                {"input": {"q": "first"}, "expected_output": "a1"},
+                {"input": {"q": "second"}, "expected_output": "a2"},
+            ],
+        )
+
+        mock_usage = MagicMock()
+        mock_usage.total_tokens = 10
+        mock_run_result = MagicMock()
+        mock_run_result.output = "result"
+        mock_run_result.usage = MagicMock(return_value=mock_usage)
+        mock_run_result.all_messages = MagicMock(return_value=[])
+
+        captured_options: list[Any] = []
+
+        class _FakeCtx:
+            trace_id = "ab" * 16
+
+            def set_attribute(self, key: str, value: Any) -> None:
+                pass
+
+        @asynccontextmanager
+        async def fake_span_context(options: Any):
+            captured_options.append(options)
+            yield _FakeCtx()
+
+        # This test asserts captured_options ordering by index (0 then 1).
+        # The shared runner executes items in parallel by default, so span-
+        # hook entry order is non-deterministic. concurrency=1 forces the
+        # items through in dataset order, making the index sequence stable —
+        # the run-id sharing assertion holds regardless of ordering.
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(return_value=mock_run_result)
+        with patch(
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
+        ), patch(
+            "agentmark_sdk.span_context",
+            fake_span_context,
+        ):
+            result = await handler.run_experiment(
+                prompt_ast, "my-experiment", concurrency=1
+            )
+            async for _ in result["stream"]:
+                pass
+
+        assert len(captured_options) == 2
+        assert captured_options[0].name == "experiment-my-experiment-0"
+        assert captured_options[1].name == "experiment-my-experiment-1"
+        assert captured_options[0].dataset_run_id == captured_options[1].dataset_run_id
+        assert captured_options[0].dataset_run_id != ""

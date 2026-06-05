@@ -1,485 +1,79 @@
 import { getFrontMatter } from "@agentmark-ai/templatedx";
 import type { Ast } from "@agentmark-ai/templatedx";
-import type { MastraAgentMark } from "./mastra-agentmark";
-import type { MastraAdapter } from "./adapter";
-import { Agent } from "@mastra/core/agent";
 import type { ToolsInput } from "@mastra/core/agent";
-import type { PromptShape } from "@agentmark-ai/prompt-core";
-import { createPromptTelemetry, runDatasetPool, experimentErrorChunk } from "@agentmark-ai/prompt-core";
-import type { WebhookDatasetResponse, WebhookPromptResponse } from "@agentmark-ai/prompt-core";
-import { computeDatasetItemName } from "@agentmark-ai/shared-utils";
-import { span, streamWithSpan } from "@agentmark-ai/sdk";
-import type { SpanContext } from "@agentmark-ai/sdk";
+import type {
+  PromptShape,
+  WebhookDatasetResponse,
+  WebhookPromptResponse,
+} from "@agentmark-ai/prompt-core";
+import { WebhookRunner } from "@agentmark-ai/prompt-core/webhook-runner";
+import type {
+  RunPromptOptions,
+  RunExperimentOptions,
+} from "@agentmark-ai/prompt-core/webhook-runner";
+import { createAgentmarkSpanHooks } from "@agentmark-ai/sdk";
+import type { MastraAdapter } from "./adapter";
+import { MastraExecutor } from "./executor";
+import type { MastraAgentMark } from "./mastra-agentmark";
 
 type Frontmatter = {
-  name?: string;
-  text_config?: unknown;
-  object_config?: unknown;
   image_config?: unknown;
   speech_config?: unknown;
-  test_settings?: { dataset?: string; evals?: string[] };
 };
 
+/**
+ * MastraAdapterWebhookHandler is now a thin compatibility shim around the
+ * shared WebhookRunner + MastraExecutor. Historical unsupported image/speech
+ * behavior is preserved: prompt runs still throw instead of returning a
+ * canonical unsupported-kind payload.
+ */
 export class MastraAdapterWebhookHandler<
   T extends PromptShape<T> | undefined = PromptShape<Record<string, never>>
 > {
-  constructor(
-    private readonly client: MastraAgentMark<T, MastraAdapter<T, ToolsInput>>
-  ) {}
+  // The shape param is intentionally `any` (not `PromptShape<any>`): Mastra's
+  // public generic allows `T = undefined`, and `MastraAdapter<undefined>` only
+  // satisfies `Adapter<undefined>` — NOT `Adapter<PromptShape<any>>` (whose
+  // `__dict` can't be `undefined`). So any non-`any` first param fails the
+  // runner's `A extends Adapter<T>` constraint for the undefined case. Removing
+  // this would mean dropping `| undefined` from Mastra's own generic — a
+  // breaking change to the adapter's public API. The `any` is confined to this
+  // private field; the public runPrompt / runExperiment signatures stay precise.
+  private readonly runner: WebhookRunner<any, MastraAdapter<T, ToolsInput>>;
+
+  constructor(client: MastraAgentMark<T, MastraAdapter<T, ToolsInput>>) {
+    this.runner = new WebhookRunner(
+      client,
+      new MastraExecutor(),
+      createAgentmarkSpanHooks()
+    );
+  }
 
   async runPrompt(
     promptAst: Ast,
-    options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: { isEnabled: boolean; metadata?: Record<string, any> } }
+    options?: RunPromptOptions
   ): Promise<WebhookPromptResponse> {
     const frontmatter = getFrontMatter(promptAst) as Frontmatter;
-    const { telemetry } = createPromptTelemetry(frontmatter.name, options?.telemetry);
-
-    if (frontmatter.object_config) {
-      const prompt = await this.client.loadObjectPrompt(promptAst);
-      const agentConfig = options?.customProps
-        ? await prompt.formatAgent({ props: options.customProps as any, options: { telemetry } })
-        : await prompt.formatAgentWithTestProps({ telemetry });
-
-      const [messages, generateOptions] = options?.customProps
-        ? await agentConfig.formatMessages({ props: options.customProps as any })
-        : await agentConfig.formatMessages();
-
-      const agent = new Agent(agentConfig);
-      const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : false;
-
-      if (shouldStream) {
-        try {
-          const { stream, traceId } = await streamWithSpan({
-            name: frontmatter.name || 'prompt-run',
-            // Just the messages — generateOptions add noise (model
-            // spec, telemetry config) that the user doesn't need
-            // staring back at them in the Input panel.
-            input: messages,
-            produce: async (write, ctx) => {
-              const streamResult = await agent.stream(messages, generateOptions);
-              const fullStream = (streamResult as any).fullStream;
-              if (!fullStream) {
-                throw new Error("Stream not available — Mastra agent.stream() returned no fullStream");
-              }
-              let finalOutput: unknown = undefined;
-              for await (const chunk of fullStream) {
-                if ((chunk as any).type === "error") {
-                  throw (chunk as any)?.error ?? new Error("stream error");
-                }
-                if ((chunk as any).type === "object") {
-                  finalOutput = (chunk as any).object;
-                  await write({ type: "object", result: (chunk as any).object });
-                }
-                if ((chunk as any).type === "object-delta") {
-                  finalOutput = (chunk as any).objectDelta;
-                  await write({ type: "object", result: (chunk as any).objectDelta });
-                }
-              }
-              if ((streamResult as any).usage) {
-                const usageData = await (streamResult as any).usage;
-                await write({ type: "object", usage: usageData });
-              }
-              if (finalOutput !== undefined) ctx.setOutput(finalOutput);
-            },
-          });
-          return {
-            type: "stream",
-            stream,
-            streamHeader: { "AgentMark-Streaming": "true" },
-            traceId,
-          } as WebhookPromptResponse;
-        } catch (error) {
-          // If streaming fails, fall back to non-streaming
-          console.warn("[Runner] Streaming not available, falling back to non-streaming:", error);
-        }
-      }
-
-      // Non-streaming object generation
-      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-        return agent.generate(messages, generateOptions);
-      });
-      const response = await result;
-      return {
-        type: "object",
-        result: (response as any).object || response,
-        usage: (response as any).usage,
-        finishReason: (response as any).finishReason,
-        traceId,
-      } as WebhookPromptResponse;
-    }
-
-    if (frontmatter.text_config) {
-      const prompt = await this.client.loadTextPrompt(promptAst);
-      const agentConfig = options?.customProps
-        ? await prompt.formatAgent({ props: options.customProps as any, options: { telemetry } })
-        : await prompt.formatAgentWithTestProps({ telemetry });
-
-      const [messages, generateOptions] = options?.customProps
-        ? await agentConfig.formatMessages({ props: options.customProps as any })
-        : await agentConfig.formatMessages();
-
-      const agent = new Agent(agentConfig);
-      const shouldStream = options?.shouldStream !== undefined ? options.shouldStream : false;
-
-      if (shouldStream) {
-        try {
-          const { stream, traceId } = await streamWithSpan({
-            name: frontmatter.name || 'prompt-run',
-            // Just the messages — generateOptions add noise (model
-            // spec, telemetry config) that the user doesn't need
-            // staring back at them in the Input panel.
-            input: messages,
-            produce: async (write, ctx) => {
-              const streamResult = await agent.stream(messages, generateOptions);
-              const fullStream = (streamResult as any).fullStream;
-              if (!fullStream) {
-                throw new Error("Stream not available — Mastra agent.stream() returned no fullStream");
-              }
-              let accumulatedText = '';
-              for await (const chunk of fullStream) {
-                if ((chunk as any).type === "error") {
-                  throw (chunk as any)?.error ?? new Error("stream error");
-                }
-                if ((chunk as any).type === "text-delta") {
-                  accumulatedText += (chunk as any).textDelta;
-                  await write({ type: "text", result: (chunk as any).textDelta });
-                }
-                if ((chunk as any).type === "tool-call") {
-                  await write({
-                    type: "text",
-                    toolCall: {
-                      toolCallId: (chunk as any).toolCallId,
-                      toolName: (chunk as any).toolName,
-                      args: (chunk as any).args,
-                    },
-                  });
-                }
-                if ((chunk as any).type === "tool-result") {
-                  await write({
-                    type: "text",
-                    toolResult: {
-                      toolCallId: (chunk as any).toolCallId,
-                      toolName: (chunk as any).toolName,
-                      result: (chunk as any).result,
-                    },
-                  });
-                }
-                if ((chunk as any).type === "finish") {
-                  await write({
-                    type: "text",
-                    finishReason: (chunk as any).finishReason,
-                    usage: (chunk as any).usage,
-                  });
-                }
-              }
-              if (accumulatedText) ctx.setOutput(accumulatedText);
-            },
-          });
-          return {
-            type: "stream",
-            stream,
-            streamHeader: { "AgentMark-Streaming": "true" },
-            traceId,
-          } as WebhookPromptResponse;
-        } catch (error) {
-          // If streaming fails, fall back to non-streaming
-          console.warn("[Runner] Streaming not available, falling back to non-streaming:", error);
-        }
-      }
-
-      // Non-streaming text generation
-      const { result, traceId } = await span({ name: frontmatter.name || 'prompt-run' }, async (_ctx: SpanContext) => {
-        return agent.generate(messages, generateOptions);
-      });
-      const response = await result;
-      return {
-        type: "text",
-        result:
-          (response as any).text ||
-          (response as any).content ||
-          String(response),
-        usage: (response as any).usage,
-        finishReason: (response as any).finishReason,
-        toolCalls: (response as any).toolCalls || [],
-        toolResults: (response as any).toolResults || [],
-        traceId,
-      } as WebhookPromptResponse;
-    }
-
     if (frontmatter.image_config) {
-      throw new Error("Image generation not implemented for Mastra adapter");
+      throw new Error("Image generation not implemented");
     }
-
     if (frontmatter.speech_config) {
-      throw new Error("Speech generation not implemented for Mastra adapter");
+      throw new Error("Speech generation not implemented");
     }
-
-    throw new Error("Invalid prompt");
+    // Preserve Mastra's historical non-streaming default: the shared runner
+    // defaults `shouldStream` to true, but the standalone Mastra handler always
+    // defaulted to false. Keep that so existing callers that omit the flag still
+    // get a one-shot response rather than a stream.
+    return this.runner.runPrompt(promptAst, {
+      ...options,
+      shouldStream: options?.shouldStream ?? false,
+    });
   }
 
-  async runExperiment(
+  runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    datasetPath?: string,
-    sampling?: Record<string, unknown>,
-    concurrency?: number,
-    experimentKey?: string,
-    sourceTreeHash?: string
+    options?: RunExperimentOptions
   ): Promise<WebhookDatasetResponse> {
-    const loader = this.client.getLoader();
-    if (!loader) throw new Error("Loader not found");
-
-    const frontmatter = getFrontMatter(promptAst) as Frontmatter;
-    const runId = crypto.randomUUID();
-    const evalRegistry = this.client.getEvalRegistry();
-
-    const resolvedDatasetPath = datasetPath ?? frontmatter?.test_settings?.dataset;
-
-    if (frontmatter.text_config) {
-      const prompt = await this.client.loadTextPrompt(promptAst);
-      const dataset = await prompt.formatAgentWithDataset({
-        datasetPath: resolvedDatasetPath,
-        telemetry: { isEnabled: true },
-        ...(sampling ? { sampling } : {}),
-      });
-      const stream = new ReadableStream({
-        async start(controller) {
-          const reader = dataset.getReader();
-          try {
-            await runDatasetPool(reader, async (item, index) => {
-              try {
-                const formatted = item.formatted;
-                const [messages, options] = await formatted.formatMessages();
-
-                const agent = new Agent(formatted);
-                const telemetryMetadata: Record<string, any> = {
-                  ...(options.telemetry?.metadata ?? {}),
-                };
-
-                const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
-                const { result, traceId } = await span({
-                  name: `ds-run-${datasetRunName}-${index}`,
-                  datasetRunId: runId,
-                  datasetRunName: datasetRunName,
-                  datasetItemName,
-                  datasetExpectedOutput: item.dataset?.expected_output,
-                  datasetPath: resolvedDatasetPath,
-                  experimentKey,
-                  sourceTreeHash
-                }, async (ctx: SpanContext) => {
-                  if (item.dataset?.input != null) {
-                    try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
-                  }
-                  const genResult = await agent.generate(messages, {
-                    ...options,
-                    telemetry: options.telemetry
-                      ? {
-                          ...options.telemetry,
-                          metadata: telemetryMetadata,
-                        }
-                      : undefined,
-                  });
-                  try {
-                    const outputText = (genResult as any).text || (genResult as any).content || String(genResult);
-                    ctx.setAttribute("agentmark.output", outputText);
-                  } catch { /* ignore */ }
-                  return genResult;
-                });
-
-                const response = await result;
-                const text =
-                  (response as any).text ||
-                  (response as any).content ||
-                  String(response);
-                const usage = (response as any).usage;
-
-                let evalResults: any[] = [];
-                const scoreNames = item.evals ?? [];
-                if (
-                  evalRegistry &&
-                  Array.isArray(scoreNames) &&
-                  scoreNames.length > 0
-                ) {
-                  const evaluators = scoreNames
-                    .map((name: string) => {
-                      const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
-                      return fn ? { name, fn } : undefined;
-                    })
-                    .filter(Boolean) as Array<{ name: string; fn: any }>;
-                  evalResults = await Promise.all(
-                    evaluators.map(async (e) => {
-                      const r = await e.fn({
-                        input: messages,
-                        output: text,
-                        expectedOutput: item.dataset?.expected_output,
-                      });
-                      return { name: e.name, ...r };
-                    })
-                  );
-                }
-
-                const chunk =
-                  JSON.stringify({
-                    type: "dataset",
-                    result: {
-                      input: item.dataset?.input,
-                      expectedOutput: item.dataset?.expected_output,
-                      actualOutput: text,
-                      tokens:
-                        usage?.totalTokens ||
-                        (usage?.promptTokens &&
-                          usage?.completionTokens &&
-                          usage.promptTokens + usage.completionTokens),
-                      evals: evalResults,
-                    },
-                    runId,
-                    runName: datasetRunName,
-                    traceId,
-                  }) + "\n";
-                controller.enqueue(chunk);
-              } catch (err) {
-                controller.enqueue(experimentErrorChunk(err));
-              }
-            }, concurrency);
-            controller.close();
-          } catch (error) {
-            console.error("[Runner] Error processing dataset:", error);
-            controller.close();
-          }
-        },
-      });
-      return {
-        stream,
-        streamHeaders: { "AgentMark-Streaming": "true" as const },
-      };
-    }
-
-    if (frontmatter.object_config) {
-      const prompt = await this.client.loadObjectPrompt(promptAst);
-      const dataset = await prompt.formatAgentWithDataset({
-        datasetPath: resolvedDatasetPath,
-        telemetry: { isEnabled: true },
-        ...(sampling ? { sampling } : {}),
-      });
-      const stream = new ReadableStream({
-        async start(controller) {
-          const reader = dataset.getReader();
-          try {
-            await runDatasetPool(reader, async (item, index) => {
-              try {
-                const formatted = item.formatted;
-                const [messages, options] = await formatted.formatMessages();
-
-                const agent = new Agent(formatted);
-                const telemetryMetadata: Record<string, any> = {
-                  ...(options.telemetry?.metadata ?? {}),
-                };
-
-                const datasetItemName = computeDatasetItemName(item.dataset?.input, index);
-                const { result, traceId } = await span({
-                  name: `ds-run-${datasetRunName}-${index}`,
-                  datasetRunId: runId,
-                  datasetRunName: datasetRunName,
-                  datasetItemName,
-                  datasetExpectedOutput: item.dataset.expected_output,
-                  datasetPath: resolvedDatasetPath,
-                  experimentKey,
-                  sourceTreeHash
-                }, async (ctx: SpanContext) => {
-                  if (item.dataset?.input != null) {
-                    try { ctx.setAttribute("agentmark.props", JSON.stringify(item.dataset.input)); } catch { /* ignore */ }
-                  }
-                  const genResult = await agent.generate(messages, {
-                    ...options,
-                    telemetry: options.telemetry
-                      ? {
-                          ...options.telemetry,
-                          metadata: telemetryMetadata,
-                        }
-                      : undefined,
-                  });
-                  try {
-                    const obj = (genResult as any).object || genResult;
-                    const outputStr = typeof obj === 'string' ? obj : JSON.stringify(obj);
-                    ctx.setAttribute("agentmark.output", outputStr);
-                  } catch { /* ignore */ }
-                  return genResult;
-                });
-
-                const response = await result;
-                const object = (response as any).object || response;
-                const usage = (response as any).usage;
-
-                let evalResults: any[] = [];
-                const scoreNamesObj = item.evals ?? [];
-                if (
-                  evalRegistry &&
-                  Array.isArray(scoreNamesObj) &&
-                  scoreNamesObj.length > 0
-                ) {
-                  const evaluators = scoreNamesObj
-                    .map((name: string) => {
-                      const fn = evalRegistry[name] as (typeof evalRegistry)[string] | undefined;
-                      return fn ? { name, fn } : undefined;
-                    })
-                    .filter(Boolean) as Array<{ name: string; fn: any }>;
-                  evalResults = await Promise.all(
-                    evaluators.map(async (e) => {
-                      const r = await e.fn({
-                        input: messages,
-                        output: object,
-                        expectedOutput: item.dataset.expected_output,
-                      });
-                      return { name: e.name, ...r };
-                    })
-                  );
-                }
-
-                const chunk =
-                  JSON.stringify({
-                    type: "dataset",
-                    result: {
-                      input: item.dataset.input,
-                      expectedOutput: item.dataset.expected_output,
-                      actualOutput: object,
-                      tokens:
-                        usage?.totalTokens ||
-                        (usage?.promptTokens &&
-                          usage?.completionTokens &&
-                          usage.promptTokens + usage.completionTokens),
-                      evals: evalResults,
-                    },
-                    runId,
-                    runName: datasetRunName,
-                    traceId,
-                  }) + "\n";
-                controller.enqueue(chunk);
-              } catch (err) {
-                controller.enqueue(experimentErrorChunk(err));
-              }
-            }, concurrency);
-            controller.close();
-          } catch (error) {
-            console.error("[Runner] Error processing dataset:", error);
-            controller.close();
-          }
-        },
-      });
-      return {
-        stream,
-        streamHeaders: { "AgentMark-Streaming": "true" as const },
-      };
-    }
-
-    if (frontmatter.image_config) {
-      throw new Error("Image generation not implemented for Mastra adapter");
-    }
-
-    if (frontmatter.speech_config) {
-      throw new Error("Speech generation not implemented for Mastra adapter");
-    }
-
-    throw new Error("Invalid prompt");
+    return this.runner.runExperiment(promptAst, datasetRunName, options);
   }
 }
-

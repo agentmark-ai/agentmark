@@ -25,7 +25,6 @@ maps it to result.input (drawer Input panel).
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import AsyncGenerator
 from contextlib import contextmanager
@@ -40,6 +39,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
     InMemorySpanExporter,
 )
 
+from agentmark.prompt_core.webhook_runner import _compute_dataset_item_name
 from agentmark_claude_agent_sdk_v0.webhook import ClaudeAgentWebhookHandler
 
 from tests.test_webhook import (  # noqa: E402 — re-using existing fixtures
@@ -246,9 +246,10 @@ class TestExperimentWrapperSpan:
         assert isinstance(attrs.get("agentmark.dataset_run_id"), str)
         assert len(attrs["agentmark.dataset_run_id"]) > 0
 
-        expected_hash = hashlib.md5(
-            json.dumps(dataset_input, sort_keys=True, default=str).encode()
-        ).hexdigest()[:12]
+        # Use the runner's own function — it stringifies the input with
+        # compact separators (TS stableStringify parity), so a hand-rolled
+        # json.dumps with default separators yields a different digest.
+        expected_hash = _compute_dataset_item_name(dataset_input, 0)
         assert attrs["agentmark.dataset_item_name"] == expected_hash
 
     async def test_object_experiment_wrapper_carries_input_and_output(

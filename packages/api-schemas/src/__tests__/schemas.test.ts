@@ -481,10 +481,12 @@ describe('SpanIOResponseSchema', () => {
         output: 'World',
         output_object: null,
         tool_calls: null,
+        metadata: { debug_screenshot_url: 'https://example.com/x' },
       },
     });
     expect(result.data.input).toBe('Hello');
     expect(result.data.output_object).toBeNull();
+    expect(result.data.metadata).toEqual({ debug_screenshot_url: 'https://example.com/x' });
   });
 });
 

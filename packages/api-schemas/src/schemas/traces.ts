@@ -45,22 +45,49 @@ export const TracesListParamsSchema = PaginationParamsSchema
     // from commit abc1234". Cloud: exact match on the dedicated
     // `CommitSha` column; local CLI: extracted from `Metadata.commit_sha`.
     commit_sha: z.string().optional(),
-    // Advanced filter DSL. JSON-serialized
-    // `{field, operator, value}[]` array, lifted from the internal
-    // dashboard filter machinery (`buildFilterWhereClause`).
-    //   - `field`: one of `model`, `user_id`, `session_id`,
-    //     `prompt_name`, `trace_id`, `status`, `latency_ms`, `cost`,
-    //     `input`, `output`, `tags`, `metadata.<key>`,
-    //     `score__<name>`.
-    //   - `operator`: varies by field type. Strings accept `equals`,
-    //     `notEquals`, `contains`, `notContains`, `startsWith`,
-    //     `endsWith`. Metadata also accepts `exists` / `doesNotExist`.
-    //     Numbers accept `equals`, `gt`, `gte`, `lt`, `lte`. Tags
-    //     accepts `equals`, `notEquals`, `contains`.
-    //   - `value`: string or array of strings.
-    // Example:
-    //   filter=[{"field":"metadata.env","operator":"equals","value":"prod"}]
-    filter: z.string().optional(),
+    // Advanced filter — a human-readable string expression. Predicates are
+    // combined with `and` (AND-only). Quote values that contain spaces.
+    //
+    //   filter      = predicate ("and" predicate)*
+    //   predicate   = field operator [value]
+    //   operator    = "=" | "!=" | ">" | ">=" | "<" | "<="
+    //               | "contains" | "not contains"
+    //               | "starts with" | "ends with"
+    //               | "exists" | "does not exist"   (take no value)
+    //
+    // Fields:
+    //   - string  (`=`,`!=`,`contains`,`not contains`,`starts with`,`ends with`):
+    //     `model`, `user_id`, `session_id`, `trace_id`, `prompt_name`,
+    //     `input`, `output`, `props`, `semantic_kind`
+    //   - numeric (`=`,`!=`,`>`,`>=`,`<`,`<=`): `latency_ms`, `cost`,
+    //     `prompt_tokens`, `completion_tokens`
+    //   - `status` (`=` only): `OK` | `ERROR`
+    //   - `tags` (`=`,`!=`,`contains`)
+    //   - `metadata.<key>`: all string operators plus `exists` /
+    //     `does not exist` (`<key>` matches [a-zA-Z_][a-zA-Z0-9_]{0,63})
+    //   - `score__<name>` (numeric operators)
+    //
+    // Examples:
+    //   filter=metadata.debug_screenshot_url exists
+    //   filter=metadata.env = "prod" and status = ERROR
+    //   filter=cost > 0.01 and latency_ms <= 2000
+    //
+    // A malformed or unsupported filter returns 400 (it is never silently
+    // ignored).
+    filter: z
+      .string()
+      .optional()
+      .describe(
+        'Filter expression (string DSL). Predicates combined with `and`: ' +
+          '`field operator [value]`. Operators: `=`, `!=`, `>`, `>=`, `<`, `<=`, ' +
+          '`contains`, `not contains`, `starts with`, `ends with`, and (for ' +
+          '`metadata.<key>`) `exists` / `does not exist`. Quote values with ' +
+          'spaces. Fields: model, user_id, session_id, trace_id, prompt_name, ' +
+          'input, output, props, semantic_kind, latency_ms, cost, prompt_tokens, ' +
+          'completion_tokens, status (OK|ERROR), tags, metadata.<key>, ' +
+          'score__<name>. Example: `metadata.env = "prod" and status = ERROR`. ' +
+          'Malformed filters return 400.',
+      ),
   });
 
 // ---------------------------------------------------------------------------
@@ -183,6 +210,10 @@ export const TraceDetailSchema = z.object({
   tokens: z.number().int().nonnegative(),
   input: z.string().optional(),
   output: z.string().optional(),
+  // Trace-level custom metadata — the root (parentless) span's metadata, with
+  // reserved internal namespaces (e.g. `graph.node.*`) excluded. Per-span
+  // metadata is on each entry of `spans`.
+  metadata: z.record(z.string(), z.string()).optional(),
   spans: z.array(SpanInTraceSchema),
   // Populated only when the caller opts in with `?fields=graph`. Same
   // shape the deprecated `/v1/traces/{traceId}/graph` sub-resource

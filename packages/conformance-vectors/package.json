@@ -1,0 +1,23 @@
+{
+  "name": "@agentmark-ai/conformance-vectors",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cross-language golden vectors for AgentMark primitives. Consumed by both TypeScript (prompt-core) and Python (prompt-core-python) test suites so parity invariants don't drift.",
+  "license": "MIT",
+  "files": [
+    "vectors/",
+    "index.js",
+    "index.d.ts"
+  ],
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.js"
+    }
+  },
+  "scripts": {
+    "test": "echo 'No tests — this is a data package. Vectors are exercised by prompt-core + prompt-core-python suites.'"
+  }
+}

@@ -26,7 +26,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
 import { fileURLToPath } from "url";
 import path from "path";
-import { trace as otelTrace } from "@opentelemetry/api";
+import { trace as otelTrace, SpanStatusCode } from "@opentelemetry/api";
 import {
   BasicTracerProvider,
   InMemorySpanExporter,
@@ -34,6 +34,7 @@ import {
   type ReadableSpan,
 } from "@opentelemetry/sdk-trace-base";
 import type { EvalRegistry } from "@agentmark-ai/prompt-core";
+import { computeDatasetItemName } from "@agentmark-ai/prompt-core/webhook-runner";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark-ai/templatedx";
@@ -45,6 +46,10 @@ import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 // the whole point is to exercise the real span() function.
 vi.mock("ai", async () => ({
   jsonSchema: (s: any) => s,
+  // The shared executor factory reads `ai.Output` at construction. vitest's
+  // strict mock throws on access to undeclared exports, so declare it
+  // explicitly (the experimental_output path is never exercised here).
+  Output: undefined,
   generateText: vi.fn(async () => ({
     text: "TEXT",
     usage: { totalTokens: 10 },
@@ -101,6 +106,28 @@ async function teardownGlobalProvider() {
 
 function wrapperSpans(): ReadableSpan[] {
   return memoryExporter.getFinishedSpans().filter((s) => s.name.startsWith("experiment-"));
+}
+
+// Execution is now PARALLEL via runDatasetPool — completion order is NOT
+// dataset read order, so `spans[0]` does NOT necessarily correspond to row 0.
+// Derive each span's own index from its name and parse its own
+// `agentmark.props` (the JSON dataset input), then assert the item name is the
+// content hash of that input at that index. Mirrors the Python
+// test_wrapper_span_integration.py approach (hashlib.md5 of sort_keys JSON).
+function indexFromSpanName(name: string): number {
+  const m = name.match(/-(\d+)$/);
+  expect(m, `span name "${name}" must end with -<index>`).not.toBeNull();
+  return Number(m![1]);
+}
+
+function assertItemNameIsContentHash(span: ReadableSpan): void {
+  const index = indexFromSpanName(span.name);
+  const propsAttr = span.attributes["agentmark.props"];
+  expect(typeof propsAttr).toBe("string");
+  const parsedInput = JSON.parse(propsAttr as string);
+  expect(span.attributes["agentmark.dataset_item_name"]).toBe(
+    computeDatasetItemName(parsedInput, index)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -191,9 +218,7 @@ describe("experiment wrapper span (real OTel)", () => {
     expect(attrs["agentmark.props"]).toBeDefined();
     expect(attrs["agentmark.output"]).toBeDefined();
 
-    // Input is the JSON-stringified dataset input.
-    const firstInput = rows[0]?.result?.input;
-    expect(attrs["agentmark.props"]).toBe(JSON.stringify(firstInput));
+    // The mock returns "TEXT" for every row, so output is row-independent.
     expect(attrs["agentmark.output"]).toBe("TEXT");
 
     // SpanOptions metadata fields — set by the SDK's
@@ -202,7 +227,12 @@ describe("experiment wrapper span (real OTel)", () => {
     expect(attrs["agentmark.dataset_run_name"]).toBe("my-experiment");
     expect(typeof attrs["agentmark.dataset_run_id"]).toBe("string");
     expect((attrs["agentmark.dataset_run_id"] as string).length).toBeGreaterThan(0);
-    expect(attrs["agentmark.dataset_item_name"]).toBe("0");
+
+    // Item name is the content hash of THIS span's own input at its own
+    // index — order-robust, unifies with the Python adapters which already
+    // emit hashlib.md5-based names. Not a positional index.
+    expect(attrs["agentmark.dataset_item_name"]).toMatch(/^[0-9a-f]{12}$/);
+    assertItemNameIsContentHash(wrapper);
   });
 
   it("object experiment wrapper carries agentmark.input/output", async () => {
@@ -220,12 +250,50 @@ describe("experiment wrapper span (real OTel)", () => {
 
     const spans = wrapperSpans();
     expect(spans.length).toBeGreaterThan(0);
-    const attrs = spans[0].attributes;
+    const wrapper = spans[0];
+    const attrs = wrapper.attributes;
 
     expect(attrs["agentmark.props"]).toBeDefined();
+    // The mock returns { ok: true } for every row, so output is row-independent.
     expect(attrs["agentmark.output"]).toBe(JSON.stringify({ ok: true }));
-    const firstInput = rows[0]?.result?.input;
-    expect(attrs["agentmark.props"]).toBe(JSON.stringify(firstInput));
+
+    // Order-robust: parallel completion order ≠ read order, so we can't pin to
+    // rows[0]. The span's own item name is the content hash of its own input.
+    expect(attrs["agentmark.dataset_item_name"]).toMatch(/^[0-9a-f]{12}$/);
+    assertItemNameIsContentHash(wrapper);
+  });
+
+  it("a failing row records span status ERROR (#2367) while sibling rows still emit dataset chunks", async () => {
+    // #2367: the runner THROWS on an executor error event so the wrapper span
+    // records ERROR — no green check on a failed run. Make exactly one row's
+    // LLM call fail; assert (a) one error chunk + ≥1 dataset chunk (per-row
+    // isolation), and (b) exactly one wrapper span has ERROR status while the
+    // successful rows do NOT. Reverting the runner's `throw new Error(ev.error)`
+    // to a silent error-chunk would leave every span OK and fail this test.
+    let calls = 0;
+    (ai as any).generateText = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("ProviderError: row blew up");
+      return { text: "TEXT", usage: { totalTokens: 10 }, finishReason: "stop", steps: [] };
+    });
+
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const { stream } = await runner.runExperiment(ast, "fail-run");
+    const rows = await drainStream(stream as ReadableStream);
+
+    const errorRows = rows.filter((r) => r.type === "error");
+    const datasetRows = rows.filter((r) => r.type === "dataset");
+    expect(errorRows).toHaveLength(1); // the one bad row surfaced as an error
+    expect(datasetRows.length).toBeGreaterThanOrEqual(1); // siblings survived
+
+    const spans = wrapperSpans();
+    const errorSpans = spans.filter((s) => s.status.code === SpanStatusCode.ERROR);
+    expect(errorSpans).toHaveLength(1); // exactly the failed row's span is ERROR
+    // …and at least one sibling span is NOT error (no false green-check inversion).
+    expect(spans.length).toBeGreaterThan(errorSpans.length);
+    expect(
+      spans.some((s) => s.status.code !== SpanStatusCode.ERROR)
+    ).toBe(true);
   });
 
   it("multi-item dataset emits one wrapper per item, sharing dataset_run_id", async () => {
@@ -234,15 +302,25 @@ describe("experiment wrapper span (real OTel)", () => {
     await drainStream(stream as ReadableStream);
 
     const spans = wrapperSpans().sort((a, b) => a.name.localeCompare(b.name));
-    expect(spans.length).toBeGreaterThanOrEqual(2); // text.dataset.jsonl has 2 rows
+    expect(spans.length).toBeGreaterThanOrEqual(2); // text.dataset.jsonl has 3 rows
 
     // All wrappers share the same dataset_run_id — one experiment, one run.
     const runIds = new Set(spans.map((s) => s.attributes["agentmark.dataset_run_id"]));
     expect(runIds.size).toBe(1);
 
-    // Each wrapper has its own item-name (the index).
-    for (let i = 0; i < spans.length; i++) {
-      expect(spans[i].attributes["agentmark.dataset_item_name"]).toBe(`${i}`);
+    // Each wrapper carries the content hash of its OWN input at its OWN index.
+    // Order-robust against parallel completion: we derive index + input from
+    // each span itself rather than assuming spans[i] === row i.
+    for (const span of spans) {
+      expect(span.attributes["agentmark.dataset_item_name"]).toMatch(/^[0-9a-f]{12}$/);
+      assertItemNameIsContentHash(span);
     }
+
+    // Distinct inputs hash to distinct item names — the property that makes
+    // regression-vs-baseline comparison reliable.
+    const itemNames = spans.map(
+      (s) => s.attributes["agentmark.dataset_item_name"] as string
+    );
+    expect(new Set(itemNames).size).toBe(itemNames.length);
   });
 });
