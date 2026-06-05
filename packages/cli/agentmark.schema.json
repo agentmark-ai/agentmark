@@ -21,6 +21,10 @@
             "type": "string",
             "description": "The path to the agentmark directory"
         },
+        "handler": {
+            "type": "string",
+            "description": "Path to the handler file for managed code deployment. The file extension determines the runtime (.py = Python, anything else = Node.js). If omitted, AgentMark Cloud checks for handler.py then handler.ts at the repository root."
+        },
         "builtInModels": {
             "type": "array",
             "description": "Models available for use in prompts. Use provider/model format (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4-20250514') for automatic provider resolution via registerProviders().",

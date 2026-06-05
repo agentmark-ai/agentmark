@@ -1,10 +1,12 @@
-"""Internal runner utilities for the webhook server.
+"""Runner utilities for executing adapted prompts against Pydantic AI.
 
-These are NOT part of the public API. Users should call their
-framework (Pydantic AI) directly with the adapted params.
+``run_text_prompt``, ``run_object_prompt`` and ``stream_text_prompt`` are
+re-exported from the package root (see ``__all__`` in ``__init__``) and are
+part of the public API: call them to run an adapted prompt directly. You can
+still call Pydantic AI yourself with the adapted params if you prefer.
 
-Used internally by PydanticAIWebhookHandler for prompt-run and
-dataset-run events.
+These helpers are also used internally by ``PydanticAIWebhookHandler`` for
+prompt-run and dataset-run events.
 """
 
 from __future__ import annotations
