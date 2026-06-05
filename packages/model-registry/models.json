@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-04T01:23:38.628Z",
+  "generatedAt": "2026-06-05T01:13:00.090Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-04T01:23:38.628Z",
+      "fetchedAt": "2026-06-05T01:13:00.090Z",
       "modelCount": 1203
     },
     "openrouter": {
-      "fetchedAt": "2026-06-04T01:23:38.628Z",
-      "modelCount": 126
+      "fetchedAt": "2026-06-05T01:13:00.090Z",
+      "modelCount": 125
     }
   },
   "models": {
@@ -9692,7 +9692,7 @@
     },
     "gpt-4-0314": {
       "provider": "openai",
-      "displayName": "OpenAI: GPT-4 (older v0314)",
+      "displayName": "Gpt 4 0314",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
@@ -9703,18 +9703,7 @@
         "maxInputTokens": 8192,
         "maxOutputTokens": 4096
       },
-      "deprecationDate": "2026-03-26",
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      },
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_p"
-      ]
+      "deprecationDate": "2026-03-26"
     },
     "gpt-4-turbo-preview": {
       "provider": "openai",

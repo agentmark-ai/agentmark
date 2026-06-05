@@ -56,7 +56,7 @@ export class MastraTextPrompt<
     const { props, options } = params || {};
     const input = await this.compile(props);
 
-    const { adaptMessages, ...adaptedAgent } = await this.adapter.adaptText(
+    const { adaptMessages, _runnable: _runnable, ...adaptedAgent } = await this.adapter.adaptText(
       input,
       options ?? {}
     );

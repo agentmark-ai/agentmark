@@ -43,6 +43,8 @@ Query the docs MCP server for the integration guide. Try in this order:
 2. `<framework> quickstart`
 3. `<adapter> setup` (e.g. "ai-sdk setup", "pydantic-ai setup")
 
+**Bring-your-own-SDK branch.** If Step 1 found the host calling an LLM SDK that has **no matching AgentMark adapter** (raw AWS Bedrock `ConverseCommand`, the raw OpenAI SDK, a bespoke HTTP client), do **not** escalate "no adapter exists" and do **not** default to the heavyweight custom-adapter page. Fetch `bring your own SDK` from the docs MCP (`/integrations/bring-your-own-sdk`). It has two paths the page itself explains: **Path A** (`createAgentMarkClient` from `fallback-adapter` + `observe` + `runExperiment`) for prompt-management / tracing / experiments in the user's own process — no executor — and **Path B** (`createExecutor` + `createWebhookRunner`) when the user wants the cloud to *run* their prompts. Pick the path from what the user wants; most "wire AgentMark into my existing app" requests are Path A.
+
 Read the page in full. **The page is the authority on**:
 
 - Which `@agentmark-ai/*` (or `agentmark-py`) package to install
@@ -110,3 +112,4 @@ Migration is a refactor with its own risk profile. Conflating it with setup make
 - **Recreating `agentmark.json` or MCP config files from this workflow** — that's the CLI's job. If those files are missing, send the user back to `npm create agentmark`.
 - **Calling the `agentmark` (Cloud) MCP server for project detection** — that server is for AgentMark Cloud, not local file inspection. Use `Read` / `Glob` / `Grep`.
 - **Migrating existing LLM code without a second confirmation.** Setup consent ≠ refactor consent.
+- **Escalating "no adapter exists" for a raw/unsupported SDK, or defaulting to the custom-adapter page.** A raw SDK (Bedrock, OpenAI, bespoke) has a first-class bring-your-own-SDK path — fetch `/integrations/bring-your-own-sdk` and route to Path A (lightweight, no executor) or Path B (`createExecutor`, cloud-executed). Writing a full custom adapter is rarely what these users need.

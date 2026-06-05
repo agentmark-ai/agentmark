@@ -8,12 +8,11 @@ import type { WebhookHandler, WebhookRequest } from '../cli-src/runner-server/ty
 // handleWebhookRequest is the platform-agnostic core that every adapter's
 // server (dev server, runner-server) routes `dataset-run` requests through.
 // For a dataset-run it calls:
-//   handler.runExperiment(data.ast, experimentId, data.datasetPath,
-//                         data.sampling, data.concurrency)
-// `data.concurrency` is the 5th positional argument. The adapter's
-// runExperiment treats `concurrency` as an optional trailing param, so a
-// dropped passthrough here would not fail typecheck — this suite is the guard
-// for that hop of the wire (CLI flag → request body → core.ts → adapter).
+//   handler.runExperiment(data.ast, experimentId, {
+//     datasetPath, sampling, concurrency, experimentKey, sourceTreeHash })
+// The options bag is the 3rd argument. Each field is optional, so a dropped
+// passthrough here would not fail typecheck — this suite is the guard for that
+// hop of the wire (CLI flag → request body → core.ts → adapter).
 // ---------------------------------------------------------------------------
 describe('handleWebhookRequest — dataset-run concurrency forwarding', () => {
   // Silence the core handler's progress console.log calls.
@@ -56,8 +55,8 @@ describe('handleWebhookRequest — dataset-run concurrency forwarding', () => {
     );
 
     expect(calls).toHaveLength(1);
-    // runExperiment(ast, experimentId, datasetPath, sampling, concurrency)
-    expect(calls[0][4]).toBe(6);
+    // runExperiment(ast, experimentId, { ...options })
+    expect(calls[0][2].concurrency).toBe(6);
   });
 
   it('should forward a concurrency of 1 verbatim, distinct from the pool default', async () => {
@@ -70,7 +69,7 @@ describe('handleWebhookRequest — dataset-run concurrency forwarding', () => {
       handler,
     );
 
-    expect(calls[0][4]).toBe(1);
+    expect(calls[0][2].concurrency).toBe(1);
   });
 
   it('should call runExperiment with an undefined concurrency when the request omits it', async () => {
@@ -84,12 +83,11 @@ describe('handleWebhookRequest — dataset-run concurrency forwarding', () => {
     );
 
     expect(calls).toHaveLength(1);
-    expect(calls[0][4]).toBeUndefined();
+    expect(calls[0][2].concurrency).toBeUndefined();
   });
 
-  it('should still forward concurrency alongside datasetPath and sampling', async () => {
-    // concurrency is the last of five args — verify it is not displaced when
-    // the optional datasetPath/sampling slots are populated.
+  it('should forward concurrency alongside datasetPath and sampling in the options bag', async () => {
+    // Verify every field lands in the options object, not just concurrency.
     const { handler, calls } = makeSpyHandler();
 
     await handleWebhookRequest(
@@ -102,8 +100,10 @@ describe('handleWebhookRequest — dataset-run concurrency forwarding', () => {
       handler,
     );
 
-    expect(calls[0][2]).toBe('./data.jsonl'); // datasetPath
-    expect(calls[0][3]).toEqual({ rows: [0, 1] }); // sampling
-    expect(calls[0][4]).toBe(9); // concurrency
+    expect(calls[0][2]).toMatchObject({
+      datasetPath: './data.jsonl',
+      sampling: { rows: [0, 1] },
+      concurrency: 9,
+    });
   });
 });

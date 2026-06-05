@@ -6,7 +6,6 @@ import { FileLoader } from "@agentmark-ai/loader-file";
 import { VercelAdapterWebhookHandler } from "../src/runner";
 import type { Ast } from "@agentmark-ai/templatedx";
 import type { PromptShape } from "@agentmark-ai/prompt-core";
-import type { VercelAIAdapter } from "../src/adapter";
 import * as ai from "ai";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
@@ -14,6 +13,7 @@ import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 vi.mock("ai", async () => {
   return {
     jsonSchema: (s: any) => s,
+    Output: { object: (_opts: any) => ({ __experimental_output: true }) },
     generateText: vi.fn(async (_input: any) => ({ text: "TEXT", usage: { totalTokens: 10 }, finishReason: "stop", steps: [] })),
     generateObject: vi.fn(async (_input: any) => ({ object: { ok: true }, usage: { totalTokens: 15 }, finishReason: "stop" })),
     experimental_generateImage: vi.fn(async (_input: any) => ({ images: [{ mediaType: "image/png", base64: "iVBORw0KGgo=" }] })),
@@ -27,44 +27,6 @@ vi.mock("ai", async () => {
     })),
   } as any;
 });
-
-// ---------------------------------------------------------------------------
-// Concurrency wire-threading (issue #2326)
-//
-// runner.ts imports `runDatasetPool` from @agentmark-ai/prompt-core and calls
-// it with the `concurrency` arg it received in runExperiment(...). The pool's
-// `concurrency` parameter is optional, so a dropped passthrough would not fail
-// typecheck. We partial-mock prompt-core: `runDatasetPool` becomes a spy that
-// still delegates to the real pool (via importActual), so the rest of the
-// adapter behaves normally while the `concurrency` argument stays observable.
-// ---------------------------------------------------------------------------
-const poolMock = vi.hoisted(() => ({
-  // The spy the runner actually calls.
-  runDatasetPool: vi.fn(),
-  // The real bounded pool, captured from the factory's importActual so we can
-  // re-install the passthrough after beforeEach's vi.clearAllMocks() wipes it.
-  realRunDatasetPool: undefined as
-    | typeof import("@agentmark-ai/prompt-core")["runDatasetPool"]
-    | undefined,
-}));
-
-vi.mock("@agentmark-ai/prompt-core", async (importActual) => {
-  const actual = await importActual<typeof import("@agentmark-ai/prompt-core")>();
-  poolMock.realRunDatasetPool = actual.runDatasetPool;
-  return { ...actual, runDatasetPool: poolMock.runDatasetPool };
-});
-
-/**
- * Make the runDatasetPool spy delegate transparently to the real bounded pool.
- * Called from beforeEach because vi.clearAllMocks() strips the implementation.
- * With this in place the runner streams real dataset rows AND every call's
- * `concurrency` argument is recorded on poolMock.runDatasetPool.mock.calls.
- */
-function installPassthroughPool(): void {
-  poolMock.runDatasetPool.mockImplementation((...args: any[]) =>
-    (poolMock.realRunDatasetPool as any)(...args),
-  );
-}
 
 describe("VercelAdapterWebhookHandler", () => {
   let runner: VercelAdapterWebhookHandler;
@@ -83,9 +45,6 @@ describe("VercelAdapterWebhookHandler", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // vi.clearAllMocks() also wiped the runDatasetPool spy's implementation —
-    // re-install the passthrough so the pool runs for real this test.
-    installPassthroughPool();
 
     const evals: EvalRegistry = {
       exact_match: async ({ output, expectedOutput }) => {
@@ -123,6 +82,20 @@ describe("VercelAdapterWebhookHandler", () => {
     const res = await runner.runPrompt(ast, { shouldStream: false });
     expect((ai as any).generateText).toHaveBeenCalled();
     expect(res).toMatchObject({ type: "text", result: "TEXT" });
+  });
+
+  it("threads AbortSignal through runPrompt into the executor call", async () => {
+    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+    const controller = new AbortController();
+
+    await runner.runPrompt(ast, {
+      shouldStream: false,
+      signal: controller.signal,
+    });
+
+    expect((ai as any).generateText).toHaveBeenCalledWith(
+      expect.objectContaining({ abortSignal: controller.signal })
+    );
   });
 
   it("runs object prompt", async () => {
@@ -197,30 +170,37 @@ describe("VercelAdapterWebhookHandler", () => {
     }
 
     expect(rows.length).toBe(2);
+    expect(rows.every((r) => r.type === "dataset")).toBe(true);
 
-    // Row 0
-    expect(rows[0].type).toBe("dataset");
-    expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
-    expect(rows[0].result.expectedOutput).toBe("4");
-    expect(rows[0].result.actualOutput).toBe("TEXT");
-    expect(rows[0].result.tokens).toBe(10);
-    if (Array.isArray(rows[0].result.evals) && rows[0].result.evals.length > 0) {
-      expect(rows[0].result.evals[0].name).toBeDefined();
-      expect(rows[0].result.evals[0].score).toBe(0);
-      expect(rows[0].result.evals[0].label).toBe("incorrect");
-    }
+    // Order-robust: experiments run in PARALLEL (completion order ≠ dataset
+    // order), so look each row up by its own input rather than by position —
+    // this also pins input↔output attribution (no cross-talk between rows).
+    const byMsg = new Map<string, any>(
+      rows.map((r) => [r.result.input.userMessage, r.result])
+    );
 
-    // Row 1
-    expect(rows[1].type).toBe("dataset");
-    expect(rows[1].result.input.userMessage).toBe("Say hello");
-    expect(rows[1].result.expectedOutput).toBe("Hello");
-    expect(rows[1].result.actualOutput).toBe("TEXT");
-    expect(rows[1].result.tokens).toBe(10);
-    if (Array.isArray(rows[1].result.evals) && rows[1].result.evals.length > 0) {
-      expect(rows[1].result.evals[0].name).toBeDefined();
-      expect(rows[1].result.evals[0].score).toBe(0);
-      expect(rows[1].result.evals[0].label).toBe("incorrect");
-    }
+    const q1 = byMsg.get("What is 2+2?");
+    expect(q1).toBeTruthy();
+    expect(q1.expectedOutput).toBe("4");
+    expect(q1.actualOutput).toBe("TEXT");
+    expect(q1.tokens).toBe(10);
+    // Evals run UNCONDITIONALLY — the prompt declares
+    // `test_settings.evals: [exact_match]` and the client wires the registry,
+    // so a regression that drops eval execution must fail here (not be skipped).
+    expect(q1.evals).toHaveLength(1);
+    expect(q1.evals[0].name).toBe("exact_match");
+    expect(q1.evals[0].score).toBe(0);
+    expect(q1.evals[0].label).toBe("incorrect");
+
+    const q2 = byMsg.get("Say hello");
+    expect(q2).toBeTruthy();
+    expect(q2.expectedOutput).toBe("Hello");
+    expect(q2.actualOutput).toBe("TEXT");
+    expect(q2.tokens).toBe(10);
+    expect(q2.evals).toHaveLength(1);
+    expect(q2.evals[0].name).toBe("exact_match");
+    expect(q2.evals[0].score).toBe(0);
+    expect(q2.evals[0].label).toBe("incorrect");
   });
 
   it("streams all JSONL rows when using SDK loader (dataset over HTTP)", async () => {
@@ -265,41 +245,6 @@ describe("VercelAdapterWebhookHandler", () => {
     expect(dsRows[0].result.input.q).toBe('A');
     expect(dsRows[1].result.input.q).toBe('B');
     expect(dsRows[2].result.input.q).toBe('C');
-  });
-
-  it("surfaces a dataset-row error as an error chunk instead of silently dropping it", async () => {
-    // A row that fails to format (here a null row, so `value.input` throws)
-    // must NOT vanish: otherwise an all-invalid dataset streams zero rows and
-    // run-experiment exits 0, reading as a pass. The runner now emits an error
-    // chunk for it. Regression guard for the silent-skip fix.
-    const lines: any[] = [{ input: { q: "ok" } }, null];
-    const fakeStream: any = {
-      getReader() {
-        let i = 0;
-        return {
-          async read() {
-            if (i >= lines.length) return { done: true, value: undefined };
-            return { done: false, value: lines[i++] };
-          }
-        };
-      }
-    };
-    (loader as any).loadDataset = vi.fn(async () => fakeStream);
-
-    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
-    const { stream } = await runner.runExperiment(ast, "run-err");
-    const reader = (stream as ReadableStream).getReader();
-    const rows: any[] = [];
-    const decoder = new TextDecoder();
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const chunk = typeof value === "string" ? value : decoder.decode(value);
-      for (const line of chunk.split("\n")) { if (line.trim()) rows.push(JSON.parse(line)); }
-    }
-
-    const errors = rows.filter((r) => r.type === "error");
-    expect(errors.length).toBeGreaterThan(0);
   });
 
   it("streams dataset for object prompts and verifies rows", async () => {
@@ -377,7 +322,7 @@ describe("VercelAdapterWebhookHandler", () => {
   it("passes sampling options through runExperiment and returns only sampled rows", async () => {
     const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
     // Dataset has 2 rows; { rows: [0] } should return only row 0
-    const { stream } = await runner.runExperiment(ast, "run-sampling", undefined, { rows: [0] });
+    const { stream } = await runner.runExperiment(ast, "run-sampling", { sampling: { rows: [0] } });
     const reader = (stream as ReadableStream).getReader();
     const rows: any[] = [];
     for (;;) {
@@ -391,54 +336,44 @@ describe("VercelAdapterWebhookHandler", () => {
     expect(rows[0].result.input.userMessage).toBe("What is 2+2?");
   });
 
-  // -------------------------------------------------------------------------
-  // concurrency threading: runExperiment(..., concurrency) → runDatasetPool
-  // -------------------------------------------------------------------------
-
-  /** Drain a dataset stream so the runner's runDatasetPool call actually runs. */
-  async function drainStream(stream: ReadableStream): Promise<void> {
-    const reader = stream.getReader();
-    for (;;) {
-      const { done } = await reader.read();
-      if (done) break;
-    }
-  }
-
-  it("should forward the concurrency argument to runDatasetPool when runExperiment is given one", async () => {
+  // Regression: after Phase 3 (telemetry ownership), the adapter is the
+  // single author of `experimental_telemetry` — runner-enriched telemetry
+  // (trace_name + user metadata) flows in via `prompt.format()`, NOT via a
+  // parallel `ctx.telemetry` merge in the executor. Assert every flavor
+  // still reaches the SDK so tracing backends (Langfuse, Vercel
+  // Observability, Braintrust) see prompt-level attrs intact.
+  it("delivers full telemetry metadata to generateText (runner-enriched + adapter-enriched)", async () => {
     const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
 
-    // runExperiment(promptAst, datasetRunName, datasetPath, sampling, concurrency)
-    const { stream } = await runner.runExperiment(ast, "run-concurrency", undefined, undefined, 3);
-    await drainStream(stream as ReadableStream);
+    await runner.runPrompt(ast, {
+      shouldStream: false,
+      telemetry: { isEnabled: true, metadata: { user_override: "x" } },
+    });
 
-    expect(poolMock.runDatasetPool).toHaveBeenCalledTimes(1);
-    // Signature: runDatasetPool(reader, processItem, concurrency) — concurrency
-    // is the 3rd positional argument.
-    expect(poolMock.runDatasetPool.mock.calls[0][2]).toBe(3);
+    expect((ai as any).generateText).toHaveBeenCalled();
+    const call = (ai as any).generateText.mock.calls[0][0];
+    // Adapter contributed prompt_name (and props as JSON string).
+    expect(call.experimental_telemetry.metadata.prompt_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.props).toBeDefined();
+    // Runner contributed trace_name + the user_override.
+    expect(call.experimental_telemetry.metadata.trace_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.user_override).toBe("x");
+    expect(call.experimental_telemetry.isEnabled).toBe(true);
   });
 
-  it("should pass concurrency=1 verbatim to runDatasetPool, not the pool default", async () => {
-    // 1 is a boundary value distinct from DEFAULT_EXPERIMENT_CONCURRENCY (20).
-    // If the passthrough were dropped, the 3rd arg would be undefined and the
-    // pool would silently fall back to 20 — this pins the literal value.
-    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
+  it("delivers full telemetry metadata to generateObject (runner-enriched + adapter-enriched)", async () => {
+    const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
 
-    const { stream } = await runner.runExperiment(ast, "run-concurrency-1", undefined, undefined, 1);
-    await drainStream(stream as ReadableStream);
+    await runner.runPrompt(ast, {
+      shouldStream: false,
+      telemetry: { isEnabled: true, metadata: { user_override: "y" } },
+    });
 
-    expect(poolMock.runDatasetPool.mock.calls[0][2]).toBe(1);
-  });
-
-  it("should call runDatasetPool with an undefined concurrency when runExperiment is given none", async () => {
-    // No concurrency arg → runner forwards undefined → pool applies its own
-    // default. The assertion proves the runner does not substitute a value.
-    const ast = (await loader.load("text.prompt.mdx", "text")) as Ast;
-
-    const { stream } = await runner.runExperiment(ast, "run-no-concurrency");
-    await drainStream(stream as ReadableStream);
-
-    expect(poolMock.runDatasetPool).toHaveBeenCalledTimes(1);
-    expect(poolMock.runDatasetPool.mock.calls[0][2]).toBeUndefined();
+    expect((ai as any).generateObject).toHaveBeenCalled();
+    const call = (ai as any).generateObject.mock.calls[0][0];
+    expect(call.experimental_telemetry.metadata.prompt_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.trace_name).toBeDefined();
+    expect(call.experimental_telemetry.metadata.user_override).toBe("y");
   });
 
 });

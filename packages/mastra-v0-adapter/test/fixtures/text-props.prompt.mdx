@@ -1,0 +1,25 @@
+---
+name: text-props
+text_config:
+  model_name: test-model
+test_settings:
+  props:
+    userMessage: "From test props"
+  dataset: text.dataset.jsonl
+  evals: [exact_match]
+input_schema:
+  type: object
+  properties:
+    userMessage:
+      type: string
+  required:
+    - userMessage
+---
+
+<System>
+You are a helpful math tutor.
+</System>
+
+<User>
+{props.userMessage}
+</User>

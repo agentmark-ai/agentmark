@@ -476,7 +476,7 @@ describe('LocalObservabilityService', () => {
       expect(result).toBeNull();
     });
 
-    it('should return span IO data when span exists', async () => {
+    it('should return span IO data (with parsed metadata) when span exists', async () => {
       insertTrace(testDb, {
         TraceId: 'trace-1',
         SpanId: 'span-1',
@@ -484,6 +484,7 @@ describe('LocalObservabilityService', () => {
         Output: 'Hello world',
         OutputObject: '{"result": true}',
         ToolCalls: '[{"name": "read"}]',
+        Metadata: '{"debug_screenshot_url": "https://example.com/x"}',
       });
 
       const result = await service.getSpanIO(APP_ID, 'trace-1', 'span-1');
@@ -493,6 +494,7 @@ describe('LocalObservabilityService', () => {
         output: 'Hello world',
         outputObject: '{"result": true}',
         toolCalls: '[{"name": "read"}]',
+        metadata: { debug_screenshot_url: 'https://example.com/x' },
       });
     });
 

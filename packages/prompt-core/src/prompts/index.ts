@@ -200,7 +200,12 @@ export class ObjectPrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptObject"]>>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptObject(compiled, options, this.metadata(props));
+    // `Adapter.adaptObject` is declared `unknown` (deliberate — see types.ts);
+    // re-assert the concrete instance's return type, which `format` already
+    // declares. Sound: it's the same `this.adapter` instance.
+    return this.adapter.adaptObject(compiled, options, this.metadata(props)) as Awaited<
+      ReturnType<A["adaptObject"]>
+    >;
   }
 }
 
@@ -225,7 +230,9 @@ export class TextPrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptText"]>>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptText<K>(compiled, options, this.metadata(props));
+    return this.adapter.adaptText<K>(compiled, options, this.metadata(props)) as Awaited<
+      ReturnType<A["adaptText"]>
+    >;
   }
 }
 
@@ -250,7 +257,7 @@ export class ImagePrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptImage"]>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptImage(compiled, options);
+    return this.adapter.adaptImage(compiled, options) as ReturnType<A["adaptImage"]>;
   }
 }
 
@@ -275,7 +282,7 @@ export class SpeechPrompt<
     ...options
   }: PromptFormatParams<T[K]["input"]>): Promise<ReturnType<A["adaptSpeech"]>> {
     const compiled = await this.compile(props);
-    return this.adapter.adaptSpeech(compiled, options);
+    return this.adapter.adaptSpeech(compiled, options) as ReturnType<A["adaptSpeech"]>;
   }
 }
 

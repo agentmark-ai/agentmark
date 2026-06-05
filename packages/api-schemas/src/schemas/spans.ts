@@ -28,10 +28,19 @@ export const SpansListParamsSchema = PaginationParamsSchema.extend({
   // surrogate pairs that would corrupt the column on insert/compare.
   user_id: z.string().refine(...noLoneSurrogates).optional(),
   session_id: z.string().refine(...noLoneSurrogates).optional(),
-  // Advanced filter DSL — JSON-serialized
-  // `{field, operator, value}[]` array, mirroring the trace-side
-  // `filter` parameter. Parsed by the handler.
-  filter: z.string().optional(),
+  // Advanced filter — a human-readable string expression, mirroring the
+  // trace-side `filter` parameter (see TracesListParamsSchema for the full
+  // grammar). Predicates combine with `and`; a malformed filter returns 400.
+  filter: z
+    .string()
+    .optional()
+    .describe(
+      'Filter expression (string DSL), same grammar as GET /v1/traces. ' +
+        'Predicates combined with `and`: `field operator [value]`. Supports ' +
+        '`metadata.<key>` with `exists` / `does not exist` / `=` / string ' +
+        'operators. Example: `metadata.env = "prod" and status = ERROR`. ' +
+        'Malformed filters return 400.',
+    ),
 });
 
 // ---------------------------------------------------------------------------
@@ -68,6 +77,9 @@ export const SpanIOSchema = z.object({
   output: z.string(),
   output_object: z.string().nullable(),
   tool_calls: z.string().nullable(),
+  // Custom per-span metadata (reserved internal namespaces excluded). Lets a
+  // consumer read a span's metadata in isolation without loading the trace.
+  metadata: z.record(z.string(), z.string()),
 });
 
 export const SpanIOResponseSchema = itemResponse(SpanIOSchema);

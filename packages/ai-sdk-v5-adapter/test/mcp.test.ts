@@ -5,38 +5,20 @@ import { FileLoader } from "@agentmark-ai/loader-file";
 import { createAgentMarkClient, VercelAIModelRegistry } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
-vi.mock("../src/mcp/mcp-server-registry", () => {
-  class MockTool {
-    parameters = {};
-    description = "mock tool";
-    execute = vi.fn(async () => ({ ok: true }));
-  }
-
-  class McpServerRegistry {
-    private servers = new Map();
-
-    register(name: string, config: Record<string, unknown>) {
-      this.servers.set(name, config);
-      return this;
-    }
-
-    registerServers(servers: Record<string, Record<string, unknown>>) {
-      for (const [name, config] of Object.entries(servers)) {
-        this.register(name, config);
-      }
-      return this;
-    }
-
-    has(name: string) {
-      return this.servers.has(name);
-    }
-
-    async getTool(_server: string, _toolName: string) {
-      return new MockTool();
-    }
-  }
-
-  return { McpServerRegistry };
+// Mock at the SDK boundary: the shared McpServerRegistry (in prompt-core)
+// delegates to `@ai-sdk/mcp` via the adapter's McpClientFactory. Intercepting
+// there yields a fake client that returns pre-built tools, no network.
+vi.mock("@ai-sdk/mcp", () => {
+  const makeMockTool = () => ({
+    parameters: {},
+    description: "mock tool",
+    execute: vi.fn(async () => ({ ok: true })),
+  });
+  return {
+    experimental_createMCPClient: vi.fn(async () => ({
+      tools: async () => ({ search: makeMockTool(), sum: makeMockTool() }),
+    })),
+  };
 });
 
 type TestPromptTypes = {

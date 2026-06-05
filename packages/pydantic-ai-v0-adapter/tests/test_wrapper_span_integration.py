@@ -37,7 +37,6 @@ drawer's Test Prompt button silently gating off in production.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from contextlib import contextmanager
 from typing import Any, AsyncGenerator, Iterator
@@ -51,6 +50,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
     InMemorySpanExporter,
 )
 
+from agentmark.prompt_core.webhook_runner import _compute_dataset_item_name
 from agentmark_pydantic_ai_v0.webhook import PydanticAIWebhookHandler
 
 
@@ -142,13 +142,35 @@ def _make_dataset_reader(items: list[dict[str, Any]]) -> MagicMock:
 
 
 def _make_run_result(output: Any, total_tokens: int = 42) -> MagicMock:
-    """Build a mock pydantic-ai run result."""
+    """Build a mock pydantic-ai run result.
+
+    Shaped for PydanticAIExecutor's non-streaming experiment path
+    (_run_text / _run_object): `output` is the model output,
+    `usage()` returns a usage object, and `all_messages()` returns an
+    empty history (no tool calls to drain)."""
     usage = MagicMock()
     usage.total_tokens = total_tokens
+    usage.request_tokens = 0
+    usage.response_tokens = total_tokens
     result = MagicMock()
     result.output = output
-    result.usage = usage
+    result.usage = MagicMock(return_value=usage)
+    result.all_messages = MagicMock(return_value=[])
     return result
+
+
+def _patch_agent(run_result: MagicMock) -> Any:
+    """Patch the Agent the executor constructs so agent.run() returns the
+    given mock result. The shared WebhookRunner drives the real
+    PydanticAIExecutor, which builds an Agent and awaits agent.run() on the
+    non-streaming experiment path — so injecting output happens here, not
+    via the removed webhook.run_text_prompt helper."""
+    mock_agent = MagicMock()
+    mock_agent.run = AsyncMock(return_value=run_result)
+    return patch(
+        "agentmark_pydantic_ai_v0.executor.Agent",
+        MagicMock(return_value=mock_agent),
+    )
 
 
 def _wrapper_spans(exporter: InMemorySpanExporter) -> list[ReadableSpan]:
@@ -216,10 +238,7 @@ class TestExperimentWrapperSpan:
 
         run_result = _make_run_result(model_output)
 
-        with in_memory_tracing() as exporter, patch(
-            "agentmark_pydantic_ai_v0.webhook.run_text_prompt",
-            AsyncMock(return_value=run_result),
-        ):
+        with in_memory_tracing() as exporter, _patch_agent(run_result):
             stream_result = await handler.run_experiment(
                 TEXT_PROMPT_AST, "my-experiment", commit_sha="deadbeef1234",
             )
@@ -263,9 +282,10 @@ class TestExperimentWrapperSpan:
         assert len(attrs["agentmark.dataset_run_id"]) > 0
 
         # dataset_item_name is the 12-char md5 of the canonical-JSON input.
-        expected_hash = hashlib.md5(
-            json.dumps(dataset_input, sort_keys=True, default=str).encode()
-        ).hexdigest()[:12]
+        # Use the runner's own function — it stringifies with compact
+        # separators (matching TS stableStringify), so a hand-rolled
+        # json.dumps with default separators produces a different digest.
+        expected_hash = _compute_dataset_item_name(dataset_input, 0)
         assert attrs["agentmark.dataset_item_name"] == expected_hash
 
     async def test_object_experiment_wrapper_carries_input_and_output(
@@ -290,10 +310,7 @@ class TestExperimentWrapperSpan:
 
         run_result = _make_run_result(model_output)
 
-        with in_memory_tracing() as exporter, patch(
-            "agentmark_pydantic_ai_v0.webhook.run_object_prompt",
-            AsyncMock(return_value=run_result),
-        ):
+        with in_memory_tracing() as exporter, _patch_agent(run_result):
             stream_result = await handler.run_experiment(
                 OBJECT_PROMPT_AST, "my-experiment",
             )
@@ -328,16 +345,27 @@ class TestExperimentWrapperSpan:
         mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
         mock_client.load_text_prompt = AsyncMock(return_value=mock_prompt)
 
-        run_result_iter = iter([_make_run_result(o) for o in outputs])
+        # The executor builds a fresh Agent per item and calls agent.run()
+        # once each. A shared mock Agent with a side_effect list serves a
+        # distinct result per call. Each result maps to the item the
+        # executor is currently running; we recover input→output pairing
+        # from the span attributes below (parallel completion order makes
+        # call order non-deterministic, so we don't rely on it).
+        mock_agent = MagicMock()
+        mock_agent.run = AsyncMock(
+            side_effect=[_make_run_result(o) for o in outputs]
+        )
 
-        async def fake_run_text(*_args: Any, **_kwargs: Any) -> Any:
-            return next(run_result_iter)
-
+        # concurrency=1 makes per-item agent.run() calls execute in dataset
+        # order, so the side_effect list maps result[i] → item[i]. This test
+        # pins the input↔output pairing per row, which requires deterministic
+        # sequencing; the parallel default would let outputs race across rows.
         with in_memory_tracing() as exporter, patch(
-            "agentmark_pydantic_ai_v0.webhook.run_text_prompt", fake_run_text,
+            "agentmark_pydantic_ai_v0.executor.Agent",
+            MagicMock(return_value=mock_agent),
         ):
             stream_result = await handler.run_experiment(
-                TEXT_PROMPT_AST, "multi-run",
+                TEXT_PROMPT_AST, "multi-run", concurrency=1,
             )
             async for _ in stream_result["stream"]:
                 pass
@@ -378,9 +406,8 @@ class TestExperimentWrapperSpan:
         mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
         mock_client.load_text_prompt = AsyncMock(return_value=mock_prompt)
 
-        with in_memory_tracing() as exporter, patch(
-            "agentmark_pydantic_ai_v0.webhook.run_text_prompt",
-            AsyncMock(return_value=_make_run_result("done")),
+        with in_memory_tracing() as exporter, _patch_agent(
+            _make_run_result("done")
         ):
             stream_result = await handler.run_experiment(
                 TEXT_PROMPT_AST, "no-commit",
@@ -412,9 +439,8 @@ class TestExperimentWrapperSpan:
         mock_prompt.format_with_dataset = AsyncMock(return_value=mock_dataset)
         mock_client.load_text_prompt = AsyncMock(return_value=mock_prompt)
 
-        with in_memory_tracing() as exporter, patch(
-            "agentmark_pydantic_ai_v0.webhook.run_text_prompt",
-            AsyncMock(return_value=_make_run_result("done")),
+        with in_memory_tracing() as exporter, _patch_agent(
+            _make_run_result("done")
         ):
             stream_result = await handler.run_experiment(
                 TEXT_PROMPT_AST, "null-input",

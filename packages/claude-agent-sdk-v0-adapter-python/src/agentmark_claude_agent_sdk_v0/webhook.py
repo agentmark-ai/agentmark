@@ -1,18 +1,89 @@
 """Webhook handler for Claude Agent SDK adapter.
 
-Ported from TypeScript: packages/claude-agent-sdk-v0-adapter/src/runner.ts
+Thin shim over the shared WebhookRunner + ClaudeAgentExecutor. Preserves
+the historical WebhookResult / StreamingResult / ExperimentResult
+dataclass API so downstream consumers don't break, and preserves the
+unsupported-config-type short-circuit (image_config / speech_config
+return a WebhookResult with an error message rather than raising).
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
-import uuid
-from collections.abc import AsyncGenerator
+import json as _json
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 from typing import Any
 
+import yaml as _yaml
+
+from agentmark.prompt_core import (
+    ExperimentItemParams,
+    PromptSpanParams,
+    WebhookRunner,
+)
+from agentmark.prompt_core.template_engines import get_front_matter
+
+from .executor import ClaudeAgentExecutor
 from .traced import generate_fallback_trace_id
+
+
+@dataclass
+class _ClaudeAgentSpanCtx:
+    """Adapts agentmark_sdk's span context to the hook Protocol shape."""
+
+    _inner: Any
+    trace_id: str = ""
+
+    def set_attribute(self, key: str, value: str) -> None:
+        with suppress(Exception):
+            self._inner.set_attribute(key, value)
+
+
+@asynccontextmanager
+async def _claude_agent_item_span(params: ExperimentItemParams):
+    """Per-item span hook: builds agentmark_sdk SpanOptions from the
+    runner-provided params and yields a ctx the shared runner can annotate.
+    The shared runner owns `dataset_item_name` hashing + attribute
+    recording; this hook just maps params → SpanOptions."""
+    from agentmark_sdk import SpanOptions, span_context
+
+    dataset_expected = (
+        _json.dumps(params.dataset_expected_output)
+        if params.dataset_expected_output is not None
+        else None
+    )
+    dataset_input_json = (
+        _json.dumps(params.dataset_input, default=str)
+        if params.dataset_input is not None
+        else None
+    )
+    options = SpanOptions(
+        name=f"experiment-{params.dataset_run_name}-{params.index}",
+        prompt_name=params.prompt_name,
+        dataset_run_id=params.experiment_run_id,
+        dataset_run_name=params.dataset_run_name,
+        dataset_item_name=params.dataset_item_name,
+        dataset_expected_output=dataset_expected,
+        dataset_input=dataset_input_json,
+        dataset_path=params.dataset_path,
+        metadata={"commit_sha": params.commit_sha} if params.commit_sha else None,
+    )
+    async with span_context(options) as ctx:
+        yield _ClaudeAgentSpanCtx(_inner=ctx, trace_id=ctx.trace_id)
+
+
+@asynccontextmanager
+async def _claude_agent_prompt_span(params: PromptSpanParams):
+    """Prompt-level span hook for shared WebhookRunner prompt executions."""
+    from agentmark_sdk import SpanOptions, span_context
+
+    options = SpanOptions(
+        name=params.name,
+        prompt_name=params.prompt_name,
+    )
+    async with span_context(options) as ctx:
+        yield _ClaudeAgentSpanCtx(_inner=ctx, trace_id=ctx.trace_id)
 
 
 @dataclass
@@ -20,19 +91,10 @@ class WebhookResult:
     """Result from running a prompt (non-streaming)."""
 
     type: str
-    """Type of result: "text" or "object"."""
-
     result: Any
-    """The result content (string for text, dict for object)."""
-
     usage: dict[str, int]
-    """Token usage: promptTokens, completionTokens, totalTokens."""
-
     finish_reason: str
-    """Finish reason: "stop" or "error"."""
-
     trace_id: str
-    """Trace ID for telemetry."""
 
 
 @dataclass
@@ -40,91 +102,102 @@ class StreamingResult:
     """Result from running a streaming prompt."""
 
     type: str = "stream"
-    """Type is always "stream"."""
-
-    stream: AsyncGenerator[bytes, None] | None = None
-    """Async generator yielding stream chunks."""
-
-    stream_header: dict[str, str] = field(default_factory=lambda: {"AgentMark-Streaming": "true"})
-    """HTTP headers for streaming response."""
-
+    stream: AsyncIterator[str] | AsyncGenerator[bytes, None] | None = None
+    stream_header: dict[str, str] = field(
+        default_factory=lambda: {"AgentMark-Streaming": "true"}
+    )
     trace_id: str = ""
-    """Trace ID for telemetry."""
 
 
 @dataclass
 class ExperimentResult:
     """Result from running an experiment."""
 
-    stream: AsyncGenerator[bytes, None] | None = None
-    """Async generator yielding experiment events."""
+    stream: AsyncIterator[str] | AsyncGenerator[bytes, None] | None = None
+    stream_headers: dict[str, str] = field(
+        default_factory=lambda: {"AgentMark-Streaming": "true"}
+    )
 
-    stream_headers: dict[str, str] = field(default_factory=lambda: {"AgentMark-Streaming": "true"})
-    """HTTP headers for streaming response."""
+
+_UNSUPPORTED_USAGE = {"promptTokens": 0, "completionTokens": 0, "totalTokens": 0}
+
+
+def _normalize_usage(raw: dict[str, Any] | None) -> dict[str, int]:
+    if not raw:
+        return dict(_UNSUPPORTED_USAGE)
+    pt = raw.get("promptTokens")
+    if pt is None:
+        pt = raw.get("inputTokens", 0) or 0
+    ct = raw.get("completionTokens")
+    if ct is None:
+        ct = raw.get("outputTokens", 0) or 0
+    total = raw.get("totalTokens")
+    if total is None:
+        total = (pt or 0) + (ct or 0)
+    return {
+        "promptTokens": int(pt or 0),
+        "completionTokens": int(ct or 0),
+        "totalTokens": int(total or 0),
+    }
+
+
+def _kind_for_frontmatter(frontmatter: dict[str, Any]) -> str:
+    return "object" if "object_config" in frontmatter else "text"
+
+
+def _ensure_ast_has_frontmatter(
+    prompt_ast: dict[str, Any], frontmatter: dict[str, Any]
+) -> dict[str, Any]:
+    """Return an AST whose `get_front_matter` view matches `frontmatter`."""
+    try:
+        existing = get_front_matter(prompt_ast) or {}
+    except Exception:
+        existing = {}
+    if existing == frontmatter:
+        return prompt_ast
+    yaml_value = _yaml.safe_dump(frontmatter, sort_keys=False)
+    children = list(prompt_ast.get("children") or [])
+    new_children: list[Any] = []
+    replaced = False
+    for child in children:
+        if isinstance(child, dict) and child.get("type") == "yaml":
+            new_children.append({"type": "yaml", "value": yaml_value})
+            replaced = True
+        else:
+            new_children.append(child)
+    if not replaced:
+        new_children.insert(0, {"type": "yaml", "value": yaml_value})
+    return {**prompt_ast, "children": new_children}
 
 
 class ClaudeAgentWebhookHandler:
     """Webhook handler for Claude Agent SDK adapter.
 
-    Implements the WebhookHandler interface used by the AgentMark CLI
-    to execute prompts with the Claude Agent SDK and return results.
-
-    Example:
-        from agentmark_claude_agent_sdk_v0 import ClaudeAgentWebhookHandler
-
-        handler = ClaudeAgentWebhookHandler(client)
-
-        # Execute a prompt and get results
-        result = await handler.run_prompt(ast, custom_props={"task": "Help me"})
+    Internally delegates to the shared WebhookRunner with a
+    ClaudeAgentExecutor. Historical dataclass return types preserved.
     """
 
-    def __init__(self, client: Any, *, mcp_servers: dict[str, Any] | None = None) -> None:
-        """Initialize the handler.
-
-        Args:
-            client: AgentMark client configured with ClaudeAgentAdapter.
-            mcp_servers: Optional default MCP servers to include in every query.
-        """
+    def __init__(
+        self,
+        client: Any,
+        *,
+        mcp_servers: dict[str, Any] | None = None,
+    ) -> None:
         self._client = client
         self._default_mcp_servers = mcp_servers or {}
+        self._executor = ClaudeAgentExecutor(
+            default_mcp_servers=(mcp_servers or None)
+        )
+        self._runner: WebhookRunner = WebhookRunner(
+            client,
+            self._executor,
+            prompt_span_hook=_claude_agent_prompt_span,
+        )
 
     def _get_frontmatter(self, prompt_ast: dict[str, Any]) -> dict[str, Any]:
-        """Get frontmatter from prompt AST.
-
-        Args:
-            prompt_ast: The parsed prompt AST.
-
-        Returns:
-            Frontmatter dictionary.
-        """
-        # Try to use templatedx getFrontMatter if available
-        try:
-            from agentmark_templatedx import get_front_matter
-
-            return get_front_matter(prompt_ast) or {}
-        except ImportError:
-            pass
-
-        # Fallback: extract from AST structure
-        if not isinstance(prompt_ast, dict):
-            return {}
-
-        # Check for frontmatter in various locations
-        if "frontmatter" in prompt_ast:
-            return prompt_ast["frontmatter"]
-
-        # Look for yaml/frontmatter child nodes
-        children = prompt_ast.get("children", [])
-        for child in children:
-            if isinstance(child, dict) and child.get("type") == "yaml" and "value" in child:
-                try:
-                    import yaml
-
-                    return yaml.safe_load(child["value"]) or {}
-                except Exception:
-                    return {}
-
-        return {}
+        """Extract frontmatter. Overridable so tests can inject synthesized
+        frontmatter without constructing a real AST."""
+        return get_front_matter(prompt_ast) or {}
 
     async def run_prompt(
         self,
@@ -134,188 +207,70 @@ class ClaudeAgentWebhookHandler:
         custom_props: dict[str, Any] | None = None,
         telemetry: dict[str, Any] | None = None,
     ) -> WebhookResult | StreamingResult:
-        """Run a prompt and return the response.
-
-        Args:
-            prompt_ast: The parsed prompt AST.
-            should_stream: Whether to stream the response.
-            custom_props: Custom props to pass to the prompt.
-            telemetry: Telemetry configuration.
-
-        Returns:
-            WebhookResult or StreamingResult depending on should_stream.
-        """
         frontmatter = self._get_frontmatter(prompt_ast)
-        telemetry_config = telemetry or {}
 
-        # Check for unsupported prompt types
-        # Note: Use 'in' for key presence check since empty dicts are falsy in Python
         if "image_config" in frontmatter:
             return WebhookResult(
                 type="text",
-                result="Error: Image generation is not supported by Claude Agent SDK. "
-                "Use the Vercel AI SDK adapter with an image model.",
-                usage={"promptTokens": 0, "completionTokens": 0, "totalTokens": 0},
+                result=(
+                    "Error: Image generation is not supported by Claude Agent SDK. "
+                    "Use the Vercel AI SDK adapter with an image model."
+                ),
+                usage=dict(_UNSUPPORTED_USAGE),
                 finish_reason="error",
                 trace_id="",
             )
-
         if "speech_config" in frontmatter:
             return WebhookResult(
                 type="text",
-                result="Error: Speech generation is not supported by Claude Agent SDK. "
-                "Use the Vercel AI SDK adapter with a speech model.",
-                usage={"promptTokens": 0, "completionTokens": 0, "totalTokens": 0},
+                result=(
+                    "Error: Speech generation is not supported by Claude Agent SDK. "
+                    "Use the Vercel AI SDK adapter with a speech model."
+                ),
+                usage=dict(_UNSUPPORTED_USAGE),
                 finish_reason="error",
                 trace_id="",
             )
-
-        # Determine output type
-        is_object_prompt = "object_config" in frontmatter
-        output_type = "object" if is_object_prompt else "text"
-
-        # Check for unrecognized config types
         if "text_config" not in frontmatter and "object_config" not in frontmatter:
             raise ValueError(
                 "Invalid prompt: No recognized config type "
                 "(text_config, object_config, image_config, speech_config)"
             )
 
-        # Load the appropriate prompt type
-        if is_object_prompt:
-            prompt = await self._client.load_object_prompt(prompt_ast)
-        else:
-            prompt = await self._client.load_text_prompt(prompt_ast)
+        ast_for_runner = _ensure_ast_has_frontmatter(prompt_ast, frontmatter)
 
-        # Format with props or test props
-        if custom_props:
-            adapted = await prompt.format(props=custom_props, telemetry=telemetry_config)
-        else:
-            adapted = await prompt.format_with_test_props(telemetry=telemetry_config)
-
-        return await self._run_with_tracing(adapted, output_type, should_stream)
-
-    async def _run_with_tracing(
-        self,
-        adapted: Any,
-        output_type: str,
-        should_stream: bool,
-    ) -> WebhookResult | StreamingResult:
-        """Run prompt execution with automatic OTEL tracing via traced_query.
-
-        Mirrors the TypeScript runner pattern:
-            const tracedResult = await withTracing(query, adapted);
-
-        traced_query handles SDK execution and OTEL tracing transparently.
-        """
-        from .traced import traced_query
-
-        mcp_servers = self._default_mcp_servers or None
-        trace_id = generate_fallback_trace_id()
-
-        if should_stream:
-            async def stream_generator() -> AsyncGenerator[bytes, None]:
-                input_tokens = 0
-                output_tokens = 0
-                final_result = ""
-                structured_output: Any = None
-                finish_reason = "stop"
-
-                try:
-                    async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
-                        msg_type = type(message).__name__
-
-                        if msg_type == "AssistantMessage":
-                            content = getattr(message, "content", [])
-                            for block in (content or []):
-                                text = block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
-                                if text:
-                                    chunk = json.dumps({"type": output_type, "delta": text})
-                                    yield (chunk + "\n").encode()
-
-                        elif msg_type == "ResultMessage":
-                            subtype = getattr(message, "subtype", "")
-                            if subtype == "success":
-                                final_result = getattr(message, "result", "") or ""
-                                structured_output = getattr(message, "structured_output", None)
-                                usage = getattr(message, "usage", {}) or {}
-                                input_tokens = usage.get("input_tokens", 0)
-                                output_tokens = usage.get("output_tokens", 0)
-                            else:
-                                finish_reason = "error"
-                                error_msg = f"Error: {subtype}"
-                                chunk = json.dumps({"type": "error", "error": error_msg})
-                                yield (chunk + "\n").encode()
-
-                    result_value = structured_output if output_type == "object" else final_result
-                    final_chunk = json.dumps({
-                        "type": output_type,
-                        "result": result_value,
-                        "finishReason": finish_reason,
-                        "usage": {"promptTokens": input_tokens, "completionTokens": output_tokens},
-                    })
-                    yield (final_chunk + "\n").encode()
-
-                except Exception as e:
-                    error_chunk = json.dumps({"type": "error", "error": str(e)})
-                    yield (error_chunk + "\n").encode()
-
-            return StreamingResult(
-                type="stream",
-                stream=stream_generator(),
-                stream_header={"AgentMark-Streaming": "true"},
-                trace_id=trace_id,
-            )
-
-        # Non-streaming
-        input_tokens = 0
-        output_tokens = 0
-        final_result: Any = ""
-        structured_output: Any = None
-        finish_reason = "stop"
+        options: dict[str, Any] = {"shouldStream": should_stream}
+        if custom_props is not None:
+            options["customProps"] = custom_props
+        if telemetry is not None:
+            options["telemetry"] = telemetry
 
         try:
-            async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
-                msg_type = type(message).__name__
-
-                if msg_type == "ResultMessage":
-                    subtype = getattr(message, "subtype", "")
-                    if subtype == "success":
-                        final_result = getattr(message, "result", "") or ""
-                        structured_output = getattr(message, "structured_output", None)
-                        usage = getattr(message, "usage", {}) or {}
-                        input_tokens = usage.get("input_tokens", 0)
-                        output_tokens = usage.get("output_tokens", 0)
-                    else:
-                        finish_reason = "error"
-                        final_result = f"Error: {subtype}"
-
-            result_value = final_result if finish_reason == "error" else (
-                structured_output if output_type == "object" else final_result
-            )
-
+            response = await self._runner.run_prompt(ast_for_runner, options)
+        except RuntimeError as err:
             return WebhookResult(
-                type=output_type,
-                result=result_value,
-                usage={
-                    "promptTokens": input_tokens,
-                    "completionTokens": output_tokens,
-                    "totalTokens": input_tokens + output_tokens,
-                },
-                finish_reason=finish_reason,
-                trace_id=trace_id,
-            )
-
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return WebhookResult(
-                type=output_type,
-                result=f"Error: {str(e)}",
-                usage={"promptTokens": 0, "completionTokens": 0, "totalTokens": 0},
+                type=_kind_for_frontmatter(frontmatter),
+                result=f"Error: {err}",
+                usage=dict(_UNSUPPORTED_USAGE),
                 finish_reason="error",
-                trace_id=trace_id,
+                trace_id=generate_fallback_trace_id(),
             )
+
+        if response.get("type") == "stream":
+            return StreamingResult(
+                type="stream",
+                stream=response["stream"],
+                stream_header={"AgentMark-Streaming": "true"},
+                trace_id=response.get("traceId") or generate_fallback_trace_id(),
+            )
+
+        return WebhookResult(
+            type=response.get("type", "text"),
+            result=response.get("result"),
+            usage=_normalize_usage(response.get("usage")),
+            finish_reason=response.get("finishReason", "stop"),
+            trace_id=response.get("traceId") or generate_fallback_trace_id(),
+        )
 
     async def run_experiment(
         self,
@@ -326,285 +281,69 @@ class ClaudeAgentWebhookHandler:
         commit_sha: str | None = None,
         concurrency: int | None = None,
     ) -> ExperimentResult:
-        """Run an experiment against a dataset.
-
-        Args:
-            prompt_ast: The parsed prompt AST.
-            dataset_run_name: Name for this experiment run.
-            dataset_path: Optional override path to dataset.
-            sampling: Optional sampling configuration for dataset rows.
-            commit_sha: Optional git commit SHA to tag experiment runs with
-                for version tracking. Forwarded by server.py dispatcher from
-                the webhook payload and attached to each iteration's
-                experiment span as SpanOptions.metadata["commit_sha"].
-
-        Returns:
-            ExperimentResult with streaming dataset results.
-        """
+        """`commit_sha` is threaded to each item's span via the shared
+        runner's span hook; `concurrency` bounds parallel dataset rows."""
         frontmatter = self._get_frontmatter(prompt_ast)
-        experiment_run_id = str(uuid.uuid4())
-
-        # Check for unsupported types
-        if frontmatter.get("image_config") or frontmatter.get("speech_config"):
-
-            async def error_stream() -> AsyncGenerator[bytes, None]:
-                chunk = json.dumps(
-                    {
-                        "type": "error",
-                        "error": "Image and speech prompts are not supported by Claude Agent SDK",
-                    }
+        if "image_config" in frontmatter or "speech_config" in frontmatter:
+            async def error_stream_unsupported() -> AsyncIterator[str]:
+                yield (
+                    _json.dumps(
+                        {
+                            "type": "error",
+                            "error": (
+                                "Image and speech prompts are not supported "
+                                "by Claude Agent SDK"
+                            ),
+                        }
+                    )
+                    + "\n"
                 )
-                yield (chunk + "\n").encode()
 
             return ExperimentResult(
-                stream=error_stream(),
+                stream=error_stream_unsupported(),
                 stream_headers={"AgentMark-Streaming": "true"},
             )
 
-        resolved_dataset_path = dataset_path or frontmatter.get("test_settings", {}).get("dataset")
-
+        resolved_dataset_path = dataset_path or (
+            frontmatter.get("test_settings", {}).get("dataset")
+            if isinstance(frontmatter.get("test_settings"), dict)
+            else None
+        )
         if not resolved_dataset_path:
-
-            async def no_dataset_stream() -> AsyncGenerator[bytes, None]:
-                chunk = json.dumps(
-                    {
-                        "type": "error",
-                        "error": "No dataset path provided and no default dataset in prompt frontmatter",
-                    }
+            async def error_stream_no_dataset() -> AsyncIterator[str]:
+                yield (
+                    _json.dumps(
+                        {
+                            "type": "error",
+                            "error": (
+                                "No dataset path provided. Specify via "
+                                "`datasetPath` argument or prompt frontmatter "
+                                "`test_settings.dataset`."
+                            ),
+                        }
+                    )
+                    + "\n"
                 )
-                yield (chunk + "\n").encode()
 
             return ExperimentResult(
-                stream=no_dataset_stream(),
+                stream=error_stream_no_dataset(),
                 stream_headers={"AgentMark-Streaming": "true"},
             )
 
-        # Create experiment stream
-        client = self._client
-        mcp_servers = self._default_mcp_servers or None
-        run_id = experiment_run_id
-        run_name = dataset_run_name
-        prompt_name = frontmatter.get("name")
-        is_object_prompt = bool(frontmatter.get("object_config"))
-        sampling_opts = sampling
-        commit_sha_val = commit_sha
-
-        async def experiment_stream() -> AsyncGenerator[bytes, None]:
-            # Local import: agentmark_sdk is an optional runtime dep — deferring
-            # the import until the experiment runs mirrors the pydantic adapter
-            # pattern and avoids penalising module load when experiments are idle.
-            from agentmark_sdk import SpanOptions, span_context
-
-            from agentmark.prompt_core import run_dataset_pool
-
-            from .traced import traced_query
-
-            # Emit experiment metadata
-            start_chunk = json.dumps(
-                {
-                    "type": "experiment_start",
-                    "runId": run_id,
-                    "runName": run_name,
-                    "datasetPath": resolved_dataset_path,
-                    "promptName": prompt_name,
-                }
-            )
-            yield (start_chunk + "\n").encode()
-
-            try:
-                # Load the prompt
-                if is_object_prompt:
-                    prompt = await client.load_object_prompt(prompt_ast)
-                else:
-                    prompt = await client.load_text_prompt(prompt_ast)
-
-                # Get eval registry
-                eval_registry = client.get_eval_registry()
-
-                # Format with dataset
-                dataset = await prompt.format_with_dataset(
-                    dataset_path=resolved_dataset_path,
-                    sampling=sampling_opts,
-                    telemetry={"isEnabled": True},
-                )
-
-                reader = dataset.get_reader()
-                processed = 0
-
-                async def process_item(item: dict[str, Any], item_index: int) -> str:
-                    nonlocal processed
-                    processed += 1
-
-                    # Check if this is an error chunk
-                    if "error" in item:
-                        return json.dumps(
-                            {
-                                "type": "experiment_item_error",
-                                "index": item_index,
-                                "error": item["error"],
-                            }
-                        )
-
-                    # This is a valid data chunk
-                    adapted = item.get("formatted")
-                    dataset_item = item.get("dataset", {})
-                    evals = item.get("evals", [])
-
-                    result = ""
-                    structured_output: Any = None
-                    input_tokens = 0
-                    output_tokens = 0
-                    # Fallback trace id used only when span_context yields a
-                    # no-op context (no OTEL provider registered) — normally
-                    # ctx.trace_id below overrides this.
-                    item_trace_id = generate_fallback_trace_id()
-
-                    # Wrap the per-item run in an agentmark span carrying the
-                    # dataset attributes (for the experiments tab) and the
-                    # commit_sha in metadata. traced_query() will create its
-                    # own invoke_agent span as a child of this one, so all
-                    # agent spans inherit the dataset_run_id / dataset_item_name
-                    # attributes via the OTEL parent context.
-                    dataset_input = dataset_item.get("input")
-                    try:
-                        async with span_context(SpanOptions(
-                            name=f"experiment-{run_name}-{item_index}",
-                            prompt_name=prompt_name,
-                            dataset_run_id=run_id,
-                            dataset_run_name=run_name,
-                            dataset_item_name=hashlib.md5(
-                                json.dumps(dataset_input, sort_keys=True, default=str).encode()
-                            ).hexdigest()[:12] if dataset_input else str(item_index),
-                            dataset_expected_output=json.dumps(
-                                dataset_item.get("expected_output")
-                            ) if dataset_item.get("expected_output") else None,
-                            dataset_input=json.dumps(
-                                dataset_input, default=str
-                            ) if dataset_input else None,
-                            dataset_path=resolved_dataset_path,
-                            metadata={"commit_sha": commit_sha_val} if commit_sha_val else None,
-                        )) as ctx:
-                            # Use the real trace_id from the outer span. The
-                            # claude-agent server exports spans as OTLP/JSON
-                            # so the stored TraceId column is hex — emit hex
-                            # here so /v1/scores resourceId lookups match.
-                            item_trace_id = ctx.trace_id
-
-                            # Record the experiment iteration's template
-                            # variables on the wrapper span as `agentmark.props`.
-                            # The dataset row's `input` column IS the template
-                            # variables for that iteration — that's what
-                            # `format_with_dataset` consumed to render the
-                            # prompt. The normalizer's agentmark-parser maps
-                            # `agentmark.props` to `result.props` (Test Prompt
-                            # button gating), and AgentMarkTransformer's input
-                            # fallback (transformers/agentmark/index.ts:258)
-                            # also maps it to `result.input` so the drawer's
-                            # Input panel renders. Don't ALSO write
-                            # `agentmark.input` — it would erase the semantic
-                            # distinction between "template vars" and
-                            # "generic input data".
-                            if dataset_input is not None:
-                                try:
-                                    ctx.set_attribute(
-                                        "agentmark.props",
-                                        json.dumps(dataset_input, default=str),
-                                    )
-                                except (TypeError, ValueError):
-                                    pass
-
-                            async for message in traced_query(adapted, default_mcp_servers=mcp_servers):
-                                msg_type = type(message).__name__
-                                if msg_type == "ResultMessage" and getattr(message, "subtype", "") == "success":
-                                    result = getattr(message, "result", "") or ""
-                                    structured_output = getattr(message, "structured_output", None)
-                                    usage = getattr(message, "usage", {}) or {}
-                                    input_tokens = usage.get("input_tokens", 0)
-                                    output_tokens = usage.get("output_tokens", 0)
-
-                            # Determine actual output
-                            actual_output = structured_output if is_object_prompt else result
-
-                            # Record the model output on the wrapper span
-                            # (canonical key — no fallback needed).
-                            try:
-                                ctx.set_attribute(
-                                    "agentmark.output",
-                                    json.dumps(actual_output, default=str),
-                                )
-                            except (TypeError, ValueError):
-                                pass
-
-                            # Run evals if configured
-                            eval_results: list[dict[str, Any]] = []
-                            if eval_registry and evals:
-                                for eval_name in evals:
-                                    eval_fn = eval_registry.get(eval_name)
-                                    if eval_fn:
-                                        try:
-                                            eval_result = await eval_fn(
-                                                input=adapted.messages
-                                                if hasattr(adapted, "messages")
-                                                else [],
-                                                output=actual_output,
-                                                expected_output=dataset_item.get("expected_output"),
-                                            )
-                                            eval_results.append({"name": eval_name, **eval_result})
-                                        except Exception:
-                                            pass
-
-                        # Span is now closed. Emit the dataset chunk AFTER the
-                        # span closes, so the span's duration reflects only
-                        # the prompt + evals, not the stream write. This also
-                        # matches the pydantic adapter's structure. The server
-                        # wrap in server.py consumes traceId from this chunk
-                        # to post eval scores.
-                        return json.dumps(
-                            {
-                                "type": "dataset",
-                                "result": {
-                                    "input": dataset_item.get("input"),
-                                    "expectedOutput": dataset_item.get("expected_output"),
-                                    "actualOutput": actual_output,
-                                    "tokens": input_tokens + output_tokens,
-                                    "evals": eval_results,
-                                },
-                                "traceId": item_trace_id,
-                                "runId": run_id,
-                                "runName": run_name,
-                            }
-                        )
-
-                    except Exception as e:
-                        return json.dumps(
-                            {
-                                "type": "experiment_item_error",
-                                "index": item_index,
-                                "input": dataset_item.get("input"),
-                                "error": str(e),
-                            }
-                        )
-
-                async for chunk in run_dataset_pool(reader, process_item, concurrency):
-                    yield (chunk + "\n").encode()
-
-                # Emit completion event
-                end_chunk = json.dumps({"type": "experiment_end", "totalItems": processed})
-                yield (end_chunk + "\n").encode()
-
-            except Exception as e:
-                error_chunk = json.dumps({"type": "error", "error": str(e)})
-                yield (error_chunk + "\n").encode()
-
-        return ExperimentResult(
-            stream=experiment_stream(),
-            stream_headers={"AgentMark-Streaming": "true"},
+        ast_for_runner = _ensure_ast_has_frontmatter(prompt_ast, frontmatter)
+        response = await self._runner.run_experiment(
+            ast_for_runner,
+            dataset_run_name,
+            resolved_dataset_path,
+            sampling,
+            item_span_hook=_claude_agent_item_span,
+            commit_sha=commit_sha,
+            concurrency=concurrency,
         )
 
-
-__all__ = [
-    "ClaudeAgentWebhookHandler",
-    "WebhookResult",
-    "StreamingResult",
-    "ExperimentResult",
-]
+        return ExperimentResult(
+            stream=response["stream"],
+            stream_headers=response.get(
+                "streamHeaders", {"AgentMark-Streaming": "true"}
+            ),
+        )

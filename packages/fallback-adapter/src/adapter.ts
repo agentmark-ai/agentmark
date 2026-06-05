@@ -1,29 +1,5 @@
-import {
-  Adapter,
-  TextConfig,
-  ImageConfig,
-  ObjectConfig,
-  PromptShape,
-  SpeechConfig,
-} from "@agentmark-ai/prompt-core";
-
-export class DefaultAdapter<T extends PromptShape<T>> implements Adapter<T> {
-  declare readonly __dict: T;
-  readonly __name = "default";
-
-  adaptText(input: TextConfig): TextConfig {
-    return input;
-  }
-
-  adaptObject(input: ObjectConfig): ObjectConfig {
-    return input;
-  }
-
-  adaptImage(input: ImageConfig): ImageConfig {
-    return input;
-  }
-
-  adaptSpeech(input: SpeechConfig) {
-    return input;
-  }
-}
+// The neutral pass-through adapter lives in `@agentmark-ai/prompt-core` so the
+// BYO `createWebhookRunner` path and this package share ONE class (no drift
+// between two identical "default" adapters). Re-exported here to preserve the
+// `@agentmark-ai/fallback-adapter` public surface.
+export { DefaultAdapter } from "@agentmark-ai/prompt-core";

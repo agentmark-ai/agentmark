@@ -395,6 +395,13 @@ export interface SpanIO {
   output: string;
   outputObject: string | null;
   toolCalls: string | null;
+  /**
+   * Custom per-span metadata (raw map; reserved namespaces stripped at the API
+   * boundary). Optional on the internal type so existing producers/mocks need
+   * not be updated wholesale; the wire shapes (SpanIOSchema / SpanIOWire) keep
+   * it required and the gateway + CLI always populate it.
+   */
+  metadata?: Record<string, string>;
 }
 
 /**

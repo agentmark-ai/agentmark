@@ -1,0 +1,14 @@
+---
+name: byo-support
+text_config:
+  model_name: my-bedrock-model
+  temperature: 0.2
+---
+
+<System>
+You are a helpful customer-support agent for an e-commerce store.
+</System>
+
+<User>
+{props.question}
+</User>

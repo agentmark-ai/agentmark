@@ -96,27 +96,33 @@ export interface Adapter<D extends PromptShape<D>> {
   readonly __dict: D;
   readonly __name: string;
 
+  // Return `unknown` (not `any`): an Adapter's output is the SDK-native param
+  // bag the paired Executor consumes, and the two are typed independently — so
+  // callers holding a generic `Adapter<D>` must narrow deliberately rather than
+  // get `any`'s silent property access. Concrete adapters override with their
+  // real return type (e.g. DefaultAdapter → TextConfig), so the typed BYO path
+  // is unaffected.
   adaptText<_K extends KeysWithKind<D, "text"> & string>(
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): any;
+  ): unknown;
 
   adaptObject<_K extends KeysWithKind<D, "object"> & string>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): any;
+  ): unknown;
 
   adaptImage<_K extends KeysWithKind<D, "image"> & string>(
     input: ImageConfig,
     options: AdaptOptions
-  ): any;
+  ): unknown;
 
   adaptSpeech<_K extends KeysWithKind<D, "speech"> & string>(
     input: SpeechConfig,
     options: AdaptOptions
-  ): any;
+  ): unknown;
 
   // Optional: Adapters that support dev mode provide this
   getDevServerFactory?(): (options: { port: number; client: any }) => Promise<any>;

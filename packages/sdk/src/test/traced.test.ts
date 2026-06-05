@@ -1,31 +1,24 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createServer, Server } from "http";
-import { AddressInfo } from "net";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { observe, SpanKind } from "../trace/traced";
 import { serializeValue } from "../trace/serialize";
 import { span } from "../trace/tracing";
 import { AgentMarkSDK } from "../agentmark";
+import { findSpanByName, resetCapturedSpans } from "./otlp-memory";
 
-interface OTLPSpan {
-  name: string;
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
-  attributes: Array<{ key: string; value: { stringValue?: string; intValue?: number } }>;
-  status?: { code: number };
-}
-
-interface OTLPRequest {
-  resourceSpans: Array<{
-    resource: {
-      attributes: Array<{ key: string; value: { stringValue?: string } }>;
-    };
-    scopeSpans: Array<{
-      scope: { name?: string };
-      spans: OTLPSpan[];
-    }>;
-  }>;
-}
+// Route the SDK's OTLP exporter to an in-memory exporter so span export is
+// synchronous — no flaky local HTTP collector. See ./otlp-memory for the why.
+vi.mock("@opentelemetry/exporter-trace-otlp-http", async () => {
+  const { memoryExporter } = await import("./otlp-memory");
+  return {
+    OTLPTraceExporter: class {
+      export(spans: any, resultCallback: any) {
+        memoryExporter.export(spans, resultCallback);
+      }
+      async shutdown() {}
+      async forceFlush() {}
+    },
+  };
+});
 
 describe("serializeValue", () => {
   it("should serialize plain objects", () => {
@@ -70,82 +63,34 @@ describe("serializeValue", () => {
 });
 
 describe("observe wrapper", () => {
-  let server: Server;
   let sdk: AgentMarkSDK;
   let activeSdk: any;
-  let receivedRequests: Array<{ body: OTLPRequest }>;
 
   async function flushSpans() {
-    // AgentMark's tracer provider is now isolated (no longer the global
-    // OTel provider — see issue #1131), so flush the active SDK directly.
+    // AgentMark's tracer provider is isolated (not the global OTel provider —
+    // see issue #1131), so flush the active SDK directly. The exporter is
+    // in-memory, so this resolves synchronously with no network wait.
     if (activeSdk?.forceFlush) {
       await activeSdk.forceFlush();
     }
-    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  function findSpanByName(spanName: string): { span: OTLPSpan; attrMap: Map<string, string | undefined> } | null {
-    for (let i = receivedRequests.length - 1; i >= 0; i--) {
-      const request = receivedRequests[i];
-      for (const resourceSpan of request.body.resourceSpans) {
-        for (const scopeSpan of resourceSpan.scopeSpans) {
-          for (const span of scopeSpan.spans) {
-            if (span.name === spanName) {
-              const attrMap = new Map(
-                span.attributes.map((attr) => [attr.key, attr.value.stringValue])
-              );
-              return { span, attrMap };
-            }
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  beforeAll(async () => {
-    receivedRequests = [];
-    server = createServer((req, res) => {
-      let body = "";
-      req.on("data", (chunk) => {
-        body += chunk.toString();
-      });
-      req.on("end", () => {
-        try {
-          const parsed = JSON.parse(body) as OTLPRequest;
-          receivedRequests.push({ body: parsed });
-          res.writeHead(200);
-          res.end();
-        } catch {
-          res.writeHead(400);
-          res.end();
-        }
-      });
+  beforeAll(() => {
+    // baseUrl is unused — the OTLP exporter is mocked to capture in memory.
+    sdk = new AgentMarkSDK({
+      apiKey: "test-key",
+      appId: "test-app",
+      baseUrl: "http://127.0.0.1:4318",
     });
+  });
 
-    await new Promise<void>((resolve) => {
-      server.listen(0, "127.0.0.1", () => {
-        const address = server.address() as AddressInfo;
-        const serverUrl = `http://127.0.0.1:${address.port}`;
-        sdk = new AgentMarkSDK({
-          apiKey: "test-key",
-          appId: "test-app",
-          baseUrl: serverUrl,
-        });
-        resolve();
-      });
-    });
+  afterEach(() => {
+    resetCapturedSpans();
   });
 
   afterAll(async () => {
     if (activeSdk) {
       await activeSdk.shutdown();
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-    if (server) {
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
     }
   });
 
