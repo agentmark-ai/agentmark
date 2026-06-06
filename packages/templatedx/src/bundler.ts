@@ -2,6 +2,7 @@ import { NODE_TYPES, MDX_JSX_ATTRIBUTE_TYPES } from './constants';
 import { getDirname, resolvePath, cloneObject } from './utils';
 import { visit } from 'unist-util-visit';
 import type { Root, RootContent, Paragraph, Parent, Node } from 'mdast';
+import type { Position } from 'unist';
 import type { ComponentASTs, ContentLoader } from './types';
 import { SKIP } from 'unist-util-visit';
 import {
@@ -12,6 +13,7 @@ import {
 } from './ast-utils';
 import { TagPluginRegistry } from './tag-plugin-registry';
 import { isSupportedHTMLTag } from './supported-tags';
+import { TemplateDXError } from './errors';
 // Forward declaration to avoid circular dependency
 import type { TemplateDX } from './templatedx-engine';
 
@@ -62,9 +64,10 @@ function validateAllJsxElements(
     }
 
     // If none of the above, it's unsupported
-    throw new Error(
+    throw new TemplateDXError(
       `Unsupported tag '<${componentName}>'. ` +
-      `Only native MDX elements, and registered tags are supported.`
+      `Only native MDX elements, and registered tags are supported.`,
+      node.position
     );
   });
 }
@@ -120,9 +123,19 @@ async function processMdxContent(
   const imports = extractImports(tree, absolutePath);
   const componentASTs: ComponentASTs = {};
 
-  for (const [componentName, sourcePath] of Object.entries(imports)) {
+  for (const [componentName, { source: sourcePath, position }] of Object.entries(imports)) {
     const importAbsolutePath = resolvePath(getDirname(absolutePath), sourcePath);
-    const importedContent = await contentLoader(importAbsolutePath);
+    let importedContent: string;
+    try {
+      importedContent = await contentLoader(importAbsolutePath);
+    } catch (error) {
+      // A failing content loader (missing file, network error) is a user-facing
+      // authoring error — point at the import statement that requested the file.
+      throw new TemplateDXError(
+        `Failed to load import "${sourcePath}": ${(error as Error).message}`,
+        position
+      );
+    }
 
     const { tree: componentTree, componentASTs: nestedComponentASTs } =
       await processMdxContent(
@@ -170,8 +183,10 @@ function isCommentNode(node: Node): boolean {
   return false;
 }
 
-function extractImports(tree: Root, absolutePath: string): Record<string, string> {
-  const imports: Record<string, string> = {};
+type ExtractedImport = { source: string; position?: Position };
+
+function extractImports(tree: Root, absolutePath: string): Record<string, ExtractedImport> {
+  const imports: Record<string, ExtractedImport> = {};
 
   visit(tree, NODE_TYPES.MDX_JSX_ESM, (node: any) => {
     const estree = node.data?.estree;
@@ -191,23 +206,26 @@ function extractImports(tree: Root, absolutePath: string): Record<string, string
             (spec: any) => spec.type !== 'ImportDefaultSpecifier'
           )
         ) {
-          throw new Error(
-            `Only default imports are supported. Invalid import in ${absolutePath}: ${node.value.trim()}`
+          throw new TemplateDXError(
+            `Only default imports are supported. Invalid import in ${absolutePath}: ${node.value.trim()}`,
+            node.position
           );
         }
 
         if (defaultSpecifier) {
           const importedName = defaultSpecifier.local.name;
           const source = stmt.source.value as string;
-          imports[importedName] = source;
+          imports[importedName] = { source, position: node.position };
         } else {
-          throw new Error(
-            `Invalid import in ${absolutePath}: ${node.value.trim()}`
+          throw new TemplateDXError(
+            `Invalid import in ${absolutePath}: ${node.value.trim()}`,
+            node.position
           );
         }
       } else if (stmt.type.startsWith('Export')) {
-        throw new Error(
-          `Exports are not supported. Found in ${absolutePath}: ${node.value.trim()}`
+        throw new TemplateDXError(
+          `Exports are not supported. Found in ${absolutePath}: ${node.value.trim()}`,
+          node.position
         );
       }
     }
@@ -424,8 +442,9 @@ function extractRawProps(
         props[attr.name] = resolvedValue;
       }
     } else if (attr.type === MDX_JSX_ATTRIBUTE_TYPES.MDX_JSX_EXPRESSION_ATTRIBUTE) {
-      throw new Error(
-        `Only literal attribute values are supported. Invalid attribute in component <${node.name}>.`
+      throw new TemplateDXError(
+        `Only literal attribute values are supported. Invalid attribute in component <${node.name}>.`,
+        attr.position ?? node.position
       );
     }
   }

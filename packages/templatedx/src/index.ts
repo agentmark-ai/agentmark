@@ -57,5 +57,10 @@ export {
 // Export the new stateful engine
 export { TemplateDX } from './templatedx-engine';
 
+// Positioned semantic errors — same line/column/offset shape as the
+// VFileMessage syntax errors thrown by the parser, so editor integrations
+// can map any templatedx error to a source range with one code path.
+export { TemplateDXError } from './errors';
+
 // Export schema $ref resolution
 export { resolveSchemaRefs, resolveAstSchemaRefs } from './schema-ref-resolver';
