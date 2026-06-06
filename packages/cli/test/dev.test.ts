@@ -336,19 +336,26 @@ describe('agentmark dev', () => {
         let stdout = '';
         child.stdout?.on('data', (data) => { stdout += data.toString(); });
 
-        await wait(PLATFORM_TIMEOUTS.serverStartup);
-
         // Verify .agentmark/dev-entry.ts exists (legacy location)
         expect(fs.existsSync(path.join(tempDir, '.agentmark', 'dev-entry.ts'))).toBe(true);
         // Verify dev-entry.ts does NOT exist at project root
         expect(fs.existsSync(path.join(tempDir, 'dev-entry.ts'))).toBe(false);
 
-        // Verify the output shows legacy location warning
-        expect(stdout).toContain('Using legacy .agentmark/dev-entry.ts');
-
-        // Verify server started
+        // Verify server started. Polling here (instead of a fixed
+        // serverStartup sleep) keeps the test deterministic on a
+        // CPU-contended CI runner where startup can outlast any fixed sleep.
         const serverReady = await waitForServer(`http://127.0.0.1:${apiPort}/v1/prompts`);
         expect(serverReady).toBe(true);
+
+        // Verify the output shows the legacy location warning. The warning
+        // is emitted during startup, but its flush isn't ordered with the
+        // API server's listen — poll briefly rather than asserting a
+        // snapshot taken mid-boot.
+        const legacyWarning = 'Using legacy .agentmark/dev-entry.ts';
+        for (let i = 0; i < PLATFORM_TIMEOUTS.serverReadyMaxAttempts && !stdout.includes(legacyWarning); i++) {
+          await wait(PLATFORM_TIMEOUTS.serverReadyCheckDelay);
+        }
+        expect(stdout).toContain(legacyWarning);
       } finally {
         // Ensure process is cleaned up even if test fails
         if (child.pid) {
@@ -361,7 +368,7 @@ describe('agentmark dev', () => {
       // Ensure directory is cleaned up even if test setup fails
       await safeRmDir(tempDir);
     }
-  }, 30000); // Increase timeout for CI
+  }, 45000); // Increase timeout for CI (waitForServer + stdout poll can each take 15s when contended)
 
   it('allows custom port configuration', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-custom-port-' + Date.now());
@@ -391,7 +398,13 @@ describe('agentmark dev', () => {
       processes.push(child);
 
       try {
-        await wait(PLATFORM_TIMEOUTS.serverStartup);
+        // Poll until the server accepts connections instead of sleeping a
+        // fixed serverStartup interval: on a CPU-contended CI runner the dev
+        // server can take longer than the sleep, and the single fetch below
+        // would fail with ECONNREFUSED. Mirrors the waitForServer pattern
+        // used by every other test in this file.
+        const serverReady = await waitForServer(`http://127.0.0.1:${customApiPort}/v1/prompts`);
+        expect(serverReady).toBe(true);
 
         // Test that server is running on custom port
         const resp = await fetch(`http://127.0.0.1:${customApiPort}/v1/prompts`);

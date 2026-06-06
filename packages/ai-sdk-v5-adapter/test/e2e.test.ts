@@ -19,7 +19,11 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { generateText } from "ai";
 
-describe("E2E: Seamless Pull-Models Flow", () => {
+// 30s suite timeout: these tests run the real format → resolve → dispatch
+// pipeline (network call included — it fails on auth, but only after a real
+// HTTPS round trip). Under V8 coverage on a contended CI runner the default
+// 5s testTimeout is too tight (see Coverage (main) run 27033661426).
+describe("E2E: Seamless Pull-Models Flow", { timeout: 30_000 }, () => {
   const fixturesPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 
   it("should wire OpenAI provider/model through full flow and fail at API call (not resolution)", async () => {
