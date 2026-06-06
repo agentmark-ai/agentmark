@@ -21,6 +21,17 @@ vi.mock("@ai-sdk/mcp", () => {
   };
 });
 
+// Stdio transport boundary — the factory's non-URL branch dynamically imports
+// `@ai-sdk/mcp/mcp-stdio` and constructs a transport from the server config.
+const stdioTransportCtor = vi.fn();
+vi.mock("@ai-sdk/mcp/mcp-stdio", () => ({
+  Experimental_StdioMCPTransport: class {
+    constructor(cfg: unknown) {
+      stdioTransportCtor(cfg);
+    }
+  },
+}));
+
 type TestPromptTypes = {
   "mcp-text.prompt.mdx": {
     input: { userMessage: string };
@@ -68,6 +79,40 @@ describe("Vercel adapter MCP integration", () => {
     expect(resultTools.search).toBeDefined();
     expect(typeof (resultTools.search as { execute: unknown }).execute).toBe("function");
     expect(resultTools.sum).toBeDefined();
+  });
+
+  it("boots stdio MCP servers via @ai-sdk/mcp/mcp-stdio with the exact server config", async () => {
+    const { experimental_createMCPClient } = await import("@ai-sdk/mcp");
+    const agentMark = createAgentMarkClient<TestPromptTypes>({
+      loader: fileLoader,
+      modelRegistry,
+      mcpServers: {
+        "server-1": {
+          command: "node",
+          args: ["mcp-server.js", "--verbose"],
+          cwd: "/srv/mcp",
+          env: { MCP_TOKEN: "t-123" },
+        },
+      },
+    });
+
+    const prompt = await agentMark.loadTextPrompt("mcp-text.prompt.mdx");
+    const result = await prompt.format({ props: { userMessage: "hi" } });
+
+    // The stdio transport must be constructed from the server config verbatim —
+    // a dropped field (e.g. env) would break real MCP server auth silently.
+    expect(stdioTransportCtor).toHaveBeenCalledWith({
+      command: "node",
+      args: ["mcp-server.js", "--verbose"],
+      cwd: "/srv/mcp",
+      env: { MCP_TOKEN: "t-123" },
+    });
+    // And the client must be created over THAT transport (not a URL transport).
+    expect(experimental_createMCPClient).toHaveBeenCalledWith({
+      transport: expect.any(Object),
+    });
+    const resultTools = result.tools as Record<string, unknown>;
+    expect(typeof (resultTools.search as { execute: unknown }).execute).toBe("function");
   });
 });
 

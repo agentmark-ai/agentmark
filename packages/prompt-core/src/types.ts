@@ -80,7 +80,14 @@ export type BaseAdaptOptions = {
   toolContext?: Record<string, unknown>;
 };
 
-export type AdaptOptions = BaseAdaptOptions & { [key: string]: any };
+// Closed on purpose (no index signature): an open `[key: string]: any` bag
+// disables typo-checking on the most-passed parameter in the system and lets
+// every field access degrade to `any`. Python's AdaptOptions is a closed
+// TypedDict(total=False) — keeping the TS contract closed keeps the two
+// languages in agreement. Adapters that need framework-specific options
+// should accept `AdaptOptions & TheirOptions` (method parameter bivariance
+// means this still satisfies the `Adapter` interface).
+export type AdaptOptions = BaseAdaptOptions;
 
 export interface Loader<T extends PromptShape<T>> {
   load(path: string, promptType: PromptKind, options?: any): Promise<unknown>;

@@ -107,3 +107,25 @@ describe("convertMessages: rich content", () => {
     ]);
   });
 });
+
+describe("convertMessages: unknown-role fall-through", () => {
+  it("forwards messages with roles outside the typed union untouched", async () => {
+    // RichChatMessage's union is system|user|assistant, but untyped JS callers
+    // can hand the adapter anything — the conversion must pass unknown roles
+    // through verbatim rather than dropping or mangling them, so the SDK (not
+    // the adapter) decides whether to reject them.
+    const formatted = await adapter.adaptText(
+      textInput({}, [
+        { role: "user", content: "hi" },
+        { role: "tool", content: [{ type: "tool-result", toolCallId: "t1" }] },
+      ]),
+      {},
+      METADATA
+    );
+
+    expect(formatted.messages).toEqual([
+      { role: "user", content: "hi" },
+      { role: "tool", content: [{ type: "tool-result", toolCallId: "t1" }] },
+    ]);
+  });
+});
