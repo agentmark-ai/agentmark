@@ -18,6 +18,7 @@ import {
 } from './ast-utils';
 import { FilterRegistry } from './filter-registry';
 import { Scope } from './scope';
+import { TemplateDXError } from './errors';
 import type { 
   Root,
   Node, 
@@ -120,8 +121,11 @@ export class NodeTransformer {
         value: stringifyValue(evaluatedValue),
       } as Node;
     } catch (error: any) {
-      throw new Error(
-        `Error evaluating expression "${expression}": ${error.message}`
+      // The expression node knows exactly where `{...}` sits in the source —
+      // attach it so editors can underline the failing expression.
+      throw new TemplateDXError(
+        `Error evaluating expression "${expression}": ${error.message}`,
+        node.position
       );
     }
   }
@@ -324,8 +328,15 @@ export class NodeTransformer {
         return newNode;
       }
     } catch (error) {
-      throw new Error(
-        `Error processing MDX JSX Element: ${(error as Error).message}`
+      // A child that already located its error keeps its (more precise)
+      // position and message — re-wrapping here would replace an exact
+      // expression range with the whole enclosing element.
+      if (error instanceof TemplateDXError && error.position) {
+        throw error;
+      }
+      throw new TemplateDXError(
+        `Error processing MDX JSX Element: ${(error as Error).message}`,
+        node.position
       );
     }
   }
@@ -342,13 +353,23 @@ export class NodeTransformer {
           MDX_JSX_ATTRIBUTE_TYPES.MDX_JSX_ATTRIBUTE_VALUE_EXPRESSION
         ) {
           const expression = attr.value.value;
-          props[attr.name] = this.resolveExpression(expression);
+          try {
+            props[attr.name] = this.resolveExpression(expression);
+          } catch (error: any) {
+            // Point at the attribute (falling back to the element) so a bad
+            // prop expression underlines `name={...}`, not the whole tag body.
+            throw new TemplateDXError(
+              `Error evaluating expression "${expression}": ${error.message}`,
+              attr.position ?? node.position
+            );
+          }
         }
       } else if (
         attr.type === MDX_JSX_ATTRIBUTE_TYPES.MDX_JSX_EXPRESSION_ATTRIBUTE
       ) {
-        throw new Error(
-          `Unsupported attribute type in component <${node.name}>.`
+        throw new TemplateDXError(
+          `Unsupported attribute type in component <${node.name}>.`,
+          attr.position ?? node.position
         );
       }
     }
