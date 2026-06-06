@@ -25,6 +25,18 @@ vi.mock("ai", async (importOriginal) => {
   };
 });
 
+// Stdio transport boundary — v4's factory dynamically imports `ai/mcp-stdio`
+// (NOT `@ai-sdk/mcp/mcp-stdio`; that's a real v4/v5 delta) and constructs a
+// transport from the server config.
+const stdioTransportCtor = vi.fn();
+vi.mock("ai/mcp-stdio", () => ({
+  Experimental_StdioMCPTransport: class {
+    constructor(cfg: unknown) {
+      stdioTransportCtor(cfg);
+    }
+  },
+}));
+
 type TestPromptTypes = {
   "mcp-text.prompt.mdx": {
     input: { userMessage: string };
@@ -79,6 +91,45 @@ describe("Vercel adapter MCP integration", () => {
     expect(typeof (result.tools as any)["web-search"].execute).toBe("function");
     // Plain tool resolved by name
     expect((result.tools as any).sum).toBe(mockSumTool);
+  });
+
+  it("boots stdio MCP servers via ai/mcp-stdio with the exact server config", async () => {
+    const { experimental_createMCPClient } = await import("ai");
+    const mockSumTool = {
+      description: "Add two numbers",
+      parameters: {} as any,
+      execute: vi.fn(async () => 42),
+    };
+    const agentMark = createAgentMarkClient<TestPromptTypes>({
+      loader: fileLoader,
+      modelRegistry,
+      tools: { sum: mockSumTool as any },
+      mcpServers: {
+        "server-1": {
+          command: "node",
+          args: ["mcp-server.js", "--verbose"],
+          cwd: "/srv/mcp",
+          env: { MCP_TOKEN: "t-123" },
+        },
+      },
+    });
+
+    const prompt = await agentMark.loadTextPrompt("mcp-text.prompt.mdx");
+    const result = await prompt.format({ props: { userMessage: "hi" } });
+
+    // The stdio transport must be constructed from the server config verbatim —
+    // a dropped field (e.g. env) would break real MCP server auth silently.
+    expect(stdioTransportCtor).toHaveBeenCalledWith({
+      command: "node",
+      args: ["mcp-server.js", "--verbose"],
+      cwd: "/srv/mcp",
+      env: { MCP_TOKEN: "t-123" },
+    });
+    // And the client must be created over THAT transport (not a URL transport).
+    expect(experimental_createMCPClient).toHaveBeenCalledWith({
+      transport: expect.any(Object),
+    });
+    expect((result.tools as any)["web-search"]).toBeDefined();
   });
 });
 

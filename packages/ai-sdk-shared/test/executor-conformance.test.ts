@@ -17,6 +17,7 @@ import {
   assertTextStream,
   assertObjectStream,
   assertErrorStream,
+  assertAbortStream,
   assertUsageShape,
   runExecutorConformance,
   type AgentEvent,
@@ -353,6 +354,48 @@ describe.each(Object.entries(shapes))("%s executor", (name, shape) => {
       expect((events.at(-1) as { error: string }).error).toMatch(
         /Output\.object/
       );
+    });
+  });
+
+  describe("abort", () => {
+    it("stops emitting at the abort boundary and forwards ctx.signal to the SDK", async () => {
+      const controller = new AbortController();
+      let seenSignal: AbortSignal | undefined;
+      let yielded = 0;
+      const executor = make({
+        streamText: (p: Record<string, unknown>) => {
+          seenSignal = p.abortSignal as AbortSignal | undefined;
+          return {
+            fullStream: (async function* () {
+              // Endless stream — only the abort can end this run. A real SDK
+              // stops yielding once its abortSignal fires; mirror that here.
+              while (!controller.signal.aborted) {
+                yielded++;
+                yield shape.textDelta("tick");
+              }
+            })(),
+          };
+        },
+      });
+
+      const observed = await assertAbortStream(
+        executor.executeText({}, { shouldStream: true, signal: controller.signal }),
+        controller,
+        { abortAfterEvents: 3 }
+      );
+
+      // ctx.signal must reach the SDK call as `abortSignal` — that's the
+      // mechanism a real provider uses to cancel the network request.
+      expect(seenSignal).toBe(controller.signal);
+      // Exactly the pre-abort events, nothing after the boundary.
+      expect(observed.map((e) => e.type)).toEqual([
+        "text-delta",
+        "text-delta",
+        "text-delta",
+      ]);
+      // The infinite source must not have been drained past the abort
+      // boundary (one chunk of read-ahead is tolerated).
+      expect(yielded).toBeLessThanOrEqual(4);
     });
   });
 

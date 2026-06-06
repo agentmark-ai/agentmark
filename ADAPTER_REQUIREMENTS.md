@@ -2,234 +2,237 @@
 
 ## Overview
 
-An AgentMark adapter is a bridge between AgentMark's standardized prompt format and a specific AI framework (like Vercel AI SDK, Mastra, OpenAI, etc.). Adapters transform AgentMark's configuration objects into framework-specific parameters while maintaining type safety and supporting all AgentMark features.
+An AgentMark adapter integration bridges AgentMark's standardized prompt format
+and a specific AI framework (Vercel AI SDK, Mastra, Claude Agent SDK,
+pydantic-ai, …). A complete integration has **two halves**:
 
-## Core Adapter Interface
+1. **Adapter** — formats AgentMark prompt config into your SDK's native
+   parameters. Pure transformation, no I/O. Implements the `Adapter<T>`
+   interface from `@agentmark-ai/prompt-core`.
+2. **Executor** — runs those parameters against your SDK and emits the
+   normalized `AgentEvent` stream that AgentMark's webhook runner, CLI dev
+   server, and cloud consumers all speak. Implements the `Executor` interface,
+   almost always via the `createExecutor` builder.
 
-Every adapter must implement the `Adapter<T>` interface from `@agentmark-ai/prompt-core`:
+The two halves never reference each other's types — they're decoupled by the
+`AgentEvent` protocol. That protocol is a **stable wire contract**: changes to
+it are semver-major (see `packages/conformance-vectors/`).
 
-**Required Implementation:**
-- Create a class that implements the core `Adapter<T>` interface
-- Include a unique `__name` identifier for your adapter
-- Implement four adaptation methods: `adaptText`, `adaptObject`, `adaptImage`, and `adaptSpeech`
-- Each method should transform AgentMark configuration objects into framework-specific parameters
-- Support generic typing for prompt shapes and maintain type safety
+> **Start here:** the smallest complete reference is
+> `packages/claude-agent-sdk-v0-adapter` (TS) or
+> `packages/pydantic-ai-v0-adapter` (Python). For Vercel-AI-SDK-style
+> param-bag SDKs, `packages/ai-sdk-v4-adapter` / `ai-sdk-v5-adapter` are thin
+> shells over shared cores — read them to see how little version-specific code
+> is actually required.
 
-### Required Transformations
+## Half 1 — The Adapter
 
-Each adapt method must handle the following transformations (if applicable):
+Every adapter implements `Adapter<T>` from `@agentmark-ai/prompt-core`:
 
-**Text Prompts:**
-- Convert `TextConfig.messages` to framework's message format
-- Map model settings (temperature, max_tokens, top_p, etc.)
-- Handle tool configurations if supported
-- Apply telemetry settings
-- Support streaming and non-streaming modes
+- A unique `__name` identifier (convention: `"<framework>-v<major>"`, e.g.
+  `"vercel-ai-v5"`, `"pydantic-ai-v0"`).
+- Four adapt methods: `adaptText`, `adaptObject`, `adaptImage`, `adaptSpeech`.
+  Each transforms an AgentMark config object (`TextConfig`, `ObjectConfig`, …)
+  into your SDK's native params. If your SDK doesn't support a modality,
+  return a clear unsupported error — and declare it in your executor's
+  `capabilities()`.
+- The interface types adapt returns as `unknown` on purpose; your concrete
+  class should declare its real param types (see the `declare` overrides in
+  `ai-sdk-v5-adapter/src/adapter.ts` for the zero-runtime-cost idiom).
+- `AdaptOptions` is a **closed** type (`telemetry`, `apiKey`, `baseURL`,
+  `toolContext`). If your framework needs extra options, accept
+  `AdaptOptions & YourOptions` — don't widen the core type.
 
-**Object Prompts:**
-- Convert `ObjectConfig.messages` to framework's message format  
-- Transform JSON schema to framework's schema format
-- Map model settings
-- Handle structured output generation
+### What the core gives you for free
 
-**Image Prompts:**
-- Convert prompt text and image generation parameters
-- Handle size, aspect ratio, number of images, etc.
-- Map model-specific image generation settings
+Don't hand-roll these — they exist so fixes land in every adapter at once:
 
-**Speech Prompts:**
-- Transform text-to-speech parameters
-- Handle voice selection, output format, speed controls
-- Map framework-specific speech synthesis settings
+| Helper | From | Use for |
+|---|---|---|
+| `applyParamMap` | `prompt-core` | Declarative snake_case → SDK-native param renames (one table per modality) |
+| `buildTelemetryMetadata` | `prompt-core` | Standard telemetry metadata block (prompt name, props, agentmark_meta) |
+| `BaseAdapter` | `prompt-core` | Tool registry + `mcp://server/tool` (and `mcp://server/*` wildcard) resolution. Extend it when your SDK takes a tools record keyed by bare name |
+| `VercelAIAdapterCore` | `ai-sdk-shared` | The complete adapter body for Vercel-AI-SDK-shaped frameworks — subclass and inject a small `VercelAdapterSpec` (max_calls mapping, message conversion, MCP factory, `jsonSchema`) |
+
+`BaseAdapter` doesn't fit every SDK — Mastra keys MCP tools by full URI and
+the Claude Agent SDK takes a prompt string, so both implement `Adapter`
+directly. That's fine. Reuse `applyParamMap` + `buildTelemetryMetadata` as
+free functions regardless.
+
+### Required transformations per modality
+
+- **Text**: messages → framework format; model settings (`temperature`,
+  `max_tokens`, `top_p`, …); tools if supported; telemetry.
+- **Object**: messages + JSON schema → framework's structured-output format.
+- **Image**: prompt, `num_images`, `size`, `aspect_ratio`, seed.
+- **Speech**: text, voice, output format, speed.
+
+## Half 2 — The Executor
+
+The executor turns your SDK's responses into `AgentEvent`s:
+
+```
+text-delta | reasoning-delta | tool-call | tool-result   (text kind)
+object-delta | object-final                              (object kind)
+finish (carries usage — exactly once, terminal)
+error  (terminal only — never throw from the stream)
+```
+
+**Use `createExecutor` from `@agentmark-ai/prompt-core`.** You supply small
+handlers — `text` / `streamText` / `object` / `streamObject` (+ optional
+`image` / `speech`) — that call your SDK and yield events or return results.
+The builder enforces the hard invariants *by construction*:
+
+- exactly one terminal `finish` carrying usage (zeros if your SDK omits it),
+- `error` only as a terminal event (exceptions become error events),
+- `object-final` synthesized from the last delta when the SDK doesn't emit one,
+- `ctx.shouldStream` routing between your one-shot and streaming handlers.
+
+Honor `ctx.signal` (`AbortSignal`) by forwarding it to your SDK's request —
+that's how mid-stream cancellation works end-to-end.
+
+Implement `capabilities()` honestly: `{ text, object, image, speech }`
+booleans gate which prompt kinds the platform will route to you.
+
+### Conformance — the contract gate
+
+`@agentmark-ai/prompt-core` exports the same conformance suite the first-party
+adapters run. **A new adapter is not done until this passes:**
+
+```ts
+import { runExecutorConformance } from "@agentmark-ai/prompt-core";
+
+await runExecutorConformance(myExecutor, {
+  text: textFixture,            // whatever your adapter produces for a text prompt
+  object: objectFixture,
+  errorInput: { __explode: true },  // a payload your handler rejects
+  textWithTools: toolsFixture,      // if your SDK supports tools
+});
+```
+
+This runs the full suite under **both** `shouldStream: true` and `false`, so a
+broken one-shot path can't hide behind the streaming default. Also exercise
+abort with `assertAbortStream` (see
+`ai-sdk-shared/test/executor-conformance.test.ts` for the pattern: script an
+endless stream, abort after N events, assert nothing leaks past the boundary)
+and usage with `assertUsageShape`.
+
+Python mirrors the whole suite: `run_executor_conformance`,
+`assert_text_stream`, `assert_object_stream`, `assert_error_stream` from
+`agentmark.prompt_core` (see
+`pydantic-ai-v0-adapter/tests/test_executor_conformance.py`).
+
+### Serving the webhook path
+
+To work with AgentMark Cloud / `agentmark dev` (the dashboard "Run prompt"
+button, platform-driven experiments), pair your executor with the webhook
+runner — one call via `@agentmark-ai/sdk`:
+
+```ts
+import { createWebhookRunner } from "@agentmark-ai/sdk";
+
+const runner = createWebhookRunner({ executor: myExecutor, loader });
+// runner.runPrompt / runner.runExperiment — the shape the CLI + gateway expect
+```
+
+This wires the neutral `DefaultAdapter` (your executor receives the rendered
+prompt config as `formatted`) plus AgentMark's OTEL span hooks (tracing).
 
 ## Model Registry
 
-Adapters should provide a model registry for flexible model configuration:
+Provide a model registry so users map model names to SDK model instances:
 
-**Registry Requirements:**
-- Support exact model name matches
-- Support regex pattern matching for model families
-- Allow arrays of model names for bulk registration
-- Include a default model creator as fallback
-- Provide methods to register, retrieve, and set default model creators
+- exact-name matches, regex pattern matches, arrays for bulk registration,
+  and a default-creator fallback;
+- `provider/model` resolution via `registerProviders` (what `pull-models`
+  writes into `agentmark.json`);
+- creators receive `(modelName, options)` — honor `apiKey` / `baseURL` from
+  `AdaptOptions`;
+- informative errors for unregistered models.
 
-**Model Function Creator Requirements:**
-- Accept a model name and optional configuration parameters
-- Return a framework-specific model instance ready for use
-- Handle authentication and endpoint configuration from provided options
-- Support both local and remote model configurations as appropriate
-- Gracefully handle missing models with informative error messages
+For Vercel-AI-SDK-shaped frameworks, subclass the shared registry:
+`class MyRegistry extends VercelAIModelRegistry<MyModelUnion> {}` — the
+implementation lives in `ai-sdk-shared`.
 
 ## Tool Registry
 
-For frameworks that support function calling, provide a tool registry:
+If your framework supports function calling:
 
-**Registry Requirements:**
-- Support generic typing for tool definitions and return types
-- Provide methods to register, retrieve, and check tool availability
-- Maintain type safety between tool arguments and implementations
-- Support tool context passing for additional runtime information
-- Enable fluent interface pattern for chaining tool registrations
-
-### Tool Integration
-
-The adapter must:
-- Transform AgentMark tool schemas to framework format
-- Execute tools with proper context and error handling
-- Support tool choice configurations (auto, none, required, specific)
-- Handle tool results and continue conversations
+- transform AgentMark tool schemas to framework format, preserving type
+  safety between tool args and implementations;
+- support `tool_choice` configurations where the SDK allows;
+- resolve `mcp://server/tool` references and `mcp://server/*` wildcards
+  (free if you extend `BaseAdapter` — supply an `McpClientFactory` for your
+  SDK's MCP entrypoint);
+- pass `toolContext` through to tool execution.
 
 ## Client Creation Function
 
-Provide a factory function for creating AgentMark clients:
-
-**Factory Function Requirements:**
-- Accept optional loader, required model registry, and optional tool registry
-- Support generic typing for prompt shapes and tool registries
-- Instantiate the adapter with provided registries
-- Return a properly typed AgentMark client instance
-- Enable seamless integration with AgentMark's core functionality
+Provide a factory (`createAgentMarkClient` convention) that accepts an
+optional loader, a required model registry, and optional tools/MCP servers,
+instantiates your adapter, and returns a typed AgentMark client. Support
+generic `PromptShape` typing so users get compile-time prompt input/output
+types.
 
 ## Package Structure
 
-### Required Files
+```
+packages/<framework>-v<major>-adapter/
+├── package.json          # @agentmark-ai/<framework>-v<major>-adapter
+├── tsconfig.json
+├── tsup.config.ts        # dual CJS/ESM + dts
+├── vitest.config.ts
+├── src/
+│   ├── index.ts          # public exports + createAgentMarkClient factory
+│   ├── adapter.ts        # Adapter implementation (Half 1)
+│   ├── executor.ts       # createExecutor handlers (Half 2)
+│   └── model-registry.ts # if not reusing ai-sdk-shared's
+└── test/
+    ├── adapter.test.ts
+    ├── executor-conformance.test.ts
+    └── fixtures/         # .prompt.mdx fixtures per modality
+```
 
-**Directory Structure:**
-- Root configuration files: `package.json`, `tsconfig.json`, `tsup.config.ts`
-- Source directory with main exports, adapter implementation, registries, and types
-- Test directory with comprehensive test files and fixture prompts
-- Documentation with usage examples and API reference
-
-**Key Source Files:**
-- Main index file with all public exports
-- Core adapter implementation with the four adapt methods
-- Model registry for flexible model configuration
-- Tool registry implementation (if framework supports function calling)
-- Framework-specific type definitions
-
-### Package.json Requirements
-
-**Essential Configuration:**
-- Use `@agentmark-ai/framework-name-adapter` naming convention
-- Configure as ES module with dual CJS/ESM exports
-- Include proper TypeScript declaration files
-- Set up build scripts using tsup for bundling
-- Configure testing with vitest or similar framework
-- Specify peer dependencies for AgentMark core and target framework
-- Include proper export maps for Node.js compatibility
-
-## Usage Examples
-
-### Basic Usage
-
-**Setup Steps:**
-- Import the adapter's client creation function and model registry
-- Configure the model registry with your target models
-- Create an AgentMark client with appropriate loader and registries
-- Load prompts using the client's load methods
-- Format prompts with input parameters to get framework-specific results
-
-### With Tools
-
-**Tool Integration Steps:**
-- Import and instantiate the framework's tool registry
-- Register tool implementations with proper type safety
-- Create the AgentMark client with both model and tool registries
-- Use prompts that reference the registered tools
-- Execute prompts with tool support enabled
-
-### Advanced Configuration
-
-**Configuration Options:**
-- Support telemetry with custom metadata and function identification
-- Allow custom API keys and base URLs for different endpoints
-- Provide tool context for additional runtime information
-- Enable streaming responses where supported by the framework
-- Handle authentication and authorization as needed
-
-### Framework-Specific Options
-Adapters may extend `AdaptOptions` to support framework-specific configurations while maintaining compatibility with the base interface.
-
-## Type Safety
-
-### Prompt Shape Types
-
-**Type Safety Requirements:**
-- Define interfaces that extend `PromptShape<T>` for prompt type definitions
-- Specify input and output types for each prompt in the shape
-- Support generic type parameters in the client creation function
-- Ensure type-safe prompt loading with proper return types
-- Validate input parameters match the defined prompt input types
-
-### Tool Type Safety
-
-**Tool Typing Requirements:**
-- Define tool interfaces with argument types for each tool
-- Maintain type safety between tool definitions and implementations
-- Ensure tool registry methods preserve and validate types
-- Support generic tool registries with proper type inference
-- Enable compile-time validation of tool arguments and return types
+- Name versioned: `-v<major>` pinned to your peer SDK's major. Specify the
+  SDK as a **peer dependency** with the supported range.
+- No registration anywhere else: no central adapter registry, no CLI/SDK
+  wiring, no CI edits. The package is self-contained; consumers instantiate
+  it directly.
 
 ## Testing Requirements
 
-### Required Test Coverage
+1. **Executor conformance** (non-negotiable): `runExecutorConformance` with
+   text/object/error fixtures, plus an `assertAbortStream` case. Stub your
+   SDK with scripted responses (see
+   `claude-agent-sdk-v0-adapter/test/executor-conformance.test.ts` for the
+   gold standard) — the executor's job is pure event translation, so no real
+   model calls are needed.
+2. **Adapter unit tests per modality**: exact-shape assertions (`toEqual`)
+   on the adapted params — including param renames, telemetry block, tool
+   resolution, and schema conversion.
+3. **Model registry tests**: exact match, regex, arrays, provider/model
+   format, default fallback, missing-model errors.
+4. **Tool tests** (if applicable): registration, execution with context,
+   `mcp://` resolution, missing-tool errors.
+5. **Error paths**: invalid model names, malformed configs, SDK exceptions
+   (must become terminal `error` events, never throws).
 
-1. **Unit Tests for Each Adapt Method**
-   - Test that `adaptText` correctly transforms TextConfig to framework parameters
-   - Verify `adaptObject` handles schema conversion and structured output
-   - Ensure `adaptImage` maps image generation settings properly
-   - Validate `adaptSpeech` transforms speech synthesis parameters
-
-2. **Integration Tests with Real Prompts**
-   - Test complete workflow from prompt loading to execution
-   - Verify client creation and configuration work correctly
-   - Ensure prompts can be loaded and formatted successfully
-   - Test error handling with malformed prompts
-
-3. **Model Registry Tests**
-   - Test exact model name matching functionality
-   - Verify regex pattern matching works for model families
-   - Ensure array registration handles multiple models
-   - Test default creator fallback behavior
-
-4. **Tool Registry Tests** (if applicable)
-   - Verify tool registration and retrieval mechanisms
-   - Test type safety in tool argument passing
-   - Ensure tool execution works with proper context
-   - Validate error handling for missing tools
-
-### Test Fixtures
-
-Create `.prompt.mdx` files in `test/fixtures/` covering:
-- Basic text prompts with system/user/assistant messages
-- Object prompts with JSON schema output
-- Image prompts with generation parameters  
-- Speech prompts with voice synthesis options
-- Prompts with tool usage
-- Prompts with various parameter combinations
-
-### Error Handling Tests
-
-Test error scenarios:
-- Invalid model names
-- Missing tool registrations
-- Malformed configurations
-- Network failures (if applicable)
-- Schema validation errors
+Assertion quality bar: positional `toEqual` on full event sequences beats
+`toBeDefined`. If `return {}` from your production code would pass the test,
+the test is too weak.
 
 ## Implementation Checklist
 
-When creating a new adapter, ensure:
-
-- [ ] Core `Adapter<T>` interface implemented
-- [ ] All four adapt methods handle their respective prompt types
-- [ ] Model registry with pattern matching support
-- [ ] Tool registry (if framework supports function calling)
-- [ ] Client creation factory function
-- [ ] Proper TypeScript types and generics
-- [ ] Comprehensive test coverage
-- [ ] Package exports configured correctly
-- [ ] Peer dependencies specified
-- [ ] Error handling for edge cases
-- [ ] Telemetry support integration
-
+- [ ] `Adapter<T>` implemented (`__name`, four adapt methods, typed returns)
+- [ ] Shared helpers reused (`applyParamMap`, `buildTelemetryMetadata`,
+      `BaseAdapter`/`VercelAIAdapterCore` where they fit)
+- [ ] `Executor` built with `createExecutor`; honest `capabilities()`
+- [ ] `ctx.signal` forwarded to the SDK; `ctx.shouldStream` respected
+- [ ] `runExecutorConformance` passes (both stream modes)
+- [ ] `assertAbortStream` + `assertUsageShape` exercised
+- [ ] Model registry with pattern + provider/model support
+- [ ] Tool registry + MCP resolution (if framework supports tools)
+- [ ] `createAgentMarkClient` factory with `PromptShape` typing
+- [ ] Webhook path verified via `createWebhookRunner`
+- [ ] Package: peer deps pinned, dual CJS/ESM exports, `-v<major>` name
+- [ ] Tests meet the assertion-quality bar above

@@ -9,7 +9,9 @@ yalc.lock
 .env
 *storybook.log
 storybook-static
-tmp-dev*/
+# CLI test fixtures (test/dev.test.ts et al. create tmp-* dirs in packages/cli;
+# crashed runs can leave them behind)
+tmp-*/
 .claude
 
 # Nx

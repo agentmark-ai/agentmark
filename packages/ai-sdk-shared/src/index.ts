@@ -18,3 +18,5 @@ export type {
 export { createVercelExecutor } from "./executor-factory";
 export type { ModelFunctionCreator, VercelModelProvider } from "./model-registry";
 export { VercelAIModelRegistry } from "./model-registry";
+export type { VercelAdapterSpec } from "./adapter-core";
+export { VercelAIAdapterCore } from "./adapter-core";

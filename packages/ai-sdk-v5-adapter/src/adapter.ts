@@ -9,12 +9,6 @@ import type {
   KeysWithKind,
   SpeechConfig,
   McpServers,
-  ParamMap,
-} from "@agentmark-ai/prompt-core";
-import {
-  BaseAdapter,
-  applyParamMap,
-  buildTelemetryMetadata,
 } from "@agentmark-ai/prompt-core";
 import type {
   LanguageModel,
@@ -31,6 +25,8 @@ import { jsonSchema, stepCountIs } from "ai";
 import type { McpClientFactory } from "@agentmark-ai/prompt-core";
 import {
   VercelAIModelRegistry as SharedVercelAIModelRegistry,
+  VercelAIAdapterCore,
+  type VercelAdapterSpec,
   type ModelFunctionCreator as SharedModelFunctionCreator,
 } from "@agentmark-ai/ai-sdk-shared";
 
@@ -117,45 +113,6 @@ type VercelModel = LanguageModel | ImageModel | SpeechModel;
 export type ModelFunctionCreator = SharedModelFunctionCreator<VercelModel>;
 
 /**
- * Declarative field map — translates snake_case AgentMark config to the
- * camelCase keys AI SDK v5 expects. Centralizes all rename logic that the
- * legacy adapter scattered across 30 lines of `...(x !== undefined ? {y: x} : {})`.
- */
-const TEXT_PARAM_MAP: ParamMap = {
-  temperature: "temperature",
-  max_tokens: "maxTokens",
-  top_p: "topP",
-  top_k: "topK",
-  frequency_penalty: "frequencyPenalty",
-  presence_penalty: "presencePenalty",
-  stop_sequences: "stopSequences",
-  seed: "seed",
-  max_calls: { key: "stopWhen", transform: (v: number) => stepCountIs(v) },
-};
-
-const OBJECT_PARAM_MAP: ParamMap = {
-  ...TEXT_PARAM_MAP,
-  schema_name: "schemaName",
-  schema_description: "schemaDescription",
-};
-
-const IMAGE_PARAM_MAP: ParamMap = {
-  prompt: "prompt",
-  num_images: "n",
-  size: "size",
-  aspect_ratio: "aspectRatio",
-  seed: "seed",
-};
-
-const SPEECH_PARAM_MAP: ParamMap = {
-  text: "text",
-  voice: "voice",
-  output_format: "outputFormat",
-  instructions: "instructions",
-  speed: "speed",
-};
-
-/**
  * Bootstrap an MCP client for AI SDK v5. Dynamic import lets us keep
  * `@ai-sdk/mcp` as a peer dep so consumers who don't use MCP don't pay
  * the bundle cost.
@@ -190,129 +147,56 @@ const vercelMcpClientFactory: McpClientFactory<Tool> = async (cfg) => {
  */
 export class VercelAIModelRegistry extends SharedVercelAIModelRegistry<VercelModel> {}
 
+/**
+ * v5's deltas from the shared adapter core: `max_calls` becomes
+ * `stopWhen: stepCountIs(n)`, messages convert to `ModelMessage[]`, and MCP
+ * clients come from `@ai-sdk/mcp`. Everything else lives in
+ * {@link VercelAIAdapterCore}.
+ */
+const V5_SPEC: VercelAdapterSpec<Tool> = {
+  mcpClientFactory: vercelMcpClientFactory,
+  maxCallsEntry: { key: "stopWhen", transform: (v: number) => stepCountIs(v) },
+  jsonSchema: (schema) => jsonSchema(schema as Parameters<typeof jsonSchema>[0]),
+  convertMessages,
+};
+
 export class VercelAIAdapter<
   T extends PromptShape<T>,
   TTools extends Record<string, Tool> = Record<string, Tool>
-> extends BaseAdapter<Tool> {
+> extends VercelAIAdapterCore<Tool, VercelModel> {
   declare readonly __dict: T;
   readonly __name = "vercel-ai-v5";
 
-  constructor(
-    private modelRegistry: VercelAIModelRegistry,
-    tools?: TTools,
-    mcpServers?: McpServers
-  ) {
-    super(vercelMcpClientFactory, tools as Record<string, Tool> | undefined, mcpServers);
-  }
-
-  async adaptText(
+  // Type-only narrowing of the shared core's `unknown` returns to v5's
+  // concrete param types — `declare` emits no runtime wrapper; the bodies
+  // live in VercelAIAdapterCore.
+  declare adaptText: (
     input: TextConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): Promise<VercelAITextParams<TTools>> {
-    const { model_name: name, ...settings } = input.text_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
-    const model = modelCreator(name, options) as LanguageModel;
+  ) => Promise<VercelAITextParams<TTools>>;
 
-    const toolsObj = (input.text_config.tools
-      ? await this.resolveTools(input.text_config.tools as string[])
-      : ({} as Record<string, Tool>)) as Record<string, TTools[keyof TTools]>;
-
-    const mapped = applyParamMap(settings as Record<string, unknown>, TEXT_PARAM_MAP);
-    const telemetry = buildTelemetryMetadata(
-      options.telemetry,
-      metadata.props,
-      input.name,
-      input.agentmark_meta
-    );
-
-    return {
-      model,
-      messages: convertMessages(input.messages),
-      ...mapped,
-      ...(telemetry ? { experimental_telemetry: telemetry } : {}),
-      tools: toolsObj as unknown as TTools,
-    };
-  }
-
-  async adaptObject<K extends KeysWithKind<T, "object"> & string>(
+  declare adaptObject: <K extends KeysWithKind<T, "object"> & string>(
     input: ObjectConfig,
     options: AdaptOptions,
     metadata: PromptMetadata
-  ): Promise<VercelAIObjectParams<T[K]["output"], TTools>> {
-    const { model_name: name, ...settings } = input.object_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name, "languageModel");
-    const model = modelCreator(name, options) as LanguageModel;
+  ) => Promise<VercelAIObjectParams<T[K]["output"], TTools>>;
 
-    const toolsObj = input.object_config.tools
-      ? ((await this.resolveTools(
-          input.object_config.tools as string[]
-        )) as Record<string, TTools[keyof TTools]>)
-      : undefined;
-
-    const mapped = applyParamMap(
-      settings as Record<string, unknown>,
-      OBJECT_PARAM_MAP
-    );
-    // Default to stepCountIs(10) when tools present and max_calls not set —
-    // preserves legacy adapter behavior for tool-bearing object prompts.
-    if (toolsObj && settings?.max_calls === undefined) {
-      mapped.stopWhen = stepCountIs(10);
-    }
-
-    const telemetry = buildTelemetryMetadata(
-      options.telemetry,
-      metadata.props,
-      input.name,
-      input.agentmark_meta
-    );
-
-    return {
-      output: "object" as const,
-      model,
-      messages: convertMessages(input.messages),
-      schema: jsonSchema(input.object_config.schema),
-      ...mapped,
-      ...(telemetry ? { experimental_telemetry: telemetry } : {}),
-      ...(toolsObj ? { tools: toolsObj } : {}),
-    };
-  }
-
-  adaptImage(
+  declare adaptImage: (
     input: ImageConfig,
     options: AdaptOptions
-  ): VercelAIImageParams {
-    const { model_name: name, ...settings } = input.image_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name, "imageModel");
-    const model = modelCreator(name, options) as ImageModel;
+  ) => VercelAIImageParams;
 
-    const mapped = applyParamMap(
-      settings as Record<string, unknown>,
-      IMAGE_PARAM_MAP
-    );
-
-    return {
-      model,
-      ...mapped,
-    } as VercelAIImageParams;
-  }
-
-  adaptSpeech(
+  declare adaptSpeech: (
     input: SpeechConfig,
     options: AdaptOptions
-  ): VercelAISpeechParams {
-    const { model_name: name, ...settings } = input.speech_config;
-    const modelCreator = this.modelRegistry.getModelFunction(name, "speechModel");
-    const model = modelCreator(name, options) as SpeechModel;
+  ) => VercelAISpeechParams;
 
-    const mapped = applyParamMap(
-      settings as Record<string, unknown>,
-      SPEECH_PARAM_MAP
-    );
-
-    return {
-      model,
-      ...mapped,
-    } as VercelAISpeechParams;
+  constructor(
+    modelRegistry: VercelAIModelRegistry,
+    tools?: TTools,
+    mcpServers?: McpServers
+  ) {
+    super(V5_SPEC, modelRegistry, tools as Record<string, Tool> | undefined, mcpServers);
   }
 }
