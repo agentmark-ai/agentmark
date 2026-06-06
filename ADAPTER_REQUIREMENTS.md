@@ -18,7 +18,19 @@ The two halves never reference each other's types — they're decoupled by the
 `AgentEvent` protocol. That protocol is a **stable wire contract**: changes to
 it are semver-major (see `packages/conformance-vectors/`).
 
-> **Start here:** the smallest complete reference is
+> **Start here — scaffold it:**
+>
+> ```bash
+> node scripts/create-adapter.mjs <framework> --major 0 --peer <sdk-package>
+> ```
+>
+> generates `packages/<framework>-v0-adapter/` with the entire required
+> surface below, and its conformance suite (text/object/error in both stream
+> modes + abort) is **green before you write a line** — the only file that
+> touches your SDK is `src/sdk.ts`, mocked in the generated test. Implement
+> that one seam, extend the param maps, pin your peer dep, done.
+>
+> For reading reference: the smallest complete hand-written adapter is
 > `packages/claude-agent-sdk-v0-adapter` (TS) or
 > `packages/pydantic-ai-v0-adapter` (Python). For Vercel-AI-SDK-style
 > param-bag SDKs, `packages/ai-sdk-v4-adapter` / `ai-sdk-v5-adapter` are thin
@@ -112,15 +124,19 @@ await runExecutorConformance(myExecutor, {
 
 This runs the full suite under **both** `shouldStream: true` and `false`, so a
 broken one-shot path can't hide behind the streaming default. Also exercise
-abort with `assertAbortStream` (see
-`ai-sdk-shared/test/executor-conformance.test.ts` for the pattern: script an
-endless stream, abort after N events, assert nothing leaks past the boundary)
-and usage with `assertUsageShape`.
+abort: `assertAbortStream` drives the abort (collects events, fires the
+controller after N, and verifies iteration terminates cleanly) — the boundary
+assertions are yours to pin on its returned events. See
+`ai-sdk-shared/test/executor-conformance.test.ts` for the full pattern: script
+an endless stream, assert the SDK received `ctx.signal` as `abortSignal`, and
+assert nothing was emitted past the abort boundary. Check usage payloads with
+`assertUsageShape`.
 
-Python mirrors the whole suite: `run_executor_conformance`,
+Python mirrors the stream/error suite: `run_executor_conformance`,
 `assert_text_stream`, `assert_object_stream`, `assert_error_stream` from
 `agentmark.prompt_core` (see
-`pydantic-ai-v0-adapter/tests/test_executor_conformance.py`).
+`pydantic-ai-v0-adapter/tests/test_executor_conformance.py`). Note: Python has
+no abort assertion yet — abort coverage is TS-only today.
 
 ### Serving the webhook path
 
@@ -203,10 +219,13 @@ packages/<framework>-v<major>-adapter/
 
 1. **Executor conformance** (non-negotiable): `runExecutorConformance` with
    text/object/error fixtures, plus an `assertAbortStream` case. Stub your
-   SDK with scripted responses (see
-   `claude-agent-sdk-v0-adapter/test/executor-conformance.test.ts` for the
-   gold standard) — the executor's job is pure event translation, so no real
-   model calls are needed.
+   SDK with scripted responses — the executor's job is pure event
+   translation, so no real model calls are needed. References:
+   `claude-agent-sdk-v0-adapter/test/executor-conformance.test.ts` for
+   scripted-SDK stream simulation and exact-sequence assertions;
+   `ai-sdk-shared/test/executor-conformance.test.ts` for the abort case
+   (the claude adapter predates signal forwarding and has no abort test —
+   don't copy that omission).
 2. **Adapter unit tests per modality**: exact-shape assertions (`toEqual`)
    on the adapted params — including param renames, telemetry block, tool
    resolution, and schema conversion.

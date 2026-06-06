@@ -184,6 +184,60 @@ async def assert_object_stream(
     return observed
 
 
+async def assert_abort_stream(
+    events: AsyncIterator[AgentEvent],
+    abort_after_events: int = 1,
+) -> list[AgentEvent]:
+    """Drive an abort scenario and verify the stream terminates cleanly.
+
+    Consumes ``abort_after_events`` events, then closes the stream via
+    ``aclose()`` — Python's cancellation channel for async generators
+    (raises ``GeneratorExit`` at the executor's current suspension point;
+    the runner does the same when a client disconnects). The executor must
+    unwind cleanly: ``finally`` blocks and ``async with`` exits run, and it
+    must NOT swallow the close and keep yielding (surfaces as
+    ``RuntimeError: async generator ignored GeneratorExit``).
+
+    Returns the observed pre-close events — boundary assertions beyond
+    clean termination are the caller's to pin. Python twin of TS
+    ``assertAbortStream`` (which drives an ``AbortController`` instead —
+    same role: the harness for cancellation scenarios). Executors that
+    poll ``ExecCtx.cancelled`` get that path exercised by passing a ctx
+    whose flag flips in a wrapped event stream; this helper covers the
+    universal generator-close path.
+    """
+    observed: list[AgentEvent] = []
+    try:
+        async for ev in events:
+            observed.append(ev)
+            if len(observed) >= abort_after_events:
+                break
+    except Exception as err:
+        raise ConformanceError(
+            ConformanceViolation(
+                "abort",
+                f"executor raised before the abort point: {err}",
+                observed,
+            )
+        ) from err
+
+    aclose = getattr(events, "aclose", None)
+    if aclose is not None:
+        try:
+            await aclose()
+        except RuntimeError as err:
+            # The generator machinery raises RuntimeError when an async
+            # generator ignores GeneratorExit (kept yielding after close).
+            raise ConformanceError(
+                ConformanceViolation(
+                    "abort",
+                    f"executor did not terminate cleanly on close: {err}",
+                    observed,
+                )
+            ) from err
+    return observed
+
+
 async def assert_error_stream(
     events: AsyncIterator[AgentEvent],
 ) -> list[AgentEvent]:

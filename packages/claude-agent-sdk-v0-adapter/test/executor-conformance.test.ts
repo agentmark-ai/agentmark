@@ -12,6 +12,7 @@ import {
   assertTextStream,
   assertObjectStream,
   assertErrorStream,
+  assertAbortStream,
   runExecutorConformance,
   type AgentEvent,
   type Executor,
@@ -242,5 +243,76 @@ describe("ClaudeAgentExecutor — object", () => {
       outputTokens: 0,
       totalTokens: 0,
     });
+  });
+});
+
+describe("ClaudeAgentExecutor — abort", () => {
+  it("bridges ctx.signal into the SDK abortController and stops at the boundary", async () => {
+    const { query } = await import("@anthropic-ai/claude-agent-sdk");
+    let sdkSignal: AbortSignal | undefined;
+    let yielded = 0;
+    vi.mocked(query).mockImplementationOnce((params: any) => {
+      sdkSignal = params?.options?.abortController?.signal;
+      return (async function* () {
+        // Endless assistant stream — only the abort ends this run; the real
+        // SDK stops yielding once its abortController fires.
+        while (!sdkSignal?.aborted) {
+          yielded++;
+          yield assistant("tick");
+        }
+      })() as any;
+    });
+
+    const controller = new AbortController();
+    const observed = await assertAbortStream(
+      new ClaudeAgentExecutor().executeText(
+        { query: { prompt: "hi", options: {} }, messages: [] },
+        { shouldStream: true, signal: controller.signal } as any
+      ),
+      controller,
+      { abortAfterEvents: 2 }
+    );
+
+    // ctx.signal must surface to the SDK as an abortController whose signal
+    // fires when the runner aborts — that's the real cancellation channel.
+    expect(sdkSignal).toBeInstanceOf(AbortSignal);
+    expect(sdkSignal!.aborted).toBe(true);
+    // Exactly the pre-abort events, nothing past the boundary.
+    expect(observed.map((e) => e.type)).toEqual(["text-delta", "text-delta"]);
+    // The endless source must not have been drained past the abort
+    // boundary (one message of read-ahead tolerated).
+    expect(yielded).toBeLessThanOrEqual(3);
+  });
+
+  it("reuses a caller-provided abortController — both abort paths converge", async () => {
+    const { query } = await import("@anthropic-ai/claude-agent-sdk");
+    const callerController = new AbortController();
+    let sdkSignal: AbortSignal | undefined;
+    vi.mocked(query).mockImplementationOnce((params: any) => {
+      sdkSignal = params?.options?.abortController?.signal;
+      return (async function* () {
+        while (!sdkSignal?.aborted) {
+          yield assistant("tick");
+        }
+      })() as any;
+    });
+
+    const runnerController = new AbortController();
+    await assertAbortStream(
+      new ClaudeAgentExecutor().executeText(
+        {
+          query: { prompt: "hi", options: { abortController: callerController } },
+          messages: [],
+        },
+        { shouldStream: true, signal: runnerController.signal } as any
+      ),
+      runnerController,
+      { abortAfterEvents: 1 }
+    );
+
+    // The executor must NOT replace the caller's controller — the runner's
+    // signal aborts it, so SDK-side and caller-side cancellation converge.
+    expect(sdkSignal).toBe(callerController.signal);
+    expect(callerController.signal.aborted).toBe(true);
   });
 });
