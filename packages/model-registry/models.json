@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-05T01:13:00.090Z",
+  "generatedAt": "2026-06-06T01:08:51.379Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-05T01:13:00.090Z",
+      "fetchedAt": "2026-06-06T01:08:51.379Z",
       "modelCount": 1203
     },
     "openrouter": {
-      "fetchedAt": "2026-06-05T01:13:00.090Z",
+      "fetchedAt": "2026-06-06T01:08:51.379Z",
       "modelCount": 125
     }
   },
@@ -20077,11 +20077,11 @@
       ],
       "pricing": {
         "inputCostPerToken": 1.2e-7,
-        "outputCostPerToken": 3.7e-7
+        "outputCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 262144,
-        "maxOutputTokens": 16384
+        "maxOutputTokens": 8192
       },
       "capabilities": {
         "vision": true,
