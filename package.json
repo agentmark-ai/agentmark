@@ -47,7 +47,7 @@
     "@opentelemetry/exporter-prometheus": "^0.217.0",
     "@opentelemetry/auto-instrumentations-node": "^0.75.0",
     "@babel/plugin-transform-modules-systemjs": "^7.29.4",
-    "hono": "^4.12.14",
+    "hono": "^4.12.21",
     "vite": "^7.3.2",
     "qs": "^6.15.2",
     "mdast-util-to-hast": "^13.2.1",
