@@ -1,3 +1,17 @@
+## 0.3.1 (2026-06-06)
+
+### 🩹 Fixes
+
+- Fix the abort contract on pydantic-ai >= 1.57: streaming text runs are now ([#676](https://github.com/agentmark-ai/agentmark/pull/676))
+  iterated inside a dedicated producer task (`_decouple`), so a consumer
+  closing the stream mid-flight (client disconnect) cancels the pydantic-ai
+  run as a task instead of throwing `GeneratorExit` into the
+  `agent.iter()` stack — which the capabilities `wrap_run` hand-off
+  introduced in pydantic-ai 1.57+ swallows mid-unwind, surfacing as
+  `RuntimeError: async generator ignored GeneratorExit` plus leaked
+  `Agent.iter`/`Graph.iter` async generators. Verified against both
+  pydantic-ai 1.56.0 and 1.106.0; no wire or API changes.
+
 ## 0.3.0 (2026-06-05)
 
 ### 🚀 Features
