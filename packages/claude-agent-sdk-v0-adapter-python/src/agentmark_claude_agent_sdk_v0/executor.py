@@ -17,6 +17,7 @@ surfaces a canonical error when those kinds are invoked.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from contextlib import aclosing
 from typing import Any
 
 from agentmark.prompt_core import (
@@ -73,54 +74,62 @@ class ClaudeAgentExecutor:
         errored = False
 
         try:
-            async for message in traced_query(
-                adapted, default_mcp_servers=self._default_mcp_servers
-            ):
-                msg_type = type(message).__name__
+            # aclosing: when THIS generator is closed mid-stream (the
+            # runner's cancellation path — e.g. client disconnect), the
+            # GeneratorExit must propagate into the SDK query generator so
+            # its cleanup (subprocess/connection teardown) runs NOW, not at
+            # GC. A bare `async for` abandons its iterator without closing.
+            async with aclosing(
+                traced_query(
+                    adapted, default_mcp_servers=self._default_mcp_servers
+                )
+            ) as stream:
+                async for message in stream:
+                    msg_type = type(message).__name__
 
-                if msg_type == "AssistantMessage":
-                    # AssistantMessage blocks arrive as the agent thinks; for
-                    # non-streaming runs we skip them because ResultMessage's
-                    # `result` field already carries the final text. Emitting
-                    # both double-counts the output in the drained response.
-                    if not should_stream:
-                        continue
-                    content = getattr(message, "content", None) or []
-                    for block in content:
-                        text = (
-                            block.get("text", "")
-                            if isinstance(block, dict)
-                            else getattr(block, "text", "")
-                        )
-                        if not text:
+                    if msg_type == "AssistantMessage":
+                        # AssistantMessage blocks arrive as the agent thinks; for
+                        # non-streaming runs we skip them because ResultMessage's
+                        # `result` field already carries the final text. Emitting
+                        # both double-counts the output in the drained response.
+                        if not should_stream:
                             continue
-                        if output_kind == "text":
-                            yield TextDeltaEvent(text=text)
-                        else:
-                            # For object output, Claude streams JSON fragments
-                            # of the structured response; surface them as
-                            # object-delta events so consumers can render
-                            # progress. Final value arrives on ResultMessage.
-                            yield ObjectDeltaEvent(partial=text)
+                        content = getattr(message, "content", None) or []
+                        for block in content:
+                            text = (
+                                block.get("text", "")
+                                if isinstance(block, dict)
+                                else getattr(block, "text", "")
+                            )
+                            if not text:
+                                continue
+                            if output_kind == "text":
+                                yield TextDeltaEvent(text=text)
+                            else:
+                                # For object output, Claude streams JSON fragments
+                                # of the structured response; surface them as
+                                # object-delta events so consumers can render
+                                # progress. Final value arrives on ResultMessage.
+                                yield ObjectDeltaEvent(partial=text)
 
-                elif msg_type == "ResultMessage":
-                    subtype = getattr(message, "subtype", "")
-                    if subtype == "success":
-                        final_text = getattr(message, "result", "") or ""
-                        structured_output = getattr(
-                            message, "structured_output", None
-                        )
-                        usage = getattr(message, "usage", {}) or {}
-                        input_tokens = int(usage.get("input_tokens", 0) or 0)
-                        output_tokens = int(usage.get("output_tokens", 0) or 0)
-                    else:
-                        errors = getattr(message, "errors", None) or []
-                        err_msg = (
-                            ", ".join(errors) if errors else f"Error: {subtype}"
-                        )
-                        yield ErrorEvent(error=err_msg)
-                        errored = True
-                        return
+                    elif msg_type == "ResultMessage":
+                        subtype = getattr(message, "subtype", "")
+                        if subtype == "success":
+                            final_text = getattr(message, "result", "") or ""
+                            structured_output = getattr(
+                                message, "structured_output", None
+                            )
+                            usage = getattr(message, "usage", {}) or {}
+                            input_tokens = int(usage.get("input_tokens", 0) or 0)
+                            output_tokens = int(usage.get("output_tokens", 0) or 0)
+                        else:
+                            errors = getattr(message, "errors", None) or []
+                            err_msg = (
+                                ", ".join(errors) if errors else f"Error: {subtype}"
+                            )
+                            yield ErrorEvent(error=err_msg)
+                            errored = True
+                            return
         except Exception as exc:  # noqa: BLE001 — executor errors become events
             yield ErrorEvent(error=normalize_error(exc))
             return

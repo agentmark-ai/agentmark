@@ -193,3 +193,39 @@ async def test_raised_exception_becomes_terminal_error_event():
 
     assert events and isinstance(events[-1], ErrorEvent)
     assert "SDK boom" in events[-1].error
+
+
+# ---------- Abort: closing the stream mid-flight ----------
+
+
+@pytest.mark.asyncio
+async def test_abort_mid_stream_closes_sdk_generator():
+    """Closing the executor's stream (the runner's cancellation path) must
+    propagate GeneratorExit into the SDK query generator — its cleanup runs,
+    and no events are emitted past the close boundary."""
+    from agentmark.prompt_core import assert_abort_stream
+
+    sdk_cleaned_up = False
+
+    async def endless_query(_adapted, default_mcp_servers=None):
+        nonlocal sdk_cleaned_up
+        try:
+            while True:
+                yield AssistantMessage(content=[{"type": "text", "text": "tick"}])
+        finally:
+            # A real SDK releases its subprocess/connection here.
+            sdk_cleaned_up = True
+
+    with patch(
+        "agentmark_claude_agent_sdk_v0.traced.traced_query", endless_query
+    ):
+        stream = ClaudeAgentExecutor().execute_text({}, ExecCtx())
+        observed = await assert_abort_stream(stream, abort_after_events=2)
+
+    # Exactly the pre-close events — all deltas, no finish (the run was
+    # cancelled; finish-after-close would double-count usage upstream).
+    assert len(observed) == 2
+    assert all(isinstance(e, TextDeltaEvent) for e in observed)
+    assert not any(isinstance(e, FinishEvent) for e in observed)
+    # GeneratorExit reached the SDK layer: its finally block ran.
+    assert sdk_cleaned_up is True

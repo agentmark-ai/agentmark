@@ -19,6 +19,7 @@ from agentmark.prompt_core import (
     ToolCallEvent,
     ToolResultEvent,
     UsageData,
+    assert_abort_stream,
     assert_error_stream,
     assert_object_stream,
     assert_text_stream,
@@ -211,3 +212,57 @@ def test_object_final_accepts_pydantic_instance():
     ev = ObjectFinalEvent(value=Result(answer=42))
     assert hasattr(ev.value, "model_dump")
     assert ev.value.model_dump() == {"answer": 42}
+
+
+# ---------- assert_abort_stream (self-tests for the assertion itself) ----------
+
+
+@pytest.mark.asyncio
+async def test_abort_stream_consumes_then_closes_cleanly():
+    """Happy path: events collected up to the boundary, then the close
+    propagates — the executor's finally runs and nothing is observed past
+    the boundary."""
+    cleaned = False
+
+    async def well_behaved():
+        nonlocal cleaned
+        try:
+            while True:
+                yield TextDeltaEvent(text="tick")
+        finally:
+            cleaned = True
+
+    observed = await assert_abort_stream(well_behaved(), abort_after_events=2)
+    assert [type(e) for e in observed] == [TextDeltaEvent, TextDeltaEvent]
+    assert cleaned is True
+
+
+@pytest.mark.asyncio
+async def test_abort_stream_flags_swallowed_generator_exit():
+    """An executor that swallows GeneratorExit and keeps yielding is a
+    cancellation bug — the assertion must surface it as ConformanceError."""
+
+    async def stubborn():
+        while True:
+            try:
+                yield TextDeltaEvent(text="tick")
+            except GeneratorExit:  # noqa: PERF203 — the bug under test
+                continue
+
+    with pytest.raises(ConformanceError) as info:
+        await assert_abort_stream(stubborn(), abort_after_events=1)
+    assert "did not terminate cleanly" in str(info.value)
+
+
+@pytest.mark.asyncio
+async def test_abort_stream_flags_pre_abort_raise():
+    """A raise BEFORE the abort point is an executor failure (errors must be
+    terminal events, never exceptions) — distinct scenario from the close."""
+
+    async def exploding():
+        yield TextDeltaEvent(text="one")
+        raise RuntimeError("boom")
+
+    with pytest.raises(ConformanceError) as info:
+        await assert_abort_stream(exploding(), abort_after_events=5)
+    assert "raised before the abort point" in str(info.value)

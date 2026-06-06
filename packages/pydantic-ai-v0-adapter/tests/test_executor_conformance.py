@@ -23,8 +23,10 @@ from agentmark.prompt_core import (
     ExecCtx,
     Executor,
     FinishEvent,
+    TextDeltaEvent,
     ToolCallEvent,
     ToolResultEvent,
+    assert_abort_stream,
     assert_text_stream,
     assert_usage_shape,
     run_executor_conformance,
@@ -121,3 +123,25 @@ async def test_streaming_text_emits_tool_call_before_result_and_single_usage():
     assert len(finishes) == 1
     assert finishes[0].usage is not None
     assert_usage_shape(finishes[0].usage)
+
+
+@pytest.mark.asyncio
+async def test_abort_mid_stream_unwinds_cleanly():
+    """Closing the stream mid-flight (the runner's cancellation path when a
+    client disconnects) must unwind the executor's `async with agent.iter()`
+    stack cleanly — no swallowed GeneratorExit, no events after the close."""
+    params = _text_params(
+        model=TestModel(custom_output_text="one two three four five six")
+    )
+    stream = PydanticAIExecutor().execute_text(
+        params, ExecCtx(telemetry={"isEnabled": False}, should_stream=True)
+    )
+    observed = await assert_abort_stream(stream, abort_after_events=1)
+
+    # Exactly the pre-close events; the stream yielded the first delta
+    # before the boundary and nothing after it.
+    assert len(observed) == 1
+    assert isinstance(observed[0], TextDeltaEvent)
+    # No FinishEvent may have been emitted — the run was cancelled before
+    # completion, and finish-after-close would double-count usage upstream.
+    assert not any(isinstance(e, FinishEvent) for e in observed)

@@ -100,6 +100,12 @@ export interface HookCallbackMatcher {
  * Query options for Claude Agent SDK
  */
 export interface ClaudeAgentQueryOptions {
+  /**
+   * Abort controller for cancelling the query mid-flight. The executor
+   * wires `ExecCtx.signal` into this automatically (reusing a
+   * caller-provided controller when present).
+   */
+  abortController?: AbortController;
   /** Model to use (e.g., 'claude-sonnet-4-20250514') */
   model?: string;
   /** Maximum thinking tokens for extended thinking */

@@ -41,6 +41,7 @@ from .executor_conformance import (
     ConformanceViolation,
     assert_error_stream,
     assert_object_stream,
+    assert_abort_stream,
     assert_text_stream,
     assert_usage_shape,
     run_executor_conformance,
@@ -234,6 +235,7 @@ __all__ = [
     "ExperimentItemSpan",
     "ExperimentItemSpanHook",
     # Conformance suite
+    "assert_abort_stream",
     "assert_text_stream",
     "assert_object_stream",
     "assert_error_stream",

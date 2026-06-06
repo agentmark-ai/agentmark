@@ -182,8 +182,13 @@ export async function assertErrorStream(
 }
 
 /**
- * Verify that aborting via AbortSignal cleanly terminates the stream.
- * Collects events until the signal fires, then asserts no post-abort events.
+ * Drive an abort scenario: collect events, fire the controller after
+ * `abortAfterEvents`, and verify iteration terminates cleanly (no throw,
+ * no hang). Returns the observed events — boundary assertions (no
+ * post-abort emissions, signal forwarded to the SDK) are the CALLER's to
+ * pin, since what "after abort" may legitimately contain (e.g. a terminal
+ * `error` from a cancelled SDK call) is executor-specific. See
+ * ai-sdk-shared/test/executor-conformance.test.ts for the full pattern.
  */
 export async function assertAbortStream(
   events: AsyncIterable<AgentEvent>,

@@ -16,6 +16,30 @@ import type {
 } from "./types";
 
 /**
+ * Bridge `ExecCtx.signal` into the SDK's `abortController` query option.
+ * The Claude Agent SDK takes a controller (not a signal): reuse the
+ * caller's controller when one is already on the options (abort THAT one
+ * when the runner's signal fires, so both abort paths converge), otherwise
+ * install a fresh controller wired to the signal. No-op without a signal.
+ */
+function withAbortSignal<
+  T extends ClaudeAgentTextParams | ClaudeAgentObjectParams
+>(adapted: T, signal: AbortSignal | undefined): T {
+  if (!signal) return adapted;
+  const options = { ...adapted.query.options };
+  const controller = options.abortController ?? new AbortController();
+  if (signal.aborted) {
+    controller.abort(signal.reason);
+  } else {
+    signal.addEventListener("abort", () => controller.abort(signal.reason), {
+      once: true,
+    });
+  }
+  options.abortController = controller;
+  return { ...adapted, query: { ...adapted.query, options } };
+}
+
+/**
  * ClaudeAgentExecutor — translates Claude Agent SDK `query()` messages into
  * the canonical AgentEvent stream consumed by the shared WebhookRunner.
  *
@@ -82,8 +106,9 @@ export class ClaudeAgentExecutor implements Executor {
     try {
       // withTracing wraps the SDK call in GenAI telemetry spans when
       // `adapted.telemetry` is enabled (adapter-authored, runner-enriched);
-      // otherwise it's a passthrough.
-      const traced = await withTracing(query, adapted);
+      // otherwise it's a passthrough. ctx.signal rides in as the SDK's
+      // abortController so the runner can cancel the query mid-flight.
+      const traced = await withTracing(query, withAbortSignal(adapted, ctx.signal));
 
       for await (const message of traced as AsyncIterable<any>) {
         if (message.type === "assistant") {

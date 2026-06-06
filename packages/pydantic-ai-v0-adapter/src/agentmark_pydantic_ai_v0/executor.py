@@ -9,9 +9,10 @@ is required inside the executor.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, TypeVar
 
 from pydantic_ai import Agent
 from pydantic_ai._agent_graph import CallToolsNode, ModelRequestNode
@@ -65,6 +66,60 @@ def _extract_usage(run_usage: Any) -> UsageData | None:
     )
 
 
+_EventT = TypeVar("_EventT")
+
+# Sentinel marking normal end-of-stream on the hand-off queue.
+_STREAM_DONE: Any = object()
+
+
+async def _decouple(inner: AsyncIterator[_EventT]) -> AsyncIterator[_EventT]:
+    """Yield events from ``inner`` while iterating it inside a dedicated task.
+
+    Why: ``_stream_text`` yields from *inside* ``async with agent.iter()``.
+    On pydantic-ai >= 1.57 the capabilities ``wrap_run`` hand-off cannot
+    survive a ``GeneratorExit`` thrown at such a yield point — the close is
+    swallowed mid-unwind and the generator keeps producing, which surfaces
+    as ``RuntimeError: async generator ignored GeneratorExit`` when a
+    consumer aborts mid-stream (client disconnect). Running the pydantic-ai
+    iteration in its own task converts consumer cancellation into task
+    cancellation (``CancelledError``) — the path the library supports.
+    """
+    queue: asyncio.Queue[Any] = asyncio.Queue()
+
+    async def _pump() -> None:
+        # Unbounded queue: put_nowait never blocks, so this task can always
+        # unwind promptly on cancellation (no sentinel/backpressure deadlock).
+        try:
+            async for ev in inner:
+                queue.put_nowait(ev)
+        finally:
+            queue.put_nowait(_STREAM_DONE)
+
+    task = asyncio.create_task(_pump())
+    try:
+        while True:
+            ev = await queue.get()
+            if ev is _STREAM_DONE:
+                break
+            yield ev
+    finally:
+        # Abort path (GeneratorExit at `yield ev`): cancel the pump so the
+        # pydantic-ai run stops instead of executing on in the background.
+        # Normal path: the task is already done, so cancel() is a no-op and
+        # `await task` re-raises pump crashes (model errors never get here —
+        # `inner` converts those to ErrorEvent). Suppress only the pump's
+        # own cancellation (task.cancelled()); a CancelledError while the
+        # task is NOT cancelled is cancellation aimed at us and must
+        # propagate.
+        if not task.done():
+            task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            if not task.cancelled():
+                raise  # cancellation aimed at *us* mid-await — propagate
+
+
 class PydanticAIExecutor:
     """Executor for pydantic-ai. Compatible with the `Executor` Protocol."""
 
@@ -78,7 +133,9 @@ class PydanticAIExecutor:
     ) -> AsyncIterator[TextStreamEvent]:
         params: PydanticAITextParams = formatted
         if ctx.should_stream:
-            return self._stream_text(params)
+            # Decoupled so a consumer abort never throws GeneratorExit into
+            # the agent.iter() stack — see _decouple's docstring.
+            return _decouple(self._stream_text(params))
         return self._run_text(params)
 
     def execute_object(

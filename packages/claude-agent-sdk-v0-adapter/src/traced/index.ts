@@ -734,6 +734,7 @@ export async function withTracing<TOptions, R>(
   // Create the async iterator that performs tracing
   async function* tracedIterator(): AsyncGenerator<R, void, unknown> {
     let agentSpanEnded = false;
+    let iterator: AsyncIterator<R> | undefined;
     try {
       // Create the iterable within the parent context so the SDK picks up
       // our trace context for its root span creation
@@ -748,10 +749,11 @@ export async function withTracing<TOptions, R>(
       // context. The SDK creates OTEL spans during async iteration, and
       // context.with() + AsyncLocalStorage propagates through the Promise
       // chain, ensuring SDK spans inherit our traceId.
-      const iterator = (iterable as AsyncIterable<R>)[Symbol.asyncIterator]();
+      iterator = (iterable as AsyncIterable<R>)[Symbol.asyncIterator]();
+      const iter = iterator;
       while (true) {
         const result = await ctx.api.context.with(ctx.parentContext, () =>
-          iterator.next()
+          iter.next()
         );
         if (result.done) break;
 
@@ -774,6 +776,15 @@ export async function withTracing<TOptions, R>(
       agentSpanEnded = true;
       throw error;
     } finally {
+      // Close the SDK iterator on early exit (abort/break): the manual
+      // next() loop bypasses for-await's auto-close, so without this the
+      // SDK generator's cleanup would wait for GC. Belt-and-suspenders
+      // alongside the abortController cancellation channel.
+      try {
+        await iterator?.return?.();
+      } catch {
+        // Cleanup-path errors must not mask the real outcome.
+      }
       // Cleanup any remaining spans on iterator completion (including early break)
       endCurrentChat(ctx);
       endPendingTools(ctx);

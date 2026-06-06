@@ -47,14 +47,36 @@ const ASSERTION_TRIO = [
 ];
 
 function walk(dir: string, out: string[] = []): string[] {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+  // Vanishing entries are expected: cli tests churn tmp-* fixture dirs and
+  // the scaffold regression test creates/deletes a probe package — both can
+  // run concurrently with this scan under `turbo test`. A dir or file that
+  // disappears mid-walk is throwaway by definition, never an Executor
+  // implementation.
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
     if (entry.isDirectory()) {
-      if (!SKIP_DIRS.has(entry.name)) walk(path.join(dir, entry.name), out);
+      if (!SKIP_DIRS.has(entry.name) && !entry.name.startsWith("tmp-")) {
+        walk(path.join(dir, entry.name), out);
+      }
     } else if (entry.name.endsWith(".ts")) {
       out.push(path.join(dir, entry.name));
     }
   }
   return out;
+}
+
+/** Read a file, tolerating concurrent deletion (see walk). */
+function readSafe(file: string): string {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch {
+    return "";
+  }
 }
 
 interface PackageScan {
@@ -66,7 +88,7 @@ interface PackageScan {
 function scanPackages(): PackageScan[] {
   const scans: PackageScan[] = [];
   for (const entry of fs.readdirSync(PACKAGES_DIR, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory() || entry.name.startsWith("tmp-")) continue;
     const pkgDir = path.join(PACKAGES_DIR, entry.name);
     const srcDir = path.join(pkgDir, "src");
     if (!fs.existsSync(srcDir)) continue;
@@ -75,7 +97,7 @@ function scanPackages(): PackageScan[] {
       (f) => !f.endsWith(".test.ts") && !f.endsWith(".spec.ts")
     );
     const implementationFiles = srcFiles.filter((f) => {
-      const content = fs.readFileSync(f, "utf8");
+      const content = readSafe(f);
       return IMPLEMENTATION_PATTERNS.some((p) => p.test(content));
     });
     if (implementationFiles.length === 0) continue;
@@ -83,9 +105,7 @@ function scanPackages(): PackageScan[] {
     const testFiles = walk(pkgDir).filter(
       (f) => f.endsWith(".test.ts") || f.endsWith(".spec.ts")
     );
-    const testCorpus = testFiles
-      .map((f) => fs.readFileSync(f, "utf8"))
-      .join("\n");
+    const testCorpus = testFiles.map(readSafe).join("\n");
 
     scans.push({
       name: entry.name,
