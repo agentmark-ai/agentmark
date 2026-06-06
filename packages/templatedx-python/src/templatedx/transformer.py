@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 from .constants import MDX_JSX_ATTRIBUTE_TYPES, NODE_TYPES
+from .errors import TemplateDXError
 from .expression import ExpressionEvaluator
 from .filter_registry import FilterRegistry
 from .scope import Scope
@@ -142,7 +143,12 @@ class NodeTransformer:
                 "value": stringify_value(evaluated_value),
             }
         except Exception as e:
-            raise ValueError(f'Error evaluating expression "{expression}": {e}') from e
+            # The expression node knows exactly where `{...}` sits in the source —
+            # attach it so editors can underline the failing expression.
+            raise TemplateDXError(
+                f'Error evaluating expression "{expression}": {e}',
+                node.get("position"),
+            ) from e
 
     async def _process_mdx_jsx_element(self, node: Node) -> Node | list[Node]:
         """Process an MDX JSX element.
@@ -179,7 +185,15 @@ class NodeTransformer:
             return new_node
 
         except Exception as e:
-            raise ValueError(f"Error processing MDX JSX Element: {e}") from e
+            # A child that already located its error keeps its (more precise)
+            # position and message — re-wrapping here would replace an exact
+            # expression range with the whole enclosing element.
+            if isinstance(e, TemplateDXError) and e.position:
+                raise
+            raise TemplateDXError(
+                f"Error processing MDX JSX Element: {e}",
+                node.get("position"),
+            ) from e
 
     def _evaluate_props(self, node: Node) -> dict[str, Any]:
         """Evaluate JSX attributes to concrete values.
@@ -208,12 +222,24 @@ class NodeTransformer:
                     if value_type == MDX_JSX_ATTRIBUTE_TYPES["MDX_JSX_ATTRIBUTE_VALUE_EXPRESSION"]:
                         # Expression value
                         expression = value.get("value", "")
-                        props[name] = self.evaluator.evaluate(expression)
+                        try:
+                            props[name] = self.evaluator.evaluate(expression)
+                        except Exception as e:
+                            # Point at the attribute (falling back to the element) so a
+                            # bad prop expression underlines `name={...}`, not the whole
+                            # tag body.
+                            raise TemplateDXError(
+                                f'Error evaluating expression "{expression}": {e}',
+                                attr.get("position") or node.get("position"),
+                            ) from e
 
             elif attr_type == MDX_JSX_ATTRIBUTE_TYPES["MDX_JSX_EXPRESSION_ATTRIBUTE"]:
                 # Spread attributes - not supported
                 tag_name = node.get("name", "unknown")
-                raise ValueError(f"Unsupported attribute type in component <{tag_name}>.")
+                raise TemplateDXError(
+                    f"Unsupported attribute type in component <{tag_name}>.",
+                    attr.get("position") or node.get("position"),
+                )
 
         return props
 

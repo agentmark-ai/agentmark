@@ -24,6 +24,11 @@ from importlib.metadata import version as _pkg_version
 
 from .constants import MDX_JSX_ATTRIBUTE_TYPES, NODE_TYPES
 from .engine import TemplateDX
+
+# Positioned semantic errors — same line/column/offset shape as the syntax
+# errors raised at parse time, so editor integrations can map any templatedx
+# error to a source range with one code path.
+from .errors import TemplateDXError
 from .expression import EvaluationError, ExpressionEvaluator, LexerError, ParseError
 from .filter_registry import FilterRegistry
 from .scope import Scope
@@ -53,6 +58,8 @@ __all__ = [
     "LexerError",
     "ParseError",
     "EvaluationError",
+    # Positioned semantic errors
+    "TemplateDXError",
     # Constants
     "NODE_TYPES",
     "MDX_JSX_ATTRIBUTE_TYPES",
