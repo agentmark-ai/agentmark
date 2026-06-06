@@ -1,3 +1,11 @@
+## 0.7.1 (2026-06-06)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.8.1
+- Updated @agentmark-ai/templatedx to 0.4.0
+- Updated @agentmark-ai/sdk to 1.2.3
+
 ## 0.7.0 (2026-06-06)
 
 ### 🚀 Features

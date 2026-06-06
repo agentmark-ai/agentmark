@@ -1,3 +1,10 @@
+## 0.8.1 (2026-06-06)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/fallback-adapter to 1.1.3
+- Updated @agentmark-ai/templatedx to 0.4.0
+
 ## 0.8.0 (2026-06-06)
 
 ### 🚀 Features
