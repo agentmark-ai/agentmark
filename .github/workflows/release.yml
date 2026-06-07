@@ -27,6 +27,19 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
+      # nx release versions the Python packages through @nxlv/python
+      # (nx.json: release.groups.python.versionActions), which shells out to
+      # `uv` (plugin option packageManager: uv) to rewrite pyproject.toml +
+      # uv.lock. Without uv on PATH, any version plan that bumps a Python
+      # package fails the whole prepare run with "UV is not installed".
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install UV (required by @nxlv/python version actions)
+        run: pip install uv
+
       - name: Install dependencies
         run: yarn install --immutable
 
