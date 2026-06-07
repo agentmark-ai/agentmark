@@ -108,9 +108,10 @@ const vercelV4McpClientFactory: McpClientFactory<Tool> = async (cfg) => {
 
 /**
  * Concretely-typed registry for AI SDK v4 models. The implementation lives
- * in `@agentmark-ai/ai-sdk-shared` (version-agnostic, bundled at build
- * time); this subclass pins `TModel` to v4's model union so the public
- * typing is unchanged from when the class body lived here.
+ * in `@agentmark-ai/ai-sdk-shared` (version-agnostic, consumed as a regular
+ * dependency so its types resolve for consumers too); this subclass pins
+ * `TModel` to v4's model union so the public typing is unchanged from when
+ * the class body lived here.
  */
 export class VercelAIModelRegistry extends SharedVercelAIModelRegistry<VercelModel> {}
 

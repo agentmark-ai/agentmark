@@ -609,6 +609,85 @@ class TestStreamTextDelta:
         assert text_chunks[0]["result"] == "Hello"
         assert text_chunks[1]["result"] == " world"
 
+    async def test_stream_text_includes_part_start_content(
+        self, handler: PydanticAIWebhookHandler, mock_client: MagicMock
+    ) -> None:
+        """Regression: pydantic-ai delivers the FIRST chunk of a text part
+        inside PartStartEvent (a single-chunk response arrives ONLY there);
+        later chunks come as TextPartDelta. Handling only the deltas silently
+        drops the opening token(s) of every streamed response.
+        """
+        from pydantic_ai._agent_graph import ModelRequestNode
+        from pydantic_ai.messages import (
+            ModelResponse,
+            PartDeltaEvent,
+            PartStartEvent,
+            TextPart,
+            TextPartDelta,
+        )
+
+        params = MagicMock()
+        params.model = "openai:gpt-4o-mini"
+        params.system_prompt = "You are helpful"
+        params.user_prompt = "Hi"
+        params.model_settings = {}
+        params.tools = []
+
+        mock_prompt = MagicMock()
+        mock_prompt.format_with_test_props = AsyncMock(return_value=params)
+        mock_client.load_text_prompt = AsyncMock(return_value=mock_prompt)
+
+        async def fake_stream_events():
+            # First token rides the part-start event, not a delta.
+            yield PartStartEvent(index=0, part=TextPart(content="The capital"))
+            yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=" of France"))
+
+        mock_stream = MagicMock()
+        mock_stream.__aiter__ = lambda self: fake_stream_events()
+        mock_stream.response = ModelResponse(parts=[TextPart(content="The capital of France")])
+
+        mock_stream_cm = MagicMock()
+        mock_stream_cm.__aenter__ = AsyncMock(return_value=mock_stream)
+        mock_stream_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_model_node = MagicMock(spec=ModelRequestNode)
+        mock_model_node.stream = MagicMock(return_value=mock_stream_cm)
+
+        mock_usage = MagicMock()
+        mock_usage.request_tokens = 10
+        mock_usage.response_tokens = 5
+        mock_usage.total_tokens = 15
+
+        async def fake_iter_nodes():
+            yield mock_model_node
+
+        mock_run = MagicMock()
+        mock_run.__aiter__ = lambda self: fake_iter_nodes()
+        mock_run.usage = MagicMock(return_value=mock_usage)
+
+        mock_iter_cm = MagicMock()
+        mock_iter_cm.__aenter__ = AsyncMock(return_value=mock_run)
+        mock_iter_cm.__aexit__ = AsyncMock(return_value=False)
+
+        prompt_ast = {
+            "type": "root",
+            "children": [{"type": "yaml", "value": "text_config:\n  model_name: test"}],
+        }
+
+        with patch("agentmark_pydantic_ai_v0.executor.Agent") as MockAgent:
+            mock_agent = MagicMock()
+            mock_agent.iter = MagicMock(return_value=mock_iter_cm)
+            MockAgent.return_value = mock_agent
+
+            result = await handler.run_prompt(prompt_ast, {"shouldStream": True})
+            chunks: list[str] = []
+            async for chunk in result["stream"]:
+                chunks.append(chunk)
+
+        text_chunks = [json.loads(c) for c in chunks if "result" in json.loads(c)]
+        # Positional: the part-start content must arrive first, then the delta.
+        assert [c["result"] for c in text_chunks] == ["The capital", " of France"]
+
 
 @pytest.mark.asyncio
 class TestEvalsNoneHandling:
