@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-06T01:08:51.379Z",
+  "generatedAt": "2026-06-07T01:16:07.343Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-06T01:08:51.379Z",
-      "modelCount": 1203
+      "fetchedAt": "2026-06-07T01:16:07.344Z",
+      "modelCount": 1205
     },
     "openrouter": {
-      "fetchedAt": "2026-06-06T01:08:51.379Z",
-      "modelCount": 125
+      "fetchedAt": "2026-06-07T01:16:07.344Z",
+      "modelCount": 124
     }
   },
   "models": {
@@ -1524,7 +1524,7 @@
     },
     "gpt-4-1106-preview": {
       "provider": "openai",
-      "displayName": "OpenAI: GPT-4 Turbo (older v1106)",
+      "displayName": "Gpt 4 1106 Preview",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
@@ -1538,17 +1538,9 @@
       "capabilities": {
         "functionCalling": true,
         "parallelFunctionCalling": true,
-        "promptCaching": true,
-        "structuredOutput": true
+        "promptCaching": true
       },
-      "deprecationDate": "2026-03-26",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_p"
-      ]
+      "deprecationDate": "2026-03-26"
     },
     "gpt-4-32k": {
       "provider": "azure",
@@ -6260,10 +6252,10 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000033,
-        "outputCostPerToken": 0.0000165,
-        "cacheCreationCostPerToken": 0.000004125,
-        "cacheReadCostPerToken": 3.3e-7
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6284,10 +6276,10 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000033,
-        "outputCostPerToken": 0.0000165,
-        "cacheCreationCostPerToken": 0.000004125,
-        "cacheReadCostPerToken": 3.3e-7
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6499,10 +6491,10 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000033,
-        "outputCostPerToken": 0.0000165,
-        "cacheCreationCostPerToken": 0.000004125,
-        "cacheReadCostPerToken": 3.3e-7
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -6523,10 +6515,10 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.0000033,
-        "outputCostPerToken": 0.0000165,
-        "cacheCreationCostPerToken": 0.000004125,
-        "cacheReadCostPerToken": 3.3e-7
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
       },
       "context": {
         "maxInputTokens": 200000,
@@ -15689,7 +15681,8 @@
         "structuredOutput": false,
         "promptCaching": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-3-beta": {
       "provider": "xai",
@@ -15946,7 +15939,8 @@
         "functionCalling": true,
         "promptCaching": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4-fast-non-reasoning": {
       "provider": "xai",
@@ -15966,7 +15960,8 @@
         "functionCalling": true,
         "promptCaching": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4-0709": {
       "provider": "xai",
@@ -15985,7 +15980,8 @@
         "functionCalling": true,
         "promptCaching": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4-latest": {
       "provider": "xai",
@@ -16052,7 +16048,8 @@
         "reasoning": true,
         "audioInput": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4-1-fast-reasoning-latest": {
       "provider": "xai",
@@ -16076,7 +16073,8 @@
         "reasoning": true,
         "audioInput": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4-1-fast-non-reasoning": {
       "provider": "xai",
@@ -16099,7 +16097,8 @@
         "promptCaching": true,
         "audioInput": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4-1-fast-non-reasoning-latest": {
       "provider": "xai",
@@ -16122,7 +16121,8 @@
         "promptCaching": true,
         "audioInput": true,
         "webSearch": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-4.20-multi-agent-beta-0309": {
       "provider": "xai",
@@ -16313,7 +16313,8 @@
         "functionCalling": true,
         "promptCaching": true,
         "reasoning": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-code-fast-1-0825": {
       "provider": "xai",
@@ -16333,7 +16334,8 @@
         "functionCalling": true,
         "promptCaching": true,
         "reasoning": true
-      }
+      },
+      "deprecationDate": "2026-05-15"
     },
     "grok-vision-beta": {
       "provider": "xai",
@@ -23677,6 +23679,43 @@
         "promptCaching": true,
         "reasoning": true,
         "pdfInput": true
+      }
+    },
+    "ministral-8b-latest": {
+      "provider": "mistral",
+      "displayName": "Ministral 8b Latest",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 1.5e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "vertex_ai/google/gemma-4-26b-a4b-it-maas": {
+      "provider": "google",
+      "displayName": "Vertex Ai/google/gemma 4 26b A4b It Maas",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
       }
     }
   }
