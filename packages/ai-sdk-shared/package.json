@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ai-sdk-shared",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Internal workspace-only package: shared executor factory for Vercel AI SDK v4 and v5 adapters. Not published to npm.",
   "license": "MIT",
