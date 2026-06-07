@@ -34,11 +34,19 @@ export interface ApiLoaderOptions {
 }
 
 type FetchTemplateOptions = {
-  cache:
+  // Optional so the `load` signature stays assignable to the adapters'
+  // `LoaderLike` contract (callers pass `AdaptOptions`, which has no `cache`
+  // key). Omitting `cache` skips caching — same runtime behavior callers
+  // without an explicit cache option always got. The index signature accepts
+  // the rest of the adapt options those callers pass through; they're
+  // irrelevant to fetching, but without it this all-optional type would fail
+  // TypeScript's weak-type check against `AdaptOptions`.
+  cache?:
     | {
         ttl?: number;
       }
     | false;
+  [key: string]: unknown;
 };
 
 /**

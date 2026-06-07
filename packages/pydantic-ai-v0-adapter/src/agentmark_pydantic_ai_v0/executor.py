@@ -19,6 +19,8 @@ from pydantic_ai._agent_graph import CallToolsNode, ModelRequestNode
 from pydantic_ai.messages import (
     FunctionToolResultEvent,
     PartDeltaEvent,
+    PartStartEvent,
+    TextPart,
     TextPartDelta,
     ToolCallPart,
     ToolReturnPart,
@@ -203,7 +205,20 @@ class PydanticAIExecutor:
                     if isinstance(node, ModelRequestNode):
                         async with node.stream(run.ctx) as stream:
                             async for event in stream:
-                                if isinstance(event, PartDeltaEvent) and isinstance(
+                                # pydantic-ai delivers the FIRST chunk of a
+                                # text part inside PartStartEvent (and a
+                                # single-chunk response arrives ONLY there);
+                                # subsequent chunks come as TextPartDelta.
+                                # Handling only the deltas silently drops the
+                                # opening token(s) of every streamed response.
+                                if isinstance(event, PartStartEvent) and isinstance(
+                                    event.part, TextPart
+                                ):
+                                    if event.part.content:
+                                        yield TextDeltaEvent(
+                                            text=event.part.content
+                                        )
+                                elif isinstance(event, PartDeltaEvent) and isinstance(
                                     event.delta, TextPartDelta
                                 ):
                                     yield TextDeltaEvent(

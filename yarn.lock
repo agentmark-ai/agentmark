@@ -26,7 +26,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@agentmark-ai/ai-sdk-shared@npm:*, @agentmark-ai/ai-sdk-shared@workspace:packages/ai-sdk-shared":
+"@agentmark-ai/ai-sdk-shared@npm:>=0.0.0, @agentmark-ai/ai-sdk-shared@workspace:packages/ai-sdk-shared":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ai-sdk-shared@workspace:packages/ai-sdk-shared"
   dependencies:
@@ -44,7 +44,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ai-sdk-v4-adapter@workspace:packages/ai-sdk-v4-adapter"
   dependencies:
-    "@agentmark-ai/ai-sdk-shared": "npm:*"
+    "@agentmark-ai/ai-sdk-shared": "npm:>=0.0.0"
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
     "@agentmark-ai/sdk": "npm:1.2.4"
@@ -70,7 +70,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ai-sdk-v5-adapter@workspace:packages/ai-sdk-v5-adapter"
   dependencies:
-    "@agentmark-ai/ai-sdk-shared": "npm:*"
+    "@agentmark-ai/ai-sdk-shared": "npm:>=0.0.0"
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
     "@agentmark-ai/sdk": "npm:1.2.4"

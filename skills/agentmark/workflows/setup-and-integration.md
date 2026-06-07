@@ -86,6 +86,8 @@ Place files at the paths the docs page specified. Two SDK-contract rules overrid
 - Prompts root is always **named `agentmark/`** — the SDK loader resolves `<agentmarkPath>/agentmark/`. Setting `agentmarkPath: "/"` instead of `"."` is a known footgun.
 - The client file is a **configured factory** — reads `AGENTMARK_API_KEY` / `AGENTMARK_APP_ID` from env, exports a configured client. Importers throughout the codebase use it.
 
+For the full client recipe — `agentmark.client.ts`, the `dev-entry.ts` dev-server entry, and the `handler.ts` deployment entry — fetch `set up your AgentMark client` (Getting Started → Client setup) from the docs MCP and follow it verbatim, including its verification step (`agentmark dev` + `run-prompt`). The dashboard's Run buttons stay disabled until the client is deployed (or a webhook is set), so a Cloud-mode setup isn't complete without it.
+
 If the docs guidance contradicts those two rules, prefer the docs (they may have evolved) but flag the discrepancy to the user.
 
 ## Step 6 — Scaffold the first prompt

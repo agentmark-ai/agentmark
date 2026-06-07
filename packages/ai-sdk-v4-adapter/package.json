@@ -36,7 +36,6 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@agentmark-ai/ai-sdk-shared": "*",
     "@agentmark-ai/loader-file": "*",
     "@agentmark-ai/prompt-core": "0.8.2",
     "@agentmark-ai/sdk": "1.2.4",
@@ -59,5 +58,8 @@
   },
   "files": [
     "dist/"
-  ]
+  ],
+  "dependencies": {
+    "@agentmark-ai/ai-sdk-shared": ">=0.0.0"
+  }
 }
