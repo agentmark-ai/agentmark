@@ -80,58 +80,6 @@
 │  └─ Dependents
 │     └─ [38;5;166m@nxlv/[39m[38;5;173mpython[39m[38;5;111m@[39m[38;5;111mnpm:22.1.1[39m
 │
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1120082[39m
-│  ├─ Issue: Hono: IP Restriction bypasses static deny rules for non-canonical IPv6
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-xrhx-7g5j-rcj5[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.21[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.18[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1120083[39m
-│  ├─ Issue: Hono: Cookie helper does not sanitize sameSite and priority, allowing Set-Cookie injection
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-3hrh-pfw6-9m5x[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.21[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.18[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1120084[39m
-│  ├─ Issue: Hono: JWT middleware accepts any Authorization scheme, not only Bearer
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-f577-qrjj-4474[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.21[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.18[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
-├─ [38;5;173mhono[39m
-│  ├─ ID: [38;5;220m1120085[39m
-│  ├─ Issue: Hono: app.mount() strips mount prefix using undecoded path, causing incorrect routing for percent-encoded paths
-│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-2gcr-mfcq-wcc3[39m
-│  ├─ Severity: moderate
-│  ├─ Vulnerable Versions: [38;5;37m<4.12.21[39m
-│  │ 
-│  ├─ Tree Versions
-│  │  └─ [38;5;111m4.12.18[39m
-│  │ 
-│  └─ Dependents
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
-│
 ├─ [38;5;173mnode-domexception[39m
 │  ├─ ID: [38;5;111mnode-domexception (deprecation)[39m
 │  ├─ Issue: Use your platform's native DOMException instead

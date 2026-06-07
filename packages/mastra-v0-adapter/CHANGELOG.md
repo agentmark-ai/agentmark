@@ -1,3 +1,9 @@
+## 1.6.4 (2026-06-07)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/sdk to 1.2.5
+
 ## 1.6.3 (2026-06-07)
 
 ### 🧱 Updated Dependencies
