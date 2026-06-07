@@ -14,6 +14,7 @@ import remarkParse from 'remark-parse';
 import remarkMdx from 'remark-mdx';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkStringify from 'remark-stringify';
+import { recoverParseErrorPosition } from './errors';
 
 export const createBaseProcessor = () =>
   unified().use(remarkParse).use(remarkMdx).use(remarkFrontmatter);
@@ -88,7 +89,13 @@ export const getFrontMatter = (tree: Root) => {
 
 export function parse(mdxContent: string): Root {
   const processor = unified().use(remarkParse).use(remarkMdx).use(remarkFrontmatter);
-  return processor.parse(mdxContent) as Root;
+  try {
+    return processor.parse(mdxContent) as Root;
+  } catch (error) {
+    // The unclosed-tag-at-EOF parser error carries its position in the
+    // message text only — repair it so every parse error is positioned.
+    throw recoverParseErrorPosition(error, mdxContent);
+  }
 }
 
 export const stringify = (tree: Root): string => {
