@@ -1,6 +1,6 @@
 {
   "$schema": "https://agentskills.io/eval-schema.json",
-  "comment": "Eval scenarios for the agentmark skill. Each positive scenario should auto-invoke the skill; each negative scenario should NOT. The `checks` array is machine-checkable by scripts/run-skill-evals.mjs; `expected_behavior` is human-readable rationale.",
+  "comment": "Eval scenarios for the agentmark skill. Each positive scenario should auto-invoke the skill; each negative scenario should NOT. The `checks` array is machine-checkable by the monorepo's scripts/run-skill-evals.mjs (not shipped with this skill); `expected_behavior` is human-readable rationale. `skill_only: true` is a local extension marking checks that test skill plumbing (skill invocation, workflow reads) rather than outcome quality — the runner's baseline (no-skill) arm scores only the untagged behavioral checks, so the with-vs-without delta measures what the skill actually adds.",
   "scenarios": [
     {
       "id": "create-prompt-positive",
@@ -16,8 +16,8 @@
         "Suggests running `npx agentmark run-prompt <path>` to test"
       ],
       "checks": [
-        { "type": "tool_used", "tool": "Skill" },
-        { "type": "file_read_match", "pattern": "workflows/creating-prompts\\.md" },
+        { "type": "tool_used", "tool": "Skill", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/creating-prompts\\.md", "skill_only": true },
         { "type": "file_written_match", "pattern": "\\.prompt\\.mdx$" },
         { "type": "text_contains", "match": "run-prompt" }
       ]
@@ -36,8 +36,8 @@
         "Distinguishes run-experiment from run-prompt"
       ],
       "checks": [
-        { "type": "tool_used", "tool": "Skill" },
-        { "type": "file_read_match", "pattern": "workflows/running-experiments\\.md" },
+        { "type": "tool_used", "tool": "Skill", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/running-experiments\\.md", "skill_only": true },
         { "type": "text_contains", "match": "run-experiment" },
         { "type": "text_contains", "match": "--threshold" }
       ]
@@ -55,8 +55,8 @@
         "Does NOT invent a `npx agentmark deploy` command (there isn't one)"
       ],
       "checks": [
-        { "type": "tool_used", "tool": "Skill" },
-        { "type": "file_read_match", "pattern": "workflows/deploying\\.md" },
+        { "type": "tool_used", "tool": "Skill", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/deploying\\.md", "skill_only": true },
         { "type": "text_contains", "match": "git" },
         { "type": "text_contains_any", "matches": ["push", "branch", "provider"] },
         { "type": "no_tool_call_command", "pattern": "agentmark deploy" }
@@ -127,8 +127,8 @@
         "Proposes a concrete plan BEFORE writing any files (Step 2 of the workflow: 'Propose, don't act')"
       ],
       "checks": [
-        { "type": "tool_used", "tool": "Skill" },
-        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md" },
+        { "type": "tool_used", "tool": "Skill", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md", "skill_only": true },
         { "type": "text_contains_any", "matches": ["docs MCP", "docs.agentmark.co", "search_agent_mark_docs"] },
         { "type": "text_contains_any", "matches": ["Next.js", "next"] },
         { "type": "text_contains_any", "matches": ["plan", "propose", "Here's", "would"] }
@@ -147,7 +147,7 @@
         "Does NOT silently scaffold agentmark.json or agentmark/ from within the skill"
       ],
       "checks": [
-        { "type": "tool_used", "tool": "Skill" },
+        { "type": "tool_used", "tool": "Skill", "skill_only": true },
         { "type": "text_contains_any", "matches": ["npm create agentmark", "npx create-agentmark", "create-agentmark"] },
         { "type": "text_does_not_contain", "match": "I'll create agentmark.json" }
       ]
@@ -165,8 +165,8 @@
         "Surfaces the existing LLM call as a follow-up migration the user can opt into separately (per Step 8: 'migration is a separate confirmation')"
       ],
       "checks": [
-        { "type": "tool_used", "tool": "Skill" },
-        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md" },
+        { "type": "tool_used", "tool": "Skill", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md", "skill_only": true },
         { "type": "text_contains_any", "matches": ["streamText", "existing", "migration", "migrate", "separately", "second confirmation"] }
       ]
     }
@@ -217,7 +217,7 @@
     }
   },
   "test_matrix": {
-    "models": ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-7"],
+    "models": ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-8"],
     "comment": "Per Anthropic best practices, test all targeted models before shipping. The runner defaults to whatever model `claude -p` selects unless --model is passed."
   }
 }

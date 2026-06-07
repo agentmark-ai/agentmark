@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import prompts from "prompts";
-import { pathToFileURL } from "url";
+import { pathToFileURL, fileURLToPath } from "url";
 import { writeMcpConfig, type McpClient } from "./utils/examples/mcp-config.js";
 import { installAgentmarkSkill } from "./utils/install-skill.js";
 import { initGitRepo } from "./utils/git-init.js";
@@ -251,13 +251,29 @@ export const main = async (): Promise<void> => {
 
 /**
  * Run main() only when this module is invoked directly as the CLI entry —
- * NOT when imported by a test or another module. The pathToFileURL/url
- * comparison is the canonical ESM-friendly "is this the entry script?" check.
+ * NOT when imported by a test or another module.
+ *
+ * Both sides MUST be realpath'd before comparing. npm/npx invoke bins
+ * through a `node_modules/.bin` SYMLINK, so `process.argv[1]` is the
+ * symlink path while `import.meta.url` is the resolved real path — a naive
+ * URL comparison never matches and the CLI exits 0 having done nothing.
+ * That exact bug shipped in 1.0.0 and made `npm create agentmark` a silent
+ * no-op for every user (macOS additionally symlinks /tmp, which is why
+ * even "direct" invocations failed in temp dirs). Regression-pinned by
+ * test/bin-invocation.test.ts, which runs the built bin through a symlink.
  */
 const isDirectlyInvoked = (): boolean => {
   const entry = process.argv[1];
   if (!entry) return false;
-  return import.meta.url === pathToFileURL(entry).href;
+  try {
+    const entryReal = pathToFileURL(fs.realpathSync(entry)).href;
+    const selfReal = pathToFileURL(fs.realpathSync(fileURLToPath(import.meta.url))).href;
+    return entryReal === selfReal;
+  } catch {
+    // realpath can throw on exotic entries (deleted cwd, permissions);
+    // treat as "not the CLI entry" rather than crashing an import.
+    return false;
+  }
 };
 
 if (isDirectlyInvoked()) {
