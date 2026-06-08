@@ -91,14 +91,6 @@ my-project/
 
 All `reference/*.md` files are **auto-generated** from upstream sources on every release. They are the most reliable encoded facts in this skill. Hand-authored workflow files can drift; these cannot, because re-running the generators is part of the pre-push gate.
 
-To check whether the skill has drifted from reality — CLI command list, docs MCP availability, internal markdown links — run the bundled smoke:
-
-```bash
-node skills/agentmark/smoke.mjs
-```
-
-Exits 0 when the skill is current; non-zero with one `FAIL: …` line per drift finding. Run it before publishing the skill, or whenever a workflow seems off.
-
 - **CLI commands**: [reference/cli-commands.md](reference/cli-commands.md) — from `cli-src/index.ts`. Prefer `npx agentmark <cmd> --help` for live verification.
 - **Frontmatter schema**: [reference/frontmatter-schema.md](reference/frontmatter-schema.md) — from `prompt-core/src/schemas.ts` (Zod). Runtime truth. If docs disagree, prefer docs.
 - **Gateway API surface (for agents)**: fetched at startup by `agentmark-mcp` from `api.agentmark.co/v1/openapi.json`. Resource names are tag slugs; actions are operationIds. There is no static reference file for this — the spec is too large and changes often. List available tools by running `agentmark-mcp` and calling `tools/list`, or read the spec directly.
