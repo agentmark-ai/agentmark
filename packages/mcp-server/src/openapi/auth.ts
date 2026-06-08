@@ -31,24 +31,55 @@ interface CachedCredentials {
   expires_at?: string;
 }
 
-export function resolveBearer(): string | null {
+/**
+ * Why a credential did (or didn't) resolve. `resolveBearer` collapses
+ * this to a token-or-null; callers that want to explain the failure to
+ * the user (e.g. "your session expired") read the `reason` instead.
+ *
+ *   - `apikey`  — `AGENTMARK_API_KEY` env var (long-lived, app-scoped)
+ *   - `session` — valid, unexpired bearer from `~/.agentmark/auth.json`
+ *   - `expired` — auth.json exists but its token is past `expires_at`
+ *   - `none`    — no API key and no auth.json (never logged in)
+ */
+export type AuthReason = 'apikey' | 'session' | 'expired' | 'none';
+export interface AuthState {
+  token: string | null;
+  reason: AuthReason;
+}
+
+/**
+ * Resolve the current credential AND why. Read fresh from disk on every
+ * call — the MCP server is long-lived, so this is what lets a `agentmark
+ * login` performed mid-session be picked up on the next tool call without
+ * restarting the MCP client (the documented-but-unactionable-for-agents
+ * remedy). Cheap: one small file read.
+ */
+export function resolveAuthState(): AuthState {
   const envKey = process.env.AGENTMARK_API_KEY;
-  if (envKey) return envKey;
+  if (envKey) return { token: envKey, reason: 'apikey' };
 
   const credsPath = path.join(os.homedir(), '.agentmark', 'auth.json');
-  if (!fs.existsSync(credsPath)) return null;
+  if (!fs.existsSync(credsPath)) return { token: null, reason: 'none' };
 
   try {
     const raw = fs.readFileSync(credsPath, 'utf-8');
     const creds = JSON.parse(raw) as CachedCredentials;
-    if (!creds.access_token) return null;
+    if (!creds.access_token) return { token: null, reason: 'none' };
     if (creds.expires_at && new Date(creds.expires_at).getTime() <= Date.now()) {
-      return null; // Expired — user should re-login + restart MCP client
+      // Expired. Surfaced distinctly so the caller can tell the user to
+      // re-login, instead of the gateway's "Missing auth header" (which
+      // is literally true — we drop the header — but points away from the
+      // real cause).
+      return { token: null, reason: 'expired' };
     }
-    return creds.access_token;
+    return { token: creds.access_token, reason: 'session' };
   } catch {
-    return null;
+    return { token: null, reason: 'none' };
   }
+}
+
+export function resolveBearer(): string | null {
+  return resolveAuthState().token;
 }
 
 export function resolveBaseUrl(): string {

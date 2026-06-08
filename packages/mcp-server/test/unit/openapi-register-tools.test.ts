@@ -55,6 +55,41 @@ function stubFetch(response: {
 }
 
 /**
+ * Like stubFetch but returns a different response per call, draining a
+ * queue (last entry repeats once exhausted). Lets a test assert the
+ * 401-then-retry path: first call 401, second call 200.
+ */
+function stubFetchSequence(
+  responses: { status: number; body: unknown }[],
+): { captured: CapturedRequest[]; restore: () => void } {
+  const captured: CapturedRequest[] = [];
+  const original = global.fetch;
+  let i = 0;
+  global.fetch = (async (input: any, init?: any) => {
+    captured.push({
+      url: typeof input === 'string' ? input : input.url,
+      method: init?.method || 'GET',
+      headers: init?.headers || {},
+      body: init?.body ? JSON.parse(init.body) : undefined,
+    });
+    const r = responses[Math.min(i, responses.length - 1)] ?? responses[responses.length - 1]!;
+    i += 1;
+    return {
+      ok: r.status >= 200 && r.status < 300,
+      status: r.status,
+      statusText: r.status === 200 ? 'OK' : r.status === 401 ? 'Unauthorized' : 'Error',
+      text: async () => JSON.stringify(r.body),
+    } as Response;
+  }) as typeof global.fetch;
+  return {
+    captured,
+    restore: () => {
+      global.fetch = original;
+    },
+  };
+}
+
+/**
  * Reach into the MCP server to invoke a registered tool by name.
  * The SDK doesn't expose a public "invoke" — but the tools registered
  * via `.tool()` are accessible on the underlying server instance via
@@ -468,6 +503,131 @@ describe('registerOpenAPITools', () => {
       // 404 with /v1/apps/{appId}/git/connect literally in the URL".
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result)).toMatch(/appId|required/i);
+    } finally {
+      stub.restore();
+    }
+  });
+
+  // --- mid-session credential refresh (issue #2657) ----------------------
+
+  it('resolves the bearer fresh per call when given a resolver function', async () => {
+    // The headline #2657 fix: a `agentmark login` performed mid-session
+    // must be picked up on the NEXT tool call without restarting the MCP
+    // client. The server now passes a resolver, not a startup string, so
+    // each invocation reads the current credential.
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    const tokens = ['stale_token', 'fresh_after_relogin'];
+    let call = 0;
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: () => tokens[call++] ?? null, // different token each resolution
+    });
+    const stub = stubFetch({ status: 200, body: { data: [] } });
+    try {
+      await invokeRegisteredTool(server, 'list_traces', {});
+      await invokeRegisteredTool(server, 'list_traces', {});
+      expect(stub.captured[0].headers['Authorization']).toBe('Bearer stale_token');
+      expect(stub.captured[1].headers['Authorization']).toBe('Bearer fresh_after_relogin');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('retries once with a refreshed credential when the first attempt 401s', async () => {
+    // Within a single call: the token read at send-time is rejected, but
+    // the user has since logged in. Re-resolve and retry once with the
+    // fresh token before surfacing the error.
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    const tokens = ['expired_token', 'fresh_token'];
+    let call = 0;
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: () => tokens[Math.min(call++, tokens.length - 1)] ?? null,
+    });
+    const stub = stubFetchSequence([
+      { status: 401, body: { error: { code: 'unauthorized', message: 'Not authorized' } } },
+      { status: 200, body: { data: ['trace1'] } },
+    ]);
+    try {
+      const result = await invokeRegisteredTool(server, 'list_traces', {});
+      // Two HTTP attempts: first with the stale token, retry with fresh.
+      expect(stub.captured).toHaveLength(2);
+      expect(stub.captured[0].headers['Authorization']).toBe('Bearer expired_token');
+      expect(stub.captured[1].headers['Authorization']).toBe('Bearer fresh_token');
+      // The retry succeeded, so the caller sees success, not the 401.
+      expect(result.isError).toBeFalsy();
+      expect(JSON.parse(result.content[0].text)).toEqual({ data: ['trace1'] });
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('does NOT retry when the re-resolved credential is unchanged (avoids a pointless second call)', async () => {
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: () => 'same_token', // never changes — no fresh login happened
+    });
+    const stub = stubFetchSequence([
+      { status: 401, body: { error: { message: 'Not authorized' } } },
+    ]);
+    try {
+      const result = await invokeRegisteredTool(server, 'list_traces', {});
+      expect(stub.captured).toHaveLength(1); // no retry
+      expect(result.isError).toBe(true);
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('appends the authErrorHint to a surviving 401 (expired-session guidance, #2655)', async () => {
+    const spec: OpenAPISpec = {
+      paths: { '/v1/traces': { get: { operationId: 'list-traces' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: () => null, // expired/dropped → no header
+      authErrorHint: () => 'Your AgentMark session has expired. Run `agentmark login`.',
+    });
+    const stub = stubFetch({
+      status: 401,
+      body: { error: { code: 'unauthorized', message: 'Missing auth header' } },
+    });
+    try {
+      const result = await invokeRegisteredTool(server, 'list_traces', {});
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('HTTP 401');
+      expect(result.content[0].text).toContain('agentmark login');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('does NOT append the hint to non-401 errors', async () => {
+    const spec: OpenAPISpec = {
+      paths: { '/v1/apps': { post: { operationId: 'create-app' } } },
+    };
+    registerOpenAPITools(server, {
+      spec,
+      baseUrl: 'https://api.agentmark.co',
+      bearer: () => 'tok',
+      authErrorHint: () => 'SHOULD NOT APPEAR',
+    });
+    const stub = stubFetch({ status: 400, body: { error: 'name is required' } });
+    try {
+      const result = await invokeRegisteredTool(server, 'create_app', { name: '' });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).not.toContain('SHOULD NOT APPEAR');
     } finally {
       stub.restore();
     }
