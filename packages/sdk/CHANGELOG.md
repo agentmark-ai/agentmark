@@ -1,3 +1,9 @@
+## 1.2.5 (2026-06-07)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-api to 0.1.2
+
 ## 1.2.4 (2026-06-07)
 
 ### 🧱 Updated Dependencies

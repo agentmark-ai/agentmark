@@ -47,7 +47,7 @@ __metadata:
     "@agentmark-ai/ai-sdk-shared": "npm:>=0.0.0"
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.4"
+    "@agentmark-ai/sdk": "npm:1.2.5"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/openai": "npm:^1.0.0"
     "@types/mdast": "npm:^4.0.0"
@@ -73,7 +73,7 @@ __metadata:
     "@agentmark-ai/ai-sdk-shared": "npm:>=0.0.0"
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.4"
+    "@agentmark-ai/sdk": "npm:1.2.5"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
@@ -121,7 +121,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.4"
+    "@agentmark-ai/sdk": "npm:1.2.5"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@anthropic-ai/claude-agent-sdk": "npm:^0.1.0"
@@ -246,7 +246,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/loader-api@npm:0.1.1, @agentmark-ai/loader-api@workspace:packages/loader-api":
+"@agentmark-ai/loader-api@npm:0.1.2, @agentmark-ai/loader-api@workspace:packages/loader-api":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/loader-api@workspace:packages/loader-api"
   dependencies:
@@ -273,7 +273,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.4"
+    "@agentmark-ai/sdk": "npm:1.2.5"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@mastra/core": "npm:^0.13.2"
@@ -344,11 +344,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/sdk@npm:1.2.4, @agentmark-ai/sdk@workspace:packages/sdk":
+"@agentmark-ai/sdk@npm:1.2.5, @agentmark-ai/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark-ai/loader-api": "npm:0.1.1"
+    "@agentmark-ai/loader-api": "npm:0.1.2"
     "@agentmark-ai/prompt-core": "npm:0.8.2"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/context-async-hooks": "npm:^2.0.0"
