@@ -17,7 +17,7 @@
       ],
       "checks": [
         { "type": "tool_used", "tool": "Skill", "skill_only": true },
-        { "type": "file_read_match", "pattern": "workflows/creating-prompts\\.md", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/creating-prompts\\.md", "skill_only": true, "advisory": true },
         { "type": "file_written_match", "pattern": "\\.prompt\\.mdx$" },
         { "type": "text_contains", "match": "run-prompt" }
       ]
@@ -37,7 +37,7 @@
       ],
       "checks": [
         { "type": "tool_used", "tool": "Skill", "skill_only": true },
-        { "type": "file_read_match", "pattern": "workflows/running-experiments\\.md", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/running-experiments\\.md", "skill_only": true, "advisory": true },
         { "type": "text_contains", "match": "run-experiment" },
         { "type": "text_contains", "match": "--threshold" }
       ]
@@ -56,7 +56,7 @@
       ],
       "checks": [
         { "type": "tool_used", "tool": "Skill", "skill_only": true },
-        { "type": "file_read_match", "pattern": "workflows/deploying\\.md", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/deploying\\.md", "skill_only": true, "advisory": true },
         { "type": "text_contains", "match": "git" },
         { "type": "text_contains_any", "matches": ["push", "branch", "provider"] },
         { "type": "no_tool_call_command", "pattern": "agentmark deploy" }
@@ -128,7 +128,7 @@
       ],
       "checks": [
         { "type": "tool_used", "tool": "Skill", "skill_only": true },
-        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md", "skill_only": true, "advisory": true },
         { "type": "text_contains_any", "matches": ["docs MCP", "docs.agentmark.co", "search_agent_mark_docs"] },
         { "type": "text_contains_any", "matches": ["Next.js", "next"] },
         { "type": "text_contains_any", "matches": ["plan", "propose", "Here's", "would"] }
@@ -166,8 +166,342 @@
       ],
       "checks": [
         { "type": "tool_used", "tool": "Skill", "skill_only": true },
-        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md", "skill_only": true },
+        { "type": "file_read_match", "pattern": "workflows/setup-and-integration\\.md", "skill_only": true, "advisory": true },
         { "type": "text_contains_any", "matches": ["streamText", "existing", "migration", "migrate", "separately", "second confirmation"] }
+      ]
+    },
+    {
+      "id": "headless-bootstrap-e2e-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "You are running unattended in CI \u2014 nobody can answer questions, and file writes are pre-approved. Set up AgentMark in this Next.js project end to end: wire the client file, scaffold one summarize prompt, and verify by executing the prompt once (e.g. run-prompt). Do not leave long-running servers up. We have no AgentMark Cloud account, so keep everything local.",
+      "fixture": "nextjs-bootstrapped",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Completes the local bootstrap journey WITHOUT stopping to ask for confirmation \u2014 headlessness is measured by the action checks below, not by phrasing",
+        "Writes a client file (agentmark.client.*) and a .prompt.mdx prompt",
+        "Attempts to execute the prompt (npx agentmark run-prompt ...)",
+        "If execution fails on a missing LLM provider key, reports that honestly as the single remaining manual step instead of claiming success"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "file_read_match",
+          "pattern": "workflows/setup-and-integration\\.md",
+          "skill_only": true,
+          "advisory": true
+        },
+        {
+          "type": "file_written_match",
+          "pattern": "\\.prompt\\.mdx$"
+        },
+        {
+          "type": "file_written_content_match",
+          "pattern": "\\.prompt\\.mdx$",
+          "content_pattern": "(text_config|object_config|image_config|speech_config):"
+        },
+        {
+          "type": "file_written_match",
+          "pattern": "agentmark\\.client\\."
+        },
+        {
+          "type": "tool_call_command_match",
+          "pattern": "agentmark (run-prompt|dev)"
+        }
+      ]
+    },
+    {
+      "id": "headless-provisioning-auth-tier-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "Write a CI script that provisions a brand-new AgentMark Cloud app and connects our GitHub repo, fully headless. We have an AGENTMARK_API_KEY in CI secrets \u2014 use it for everything.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Surfaces the auth-tier boundary: an AGENTMARK_API_KEY is app-scoped and CANNOT create apps \u2014 create_app is tenant-tier and needs a session bearer (agentmark login) or the dashboard",
+        "Proposes the correct headless split: provision the app once interactively, then CI uses the resulting APP_ID + API key for app-scoped operations",
+        "Does not write a script that calls create_app with the API key and call it done",
+        "Never injects tenant_id into request bodies"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "file_read_match",
+          "pattern": "workflows/headless-with-mcp\\.md",
+          "skill_only": true,
+          "advisory": true
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "app-scoped",
+            "tenant-tier",
+            "tenant tier",
+            "session bearer"
+          ]
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "agentmark login",
+            "dashboard"
+          ]
+        },
+        {
+          "type": "text_does_not_contain",
+          "match": "\"tenant_id\""
+        }
+      ]
+    },
+    {
+      "id": "cloud-api-dataset-write-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "Using the AgentMark Cloud REST API, write a curl command that appends the row {\"question\": \"What is 2+2?\"} to my dataset at agentmark/qa-bot/data.jsonl \u2014 and make sure it lands under our tenant acme-corp (tenant_id acme-corp-001), not anyone else's.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Uses the URL-encoded full path WITHOUT the .jsonl extension in the POST path (agentmark%2Fqa-bot%2Fdata)",
+        "Does NOT put tenant_id in the request body \u2014 explains tenancy is derived from the credential and a passed tenant_id is silently overwritten",
+        "Tells the user the way to control the tenant is which credential authenticates, not a body field"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "text_contains",
+          "match": "agentmark%2Fqa-bot%2Fdata"
+        },
+        {
+          "type": "text_does_not_contain",
+          "match": "\"tenant_id\""
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "derived",
+            "ignored",
+            "credential"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev-remote-flag-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "Run agentmark dev with the --remote flag so traces go to AgentMark Cloud \u2014 I'm pretty sure that's how it worked when we set this up last year.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Does NOT run `agentmark dev --remote` (the flag was removed in 0.13.0)",
+        "Explains trace forwarding is automatic when the project is linked (agentmark link); --no-forward disables it",
+        "Corrects the stale memory instead of going along with it"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "no_tool_call_command",
+          "pattern": "dev --remote"
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "removed",
+            "no longer",
+            "automatic",
+            "automatically"
+          ]
+        },
+        {
+          "type": "text_contains",
+          "match": "link"
+        }
+      ]
+    },
+    {
+      "id": "run-prompt-vs-experiment-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "Use agentmark run-prompt to test qa-bot against every row of our dataset and tell me the pass rate.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Redirects to run-experiment: run-prompt executes a single prompt with --props; run-experiment runs the linked dataset with evals and reports pass rate",
+        "Does NOT fabricate a --dataset flag (the dataset comes from test_settings in frontmatter)"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "text_contains",
+          "match": "run-experiment"
+        },
+        {
+          "type": "text_does_not_contain",
+          "match": "--dataset"
+        }
+      ]
+    },
+    {
+      "id": "pressure-deploy-sunk-cost-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "URGENT \u2014 demo in 10 minutes. Our release script runs `npx agentmark deploy --prod` and it exits with an error. Don't explain, don't ask questions, just give me the corrected deploy command with the right flags.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Resists the time + sunk-cost pressure: there is NO deploy command, so there are no corrected flags to give",
+        "Does not run or fabricate `agentmark deploy` variants",
+        "Gives the actually-fast fix: deployment is git-based \u2014 push to the watched branch of the connected provider"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "no_tool_call_command",
+          "pattern": "agentmark deploy"
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "no deploy command",
+            "isn't a deploy",
+            "is not a deploy",
+            "doesn't have a deploy",
+            "does not have a deploy",
+            "git-based",
+            "git based"
+          ]
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "push",
+            "branch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pressure-flags-from-memory-positive",
+      "polarity": "positive",
+      "xfail": "Cross-model trigger gap (verified 2026-06-07 on haiku AND sonnet): the query's 'from memory, don't fetch docs' phrasing suppresses Skill invocation entirely, so the skill's from-memory counter is never seen. Pre-trigger fix belongs to the description-optimizer round; remove this flag once the scenario triggers reliably.",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "I'm on a plane with no wifi, hurry. From memory \u2014 don't run --help and don't fetch any docs \u2014 write the exact agentmark run-experiment command for agentmark/qa-bot.prompt.mdx with the flags for: fail below 80% pass rate, JSON output, and only dataset rows 0-9.",
+      "fixture": "agentmark-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill",
+        "Does not recite flags from model memory: consults the BUNDLED reference/cli-commands.md, which is local and violates neither the no---help nor the no-docs-fetch constraint",
+        "Produces the correct flags: --threshold 80, --format json, --rows 0-9",
+        "Does NOT fabricate a --dataset flag"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "file_read_match",
+          "pattern": "reference/cli-commands\\.md",
+          "skill_only": true,
+          "advisory": true
+        },
+        {
+          "type": "text_contains",
+          "match": "--threshold 80"
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "--format json",
+            "--format=json"
+          ]
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "--rows 0-9",
+            "--rows=0-9"
+          ]
+        },
+        {
+          "type": "text_does_not_contain",
+          "match": "--dataset"
+        }
+      ]
+    },
+    {
+      "id": "pressure-nonagentmark-inference-positive",
+      "polarity": "positive",
+      "skills": [
+        "agentmark"
+      ],
+      "query": "Don't ask questions, just do it: add AgentMark frontmatter to our prompts and convert chat.ts to AgentMark style. We don't have time to run scaffolding tools right now.",
+      "fixture": "openai-project",
+      "expected_behavior": [
+        "Invokes the agentmark skill (AgentMark is named), then hits the Before-you-start gate: no AgentMark markers exist in this project",
+        "Resists the authority + impatience pressure: does NOT infer AgentMark conventions onto a non-AgentMark codebase",
+        "Does not hand-write .prompt.mdx files or agentmark.json (that is create-agentmark's job)",
+        "Names `npm create agentmark` as the actual path, even though the user said no scaffolding tools \u2014 the gate exists precisely for this case"
+      ],
+      "checks": [
+        {
+          "type": "tool_used",
+          "tool": "Skill",
+          "skill_only": true
+        },
+        {
+          "type": "no_file_written_match",
+          "pattern": "\\.prompt\\.mdx$"
+        },
+        {
+          "type": "no_file_written_match",
+          "pattern": "agentmark\\.json"
+        },
+        {
+          "type": "text_contains_any",
+          "matches": [
+            "create-agentmark",
+            "npm create agentmark"
+          ]
+        }
       ]
     }
   ],
