@@ -35,6 +35,8 @@ npx agentmark generate-schema
 
 This writes `.agentmark/prompt.schema.json`, which gives you IDE squiggles for `model_name`, schema fields, and provider options.
 
+**`model_name` must match the project's `builtInModels` exactly.** When `agentmark.json` lists `builtInModels` (the `create-agentmark` scaffold seeds `["openai/gpt-5.5"]`), the generated schema's `model_name` enum contains exactly those strings — the **full `provider/model` form**. A leaf name like `gpt-5.5` will not validate against it. Check `agentmark.json` first and copy an entry verbatim; the leaf-name example above is only valid in projects without `builtInModels`. When in doubt, `generate-schema` is the runtime truth.
+
 For the full frontmatter reference, fetch `https://docs.agentmark.co/build/syntax.md`.
 
 ## Generation types

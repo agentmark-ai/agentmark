@@ -67,7 +67,7 @@ Two sources, checked in this order:
 
 If **neither** resolves, the MCP server still starts but only the local trace-debugging tools are registered. Cloud tools are silently omitted. The client's tool list shows you what's available. App-management tools (`create_app`, `update_app`, `delete_app`) only appear under a session bearer — if they're missing, run `agentmark login` and restart the MCP client. App-scoped tools also need *some* credential — set `AGENTMARK_API_KEY` (with `AGENTMARK_APP_ID`) or log in.
 
-Tokens are **not refreshed** by the MCP server. If a session JWT expires mid-session, calls start returning 401. Re-run `agentmark login` and restart the MCP client. (We deliberately keep refresh in the CLI; it owns the Supabase OAuth state machine.)
+Tokens are **not refreshed** by the MCP server — it doesn't run the Supabase OAuth state machine (the CLI owns that). But it **re-reads the credential from `~/.agentmark/auth.json` on every tool call**, so the recovery is just `agentmark login`: when a session JWT expires mid-session, calls start returning 401; have the user re-run `agentmark login`, and the **next** tool call picks up the fresh token automatically — no MCP-client restart needed. (Older mcp-server builds resolved auth once at startup and did need a restart; if re-login isn't taking effect, restart the client or use the REST fallback in [When NOT to use the MCP server](#when-not-to-use-the-mcp-server).) On a 401 caused by an expired session, the server appends an actionable hint to the error so the cause is obvious.
 
 ## The headless flow, end to end
 
@@ -119,14 +119,17 @@ Non-2xx responses become MCP `isError: true` blocks with the HTTP status and gat
 | Symptom | Diagnosis | Fix |
 |---|---|---|
 | Cloud tools missing from the MCP client's tool list | No bearer resolved | Run `agentmark login` (then restart the MCP client) or set `AGENTMARK_API_KEY`. |
-| Cloud tools listed but all calls return 401 | Token expired | Re-run `agentmark login` and restart the MCP client. |
+| Cloud tools listed but all calls return 401 | Session token expired. Recent mcp-server builds append a "session expired — run `agentmark login`" hint to the 401; if you instead see a bare `"Missing auth header"` (the client dropped the expired token) check `expires_at` in `~/.agentmark/auth.json` against the clock. | Have the user re-run `agentmark login` — the **next** tool call picks up the fresh token automatically (the server re-reads auth.json per call), **no MCP-client restart needed**. On an older mcp-server that resolved auth once at startup, restart the client, or use the REST fallback below (call the gateway directly with the new bearer from `~/.agentmark/auth.json`). |
 | Cloud tools registered but pointing at wrong env | `AGENTMARK_API_URL` not set in MCP client's `env` block | Edit the client config, restart. |
 | `tools/list` is empty | MCP server didn't start | Check the client's MCP server logs (stderr). The first thing the server prints is the auth resolution + tool count. |
 | New gateway endpoint not showing as a tool | OpenAPI spec cache (24h) | Delete `~/.agentmark/mcp-openapi-cache.json` and restart the MCP client to refetch. |
+| `mint_api_key` / `POST /v1/api-keys` returns `api_key_creation_failed — "API key service is not configured"` | **Server-side configuration gap** — the gateway deployment is missing its key-provisioning (Unkey) config. Your request shape and auth are fine; this error isn't in the endpoint's documented 400/401/402 responses, and retrying or changing headers won't help. | Not agent-recoverable. Have the user mint the key in the dashboard (app Settings → API keys), put it in `.env`, and continue the flow; report the gateway misconfiguration to the operator. |
 
 ## When NOT to use the MCP server
 
 - **Custom CI scripts that need scripted output.** MCP is conversational. For scripted pipelines that operate *within* an app (capture a deployment ID, append dataset rows, mint a key), call the gateway REST endpoints directly with `curl` / a thin SDK and an `AGENTMARK_API_KEY` — same shapes, no MCP client. Note: **app provisioning is not available to a CI `AGENTMARK_API_KEY`** (it's app-scoped). Create the app first via the dashboard or an interactive `agentmark login` session, then pass its `AGENTMARK_APP_ID` to CI.
+
+  **On the REST path, app-scoped endpoints need TWO headers** — `Authorization: Bearer <token>` **and** `X-Agentmark-App-Id: <app uuid>` — even under a tenant-wide session bearer. The MCP server injects the app header for you, so this only surfaces on direct REST: tenant-tier calls (`POST /v1/apps`, `GET /v1/apps`) work with the bearer alone, then the first app-scoped call (e.g. `POST /v1/api-keys`) fails `401 "Missing app id"` — the asymmetry makes it look like an auth problem when it's a missing header. Contract reference: `https://docs.agentmark.co/api-reference/authentication.md`.
 - **Bulk data movement.** For migrations or backfills (thousands of items), use the gateway's bulk endpoints directly. The MCP server isn't optimized for high-throughput sequential calls; each tool call is a round-trip from the IDE.
 - **Anywhere the `agentmark` CLI already has a typed command** (e.g. `agentmark login`, `agentmark dev`, `agentmark link`, `agentmark run-experiment`). The CLI commands have hand-curated UX (project detection, interactive prompts, structured output) that's better for humans than raw API calls.
 

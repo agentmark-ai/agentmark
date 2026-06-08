@@ -46,7 +46,15 @@ import { openApiSchemaToZod } from './to-zod.js';
 export interface RegisterOpenAPIToolsOptions {
   spec: OpenAPISpec;
   baseUrl: string;
-  bearer: string;
+  /**
+   * The bearer credential, as a static string OR a resolver called once
+   * per tool invocation. Pass a resolver (e.g. `resolveBearer`) so a
+   * `agentmark login` performed mid-session is picked up on the next call
+   * — the server otherwise closes over the token resolved at startup and
+   * a re-login is never seen (issue #2657). A plain string keeps the
+   * old static behavior (used by tests and the local-dev unauth path).
+   */
+  bearer: string | (() => string | null);
   /**
    * Default `X-Agentmark-App-Id` for app-scoped routes whose path has
    * no `{appId}` param (GET /v1/traces, /v1/spans, POST /v1/scores, …).
@@ -56,6 +64,14 @@ export interface RegisterOpenAPIToolsOptions {
    * is unusable for a headless agent.
    */
   defaultAppId?: string;
+  /**
+   * Optional hint appended to a persistent 401's error text — e.g.
+   * "your session expired, run `agentmark login`". Called when a 401
+   * survives the credential-refresh retry, so the agent gets an
+   * actionable cause instead of the gateway's opaque message. Return
+   * `undefined` to append nothing.
+   */
+  authErrorHint?: () => string | undefined;
   /**
    * Operations to register. Defaults to "all under /v1/" that have an
    * operationId. Callers can pass a filter for development (e.g. to
@@ -243,7 +259,13 @@ export function registerOpenAPITools(
   server: McpServer,
   options: RegisterOpenAPIToolsOptions,
 ): RegisteredOpenAPITool[] {
-  const { spec, baseUrl, bearer, include, defaultAppId } = options;
+  const { spec, baseUrl, bearer, include, defaultAppId, authErrorHint } = options;
+  // Normalize the credential to a per-call resolver. A static string
+  // keeps the old behavior; a function is re-invoked on every tool call
+  // (and again on a 401) so a fresh `agentmark login` is picked up
+  // without restarting the MCP client (issue #2657).
+  const getBearer: () => string | null =
+    typeof bearer === 'function' ? bearer : () => bearer;
   const registered: RegisteredOpenAPITool[] = [];
   // Defense against operationId collisions inside the spec. There used
   // to be a name-collision path here for the hand-rolled `list_traces` /
@@ -282,30 +304,46 @@ export function registerOpenAPITools(
         async (rawArgs: Record<string, unknown>) => {
           try {
             const { url, method: m, body, appIdHeader } = binding.buildRequest(rawArgs);
-            const headers: Record<string, string> = {
-              Accept: 'application/json',
-            };
-            // Omit the Authorization header entirely when no bearer is
-            // configured. Local dev calls (`agentmark dev` at
-            // localhost:9418) don't validate auth and would treat
-            // `Bearer ` as a malformed token; the cloud rejects
-            // missing-auth with 401 which is what we want to surface.
-            if (bearer) {
-              headers.Authorization = `Bearer ${bearer}`;
-            }
-            // Path-param appId wins; otherwise fall back to the
-            // configured default (AGENTMARK_APP_ID). App-scoped routes
-            // that carry app-id as a header (not a path param) rely on
-            // this fallback — without it they 401 "Missing app id".
-            const resolvedAppId = appIdHeader ?? defaultAppId;
-            if (resolvedAppId) headers['X-Agentmark-App-Id'] = resolvedAppId;
-            if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-            const response = await fetch(url, {
-              method: m.toUpperCase(),
-              headers,
-              body: body !== undefined ? JSON.stringify(body) : undefined,
-            });
+            // Send the request with a specific bearer. Factored out so a
+            // 401 can be retried once with a freshly-resolved credential.
+            const send = (token: string | null) => {
+              const headers: Record<string, string> = { Accept: 'application/json' };
+              // Omit the Authorization header entirely when no bearer is
+              // configured. Local dev calls (`agentmark dev` at
+              // localhost:9418) don't validate auth and would treat
+              // `Bearer ` as a malformed token; the cloud rejects
+              // missing-auth with 401 which is what we want to surface.
+              if (token) headers.Authorization = `Bearer ${token}`;
+              // Path-param appId wins; otherwise fall back to the
+              // configured default (AGENTMARK_APP_ID). App-scoped routes
+              // that carry app-id as a header (not a path param) rely on
+              // this fallback — without it they 401 "Missing app id".
+              const resolvedAppId = appIdHeader ?? defaultAppId;
+              if (resolvedAppId) headers['X-Agentmark-App-Id'] = resolvedAppId;
+              if (body !== undefined) headers['Content-Type'] = 'application/json';
+              return fetch(url, {
+                method: m.toUpperCase(),
+                headers,
+                body: body !== undefined ? JSON.stringify(body) : undefined,
+              });
+            };
+
+            // Resolve the credential fresh for THIS call (picks up a
+            // mid-session `agentmark login`), then send.
+            let usedToken = getBearer();
+            let response = await send(usedToken);
+
+            // On a 401, re-resolve once: if the on-disk credential changed
+            // (the user logged in since we read it), retry with the fresh
+            // token before surfacing the error (issue #2657).
+            if (response.status === 401) {
+              const fresh = getBearer();
+              if (fresh && fresh !== usedToken) {
+                usedToken = fresh;
+                response = await send(fresh);
+              }
+            }
 
             const text = await response.text();
             let parsed: unknown = text;
@@ -316,12 +354,18 @@ export function registerOpenAPITools(
             }
 
             if (!response.ok) {
+              // A surviving 401 usually means no usable credential. Append
+              // an actionable hint (e.g. expired session → re-login) so the
+              // agent doesn't chase the gateway's opaque message (#2655).
+              const hint =
+                response.status === 401 && authErrorHint ? authErrorHint() : undefined;
+              const baseText = `HTTP ${response.status} ${response.statusText}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2)}`;
               return {
                 isError: true,
                 content: [
                   {
                     type: 'text' as const,
-                    text: `HTTP ${response.status} ${response.statusText}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2)}`,
+                    text: hint ? `${baseText}\n\n${hint}` : baseText,
                   },
                 ],
               };

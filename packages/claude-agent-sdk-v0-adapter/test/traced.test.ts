@@ -1,7 +1,7 @@
 // Import setup first to mock @opentelemetry/api
 import "./setup-traced";
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { withTracing } from "../src/traced";
 
 // Get mock spans from globalThis (set by setup file)
@@ -75,6 +75,21 @@ function createMockQuery(messages: MockMessage[]) {
 }
 
 describe("withTracing", () => {
+  // Prime the lazy `import("@opentelemetry/api")` that withTracing() performs on
+  // its first telemetry-enabled call. Without this, the first telemetry-enabled
+  // test below absorbs the one-time module-resolution cost inside its 5s timeout,
+  // which flakes on loaded CI runners. Running it once here, in a hook with
+  // generous headroom, keeps every individual test fast and deterministic.
+  beforeAll(async () => {
+    const warm = await withTracing(
+      createMockQuery([{ type: "result", subtype: "success", result: "warmup" }]),
+      { query: { prompt: "warmup" }, telemetry: { isEnabled: true, promptName: "warmup" } }
+    );
+    for await (const _msg of warm) {
+      // drain to exercise the full traced path
+    }
+  }, 30_000);
+
   beforeEach(() => {
     clearCreatedSpans();
   });

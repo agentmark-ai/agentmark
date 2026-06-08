@@ -20,8 +20,7 @@
     "test:watch": "vitest",
     "generate-skill-cli-reference": "tsx scripts/generate-skill-cli-reference.ts",
     "generate-skill-frontmatter-reference": "tsx scripts/generate-skill-frontmatter-reference.ts",
-    "generate-skill-models-reference": "tsx scripts/generate-skill-models-reference.ts",
-    "generate-skill-references": "yarn generate-skill-cli-reference && yarn generate-skill-frontmatter-reference && yarn generate-skill-models-reference"
+    "generate-skill-references": "yarn generate-skill-cli-reference && yarn generate-skill-frontmatter-reference"
   },
   "author": "",
   "license": "AGPL-3.0-or-later",

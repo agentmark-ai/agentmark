@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolveBaseUrl, resolveBearer, resolveAppId } from './openapi/auth.js';
+import { resolveBaseUrl, resolveBearer, resolveAppId, resolveAuthState } from './openapi/auth.js';
 import { fetchOpenAPISpec } from './openapi/spec-loader.js';
 import { registerOpenAPITools } from './openapi/register-tools.js';
 
@@ -47,8 +47,18 @@ export async function createMCPServer() {
     const registered = registerOpenAPITools(server, {
       spec,
       baseUrl,
-      bearer: bearer ?? '',
+      // Pass the resolver (not the startup-resolved string) so a fresh
+      // `agentmark login` mid-session is picked up on the next tool call
+      // — no MCP-client restart needed (issue #2657).
+      bearer: resolveBearer,
       defaultAppId,
+      // Turn a surviving 401 into an actionable message when the local
+      // session has expired, instead of the gateway's "Missing auth
+      // header" (which points away from the real cause; issue #2655).
+      authErrorHint: () =>
+        resolveAuthState().reason === 'expired'
+          ? 'Your AgentMark session has expired. Run `agentmark login` to refresh it — the MCP server picks up the new token on your next call (no restart needed).'
+          : undefined,
     });
     console.error(
       `[agentmark-mcp] Registered ${registered.length} tools from ${baseUrl}/v1/openapi.json`,
