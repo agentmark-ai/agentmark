@@ -1,8 +1,11 @@
 {
   "name": "@agentmark-ai/ai-sdk-shared",
   "version": "0.4.0",
-  "description": "Internal workspace-only package: shared executor factory for Vercel AI SDK v4 and v5 adapters. Not published to npm.",
+  "description": "Shared executor factory and model registry for the AgentMark Vercel AI SDK v4 and v5 adapters. Consumed by those adapters as a regular dependency.",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
