@@ -140,6 +140,45 @@ describe('parseArgs', () => {
     });
   });
 
+  describe('--yes / -y', () => {
+    it('parses --yes', () => {
+      const result = parseArgs(['--yes']);
+      expect(result).toEqual({ yes: true });
+    });
+
+    it('parses the -y short form', () => {
+      const result = parseArgs(['-y']);
+      expect(result).toEqual({ yes: true });
+    });
+
+    it('defaults yes to undefined when absent', () => {
+      const result = parseArgs([]);
+      expect(result.yes).toBeUndefined();
+    });
+
+    it('does not treat -y as a positional folder name', () => {
+      const result = parseArgs(['-y']);
+      expect(result.path).toBeUndefined();
+    });
+  });
+
+  describe('--help / -h', () => {
+    it('parses --help', () => {
+      const result = parseArgs(['--help']);
+      expect(result).toEqual({ help: true });
+    });
+
+    it('parses the -h short form', () => {
+      const result = parseArgs(['-h']);
+      expect(result).toEqual({ help: true });
+    });
+
+    it('does not treat -h as a positional folder name', () => {
+      const result = parseArgs(['-h']);
+      expect(result.path).toBeUndefined();
+    });
+  });
+
   describe('combined flags', () => {
     it('parses a non-interactive bundle without throwing', () => {
       const result = parseArgs([
@@ -152,6 +191,11 @@ describe('parseArgs', () => {
         clients: [...ALL_CLIENTS],
         overwrite: true,
       });
+    });
+
+    it('parses the one-flag headless bundle: folder + --yes', () => {
+      const result = parseArgs(['my-app', '--yes']);
+      expect(result).toEqual({ path: 'my-app', yes: true });
     });
   });
 });

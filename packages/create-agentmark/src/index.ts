@@ -37,6 +37,14 @@ export interface CliArgs {
    */
   apiUrl?: string;
   overwrite?: boolean;
+  /**
+   * Non-interactive mode for CI and coding agents: every prompt is replaced
+   * by its default (target folder per `defaultFolderName`, all IDE clients,
+   * keep an existing agentmark.json). Headless onboarding depends on this —
+   * without it the init blocks on a TTY no agent has.
+   */
+  yes?: boolean;
+  help?: boolean;
 }
 
 export const ALL_CLIENTS: readonly McpClient[] = ["claude-code", "cursor", "vscode", "zed"];
@@ -69,6 +77,10 @@ export const parseArgs = (argv: string[] = process.argv.slice(2)): CliArgs => {
       result.clients = [...(result.clients ?? []), ...ids];
     } else if (arg === "--overwrite") {
       result.overwrite = true;
+    } else if (arg === "--yes" || arg === "-y") {
+      result.yes = true;
+    } else if (arg === "--help" || arg === "-h") {
+      result.help = true;
     } else if (arg === "--api-url") {
       const value = argv[++i];
       if (!value || !/^https?:\/\//.test(value)) {
@@ -92,25 +104,36 @@ export const clientLabel = (id: string): string =>
           : id;
 
 /**
- * Resolves the target folder via positional/flag arg or interactive prompt.
- * Default to "." when cwd looks like an existing project (the common case
- * for "wire AgentMark into my repo"); fall back to a fresh folder name when
- * cwd is empty (the greenfield case).
+ * The folder the interactive prompt would offer as its default: "." when
+ * cwd looks like an existing project (the common "wire AgentMark into my
+ * repo" case), a fresh folder name when cwd is empty (greenfield). `--yes`
+ * resolves to exactly this value, so a non-interactive run lands where an
+ * Enter-mashing interactive run would have.
+ */
+export const defaultFolderName = (cwd: string = process.cwd()): string =>
+  fs.existsSync(path.join(cwd, "package.json")) ||
+  fs.existsSync(path.join(cwd, "pyproject.toml"))
+    ? "."
+    : "my-agentmark-app";
+
+/**
+ * Resolves the target folder via positional/flag arg, `--yes` default, or
+ * interactive prompt.
  */
 export const resolveTargetPath = async (
   cliPath: string | undefined,
+  yes?: boolean,
 ): Promise<{ targetPath: string; isCurrentDir: boolean } | null> => {
   let folderName = cliPath;
+  if (!folderName && yes) {
+    folderName = defaultFolderName();
+  }
   if (!folderName) {
-    const cwd = process.cwd();
-    const cwdHasProject =
-      fs.existsSync(path.join(cwd, "package.json")) ||
-      fs.existsSync(path.join(cwd, "pyproject.toml"));
     const response = await prompts({
       name: "folderName",
       type: "text",
       message: "Where would you like to set up AgentMark?",
-      initial: cwdHasProject ? "." : "my-agentmark-app",
+      initial: defaultFolderName(),
     });
     folderName = response.folderName;
   }
@@ -128,7 +151,10 @@ export const resolveTargetPath = async (
  * (Enter). Empty selection is equivalent to the old "Skip" option — the
  * caller just writes nothing.
  */
-export const resolveClients = async (cliClients: McpClient[] | undefined): Promise<McpClient[]> => {
+export const resolveClients = async (
+  cliClients: McpClient[] | undefined,
+  yes?: boolean,
+): Promise<McpClient[]> => {
   if (cliClients && cliClients.length > 0) {
     for (const c of cliClients) {
       if (!ALL_CLIENTS.includes(c)) {
@@ -137,6 +163,8 @@ export const resolveClients = async (cliClients: McpClient[] | undefined): Promi
     }
     return cliClients;
   }
+  // --yes mirrors the interactive default: all clients pre-selected.
+  if (yes) return [...ALL_CLIENTS];
   const response = await prompts({
     name: "clients",
     type: "multiselect",
@@ -161,9 +189,13 @@ export const resolveClients = async (cliClients: McpClient[] | undefined): Promi
 export const shouldWriteAgentmarkJson = async (
   filePath: string,
   overwrite: boolean | undefined,
+  yes?: boolean,
 ): Promise<boolean> => {
   if (!fs.existsSync(filePath)) return true;
   if (overwrite) return true;
+  // --yes takes the safe interactive default: keep the existing file.
+  // Clobbering config is never a default; --overwrite is the explicit opt-in.
+  if (yes) return false;
   const { action } = await prompts({
     type: "select",
     name: "action",
@@ -177,10 +209,36 @@ export const shouldWriteAgentmarkJson = async (
   return action === "overwrite";
 };
 
+export const USAGE = `Usage: npm create agentmark [folder] [-- options]
+       npx create-agentmark [folder] [options]
+
+Sets up AgentMark in a new or existing project: writes agentmark.json,
+creates the agentmark/ prompts directory, wires IDE MCP configs, and
+installs the AgentMark agent skill.
+
+Options:
+  [folder], --path <folder>  Target directory. Default: "." inside an
+                             existing project, else "my-agentmark-app".
+  --client <ids|all>         IDE clients to wire MCP configs for, comma-
+                             separated: claude-code, cursor, vscode, zed.
+  -y, --yes                  Non-interactive: accept the default for every
+                             prompt (folder default above, all IDE clients,
+                             keep an existing agentmark.json). For CI and
+                             coding agents.
+  --overwrite                Replace an existing agentmark.json with the
+                             default config.
+  -h, --help                 Show this help.
+`;
+
 export const main = async (): Promise<void> => {
   const cliArgs = parseArgs();
 
-  const target = await resolveTargetPath(cliArgs.path);
+  if (cliArgs.help) {
+    console.log(USAGE);
+    return;
+  }
+
+  const target = await resolveTargetPath(cliArgs.path, cliArgs.yes);
   if (!target) {
     console.log("Aborted.");
     return;
@@ -188,13 +246,13 @@ export const main = async (): Promise<void> => {
   const { targetPath } = target;
 
   const projectInfo = detectProjectInfo(targetPath);
-  const clients = await resolveClients(cliArgs.clients);
+  const clients = await resolveClients(cliArgs.clients, cliArgs.yes);
 
   console.log("");
 
   // 1. agentmark.json — the SDK loader's config root
   const agentmarkJsonPath = path.join(targetPath, "agentmark.json");
-  if (await shouldWriteAgentmarkJson(agentmarkJsonPath, cliArgs.overwrite)) {
+  if (await shouldWriteAgentmarkJson(agentmarkJsonPath, cliArgs.overwrite, cliArgs.yes)) {
     fs.writeJsonSync(agentmarkJsonPath, AGENTMARK_JSON, { spaces: 2 });
     console.log("✅ agentmark.json");
   } else {

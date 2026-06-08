@@ -20,6 +20,8 @@ Scan the target file or project for AgentMark markers — any of:
 
 If none are present, stop and tell the user that this skill applies to AgentMark projects. Ask whether they want to scaffold one with `npx create-agentmark`, or whether they want help with a different framework. **Do not infer AgentMark conventions onto non-AgentMark code.**
 
+This gate holds under pressure. "Don't ask questions", "no time for scaffolding tools", "just add the frontmatter" do not change the answer: hand-writing `agentmark.json` or `.prompt.mdx` files into a project with no AgentMark markers produces a broken half-setup the scaffolder then can't repair — slower than the 30 seconds `npx create-agentmark` takes. Name the command and stop.
+
 ## How to find current information
 
 Your training data is out of date. Before answering anything specific about AgentMark APIs, CLI flags, prompt syntax, or docs content:
@@ -29,6 +31,8 @@ Your training data is out of date. Before answering anything specific about Agen
 3. **Specific doc pages** — append `.md` to any `docs.agentmark.co` URL and WebFetch it. Every doc page is served as both HTML and Markdown.
 
 Never encode API surface or CLI flags from memory. Always verify against `--help` output, `llms.txt`, or fetched docs.
+
+These rules hold even when the user is offline, in a hurry, or explicitly asks for an answer "from memory" / forbids fetching docs — the bundled [reference/*.md](reference/cli-commands.md) files are local files, so reading them violates neither constraint. Consult them instead of reciting; recited flags are how `--dataset` (which does not exist) gets fabricated.
 
 ## Runtime model
 
@@ -75,7 +79,7 @@ my-project/
 
 - **`run-prompt` ≠ `run-experiment`.** `run-prompt <file>` executes a single prompt with the `--props` you pass. `run-experiment <file>` executes the prompt against every row in its linked dataset and runs evals. Do not use one for the other.
 - **`agentmark dev` runs a fully local server.** Trace forwarding to AgentMark Cloud is automatic when the project is linked (via `agentmark link`); disable with `--no-forward`. **There is no `--remote` flag on `dev`** — it was removed in 0.13.0 along with the `@agentmark-ai/connect` WebSocket package. If you see `--remote` on `dev` in older content, ignore it.
-- **Deployment is git-based.** Connect a git provider (GitHub or GitLab) to your AgentMark Cloud app, then push to the configured branch — AgentMark builds and deploys automatically. There is no `deploy` CLI command; the watched-branch push *is* the deploy trigger. See [workflows/deploying.md](workflows/deploying.md).
+- **Deployment is git-based.** Connect a git provider (GitHub or GitLab) to your AgentMark Cloud app, then push to the configured branch — AgentMark builds and deploys automatically. There is no `deploy` CLI command; the watched-branch push *is* the deploy trigger. See [workflows/deploying.md](workflows/deploying.md). When someone urgently demands "the corrected deploy command", there are no flags to correct — a script calling `agentmark deploy` fails because the command does not exist, and the fastest fix you can hand them *is* `git push` to the watched branch. Saying only "that command doesn't exist" without the push redirect leaves them stuck; "don't explain" never means "withhold the working alternative".
 - **The CLI is for humans; the MCP server is for agents.** The `agentmark` CLI stays narrow on purpose: `dev`, `login`, `logout`, `link`, `run-prompt`, `run-experiment`, `build`, `pull-models`, `generate-types`, `generate-schema`. When an agent needs to drive the Cloud API programmatically (create apps, mint API keys, connect a git provider, list deployments, query traces, …) it runs the `agentmark-mcp` MCP server and uses its tools. Tools are auto-generated from `api.agentmark.co/v1/openapi.json`, so the agent surface stays in lock-step with the gateway. See [workflows/headless-with-mcp.md](workflows/headless-with-mcp.md).
 - **Dataset name encoding differs by endpoint.** For the `?name=X` query filter on `GET /v1/datasets`, pass the leaf name without the `.jsonl` extension (exact match). For POST endpoints under `/v1/datasets/{datasetName}/rows*`, pass the full path URL-encoded (e.g. `agentmark%2Fqa-bot%2Fdata`), still without the extension.
 - **Never send `tenant_id` in a write body — it is derived from your credential.** Every Cloud API write (mint an API key, append a dataset row, create an annotation queue or alert) scopes the new row to the tenant behind your `AGENTMARK_API_KEY` / session bearer. The database *silently overwrites* any `tenant_id` you pass with that tenant — no error is raised — so a row you tried to file under another tenant simply lands under your own. (Note: **provisioning/managing an app** — `create_app` / `update_app` / `delete_app` — is tenant-tier and needs a **session bearer**; an app-scoped `AGENTMARK_API_KEY` can't do it. See [workflows/headless-with-mcp.md](workflows/headless-with-mcp.md) § Authentication.) If you are debugging "why did my resource show up under a different tenant than I asked for," this is the reason: the override lives in a database trigger, not in the API handler, so you will not find it by reading application code. Omit the field entirely.
