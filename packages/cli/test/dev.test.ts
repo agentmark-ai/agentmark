@@ -159,6 +159,46 @@ describe('agentmark dev', () => {
     }
   });
 
+  it('exits with setup guidance when agentmark.client.ts is missing', async () => {
+    const tempDir = path.join(__dirname, '..', 'tmp-dev-no-client-' + Date.now());
+    tmpDirs.push(tempDir);
+
+    try {
+      fs.mkdirSync(tempDir, { recursive: true });
+      // A TypeScript project (no pyproject.toml) that never set up the client.
+      // agentmark.client.ts is written by the "Set up AgentMark" editor skill,
+      // not the scaffolder — so a missing one must fail with that guidance,
+      // not a dead-end "run create-agentmark".
+      fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'no-client', type: 'module' }, null, 2));
+      fs.writeFileSync(path.join(tempDir, 'agentmark.json'), JSON.stringify({ agentmarkPath: '.' }, null, 2));
+
+      const cli = path.resolve(__dirname, '..', 'dist', 'index.js');
+      const child = spawn(process.execPath, [cli, 'dev', '--no-ui'], {
+        cwd: tempDir,
+        env: { ...process.env },
+        stdio: 'pipe',
+      });
+      processes.push(child);
+
+      let stderr = '';
+      child.stderr?.on('data', (data) => { stderr += data.toString(); });
+
+      const exitCode = await new Promise<number | null>((resolve) => {
+        child.on('close', (code) => resolve(code));
+      });
+
+      // Refuses to start...
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('agentmark.client.ts not found');
+      // ...and the message is actionable: it names the setup skill and links
+      // the client-setup guide rather than pointing back at the scaffolder.
+      expect(stderr).toContain('Set up AgentMark in this project');
+      expect(stderr).toContain('docs.agentmark.co/getting-started/client-setup');
+    } finally {
+      await safeRmDir(tempDir);
+    }
+  }, 30000);
+
   it('starts file server and runner, serves templates endpoint', async () => {
     const tempDir = path.join(__dirname, '..', 'tmp-dev-' + Date.now());
     tmpDirs.push(tempDir);
