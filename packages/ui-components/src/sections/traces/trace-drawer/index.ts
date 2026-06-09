@@ -10,3 +10,4 @@ export * from "./trace-tree";
 export * from "./trace-graph";
 export * from "./trace-timeline";
 export * from "./span-info";
+export * from "./session-io";
