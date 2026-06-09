@@ -151,7 +151,7 @@ __metadata:
   dependencies:
     "@agentmark-ai/api-schemas": "npm:0.4.0"
     "@agentmark-ai/api-types": "npm:0.4.0"
-    "@agentmark-ai/conformance-vectors": "workspace:*"
+    "@agentmark-ai/conformance-vectors": "npm:*"
     "@agentmark-ai/model-registry": "npm:0.2.4"
     "@agentmark-ai/prompt-core": "npm:0.10.0"
     "@agentmark-ai/shared-utils": "npm:0.5.1"
@@ -210,7 +210,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/conformance-vectors@npm:*, @agentmark-ai/conformance-vectors@workspace:*, @agentmark-ai/conformance-vectors@workspace:packages/conformance-vectors":
+"@agentmark-ai/conformance-vectors@npm:*, @agentmark-ai/conformance-vectors@workspace:packages/conformance-vectors":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/conformance-vectors@workspace:packages/conformance-vectors"
   languageName: unknown
