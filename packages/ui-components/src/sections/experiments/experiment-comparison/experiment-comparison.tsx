@@ -64,6 +64,11 @@ export interface ExperimentComparisonProps {
   isLoading: boolean;
   t: (key: string) => string;
   headerSlot?: React.ReactNode;
+  /**
+   * Comparison charts (latency / cost / score across the compared
+   * experiments). Rendered between the summary banner and the table.
+   */
+  chartsSlot?: React.ReactNode;
 }
 
 export const ExperimentComparison = ({
@@ -75,6 +80,7 @@ export const ExperimentComparison = ({
   isLoading,
   t,
   headerSlot,
+  chartsSlot,
 }: ExperimentComparisonProps) => {
   const [sortMode, setSortMode] = useState<ComparisonSortMode>("item-name");
   const [filterMode, setFilterMode] = useState<ComparisonFilterMode>("all");
@@ -118,6 +124,8 @@ export const ExperimentComparison = ({
           t={t}
         />
       )}
+
+      {chartsSlot}
 
       {/* Filter chips */}
       <Stack direction="row" spacing={1}>
