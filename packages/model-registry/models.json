@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-08T01:16:52.668Z",
+  "generatedAt": "2026-06-09T18:38:00.611Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-08T01:16:52.668Z",
+      "fetchedAt": "2026-06-09T18:38:00.611Z",
       "modelCount": 1205
     },
     "openrouter": {
-      "fetchedAt": "2026-06-08T01:16:52.668Z",
-      "modelCount": 124
+      "fetchedAt": "2026-06-09T18:38:00.611Z",
+      "modelCount": 125
     }
   },
   "models": {
@@ -23716,6 +23716,28 @@
       "capabilities": {
         "vision": true,
         "functionCalling": true
+      }
+    },
+    "claude-fable-5": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Fable 5",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.00001,
+        "outputCostPerToken": 0.00005
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
       }
     }
   }

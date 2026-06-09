@@ -129,11 +129,30 @@ class PydanticAIWebhookHandler:
         """
         self._client = client
         self._executor = PydanticAIExecutor()
+        # Both span hooks bundled at construction so the runner alone can
+        # `dispatch` — including experiments with rich per-item tracing — with no
+        # per-call hook threading.
         self._runner: WebhookRunner = WebhookRunner(
             client,
             self._executor,
             prompt_span_hook=_pydantic_prompt_span,
+            item_span_hook=_pydantic_item_span,
         )
+
+    @property
+    def client(self) -> AgentMark:
+        """The AgentMark client this handler executes against — the eval-registry
+        owner. Sourced from the runner (the single owner) so the handler and its
+        runner can't disagree; surfaced so the shared dispatch answers the
+        ``get-evals`` control-plane job with no extra wiring."""
+        return self._runner.client
+
+    async def dispatch(self, event: dict[str, Any]) -> Any:
+        """Route a managed-deployment webhook job through the shared runner. The
+        canonical deployed handler is ``handler = PydanticAIWebhookHandler(client)``
+        + ``handler.dispatch`` — identical routing to every other adapter, no
+        per-adapter dispatch code. Equivalent to ``runner.dispatch``."""
+        return await self._runner.dispatch(event)
 
     async def run_prompt(
         self,
@@ -236,7 +255,6 @@ class PydanticAIWebhookHandler:
             dataset_run_name,
             dataset_path,
             sampling,
-            item_span_hook=_pydantic_item_span,
             commit_sha=commit_sha,
             concurrency=concurrency,
         )

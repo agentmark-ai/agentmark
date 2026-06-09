@@ -107,6 +107,10 @@ from .webhook import (
     WebhookResult,
 )
 
+# Re-export the shared managed-deployment dispatch so a claude handler.py imports
+# prompt + dispatch from one adapter package (parity with pydantic).
+from agentmark.prompt_core import handle_webhook_request
+
 
 def create_claude_agent_client(
     model_registry: ClaudeAgentModelRegistry,
@@ -249,6 +253,8 @@ __all__ = [
     "StreamingResult",
     "ExperimentResult",
     "generate_fallback_trace_id",
+    # Managed-deployment handler dispatch (re-exported from prompt-core)
+    "handle_webhook_request",
 ]
 
 # Read runtime __version__ from installed dist metadata to prevent drift

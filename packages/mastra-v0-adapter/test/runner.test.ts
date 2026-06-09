@@ -343,5 +343,27 @@ describe("MastraAdapterWebhookHandler", () => {
     expect(dsRows.length).toBe(1);
     expect(dsRows[0].result.input.userMessage).toBe("What is 2+2?");
   });
+
+  describe("dispatch / get-evals (control-plane)", () => {
+    // The bug this whole change fixes: a deployed handler that can't list its
+    // evals leaves the dashboard's New Experiment dialog empty. These pin the two
+    // halves of the prevention — the handler surfaces the client it was built from
+    // (the eval-registry owner), and dispatch routes the get-evals control-plane
+    // job through it with zero per-adapter logic.
+    it("surfaces the very client it was built from (the get-evals source)", () => {
+      expect(runner.client).toBe(client);
+    });
+
+    it("lists the client's registered evals via dispatch(get-evals)", async () => {
+      const res = await runner.dispatch({ type: "get-evals", data: {} } as any);
+      // Canonical control-plane envelope, byte-for-byte with the Python adapter:
+      // a {type:'json'} wrapper around the sorted, JSON-encoded eval names.
+      expect(res).toEqual({
+        type: "json",
+        data: { type: "evals", result: JSON.stringify(["exact_match"]), traceId: "" },
+        status: 200,
+      });
+    });
+  });
 });
 

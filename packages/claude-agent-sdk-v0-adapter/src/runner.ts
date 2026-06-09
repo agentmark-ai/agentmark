@@ -9,6 +9,8 @@ import { WebhookRunner } from "@agentmark-ai/prompt-core/webhook-runner";
 import type {
   RunPromptOptions,
   RunExperimentOptions,
+  WebhookRequest,
+  WebhookResponse,
 } from "@agentmark-ai/prompt-core/webhook-runner";
 import { createAgentmarkSpanHooks } from "@agentmark-ai/sdk";
 import type { ClaudeAgentAdapter } from "./adapter";
@@ -70,6 +72,13 @@ export class ClaudeAgentWebhookHandler {
     );
   }
 
+  /** The AgentMark client this handler executes against — surfaced (like every
+   *  other adapter) so `handleWebhookRequest(event, handler)` answers get-evals
+   *  zero-config. Sourced from the runner, the single owner. */
+  get client() {
+    return this.runner.client;
+  }
+
   async runPrompt(
     promptAst: Ast,
     options?: RunPromptOptions
@@ -112,5 +121,16 @@ export class ClaudeAgentWebhookHandler {
     }
 
     return this.runner.runExperiment(promptAst, datasetRunName, options);
+  }
+
+  /**
+   * Route a managed-deployment webhook job — prompt-run / dataset-run /
+   * get-evals — through the shared runner, sourcing evals from this handler's
+   * client. The canonical deployed handler is
+   * `export default new ClaudeAgentWebhookHandler(client).dispatch`. No
+   * per-adapter dispatch code; mirrors `runner.dispatch` and the other adapters.
+   */
+  dispatch(request: WebhookRequest): Promise<WebhookResponse> {
+    return this.runner.dispatch(request);
   }
 }

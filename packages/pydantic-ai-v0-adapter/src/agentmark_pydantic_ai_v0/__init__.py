@@ -35,7 +35,7 @@ from __future__ import annotations
 from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING, Any
 
-from agentmark.prompt_core import AgentMark, EvalRegistry
+from agentmark.prompt_core import AgentMark, EvalRegistry, handle_webhook_request
 from pydantic_ai import Agent
 
 from .adapter import PydanticAIAdapter
@@ -95,6 +95,9 @@ __all__ = [
     # Webhook server
     "create_webhook_server",
     "PydanticAIWebhookHandler",
+    # Managed-deployment handler dispatch (re-exported from prompt-core so the
+    # canonical handler.py imports prompt + dispatch from one adapter package)
+    "handle_webhook_request",
 ]
 
 
