@@ -13,6 +13,7 @@ from .base_adapter import (
     apply_param_map,
     build_telemetry_metadata,
 )
+from .control_plane import ControlPlaneClient, build_evals_response
 from .eval_registry import EvalRegistry
 from .executor import (
     AgentEvent,
@@ -139,6 +140,9 @@ __all__ = [
     "SimpleDatasetReader",
     # Registries
     "EvalRegistry",
+    # Control plane (cross-language webhook contract)
+    "ControlPlaneClient",
+    "build_evals_response",
     # Experiment runner concurrency
     "run_dataset_pool",
     "DEFAULT_EXPERIMENT_CONCURRENCY",

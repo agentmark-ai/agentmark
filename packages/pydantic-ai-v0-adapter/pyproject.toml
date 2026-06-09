@@ -23,10 +23,13 @@ classifiers = [
 dependencies = [
   "pydantic>=2.0",
   "pydantic-ai>=0.0.39",
-  "agentmark-prompt-core>=0.0.1",
+  "agentmark-prompt-core>=0.5.0",
   "agentmark-sdk>=0.0.1",
   "aiohttp>=3.9.0"
 ]
+
+[tool.uv.sources]
+agentmark-prompt-core = { path = "../prompt-core-python", editable = true }
 
   [[project.authors]]
   name = "AgentMark Team"

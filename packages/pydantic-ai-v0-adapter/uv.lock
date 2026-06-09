@@ -20,18 +20,28 @@ wheels = [
 
 [[package]]
 name = "agentmark-prompt-core"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
+version = "0.2.0"
+source = { editable = "../prompt-core-python" }
 dependencies = [
     { name = "agentmark-templatedx" },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/39/a2/760f80d8464bdac7c19e6bc35fddc9cc130dfb090b8db05042e69606bd1c/agentmark_prompt_core-0.4.0.tar.gz", hash = "sha256:39f1cd3592907b132a4ee1ffa1e4f72785c928d487ddb76a6b1e8badff53cbf9", size = 88657, upload-time = "2026-06-06T13:20:46.727Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/8a/ca9b08f6e65fbbbe1b6f9bda8d324ee2c6cb6480d3be330d1f2e91b9aa34/agentmark_prompt_core-0.4.0-py3-none-any.whl", hash = "sha256:5ce567f76654ba2ee97170efe18f9b59168c5911bb848ddfdddece7c2ad4a070", size = 55361, upload-time = "2026-06-06T13:20:45.657Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "agentmark-templatedx", specifier = ">=0.1.1" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
 ]
+provides-extras = ["dev"]
 
 [[package]]
 name = "agentmark-pydantic-ai-v0"
@@ -65,7 +75,7 @@ openai = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agentmark-prompt-core", specifier = ">=0.0.1" },
+    { name = "agentmark-prompt-core", editable = "../prompt-core-python" },
     { name = "agentmark-sdk", specifier = ">=0.0.1" },
     { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },

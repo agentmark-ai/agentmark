@@ -26,8 +26,15 @@ export class VercelAdapterWebhookHandler<
   T extends PromptShape<T> = PromptShape<Record<string, never>>
 > {
   private readonly runner: WebhookRunner<T, VercelAIAdapter<T, Record<string, Tool>>>;
+  /**
+   * Surfaced so the shared dispatch can answer control-plane jobs (get-evals)
+   * without the caller threading the client separately. AgentMark implements
+   * ControlPlaneClient, so this satisfies WebhookHandler's `client`.
+   */
+  readonly client: AgentMark<T, VercelAIAdapter<T, Record<string, Tool>>>;
 
   constructor(client: AgentMark<T, VercelAIAdapter<T, Record<string, Tool>>>) {
+    this.client = client;
     this.runner = new WebhookRunner(
       client,
       new VercelAIExecutor(),

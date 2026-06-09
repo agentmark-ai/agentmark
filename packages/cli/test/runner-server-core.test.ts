@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// @ts-expect-error — @agentmark-ai/conformance-vectors is a JS data package
+import { loadVector } from '@agentmark-ai/conformance-vectors';
 import { handleWebhookRequest } from '../cli-src/runner-server/core';
-import type { WebhookHandler, WebhookRequest } from '../cli-src/runner-server/types';
+import type { ControlPlaneClient, WebhookHandler, WebhookRequest } from '../cli-src/runner-server/types';
 
 // ---------------------------------------------------------------------------
 // Runner-server concurrency glue (issue #2326)
@@ -104,6 +106,96 @@ describe('handleWebhookRequest — dataset-run concurrency forwarding', () => {
       datasetPath: './data.jsonl',
       sampling: { rows: [0, 1] },
       concurrency: 9,
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Control-plane `get-evals` dispatch.
+//
+// This is the path the Vercel adapters route through (their handler has no
+// per-adapter eval logic — the CLIENT owns it). The core must answer the job
+// by sourcing eval names from the client (not the handler) via the shared
+// `buildEvalsResponse`, and emit the canonical envelope. Asserted against the
+// SAME conformance-vectors/control-plane.json the prompt-core + Python suites
+// use, so the TS dispatch can't drift from the cross-language wire contract.
+// ---------------------------------------------------------------------------
+interface ControlPlaneCase {
+  name: string;
+  evalNames: string[];
+  expected: { type: 'evals'; result: string; traceId: string };
+}
+const { cases: controlPlaneCases } = loadVector('control-plane') as {
+  cases: ControlPlaneCase[];
+};
+
+describe('handleWebhookRequest — get-evals control-plane dispatch', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  // A handler with no control-plane logic — proves the names come from the
+  // client, never the handler.
+  const inertHandler: WebhookHandler = {
+    runPrompt: vi.fn(),
+    runExperiment: vi.fn(),
+  };
+  // No cast needed: `data.ast` is optional, so a get-evals request type-checks.
+  const getEvalsRequest: WebhookRequest = { type: 'get-evals', data: {} };
+
+  for (const c of controlPlaneCases) {
+    it(`returns the canonical envelope: ${c.name}`, async () => {
+      const client: ControlPlaneClient = { getEvalNames: () => c.evalNames };
+
+      const result = await handleWebhookRequest(getEvalsRequest, inertHandler, client);
+
+      expect(result).toEqual({ type: 'json', data: c.expected, status: 200 });
+    });
+  }
+
+  it('sources the client from the handler when no explicit client is passed (zero-config)', async () => {
+    // The Vercel-style path: the handler is built from a client and surfaces it,
+    // so a consumer calling createWebhookServer({ handler }) gets get-evals with
+    // no extra wiring. Names arrive unsorted; the helper canonicalizes them.
+    const handlerWithClient: WebhookHandler = {
+      runPrompt: vi.fn(),
+      runExperiment: vi.fn(),
+      client: { getEvalNames: () => ['safety', 'accuracy'] },
+    };
+
+    const result = await handleWebhookRequest(getEvalsRequest, handlerWithClient);
+
+    expect(result).toEqual({
+      type: 'json',
+      data: { type: 'evals', result: '["accuracy","safety"]', traceId: '' },
+      status: 200,
+    });
+  });
+
+  it('prefers an explicit client override over the handler client', async () => {
+    const handlerWithClient: WebhookHandler = {
+      runPrompt: vi.fn(),
+      runExperiment: vi.fn(),
+      client: { getEvalNames: () => ['from_handler'] },
+    };
+    const override: ControlPlaneClient = { getEvalNames: () => ['from_override'] };
+
+    const result = await handleWebhookRequest(getEvalsRequest, handlerWithClient, override);
+
+    expect(result).toEqual({
+      type: 'json',
+      data: { type: 'evals', result: '["from_override"]', traceId: '' },
+      status: 200,
+    });
+  });
+
+  it('degrades gracefully to an empty eval list when no client is available anywhere', async () => {
+    const result = await handleWebhookRequest(getEvalsRequest, inertHandler);
+
+    expect(result).toEqual({
+      type: 'json',
+      data: { type: 'evals', result: '[]', traceId: '' },
+      status: 200,
     });
   });
 });
