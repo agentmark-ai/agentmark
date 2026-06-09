@@ -13,28 +13,15 @@ import modelsFile from "@agentmark-ai/model-registry/models.json";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — see above.
 import overridesFile from "@agentmark-ai/model-registry/overrides.json";
-
-type PricingEntry = { promptPrice: number; completionPrice: number };
-type PricingMap = Record<string, PricingEntry>;
+import {
+  buildPricingDictionary,
+  type PricingDictionary,
+} from "@agentmark-ai/model-registry/pricing";
 
 type ModelEntry = {
   pricing?: { inputCostPerToken: number; outputCostPerToken: number };
   [k: string]: unknown;
 };
-
-function buildPricingMap(allModels: Record<string, ModelEntry>): PricingMap {
-  return Object.fromEntries(
-    Object.entries(allModels)
-      .filter(([, m]) => m.pricing)
-      .map(([id, m]) => [
-        id,
-        {
-          promptPrice: m.pricing!.inputCostPerToken * 1000,
-          completionPrice: m.pricing!.outputCostPerToken * 1000,
-        },
-      ]),
-  );
-}
 
 // Built once at module init — the bundled registry never changes at runtime.
 const BUNDLED_MODELS: Record<string, ModelEntry> = {
@@ -42,4 +29,5 @@ const BUNDLED_MODELS: Record<string, ModelEntry> = {
   ...((overridesFile as { models?: Record<string, ModelEntry> }).models ?? {}),
 };
 
-export const LOCAL_PRICING_MAP: PricingMap = buildPricingMap(BUNDLED_MODELS);
+export const LOCAL_PRICING_MAP: PricingDictionary =
+  buildPricingDictionary(BUNDLED_MODELS);

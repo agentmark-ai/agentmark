@@ -140,6 +140,24 @@ describe("ModelRegistryImpl", () => {
       const pricing = registry.getPricingForModel("dall-e-3");
       expect(pricing).toBeUndefined();
     });
+
+    it("resolves provider-prefixed ids to the same pricing as the bare id", () => {
+      expect(registry.getPricingForModel("openai/gpt-4o")).toEqual({
+        inputCostPerToken: 0.000005,
+        outputCostPerToken: 0.000015,
+      });
+    });
+
+    it("resolves unknown dated variants against the base model", () => {
+      expect(registry.getPricingForModel("gpt-4o-2099-01-01")).toEqual({
+        inputCostPerToken: 0.000005,
+        outputCostPerToken: 0.000015,
+      });
+    });
+
+    it("still returns undefined for unrelated ids", () => {
+      expect(registry.getPricingForModel("not-a-model")).toBeUndefined();
+    });
   });
 
   describe("getCapabilitiesForModel", () => {

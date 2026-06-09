@@ -2,6 +2,7 @@ import {
   getCostFormula,
   getModelCostMappings,
 } from "../../../cost-mapping/cost-mapping";
+import { resolveModelPrice } from "@agentmark-ai/model-registry/pricing";
 import db from "../../database";
 import type { NormalizedSpan } from "@agentmark-ai/shared-utils";
 
@@ -62,7 +63,11 @@ function normalizedSpanToSqliteRow(
     span.inputTokens !== undefined &&
     span.outputTokens !== undefined
   ) {
-    const priceMap = isSuccess ? modelsCostMapping[span.model] : null;
+    // Layered model-id resolution (exact → normalized → prefix fallback),
+    // shared with the cloud gateway so local cost attribution matches.
+    const priceMap = isSuccess
+      ? resolveModelPrice(span.model, modelsCostMapping)
+      : null;
     if (priceMap) {
       const getCost = getCostFormula(
         Number(priceMap.promptPrice || 0),

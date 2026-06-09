@@ -4,6 +4,20 @@
   "description": "LLM model registry with provider metadata, pricing, and capabilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./pricing": {
+      "types": "./dist/pricing.d.ts",
+      "default": "./dist/pricing.js"
+    },
+    "./models.json": "./models.json",
+    "./overrides.json": "./overrides.json",
+    "./provider-labels.json": "./provider-labels.json",
+    "./package.json": "./package.json"
+  },
   "license": "AGPL-3.0-or-later",
   "publishConfig": {
     "access": "public"
