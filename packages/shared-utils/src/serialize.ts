@@ -1,34 +1,24 @@
+import yaml from "js-yaml";
+
 export function toFrontMatter(content: { [key: string]: any }): string {
-  function jsonToFrontMatter(json: { [key: string]: any }, indent = 0) {
-    let frontMatter = "";
-    const indentation = "  ".repeat(indent);
+  // Serialize with js-yaml — the same library templatedx uses to read the
+  // frontmatter back (`yaml.load` in ast-utils.ts) — so the output always
+  // round-trips. A hand-rolled emitter cannot: prop values pulled from a trace
+  // can be page markdown that starts with `![](...)` (a YAML tag indicator),
+  // embeds quotes, or spans multiple lines, all of which need quoting or a
+  // block scalar. `yaml.dump` applies those rules; bare interpolation did not.
+  //
+  // - lineWidth: -1   — never wrap long scalars (URLs, page content) so the
+  //                     emitted value is stable and diff-friendly.
+  // - noRefs: true    — expand shared references instead of emitting `&anchor`
+  //                     / `*alias`, which would be surprising in a prompt file.
+  // - skipInvalid: true — drop non-representable values (e.g. `undefined`)
+  //                     rather than throw in the save path; the old emitter
+  //                     would have written the literal string "undefined".
+  const body =
+    Object.keys(content).length === 0
+      ? ""
+      : yaml.dump(content, { lineWidth: -1, noRefs: true, skipInvalid: true });
 
-    for (const key in json) {
-      if (Object.prototype.hasOwnProperty.call(json, key)) {
-        const value = json[key];
-
-        if (typeof value === "object" && !Array.isArray(value)) {
-          frontMatter += `${indentation}${key}:\n`;
-          frontMatter += jsonToFrontMatter(value, indent + 1);
-        } else if (Array.isArray(value)) {
-          frontMatter += `${indentation}${key}:\n`;
-          value.forEach((item) => {
-            if (typeof item === "object") {
-              frontMatter += `${indentation}-\n`;
-              frontMatter += jsonToFrontMatter(item, indent + 2);
-            } else {
-              frontMatter += `${indentation}- ${item}\n`;
-            }
-          });
-        } else {
-          frontMatter += `${indentation}${key}: ${value}\n`;
-        }
-      }
-    }
-
-    return frontMatter;
-  }
-
-  return `---\n${jsonToFrontMatter(content)}---\n`;
+  return `---\n${body}---\n`;
 }
-
