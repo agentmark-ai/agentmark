@@ -1,3 +1,58 @@
+## 0.16.5 (2026-06-09)
+
+### 🩹 Fixes
+
+- refactor(webhook): shared cross-language get-evals control-plane contract ([#706](https://github.com/agentmark-ai/agentmark/pull/706))
+
+  The dashboard's New Experiment dialog showed "No evals available" because the
+  `get-evals` webhook job had no dispatch. This makes `get-evals` a contract the
+  TS and Python clients share and every adapter inherits:
+
+  - `ControlPlaneClient` (TS interface / Python Protocol): the AgentMark client
+    owns `getEvalNames()` / `get_eval_names()`.
+  - `buildEvalsResponse()` / `build_evals_response()`: one shared wire helper per
+    language, emitting a byte-identical `{type:'evals', result, traceId}` envelope
+    (names sorted for a deterministic cross-language order; serialized compact and
+    raw-UTF-8 so the bytes match across languages).
+  - The shared dispatch sources names from the client. The CLI's
+    `handleWebhookRequest` falls back to the handler's surfaced client, so the
+    Vercel adapters answer `get-evals` with zero extra wiring; the per-adapter
+    eval logic is removed.
+
+  prompt-core (TS + Python) gain new public API → minor. The CLI, the Vercel
+  v4/v5 adapters (surface their client), and the pydantic / claude-agent-sdk
+  Python adapters (wire the dispatch) → patch. A shared
+  `conformance-vectors/control-plane.json` keeps both languages and all adapters
+  from drifting.
+
+- fix(cli): agentmark dev runs the adapter in local mode, not cloud ([#701](https://github.com/agentmark-ai/agentmark/pull/701))
+
+  `agentmark dev` forwarded the project env, including `AGENTMARK_API_KEY` /
+  `AGENTMARK_APP_ID` from a local `.env`, to the spawned adapter. The client read
+  the presence of those creds as "use cloud", so the adapter loaded deployed
+  prompts and datasets from `api.agentmark.co` and bypassed the local files the
+  dev server serves, with locally resolved datasets coming through empty. The
+  spawn now strips the cloud creds and any cloud `AGENTMARK_BASE_URL` from the
+  adapter env and pins `AGENTMARK_DEV_SERVER` to the local API server, for both
+  the Python and TypeScript adapters, logging a notice when cloud creds are
+  detected. Trace forwarding to prod is unaffected: it runs off this process's
+  `TraceForwarder` using `agentmark link` creds, not the adapter's env.
+
+- fix(cli): point `agentmark dev` setup errors at the setup skill + client-setup docs ([#697](https://github.com/agentmark-ai/agentmark/pull/697))
+
+  When `agentmark dev` could not find `agentmark.client.ts` / `agentmark_client.py`
+  or a dev-server entry, it told users to "run create-agentmark" — the step they
+  had usually already run. Those files are written by the editor's "Set up
+  AgentMark in this project" skill, not the scaffolder, so the old message pointed
+  people at the wrong fix. The errors now name that skill and link the
+  client-setup guide.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.6.8
+- Updated @agentmark-ai/shared-utils to 0.5.1
+- Updated @agentmark-ai/prompt-core to 0.9.0
+
 ## 0.16.4 (2026-06-07)
 
 ### 🧱 Updated Dependencies

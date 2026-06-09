@@ -46,8 +46,8 @@ __metadata:
   dependencies:
     "@agentmark-ai/ai-sdk-shared": "npm:>=0.0.0"
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.5"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
+    "@agentmark-ai/sdk": "npm:1.2.6"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/openai": "npm:^1.0.0"
     "@types/mdast": "npm:^4.0.0"
@@ -72,8 +72,8 @@ __metadata:
   dependencies:
     "@agentmark-ai/ai-sdk-shared": "npm:>=0.0.0"
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.5"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
+    "@agentmark-ai/sdk": "npm:1.2.6"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@ai-sdk/mcp": "npm:^0.0.8"
@@ -120,8 +120,8 @@ __metadata:
   resolution: "@agentmark-ai/claude-agent-sdk-v0-adapter@workspace:packages/claude-agent-sdk-v0-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.5"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
+    "@agentmark-ai/sdk": "npm:1.2.6"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@anthropic-ai/claude-agent-sdk": "npm:^0.1.0"
@@ -153,10 +153,10 @@ __metadata:
     "@agentmark-ai/api-types": "npm:0.4.0"
     "@agentmark-ai/conformance-vectors": "workspace:*"
     "@agentmark-ai/model-registry": "npm:0.2.4"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/shared-utils": "npm:0.5.0"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
+    "@agentmark-ai/shared-utils": "npm:0.5.1"
     "@agentmark-ai/templatedx": "npm:0.4.1"
-    "@agentmark-ai/ui-components": "npm:0.6.7"
+    "@agentmark-ai/ui-components": "npm:0.6.8"
     "@emotion/cache": "npm:^11.14.0"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.1"
@@ -233,7 +233,7 @@ __metadata:
   resolution: "@agentmark-ai/fallback-adapter@workspace:packages/fallback-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -273,8 +273,8 @@ __metadata:
   resolution: "@agentmark-ai/mastra-v0-adapter@workspace:packages/mastra-v0-adapter"
   dependencies:
     "@agentmark-ai/loader-file": "npm:*"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
-    "@agentmark-ai/sdk": "npm:1.2.5"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
+    "@agentmark-ai/sdk": "npm:1.2.6"
     "@agentmark-ai/shared-utils": "npm:*"
     "@agentmark-ai/templatedx": "npm:*"
     "@mastra/core": "npm:^0.13.2"
@@ -325,7 +325,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/prompt-core@npm:*, @agentmark-ai/prompt-core@npm:0.8.2, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
+"@agentmark-ai/prompt-core@npm:*, @agentmark-ai/prompt-core@npm:0.9.0, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/prompt-core@workspace:packages/prompt-core"
   dependencies:
@@ -345,12 +345,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/sdk@npm:1.2.5, @agentmark-ai/sdk@workspace:packages/sdk":
+"@agentmark-ai/sdk@npm:1.2.6, @agentmark-ai/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
     "@agentmark-ai/loader-api": "npm:0.1.2"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/context-async-hooks": "npm:^2.0.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.217.0"
@@ -370,7 +370,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/shared-utils@npm:*, @agentmark-ai/shared-utils@npm:0.5.0, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
+"@agentmark-ai/shared-utils@npm:*, @agentmark-ai/shared-utils@npm:0.5.1, @agentmark-ai/shared-utils@workspace:packages/shared-utils":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/shared-utils@workspace:packages/shared-utils"
   dependencies:
@@ -416,12 +416,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/ui-components@npm:0.6.7, @agentmark-ai/ui-components@workspace:packages/ui-components":
+"@agentmark-ai/ui-components@npm:0.6.8, @agentmark-ai/ui-components@workspace:packages/ui-components":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/ui-components@workspace:packages/ui-components"
   dependencies:
     "@agentmark-ai/api-schemas": "npm:0.4.0"
-    "@agentmark-ai/prompt-core": "npm:0.8.2"
+    "@agentmark-ai/prompt-core": "npm:0.9.0"
     "@chromatic-com/storybook": "npm:^4.1.1"
     "@codemirror/lang-json": "npm:^6.0.2"
     "@emotion/cache": "npm:^11.14.0"
@@ -11071,7 +11071,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-agentmark@workspace:packages/create-agentmark"
   dependencies:
-    "@agentmark-ai/shared-utils": "npm:0.5.0"
+    "@agentmark-ai/shared-utils": "npm:0.5.1"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/node": "npm:^20"
     "@types/prompts": "npm:^2.4.9"

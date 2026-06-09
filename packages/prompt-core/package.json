@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/prompt-core",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
