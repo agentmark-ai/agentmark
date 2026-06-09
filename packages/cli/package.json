@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/cli",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "description": "Agentmark's CLI",
   "main": "dist/index.js",
   "exports": {
@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@agentmark-ai/conformance-vectors": "*",
-    "@agentmark-ai/ui-components": "0.6.9",
+    "@agentmark-ai/ui-components": "0.7.0",
     "@eslint/eslintrc": "^3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2",
