@@ -12,6 +12,7 @@ import { attemptAutoLink } from "../auth/auto-link";
 import { setForwarder } from "../api-server";
 import { loadCredentials } from "../auth/credentials";
 import { getPlatformUrl } from "../auth/constants";
+import { buildAdapterEnv, hasCloudCreds } from "./dev-env";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -141,6 +142,20 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
   let isShuttingDown = false;
 
+  // `agentmark dev` is a LOCAL development server: it serves prompts and datasets
+  // from the API server it starts on `apiPort`. Keep the spawned adapter pointed
+  // there (see ./dev-env) — a project with cloud creds in its env would otherwise
+  // load *deployed* data from api.agentmark.co and silently bypass local files.
+  const adapterEnv = buildAdapterEnv(process.env, apiPort);
+  if (hasCloudCreds(process.env)) {
+    console.log(
+      'ℹ️  Detected AGENTMARK_API_KEY/APP_ID in your environment — running the adapter in ' +
+      'local mode so it loads your local prompts/datasets, not deployed copies. ' +
+      'Forwarding traces to cloud still works via `agentmark dev` + `agentmark link` ' +
+      '(disable with --no-forward).'
+    );
+  }
+
   let webhookServer: ChildProcess;
 
   if (projectLanguage === "python") {
@@ -154,7 +169,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       stdio: 'inherit',
       cwd,
       env: {
-        ...process.env,
+        ...adapterEnv,
         PYTHONDONTWRITEBYTECODE: '1',
         PYTHONUNBUFFERED: '1',
       }
@@ -163,7 +178,8 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
     webhookServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`], {
       stdio: 'inherit',
-      cwd
+      cwd,
+      env: adapterEnv,
     });
   }
 
