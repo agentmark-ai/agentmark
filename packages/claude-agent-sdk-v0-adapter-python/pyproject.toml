@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentmark-claude-agent-sdk-v0"
-version = "0.3.1"
+version = "0.3.2"
 description = "Claude Agent SDK adapter for AgentMark - integrate AgentMark prompts with Claude Agent SDK"
 readme = "README.md"
 license = "MIT"
@@ -27,9 +27,6 @@ dependencies = [
   "aiohttp>=3.9.0"
 ]
 
-[tool.uv.sources]
-agentmark-prompt-core = { path = "../prompt-core-python", editable = true }
-
   [[project.authors]]
   name = "AgentMark Team"
 
@@ -47,6 +44,10 @@ agentmark-prompt-core = { path = "../prompt-core-python", editable = true }
   Homepage = "https://github.com/agentmark/agentmark"
   Documentation = "https://github.com/agentmark/agentmark#readme"
   Repository = "https://github.com/agentmark/agentmark"
+
+[tool.uv.sources.agentmark-prompt-core]
+path = "../prompt-core-python"
+editable = true
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/agentmark_claude_agent_sdk_v0" ]

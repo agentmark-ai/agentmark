@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ai-sdk-v5-adapter",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,8 +37,8 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "0.8.2",
-    "@agentmark-ai/sdk": "1.2.5",
+    "@agentmark-ai/prompt-core": "0.9.0",
+    "@agentmark-ai/sdk": "1.2.6",
     "@agentmark-ai/shared-utils": "*",
     "@agentmark-ai/templatedx": "*",
     "@ai-sdk/mcp": "^0.0.8",

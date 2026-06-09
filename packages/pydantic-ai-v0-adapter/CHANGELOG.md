@@ -1,3 +1,34 @@
+## 0.3.3 (2026-06-09)
+
+### 🩹 Fixes
+
+- refactor(webhook): shared cross-language get-evals control-plane contract ([#706](https://github.com/agentmark-ai/agentmark/pull/706))
+
+  The dashboard's New Experiment dialog showed "No evals available" because the
+  `get-evals` webhook job had no dispatch. This makes `get-evals` a contract the
+  TS and Python clients share and every adapter inherits:
+
+  - `ControlPlaneClient` (TS interface / Python Protocol): the AgentMark client
+    owns `getEvalNames()` / `get_eval_names()`.
+  - `buildEvalsResponse()` / `build_evals_response()`: one shared wire helper per
+    language, emitting a byte-identical `{type:'evals', result, traceId}` envelope
+    (names sorted for a deterministic cross-language order; serialized compact and
+    raw-UTF-8 so the bytes match across languages).
+  - The shared dispatch sources names from the client. The CLI's
+    `handleWebhookRequest` falls back to the handler's surfaced client, so the
+    Vercel adapters answer `get-evals` with zero extra wiring; the per-adapter
+    eval logic is removed.
+
+  prompt-core (TS + Python) gain new public API → minor. The CLI, the Vercel
+  v4/v5 adapters (surface their client), and the pydantic / claude-agent-sdk
+  Python adapters (wire the dispatch) → patch. A shared
+  `conformance-vectors/control-plane.json` keeps both languages and all adapters
+  from drifting.
+
+### 🧱 Updated Dependencies
+
+- Updated agentmark-prompt-core to 0.5.0
+
 ## 0.3.2 (2026-06-07)
 
 ### 🩹 Fixes
