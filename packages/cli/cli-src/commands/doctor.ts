@@ -79,12 +79,6 @@ function readJsonSafe(file: string): Record<string, unknown> | null {
   }
 }
 
-/** First integer in a semver range: `^2.1.0` → 2, `~1.2` → 1, `*` → null. */
-function majorFromRange(range: unknown): number | null {
-  const m = String(range).match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : null;
-}
-
 function isEnvGitignored(cwd: string): boolean {
   try {
     const lines = fs.readFileSync(path.join(cwd, ".gitignore"), "utf8").split(/\r?\n/);
@@ -470,57 +464,6 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
               fix: "npm install @agentmark-ai/sdk",
             }
       );
-
-      const adapterKey = Object.keys(deps).find((k) => /^@agentmark-ai\/.+-adapter$/.test(k));
-      if (!adapterKey) {
-        add({
-          id: "deps.adapter",
-          group: GROUP.deps,
-          title: "an AgentMark adapter installed",
-          status: "warn",
-          detail: "no @agentmark-ai/*-adapter found; prompts need one to run end-to-end",
-          fix: "Install an adapter (e.g. npm install @agentmark-ai/ai-sdk-v5-adapter). Bringing your own SDK? You instead need an Executor (createExecutor) served via createWebhookRunner. See https://docs.agentmark.co/integrations/bring-your-own-sdk.",
-        });
-      } else {
-        add({ id: "deps.adapter", group: GROUP.deps, title: "an AgentMark adapter installed", status: "pass", detail: adapterKey });
-
-        // AI SDK adapter ↔ provider major-version coherence (warn on mismatch).
-        const expectedProviderMajor = adapterKey.includes("ai-sdk-v5")
-          ? 2
-          : adapterKey.includes("ai-sdk-v4")
-            ? 1
-            : null;
-        if (expectedProviderMajor !== null) {
-          const providers = Object.keys(deps).filter((k) => k.startsWith("@ai-sdk/"));
-          const mismatched = providers.filter((p) => {
-            const maj = majorFromRange(deps[p]);
-            return maj !== null && maj !== expectedProviderMajor;
-          });
-          if (providers.length === 0) {
-            add({
-              id: "deps.provider",
-              group: GROUP.deps,
-              title: "AI SDK provider installed",
-              status: "warn",
-              detail: `${adapterKey} is installed but no @ai-sdk/* provider is`,
-              fix: `Install a v${expectedProviderMajor}-spec provider, e.g. npm install @ai-sdk/openai@^${expectedProviderMajor}.`,
-            });
-          } else if (mismatched.length > 0) {
-            add({
-              id: "deps.provider",
-              group: GROUP.deps,
-              title: "AI SDK provider version matches adapter",
-              status: "warn",
-              detail: `${adapterKey} expects provider major v${expectedProviderMajor}, but ${mismatched
-                .map((p) => `${p}@${deps[p]}`)
-                .join(", ")}`,
-              fix: `Align the provider, e.g. npm install ${mismatched[0]}@^${expectedProviderMajor}.`,
-            });
-          } else {
-            add({ id: "deps.provider", group: GROUP.deps, title: "AI SDK provider version matches adapter", status: "pass" });
-          }
-        }
-      }
     }
   } else {
     add({
@@ -528,7 +471,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       group: GROUP.deps,
       title: "dependency checks",
       status: "skip",
-      detail: "Python project; ensure agentmark-sdk and your adapter are installed",
+      detail: "Python project; ensure agentmark-prompt-core and agentmark-sdk are installed",
     });
   }
 

@@ -12,9 +12,11 @@ This file describes the **shape** of the conversation and the **order** of opera
 
 If the docs MCP isn't responding, or doesn't cover the user's framework, **stop and tell the user**. Do not invent paths or package names from memory. The right escalation is "the docs don't cover this framework — want me to set it up using the closest covered pattern (X), or hold while we add docs for your stack?"
 
-## Before you start
+## Before you start — `doctor` is your setup checklist
 
-Confirm the CLI handoff actually happened — if any are missing, the user skipped `npm create agentmark`:
+**Whenever a user wants to set up AgentMark — a fresh `npm create agentmark` scaffold *or* an existing repo — run `npx agentmark doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 7.)
+
+Then confirm the CLI handoff actually happened — if any are missing, the user skipped `npm create agentmark`:
 
 - [ ] `agentmark.json` exists at the project root
 - [ ] `agentmark/` directory exists (the CLI creates it empty, with a `.gitkeep`); `agentmarkPath` in `agentmark.json` resolves the prompt-root to `<agentmarkPath>/agentmark`
@@ -41,9 +43,9 @@ Query the docs MCP server for the integration guide. Try in this order:
 
 1. `<framework> integration` (e.g. "Next.js integration")
 2. `<framework> quickstart`
-3. `<adapter> setup` (e.g. "ai-sdk setup", "pydantic-ai setup")
+3. `bring your own SDK` (`/integrations/bring-your-own-sdk`) — the universal integration path
 
-**Bring-your-own-SDK branch.** If Step 1 found the host calling an LLM SDK that has **no matching AgentMark adapter** (raw AWS Bedrock `ConverseCommand`, the raw OpenAI SDK, a bespoke HTTP client), do **not** escalate "no adapter exists" and do **not** default to the heavyweight custom-adapter page. Fetch `bring your own SDK` from the docs MCP (`/integrations/bring-your-own-sdk`). It has two paths the page itself explains: **Path A** (`createAgentMarkClient` from `fallback-adapter` + `observe` + `runExperiment`) for prompt-management / tracing / experiments in the user's own process — no executor — and **Path B** (`createExecutor` + `createWebhookRunner`) when the user wants the cloud to *run* their prompts. Pick the path from what the user wants; most "wire AgentMark into my existing app" requests are Path A.
+**The neutral render is the universal path.** AgentMark has **no SDK-specific adapters** — whatever the host calls (Vercel AI SDK, the raw OpenAI/Anthropic client, AWS Bedrock `ConverseCommand`, a bespoke HTTP client), the integration is the same: render the prompt to AgentMark's neutral `{ messages, text_config }` and hand it to that SDK. Never escalate "no adapter exists" or default to the heavyweight custom-adapter page. Fetch `bring your own SDK` from the docs MCP (`/integrations/bring-your-own-sdk`). It has two paths the page explains: **Path A** (`createAgentMarkClient` from `@agentmark-ai/fallback-adapter` + `observe` + `runExperiment`) for prompt-management / tracing / experiments in the user's own process — no executor — and **Path B** (`createExecutor` + `createWebhookRunner`) when the user wants the cloud to *run* their prompts. Pick the path from what the user wants; most "wire AgentMark into my existing app" requests are Path A. On a popular SDK, the [bring-your-own-SDK guide](https://docs.agentmark.co/integrations/bring-your-own-sdk) (Path B) is a copy-paste head start.
 
 Read the page in full. **The page is the authority on**:
 
@@ -114,5 +116,4 @@ Migration is a refactor with its own risk profile. Conflating it with setup make
 - **Recreating `agentmark.json` or MCP config files from this workflow** — that's the CLI's job. If those files are missing, send the user back to `npm create agentmark`.
 - **Calling the `agentmark` (Cloud) MCP server for project detection** — that server is for AgentMark Cloud, not local file inspection. Use `Read` / `Glob` / `Grep`.
 - **Migrating existing LLM code without a second confirmation.** Setup consent ≠ refactor consent.
-- **Escalating "no adapter exists" for a raw/unsupported SDK, or defaulting to the custom-adapter page.** A raw SDK (Bedrock, OpenAI, bespoke) has a first-class bring-your-own-SDK path — fetch `/integrations/bring-your-own-sdk` and route to Path A (lightweight, no executor) or Path B (`createExecutor`, cloud-executed). Writing a full custom adapter is rarely what these users need.
-- **"Fixing" the client file over a `registerProviders` type error.** On `@agentmark-ai/ai-sdk-v5-adapter@1.6.4` and earlier, `tsc --noEmit` / IDE diagnostics report TS2339 `Property 'registerProviders' does not exist on type 'VercelAIModelRegistry'` **on the exact client the docs prescribe**. It's a published-types packaging bug — the adapter's `.d.ts` imports its base class from `@agentmark-ai/ai-sdk-shared`, which wasn't on npm at the time — **not** a docs error or a bug in the client you wrote (runtime always worked). **Fixed in `@agentmark-ai/ai-sdk-v5-adapter@1.6.5+`** (ships `ai-sdk-shared` as a published dependency), so the first move is `npm install @agentmark-ai/ai-sdk-v5-adapter@latest`. If a user is pinned to an older version and can't upgrade, the error is cosmetic — do not "fix" it by casting to `any`, deleting the `registerProviders` call, or adding `.d.ts` shims.
+- **Hunting for an "adapter," or defaulting to the custom-adapter page.** There are no SDK-specific adapters — every SDK integrates through the neutral render. Fetch `/integrations/bring-your-own-sdk` and route to Path A (lightweight, no executor) or Path B (`createExecutor`, cloud-executed). A full custom adapter only earns its keep when you want AgentMark to own the provider request shape — rarely what these users need.

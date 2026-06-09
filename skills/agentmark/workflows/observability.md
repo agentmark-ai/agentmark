@@ -1,10 +1,12 @@
 # Observing a prompt run (traces)
 
-For the **canonical tracing setup** — full provider config, every adapter,
-init order, AGENTMARK_API_KEY / AGENTMARK_APP_ID semantics — fetch
-`https://docs.agentmark.co/observe/tracing-setup.md`. This workflow exists
-to flag the **two non-obvious failure modes** that catch agents out, because
-they're hard to see in the docs:
+For the **canonical tracing setup** — full provider config, init order,
+AGENTMARK_API_KEY / AGENTMARK_APP_ID semantics — fetch
+`https://docs.agentmark.co/observe/tracing-setup.md`. Tracing is **SDK-agnostic**:
+the same `AgentMarkSDK` + `initTracing()` / `observe()` wiring works with whatever
+SDK you call, because AgentMark renders prompts to a neutral shape and you call the
+model yourself. This workflow exists to flag the **two non-obvious failure modes**
+that catch agents out, because they're hard to see in the docs:
 
 1. To see the **model-call ("generation") span** — the one carrying model,
    token usage, and input/output — your runtime must register the AgentMark
@@ -20,14 +22,21 @@ they're hard to see in the docs:
    `createPromptTelemetry(...)`. Use both if you want custom spans plus the
    generation span.
 
-## Recipe (Vercel AI SDK adapter)
+## Recipe
+
+The model call below uses the **Vercel AI SDK** (`generateText` from `ai`) as a
+concrete example, because its built-in telemetry is what emits the generation
+span. Swap step 3 for whatever SDK you call — the tracing wiring (steps 1, 2, 4)
+is identical regardless of SDK. The client is the neutral one (`createAgentMarkClient`
+from `@agentmark-ai/fallback-adapter`); it only loads + renders prompts, and you
+call the model.
 
 ```ts
 import { AgentMarkSDK } from "@agentmark-ai/sdk";
 import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import { generateText } from "ai";
 // plus your usual client setup:
-//   createAgentMarkClient({ loader, modelRegistry }) from "@agentmark-ai/ai-sdk-v5-adapter"
+//   createAgentMarkClient({ loader }) from "@agentmark-ai/fallback-adapter"
 
 // 1. Register the AgentMark span processor AS THE GLOBAL OTel provider.
 //    registerGlobally: true is REQUIRED for the generation span: the AI SDK
@@ -48,7 +57,8 @@ const tracing = sdk.initTracing({ registerGlobally: true, disableBatch: true });
 
 // 2. Load the DEPLOYED prompt as usual, then format WITH telemetry. This line
 //    is the one that matters: it injects the AI SDK experimental_telemetry that
-//    produces the generation span. (Mirrors the adapter's own runner.ts.)
+//    produces the generation span. (Mirrors what createWebhookRunner does when
+//    AgentMark Cloud runs your prompts.)
 const prompt = await client.loadTextPrompt("triage");
 const { telemetry } = createPromptTelemetry("triage", { isEnabled: true });
 const input = await prompt.format({ props: { subject: "...", body: "..." }, telemetry });
