@@ -4,7 +4,8 @@
  * a standardized response that adapters can translate to platform-specific formats.
  */
 
-import type { WebhookHandler, WebhookRequest, WebhookResponse } from './types';
+import { buildEvalsResponse } from '@agentmark-ai/prompt-core';
+import type { ControlPlaneClient, WebhookHandler, WebhookRequest, WebhookResponse } from './types';
 
 /**
  * Handles a webhook request and returns a platform-agnostic response.
@@ -12,11 +13,14 @@ import type { WebhookHandler, WebhookRequest, WebhookResponse } from './types';
  *
  * @param request - The standardized webhook request
  * @param handler - The webhook handler instance (e.g., VercelAdapterWebhookHandler)
+ * @param client - The AgentMark client, used to answer control-plane jobs
+ *   (e.g. `get-evals`). The client — not the handler — owns the eval registry.
  * @returns A standardized response that adapters translate to platform formats
  */
 export async function handleWebhookRequest(
   request: WebhookRequest,
-  handler: WebhookHandler
+  handler: WebhookHandler,
+  client?: ControlPlaneClient
 ): Promise<WebhookResponse> {
   try {
     const { type, data } = request;
@@ -45,14 +49,36 @@ export async function handleWebhookRequest(
 
     console.log(`   📝 Event: ${type}`);
 
+    // Control-plane job: list runnable evals for the dashboard's "New
+    // Experiment" dialog. Carries no AST, so it short-circuits ahead of the
+    // data/ast validation below. Sourced from the client (the eval-registry
+    // owner) via the shared cross-language helper — no per-adapter logic.
+    // Prefer an explicit client override, else the client the handler was built
+    // from, so adapters (Vercel, etc.) answer get-evals with zero extra wiring.
+    if (type === 'get-evals') {
+      const cp = client ?? handler.client;
+      if (cp) {
+        console.log('   ✓ Listed evals');
+      } else {
+        console.log('   ⚠️  get-evals: no control-plane client on the call or handler; returning empty eval list');
+      }
+      // One source of truth for the envelope shape: the shared helper, fed an
+      // empty-names client when none is available.
+      return {
+        type: 'json',
+        data: buildEvalsResponse(cp ?? { getEvalNames: () => [] }),
+        status: 200,
+      };
+    }
+
     // Validate known event types
     if (type !== 'prompt-run' && type !== 'dataset-run') {
       console.log(`   ⚠️  Unknown event type: ${type}`);
-      console.log(`   Valid types: "prompt-run", "dataset-run"`);
+      console.log(`   Valid types: "prompt-run", "dataset-run", "get-evals"`);
       return {
         type: 'error',
         error: 'Unknown event type',
-        details: `Expected event.type to be 'prompt-run' or 'dataset-run', got: ${type}`,
+        details: `Expected event.type to be 'prompt-run', 'dataset-run', or 'get-evals', got: ${type}`,
         status: 400
       };
     }

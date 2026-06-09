@@ -1,0 +1,32 @@
+{
+  "description": "Control-plane `get-evals` webhook job: a client's eval-name list → the {type:'evals'} wire payload BOTH languages return. Pins TS `buildEvalsResponse` (prompt-core/src/control-plane.ts) and Python `build_evals_response` (prompt_core/control_plane.py), each fed names from its AgentMark client's eval registry (the `ControlPlaneClient` contract: TS `getEvalNames()` / Python `get_eval_names()`). `evalNames` is the RAW list the client reports (registry order); the helper SORTS it, so the order is deterministic and identical across languages and never depends on registry/insertion order (which JS `Object.keys` reorders for integer-like keys — `\"10\"` before `\"a\"`). `result` is a JSON *string* (the dashboard JSON.parses it) serialized byte-identically across languages: COMPACT (TS JSON.stringify ↔ Python json.dumps(separators=(',',':'))) and non-ASCII-preserving (raw UTF-8 ↔ Python ensure_ascii=False). traceId is ALWAYS the empty string. Both languages assert their REAL helper against these `expected` envelopes, and each adapter's webhook dispatch (pydantic, claude-agent-sdk, and the CLI core that the Vercel adapters route through) asserts its get-evals response equals them too — so no adapter can drift. Comparison is on parsed JSON. Changing any expected value is a wire-format break: semver-major.",
+  "cases": [
+    {
+      "name": "names are sorted; integer-like and non-ASCII names stay byte-identical across languages",
+      "evalNames": ["lot_url_pattern", "lot_count", "10", "café"],
+      "expected": {
+        "type": "evals",
+        "result": "[\"10\",\"café\",\"lot_count\",\"lot_url_pattern\"]",
+        "traceId": ""
+      }
+    },
+    {
+      "name": "single eval",
+      "evalNames": ["accuracy"],
+      "expected": {
+        "type": "evals",
+        "result": "[\"accuracy\"]",
+        "traceId": ""
+      }
+    },
+    {
+      "name": "empty registry → result is the literal \"[]\", never null",
+      "evalNames": [],
+      "expected": {
+        "type": "evals",
+        "result": "[]",
+        "traceId": ""
+      }
+    }
+  ]
+}

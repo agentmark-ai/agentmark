@@ -60,6 +60,17 @@ class AgentMark:
         """Get the eval registry (method form for webhook server compat)."""
         return self._eval_registry
 
+    def get_eval_names(self) -> list[str]:
+        """Names of the registered evals — the control-plane data the
+        dashboard's ``get-evals`` webhook job lists in its New Experiment
+        dialog. Owned here because the client owns the eval registry.
+
+        Implements ``ControlPlaneClient`` (see
+        ``prompt_core.control_plane``); mirrors TS ``AgentMark.getEvalNames()``.
+        """
+        registry = self._eval_registry
+        return list(registry.keys()) if registry else []
+
     async def load_text_prompt(
         self,
         path_or_preloaded: str | dict[str, Any],

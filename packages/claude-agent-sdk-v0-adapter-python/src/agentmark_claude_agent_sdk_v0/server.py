@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
 
+from agentmark.prompt_core import build_evals_response
+
 from .webhook import ClaudeAgentWebhookHandler
 
 _tracing_initialized = False
@@ -23,6 +25,7 @@ if TYPE_CHECKING:
 async def _handle_webhook(
     request: web.Request,
     handler: ClaudeAgentWebhookHandler,
+    client: AgentMark,
 ) -> web.Response:
     """Handle incoming webhook requests."""
     try:
@@ -102,6 +105,12 @@ async def _handle_webhook(
 
             await response.write_eof()
             return response
+
+        elif event_type == "get-evals":
+            # Control-plane job: lists runnable evals for the dashboard's
+            # "New Experiment" dialog. Sourced from the client (the eval-registry
+            # owner) via the shared cross-language helper — no per-adapter logic.
+            return web.json_response(build_evals_response(client))
 
         return web.json_response(
             {"message": f"Unknown event type: {event_type}"}, status=400
@@ -184,7 +193,7 @@ def create_webhook_server(
     handler = ClaudeAgentWebhookHandler(client, mcp_servers=mcp_servers)
 
     async def webhook_handler(request: web.Request) -> web.Response:
-        return await _handle_webhook(request, handler)
+        return await _handle_webhook(request, handler, client)
 
     app = web.Application()
     app.router.add_get("/", _handle_root)

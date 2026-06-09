@@ -69,6 +69,15 @@ export interface ResponseEnvelopeCase {
   expected: Record<string, unknown>;
 }
 
+export interface ControlPlaneCase {
+  name: string;
+  /** The eval names the client's registry reports, in insertion order. */
+  evalNames: string[];
+  /** Expected {type:"evals"} wire envelope as parsed JSON; `result` is a
+   * COMPACT JSON string (byte-identical across TS/Python). */
+  expected: { type: "evals"; result: string; traceId: string };
+}
+
 export type KnownVectorName =
   | "dataset-item-name"
   | "finalize-usage"
@@ -76,7 +85,8 @@ export type KnownVectorName =
   | "wire-chunks"
   | "dataset-rows"
   | "response-envelopes"
-  | "protocol-catalog";
+  | "protocol-catalog"
+  | "control-plane";
 
 export function loadVector<TCase = unknown>(name: KnownVectorName): VectorFile<TCase>;
 export function loadVector<TCase = unknown>(name: string): VectorFile<TCase>;

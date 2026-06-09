@@ -67,6 +67,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@agentmark-ai/conformance-vectors": "workspace:*",
     "@agentmark-ai/ui-components": "0.6.7",
     "@eslint/eslintrc": "^3",
     "@types/better-sqlite3": "^7.6.13",

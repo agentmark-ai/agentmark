@@ -9,7 +9,7 @@ import express, { Request, Response, RequestHandler } from 'express';
 import rateLimit from 'express-rate-limit';
 import { createServer, Server } from 'node:http';
 import { handleWebhookRequest } from './runner-server/core';
-import type { WebhookHandler } from './runner-server/types';
+import type { ControlPlaneClient, WebhookHandler } from './runner-server/types';
 
 // Set up rate limiter: 100 requests per 15 minutes per IP
 const limiter = rateLimit({
@@ -25,6 +25,13 @@ export type { WebhookHandler } from './runner-server/types';
 export interface WebhookServerOptions {
   port?: number;
   handler: WebhookHandler;
+  /**
+   * The AgentMark client, used to answer control-plane jobs (e.g. `get-evals`,
+   * which populates the dashboard's New Experiment dialog). The client — not
+   * the handler — owns the eval registry. Optional for back-compat: when
+   * omitted, control-plane jobs degrade gracefully (empty eval list).
+   */
+  client?: ControlPlaneClient;
   apiServerUrl?: string;
   templatesDirectory?: string;
 }
@@ -34,6 +41,7 @@ export interface WebhookServerOptions {
  */
 function createMiddleware(
   handler: WebhookHandler,
+  client?: ControlPlaneClient,
 ): RequestHandler {
   return async (req: Request, res: Response) => {
     try {
@@ -45,7 +53,7 @@ function createMiddleware(
       const body = req.body || {};
 
       // Call platform-agnostic core handler
-      const result = await handleWebhookRequest(body, handler);
+      const result = await handleWebhookRequest(body, handler, client);
 
       // Handle error responses
       if (result.type === 'error') {
@@ -123,7 +131,7 @@ function createMiddleware(
  * @returns HTTP server instance
  */
 export async function createWebhookServer(options: WebhookServerOptions): Promise<Server> {
-  const { port = 9417, handler } = options;
+  const { port = 9417, handler, client } = options;
 
   const app = express();
 
@@ -343,7 +351,7 @@ ${promptsList}
   });
 
   // Mount the webhook handler middleware at POST /
-  app.post('/', limiter, createMiddleware(handler));
+  app.post('/', limiter, createMiddleware(handler, client));
 
   // Create HTTP server and start listening
   const server = createServer(app);

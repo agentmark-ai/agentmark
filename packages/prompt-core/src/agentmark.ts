@@ -19,6 +19,7 @@ import type {
 } from "./types";
 import type { Root } from "mdast";
 import { EvalRegistry } from "./eval-registery";
+import type { ControlPlaneClient } from "./control-plane";
 
 export interface AgentMarkOptions<
   T extends PromptShape<T>,
@@ -45,7 +46,9 @@ function assertModelNameAllowed(modelName: string, builtInModels: string[]): voi
   }
 }
 
-export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
+export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>>
+  implements ControlPlaneClient
+{
   protected loader?: Loader<T>;
   protected adapter: A;
   protected templateEngine: TemplateEngine;
@@ -70,6 +73,16 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>> {
 
   getEvalRegistry(): EvalRegistry {
     return this._evalRegistry;
+  }
+
+  /**
+   * Names of the registered evals — the control-plane data the dashboard's
+   * `get-evals` webhook job lists in its New Experiment dialog. Owned here
+   * because the client owns the eval registry. Implements `ControlPlaneClient`
+   * (see `./control-plane`); mirrors Python `AgentMark.get_eval_names()`.
+   */
+  getEvalNames(): string[] {
+    return Object.keys(this._evalRegistry);
   }
 
   async loadTextPrompt<K extends KeysWithKind<T, "text"> & string>(

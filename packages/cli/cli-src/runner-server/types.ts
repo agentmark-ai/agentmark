@@ -6,6 +6,11 @@
 import type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark-ai/prompt-core';
 import type { RunExperimentOptions } from '@agentmark-ai/prompt-core/webhook-runner';
 
+// Re-export the cross-language control-plane contract so adapters and the
+// dispatch share one definition. The CLIENT (not the handler) owns these.
+import type { ControlPlaneClient } from '@agentmark-ai/prompt-core';
+export type { ControlPlaneClient };
+
 /**
  * Telemetry options for tracking prompt execution.
  */
@@ -27,6 +32,15 @@ export interface TelemetryOptions {
 export interface WebhookHandler {
   runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
   runExperiment(promptAst: any, datasetRunName: string, options?: RunExperimentOptions): Promise<WebhookDatasetResponse>;
+  /**
+   * The AgentMark client this handler executes against, surfaced so the shared
+   * dispatch can answer control-plane jobs (e.g. `get-evals`) without the caller
+   * threading the client separately. Optional: a handler that doesn't expose it
+   * still works for prompt/experiment execution, and `handleWebhookRequest`
+   * accepts an explicit client override. Adapters built from a client (Vercel,
+   * etc.) set this so consumers get `get-evals` with zero extra wiring.
+   */
+  readonly client?: ControlPlaneClient;
 }
 
 /**
@@ -34,9 +48,11 @@ export interface WebhookHandler {
  * Platform adapters translate their specific request formats into this structure.
  */
 export interface WebhookRequest {
-  type: 'prompt-run' | 'dataset-run';
+  type: 'prompt-run' | 'dataset-run' | 'get-evals';
   data: {
-    ast: any;
+    // Optional: control-plane jobs (get-evals) carry no AST. prompt-run /
+    // dataset-run require it; the dispatch validates presence for those.
+    ast?: any;
     customProps?: Record<string, any>;
     options?: { shouldStream?: boolean };
     experimentId?: string;
