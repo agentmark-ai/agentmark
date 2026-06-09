@@ -1,3 +1,9 @@
+## 0.18.1 (2026-06-09)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.8.0
+
 ## 0.18.0 (2026-06-09)
 
 ### 🚀 Features
