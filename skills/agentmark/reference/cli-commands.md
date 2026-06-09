@@ -9,6 +9,7 @@
 
 ## Command index
 
+- [`agentmark doctor`](#agentmark-doctor) — Check that your AgentMark project is set up correctly (config, prompts, client, dependencies)
 - [`agentmark dev`](#agentmark-dev) — Start development servers (API server + webhook + UI app)
 - [`agentmark generate-types`](#agentmark-generate-types) — (no description)
 - [`agentmark generate-schema`](#agentmark-generate-schema) — Generate JSON Schema for .prompt.mdx frontmatter (enables IDE squiggles for model_name)
@@ -19,6 +20,26 @@
 - [`agentmark login`](#agentmark-login) — Authenticate with the AgentMark platform
 - [`agentmark logout`](#agentmark-logout) — Clear CLI authentication and revoke dev API keys
 - [`agentmark link`](#agentmark-link) — Link current project to a platform app for trace forwarding
+
+---
+
+## `agentmark doctor`
+
+Check that your AgentMark project is set up correctly (config, prompts, client, dependencies)
+
+```bash
+npx agentmark doctor [options]
+```
+
+| Flag | Description |
+|---|---|
+| `--json` | Emit the report as JSON instead of human-readable text |
+| `--strict` | Exit non-zero on warnings too (useful in CI) |
+| `--smoke` | Also run a live tier: execute a prompt against `agentmark dev` and verify the emitted trace |
+| `--boot` | With --smoke, start `agentmark dev` automatically and tear it down after (one command, e.g. for CI/agents) |
+| `--prompt <path>` | Prompt to run for --smoke (defaults to the first prompt found) |
+| `--webhook-port <number>` | Webhook port --smoke targets / --boot starts dev on (default: 9417) |
+| `--api-port <number>` | API-server port --smoke reads traces from / --boot starts dev on (default: 9418) |
 
 ---
 

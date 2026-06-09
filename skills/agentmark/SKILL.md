@@ -63,11 +63,27 @@ my-project/
 - **Prompts** are `.prompt.mdx` files. YAML frontmatter has `name`, a generation-type config block (`text_config`, `object_config`, `image_config`, or `speech_config`) that contains `model_name`, and an optional `test_settings` block for dataset + evals. Body is TemplateDX (JSX-like tags in markdown). Do not put `model_name` or `evals` at the top level — they live inside their config blocks.
 - **Datasets** are `.jsonl` files. The `datasetName` used in API path parameters is the file path without the `.jsonl` extension, URL-encoded.
 
+## Debugging a broken setup or run
+
+When an AgentMark project misbehaves (`agentmark dev` won't start, a prompt won't run, traces don't show up), **run `npx agentmark doctor` first.** It is a static health check that inspects the whole scaffold in one pass and prints a concrete fix for each problem, instead of you hitting them one at a time at runtime:
+
+- config: `agentmark.json` present + valid, `agentmarkPath` resolves (not `"/"`), required keys present, no unknown-key typos
+- the setup files: client (`agentmark.client.ts` / `agentmark_client.py`), the dev-server entry, and the managed-deploy handler (`handler.ts` / `handler.py`)
+- prompts parse and declare a `model_name`; prompt models are in `builtInModels` (a non-empty list is an **allowlist**, so prompt-core rejects any model not in it)
+- deps: `@agentmark-ai/sdk` + an adapter installed, and the AI SDK adapter's major version matches its `@ai-sdk/*` provider (no adapter routes you to the bring-your-own-SDK path)
+
+Then `npx agentmark doctor --smoke` runs one prompt end-to-end and verifies the emitted trace round-trips with the right shape (a model, token usage, input, output). Add `--boot` to start and stop `agentmark dev` for you, so it's a single command. That catches the silent failures below: a model that never actually ran (bad key or SDK mismatch), or model spans vanishing because tracing isn't wired, without you guessing which one it is. It knows nothing about specific providers or keys; it tests them indirectly through a real run, so there is no per-provider checklist to keep current. The static pass is read-only and safe to re-run anytime; `--smoke` actually calls the model (spends tokens, emits a trace), so use it to verify a change, not in a tight loop.
+
+**Consuming it programmatically.** Run `agentmark doctor --json` and parse `{ ok, counts, results: [{ id, group, title, status, detail, fix }] }`. `status` is one of `pass | warn | fail | skip`; each `id` is stable (e.g. `config.schema`, `deploy.handler`, `deps.provider`, `smoke.run`, `smoke.trace`), so branch on `id` / `status` and apply `fix`. The live `--json` output is the authority for the id set; don't hardcode it from memory. `--strict` makes warnings count as failures; exit `0` means nothing failed. When a `fix` reads "ask your coding agent to 'Set up AgentMark'", that instruction is for **you**: run [setup-and-integration](workflows/setup-and-integration.md) rather than deferring it.
+
+Most of the gotchas in "Conventions that catch agents out" surface as a single failed `doctor` check. Reach for it before hand-debugging, and verify its exact flags with `npx agentmark doctor --help` or [reference/cli-commands.md](reference/cli-commands.md).
+
 ## Common workflows
 
 | Task | File |
 |---|---|
 | Set up AgentMark in an existing project (after `npm create agentmark`) | [workflows/setup-and-integration.md](workflows/setup-and-integration.md) |
+| Debug a broken setup or run | `npx agentmark doctor` (+ `--smoke`); see [Debugging](#debugging-a-broken-setup-or-run) above |
 | Author a new prompt | [workflows/creating-prompts.md](workflows/creating-prompts.md) |
 | Build a dataset for experiments | [workflows/building-datasets.md](workflows/building-datasets.md) |
 | Run a prompt against a dataset | [workflows/running-experiments.md](workflows/running-experiments.md) |

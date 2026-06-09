@@ -17,6 +17,7 @@ import build from './commands/build';
 import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
+import doctor from './commands/doctor';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
 // Start async update check early (non-blocking)
@@ -29,6 +30,32 @@ program
   .version(packageJson.version, '-v, --version', 'Output the current version')
   .name('agentmark')
   .description('AgentMark CLI - Build and test AI agents');
+
+program
+  .command("doctor")
+  .description("Check that your AgentMark project is set up correctly (config, prompts, client, dependencies)")
+  .option("--json", "Emit the report as JSON instead of human-readable text")
+  .option("--strict", "Exit non-zero on warnings too (useful in CI)")
+  .option("--smoke", "Also run a live tier: execute a prompt against `agentmark dev` and verify the emitted trace")
+  .option("--boot", "With --smoke, start `agentmark dev` automatically and tear it down after (one command, e.g. for CI/agents)")
+  .option("--prompt <path>", "Prompt to run for --smoke (defaults to the first prompt found)")
+  .option("--webhook-port <number>", "Webhook port --smoke targets / --boot starts dev on (default: 9417)")
+  .option("--api-port <number>", "API-server port --smoke reads traces from / --boot starts dev on (default: 9418)")
+  .action(async (options: { json?: boolean; strict?: boolean; smoke?: boolean; boot?: boolean; prompt?: string; webhookPort?: string; apiPort?: string }) => {
+    try {
+      await doctor({
+        json: options.json,
+        strict: options.strict,
+        smoke: options.smoke,
+        boot: options.boot,
+        prompt: options.prompt,
+        webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
+        apiPort: options.apiPort ? parseInt(options.apiPort, 10) : undefined,
+      });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
 
 program
   .command("dev")

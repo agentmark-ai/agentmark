@@ -27,9 +27,7 @@ describe('generate-schema', () => {
   });
 
   it('throws when agentmark.json does not exist', async () => {
-    await expect(generateSchema()).rejects.toThrow(
-      'Agentmark project not found. Please initialize first using agentmark init.'
-    );
+    await expect(generateSchema()).rejects.toThrow(/agentmark\.json not found/);
   });
 
   it('writes schema to .agentmark/prompt.schema.json by default', async () => {

@@ -1,77 +1,10 @@
 import path from "path";
 import fs from "fs-extra";
-
-interface AgentmarkConfig {
-  agentmarkPath?: string;
-  version?: string;
-  mdxVersion?: string;
-}
+import { loadAgentmarkConfig, promptsDir, findFiles, determinePromptKind } from "../utils/project";
+import { detectPromptTypeFromContent } from "../utils/prompt-detection";
 
 interface BuildOptions {
   outDir?: string;
-}
-
-/**
- * Reads the agentmark.json config file from the current directory.
- */
-function getAgentmarkConfig(): AgentmarkConfig {
-  const configPath = path.join(process.cwd(), "agentmark.json");
-  if (!fs.existsSync(configPath)) {
-    throw new Error(
-      "agentmark.json not found in current directory. Run this command from your AgentMark project root."
-    );
-  }
-  return fs.readJsonSync(configPath);
-}
-
-/**
- * Determines the prompt kind based on frontmatter content.
- */
-function determinePromptKind(frontmatter: any): 'text' | 'object' | 'image' | 'speech' {
-  if (frontmatter.text_config) return 'text';
-  if (frontmatter.object_config) return 'object';
-  if (frontmatter.image_config) return 'image';
-  if (frontmatter.speech_config) return 'speech';
-  throw new Error('Could not determine prompt kind from frontmatter');
-}
-
-/**
- * Detect prompt type from raw file content by scanning frontmatter.
- * This allows us to choose the correct parser before full parsing.
- */
-function detectPromptTypeFromContent(content: string): 'language' | 'image' | 'speech' {
-  // Simple detection by looking for config keys in frontmatter
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) {
-    return 'language'; // Default to language if no frontmatter
-  }
-
-  const frontmatter = frontmatterMatch[1];
-  if (frontmatter.includes('image_config:')) return 'image';
-  if (frontmatter.includes('speech_config:')) return 'speech';
-  return 'language'; // text_config and object_config use language parser
-}
-
-/**
- * Recursively find all files matching a pattern in a directory.
- */
-async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
-  const results: string[] = [];
-
-  async function walk(currentDir: string) {
-    const entries = await fs.readdir(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        await walk(fullPath);
-      } else if (entry.isFile() && pattern.test(entry.name)) {
-        results.push(fullPath);
-      }
-    }
-  }
-
-  await walk(dir);
-  return results;
 }
 
 /**
@@ -79,11 +12,10 @@ async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
  */
 const build = async (options: BuildOptions = {}) => {
   const cwd = process.cwd();
-  const config = getAgentmarkConfig();
+  const config = loadAgentmarkConfig();
 
   // Determine source directory from agentmark.json
-  const agentmarkPath = config.agentmarkPath || ".";
-  const sourceDir = path.resolve(cwd, agentmarkPath, "agentmark");
+  const sourceDir = promptsDir(cwd, config);
 
   if (!fs.existsSync(sourceDir)) {
     throw new Error(

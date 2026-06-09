@@ -153,6 +153,6 @@ describe('pull-models (non-interactive)', () => {
     // No agentmark.json in workDir.
     await expect(
       pullModels({ provider: 'openai', models: 'openai/gpt-4o' }),
-    ).rejects.toThrow(/Agentmark project not found/);
+    ).rejects.toThrow(/agentmark\.json not found/);
   });
 });

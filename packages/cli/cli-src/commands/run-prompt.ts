@@ -33,7 +33,7 @@ interface RunPromptOptions {
  * @param resolvedFilepath - Absolute path to the file
  * @returns The AST and prompt name
  */
-async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptName?: string }> {
+export async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; promptName?: string }> {
   if (resolvedFilepath.endsWith('.json')) {
     // Load pre-built AST from JSON file
     const content = fs.readFileSync(resolvedFilepath, 'utf-8');
