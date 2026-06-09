@@ -72,8 +72,7 @@ describe('agentmark doctor — runDoctor', () => {
     expect(statusOf(report, 'client.file')).toBe('pass');
     expect(statusOf(report, 'prompts.parse')).toBe('pass');
     expect(statusOf(report, 'models.builtIn')).toBe('pass');
-    expect(statusOf(report, 'deps.adapter')).toBe('pass');
-    expect(statusOf(report, 'deps.provider')).toBe('pass');
+    expect(statusOf(report, 'deps.sdk')).toBe('pass');
     expect(statusOf(report, 'env.credentials')).toBe('pass');
     expect(statusOf(report, 'env.gitignored')).toBe('pass');
     expect(statusOf(report, 'config.schema')).toBe('pass');
@@ -91,8 +90,6 @@ describe('agentmark doctor — runDoctor', () => {
       'config.found',
       'config.schema',
       'deploy.handler',
-      'deps.adapter',
-      'deps.provider',
       'deps.sdk',
       'devEntry.file',
       'env.credentials',
@@ -201,7 +198,10 @@ describe('agentmark doctor — runDoctor', () => {
     expect(report.ok).toBe(true);
   });
 
-  it('warns when no adapter dependency is installed', async () => {
+  it('no longer requires an SDK-specific adapter — a BYO project with just @agentmark-ai/sdk is clean', async () => {
+    // Adapters were removed, so doctor must not flag a bring-your-own-SDK project
+    // for lacking an `@agentmark-ai/*-adapter`. `deps.sdk` is the only JS dep
+    // check; there is no `deps.adapter` / `deps.provider` to run.
     const report = await run(
       makeProject({
         ...HEALTHY,
@@ -209,31 +209,9 @@ describe('agentmark doctor — runDoctor', () => {
       }),
     );
 
-    expect(statusOf(report, 'deps.adapter')).toBe('warn');
-    // A bring-your-own-SDK user must see they need an Executor + runner for e2e.
-    expect(fixOf(report, 'deps.adapter')).toContain('Executor');
-    expect(fixOf(report, 'deps.adapter')).toContain('bring-your-own-sdk');
-    // No adapter → the provider-coherence sub-check should not run.
+    expect(statusOf(report, 'deps.sdk')).toBe('pass');
+    expect(statusOf(report, 'deps.adapter')).toBeUndefined();
     expect(statusOf(report, 'deps.provider')).toBeUndefined();
-  });
-
-  it('warns when the AI SDK provider major version mismatches the adapter', async () => {
-    const report = await run(
-      makeProject({
-        ...HEALTHY,
-        'package.json': JSON.stringify({
-          name: 'app',
-          dependencies: {
-            '@agentmark-ai/sdk': '^0.4.0',
-            '@agentmark-ai/ai-sdk-v5-adapter': '^0.1.0',
-            '@ai-sdk/openai': '^1.0.0', // v5 adapter expects @ai-sdk/* v2
-          },
-        }),
-      }),
-    );
-
-    expect(statusOf(report, 'deps.provider')).toBe('warn');
-    expect(detailOf(report, 'deps.provider')).toContain('@ai-sdk/openai');
   });
 
   it('treats a Python project correctly (skips JS deps, checks agentmark_client.py)', async () => {
@@ -249,7 +227,7 @@ describe('agentmark doctor — runDoctor', () => {
     expect(statusOf(report, 'client.file')).toBe('pass');
     expect(statusOf(report, 'deps.python')).toBe('skip');
     // The JS dependency checks must not run for a Python project.
-    expect(statusOf(report, 'deps.adapter')).toBeUndefined();
+    expect(statusOf(report, 'deps.sdk')).toBeUndefined();
   });
 
   it('warns when .env exists but is not gitignored', async () => {
