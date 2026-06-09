@@ -1,56 +1,11 @@
 import path from "path";
 import * as fs from "fs-extra";
-import { getModelRegistryAsync } from "@agentmark-ai/model-registry";
+import { loadAgentmarkConfig } from "../utils/project";
+import { getRegistryModelMap, classifyModels } from "../utils/models";
 
 type Options = {
   outDir?: string;
 };
-
-function classifyModels(
-  allRegistryModels: Record<string, { provider: string; mode: string }>,
-  builtInModels: string[],
-): {
-  languageModels: string[];
-  imageModels: string[];
-  speechModels: string[];
-  unknownModels: string[];
-} {
-  const languageModels: string[] = [];
-  const imageModels: string[] = [];
-  const speechModels: string[] = [];
-  const unknownModels: string[] = [];
-
-  for (const prefixedId of builtInModels) {
-    const slashIndex = prefixedId.indexOf("/");
-    if (slashIndex === -1) {
-      unknownModels.push(prefixedId);
-      continue;
-    }
-    const modelId = prefixedId.slice(slashIndex + 1);
-    const entry = allRegistryModels[modelId];
-
-    if (!entry) {
-      unknownModels.push(prefixedId);
-      continue;
-    }
-
-    switch (entry.mode) {
-      case "chat":
-        languageModels.push(prefixedId);
-        break;
-      case "image_generation":
-        imageModels.push(prefixedId);
-        break;
-      case "audio_speech":
-        speechModels.push(prefixedId);
-        break;
-      default:
-        unknownModels.push(prefixedId);
-    }
-  }
-
-  return { languageModels, imageModels, speechModels, unknownModels };
-}
 
 function buildModelNameSchema(models: string[], fallback: string[]): Record<string, unknown> {
   const enum_ = [...models, ...fallback];
@@ -67,26 +22,13 @@ function buildModelNameSchema(models: string[], fallback: string[]): Record<stri
 }
 
 const generateSchema = async ({ outDir }: Options = {}) => {
-  let agentmarkConfig: Record<string, unknown> | null = null;
+  const agentmarkConfig = loadAgentmarkConfig();
 
-  try {
-    agentmarkConfig = await fs.readJSON(
-      path.join(process.cwd(), "agentmark.json")
-    );
-  } catch (_error) {
-    throw new Error(
-      "Agentmark project not found. Please initialize first using agentmark init."
-    );
-  }
-
-  const builtInModels: string[] = Array.isArray(agentmarkConfig?.["builtInModels"])
-    ? (agentmarkConfig!["builtInModels"] as string[])
+  const builtInModels: string[] = Array.isArray(agentmarkConfig.builtInModels)
+    ? agentmarkConfig.builtInModels
     : [];
 
-  const registry = await getModelRegistryAsync();
-  const allModels = registry.getAllModels();
-  const allRegistryModels: Record<string, { provider: string; mode: string }> =
-    Object.fromEntries(allModels.map((m) => [m.id, { provider: m.provider, mode: m.mode }]));
+  const allRegistryModels = await getRegistryModelMap();
 
   const { languageModels, imageModels, speechModels, unknownModels } = classifyModels(allRegistryModels, builtInModels);
 

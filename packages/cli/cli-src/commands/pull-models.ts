@@ -2,6 +2,7 @@ import path from "path";
 import { getProviders } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
+import { loadAgentmarkConfig } from "../utils/project";
 
 export interface PullModelsOptions {
   /**
@@ -19,17 +20,7 @@ export interface PullModelsOptions {
 }
 
 const pullModels = async (options: PullModelsOptions = {}) => {
-  let agentmarkConfig = null;
-
-  try {
-    agentmarkConfig = await fs.readJSON(
-      path.join(process.cwd(), "agentmark.json")
-    );
-  } catch (_error) {
-    throw new Error(
-      "Agentmark project not found. Please initialize first using agentmark init."
-    );
-  }
+  const agentmarkConfig = loadAgentmarkConfig();
 
   const providers = await getProviders();
 

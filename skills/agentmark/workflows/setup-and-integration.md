@@ -96,7 +96,7 @@ One prompt only, named after the host's primary use case. Use the minimum viable
 
 ## Step 7 — Smoke test
 
-Boot the dev server and run the prompt. Exact commands and flags via `npx agentmark <cmd> --help` — **do not encode CLI surface in this workflow**. In Cloud mode, also verify a trace appears via the `agentmark` MCP server's trace tools within a few seconds. If either fails, debug before handing back to the user.
+Verify the scaffold before handing back. Run `npx agentmark doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx agentmark doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK/adapter mismatch, or unwired tracing. Exact commands and flags via `npx agentmark <cmd> --help`. **Do not encode CLI surface in this workflow.** In Cloud mode, also confirm the trace appears via the `agentmark` MCP server's trace tools within a few seconds. If anything fails, fix it (doctor names the fix) before handing back to the user.
 
 ## Step 8 — Migrate existing LLM code (separate confirmation)
 

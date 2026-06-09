@@ -95,9 +95,7 @@ describe('pull-models', () => {
   });
 
   it('throws error when agentmark.json does not exist', async () => {
-    await expect(pullModels()).rejects.toThrow(
-      'Agentmark project not found. Please initialize first using agentmark init.'
-    );
+    await expect(pullModels()).rejects.toThrow(/agentmark\.json not found/);
   });
 
   it('prompts for provider selection', async () => {
