@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/conformance-vectors",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Cross-language golden vectors for AgentMark primitives. Consumed by both TypeScript (prompt-core) and Python (prompt-core-python) test suites so parity invariants don't drift.",
   "license": "MIT",
