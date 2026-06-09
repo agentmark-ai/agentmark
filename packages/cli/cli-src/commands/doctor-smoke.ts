@@ -87,6 +87,24 @@ function hasOutput(result: unknown): boolean {
 }
 
 /**
+ * Parse the `{ type:'evals', result:'<json names>' }` control-plane envelope the
+ * handler returns for a `get-evals` job. Returns the eval names (possibly empty),
+ * or `null` if the shape is wrong (a handler that can't answer get-evals).
+ */
+function parseEvalNames(payload: unknown): string[] | null {
+  const p = payload as { type?: unknown; result?: unknown };
+  if (p?.type !== "evals" || typeof p.result !== "string") return null;
+  try {
+    const parsed = JSON.parse(p.result) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((x): x is string => typeof x === "string")
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Run the live smoke checks and return their results (group `SMOKE_GROUP`).
  * On the first hard failure (no prompt, server unreachable, run failed) it
  * returns early — the later checks can't be meaningful without it.
@@ -190,6 +208,50 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
     status: "pass",
     detail: `${usage.promptTokens ?? 0} in, ${usage.completionTokens ?? 0} out, ${totalTokens} total`,
   });
+
+  // Control-plane: the handler lists its evals — exactly what the dashboard's New
+  // Experiment dialog reads (get-evals). A handler that can't answer it (e.g. a
+  // hand-rolled prompt-run/dataset-run switch) is the empty-dialog bug; the count
+  // surfaces a client with no evals registered.
+  try {
+    const evalsRes = await fetchImpl(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "get-evals", data: {} }),
+    });
+    const names = evalsRes.ok ? parseEvalNames(await evalsRes.json()) : null;
+    if (!evalsRes.ok || names === null) {
+      results.push({
+        id: "smoke.evals",
+        group: SMOKE_GROUP,
+        title: "evals are listable (get-evals)",
+        status: "fail",
+        detail: evalsRes.ok
+          ? "the dev server answered get-evals but not with the expected {type:'evals'} payload"
+          : `the dev server returned HTTP ${evalsRes.status} for the get-evals control-plane job`,
+        fix: "Your deployed handler must route get-evals — the canonical handler is `runner.dispatch` (a hand-rolled prompt-run/dataset-run switch drops it, leaving the New Experiment dialog empty). See https://docs.agentmark.co/deploy/deployment.",
+      });
+    } else {
+      results.push({
+        id: "smoke.evals",
+        group: SMOKE_GROUP,
+        title: "evals are listable (get-evals)",
+        status: "pass",
+        detail:
+          names.length > 0
+            ? `${names.length} eval${names.length === 1 ? "" : "s"}: ${names.join(", ")}`
+            : "0 evals registered (register them on your client to use them in experiments)",
+      });
+    }
+  } catch (err) {
+    results.push({
+      id: "smoke.evals",
+      group: SMOKE_GROUP,
+      title: "evals are listable (get-evals)",
+      status: "warn",
+      detail: `could not check get-evals: ${(err as Error).message}`,
+    });
+  }
 
   // 5. The run emitted a trace we can fetch back from the local API server.
   if (!webhook.traceId) {

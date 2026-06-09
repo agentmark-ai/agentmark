@@ -10,6 +10,8 @@ import { WebhookRunner } from "@agentmark-ai/prompt-core/webhook-runner";
 import type {
   RunPromptOptions,
   RunExperimentOptions,
+  WebhookRequest,
+  WebhookResponse,
 } from "@agentmark-ai/prompt-core/webhook-runner";
 import { createAgentmarkSpanHooks } from "@agentmark-ai/sdk";
 import type { MastraAdapter } from "./adapter";
@@ -30,15 +32,18 @@ type Frontmatter = {
 export class MastraAdapterWebhookHandler<
   T extends PromptShape<T> | undefined = PromptShape<Record<string, never>>
 > {
-  // The shape param is intentionally `any` (not `PromptShape<any>`): Mastra's
-  // public generic allows `T = undefined`, and `MastraAdapter<undefined>` only
-  // satisfies `Adapter<undefined>` — NOT `Adapter<PromptShape<any>>` (whose
-  // `__dict` can't be `undefined`). So any non-`any` first param fails the
-  // runner's `A extends Adapter<T>` constraint for the undefined case. Removing
-  // this would mean dropping `| undefined` from Mastra's own generic — a
-  // breaking change to the adapter's public API. The `any` is confined to this
-  // private field; the public runPrompt / runExperiment signatures stay precise.
-  private readonly runner: WebhookRunner<any, MastraAdapter<T, ToolsInput>>;
+  // Both type params are intentionally `any`. Mastra's public generic allows
+  // `T = undefined`, and `MastraAdapter<undefined>` only satisfies
+  // `Adapter<undefined>` — NOT `Adapter<PromptShape<any>>` (whose `__dict` can't
+  // be `undefined`) — so any non-`any` first param fails the runner's
+  // `A extends Adapter<T>` constraint for the undefined case. The adapter param
+  // is `any` too so the runner's (public) `client: AgentMark<_, A>` doesn't make
+  // this private field T-covariant — which would make
+  // `MastraAdapterWebhookHandler<undefined>` and `<PromptShape>` non-assignable.
+  // Dropping `| undefined` from Mastra's own generic would be a breaking API
+  // change. The `any` is confined to this private field; the public runPrompt /
+  // runExperiment / dispatch signatures stay precise.
+  private readonly runner: WebhookRunner<any, MastraAdapter<any, ToolsInput>>;
 
   constructor(client: MastraAgentMark<T, MastraAdapter<T, ToolsInput>>) {
     this.runner = new WebhookRunner(
@@ -46,6 +51,15 @@ export class MastraAdapterWebhookHandler<
       new MastraExecutor(),
       createAgentmarkSpanHooks()
     );
+  }
+
+  /** The AgentMark client this handler executes against — surfaced (like every
+   *  other adapter) so `handleWebhookRequest(event, handler)` answers get-evals
+   *  zero-config. Sourced from the runner; T-agnostic (the runner field is
+   *  `<any, MastraAdapter<any>>`), so it does not reintroduce the `T = undefined`
+   *  covariance issue a typed public client would. */
+  get client() {
+    return this.runner.client;
   }
 
   async runPrompt(
@@ -75,5 +89,16 @@ export class MastraAdapterWebhookHandler<
     options?: RunExperimentOptions
   ): Promise<WebhookDatasetResponse> {
     return this.runner.runExperiment(promptAst, datasetRunName, options);
+  }
+
+  /**
+   * Route a managed-deployment webhook job — prompt-run / dataset-run /
+   * get-evals — through the shared runner, sourcing evals from this handler's
+   * client. The canonical deployed handler is
+   * `export default new MastraAdapterWebhookHandler(client).dispatch`. No
+   * per-adapter dispatch code; mirrors `runner.dispatch` and the other adapters.
+   */
+  dispatch(request: WebhookRequest): Promise<WebhookResponse> {
+    return this.runner.dispatch(request);
   }
 }

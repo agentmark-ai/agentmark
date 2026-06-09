@@ -13,6 +13,7 @@ from .base_adapter import (
     apply_param_map,
     build_telemetry_metadata,
 )
+from .byo import create_webhook_runner
 from .control_plane import ControlPlaneClient, build_evals_response
 from .eval_registry import EvalRegistry
 from .executor import (
@@ -40,9 +41,9 @@ from .executor_builder import (
 from .executor_conformance import (
     ConformanceError,
     ConformanceViolation,
+    assert_abort_stream,
     assert_error_stream,
     assert_object_stream,
-    assert_abort_stream,
     assert_text_stream,
     assert_usage_shape,
     run_executor_conformance,
@@ -113,6 +114,11 @@ from .types import (
     TestSettings,
     TextPart,
 )
+from .webhook_dispatch import (
+    WEBHOOK_JOB_TYPES,
+    WebhookHandler,
+    handle_webhook_request,
+)
 from .webhook_runner import (
     ExperimentItemParams,
     ExperimentItemSpan,
@@ -143,6 +149,12 @@ __all__ = [
     # Control plane (cross-language webhook contract)
     "ControlPlaneClient",
     "build_evals_response",
+    # Managed-deployment handler dispatch (prompt-run / dataset-run / get-evals)
+    "handle_webhook_request",
+    "WebhookHandler",
+    "WEBHOOK_JOB_TYPES",
+    # BYO-SDK convenience builder (evals threaded in → list + run)
+    "create_webhook_runner",
     # Experiment runner concurrency
     "run_dataset_pool",
     "DEFAULT_EXPERIMENT_CONCURRENCY",

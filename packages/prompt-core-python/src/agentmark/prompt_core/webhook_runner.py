@@ -36,6 +36,7 @@ from .executor import (
 )
 from .experiment import run_dataset_pool
 from .template_engines import get_front_matter
+from .webhook_dispatch import handle_webhook_request
 
 if TYPE_CHECKING:
     from .agentmark import AgentMark
@@ -397,10 +398,39 @@ class WebhookRunner:
         executor: Executor,
         *,
         prompt_span_hook: PromptSpanHook | None = None,
+        item_span_hook: ExperimentItemSpanHook | None = None,
     ) -> None:
         self._client = client
         self._executor = executor
         self._prompt_span_hook = prompt_span_hook or _null_prompt_span_hook
+        # Bundled at construction (like the TS runner's hooks) so `dispatch()`
+        # can drive experiments with rich per-item tracing without the caller
+        # threading the hook per call. run_experiment still accepts a per-call
+        # override.
+        self._item_span_hook = item_span_hook or _null_span_hook
+
+    @property
+    def client(self) -> AgentMark:
+        """The AgentMark client this runner executes against — the eval-registry
+        owner. Public so the shared dispatch (and ``dispatch()`` below) answer the
+        ``get-evals`` control-plane job from the runner's own registry."""
+        return self._client
+
+    def get_eval_names(self) -> list[str]:
+        """Names of the registered evals — satisfies ``ControlPlaneClient`` so a
+        runner can be passed straight to ``handle_webhook_request`` and answer
+        ``get-evals`` with zero extra wiring."""
+        return self._client.get_eval_names()
+
+    async def dispatch(self, event: dict[str, Any]) -> Any:
+        """Route one gateway webhook job — prompt-run / dataset-run / get-evals —
+        sourcing evals from this runner's OWN client. The canonical managed entry
+        point: a deployed ``handler`` is just ``runner.dispatch``. No passable,
+        omittable client argument, so the eval registry can't be dropped on the
+        way to the control plane (the root cause of the empty New Experiment
+        dialog). Adapters and BYO builders both produce a runner — they add zero
+        dispatch code."""
+        return await handle_webhook_request(event, self, self._client)
 
     async def run_prompt(
         self,
@@ -689,7 +719,7 @@ class WebhookRunner:
         else:
             raise ValueError("Invalid prompt: no text_config or object_config")
 
-        hook = item_span_hook or _null_span_hook
+        hook = item_span_hook or self._item_span_hook
         return {
             "stream": self._stream_experiment(
                 prompt_ast,

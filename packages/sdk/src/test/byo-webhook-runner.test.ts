@@ -64,4 +64,39 @@ describe("createWebhookRunner — one-call BYO webhook path", () => {
     expect(res.result).toContain("answered:");
     expect(res.result).toContain("refund"); // the rendered user message reached Bedrock
   });
+
+  it("threads evals into the client → runner.dispatch lists them for get-evals", async () => {
+    const executor = createExecutor({
+      name: "noop",
+      text: async () => ({ text: "x", usage: { inputTokens: 1, outputTokens: 1 } }),
+    });
+    // Register evals via the builder — the input that was missing, which left
+    // BYO apps' New Experiment dialog empty even when they "had" evals.
+    const runner = createWebhookRunner({
+      executor,
+      evals: {
+        acc: () => ({ score: 1 }),
+        safety: () => ({ score: 1 }),
+      },
+    });
+
+    const res = await runner.dispatch({ type: "get-evals", data: {} });
+    expect(res).toEqual({
+      type: "json",
+      data: { type: "evals", result: '["acc","safety"]', traceId: "" },
+      status: 200,
+    });
+  });
+
+  it("without evals, get-evals lists none", async () => {
+    const executor = createExecutor({
+      name: "noop",
+      text: async () => ({ text: "x", usage: { inputTokens: 1, outputTokens: 1 } }),
+    });
+    const runner = createWebhookRunner({ executor });
+    const res = (await runner.dispatch({ type: "get-evals", data: {} })) as {
+      data: { result: string };
+    };
+    expect(res.data.result).toBe("[]");
+  });
 });

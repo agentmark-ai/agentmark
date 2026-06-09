@@ -9,6 +9,8 @@ import type {
   WebhookDatasetResponse,
 } from "./runner";
 import { createPromptTelemetry } from "./runner";
+import { handleWebhookRequest } from "./webhook-dispatch";
+import type { WebhookRequest, WebhookResponse } from "./webhook-dispatch";
 import { runDatasetPool, experimentErrorChunk } from "./experiment";
 import {
   wireJson,
@@ -198,7 +200,11 @@ export class WebhookRunner<
   private readonly observationHook: ObservationHook | undefined;
 
   constructor(
-    private readonly client: AgentMark<T, A>,
+    // Public so the shared dispatch (and `dispatch()` below) can answer the
+    // `get-evals` control-plane job from the runner's OWN registry — and so a
+    // runner satisfies `WebhookHandler` (its `client?` field) when passed to
+    // `handleWebhookRequest` directly. AgentMark implements `ControlPlaneClient`.
+    public readonly client: AgentMark<T, A>,
     private readonly executor: Executor,
     hooks?: WebhookRunnerHooks
   ) {
@@ -206,6 +212,28 @@ export class WebhookRunner<
     this.experimentItemSpanHook =
       hooks?.experimentItemSpanHook ?? nullExperimentItemSpanHook;
     this.observationHook = hooks?.observationHook;
+  }
+
+  /**
+   * Names of the registered evals — satisfies `ControlPlaneClient` so a runner
+   * can be passed straight to `handleWebhookRequest` and answer `get-evals`
+   * with zero extra wiring. Mirrors Python `WebhookRunner.get_eval_names()`.
+   */
+  getEvalNames(): string[] {
+    return this.client.getEvalNames();
+  }
+
+  /**
+   * Route one gateway webhook job — prompt-run / dataset-run / get-evals —
+   * sourcing evals from this runner's OWN client. The canonical managed-deploy
+   * entry point: a deployed handler is just `(event) => runner.dispatch(event)`.
+   * No passable, omittable client argument, so the eval registry can't be
+   * dropped on the way to the control plane (the root cause of the empty New
+   * Experiment dialog). Adapters and BYO builders both produce a runner — they
+   * add zero dispatch code. Mirrors Python `WebhookRunner.dispatch()`.
+   */
+  async dispatch(request: WebhookRequest): Promise<WebhookResponse> {
+    return handleWebhookRequest(request, this, this.client);
   }
 
   /** Synthesize an `AgentMarkObservation` from a drained event stream.
