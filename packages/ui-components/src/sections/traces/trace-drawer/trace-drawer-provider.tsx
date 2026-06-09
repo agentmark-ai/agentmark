@@ -33,6 +33,21 @@ export interface TraceDrawerContextValue {
   isDragging: boolean;
   t: (key: string) => string;
   onSpanChange?: (span: SpanData | null) => void;
+  // True when the details panel should show the all-traces session overview
+  // rather than a single span's detail (session view, with no specific
+  // non-root span selected). Owned here because the provider has the inputs:
+  // sessionId, the trace set, and the authoritative selectedSpanId.
+  showSessionOverview: boolean;
+}
+
+// Cross-highlight state for the TraceTree <-> SessionIoOverview, kept in its
+// OWN context so hovering a trace re-renders ONLY the rows/cards that read it —
+// not every TraceDrawerContext consumer. Folding it into the main value made
+// hover recreate that value on each mouseenter/leave, re-rendering the drawer
+// and rebuilding the tree — which made hovering visibly jumpy.
+export interface TraceHoverContextValue {
+  hoveredTraceId: string | null;
+  setHoveredTraceId: (id: string | null) => void;
 }
 
 export interface TraceDrawerProviderProps {
@@ -84,16 +99,22 @@ const TraceDrawerContext = createContext<TraceDrawerContextValue | undefined>(
   undefined
 );
 
+const TraceHoverContext = createContext<TraceHoverContextValue | undefined>(
+  undefined
+);
+
 export const TraceDrawerProvider = ({
   children,
   traces,
   traceId,
+  sessionId,
   fetchSpanEvaluations,
   fetchSpanIO,
   t,
   onSpanChange,
 }: TraceDrawerProviderProps & { children: ReactNode }) => {
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
+  const [hoveredTraceId, setHoveredTraceId] = useState<string | null>(null);
 
   // Compute root spans once per trace set to avoid redundant O(n²) lookups
   const rootSpansByTraceId = useMemo(() => {
@@ -194,6 +215,17 @@ export const TraceDrawerProvider = ({
 
   const { treeHeight, handleMouseDown, isDragging } = useTraceDrawer();
 
+  // Lead a session view with the all-traces IO overview until a specific
+  // NON-root span is selected. selectedSpanId === null is the default
+  // first-trace-root selection, so it counts as "on the overview"; a
+  // selectedSpanId that matches a trace id is a trace root (also overview);
+  // anything else is a real span drill-in.
+  const showSessionOverview = useMemo(() => {
+    if (!sessionId) return false;
+    if (!selectedSpanId) return true;
+    return traces.some((tr) => tr.id === selectedSpanId);
+  }, [sessionId, selectedSpanId, traces]);
+
   useEffect(() => {
     return () => {
       setSelectedSpanId(null);
@@ -266,6 +298,7 @@ export const TraceDrawerProvider = ({
     isDragging,
     t,
     onSpanChange,
+    showSessionOverview,
   }), [
     traces,
     selectedSpan,
@@ -280,11 +313,22 @@ export const TraceDrawerProvider = ({
     isDragging,
     t,
     onSpanChange,
+    showSessionOverview,
   ]);
+
+  // Separate value so a hover only re-renders hover consumers (rows/cards),
+  // never the main-context tree. setHoveredTraceId is a stable useState setter,
+  // so this changes reference only when the hovered trace actually changes.
+  const hoverValue: TraceHoverContextValue = useMemo(
+    () => ({ hoveredTraceId, setHoveredTraceId }),
+    [hoveredTraceId]
+  );
 
   return (
     <TraceDrawerContext.Provider value={value}>
-      {children}
+      <TraceHoverContext.Provider value={hoverValue}>
+        {children}
+      </TraceHoverContext.Provider>
     </TraceDrawerContext.Provider>
   );
 };
@@ -294,6 +338,16 @@ export const useTraceDrawerContext = () => {
   if (!context) {
     throw new Error(
       "useTraceDrawerContext must be used within TraceDrawerProvider"
+    );
+  }
+  return context;
+};
+
+export const useTraceHoverContext = () => {
+  const context = useContext(TraceHoverContext);
+  if (!context) {
+    throw new Error(
+      "useTraceHoverContext must be used within TraceDrawerProvider"
     );
   }
   return context;

@@ -27,6 +27,9 @@ dependencies = [
   "aiohttp>=3.9.0"
 ]
 
+[tool.uv.sources]
+agentmark-prompt-core = { path = "../prompt-core-python", editable = true }
+
   [[project.authors]]
   name = "AgentMark Team"
 
@@ -44,10 +47,6 @@ dependencies = [
   Homepage = "https://github.com/agentmark/agentmark"
   Documentation = "https://github.com/agentmark/agentmark#readme"
   Repository = "https://github.com/agentmark/agentmark"
-
-[tool.uv.sources.agentmark-prompt-core]
-path = "../prompt-core-python"
-editable = true
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/agentmark_claude_agent_sdk_v0" ]
