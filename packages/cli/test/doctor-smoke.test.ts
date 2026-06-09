@@ -48,15 +48,31 @@ function makeRes(spec: MockResponseSpec) {
   };
 }
 
-/** Routes POSTs to the webhook handler and GETs to the trace handler (by poll index). */
+/**
+ * Routes requests the way the dev server does: prompt-run POSTs to `webhook`,
+ * get-evals POSTs to `evals` (the control-plane job), and GETs to `trace` (by
+ * poll index). The two POST jobs are told apart by request body `type` — exactly
+ * how the real server distinguishes them — so a handler can answer one and not
+ * the other (the empty-dialog bug: prompt-run works, get-evals doesn't). `evals`
+ * defaults to a well-formed empty registry so existing tests don't have to know
+ * about the new check.
+ */
 function mockFetch(handlers: {
   webhook: () => MockResponseSpec;
+  evals?: () => MockResponseSpec;
   trace?: (callIndex: number) => MockResponseSpec;
 }): typeof fetch {
   let traceCalls = 0;
-  return (async (_url: string, init?: { method?: string }) => {
+  return (async (_url: string, init?: { method?: string; body?: string }) => {
     if (init?.method === 'POST') {
-      const spec = handlers.webhook();
+      let jobType: string | undefined;
+      try {
+        jobType = (JSON.parse(init.body ?? '{}') as { type?: string }).type;
+      } catch {
+        /* leave undefined → treated as the prompt-run path */
+      }
+      const defaultEvals = (): MockResponseSpec => ({ ok: true, body: { type: 'evals', result: '[]', traceId: '' } });
+      const spec = jobType === 'get-evals' ? (handlers.evals ?? defaultEvals)() : handlers.webhook();
       if (spec.throwErr) throw spec.throwErr;
       return makeRes(spec);
     }
@@ -84,11 +100,12 @@ const WELL_FORMED_TRACE = {
 const RAN_OK = { type: 'text', result: 'Hello', usage: { promptTokens: 12, completionTokens: 8, totalTokens: 20 }, traceId: 't-123' };
 
 describe('runSmoke', () => {
-  it('passes all three live checks on a real run + well-formed trace', async () => {
+  it('passes all four live checks on a real run + listable evals + well-formed trace', async () => {
     const results = await runSmoke(
       opts({
         fetchImpl: mockFetch({
           webhook: () => ({ ok: true, body: RAN_OK }),
+          evals: () => ({ ok: true, body: { type: 'evals', result: '["mentions_topic","is_concise"]', traceId: '' } }),
           trace: (i) => (i === 0 ? { ok: false, status: 404 } : { ok: true, body: WELL_FORMED_TRACE }),
         }),
       }),
@@ -96,11 +113,88 @@ describe('runSmoke', () => {
 
     expect(statusOf(results, 'smoke.run')).toBe('pass');
     expect(detailOf(results, 'smoke.run')).toContain('20 total');
+    expect(statusOf(results, 'smoke.evals')).toBe('pass');
+    expect(detailOf(results, 'smoke.evals')).toContain('mentions_topic');
+    expect(detailOf(results, 'smoke.evals')).toContain('is_concise');
     expect(statusOf(results, 'smoke.trace')).toBe('pass');
     expect(detailOf(results, 'smoke.trace')).toContain('openai/gpt-4o');
     expect(statusOf(results, 'smoke.traceShape')).toBe('pass');
     // All checks belong to the live group so the report renders them together.
     expect(results.every((r) => r.group === SMOKE_GROUP)).toBe(true);
+  });
+
+  it('fails smoke.evals when the handler cannot answer get-evals (the empty-dialog bug)', async () => {
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          evals: () => ({ ok: false, status: 500, statusText: 'Internal Server Error' }),
+          trace: () => ({ ok: true, body: WELL_FORMED_TRACE }),
+        }),
+      }),
+    );
+
+    // The run itself is fine — only the get-evals control-plane job is broken,
+    // which is exactly the "No evals available" dialog with a working prompt.
+    expect(statusOf(results, 'smoke.run')).toBe('pass');
+    expect(statusOf(results, 'smoke.evals')).toBe('fail');
+    expect(detailOf(results, 'smoke.evals')).toContain('500');
+    // The fix names the canonical handler — routing get-evals is precisely what a
+    // hand-rolled prompt-run/dataset-run switch silently drops.
+    expect(results.find((r) => r.id === 'smoke.evals')?.fix).toContain('runner.dispatch');
+  });
+
+  it('fails smoke.evals when get-evals returns the wrong shape (not a {type:"evals"} envelope)', async () => {
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          // 200 OK, but a prompt-run-shaped body — what a handler that doesn't
+          // special-case get-evals returns when the job falls through its switch.
+          evals: () => ({ ok: true, body: { type: 'text', result: 'Hello', traceId: '' } }),
+          trace: () => ({ ok: true, body: WELL_FORMED_TRACE }),
+        }),
+      }),
+    );
+
+    expect(statusOf(results, 'smoke.evals')).toBe('fail');
+    expect(detailOf(results, 'smoke.evals')).toContain('not with the expected');
+    expect(results.find((r) => r.id === 'smoke.evals')?.fix).toContain('runner.dispatch');
+  });
+
+  it('passes smoke.evals with a note when the client has no evals registered', async () => {
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          evals: () => ({ ok: true, body: { type: 'evals', result: '[]', traceId: '' } }),
+          trace: () => ({ ok: true, body: WELL_FORMED_TRACE }),
+        }),
+      }),
+    );
+
+    // An empty (but valid) registry is a pass, not a failure — the handler routes
+    // get-evals correctly; the user just hasn't registered any evals yet.
+    expect(statusOf(results, 'smoke.evals')).toBe('pass');
+    expect(detailOf(results, 'smoke.evals')).toContain('0 evals registered');
+  });
+
+  it('warns (not fails) when the get-evals request itself errors', async () => {
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          evals: () => ({ ok: false, throwErr: new Error('socket hang up') }),
+          trace: () => ({ ok: true, body: WELL_FORMED_TRACE }),
+        }),
+      }),
+    );
+
+    // A thrown request is inconclusive (could be a transient blip), not proof the
+    // handler is wrong — warn, and don't let it block the trace checks that follow.
+    expect(statusOf(results, 'smoke.evals')).toBe('warn');
+    expect(detailOf(results, 'smoke.evals')).toContain('socket hang up');
+    expect(statusOf(results, 'smoke.trace')).toBe('pass');
   });
 
   it('fails with dev-server guidance when the webhook is unreachable', async () => {

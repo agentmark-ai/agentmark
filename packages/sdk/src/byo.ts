@@ -16,7 +16,12 @@
  */
 
 import { createAgentMark, DefaultAdapter } from "@agentmark-ai/prompt-core";
-import type { Executor, Loader, PromptShape } from "@agentmark-ai/prompt-core";
+import type {
+  Executor,
+  Loader,
+  PromptShape,
+  EvalRegistry,
+} from "@agentmark-ai/prompt-core";
 import { WebhookRunner } from "@agentmark-ai/prompt-core/webhook-runner";
 import type { WebhookRunnerHooks } from "@agentmark-ai/prompt-core/webhook-runner";
 import { createAgentmarkSpanHooks } from "./span-hooks";
@@ -26,6 +31,14 @@ export interface CreateWebhookRunnerOptions<D extends PromptShape<D>> {
   executor: Executor;
   /** Prompt loader (FileLoader for local, ApiLoader.cloud() for cloud prompts). */
   loader?: Loader<D>;
+  /**
+   * Eval registry — a map of eval name → eval function. Threaded into the
+   * client so the runner BOTH runs these evals during experiments AND lists
+   * them for the dashboard's New Experiment dialog (the `get-evals`
+   * control-plane job). Register evals once, here: the absence of this input
+   * was exactly why BYO-SDK apps silently showed "No evals available".
+   */
+  evals?: EvalRegistry;
   /**
    * Override the runner's span/observation hooks. Defaults to
    * `createAgentmarkSpanHooks()` (traces every run to AgentMark). Pass
@@ -46,6 +59,7 @@ export function createWebhookRunner<
   const client = createAgentMark({
     adapter: new DefaultAdapter<D>(),
     loader: opts.loader,
+    evals: opts.evals,
   });
   return new WebhookRunner<D, DefaultAdapter<D>>(
     client,

@@ -133,6 +133,19 @@ describe("VercelAdapterWebhookHandler wire format (byte-equality)", () => {
     expect(stabilize(res)).toMatchSnapshot();
   });
 
+  it("dispatch answers get-evals from the client's registry", async () => {
+    // The collapsed canonical surface: a deployed handler is
+    // `new VercelAdapterWebhookHandler(client).dispatch`. It lists the client's
+    // evals for the New Experiment dialog through the shared runner — no
+    // per-adapter dispatch code.
+    const res = await runner.dispatch({ type: "get-evals", data: {} });
+    expect(res).toEqual({
+      type: "json",
+      data: { type: "evals", result: '["exact_match"]', traceId: "" },
+      status: 200,
+    });
+  });
+
   it("object non-streaming", async () => {
     const ast = (await loader.load("math.prompt.mdx", "object")) as Ast;
     const res = await runner.runPrompt(ast, { shouldStream: false });

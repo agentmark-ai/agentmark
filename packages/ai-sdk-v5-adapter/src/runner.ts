@@ -8,6 +8,8 @@ import { WebhookRunner } from "@agentmark-ai/prompt-core/webhook-runner";
 import type {
   RunPromptOptions,
   RunExperimentOptions,
+  WebhookRequest,
+  WebhookResponse,
 } from "@agentmark-ai/prompt-core/webhook-runner";
 import { createAgentmarkSpanHooks } from "@agentmark-ai/sdk";
 import type { Tool } from "ai";
@@ -55,5 +57,16 @@ export class VercelAdapterWebhookHandler<
     options?: RunExperimentOptions
   ): Promise<WebhookDatasetResponse> {
     return this.runner.runExperiment(promptAst, datasetRunName, options);
+  }
+
+  /**
+   * Route a managed-deployment webhook job — prompt-run / dataset-run /
+   * get-evals — through the shared runner, sourcing evals from this handler's
+   * client. The canonical deployed handler is
+   * `export default new VercelAdapterWebhookHandler(client).dispatch`. No
+   * per-adapter dispatch code; mirrors `runner.dispatch` and the Python adapters.
+   */
+  dispatch(request: WebhookRequest): Promise<WebhookResponse> {
+    return this.runner.dispatch(request);
   }
 }

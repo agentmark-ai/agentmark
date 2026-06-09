@@ -46,6 +46,7 @@ from .pii_masker import CustomPattern, PiiMaskerConfig, create_pii_masker
 from .sampler import AgentmarkSampler
 from .sdk import AgentMarkSDK
 from .serialize import serialize_value
+from .span_hooks import create_agentmark_span_hooks
 from .trace import SpanContext, SpanOptions, SpanResult, span, span_context, span_context_sync
 
 __all__ = [
@@ -57,6 +58,7 @@ __all__ = [
     "span",
     "span_context",
     "span_context_sync",
+    "create_agentmark_span_hooks",
     "observe",
     "SpanOptions",
     "SpanContext",

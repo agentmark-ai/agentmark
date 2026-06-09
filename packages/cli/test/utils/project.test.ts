@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   detectProjectLanguage,
   readAgentmarkConfig,
@@ -158,21 +159,34 @@ describe('validateConfigShape', () => {
     expect(r.unknownKeys).toEqual(['buildInModels']);
     expect(r.missingRequired).toEqual([]);
   });
-  it('recognizes every documented top-level field', () => {
-    expect(KNOWN_CONFIG_KEYS).toEqual(
-      expect.arrayContaining([
-        '$schema',
-        'version',
-        'mdxVersion',
-        'agentmarkPath',
-        'handler',
-        'builtInModels',
-        'modelSchemas',
-        'mcpServers',
-        'evals',
-        'scores',
-      ]),
-    );
-    expect(REQUIRED_CONFIG_KEYS).toEqual(['version', 'agentmarkPath']);
+  it('stays in lock-step with agentmark.schema.json (no drift in either direction)', () => {
+    // KNOWN_CONFIG_KEYS / REQUIRED_CONFIG_KEYS are hand-maintained mirrors of the
+    // bundled schema. Reflect the schema itself and assert set equality both ways:
+    // a property added to the schema but missing here would make `doctor` wrongly
+    // flag it as an unknown-key typo, and a key left here after being removed from
+    // the schema would let a now-invalid config pass. `arrayContaining` caught
+    // neither; exact set/array equality catches both.
+    const schema = JSON.parse(
+      fs.readFileSync(fileURLToPath(new URL('../../agentmark.schema.json', import.meta.url)), 'utf8'),
+    ) as { properties: Record<string, { deprecated?: boolean }>; required: string[] };
+
+    expect(new Set(KNOWN_CONFIG_KEYS)).toEqual(new Set(Object.keys(schema.properties)));
+    expect([...REQUIRED_CONFIG_KEYS].sort()).toEqual([...schema.required].sort());
+  });
+
+  it('keeps the deprecated `evals` field known so legacy configs still validate', () => {
+    // Top-level `evals` is vestigial — the dashboard lists a running app's evals
+    // live (the get-evals control-plane job), so the static declaration has no
+    // effect. It is marked deprecated in the schema, but must stay a *known* key:
+    // a config that still carries it must not trip doctor's unknown-key warning.
+    const schema = JSON.parse(
+      fs.readFileSync(fileURLToPath(new URL('../../agentmark.schema.json', import.meta.url)), 'utf8'),
+    ) as { properties: Record<string, { deprecated?: boolean }> };
+
+    expect(schema.properties.evals.deprecated).toBe(true);
+    expect(KNOWN_CONFIG_KEYS).toContain('evals');
+    expect(
+      validateConfigShape({ version: '2.0.0', agentmarkPath: '.', evals: ['mentions_topic'] }).unknownKeys,
+    ).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 {
-  "description": "NORMATIVE variant catalog for the cross-language protocol types: every AgentEvent variant and WireChunk shape, with required/optional fields and primitive kinds. Both languages assert AGAINST it from their REAL types: TS builds one sample per variant via a mapped type keyed by the AgentEvent union (a variant added to the union without a catalog entry — or vice versa — fails compile/test), and Python reflects the actual dataclass union via typing.get_args so its inventory can't drift from its implementation either. Field kinds: 'string' | 'number' | 'boolean' | 'any' (unchecked) | 'usage' (the AgentUsage shape below). Adding a variant or field here without implementing it in BOTH languages fails the other language's suite — that is the point. Changing existing entries is a protocol break: semver-major.",
+  "description": "NORMATIVE variant catalog for the cross-language protocol types: every AgentEvent variant, WireChunk shape, and webhook JOB type, with required/optional fields and primitive kinds. Both languages assert AGAINST it from their REAL types: TS builds one sample per variant via a mapped type keyed by the AgentEvent union (a variant added to the union without a catalog entry — or vice versa — fails compile/test), and Python reflects the actual dataclass union via typing.get_args so its inventory can't drift from its implementation either. `webhookJobs` is the dispatch contract the managed handler routes (`prompt-run` / `dataset-run` / `get-evals`): TS reflects `WebhookRequest['type']`, Python reflects `WEBHOOK_JOB_TYPES`, and both assert their real set equals these keys — so a job type added to one language's dispatch (or here) without the other fails the other's suite. This is the gap that let `get-evals` reach the dev server but not the managed handler: the payload was pinned (control-plane.json) but the dispatch's job-type SET was not. Field kinds: 'string' | 'number' | 'boolean' | 'any' (unchecked) | 'usage' (the AgentUsage shape below). Adding a variant, field, or job here without implementing it in BOTH languages fails the other language's suite — that is the point. Changing existing entries is a protocol break: semver-major.",
   "agentUsage": {
     "required": { "inputTokens": "number", "outputTokens": "number" },
     "optional": { "totalTokens": "number" }
@@ -66,5 +66,10 @@
       "required": {},
       "optional": { "traceId": "string" }
     }
+  },
+  "webhookJobs": {
+    "prompt-run": { "carriesAst": true, "controlPlane": false },
+    "dataset-run": { "carriesAst": true, "controlPlane": false },
+    "get-evals": { "carriesAst": false, "controlPlane": true }
   }
 }

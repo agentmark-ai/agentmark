@@ -509,4 +509,25 @@ describe("ClaudeAgentWebhookHandler", () => {
       expect(vi.mocked(query)).not.toHaveBeenCalled();
     });
   });
+
+  describe("dispatch / get-evals (control-plane)", () => {
+    // The bug this change fixes: a handler that can't answer get-evals leaves the
+    // dashboard's New Experiment dialog empty. The `.client` getter is the source
+    // `handleWebhookRequest(event, handler)` reads zero-config; dispatch routes the
+    // job through it. Both must carry the eval registry the client was built with.
+    it("exposes its client's eval registry via the .client getter", () => {
+      expect(handler.client.getEvalNames()).toEqual(["exact_match"]);
+    });
+
+    it("lists the client's registered evals via dispatch(get-evals)", async () => {
+      const res = await handler.dispatch({ type: "get-evals", data: {} } as any);
+      // Canonical control-plane envelope, byte-for-byte with the other adapters:
+      // a {type:'json'} wrapper around the sorted, JSON-encoded eval names.
+      expect(res).toEqual({
+        type: "json",
+        data: { type: "evals", result: JSON.stringify(["exact_match"]), traceId: "" },
+        status: 200,
+      });
+    });
+  });
 });

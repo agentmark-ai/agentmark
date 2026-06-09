@@ -17,6 +17,8 @@ import { describe, it, expect } from "vitest";
 import { loadVector } from "@agentmark-ai/conformance-vectors";
 import type { AgentEvent } from "../src/executor";
 import type { WireChunk } from "../src/wire";
+import type { WebhookRequest } from "../src/webhook-dispatch";
+import { handleWebhookRequest } from "../src/webhook-dispatch";
 
 type FieldKind = "string" | "number" | "boolean" | "any" | "usage";
 interface VariantSpec {
@@ -24,10 +26,15 @@ interface VariantSpec {
   optional: Record<string, FieldKind>;
   discriminant?: Record<string, string>;
 }
+interface WebhookJobSpec {
+  carriesAst: boolean;
+  controlPlane: boolean;
+}
 interface Catalog {
   agentUsage: { required: Record<string, FieldKind>; optional: Record<string, FieldKind> };
   agentEvents: Record<string, VariantSpec>;
   wireChunks: Record<string, VariantSpec>;
+  webhookJobs: Record<string, WebhookJobSpec>;
 }
 
 const catalog = loadVector("protocol-catalog") as unknown as Catalog;
@@ -172,4 +179,67 @@ describe("protocol catalog — WireChunk", () => {
       ).toBe(true);
     });
   }
+});
+
+// ── One sample per webhook JOB type, keyed BY THE UNION — the compile-time
+//    exhaustiveness anchor for the managed dispatch contract (mirrors
+//    EVENT_SAMPLES). A job added to WebhookRequest['type'] without a catalog
+//    entry fails to compile here; a catalog entry without a union variant fails
+//    the key-set equality. Python mirrors this from `WEBHOOK_JOB_TYPES`, so the
+//    catalog is the single normative bridge between the two dispatches.
+const JOB_SAMPLES: {
+  [K in WebhookRequest["type"]]: WebhookJobSpec;
+} = {
+  "prompt-run": { carriesAst: true, controlPlane: false },
+  "dataset-run": { carriesAst: true, controlPlane: false },
+  "get-evals": { carriesAst: false, controlPlane: true },
+};
+
+class RecordingHandler {
+  calls: string[] = [];
+  constructor(readonly client: { getEvalNames(): string[] }) {}
+  async runPrompt(): Promise<any> {
+    this.calls.push("runPrompt");
+    return { type: "object", result: {} };
+  }
+  async runExperiment(): Promise<any> {
+    this.calls.push("runExperiment");
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    return { stream: (async function* () {})() };
+  }
+}
+
+describe("protocol catalog — webhook jobs", () => {
+  it("the dispatch's job-type union exactly matches the catalog", () => {
+    expect(Object.keys(JOB_SAMPLES).sort()).toEqual(
+      Object.keys(catalog.webhookJobs).sort()
+    );
+  });
+
+  for (const [job, spec] of Object.entries(catalog.webhookJobs)) {
+    it(`'${job}' routes (carriesAst=${spec.carriesAst}, controlPlane=${spec.controlPlane})`, async () => {
+      const handler = new RecordingHandler({ getEvalNames: () => ["e"] });
+      const data = spec.carriesAst ? { ast: { name: "p" } } : {};
+      const res = await handleWebhookRequest(
+        { type: job as WebhookRequest["type"], data },
+        handler
+      );
+      // Routed, not the unknown-type error.
+      expect(res.type).not.toBe("error");
+      if (spec.controlPlane) {
+        // Control-plane jobs answer from the client and never touch the handler.
+        expect(res.type).toBe("json");
+        expect(handler.calls).toEqual([]);
+      }
+    });
+  }
+
+  it("a non-catalogued job type is rejected", async () => {
+    const handler = new RecordingHandler({ getEvalNames: () => [] });
+    const res = await handleWebhookRequest(
+      { type: "not-a-job" as WebhookRequest["type"], data: {} },
+      handler
+    );
+    expect(res.type).toBe("error");
+  });
 });

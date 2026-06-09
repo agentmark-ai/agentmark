@@ -20,6 +20,7 @@ from typing import Any, get_args
 
 import pytest
 
+from agentmark.prompt_core import WEBHOOK_JOB_TYPES, handle_webhook_request
 from agentmark.prompt_core.executor import (
     AgentEvent,
     ErrorEvent,
@@ -191,4 +192,61 @@ def test_wire_chunk_builders_satisfy_catalog() -> None:
             assert chunk[k] == v, f"{name}: discriminant {k}"
         assert _fields_ok(chunk, spec["required"], spec["optional"]), (
             f"builder output for '{name}' violates the catalog: {chunk}"
+        )
+
+
+# ── webhook job types — the managed dispatch contract ──────────────────────────
+#
+# The gap that let `get-evals` ship to the dev server but not the managed
+# handler: the get-evals PAYLOAD was pinned (control-plane.json) but the
+# dispatch's job-type SET was not. These reflect the REAL Python dispatch
+# (`WEBHOOK_JOB_TYPES`, behaviorally bound to `handle_webhook_request`) against
+# the catalog, so it can't diverge from the catalog — or, via the TS mirror
+# (`WebhookRequest['type']`), from TypeScript.
+
+
+class _NamedClient:
+    def __init__(self, names: list[str]) -> None:
+        self._names = names
+
+    def get_eval_names(self) -> list[str]:
+        return self._names
+
+
+class _NoopHandler:
+    async def run_prompt(self, prompt_ast: Any, options: Any = None) -> Any:
+        return {"type": "object", "result": {}}
+
+    async def run_experiment(self, prompt_ast: Any, *args: Any, **kwargs: Any) -> Any:
+        return {"stream": object()}
+
+
+def test_webhook_jobs_inventory_matches_catalog() -> None:
+    """The REAL dispatch's accepted job-type set and the catalog list identical
+    jobs. Drop `get-evals` from `WEBHOOK_JOB_TYPES` (the original bug) and this
+    goes red; add a job to the catalog without implementing it here, likewise."""
+    assert set(CATALOG["webhookJobs"].keys()) == WEBHOOK_JOB_TYPES
+
+
+@pytest.mark.parametrize("job_type", sorted(WEBHOOK_JOB_TYPES))
+async def test_every_catalogued_job_is_routed(job_type: str) -> None:
+    """Behaviorally bind the declared set to the dispatch: every catalogued job
+    routes (no 'Unknown event type'); a non-catalogued one raises."""
+    spec = CATALOG["webhookJobs"][job_type]
+    # carriesAst=false jobs (control-plane) must route with no AST present.
+    data: dict[str, Any] = {} if not spec["carriesAst"] else {"ast": {"name": "p"}}
+    result = await handle_webhook_request(
+        {"type": job_type, "data": data},
+        _NoopHandler(),
+        client=_NamedClient(["e"]),
+    )
+    if spec["controlPlane"]:
+        assert result["type"] == "evals"  # control-plane jobs answer, not execute
+
+
+async def test_non_catalogued_job_type_raises() -> None:
+    assert "definitely-not-a-job" not in WEBHOOK_JOB_TYPES
+    with pytest.raises(ValueError, match="Unknown event type"):
+        await handle_webhook_request(
+            {"type": "definitely-not-a-job", "data": {}}, _NoopHandler()
         )

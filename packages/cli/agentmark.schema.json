@@ -153,7 +153,8 @@
         },
         "evals": {
             "type": "array",
-            "description": "Evals registered in eval registry",
+            "deprecated": true,
+            "description": "Deprecated and unused. The dashboard now lists a running app's evals live (the get-evals control-plane job, sourced from the client's eval registry), so this static declaration has no effect. Safe to remove.",
             "items": {
                 "type": "string",
                 "description": "The name of the eval registered in eval registry"
