@@ -1,81 +1,18 @@
 /**
- * Platform-agnostic types for the AgentMark webhook server.
- * These types are used by the core handler and all platform adapters.
+ * Back-compat shim. The platform-agnostic webhook types moved to
+ * `@agentmark-ai/prompt-core/webhook-runner` alongside `handleWebhookRequest`,
+ * so deployed handlers can import them without pulling in the CLI. This file is
+ * kept so existing imports of `@agentmark-ai/cli/runner-server` keep working.
+ *
+ * New code should import these from `@agentmark-ai/prompt-core/webhook-runner`.
  */
 
-import type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark-ai/prompt-core';
-import type { RunExperimentOptions } from '@agentmark-ai/prompt-core/webhook-runner';
-
-// Re-export the cross-language control-plane contract so adapters and the
-// dispatch share one definition. The CLIENT (not the handler) owns these.
-import type { ControlPlaneClient } from '@agentmark-ai/prompt-core';
-export type { ControlPlaneClient };
-
-/**
- * Telemetry options for tracking prompt execution.
- */
-export interface TelemetryOptions {
-  isEnabled: boolean;
-  metadata?: {
-    traceId?: string;
-    traceName?: string;
-    sessionId?: string;
-    sessionName?: string;
-    [key: string]: any;
-  };
-}
-
-/**
- * Generic webhook handler interface that any adapter can implement.
- * This is the contract that adapters (e.g., VercelAdapterWebhookHandler) must fulfill.
- */
-export interface WebhookHandler {
-  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, options?: RunExperimentOptions): Promise<WebhookDatasetResponse>;
-  /**
-   * The AgentMark client this handler executes against, surfaced so the shared
-   * dispatch can answer control-plane jobs (e.g. `get-evals`) without the caller
-   * threading the client separately. Optional: a handler that doesn't expose it
-   * still works for prompt/experiment execution, and `handleWebhookRequest`
-   * accepts an explicit client override. Adapters built from a client (Vercel,
-   * etc.) set this so consumers get `get-evals` with zero extra wiring.
-   */
-  readonly client?: ControlPlaneClient;
-}
-
-/**
- * Standardized request format for all platform adapters.
- * Platform adapters translate their specific request formats into this structure.
- */
-export interface WebhookRequest {
-  type: 'prompt-run' | 'dataset-run' | 'get-evals';
-  data: {
-    // Optional: control-plane jobs (get-evals) carry no AST. prompt-run /
-    // dataset-run require it; the dispatch validates presence for those.
-    ast?: any;
-    customProps?: Record<string, any>;
-    options?: { shouldStream?: boolean };
-    experimentId?: string;
-    datasetPath?: string;
-    promptPath?: string;
-    sampling?: Record<string, unknown>;
-    concurrency?: number;
-    // Experiment identity for the regression gate. experimentKey = stable,
-    // composition-agnostic eval identity; sourceTreeHash = git tree hash of the
-    // run's code state (the gate's baseline-match key).
-    experimentKey?: string;
-    sourceTreeHash?: string;
-  };
-}
-
-/**
- * Standardized response format from the core handler.
- * Platform adapters translate this into their specific response formats.
- */
-export type WebhookResponse =
-  | { type: 'json'; data: any; status?: number }
-  | { type: 'stream'; stream: ReadableStream; headers: Record<string, string>; traceId?: string }
-  | { type: 'error'; error: string; details?: string; status: number };
-
-// Re-export prompt-core types for convenience
-export type { WebhookPromptResponse, WebhookDatasetResponse } from '@agentmark-ai/prompt-core';
+export type {
+  ControlPlaneClient,
+  WebhookHandler,
+  WebhookRequest,
+  WebhookResponse,
+  TelemetryOptions,
+  WebhookPromptResponse,
+  WebhookDatasetResponse,
+} from '@agentmark-ai/prompt-core/webhook-runner';

@@ -973,3 +973,18 @@ export class WebhookRunner<
     throw new Error("Invalid prompt");
   }
 }
+
+// Platform-agnostic webhook dispatch — turns one `{ type, data }` event into a
+// prompt run, experiment run, or control-plane answer. Re-exported here so a
+// deployed handler imports the runner and the dispatch from one place
+// (`@agentmark-ai/prompt-core/webhook-runner`) and never pulls in the CLI.
+export { handleWebhookRequest } from "./webhook-dispatch";
+export type {
+  WebhookHandler,
+  WebhookRequest,
+  WebhookResponse,
+  TelemetryOptions,
+  ControlPlaneClient,
+  WebhookPromptResponse,
+  WebhookDatasetResponse,
+} from "./webhook-dispatch";
