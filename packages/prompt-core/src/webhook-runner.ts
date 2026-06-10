@@ -43,7 +43,20 @@ type Frontmatter = {
   image_config?: unknown;
   speech_config?: unknown;
   test_settings?: { dataset?: string; evals?: string[] };
+  /**
+   * Server-stamped metadata. The gateway (and the CLI dev server) inject
+   * `commit_sha` — the commit the prompt content was served at — into the
+   * AST frontmatter, so the runner can link regular prompt-run traces to
+   * the exact prompt version.
+   */
+  agentmark_meta?: { commit_sha?: string; [key: string]: unknown };
 };
+
+/** Read the served-at commit sha the gateway/CLI stamped into the AST. */
+function commitShaFromFrontmatter(frontmatter: Frontmatter): string | undefined {
+  const sha = frontmatter.agentmark_meta?.commit_sha;
+  return typeof sha === "string" && sha.length > 0 ? sha : undefined;
+}
 
 export interface RunPromptOptions {
   shouldStream?: boolean;
@@ -404,7 +417,11 @@ export class WebhookRunner<
         }
       );
       const hookDone = this.promptSpanHook(
-        { name: spanName, promptName: frontmatter.name },
+        {
+          name: spanName,
+          promptName: frontmatter.name,
+          commitSha: commitShaFromFrontmatter(frontmatter),
+        },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
           const ctxExec: ExecCtx = {
@@ -492,7 +509,11 @@ export class WebhookRunner<
     const startTime = Date.now();
 
     const { traceId } = await this.promptSpanHook(
-      { name: spanName, promptName: frontmatter.name },
+      {
+        name: spanName,
+        promptName: frontmatter.name,
+        commitSha: commitShaFromFrontmatter(frontmatter),
+      },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
@@ -588,7 +609,11 @@ export class WebhookRunner<
         }
       );
       const hookDone = this.promptSpanHook(
-        { name: spanName, promptName: frontmatter.name },
+        {
+          name: spanName,
+          promptName: frontmatter.name,
+          commitSha: commitShaFromFrontmatter(frontmatter),
+        },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
           const ctxExec: ExecCtx = {
@@ -675,7 +700,11 @@ export class WebhookRunner<
     const startTime = Date.now();
 
     const { traceId } = await this.promptSpanHook(
-      { name: spanName, promptName: frontmatter.name },
+      {
+        name: spanName,
+        promptName: frontmatter.name,
+        commitSha: commitShaFromFrontmatter(frontmatter),
+      },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
@@ -751,7 +780,11 @@ export class WebhookRunner<
     const spanName = frontmatter.name || "prompt-run";
 
     const { result, traceId } = await this.promptSpanHook(
-      { name: spanName, promptName: frontmatter.name },
+      {
+        name: spanName,
+        promptName: frontmatter.name,
+        commitSha: commitShaFromFrontmatter(frontmatter),
+      },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
@@ -785,7 +818,11 @@ export class WebhookRunner<
     const spanName = frontmatter.name || "prompt-run";
 
     const { result, traceId } = await this.promptSpanHook(
-      { name: spanName, promptName: frontmatter.name },
+      {
+        name: spanName,
+        promptName: frontmatter.name,
+        commitSha: commitShaFromFrontmatter(frontmatter),
+      },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {

@@ -67,8 +67,20 @@ async def _item_span(params: Any) -> Any:
 
 @asynccontextmanager
 async def _prompt_span(params: Any) -> Any:
-    """Prompt-level span for a single run."""
-    options = SpanOptions(name=params.name, prompt_name=params.prompt_name)
+    """Prompt-level span for a single run.
+
+    ``commit_sha`` (the version the prompt content was served at) is read via
+    ``getattr`` so the hook stays duck-typed against older prompt-core
+    ``PromptSpanParams`` that predate the field. It rides the same
+    ``metadata.commit_sha`` key the experiment item hook emits, so the
+    normalizer promotes it to the trace's CommitSha on regular runs too.
+    """
+    commit_sha = getattr(params, "commit_sha", None)
+    options = SpanOptions(
+        name=params.name,
+        prompt_name=params.prompt_name,
+        metadata={"commit_sha": commit_sha} if commit_sha else None,
+    )
     async with span_context(options) as ctx:
         yield _AgentMarkSpanCtx(_inner=ctx, trace_id=ctx.trace_id)
 

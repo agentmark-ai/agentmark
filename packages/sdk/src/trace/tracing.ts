@@ -162,6 +162,12 @@ export const initialize = ({
 export type SpanOptions = {
   name: string;
   metadata?: Record<string, string>;
+  /**
+   * Prompt name (from the prompt's frontmatter) — emitted as the
+   * `agentmark.prompt_name` attribute, the trace surface's prompt label
+   * column. Same attribute key the Python SDK sets (`trace.py`).
+   */
+  promptName?: string;
   sessionId?: string;
   sessionName?: string;
   userId?: string;
@@ -288,6 +294,9 @@ function buildContext(otelSpan: Span, tracer: Tracer): SpanContext {
 function setAgentmarkAttributes(otelSpan: Span, options: SpanOptions): void {
   otelSpan.setAttribute(`${AgentMarkKey}.trace_name`, options.name);
 
+  if (options.promptName) {
+    otelSpan.setAttribute(`${AgentMarkKey}.prompt_name`, options.promptName);
+  }
   if (options.sessionId) {
     otelSpan.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
     // Standard OTel GenAI key for conversation/session correlation, emitted

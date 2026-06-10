@@ -335,5 +335,36 @@ describe('Metadata Parser', () => {
       expect(Object.hasOwn(result, 'prototype')).toBe(false);
     });
   });
+
+  describe('commit_sha dual-storage invariant (regression pin)', () => {
+    // commit_sha MUST flow through BOTH paths simultaneously:
+    //   1. parseMetadata promotes it to the typed NormalizedSpan.commitSha
+    //      (production ClickHouse CommitSha column + converter trust policy).
+    //   2. extractCustomMetadata RETAINS it in the Metadata bucket (the OSS
+    //      CLI's SQLite has no CommitSha column — its experiments query reads
+    //      json_extract(Metadata, '$.commit_sha')).
+    // History: commit 64a9333b2 removed commit_sha from the exclusion set;
+    // that was silently lost in PR #1754's squash-merge and re-broken by
+    // PR #1797. This single test fails if EITHER behavior regresses.
+    it('should BOTH promote commit_sha to commitSha AND retain it in custom metadata', () => {
+      const attributes = {
+        'agentmark.metadata.commit_sha': 'deadbeefcafe',
+        'agentmark.metadata.session_id': 'session-1',
+        'agentmark.metadata.team': 'growth',
+      };
+
+      const promoted = parseMetadata(attributes);
+      const retained = extractCustomMetadata(attributes);
+
+      // Path 1 — typed promotion.
+      expect(promoted.commitSha).toBe('deadbeefcafe');
+      // Path 2 — retained in the Metadata bucket (exact map shape: commit_sha
+      // present alongside genuinely-custom keys; known fields still excluded).
+      expect(retained).toEqual({
+        commit_sha: 'deadbeefcafe',
+        team: 'growth',
+      });
+    });
+  });
 });
 

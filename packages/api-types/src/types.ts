@@ -125,6 +125,49 @@ export interface ModelStatsResponse {
   models: ModelStats[];
 }
 
+// ============================================================================
+// Prompt Version Stats Types
+// ============================================================================
+
+/**
+ * Aggregates for one (promptName, commitSha) pair — the per-version metrics
+ * behind prompt-version trace linking. `commitSha` is `''` for spans ingested
+ * before version stamping (or from paths with no commit to stamp).
+ */
+export interface PromptVersionStats {
+  promptName: string;
+  commitSha: string;
+  requests: number;
+  errorCount: number;
+  errorRate: number;
+  cost: number;
+  tokens: number;
+  avgLatencyMs: number;
+  /** Average score across all scores attached to this version's traces; null when unscored. */
+  avgScore: number | null;
+  /** Number of score rows behind `avgScore`. */
+  scoreCount: number;
+}
+
+/**
+ * Parameters for the per-prompt-version stats query.
+ */
+export interface PromptVersionStatsParams {
+  /** Restrict to a single prompt name. Omit for all prompts. */
+  promptName?: string;
+  /** Max number of (prompt, version) rows returned. */
+  limit?: number;
+  /** Single-env scoping. Mirrors ScoresParams. Undefined = no env filter. */
+  env?: EnvironmentQueryScope;
+}
+
+/**
+ * Response for the per-prompt-version stats query.
+ */
+export interface PromptVersionStatsResponse {
+  versions: PromptVersionStats[];
+}
+
 /**
  * A single ranking item for dimension-grouped queries.
  * Used by getRankingData to return data grouped by any dimension
@@ -1024,6 +1067,12 @@ export interface IAnalyticsService {
   getMetrics(ctx: TenantContext, dateRange: DateRange, filters?: AnalyticsFilter[], env?: EnvironmentQueryScope): Promise<MetricsResponse>;
   getExtendedMetrics(ctx: TenantContext, dateRange: DateRange, env?: EnvironmentQueryScope): Promise<ExtendedMetricsResponse>;
   getModelStats(ctx: TenantContext, dateRange: DateRange, limit?: number, filters?: AnalyticsFilter[], env?: EnvironmentQueryScope): Promise<ModelStatsResponse>;
+  /**
+   * Per (promptName, commitSha) aggregates — prompt-version trace linking.
+   * Optional so existing implementers (e.g. the CLI's local service) remain
+   * source-compatible; the cloud AnalyticsService implements it.
+   */
+  getPromptVersionStats?(ctx: TenantContext, dateRange: DateRange, params?: PromptVersionStatsParams): Promise<PromptVersionStatsResponse>;
   getTraces(ctx: TenantContext, params: TracesParams): Promise<TracesResponse>;
   getTraceDetail(ctx: TenantContext, traceId: string, env?: EnvironmentQueryScope): Promise<TraceDetail | null>;
   getTraceDetailLightweight(ctx: TenantContext, traceId: string, env?: EnvironmentQueryScope): Promise<TraceDetail | null>;

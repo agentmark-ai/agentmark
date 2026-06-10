@@ -38,7 +38,16 @@ export const agentmarkPromptSpanHook: PromptSpanHook = async <T>(
   params: PromptSpanParams,
   fn: (ctx: SpanLike) => Promise<T>
 ): Promise<{ result: T; traceId: string }> => {
-  const r = await span({ name: params.name }, async (ctx) => fn(toSpanLike(ctx)));
+  const r = await span(
+    {
+      name: params.name,
+      promptName: params.promptName,
+      // Same metadata key the experiment hook emits, so the normalizer
+      // promotes it to NormalizedSpan.commitSha on regular runs too.
+      metadata: params.commitSha ? { commit_sha: params.commitSha } : undefined,
+    },
+    async (ctx) => fn(toSpanLike(ctx))
+  );
   return { result: await r.result, traceId: r.traceId };
 };
 
@@ -55,6 +64,7 @@ export const agentmarkExperimentItemSpanHook: ExperimentItemSpanHook = async <T>
   const r = await span(
     {
       name: `experiment-${params.datasetRunName}-${params.index}`,
+      promptName: params.promptName,
       datasetRunId: params.experimentRunId,
       datasetRunName: params.datasetRunName,
       datasetItemName: params.datasetItemName,
