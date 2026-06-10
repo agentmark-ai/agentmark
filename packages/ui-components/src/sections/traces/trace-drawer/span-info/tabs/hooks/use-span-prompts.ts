@@ -1,7 +1,12 @@
-import { useMemo, useState, useEffect, useRef } from "react";
-import { useTraceDrawerContext, SpanIOData } from "../../../trace-drawer-provider";
-import type { SpanData } from "../../../types";
+import { useMemo } from "react";
+import { useTraceDrawerContext } from "../../../trace-drawer-provider";
+import { useSelectedSpanIO, mergeSpanIO } from "../../../hooks/use-selected-span-io";
 import { LLMPrompt } from "@/sections/traces/types";
+
+// Re-exported for backward compatibility — the canonical declaration moved to
+// `../../../hooks/use-selected-span-io` so non-tab consumers (e.g. the drawer
+// header's action buttons in hosts) can hydrate IO without importing tab code.
+export { mergeSpanIO };
 
 interface UseSpanPromptsResult {
   prompts: LLMPrompt[];
@@ -229,88 +234,10 @@ export const extractSystemPromptFromTraces = (traces: any[]): string | null => {
   return null;
 };
 
-/**
- * Merge lazy-loaded I/O data into a span, returning a new span object
- * with the IO fields populated.
- */
-export const mergeSpanIO = (span: SpanData | null | undefined, io: SpanIOData): SpanData | null | undefined => {
-  if (!span) return span;
-  return {
-    ...span,
-    data: {
-      ...span.data,
-      input: io.input,
-      output: io.output,
-      outputObject: io.outputObject,
-      toolCalls: io.toolCalls,
-    },
-  };
-};
-
 export const useSpanPrompts = (): UseSpanPromptsResult => {
-  const { selectedSpan, traces, fetchSpanIO } = useTraceDrawerContext();
-  const [lazyIO, setLazyIO] = useState<SpanIOData | null>(null);
-  const [isLoadingIO, setIsLoadingIO] = useState(false);
-  const ioCache = useRef<Map<string, SpanIOData>>(new Map());
-
+  const { selectedSpan, traces } = useTraceDrawerContext();
   // Fetch I/O lazily when fetchSpanIO is provided and span has no data
-  const spanId = selectedSpan?.id;
-  const traceId = selectedSpan?.traceId;
-  const hasIO = !!(selectedSpan?.data?.input || selectedSpan?.data?.output || selectedSpan?.data?.toolCalls || selectedSpan?.data?.outputObject);
-
-  // When the selected "span" is actually a trace wrapper (spanId === traceId),
-  // resolve to the root span's actual ID for the IO fetch.
-  const resolvedSpanId = useMemo(() => {
-    if (!spanId || !traceId || spanId !== traceId) return spanId;
-    const trace = traces.find((t) => t.id === traceId);
-    if (!trace || trace.spans.length === 0) return spanId;
-    // Find root span (no parent or parent not in this trace)
-    const rootSpan = trace.spans.find(
-      (s) => !s.parentId || !trace.spans.some((p) => p.id === s.parentId)
-    );
-    return rootSpan?.id || spanId;
-  }, [spanId, traceId, traces]);
-
-  useEffect(() => {
-    if (!fetchSpanIO || !resolvedSpanId || !traceId || hasIO) {
-      setLazyIO(null);
-      setIsLoadingIO(false);
-      return;
-    }
-
-    // Check cache first
-    const cached = ioCache.current.get(resolvedSpanId);
-    if (cached) {
-      setLazyIO(cached);
-      setIsLoadingIO(false);
-      return;
-    }
-
-    let cancelled = false;
-    setIsLoadingIO(true);
-    setLazyIO(null);
-
-    fetchSpanIO(traceId, resolvedSpanId).then((io) => {
-      if (cancelled) return;
-      if (io) {
-        ioCache.current.set(resolvedSpanId, io);
-        setLazyIO(io);
-      }
-      setIsLoadingIO(false);
-    }).catch(() => {
-      if (!cancelled) setIsLoadingIO(false);
-    });
-
-    return () => { cancelled = true; };
-  }, [fetchSpanIO, resolvedSpanId, traceId, hasIO]);
-
-  // Use lazy-loaded IO if available, otherwise use span's built-in data
-  const effectiveSpan = useMemo(() => {
-    if (lazyIO && selectedSpan && !hasIO) {
-      return mergeSpanIO(selectedSpan, lazyIO);
-    }
-    return selectedSpan;
-  }, [selectedSpan, lazyIO, hasIO]);
+  const { effectiveSpan, isLoadingIO } = useSelectedSpanIO();
 
   // Cache system prompt per trace set (not per span)
   const cachedSystemPrompt = useMemo(() => {
