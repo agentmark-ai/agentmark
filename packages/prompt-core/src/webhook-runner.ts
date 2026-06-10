@@ -160,6 +160,31 @@ function extractErrorMessage(error: unknown): string {
 // (wire-chunks.json) can pin it against the Python runner's mirror.
 
 /**
+ * Record the formatted messages as `agentmark.input` on the prompt span.
+ *
+ * The runner owns the prompt (root) span, so it is the one place that knows
+ * the request boundary — executors must not set this. Trace-level input
+ * derivation reads the root span's input first, falling back to GENERATION
+ * spans emitted by the host SDK's instrumentation. Serialization mirrors
+ * Python's `_set_span_input` ({role, content} pairs) so both runners write
+ * identical attribute payloads — pinned by the shared span-io conformance
+ * vectors.
+ */
+function setSpanInput(ctx: SpanLike, input: unknown): void {
+  try {
+    const messages = (input as { messages?: unknown })?.messages;
+    if (!Array.isArray(messages) || messages.length === 0) return;
+    const serialized = messages.map((m: Record<string, unknown>) => ({
+      role: m?.role,
+      content: m?.content ?? "",
+    }));
+    ctx.setAttribute("agentmark.input", JSON.stringify(serialized));
+  } catch {
+    /* tracing must never break the run */
+  }
+}
+
+/**
  * Generic webhook runner — consumes an Executor, emits the canonical
  * NDJSON / WebhookPromptResponse wire format. Replaces the per-adapter
  * `*WebhookHandler` classes. Byte-compatible with the previous v5 handler
@@ -363,9 +388,25 @@ export class WebhookRunner<
     const spanName = frontmatter.name || "prompt-run";
 
     if (shouldStream) {
-      const { result: eventsPromise, traceId } = await this.promptSpanHook(
+      // The span must stay open until the stream drains: resolving the hook
+      // callback as soon as the executor's (lazy) iterable is created would
+      // end the span before the model call runs, splitting model spans into
+      // a separate trace. The callback builds the wire stream, hands it out
+      // through `ready`, and only resolves once the pump completes — so the
+      // hook (which ends the span when the callback settles) closes the span
+      // at drain time. Mirrors Python's generator-owned span handoff.
+      let resolveReady!: (v: { stream: ReadableStream; traceId: string }) => void;
+      let rejectReady!: (err: unknown) => void;
+      const ready = new Promise<{ stream: ReadableStream; traceId: string }>(
+        (res, rej) => {
+          resolveReady = res;
+          rejectReady = rej;
+        }
+      );
+      const hookDone = this.promptSpanHook(
         { name: spanName, promptName: frontmatter.name },
         async (ctx: SpanLike) => {
+          setSpanInput(ctx, input);
           const ctxExec: ExecCtx = {
             telemetry,
             signal: options?.signal,
@@ -373,39 +414,61 @@ export class WebhookRunner<
             promptName: frontmatter.name,
             shouldStream,
           };
-          return this.executor.executeText(input, ctxExec);
+          const events = this.executor.executeText(input, ctxExec);
+          let textBuf = "";
+          let drained!: () => void;
+          const drainDone = new Promise<void>((res) => {
+            drained = res;
+          });
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder();
+              try {
+                for await (const ev of events) {
+                  if (ev.type === "text-delta") textBuf += ev.text;
+                  // Pure event→chunk mapping lives in ./wire, pinned by the
+                  // shared wire-chunks.json golden vectors that the Python
+                  // runner's mirror also runs. Terminal handling stays here.
+                  const chunk = textEventToWire(ev);
+                  if (ev.type === "error") {
+                    console.error("[WebhookRunner] Error during streaming:", ev.error);
+                    controller.enqueue(encoder.encode(wireJson(chunk!)));
+                    break;
+                  }
+                  if (chunk) controller.enqueue(encoder.encode(wireJson(chunk)));
+                }
+              } catch (err) {
+                const message = extractErrorMessage(err);
+                console.error("[WebhookRunner] Error during streaming:", message);
+                controller.enqueue(
+                  encoder.encode(wireJson({ type: "error", error: message }))
+                );
+              } finally {
+                try {
+                  controller.close();
+                } catch {
+                  /* already closed */
+                }
+                drained();
+              }
+            },
+          });
+          resolveReady({ stream, traceId: ctx.traceId });
+          await drainDone;
+          if (textBuf) {
+            try {
+              ctx.setAttribute("agentmark.output", textBuf);
+            } catch {
+              /* ignore */
+            }
+          }
         }
       );
-
-      const stream = new ReadableStream({
-        async start(controller) {
-          const encoder = new TextEncoder();
-          try {
-            const events = await eventsPromise;
-            for await (const ev of events) {
-              // Pure event→chunk mapping lives in ./wire, pinned by the
-              // shared wire-chunks.json golden vectors that the Python
-              // runner's mirror also runs. Terminal handling stays here.
-              const chunk = textEventToWire(ev);
-              if (ev.type === "error") {
-                console.error("[WebhookRunner] Error during streaming:", ev.error);
-                controller.enqueue(encoder.encode(wireJson(chunk!)));
-                controller.close();
-                return;
-              }
-              if (chunk) controller.enqueue(encoder.encode(wireJson(chunk)));
-            }
-          } catch (err) {
-            const message = extractErrorMessage(err);
-            console.error("[WebhookRunner] Error during streaming:", message);
-            controller.enqueue(
-              encoder.encode(wireJson({ type: "error", error: message }))
-            );
-          }
-          controller.close();
-        },
-      });
-
+      // A failure before `ready` resolves (e.g. the executor throwing
+      // synchronously) must surface to the caller; afterwards errors are
+      // already reported as wire error chunks.
+      hookDone.catch((err) => rejectReady(err));
+      const { stream, traceId } = await ready;
       return {
         type: "stream",
         stream,
@@ -414,7 +477,11 @@ export class WebhookRunner<
       } as WebhookPromptResponse;
     }
 
-    // Non-streaming: collect events into a single text response.
+    // Non-streaming: collect events into a single text response. Draining
+    // happens INSIDE the span hook so the model call stays inside the span
+    // (the executor's iterable is lazy — iterating after the hook resolved
+    // would run the model with the span already closed), and a failed run
+    // marks the span ERROR by throwing through the hook.
     let text = "";
     let usage: any;
     let finishReason: string | undefined;
@@ -424,9 +491,10 @@ export class WebhookRunner<
     const collected: AgentEvent[] = [];
     const startTime = Date.now();
 
-    const { result: eventsPromise, traceId } = await this.promptSpanHook(
+    const { traceId } = await this.promptSpanHook(
       { name: spanName, promptName: frontmatter.name },
       async (ctx: SpanLike) => {
+        setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -434,47 +502,52 @@ export class WebhookRunner<
           promptName: frontmatter.name,
           shouldStream: false,
         };
-        return this.executor.executeText(input, ctxExec);
+        const events = this.executor.executeText(input, ctxExec);
+        let caughtError: Error | undefined;
+        for await (const ev of events) {
+          collected.push(ev);
+          if (ev.type === "text-delta") text += ev.text;
+          else if (ev.type === "tool-call")
+            toolCalls.push({
+              toolCallId: ev.id,
+              toolName: ev.name,
+              args: ev.args,
+            });
+          else if (ev.type === "tool-result")
+            toolResults.push({
+              toolCallId: ev.id,
+              toolName: ev.name,
+              result: ev.result,
+            });
+          else if (ev.type === "finish") {
+            finishReason = ev.reason;
+            if (ev.usage) usage = ev.usage;
+          } else if (ev.type === "error") {
+            caughtError = new Error(ev.error);
+          }
+        }
+
+        // Emit observation BEFORE throwing so consumers see failures too.
+        await this.emitObservation(() =>
+          this.buildObservation({
+            kind: "text",
+            events: collected,
+            promptName: frontmatter.name,
+            traceId: ctx.traceId,
+            durationMs: Date.now() - startTime,
+            finalOutput: text || undefined,
+          })
+        );
+        if (caughtError) throw caughtError;
+        if (text) {
+          try {
+            ctx.setAttribute("agentmark.output", text);
+          } catch {
+            /* ignore */
+          }
+        }
       }
     );
-
-    const events = await eventsPromise;
-    let caughtError: Error | undefined;
-    for await (const ev of events) {
-      collected.push(ev);
-      if (ev.type === "text-delta") text += ev.text;
-      else if (ev.type === "tool-call")
-        toolCalls.push({
-          toolCallId: ev.id,
-          toolName: ev.name,
-          args: ev.args,
-        });
-      else if (ev.type === "tool-result")
-        toolResults.push({
-          toolCallId: ev.id,
-          toolName: ev.name,
-          result: ev.result,
-        });
-      else if (ev.type === "finish") {
-        finishReason = ev.reason;
-        if (ev.usage) usage = ev.usage;
-      } else if (ev.type === "error") {
-        caughtError = new Error(ev.error);
-      }
-    }
-
-    // Emit observation BEFORE throwing so consumers see failures too.
-    await this.emitObservation(() =>
-      this.buildObservation({
-        kind: "text",
-        events: collected,
-        promptName: frontmatter.name,
-        traceId,
-        durationMs: Date.now() - startTime,
-        finalOutput: text || undefined,
-      })
-    );
-    if (caughtError) throw caughtError;
 
     // Envelope assembly is the pure textResponseToWire (./wire), pinned by
     // the shared response-envelopes.json golden vectors that the Python
@@ -504,9 +577,20 @@ export class WebhookRunner<
     const spanName = frontmatter.name || "prompt-run";
 
     if (shouldStream) {
-      const { result: eventsPromise, traceId } = await this.promptSpanHook(
+      // Span ownership transfers to the stream pump — see runText for the
+      // full rationale (span must end at drain, not at iterable creation).
+      let resolveReady!: (v: { stream: ReadableStream; traceId: string }) => void;
+      let rejectReady!: (err: unknown) => void;
+      const ready = new Promise<{ stream: ReadableStream; traceId: string }>(
+        (res, rej) => {
+          resolveReady = res;
+          rejectReady = rej;
+        }
+      );
+      const hookDone = this.promptSpanHook(
         { name: spanName, promptName: frontmatter.name },
         async (ctx: SpanLike) => {
+          setSpanInput(ctx, input);
           const ctxExec: ExecCtx = {
             telemetry,
             signal: options?.signal,
@@ -514,41 +598,66 @@ export class WebhookRunner<
             promptName: frontmatter.name,
             shouldStream,
           };
-          return this.executor.executeObject(input, ctxExec);
+          const events = this.executor.executeObject(input, ctxExec);
+          // Same accumulation semantics as the non-streaming drain.
+          let value: unknown = undefined;
+          let drained!: () => void;
+          const drainDone = new Promise<void>((res) => {
+            drained = res;
+          });
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder();
+              try {
+                for await (const ev of events) {
+                  if (ev.type === "object-final") value = ev.value;
+                  else if (ev.type === "object-delta") value = ev.partial;
+                  // Pure event→chunk mapping lives in ./wire, pinned by the
+                  // shared wire-chunks.json golden vectors that the Python
+                  // runner's mirror also runs: usage-less finish emits nothing,
+                  // object-final emits a "result" chunk so non-streaming
+                  // dashboards see the final object.
+                  const chunk = objectEventToWire(ev);
+                  if (ev.type === "error") {
+                    console.error("[WebhookRunner] Error during streaming:", ev.error);
+                    controller.enqueue(encoder.encode(wireJson(chunk!)));
+                    break;
+                  }
+                  if (chunk) controller.enqueue(encoder.encode(wireJson(chunk)));
+                }
+              } catch (err) {
+                const message = extractErrorMessage(err);
+                console.error("[WebhookRunner] Error during streaming:", message);
+                controller.enqueue(
+                  encoder.encode(wireJson({ type: "error", error: message }))
+                );
+              } finally {
+                try {
+                  controller.close();
+                } catch {
+                  /* already closed */
+                }
+                drained();
+              }
+            },
+          });
+          resolveReady({ stream, traceId: ctx.traceId });
+          await drainDone;
+          if (value !== undefined) {
+            try {
+              ctx.setAttribute(
+                "agentmark.output",
+                typeof value === "string" ? value : JSON.stringify(value)
+              );
+            } catch {
+              /* ignore */
+            }
+          }
         }
       );
-
-      const stream = new ReadableStream({
-        async start(controller) {
-          const encoder = new TextEncoder();
-          try {
-            const events = await eventsPromise;
-            for await (const ev of events) {
-              // Pure event→chunk mapping lives in ./wire, pinned by the
-              // shared wire-chunks.json golden vectors that the Python
-              // runner's mirror also runs: usage-less finish emits nothing,
-              // object-final emits a "result" chunk so non-streaming
-              // dashboards see the final object.
-              const chunk = objectEventToWire(ev);
-              if (ev.type === "error") {
-                console.error("[WebhookRunner] Error during streaming:", ev.error);
-                controller.enqueue(encoder.encode(wireJson(chunk!)));
-                controller.close();
-                return;
-              }
-              if (chunk) controller.enqueue(encoder.encode(wireJson(chunk)));
-            }
-          } catch (err) {
-            const message = extractErrorMessage(err);
-            console.error("[WebhookRunner] Error during streaming:", message);
-            controller.enqueue(
-              encoder.encode(wireJson({ type: "error", error: message }))
-            );
-          }
-          controller.close();
-        },
-      });
-
+      // See runText: pre-`ready` failures surface to the caller.
+      hookDone.catch((err) => rejectReady(err));
+      const { stream, traceId } = await ready;
       return {
         type: "stream",
         stream,
@@ -557,16 +666,18 @@ export class WebhookRunner<
       } as WebhookPromptResponse;
     }
 
-    // Non-streaming: wait for object-final.
+    // Non-streaming: wait for object-final. Draining happens INSIDE the
+    // span hook — see runText for the rationale.
     let value: unknown = undefined;
     let usage: any;
     let finishReason: string | undefined;
     const collected: AgentEvent[] = [];
     const startTime = Date.now();
 
-    const { result: eventsPromise, traceId } = await this.promptSpanHook(
+    const { traceId } = await this.promptSpanHook(
       { name: spanName, promptName: frontmatter.name },
       async (ctx: SpanLike) => {
+        setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -574,35 +685,43 @@ export class WebhookRunner<
           promptName: frontmatter.name,
           shouldStream: false,
         };
-        return this.executor.executeObject(input, ctxExec);
+        const events = this.executor.executeObject(input, ctxExec);
+        let caughtError: Error | undefined;
+        for await (const ev of events) {
+          collected.push(ev);
+          if (ev.type === "object-final") value = ev.value;
+          else if (ev.type === "object-delta") value = ev.partial;
+          else if (ev.type === "finish") {
+            finishReason = ev.reason;
+            if (ev.usage) usage = ev.usage;
+          } else if (ev.type === "error") {
+            caughtError = new Error(ev.error);
+          }
+        }
+
+        await this.emitObservation(() =>
+          this.buildObservation({
+            kind: "object",
+            events: collected,
+            promptName: frontmatter.name,
+            traceId: ctx.traceId,
+            durationMs: Date.now() - startTime,
+            finalOutput: value,
+          })
+        );
+        if (caughtError) throw caughtError;
+        if (value !== undefined) {
+          try {
+            ctx.setAttribute(
+              "agentmark.output",
+              typeof value === "string" ? value : JSON.stringify(value)
+            );
+          } catch {
+            /* ignore */
+          }
+        }
       }
     );
-
-    const events = await eventsPromise;
-    let caughtError: Error | undefined;
-    for await (const ev of events) {
-      collected.push(ev);
-      if (ev.type === "object-final") value = ev.value;
-      else if (ev.type === "object-delta") value = ev.partial;
-      else if (ev.type === "finish") {
-        finishReason = ev.reason;
-        if (ev.usage) usage = ev.usage;
-      } else if (ev.type === "error") {
-        caughtError = new Error(ev.error);
-      }
-    }
-
-    await this.emitObservation(() =>
-      this.buildObservation({
-        kind: "object",
-        events: collected,
-        promptName: frontmatter.name,
-        traceId,
-        durationMs: Date.now() - startTime,
-        finalOutput: value,
-      })
-    );
-    if (caughtError) throw caughtError;
 
     // See runText — vector-pinned envelope assembly.
     return objectResponseToWire({
@@ -634,6 +753,7 @@ export class WebhookRunner<
     const { result, traceId } = await this.promptSpanHook(
       { name: spanName, promptName: frontmatter.name },
       async (ctx: SpanLike) => {
+        setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -667,6 +787,7 @@ export class WebhookRunner<
     const { result, traceId } = await this.promptSpanHook(
       { name: spanName, promptName: frontmatter.name },
       async (ctx: SpanLike) => {
+        setSpanInput(ctx, input);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
