@@ -27,7 +27,7 @@ export interface SpanLike {
    * consumers expect (AgentMark cloud expects 32-char lowercase hex).
    */
   readonly traceId: string;
-  setAttribute(key: string, value: string): void;
+  setAttribute(key: string, value: string | number): void;
 }
 
 export interface PromptSpanParams {

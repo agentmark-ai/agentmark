@@ -84,3 +84,54 @@ class TestAgentmarkSampler:
         sampler = AgentmarkSampler()
 
         assert sampler.get_description() == "AgentmarkSampler"
+
+
+class TestSamplerAttributePreservation:
+    """Regression: the sampler result REPLACES create-time attributes per
+    the OTel spec, so the sampler must forward them — a bare decision
+    silently strips every attribute passed to start_span(attributes=...),
+    including instrumentation-library gen_ai.* attributes."""
+
+    def test_create_time_attributes_survive_sampling(self) -> None:
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
+
+        from agentmark_sdk.sampler import AgentmarkSampler
+
+        exporter = InMemorySpanExporter()
+        provider = TracerProvider(sampler=AgentmarkSampler())
+        provider.add_span_processor(SimpleSpanProcessor(exporter))
+        tracer = provider.get_tracer("probe")
+
+        with tracer.start_as_current_span(
+            "s", attributes={"gen_ai.request.model": "test-model"}
+        ) as span:
+            span.set_attribute("post.create", "v")
+
+        attrs = dict(exporter.get_finished_spans()[0].attributes)
+        assert attrs["gen_ai.request.model"] == "test-model"
+        assert attrs["post.create"] == "v"
+
+    def test_filtered_spans_still_dropped(self) -> None:
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
+
+        from agentmark_sdk.sampler import AgentmarkSampler
+
+        exporter = InMemorySpanExporter()
+        provider = TracerProvider(sampler=AgentmarkSampler())
+        provider.add_span_processor(SimpleSpanProcessor(exporter))
+        tracer = provider.get_tracer("probe")
+
+        with tracer.start_as_current_span(
+            "next-internal", attributes={"next.span_name": "x"}
+        ):
+            pass
+
+        assert exporter.get_finished_spans() == ()

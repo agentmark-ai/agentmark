@@ -73,7 +73,7 @@ function clientWithMessages(messages: unknown[]) {
 
 /** Recording span hook: captures attributes and when the span ended. */
 function recordingHook() {
-  const attributes: Record<string, string> = {};
+  const attributes: Record<string, string | number> = {};
   const state = { ended: false };
   const hook: PromptSpanHook = async (_params, fn) => {
     const span: SpanLike = {
@@ -101,19 +101,36 @@ async function drain(stream: ReadableStream): Promise<void> {
 }
 
 function assertAttributes(
-  attributes: Record<string, string>,
-  expected: { input: unknown[]; output: unknown }
+  attributes: Record<string, string | number>,
+  expected: {
+    input: unknown[];
+    output: unknown;
+    model: string;
+    usage: { input: number; output: number } | null;
+  }
 ) {
   // Input is always compared as parsed JSON — TS/Python spacing differs.
   expect(attributes["agentmark.input"]).toBeDefined();
-  expect(JSON.parse(attributes["agentmark.input"])).toEqual(expected.input);
+  expect(JSON.parse(attributes["agentmark.input"] as string)).toEqual(expected.input);
 
   if (expected.output === null) {
     expect(attributes["agentmark.output"]).toBeUndefined();
   } else if (typeof expected.output === "string") {
     expect(attributes["agentmark.output"]).toBe(expected.output);
   } else {
-    expect(JSON.parse(attributes["agentmark.output"])).toEqual(expected.output);
+    expect(JSON.parse(attributes["agentmark.output"] as string)).toEqual(expected.output);
+  }
+
+  // Model is stamped from frontmatter at span start on every path.
+  expect(attributes["gen_ai.request.model"]).toBe(expected.model);
+
+  // Usage must be NUMERIC attributes (the normalizer rejects strings).
+  if (expected.usage === null) {
+    expect(attributes["gen_ai.usage.input_tokens"]).toBeUndefined();
+    expect(attributes["gen_ai.usage.output_tokens"]).toBeUndefined();
+  } else {
+    expect(attributes["gen_ai.usage.input_tokens"]).toBe(expected.usage.input);
+    expect(attributes["gen_ai.usage.output_tokens"]).toBe(expected.usage.output);
   }
 }
 

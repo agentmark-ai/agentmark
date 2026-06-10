@@ -14,9 +14,6 @@ Auto-generated from all feature plans. Last updated: 2026-02-07
 - TypeScript 5.x (existing CLI codebase) + commander ^12.1.0 (existing), Node.js built-in `https` module for registry requests (008-cli-update-notifications)
 - TypeScript 5.x + @xyflow/react 12.9.0 (React Flow), dagre 0.8.5, React 19.1.0, MUI 7.x (001-auto-graph-nodes)
 - TypeScript 5.x, Node.js 18+, Python 3.8+ + cross-env (env vars), shx (shell commands), rimraf (rm -rf) (004-windows-compatibility)
-- TypeScript 5.6.2+ (005-claude-agent-sdk-adapter)
-- N/A (stateless adapter) (005-claude-agent-sdk-adapter)
-- TypeScript 5.6.2+ + @anthropic-ai/claude-agent-sdk, @opentelemetry/api, @opentelemetry/sdk-trace-base, zod (005-claude-agent-sdk-adapter)
 - TypeScript 5.x (Node.js 18+) + fs-extra, prompts (already in use by create-agentmark) (006-existing-repo-init)
 - N/A (file system operations only) (006-existing-repo-init)
 - TypeScript 5.x, Node.js 18+ + yarn 4.5.3 (workspaces), turbo (build orchestration) (007-fix-dependency-vulnerabilities)
@@ -52,7 +49,6 @@ CI (`.github/workflows/ci.yml`) runs `build` across `os: [ubuntu-latest, windows
 - 008-cli-update-notifications: Added TypeScript 5.x (existing CLI codebase) + commander ^12.1.0 (existing), Node.js built-in `https` module for registry requests
 - 007-fix-dependency-vulnerabilities: Added TypeScript 5.x, Node.js 18+ + yarn 4.5.3 (workspaces), turbo (build orchestration)
 - 004-nx-release: Added Node.js 21 (GitHub Actions), TypeScript 5.x (monorepo packages) + nx ^20.4.0 (already installed), @changesets/cli (to be removed)
-- 005-claude-agent-sdk-adapter: Added TypeScript 5.6.2+ + @anthropic-ai/claude-agent-sdk, @opentelemetry/api, @opentelemetry/sdk-trace-base, zod
 - 006-existing-repo-init: Added TypeScript 5.x (Node.js 18+) + fs-extra, prompts (already in use by create-agentmark)
 - 004-windows-compatibility: Added TypeScript 5.x, Node.js 18+, Python 3.8+ + cross-env (env vars), shx (shell commands), rimraf (rm -rf)
 - 003-mcp-trace-server: Added TypeScript 5.x (ES2020 target, Node16 module resolution) + @modelcontextprotocol/sdk ^1.11.0, zod ^3.25.0

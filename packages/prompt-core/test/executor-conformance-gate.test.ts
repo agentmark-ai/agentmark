@@ -129,7 +129,6 @@ describe("executor conformance meta-gate", () => {
       "ai-sdk-shared",
       "ai-sdk-v4-adapter",
       "ai-sdk-v5-adapter",
-      "claude-agent-sdk-v0-adapter",
       "mastra-v0-adapter",
       "prompt-core",
     ]) {
@@ -149,8 +148,7 @@ describe("executor conformance meta-gate", () => {
           `(${scan.implementationFiles.join(", ")}) but its tests never ` +
           `invoke the conformance suite. Add a test that calls ` +
           `runExecutorConformance(executor, { text, object, errorInput }) ` +
-          `— see mastra-v0-adapter/test/executor.test.ts or ` +
-          `claude-agent-sdk-v0-adapter/test/executor-conformance.test.ts ` +
+          `— see mastra-v0-adapter/test/executor.test.ts ` +
           `for the pattern.`
       ).toBe(true);
     });

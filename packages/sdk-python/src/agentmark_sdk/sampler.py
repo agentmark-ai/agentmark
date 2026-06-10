@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
+from opentelemetry import trace as otel_trace
 from opentelemetry.context import Context
 from opentelemetry.sdk.trace.sampling import (
     Decision,
@@ -53,7 +54,21 @@ class AgentmarkSampler(Sampler):
                 if key in attributes:
                     return SamplingResult(Decision.DROP)
 
-        return SamplingResult(Decision.RECORD_AND_SAMPLE)
+        # Forward the caller's attributes: per the OTel spec the sampler
+        # result REPLACES the span's create-time attributes, so returning a
+        # bare decision silently strips every attribute passed to
+        # start_span(..., attributes=...) — including gen_ai.* attributes
+        # from instrumentation libraries (e.g. botocore's Bedrock extension,
+        # whose model/operation attributes vanished under this sampler).
+        # Post-creation set_attribute calls were unaffected, which is why
+        # this stayed hidden. trace_state is forwarded from the parent span
+        # context, matching the SDK's built-in StaticSampler behavior.
+        parent_span_context = otel_trace.get_current_span(parent_context).get_span_context()
+        return SamplingResult(
+            Decision.RECORD_AND_SAMPLE,
+            attributes,
+            parent_span_context.trace_state,
+        )
 
     def get_description(self) -> str:
         """Return a description of this sampler."""

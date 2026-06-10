@@ -1,5 +1,8 @@
 # AgentMark Pydantic AI Adapter
 
+> [!WARNING]
+> **DEPRECATED.** `agentmark-pydantic-ai-v0` is deprecated: it receives no new features, and removal from this repository is planned. Use the fallback/default adapter path (see [`@agentmark-ai/fallback-adapter`](../fallback-adapter)) instead.
+
 Pydantic AI adapter for AgentMark - integrate AgentMark prompts with Pydantic AI for type-safe LLM interactions in Python.
 
 ## Installation
