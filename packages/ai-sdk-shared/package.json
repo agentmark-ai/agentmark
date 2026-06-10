@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/ai-sdk-shared",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Shared executor factory and model registry for the AgentMark Vercel AI SDK v4 and v5 adapters. Consumed by those adapters as a regular dependency.",
   "license": "MIT",
   "publishConfig": {
