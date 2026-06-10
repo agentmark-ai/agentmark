@@ -198,6 +198,52 @@ function setSpanInput(ctx: SpanLike, input: unknown): void {
 }
 
 /**
+ * Record the prompt's configured model as `gen_ai.request.model` on the
+ * prompt span. The runner reads it from frontmatter (adapter-agnostic), so
+ * traces from executors with NO model-SDK instrumentation still carry a
+ * model — doctor's "a model on any span" check and the dashboard's model
+ * column work for raw-SDK integrations out of the box.
+ */
+function setSpanModel(ctx: SpanLike, frontmatter: Frontmatter): void {
+  try {
+    const config = (frontmatter.text_config ??
+      frontmatter.object_config ??
+      frontmatter.image_config ??
+      frontmatter.speech_config) as { model_name?: unknown } | undefined;
+    const model = config?.model_name;
+    if (typeof model === "string" && model.length > 0) {
+      ctx.setAttribute("gen_ai.request.model", model);
+    }
+  } catch {
+    /* tracing must never break the run */
+  }
+}
+
+/**
+ * Record the executor-reported usage as `gen_ai.usage.*` on the prompt
+ * span. Numbers, not strings — the normalizer only accepts numeric token
+ * attributes. Gives instrumentation-less traces token counts (trace-level
+ * aggregation reads span tokens). The wrapper span stays type SPAN, so
+ * GENERATION-only rollups never double-count it when model spans exist.
+ */
+function setSpanUsage(
+  ctx: SpanLike,
+  usage: { inputTokens?: number; outputTokens?: number } | undefined
+): void {
+  if (!usage) return;
+  try {
+    if (typeof usage.inputTokens === "number") {
+      ctx.setAttribute("gen_ai.usage.input_tokens", usage.inputTokens);
+    }
+    if (typeof usage.outputTokens === "number") {
+      ctx.setAttribute("gen_ai.usage.output_tokens", usage.outputTokens);
+    }
+  } catch {
+    /* tracing must never break the run */
+  }
+}
+
+/**
  * Generic webhook runner — consumes an Executor, emits the canonical
  * NDJSON / WebhookPromptResponse wire format. Replaces the per-adapter
  * `*WebhookHandler` classes. Byte-compatible with the previous v5 handler
@@ -424,6 +470,7 @@ export class WebhookRunner<
         },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
+          setSpanModel(ctx, frontmatter);
           const ctxExec: ExecCtx = {
             telemetry,
             signal: options?.signal,
@@ -433,6 +480,7 @@ export class WebhookRunner<
           };
           const events = this.executor.executeText(input, ctxExec);
           let textBuf = "";
+          let usageCap: { inputTokens?: number; outputTokens?: number } | undefined;
           let drained!: () => void;
           const drainDone = new Promise<void>((res) => {
             drained = res;
@@ -443,6 +491,7 @@ export class WebhookRunner<
               try {
                 for await (const ev of events) {
                   if (ev.type === "text-delta") textBuf += ev.text;
+                  else if (ev.type === "finish" && ev.usage) usageCap = ev.usage;
                   // Pure event→chunk mapping lives in ./wire, pinned by the
                   // shared wire-chunks.json golden vectors that the Python
                   // runner's mirror also runs. Terminal handling stays here.
@@ -479,6 +528,7 @@ export class WebhookRunner<
               /* ignore */
             }
           }
+          setSpanUsage(ctx, usageCap);
         }
       );
       // A failure before `ready` resolves (e.g. the executor throwing
@@ -516,6 +566,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanModel(ctx, frontmatter);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -567,6 +618,7 @@ export class WebhookRunner<
             /* ignore */
           }
         }
+        setSpanUsage(ctx, usage);
       }
     );
 
@@ -616,6 +668,7 @@ export class WebhookRunner<
         },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
+          setSpanModel(ctx, frontmatter);
           const ctxExec: ExecCtx = {
             telemetry,
             signal: options?.signal,
@@ -626,6 +679,7 @@ export class WebhookRunner<
           const events = this.executor.executeObject(input, ctxExec);
           // Same accumulation semantics as the non-streaming drain.
           let value: unknown = undefined;
+          let usageCap: { inputTokens?: number; outputTokens?: number } | undefined;
           let drained!: () => void;
           const drainDone = new Promise<void>((res) => {
             drained = res;
@@ -637,6 +691,7 @@ export class WebhookRunner<
                 for await (const ev of events) {
                   if (ev.type === "object-final") value = ev.value;
                   else if (ev.type === "object-delta") value = ev.partial;
+                  else if (ev.type === "finish" && ev.usage) usageCap = ev.usage;
                   // Pure event→chunk mapping lives in ./wire, pinned by the
                   // shared wire-chunks.json golden vectors that the Python
                   // runner's mirror also runs: usage-less finish emits nothing,
@@ -678,6 +733,7 @@ export class WebhookRunner<
               /* ignore */
             }
           }
+          setSpanUsage(ctx, usageCap);
         }
       );
       // See runText: pre-`ready` failures surface to the caller.
@@ -707,6 +763,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanModel(ctx, frontmatter);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -749,6 +806,7 @@ export class WebhookRunner<
             /* ignore */
           }
         }
+        setSpanUsage(ctx, usage);
       }
     );
 
@@ -787,6 +845,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanModel(ctx, frontmatter);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -825,6 +884,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanModel(ctx, frontmatter);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,

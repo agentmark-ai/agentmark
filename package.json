@@ -79,9 +79,6 @@
     "brace-expansion@npm:^5.0.2": "^5.0.5"
   },
   "dependenciesMeta": {
-    "agentmark-claude-agent-sdk-v0": {
-      "built": false
-    },
     "agentmark-prompt-core": {
       "built": false
     },

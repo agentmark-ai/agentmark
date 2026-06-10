@@ -31,7 +31,7 @@ it are semver-major (see `packages/conformance-vectors/`).
 > that one seam, extend the param maps, pin your peer dep, done.
 >
 > For reading reference: the smallest complete hand-written adapter is
-> `packages/claude-agent-sdk-v0-adapter` (TS) or
+> `packages/mastra-v0-adapter` (TS) or
 > `packages/pydantic-ai-v0-adapter` (Python). For Vercel-AI-SDK-style
 > param-bag SDKs, `packages/ai-sdk-v4-adapter` / `ai-sdk-v5-adapter` are thin
 > shells over shared cores — read them to see how little version-specific code
@@ -221,11 +221,9 @@ packages/<framework>-v<major>-adapter/
    text/object/error fixtures, plus an `assertAbortStream` case. Stub your
    SDK with scripted responses — the executor's job is pure event
    translation, so no real model calls are needed. References:
-   `claude-agent-sdk-v0-adapter/test/executor-conformance.test.ts` for
+   `mastra-v0-adapter/test/executor.test.ts` for
    scripted-SDK stream simulation and exact-sequence assertions;
-   `ai-sdk-shared/test/executor-conformance.test.ts` for the abort case
-   (the claude adapter predates signal forwarding and has no abort test —
-   don't copy that omission).
+   `ai-sdk-shared/test/executor-conformance.test.ts` for the abort case.
 2. **Adapter unit tests per modality**: exact-shape assertions (`toEqual`)
    on the adapted params — including param renames, telemetry block, tool
    resolution, and schema conversion.

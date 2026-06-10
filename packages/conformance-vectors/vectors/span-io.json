@@ -1,25 +1,55 @@
 {
-  "description": "Prompt-span I/O contract for the WebhookRunner in BOTH languages: TS prompt-core/src/webhook-runner.ts and Python prompt_core/webhook_runner.py. The RUNNER (never executors) records `agentmark.input` (the formatted messages as {role, content} pairs, JSON-serialized) on the prompt span right after format(), and `agentmark.output` after the event stream drains — in BOTH streaming and non-streaming modes. The span ends when the stream drains (or the run returns), never when the executor's lazy iterable is created; ending early runs the model outside the span and splits model spans into a separate trace. Trace-level I/O derivation reads the root span's input/output first, so these attributes are what make trace I/O correct end-to-end. `expected.input` is compared as parsed JSON (TS and Python JSON spacing differs); `expected.output` is compared raw when a string, as parsed JSON otherwise; null means the attribute must be ABSENT. `throws: true` means the non-streaming run must reject/raise after emitting its observation. Changing any expectation is a cross-language tracing-contract break — update both runners and this file together.",
+  "description": "Prompt-span I/O contract for the WebhookRunner in BOTH languages: TS prompt-core/src/webhook-runner.ts and Python prompt_core/webhook_runner.py. The RUNNER (never executors) records `agentmark.input` (the formatted messages as {role, content} pairs, JSON-serialized) on the prompt span right after format(), and `agentmark.output` after the event stream drains \u2014 in BOTH streaming and non-streaming modes. The span ends when the stream drains (or the run returns), never when the executor's lazy iterable is created; ending early runs the model outside the span and splits model spans into a separate trace. Trace-level I/O derivation reads the root span's input/output first, so these attributes are what make trace I/O correct end-to-end. `expected.input` is compared as parsed JSON (TS and Python JSON spacing differs); `expected.output` is compared raw when a string, as parsed JSON otherwise; null means the attribute must be ABSENT. `throws: true` means the non-streaming run must reject/raise after emitting its observation. Changing any expectation is a cross-language tracing-contract break \u2014 update both runners and this file together. Additionally pinned: the runner stamps `gen_ai.request.model` (from frontmatter, expected.model) on every span at start, and `gen_ai.usage.input_tokens`/`output_tokens` (integers, from the finish event's usage \u2014 expected.usage as {input, output}, null = both absent) after drain.",
   "cases": [
     {
       "name": "non-streaming text: input + output recorded on the prompt span",
       "kind": "text",
       "shouldStream": false,
       "messages": [
-        { "role": "system", "content": "be brief" },
-        { "role": "user", "content": "hi" }
+        {
+          "role": "system",
+          "content": "be brief"
+        },
+        {
+          "role": "user",
+          "content": "hi"
+        }
       ],
       "events": [
-        { "type": "text-delta", "text": "hel" },
-        { "type": "text-delta", "text": "lo" },
-        { "type": "finish", "reason": "stop" }
+        {
+          "type": "text-delta",
+          "text": "hel"
+        },
+        {
+          "type": "text-delta",
+          "text": "lo"
+        },
+        {
+          "type": "finish",
+          "reason": "stop",
+          "usage": {
+            "inputTokens": 7,
+            "outputTokens": 11
+          }
+        }
       ],
       "expected": {
         "input": [
-          { "role": "system", "content": "be brief" },
-          { "role": "user", "content": "hi" }
+          {
+            "role": "system",
+            "content": "be brief"
+          },
+          {
+            "role": "user",
+            "content": "hi"
+          }
         ],
-        "output": "hello"
+        "output": "hello",
+        "model": "test",
+        "usage": {
+          "input": 7,
+          "output": 11
+        }
       },
       "throws": false
     },
@@ -28,20 +58,50 @@
       "kind": "text",
       "shouldStream": true,
       "messages": [
-        { "role": "system", "content": "be brief" },
-        { "role": "user", "content": "hi" }
+        {
+          "role": "system",
+          "content": "be brief"
+        },
+        {
+          "role": "user",
+          "content": "hi"
+        }
       ],
       "events": [
-        { "type": "text-delta", "text": "hel" },
-        { "type": "text-delta", "text": "lo" },
-        { "type": "finish", "reason": "stop" }
+        {
+          "type": "text-delta",
+          "text": "hel"
+        },
+        {
+          "type": "text-delta",
+          "text": "lo"
+        },
+        {
+          "type": "finish",
+          "reason": "stop",
+          "usage": {
+            "inputTokens": 7,
+            "outputTokens": 11
+          }
+        }
       ],
       "expected": {
         "input": [
-          { "role": "system", "content": "be brief" },
-          { "role": "user", "content": "hi" }
+          {
+            "role": "system",
+            "content": "be brief"
+          },
+          {
+            "role": "user",
+            "content": "hi"
+          }
         ],
-        "output": "hello"
+        "output": "hello",
+        "model": "test",
+        "usage": {
+          "input": 7,
+          "output": 11
+        }
       },
       "throws": false
     },
@@ -49,15 +109,51 @@
       "name": "non-streaming object: output is the final object, JSON-serialized",
       "kind": "object",
       "shouldStream": false,
-      "messages": [{ "role": "user", "content": "extract" }],
+      "messages": [
+        {
+          "role": "user",
+          "content": "extract"
+        }
+      ],
       "events": [
-        { "type": "object-delta", "partial": { "a": 1 } },
-        { "type": "object-final", "value": { "a": 1, "b": 2 } },
-        { "type": "finish", "reason": "stop" }
+        {
+          "type": "object-delta",
+          "partial": {
+            "a": 1
+          }
+        },
+        {
+          "type": "object-final",
+          "value": {
+            "a": 1,
+            "b": 2
+          }
+        },
+        {
+          "type": "finish",
+          "reason": "stop",
+          "usage": {
+            "inputTokens": 7,
+            "outputTokens": 11
+          }
+        }
       ],
       "expected": {
-        "input": [{ "role": "user", "content": "extract" }],
-        "output": { "a": 1, "b": 2 }
+        "input": [
+          {
+            "role": "user",
+            "content": "extract"
+          }
+        ],
+        "output": {
+          "a": 1,
+          "b": 2
+        },
+        "model": "test",
+        "usage": {
+          "input": 7,
+          "output": 11
+        }
       },
       "throws": false
     },
@@ -65,15 +161,51 @@
       "name": "streaming object: same I/O contract, span ends only after drain",
       "kind": "object",
       "shouldStream": true,
-      "messages": [{ "role": "user", "content": "extract" }],
+      "messages": [
+        {
+          "role": "user",
+          "content": "extract"
+        }
+      ],
       "events": [
-        { "type": "object-delta", "partial": { "a": 1 } },
-        { "type": "object-final", "value": { "a": 1, "b": 2 } },
-        { "type": "finish", "reason": "stop" }
+        {
+          "type": "object-delta",
+          "partial": {
+            "a": 1
+          }
+        },
+        {
+          "type": "object-final",
+          "value": {
+            "a": 1,
+            "b": 2
+          }
+        },
+        {
+          "type": "finish",
+          "reason": "stop",
+          "usage": {
+            "inputTokens": 7,
+            "outputTokens": 11
+          }
+        }
       ],
       "expected": {
-        "input": [{ "role": "user", "content": "extract" }],
-        "output": { "a": 1, "b": 2 }
+        "input": [
+          {
+            "role": "user",
+            "content": "extract"
+          }
+        ],
+        "output": {
+          "a": 1,
+          "b": 2
+        },
+        "model": "test",
+        "usage": {
+          "input": 7,
+          "output": 11
+        }
       },
       "throws": false
     },
@@ -81,14 +213,32 @@
       "name": "non-streaming text error: input recorded, NO output, run raises",
       "kind": "text",
       "shouldStream": false,
-      "messages": [{ "role": "user", "content": "hi" }],
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        }
+      ],
       "events": [
-        { "type": "text-delta", "text": "par" },
-        { "type": "error", "error": "boom" }
+        {
+          "type": "text-delta",
+          "text": "par"
+        },
+        {
+          "type": "error",
+          "error": "boom"
+        }
       ],
       "expected": {
-        "input": [{ "role": "user", "content": "hi" }],
-        "output": null
+        "input": [
+          {
+            "role": "user",
+            "content": "hi"
+          }
+        ],
+        "output": null,
+        "model": "test",
+        "usage": null
       },
       "throws": true
     },
@@ -96,14 +246,32 @@
       "name": "streaming text error: partial output recorded for debugging, no raise (error rides the wire)",
       "kind": "text",
       "shouldStream": true,
-      "messages": [{ "role": "user", "content": "hi" }],
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        }
+      ],
       "events": [
-        { "type": "text-delta", "text": "par" },
-        { "type": "error", "error": "boom" }
+        {
+          "type": "text-delta",
+          "text": "par"
+        },
+        {
+          "type": "error",
+          "error": "boom"
+        }
       ],
       "expected": {
-        "input": [{ "role": "user", "content": "hi" }],
-        "output": "par"
+        "input": [
+          {
+            "role": "user",
+            "content": "hi"
+          }
+        ],
+        "output": "par",
+        "model": "test",
+        "usage": null
       },
       "throws": false
     }
