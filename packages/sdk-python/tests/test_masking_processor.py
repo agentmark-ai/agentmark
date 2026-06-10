@@ -26,6 +26,7 @@ def _make_span(attrs: dict[str, object]) -> MagicMock:
 # They MUST stay identical to the TS SDK's masking-processor.ts sets.
 EXPECTED_INPUT_KEYS = [
     "agentmark.dataset_input",
+    "agentmark.request.input",
     "ai.prompt",
     "ai.prompt.messages",
     "ai.prompt.toolChoice",
@@ -42,6 +43,7 @@ EXPECTED_INPUT_KEYS = [
 ]
 
 EXPECTED_OUTPUT_KEYS = [
+    "agentmark.response.output",
     "ai.response.object",
     "ai.response.text",
     "ai.response.toolCalls",

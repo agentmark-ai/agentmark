@@ -171,6 +171,12 @@ class TestSpanFunction:
             assert "agentmark.session_id" in attr_names
             assert "agentmark.metadata.env" in attr_names
 
+            # session_id also dual-emits the standard OTel GenAI
+            # conversation id key with the identical value.
+            attr_values = {call[0][0]: call[0][1] for call in calls}
+            assert attr_values["gen_ai.conversation.id"] == "session-456"
+            assert attr_values["agentmark.session_id"] == "session-456"
+
     @pytest.mark.asyncio
     async def test_span_handles_exception(self) -> None:
         """Test that span() properly handles exceptions."""

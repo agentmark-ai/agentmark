@@ -229,11 +229,22 @@ function buildContext(otelSpan: Span, tracer: Tracer): SpanContext {
     },
 
     setInput: (value: unknown) => {
-      otelSpan.setAttribute("gen_ai.request.input", serializeValue(value));
+      const serialized = serializeValue(value);
+      // Vendor-namespaced key: span() wraps arbitrary operations, not model
+      // calls, so its IO does not belong in the reserved OTel gen_ai.*
+      // namespace (the spec assigns gen_ai.input.messages a structured
+      // message schema this free-form value does not follow).
+      otelSpan.setAttribute("agentmark.request.input", serialized);
+      // @deprecated dual-emit for one release cycle — gen_ai.request.input
+      // is not a spec attribute and will be removed in a future release.
+      otelSpan.setAttribute("gen_ai.request.input", serialized);
     },
 
     setOutput: (value: unknown) => {
-      otelSpan.setAttribute("gen_ai.response.output", serializeValue(value));
+      const serialized = serializeValue(value);
+      otelSpan.setAttribute("agentmark.response.output", serialized);
+      // @deprecated dual-emit for one release cycle — see setInput.
+      otelSpan.setAttribute("gen_ai.response.output", serialized);
     },
 
     span: async <T>(options: { name: string; metadata?: Record<string, string> }, fn: (ctx: SpanContext) => Promise<T>): Promise<T> => {
@@ -279,6 +290,10 @@ function setAgentmarkAttributes(otelSpan: Span, options: SpanOptions): void {
 
   if (options.sessionId) {
     otelSpan.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);
+    // Standard OTel GenAI key for conversation/session correlation, emitted
+    // alongside the AgentMark key so spec-conformant consumers see it too.
+    // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/
+    otelSpan.setAttribute("gen_ai.conversation.id", options.sessionId);
   }
   if (options.sessionName) {
     otelSpan.setAttribute(`${AgentMarkKey}.session_name`, options.sessionName);

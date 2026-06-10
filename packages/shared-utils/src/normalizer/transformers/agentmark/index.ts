@@ -23,7 +23,112 @@ const GenAIAttributes = {
     TOOL_CALL_ID: 'gen_ai.tool.call.id',
     TOOL_INPUT: 'gen_ai.tool.input',
     TOOL_OUTPUT: 'gen_ai.tool.output',
+
+    // Spec replacement for the deprecated gen_ai.system attribute.
+    PROVIDER_NAME: 'gen_ai.provider.name',
+
+    // Vendor-namespaced IO keys (dual-emitted by observe()/setInput()/
+    // setOutput() alongside the deprecated gen_ai.request.input /
+    // gen_ai.response.output during the OTel GenAI spec migration).
+    AM_REQUEST_INPUT: 'agentmark.request.input',
+    AM_RESPONSE_OUTPUT: 'agentmark.response.output',
+
+    // Standard OTel GenAI semconv content keys (spec status: Development).
+    // Accepted as fallbacks so spec-conformant instrumentation routed to
+    // this transformer doesn't silently lose IO data on ingest.
+    // https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/
+    INPUT_MESSAGES: 'gen_ai.input.messages',
+    OUTPUT_MESSAGES: 'gen_ai.output.messages',
+    SYSTEM_INSTRUCTIONS: 'gen_ai.system_instructions',
+
+    // Legacy (pre-1.27) OTel GenAI content keys.
+    LEGACY_PROMPT: 'gen_ai.prompt',
+    LEGACY_COMPLETION: 'gen_ai.completion',
+
+    // Legacy OTel GenAI usage keys (pre input_tokens/output_tokens rename).
+    USAGE_PROMPT_TOKENS: 'gen_ai.usage.prompt_tokens',
+    USAGE_COMPLETION_TOKENS: 'gen_ai.usage.completion_tokens',
 } as const;
+
+/**
+ * Parse a free-form serialized input value into normalized Messages.
+ * Handles a JSON {role, content} messages array, or any other string
+ * (wrapped as a single user message — backwards compatible).
+ */
+function parseLooseInput(raw: string): Message[] {
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            const isMessagesArray = parsed.every(
+                (item: unknown) =>
+                    item &&
+                    typeof item === 'object' &&
+                    'role' in item &&
+                    'content' in item
+            );
+            if (isMessagesArray) {
+                return parsed as Message[];
+            }
+        }
+    } catch {
+        // Not valid JSON — fall through to plain-text handling.
+    }
+    return [{ role: 'user', content: raw }];
+}
+
+/**
+ * Extract text content from an OTel GenAI spec parts array
+ * ({type: "text", content} | {type: "tool_call", ...} | ...).
+ */
+function specPartsToText(parts: any[]): string {
+    return parts
+        .filter((p: any) => p && p.type === 'text' && typeof p.content === 'string')
+        .map((p: any) => p.content)
+        .join('\n');
+}
+
+/**
+ * Parse spec-shaped gen_ai.input.messages / gen_ai.output.messages
+ * ({role, parts: [...]}) into normalized {role, content} Messages.
+ * Returns null when the value is not a non-empty spec messages array.
+ */
+function parseSpecMessages(raw: string): Message[] | null {
+    try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length === 0) return null;
+        const messages: Message[] = [];
+        for (const msg of parsed) {
+            if (!msg || !msg.role) continue;
+            if (typeof msg.content === 'string') {
+                messages.push({ role: msg.role, content: msg.content });
+            } else if (Array.isArray(msg.parts)) {
+                const text = specPartsToText(msg.parts);
+                if (text) messages.push({ role: msg.role, content: text });
+            }
+        }
+        return messages.length > 0 ? messages : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Extract the text of gen_ai.system_instructions — either a plain string
+ * or a JSON array of spec parts ([{type: "text", content}]).
+ */
+function parseSystemInstructions(raw: string): string | null {
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            const text = specPartsToText(parsed);
+            return text || null;
+        }
+        if (typeof parsed === 'string') return parsed || null;
+    } catch {
+        // Not JSON — treat the raw value as the instruction text.
+    }
+    return raw || null;
+}
 
 /**
  * Standard span names following OpenTelemetry GenAI semantic conventions.
@@ -134,8 +239,11 @@ export class AgentMarkTransformer implements ScopeTransformer {
             return SpanType.SPAN;
         }
 
-        // Fallback: check for LLM-specific attributes that indicate generation
-        if (attributes[GenAIAttributes.SYSTEM] === 'anthropic') {
+        // Fallback: check for LLM-specific attributes that indicate generation.
+        // gen_ai.system is deprecated in the OTel GenAI spec in favor of
+        // gen_ai.provider.name — accept either.
+        if (attributes[GenAIAttributes.SYSTEM] === 'anthropic' ||
+            attributes[GenAIAttributes.PROVIDER_NAME] === 'anthropic') {
             // Has usage tokens AND response output = likely an LLM generation
             if (attributes[GenAIAttributes.USAGE_INPUT_TOKENS] !== undefined &&
                 attributes[GenAIAttributes.RESPONSE_OUTPUT] !== undefined) {
@@ -161,9 +269,13 @@ export class AgentMarkTransformer implements ScopeTransformer {
             result.model = String(requestModel);
         }
 
-        // Token usage
-        const inputTokens = attributes[GenAIAttributes.USAGE_INPUT_TOKENS];
-        const outputTokens = attributes[GenAIAttributes.USAGE_OUTPUT_TOKENS];
+        // Token usage. The current spec keys (input_tokens / output_tokens)
+        // win; the legacy prompt_tokens / completion_tokens names are
+        // accepted as fallbacks for older OTel GenAI emitters.
+        const inputTokens = attributes[GenAIAttributes.USAGE_INPUT_TOKENS]
+            ?? attributes[GenAIAttributes.USAGE_PROMPT_TOKENS];
+        const outputTokens = attributes[GenAIAttributes.USAGE_OUTPUT_TOKENS]
+            ?? attributes[GenAIAttributes.USAGE_COMPLETION_TOKENS];
         if (typeof inputTokens === 'number') {
             result.inputTokens = inputTokens;
         }
@@ -207,43 +319,77 @@ export class AgentMarkTransformer implements ScopeTransformer {
             }
         }
 
-        // Input/Output
-        const requestInput = attributes[GenAIAttributes.REQUEST_INPUT];
+        // Input. Precedence (additive — AgentMark keys always win over the
+        // standard-spec fallbacks, so existing traffic is byte-identical):
+        //   1. gen_ai.request.input      (deprecated AgentMark key, still emitted)
+        //   2. agentmark.request.input   (vendor-namespaced replacement)
+        //   3. gen_ai.input.messages     (OTel GenAI spec shape, {role, parts[]})
+        //   4. gen_ai.prompt             (legacy OTel GenAI key)
+        // The agentmark.input / agentmark.props fallback below also outranks
+        // the spec keys (3/4) — every agentmark.* key wins over spec fallbacks.
+        const requestInput = attributes[GenAIAttributes.REQUEST_INPUT]
+            ?? attributes[GenAIAttributes.AM_REQUEST_INPUT];
+        const hasAgentmarkInput = Boolean(
+            attributes['agentmark.input'] ?? attributes['agentmark.props']
+        );
         if (requestInput && typeof requestInput === 'string') {
-            // Try to parse as JSON messages array first (new format from traced wrapper)
-            try {
-                const parsed = JSON.parse(requestInput);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    // Validate it looks like a messages array
-                    const isMessagesArray = parsed.every(
-                        (item: unknown) =>
-                            item &&
-                            typeof item === 'object' &&
-                            'role' in item &&
-                            'content' in item
-                    );
-                    if (isMessagesArray) {
-                        result.input = parsed as Message[];
-                    } else {
-                        // Not a messages array, treat as plain text
-                        result.input = [{ role: 'user', content: requestInput }];
-                    }
-                } else {
-                    // Empty array or not an array, treat as plain text
-                    result.input = [{ role: 'user', content: requestInput }];
+            result.input = parseLooseInput(requestInput);
+        } else if (!hasAgentmarkInput) {
+            const inputMessages = attributes[GenAIAttributes.INPUT_MESSAGES];
+            if (inputMessages && typeof inputMessages === 'string') {
+                const messages = parseSpecMessages(inputMessages);
+                if (messages) result.input = messages;
+            }
+            if (!result.input) {
+                const legacyPrompt = attributes[GenAIAttributes.LEGACY_PROMPT];
+                if (legacyPrompt && typeof legacyPrompt === 'string') {
+                    result.input = parseLooseInput(legacyPrompt);
                 }
-            } catch {
-                // Not valid JSON, treat as plain text (backwards compatibility)
-                result.input = [{ role: 'user', content: requestInput }];
             }
         }
 
-        const responseOutput = attributes[GenAIAttributes.RESPONSE_OUTPUT];
+        // gen_ai.system_instructions (OTel GenAI spec): fold into the input
+        // messages as a leading system message — matching how our SDKs embed
+        // the system prompt as messages[0] in gen_ai.request.input.
+        const systemInstructions = attributes[GenAIAttributes.SYSTEM_INSTRUCTIONS];
+        if (systemInstructions && typeof systemInstructions === 'string' && !hasAgentmarkInput) {
+            const text = parseSystemInstructions(systemInstructions);
+            if (text && (!result.input || result.input[0]?.role !== 'system')) {
+                result.input = [{ role: 'system', content: text }, ...(result.input ?? [])];
+            }
+        }
+
+        // Output. Precedence mirrors input:
+        //   1. gen_ai.response.output    (deprecated AgentMark key, still emitted)
+        //   2. agentmark.response.output (vendor-namespaced replacement)
+        //   3. gen_ai.output.messages    (OTel GenAI spec shape)
+        //   4. gen_ai.completion         (legacy OTel GenAI key)
+        // The agentmark.output fallback below also outranks the spec keys.
+        const responseOutput = attributes[GenAIAttributes.RESPONSE_OUTPUT]
+            ?? attributes[GenAIAttributes.AM_RESPONSE_OUTPUT];
+        const hasAgentmarkOutput = Boolean(attributes['agentmark.output']);
         if (responseOutput && typeof responseOutput === 'string') {
             result.output = responseOutput;
             try {
                 result.outputObject = JSON.parse(responseOutput);
             } catch { /* not JSON, keep as text only */ }
+        } else if (!hasAgentmarkOutput) {
+            const outputMessages = attributes[GenAIAttributes.OUTPUT_MESSAGES];
+            if (outputMessages && typeof outputMessages === 'string') {
+                const messages = parseSpecMessages(outputMessages);
+                if (messages) {
+                    result.output = messages.map((m) => m.content).join('\n');
+                }
+            }
+            if (result.output === undefined) {
+                const legacyCompletion = attributes[GenAIAttributes.LEGACY_COMPLETION];
+                if (legacyCompletion && typeof legacyCompletion === 'string') {
+                    result.output = legacyCompletion;
+                    try {
+                        result.outputObject = JSON.parse(legacyCompletion);
+                    } catch { /* not JSON, keep as text only */ }
+                }
+            }
         }
 
         // Fallback: agentmark.input / agentmark.output (set by SDK's set_input/set_output)
