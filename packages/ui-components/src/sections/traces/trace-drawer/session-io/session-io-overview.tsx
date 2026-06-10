@@ -5,10 +5,7 @@ import {
   useTraceDrawerContext,
   useTraceHoverContext,
 } from "../trace-drawer-provider";
-import {
-  extractPromptsFromSpan,
-  extractOutputFromSpan,
-} from "../span-info/tabs/hooks/use-span-prompts";
+import { deriveTraceCardIO } from "./derive-trace-card-io";
 import { PromptList } from "../span-info/tabs/input-output-tab/prompt-list";
 import { OutputDisplay } from "../span-info/tabs/input-output-tab/output-display";
 
@@ -27,19 +24,12 @@ const SessionIoCard = ({ traceNode }: { traceNode: any }) => {
   const { onSelectSpan } = useTraceDrawerContext();
   const isHighlighted = hoveredTraceId === traceNode.id;
 
-  // span-shaped view of the trace wrapper: the extraction helpers only read
-  // `name` and `data`, which the provider has merged from the root span.
-  const { prompts, outputData } = useMemo(() => {
-    const span = {
-      id: traceNode.id,
-      name: traceNode.name,
-      data: traceNode.data,
-    };
-    return {
-      prompts: extractPromptsFromSpan(span),
-      outputData: extractOutputFromSpan(span),
-    };
-  }, [traceNode]);
+  // Canonical trace-level IO (deriveTraceIO semantics): root-span IO first,
+  // per-field fallback to first/last GENERATION span. See derive-trace-card-io.
+  const { prompts, outputData } = useMemo(
+    () => deriveTraceCardIO(traceNode),
+    [traceNode]
+  );
 
   return (
     <Card
@@ -78,10 +68,10 @@ const SessionIoCard = ({ traceNode }: { traceNode: any }) => {
  * Hovering a trace's row in the TraceTree highlights its card here, and
  * hovering a card highlights its row back — both sides share the hover context.
  *
- * Each card pulls its IO from the trace's wrapper node in `spanTree` (root-span
- * data already merged up by the provider) and renders it with the SAME
- * extraction + display the single-span Input/Output tab uses, so a card is
- * identical to selecting that trace's root span. This component reads only
+ * Each card derives its IO from the trace's wrapper node in `spanTree` with
+ * the canonical trace-IO semantics (root span first, per-field GENERATION
+ * fallback — see derive-trace-card-io) and renders it with the SAME display
+ * the single-span Input/Output tab uses. This component reads only
  * `spanTree`, so a hover never re-renders the list — only the affected cards.
  */
 export const SessionIoOverview = () => {
