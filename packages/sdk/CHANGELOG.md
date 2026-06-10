@@ -1,3 +1,37 @@
+## 1.4.0 (2026-06-10)
+
+### 🚀 Features
+
+- feat(sdk): align with OTel GenAI semantic conventions (dual-emit + standard-shape ingest) ([#736](https://github.com/agentmark-ai/agentmark/pull/736))
+
+  Emit side (additive, no breaking removals):
+  - observe()/@observe and SpanContext setInput/setOutput now dual-emit
+    vendor-namespaced `agentmark.request.input` / `agentmark.response.output`
+    alongside the deprecated `gen_ai.request.input` / `gen_ai.response.output`
+    (the gen_ai keys are not spec attributes and will be removed in a future
+    release).
+  - `sessionId`/`session_id` additionally emits the standard
+    `gen_ai.conversation.id`.
+  - Both masking processors treat the new vendor IO keys as sensitive.
+
+  Ingest side (normalizer): accepts the standard OTel GenAI shapes as
+  fallbacks when AgentMark keys are absent — `gen_ai.input.messages`,
+  `gen_ai.output.messages`, `gen_ai.system_instructions` (folded into input
+  as a leading system message), legacy `gen_ai.prompt`/`gen_ai.completion`,
+  `gen_ai.provider.name` wherever `gen_ai.system` was read,
+  `gen_ai.conversation.id` as a sessionId fallback, and legacy
+  `gen_ai.usage.prompt_tokens`/`completion_tokens`. AgentMark keys always win.
+
+- Link prompt version (commit sha) to traces on regular prompt runs: the gateway/CLI dev server stamp the served-at commit into agentmark_meta.commit_sha, the runner threads it through PromptSpanParams, and the SDK span hooks emit it as metadata.commit_sha alongside the new agentmark.prompt_name attribute. ([#738](https://github.com/agentmark-ai/agentmark/pull/738))
+
+### 🩹 Fixes
+
+- fix: mask Vercel AI SDK and OTel GenAI content attributes ([#728](https://github.com/agentmark-ai/agentmark/pull/728))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.12.0
+
 ## 1.3.0 (2026-06-09)
 
 ### 🚀 Features

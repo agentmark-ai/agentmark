@@ -1,3 +1,12 @@
+## 1.7.1 (2026-06-10)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ai-sdk-shared to 0.4.4
+- Updated @agentmark-ai/shared-utils to 0.6.0
+- Updated @agentmark-ai/prompt-core to 0.12.0
+- Updated @agentmark-ai/sdk to 1.4.0
+
 ## 1.7.0 (2026-06-09)
 
 ### 🚀 Features

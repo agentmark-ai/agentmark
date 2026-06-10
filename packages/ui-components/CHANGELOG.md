@@ -1,3 +1,13 @@
+## 0.8.1 (2026-06-10)
+
+### 🩹 Fixes
+
+- fix(traces): session IO cards align with canonical deriveTraceIO — per-field GENERATION fallback when the root span records no I/O ([#733](https://github.com/agentmark-ai/agentmark/pull/733))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 0.12.0
+
 ## 0.8.0 (2026-06-09)
 
 ### 🚀 Features
