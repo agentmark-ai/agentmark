@@ -159,6 +159,72 @@ describe("SessionIoOverview", () => {
   });
 });
 
+describe("SessionIoOverview generation fallback (canonical deriveTraceIO semantics)", () => {
+  // A trace whose root span records NO I/O (e.g. plain AI-SDK instrumentation,
+  // no WebhookRunner root-span recording) plus two generation children. The
+  // card must fall back per-field: input from the FIRST generation, output
+  // from the LAST — matching shared-utils' deriveTraceIO — instead of empty.
+  const FALLBACK_TRACES: TraceData[] = [
+    {
+      id: "trace-fb",
+      name: "ai_sdk_only",
+      data: { latency: 500, status: "0" },
+      spans: [
+        {
+          id: "span-fb-root",
+          name: "ai_sdk_only",
+          parentId: null,
+          duration: 500,
+          timestamp: 0,
+          data: { type: "SPAN" },
+        },
+        {
+          id: "span-fb-gen1",
+          name: "chat",
+          parentId: "span-fb-root",
+          duration: 200,
+          timestamp: 10,
+          data: {
+            type: "GENERATION",
+            model: "claude",
+            input: JSON.stringify([{ role: "user", content: "firstGenInputToken" }]),
+            output: "firstGenOutputToken",
+          },
+        },
+        {
+          id: "span-fb-gen2",
+          name: "chat",
+          parentId: "span-fb-root",
+          duration: 200,
+          timestamp: 20,
+          data: {
+            type: "GENERATION",
+            model: "claude",
+            input: JSON.stringify([{ role: "user", content: "lastGenInputToken" }]),
+            output: "lastGenOutputToken",
+          },
+        },
+      ],
+    },
+  ] as unknown as TraceData[];
+
+  it("fills an IO-less root from its generations: first generation's input, last generation's output", () => {
+    const { container } = render(
+      <TraceDrawerProvider traces={FALLBACK_TRACES} sessionId="fb-1" t={t}>
+        <SessionIoOverview />
+      </TraceDrawerProvider>
+    );
+
+    const fb = card(container, "trace-fb")!;
+    expect(fb.textContent).toContain("firstGenInputToken");
+    expect(fb.textContent).toContain("lastGenOutputToken");
+    // Per-field, not whole-span: the first generation's OUTPUT and the last
+    // generation's INPUT must not leak into the card.
+    expect(fb.textContent).not.toContain("firstGenOutputToken");
+    expect(fb.textContent).not.toContain("lastGenInputToken");
+  });
+});
+
 // Drives the provider's selection so we can assert the session-vs-span
 // decision the host delegates to SessionDetailsSwitch.
 const SelectButton = ({ spanId }: { spanId: string }) => {
