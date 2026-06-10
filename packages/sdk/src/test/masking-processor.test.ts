@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import type { ReadableSpan, SpanProcessor } from "@opentelemetry/sdk-trace-base";
-import { MaskingSpanProcessor } from "../trace/masking-processor";
+import {
+  MaskingSpanProcessor,
+  INPUT_KEYS,
+  OUTPUT_KEYS,
+} from "../trace/masking-processor";
 
 function createMockSpan(attributes: Record<string, unknown>): ReadableSpan {
   return {
@@ -279,5 +283,220 @@ describe("MaskingSpanProcessor", () => {
     expect(span.attributes["agentmark.trace_name"]).toBe("my-trace");
     expect(span.attributes["gen_ai.usage.input_tokens"]).toBe(50);
     expect(inner.onEnd).toHaveBeenCalledWith(span);
+  });
+});
+
+// The canonical key sets. Pinned as literal sorted arrays so that removing
+// (or typo-ing) a single key from the production sets fails this suite
+// loudly — these keys are a privacy contract, not an implementation detail.
+// They MUST stay identical to the Python SDK's masking_processor.py sets.
+const EXPECTED_INPUT_KEYS = [
+  "agentmark.dataset_input",
+  "ai.prompt",
+  "ai.prompt.messages",
+  "ai.prompt.toolChoice",
+  "ai.prompt.tools",
+  "ai.toolCall.args",
+  "gen_ai.input.messages",
+  "gen_ai.prompt",
+  "gen_ai.request.input",
+  "gen_ai.request.tool_calls",
+  "gen_ai.system_instructions",
+  "gen_ai.tool.call.arguments",
+  "gen_ai.tool.definitions",
+  "gen_ai.tool.input",
+];
+
+const EXPECTED_OUTPUT_KEYS = [
+  "ai.response.object",
+  "ai.response.text",
+  "ai.response.toolCalls",
+  "ai.result.object",
+  "ai.result.text",
+  "ai.result.toolCalls",
+  "ai.toolCall.result",
+  "gen_ai.completion",
+  "gen_ai.output.messages",
+  "gen_ai.response.output",
+  "gen_ai.response.output_object",
+  "gen_ai.tool.call.result",
+  "gen_ai.tool.output",
+];
+
+describe("MaskingSpanProcessor sensitive-key coverage", () => {
+  it("INPUT_KEYS exactly equals the documented privacy contract", () => {
+    expect([...INPUT_KEYS].sort()).toEqual(EXPECTED_INPUT_KEYS);
+  });
+
+  it("OUTPUT_KEYS exactly equals the documented privacy contract", () => {
+    expect([...OUTPUT_KEYS].sort()).toEqual(EXPECTED_OUTPUT_KEYS);
+  });
+
+  it.each(EXPECTED_INPUT_KEYS)(
+    "redacts input key %s when hideInputs is true",
+    (key) => {
+      const inner = createMockProcessor();
+      const processor = new MaskingSpanProcessor({
+        innerProcessor: inner as unknown as SpanProcessor,
+        hideInputs: true,
+      });
+
+      const span = createMockSpan({ [key]: "sensitive content" });
+      processor.onEnd(span);
+
+      expect(span.attributes[key]).toBe("[REDACTED]");
+      expect(inner.onEnd).toHaveBeenCalledWith(span);
+    }
+  );
+
+  it.each(EXPECTED_OUTPUT_KEYS)(
+    "redacts output key %s when hideOutputs is true",
+    (key) => {
+      const inner = createMockProcessor();
+      const processor = new MaskingSpanProcessor({
+        innerProcessor: inner as unknown as SpanProcessor,
+        hideOutputs: true,
+      });
+
+      const span = createMockSpan({ [key]: "sensitive content" });
+      processor.onEnd(span);
+
+      expect(span.attributes[key]).toBe("[REDACTED]");
+      expect(inner.onEnd).toHaveBeenCalledWith(span);
+    }
+  );
+
+  it.each(EXPECTED_OUTPUT_KEYS)(
+    "does NOT redact output key %s when only hideInputs is true",
+    (key) => {
+      const inner = createMockProcessor();
+      const processor = new MaskingSpanProcessor({
+        innerProcessor: inner as unknown as SpanProcessor,
+        hideInputs: true,
+      });
+
+      const span = createMockSpan({ [key]: "visible output" });
+      processor.onEnd(span);
+
+      expect(span.attributes[key]).toBe("visible output");
+    }
+  );
+
+  it.each(EXPECTED_INPUT_KEYS)(
+    "does NOT redact input key %s when only hideOutputs is true",
+    (key) => {
+      const inner = createMockProcessor();
+      const processor = new MaskingSpanProcessor({
+        innerProcessor: inner as unknown as SpanProcessor,
+        hideOutputs: true,
+      });
+
+      const span = createMockSpan({ [key]: "visible input" });
+      processor.onEnd(span);
+
+      expect(span.attributes[key]).toBe("visible input");
+    }
+  );
+
+  it("redacts every element of the ai.prompt.tools string array when hideInputs is true", () => {
+    const inner = createMockProcessor();
+    const processor = new MaskingSpanProcessor({
+      innerProcessor: inner as unknown as SpanProcessor,
+      hideInputs: true,
+    });
+
+    // The Vercel AI SDK emits ai.prompt.tools as an array of JSON strings
+    // (verified against ai@5: stepTools.map((tool) => JSON.stringify(tool))).
+    const span = createMockSpan({
+      "ai.prompt.tools": ['{"name":"search"}', '{"name":"calculator"}'],
+    });
+    processor.onEnd(span);
+
+    expect(span.attributes["ai.prompt.tools"]).toEqual([
+      "[REDACTED]",
+      "[REDACTED]",
+    ]);
+  });
+
+  it("applies the custom mask function element-wise to ai.prompt.tools", () => {
+    const inner = createMockProcessor();
+    const processor = new MaskingSpanProcessor({
+      innerProcessor: inner as unknown as SpanProcessor,
+      mask: (s) => s.replace(/secret/g, "[MASKED]"),
+    });
+
+    const span = createMockSpan({
+      "ai.prompt.tools": ['{"name":"secret-tool"}', '{"name":"public-tool"}'],
+    });
+    processor.onEnd(span);
+
+    expect(span.attributes["ai.prompt.tools"]).toEqual([
+      '{"name":"[MASKED]-tool"}',
+      '{"name":"public-tool"}',
+    ]);
+  });
+
+  it("applies the custom mask function to the new Vercel AI SDK and OTel GenAI keys", () => {
+    const inner = createMockProcessor();
+    const processor = new MaskingSpanProcessor({
+      innerProcessor: inner as unknown as SpanProcessor,
+      mask: (s) => s.replace(/secret/g, "[MASKED]"),
+    });
+
+    const span = createMockSpan({
+      "ai.prompt.messages": '[{"role":"user","content":"secret question"}]',
+      "ai.response.text": "secret answer",
+      "gen_ai.input.messages": '[{"role":"user","parts":["secret"]}]',
+      "gen_ai.completion": "the secret completion",
+      "gen_ai.tool.input": '{"query":"secret"}',
+      "gen_ai.tool.output": "secret tool result",
+    });
+    processor.onEnd(span);
+
+    expect(span.attributes["ai.prompt.messages"]).toBe(
+      '[{"role":"user","content":"[MASKED] question"}]'
+    );
+    expect(span.attributes["ai.response.text"]).toBe("[MASKED] answer");
+    expect(span.attributes["gen_ai.input.messages"]).toBe(
+      '[{"role":"user","parts":["[MASKED]"]}]'
+    );
+    expect(span.attributes["gen_ai.completion"]).toBe(
+      "the [MASKED] completion"
+    );
+    expect(span.attributes["gen_ai.tool.input"]).toBe('{"query":"[MASKED]"}');
+    expect(span.attributes["gen_ai.tool.output"]).toBe("[MASKED] tool result");
+  });
+
+  it("leaves non-content ai.* and gen_ai.* operational keys untouched under full suppression", () => {
+    const inner = createMockProcessor();
+    const mask = vi.fn((_s: string) => "[MASKED]");
+    const processor = new MaskingSpanProcessor({
+      innerProcessor: inner as unknown as SpanProcessor,
+      hideInputs: true,
+      hideOutputs: true,
+      mask,
+    });
+
+    const span = createMockSpan({
+      "ai.model.id": "gpt-4o",
+      "ai.operationId": "ai.generateText",
+      "ai.response.finishReason": "stop",
+      "ai.toolCall.name": "search",
+      "ai.toolCall.id": "call_123",
+      "gen_ai.request.model": "claude-sonnet-4",
+      "gen_ai.tool.name": "search",
+      "gen_ai.usage.input_tokens": 12,
+    });
+    processor.onEnd(span);
+
+    expect(span.attributes["ai.model.id"]).toBe("gpt-4o");
+    expect(span.attributes["ai.operationId"]).toBe("ai.generateText");
+    expect(span.attributes["ai.response.finishReason"]).toBe("stop");
+    expect(span.attributes["ai.toolCall.name"]).toBe("search");
+    expect(span.attributes["ai.toolCall.id"]).toBe("call_123");
+    expect(span.attributes["gen_ai.request.model"]).toBe("claude-sonnet-4");
+    expect(span.attributes["gen_ai.tool.name"]).toBe("search");
+    expect(span.attributes["gen_ai.usage.input_tokens"]).toBe(12);
+    expect(mask).not.toHaveBeenCalled();
   });
 });

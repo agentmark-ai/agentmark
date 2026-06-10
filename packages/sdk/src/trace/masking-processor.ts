@@ -14,27 +14,65 @@ export interface MaskingProcessorOptions {
   hideOutputs?: boolean;
 }
 
-const SENSITIVE_KEYS = new Set([
-  "gen_ai.request.input",
-  "gen_ai.response.output",
-  "gen_ai.response.output_object",
-  "gen_ai.request.tool_calls",
-  // Carries the full JSON-serialized dataset row input (experiment runs). Must
-  // be listed here AND in INPUT_KEYS — keys not in SENSITIVE_KEYS are skipped
-  // entirely, so INPUT_KEYS membership alone would never redact it.
-  "agentmark.dataset_input",
-]);
-
-const INPUT_KEYS = new Set([
+// Content-bearing input attributes. Covers the AgentMark executor keys
+// (gen_ai.request.*), the Vercel AI SDK experimental_telemetry keys (ai.*),
+// the OTel GenAI semantic-convention keys (gen_ai.input.messages et al.,
+// plus the legacy gen_ai.prompt), and the claude-agent-sdk adapter's tool
+// keys (gen_ai.tool.input). NOTE: this list MUST stay identical to
+// INPUT_KEYS in sdk-python/src/agentmark_sdk/masking_processor.py.
+export const INPUT_KEYS = new Set([
+  // AgentMark executor / SDK
   "gen_ai.request.input",
   "gen_ai.request.tool_calls",
+  // Carries the full JSON-serialized dataset row input (experiment runs).
   "agentmark.dataset_input",
+  // Vercel AI SDK (experimental_telemetry) — each is a JSON string except
+  // ai.prompt.tools, which is an array of JSON strings (handled below).
+  "ai.prompt",
+  "ai.prompt.messages",
+  "ai.prompt.tools",
+  "ai.prompt.toolChoice",
+  "ai.toolCall.args",
+  // OTel GenAI semantic conventions
+  "gen_ai.input.messages",
+  "gen_ai.system_instructions",
+  "gen_ai.tool.definitions",
+  "gen_ai.tool.call.arguments",
+  // Legacy OTel GenAI key
+  "gen_ai.prompt",
+  // claude-agent-sdk adapter tool spans
+  "gen_ai.tool.input",
 ]);
 
-const OUTPUT_KEYS = new Set([
+// Content-bearing output attributes. Same sources as INPUT_KEYS; the
+// ai.result.* keys are the pre-v4 Vercel AI SDK aliases of ai.response.*.
+// NOTE: this list MUST stay identical to OUTPUT_KEYS in
+// sdk-python/src/agentmark_sdk/masking_processor.py.
+export const OUTPUT_KEYS = new Set([
+  // AgentMark executor / SDK
   "gen_ai.response.output",
   "gen_ai.response.output_object",
+  // Vercel AI SDK (experimental_telemetry)
+  "ai.response.text",
+  "ai.response.toolCalls",
+  "ai.response.object",
+  "ai.result.text",
+  "ai.result.toolCalls",
+  "ai.result.object",
+  "ai.toolCall.result",
+  // OTel GenAI semantic conventions
+  "gen_ai.output.messages",
+  "gen_ai.tool.call.result",
+  // Legacy OTel GenAI key
+  "gen_ai.completion",
+  // claude-agent-sdk adapter tool spans
+  "gen_ai.tool.output",
 ]);
+
+// Keys not in SENSITIVE_KEYS are skipped entirely, so INPUT_KEYS/OUTPUT_KEYS
+// membership alone would never redact them — derive the union so every
+// input/output key is automatically sensitive (and mask-eligible).
+const SENSITIVE_KEYS = new Set([...INPUT_KEYS, ...OUTPUT_KEYS]);
 
 const METADATA_PREFIX = "agentmark.metadata.";
 
@@ -63,10 +101,6 @@ export class MaskingSpanProcessor implements SpanProcessor {
 
       for (const key of Object.keys(attrs)) {
         const value = attrs[key];
-        if (typeof value !== "string") {
-          continue;
-        }
-
         const isSensitive = SENSITIVE_KEYS.has(key);
         const isMetadata = key.startsWith(METADATA_PREFIX);
 
@@ -74,26 +108,19 @@ export class MaskingSpanProcessor implements SpanProcessor {
           continue;
         }
 
-        let current = value;
-
-        if (isSensitive) {
-          const isInput = INPUT_KEYS.has(key);
-          const isOutput = OUTPUT_KEYS.has(key);
-
-          if (isInput && this.hideInputs) {
-            current = "[REDACTED]";
-          }
-
-          if (isOutput && this.hideOutputs) {
-            current = "[REDACTED]";
-          }
+        if (typeof value === "string") {
+          attrs[key] = this.maskValue(key, value, isSensitive);
+        } else if (
+          Array.isArray(value) &&
+          value.every((item): item is string => typeof item === "string")
+        ) {
+          // Some content attributes are string arrays (e.g. the Vercel AI
+          // SDK's ai.prompt.tools is an array of JSON-stringified tools).
+          // Mask element-wise to preserve the OTel array attribute type.
+          attrs[key] = value.map((item) =>
+            this.maskValue(key, item, isSensitive)
+          );
         }
-
-        if (this.mask) {
-          current = this.mask(current);
-        }
-
-        attrs[key] = current;
       }
     } catch (error: unknown) {
       // Fail-closed: mask error means span is dropped (never exported unmasked)
@@ -106,6 +133,25 @@ export class MaskingSpanProcessor implements SpanProcessor {
     // Forward to inner processor outside try/catch so inner-processor
     // errors propagate normally with their own stack traces.
     this.inner.onEnd(span);
+  }
+
+  private maskValue(key: string, value: string, isSensitive: boolean): string {
+    let current = value;
+
+    if (isSensitive) {
+      if (INPUT_KEYS.has(key) && this.hideInputs) {
+        current = "[REDACTED]";
+      }
+      if (OUTPUT_KEYS.has(key) && this.hideOutputs) {
+        current = "[REDACTED]";
+      }
+    }
+
+    if (this.mask) {
+      current = this.mask(current);
+    }
+
+    return current;
   }
 
   shutdown(): Promise<void> {
