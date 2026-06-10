@@ -1,4 +1,5 @@
 import type { ModelEntry } from "./types.js";
+import { buildPricingDictionary, type PricingDictionary } from "./pricing.js";
 
 /**
  * Returns pricing in the legacy format used by llm-costs and analytics.
@@ -6,22 +7,8 @@ import type { ModelEntry } from "./types.js";
  */
 export function getPricingDictionary(
   models: Map<string, ModelEntry>
-): Record<string, { promptPrice: number; completionPrice: number }> {
-  const result: Record<
-    string,
-    { promptPrice: number; completionPrice: number }
-  > = {};
-
-  for (const [id, entry] of models) {
-    if (entry.pricing) {
-      result[id] = {
-        promptPrice: entry.pricing.inputCostPerToken * 1000,
-        completionPrice: entry.pricing.outputCostPerToken * 1000,
-      };
-    }
-  }
-
-  return result;
+): PricingDictionary {
+  return buildPricingDictionary(Object.fromEntries(models));
 }
 
 /**

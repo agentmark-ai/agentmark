@@ -11,10 +11,12 @@ import {
   getPricingDictionary,
   getProviderModels,
 } from "./compat.js";
+import { resolveModelPrice } from "./pricing.js";
 
 export class ModelRegistryImpl implements ModelRegistry {
   private models: Map<string, ModelEntry>;
   private providerLabels: Record<string, string>;
+  private pricedModels?: Record<string, ModelPricing>;
 
   constructor(
     modelsFile: ModelsFile,
@@ -92,7 +94,19 @@ export class ModelRegistryImpl implements ModelRegistry {
   }
 
   getPricingForModel(modelId: string): ModelPricing | undefined {
-    return this.models.get(modelId)?.pricing;
+    const exact = this.models.get(modelId)?.pricing;
+    if (exact) return exact;
+
+    // Fuzzy fallback: provider-prefixed, fine-tuned, region-prefixed, or
+    // dated variants resolve against the closest registry entry instead of
+    // returning undefined (which downstream treats as $0).
+    if (!this.pricedModels) {
+      this.pricedModels = {};
+      for (const [id, entry] of this.models) {
+        if (entry.pricing) this.pricedModels[id] = entry.pricing;
+      }
+    }
+    return resolveModelPrice(modelId, this.pricedModels);
   }
 
   getCapabilitiesForModel(modelId: string): ModelCapabilities | undefined {

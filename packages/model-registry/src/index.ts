@@ -25,6 +25,18 @@ export type {
 export { modelsFileSchema, overridesFileSchema } from "./validation.js";
 export { ModelRegistryImpl } from "./registry.js";
 
+export type {
+  PricePerThousandTokens,
+  PricingDictionary,
+} from "./pricing.js";
+export {
+  buildPricingDictionary,
+  candidateModelIds,
+  costForTokens,
+  resolveModelKey,
+  resolveModelPrice,
+} from "./pricing.js";
+
 let cachedRegistry: ModelRegistry | null = null;
 
 /**
