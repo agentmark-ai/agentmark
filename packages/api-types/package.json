@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/api-types",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Shared API contract types for AgentMark services",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

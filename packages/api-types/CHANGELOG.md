@@ -1,3 +1,9 @@
+## 0.5.0 (2026-06-10)
+
+### 🚀 Features
+
+- Link prompt version (commit sha) to traces on regular prompt runs: the gateway/CLI dev server stamp the served-at commit into agentmark_meta.commit_sha, the runner threads it through PromptSpanParams, and the SDK span hooks emit it as metadata.commit_sha alongside the new agentmark.prompt_name attribute. ([#738](https://github.com/agentmark-ai/agentmark/pull/738))
+
 ## 0.4.0 (2026-06-05)
 
 ### 🚀 Features

@@ -1,3 +1,72 @@
+## 0.20.0 (2026-06-10)
+
+### 🚀 Features
+
+- Link prompt version (commit sha) to traces on regular prompt runs: the gateway/CLI dev server stamp the served-at commit into agentmark_meta.commit_sha, the runner threads it through PromptSpanParams, and the SDK span hooks emit it as metadata.commit_sha alongside the new agentmark.prompt_name attribute. ([#738](https://github.com/agentmark-ai/agentmark/pull/738))
+- feat(pricing): layered model-id price resolution ([#725](https://github.com/agentmark-ai/agentmark/pull/725))
+
+  Adds an fs-free `@agentmark-ai/model-registry/pricing` entry point that
+  centralizes model→price mapping: `buildPricingDictionary` (per-token →
+  per-1K conversion, previously duplicated across consumers) and
+  `resolveModelPrice`/`resolveModelKey` with layered matching — exact id,
+  then normalized candidates (provider path prefixes like `openai/` and
+  `models/`, OpenAI fine-tune ids `ft:base:org::id`, Bedrock cross-region
+  prefixes `us.`/`eu.`, version suffixes `-2024-08-06`/`@20241022`/`-latest`),
+  then case-insensitive, then longest boundary-prefix fallback.
+
+  `ModelRegistry.getPricingForModel` and the CLI's local trace cost
+  attribution now resolve through these rules, so spans reporting
+  provider-prefixed, fine-tuned, region-prefixed, or newly released dated
+  model ids price against the closest registry entry instead of $0.
+
+
+### 🩹 Fixes
+
+- feat(observability): one canonical trace-level I/O derivation, shared by every read path ([#731](https://github.com/agentmark-ai/agentmark/pull/731))
+
+  Adds `deriveTraceIO` to shared-utils — the single definition of "what is a
+  trace's input/output": the root prompt-run span's
+  `agentmark.input`/`agentmark.output` (written by the WebhookRunner) wins,
+  falling back per-field to the first GENERATION span's input / last
+  GENERATION span's output in timestamp order. Previously three call sites
+  each had their own semantics (cloud: first/last GENERATION only; CLI trace
+  detail: first/last GENERATION only; CLI dataset import-from-traces: root
+  span only), so the same trace answered differently per endpoint.
+
+  Consumers updated: cloud gateway `transformTraceDetail`, CLI
+  `mapRawTraceToDetail` (`GET /v1/traces/:id`), and the CLI's
+  `normalizeLocalTraceSource` (dataset import). The AgentMark OTel
+  transformer now also parses `agentmark.input` JSON messages arrays (the
+  runner's format) instead of wrapping them as a single user message.
+
+  Doctor's traceShape fix text now points at instrumentation/the runner
+  instead of telling users to fix their executor (which cannot set trace
+  I/O). Docs (observe/tracing-setup) and the skill document the derivation.
+
+- Canonicalize OTLP status codes to numeric strings in the span normalizer; CLI read mappers accept legacy enum-name variants from older local DBs ([#735](https://github.com/agentmark-ai/agentmark/pull/735))
+- fix(cli): derive trace-level input/output on local GET /v1/traces/:id ([#731](https://github.com/agentmark-ai/agentmark/pull/731))
+
+  The local dev server's trace-detail route maps getTraceById →
+  mapRawTraceToDetail → toTraceDetailWire, but mapRawTraceToDetail never
+  populated `TraceDetail.input`/`output` (getTraceById's SQL doesn't
+  aggregate them), and toTraceDetailWire omits undefined keys — so the
+  local wire response never carried trace-level I/O. This made `doctor
+  --smoke`'s traceShape check (`trace.input == null` / `trace.output ==
+  null`) structurally unsatisfiable against the local server, failing for
+  every project regardless of wiring.
+
+  mapRawTraceToDetail now mirrors the cloud gateway's
+  transformTraceDetail: trace input = first GENERATION span's input,
+  trace output = last GENERATION span's output, in timestamp order.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/model-registry to 0.3.0
+- Updated @agentmark-ai/ui-components to 0.8.1
+- Updated @agentmark-ai/shared-utils to 0.6.0
+- Updated @agentmark-ai/prompt-core to 0.12.0
+- Updated @agentmark-ai/api-types to 0.5.0
+
 ## 0.19.0 (2026-06-09)
 
 ### 🚀 Features
