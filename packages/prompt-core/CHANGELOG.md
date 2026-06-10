@@ -1,3 +1,10 @@
+## 0.12.1 (2026-06-10)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/fallback-adapter to 1.1.9
+- Updated @agentmark-ai/loader-file to 0.1.2
+
 ## 0.12.0 (2026-06-10)
 
 ### 🚀 Features

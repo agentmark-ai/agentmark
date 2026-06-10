@@ -1,3 +1,10 @@
+## 1.1.9 (2026-06-10)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.2
+- Updated @agentmark-ai/prompt-core to 0.12.1
+
 ## 1.1.8 (2026-06-10)
 
 ### 🧱 Updated Dependencies
