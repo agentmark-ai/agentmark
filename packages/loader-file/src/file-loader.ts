@@ -63,35 +63,39 @@ export class FileLoader {
   /**
    * Validates a user-provided path and returns a safe absolute path within the base directory.
    * Throws an error if the path attempts to escape the base directory.
+   *
+   * Structured as the canonical containment check from CodeQL's
+   * js/path-injection guidance — a single `path.resolve(base, userPath)`
+   * gated by a positive `startsWith(base + sep)` — so the scanner
+   * recognizes the guard. The previous normalize→join→resolve chain with a
+   * compound negated condition was equivalent in behavior but opaque to
+   * taint analysis (alerts 75–78 on the OSS mirror).
    */
   private validateAndResolvePath(userPath: string): string {
+    // Reject NUL bytes outright — they truncate paths in some syscalls.
+    if (userPath.includes("\0")) {
+      throw new Error("Invalid path");
+    }
+
     // Reject absolute paths
     if (path.isAbsolute(userPath)) {
       throw new Error("Absolute paths are not allowed");
     }
 
-    // Normalize the path to resolve . and .. sequences
-    const normalizedPath = path.normalize(userPath);
-
-    // Check if normalized path tries to escape by starting with /
-    if (normalizedPath.startsWith("/")) {
-      throw new Error("Invalid path: path traversal detected");
-    }
-
-    // Join with base path to create full path
-    const fullPath = path.join(this.basePath, normalizedPath);
-
-    // Verify the resolved path is still within the base directory
-    const resolvedPath = path.resolve(fullPath);
+    // Resolve against the base and verify containment. `path.resolve`
+    // collapses any `.`/`..` segments, so a traversal attempt lands
+    // outside `resolvedBase` and fails the prefix check.
     const resolvedBase = path.resolve(this.basePath);
+    const resolvedPath = path.resolve(resolvedBase, userPath);
+
     if (
-      !resolvedPath.startsWith(resolvedBase + path.sep) &&
-      resolvedPath !== resolvedBase
+      resolvedPath === resolvedBase ||
+      resolvedPath.startsWith(resolvedBase + path.sep)
     ) {
-      throw new Error("Access denied: path outside allowed directory");
+      return resolvedPath;
     }
 
-    return resolvedPath;
+    throw new Error("Access denied: path outside allowed directory");
   }
 
   /**

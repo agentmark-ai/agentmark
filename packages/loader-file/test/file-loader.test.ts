@@ -137,6 +137,34 @@ describe("FileLoader.load", () => {
       /Access denied/,
     );
   });
+
+  it("blocks deep traversal through an existing subdirectory", async () => {
+    const loader = new FileLoader(baseDir);
+    await expect(loader.load("sub/../../outside", "text")).rejects.toThrow(
+      /Access denied/,
+    );
+  });
+
+  it("blocks escape into a sibling directory sharing the base prefix", async () => {
+    // `${baseDir}-evil` starts with the base path string but is OUTSIDE it —
+    // the containment check must compare against `base + path.sep`, not a
+    // bare prefix.
+    const evilDir = `${baseDir}-evil`;
+    fs.mkdirSync(evilDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(evilDir, "x.prompt.json"),
+      JSON.stringify({ ast: {} }),
+    );
+    const loader = new FileLoader(baseDir);
+    await expect(
+      loader.load(`../${path.basename(evilDir)}/x`, "text"),
+    ).rejects.toThrow(/Access denied/);
+  });
+
+  it("rejects paths containing NUL bytes", async () => {
+    const loader = new FileLoader(baseDir);
+    await expect(loader.load("a\0b", "text")).rejects.toThrow(/Invalid path/);
+  });
 });
 
 describe("FileLoader.loadDataset", () => {
