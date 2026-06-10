@@ -135,8 +135,6 @@ AgentMark doesn't call LLM APIs directly. Adapters format your prompt for the SD
 | [Vercel AI SDK v5](https://docs.agentmark.co/integrations/typescript/ai-sdk) | TypeScript | `@agentmark-ai/ai-sdk-v5-adapter` |
 | [Vercel AI SDK v4](https://docs.agentmark.co/integrations/typescript/ai-sdk) | TypeScript | `@agentmark-ai/ai-sdk-v4-adapter` |
 | [Mastra](https://docs.agentmark.co/integrations/typescript/mastra) | TypeScript | `@agentmark-ai/mastra-v0-adapter` |
-| [Claude Agent SDK](https://docs.agentmark.co/integrations/typescript/claude-agent-sdk) | TypeScript | `@agentmark-ai/claude-agent-sdk-v0-adapter` |
-| [Claude Agent SDK](https://docs.agentmark.co/integrations/overview) | Python | `agentmark-claude-agent-sdk-v0` |
 | [Pydantic AI](https://docs.agentmark.co/integrations/python/pydantic-ai) | Python | `agentmark-pydantic-ai-v0` |
 | [Fallback](https://docs.agentmark.co/integrations/fallback) | TypeScript | `@agentmark-ai/fallback-adapter` |
 

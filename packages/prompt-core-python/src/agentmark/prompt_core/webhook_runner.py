@@ -76,7 +76,7 @@ class ExperimentItemSpan(Protocol):
 
     trace_id: str
 
-    def set_attribute(self, key: str, value: str) -> None: ...
+    def set_attribute(self, key: str, value: str | int) -> None: ...
 
 
 ExperimentItemSpanHook = Callable[
@@ -106,7 +106,7 @@ class PromptSpan(Protocol):
 
     trace_id: str
 
-    def set_attribute(self, key: str, value: str) -> None: ...
+    def set_attribute(self, key: str, value: str | int) -> None: ...
 
 
 PromptSpanHook = Callable[
@@ -119,7 +119,7 @@ PromptSpanHook = Callable[
 class _NullSpan:
     trace_id: str | None = None
 
-    def set_attribute(self, key: str, value: str) -> None:  # no-op
+    def set_attribute(self, key: str, value: str | int) -> None:  # no-op
         pass
 
 
@@ -150,6 +150,40 @@ def _serialize_value(value: Any) -> Any:
     if hasattr(value, "model_dump"):
         return value.model_dump()
     return value
+
+
+def _set_span_model(span: PromptSpan, prompt_ast: Any) -> None:
+    """Record the prompt's configured model as `gen_ai.request.model` on the
+    prompt span. Read from frontmatter (adapter-agnostic), so traces from
+    executors with NO model-SDK instrumentation still carry a model —
+    doctor's "a model on any span" check and the dashboard's model column
+    work for raw-SDK integrations out of the box."""
+    with suppress(Exception):
+        fm = get_front_matter(prompt_ast) or {}
+        config = (
+            fm.get("text_config")
+            or fm.get("object_config")
+            or fm.get("image_config")
+            or fm.get("speech_config")
+            or {}
+        )
+        model = config.get("model_name")
+        if isinstance(model, str) and model:
+            span.set_attribute("gen_ai.request.model", model)
+
+
+def _set_span_usage(span: PromptSpan, usage: UsageData | None) -> None:
+    """Record executor-reported usage as `gen_ai.usage.*` on the prompt span.
+    Integers, not strings — the normalizer only accepts numeric token
+    attributes. The wrapper span stays type SPAN, so GENERATION-only rollups
+    never double-count it when model spans exist."""
+    if usage is None:
+        return
+    with suppress(Exception):
+        if isinstance(usage.input_tokens, int):
+            span.set_attribute("gen_ai.usage.input_tokens", usage.input_tokens)
+        if isinstance(usage.output_tokens, int):
+            span.set_attribute("gen_ai.usage.output_tokens", usage.output_tokens)
 
 
 def _set_span_input(span: PromptSpan, formatted: Any) -> None:
@@ -533,6 +567,7 @@ class WebhookRunner:
                 else await prompt.format_with_test_props()
             )
             _set_span_input(span, formatted)
+            _set_span_model(span, prompt_ast)
             ctx = ExecCtx(
                 telemetry=telemetry,
                 trace_id=getattr(span, "trace_id", None),
@@ -559,6 +594,7 @@ class WebhookRunner:
                 raise RuntimeError(err)
             with suppress(Exception):
                 span.set_attribute("agentmark.output", text)
+            _set_span_usage(span, usage)
             # Envelope assembly is the pure _text_response_to_wire, pinned by
             # the shared response-envelopes.json golden vectors that the TS
             # runner's mirror also runs.
@@ -597,6 +633,7 @@ class WebhookRunner:
                 else await prompt.format_with_test_props()
             )
             _set_span_input(span, formatted)
+            _set_span_model(span, prompt_ast)
             ctx = ExecCtx(
                 telemetry=telemetry,
                 trace_id=getattr(span, "trace_id", None),
@@ -623,6 +660,7 @@ class WebhookRunner:
             serialized = _serialize_value(obj_value)
             with suppress(Exception):
                 span.set_attribute("agentmark.output", json.dumps(serialized, default=str))
+            _set_span_usage(span, usage)
             # See _run_text — vector-pinned envelope assembly.
             response = _object_response_to_wire(
                 result=serialized,
@@ -669,6 +707,7 @@ class WebhookRunner:
                 extra={"span": span},
             )
             _set_span_input(span, formatted)
+            _set_span_model(span, prompt_ast)
             result = await execute_image(formatted, ctx)
             return self._with_trace_id(dict(result), ctx.trace_id)
 
@@ -705,6 +744,7 @@ class WebhookRunner:
                 extra={"span": span},
             )
             _set_span_input(span, formatted)
+            _set_span_model(span, prompt_ast)
             result = await execute_speech(formatted, ctx)
             return self._with_trace_id(dict(result), ctx.trace_id)
 
@@ -739,11 +779,14 @@ class WebhookRunner:
         # it records the accumulated output and ends the span when the stream
         # drains (or errors), keeping the model call inside the span.
         text_parts: list[str] = []
+        usage_cap: UsageData | None = None
         try:
             try:
                 async for ev in self._executor.execute_text(formatted, ctx):
                     if isinstance(ev, TextDeltaEvent):
                         text_parts.append(ev.text)
+                    elif isinstance(ev, FinishEvent) and ev.usage is not None:
+                        usage_cap = ev.usage
                     # Pure event→chunk mapping is module-level, pinned by the
                     # shared wire-chunks.json golden vectors that the TS runner's
                     # mirror also runs. Terminal handling stays here.
@@ -758,6 +801,8 @@ class WebhookRunner:
             if span is not None and text_parts:
                 with suppress(Exception):
                     span.set_attribute("agentmark.output", "".join(text_parts))
+            if span is not None:
+                _set_span_usage(span, usage_cap)
             if span_cm is not None:
                 with suppress(Exception):
                     await span_cm.__aexit__(None, None, None)
@@ -771,6 +816,7 @@ class WebhookRunner:
     ) -> AsyncIterator[str]:
         # Span ownership mirrors _stream_text_ndjson.
         obj_value: Any = None
+        usage_cap: UsageData | None = None
         try:
             try:
                 async for ev in self._executor.execute_object(formatted, ctx):
@@ -779,6 +825,8 @@ class WebhookRunner:
                         obj_value = ev.value
                     elif isinstance(ev, ObjectDeltaEvent):
                         obj_value = ev.partial
+                    elif isinstance(ev, FinishEvent) and ev.usage is not None:
+                        usage_cap = ev.usage
                     # Pure event→chunk mapping is module-level (vector-pinned, see
                     # _stream_text_ndjson): usage-less finish emits nothing.
                     chunk = _object_event_to_wire(ev)
@@ -795,6 +843,8 @@ class WebhookRunner:
                         "agentmark.output",
                         json.dumps(_serialize_value(obj_value), default=str),
                     )
+            if span is not None:
+                _set_span_usage(span, usage_cap)
             if span_cm is not None:
                 with suppress(Exception):
                     await span_cm.__aexit__(None, None, None)

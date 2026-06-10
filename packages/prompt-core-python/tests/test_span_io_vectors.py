@@ -26,6 +26,7 @@ from agentmark.prompt_core import (
     ObjectDeltaEvent,
     ObjectFinalEvent,
     TextDeltaEvent,
+    UsageData,
     WebhookRunner,
 )
 
@@ -51,7 +52,17 @@ def _event_from_json(ev: dict[str, Any]) -> Any:
     if kind == "object-final":
         return ObjectFinalEvent(value=ev["value"])
     if kind == "finish":
-        return FinishEvent(reason=ev["reason"], usage=None)
+        usage = ev.get("usage")
+        return FinishEvent(
+            reason=ev["reason"],
+            usage=UsageData(
+                input_tokens=usage["inputTokens"],
+                output_tokens=usage["outputTokens"],
+                total_tokens=usage["inputTokens"] + usage["outputTokens"],
+            )
+            if usage
+            else None,
+        )
     if kind == "error":
         return ErrorEvent(error=ev["error"])
     raise ValueError(f"unhandled vector event type: {kind}")
@@ -112,9 +123,9 @@ class _StubClient:
 class _RecordingSpan:
     def __init__(self) -> None:
         self.trace_id = "abc123abc123abc123abc123abc123ab"
-        self.attributes: dict[str, str] = {}
+        self.attributes: dict[str, str | int] = {}
 
-    def set_attribute(self, key: str, value: str) -> None:
+    def set_attribute(self, key: str, value: str | int) -> None:
         self.attributes[key] = value
 
 
@@ -136,7 +147,7 @@ class _RecordingHook:
         return _cm()
 
 
-def _assert_attributes(attributes: dict[str, str], expected: dict[str, Any]) -> None:
+def _assert_attributes(attributes: dict[str, str | int], expected: dict[str, Any]) -> None:
     # Input is always compared as parsed JSON — TS/Python spacing differs.
     assert "agentmark.input" in attributes
     assert json.loads(attributes["agentmark.input"]) == expected["input"]
@@ -147,6 +158,17 @@ def _assert_attributes(attributes: dict[str, str], expected: dict[str, Any]) -> 
         assert attributes["agentmark.output"] == expected["output"]
     else:
         assert json.loads(attributes["agentmark.output"]) == expected["output"]
+
+    # Model is stamped from frontmatter at span start on every path.
+    assert attributes["gen_ai.request.model"] == expected["model"]
+
+    # Usage must be NUMERIC attributes (the normalizer rejects strings).
+    if expected["usage"] is None:
+        assert "gen_ai.usage.input_tokens" not in attributes
+        assert "gen_ai.usage.output_tokens" not in attributes
+    else:
+        assert attributes["gen_ai.usage.input_tokens"] == expected["usage"]["input"]
+        assert attributes["gen_ai.usage.output_tokens"] == expected["usage"]["output"]
 
 
 @pytest.mark.asyncio
