@@ -1,3 +1,66 @@
+## 0.12.0 (2026-06-10)
+
+### 🚀 Features
+
+- fix(runner): keep the prompt span open until streams drain; record span I/O in both runners ([#730](https://github.com/agentmark-ai/agentmark/pull/730))
+
+  The WebhookRunner's prompt span ended as soon as the executor's lazy
+  iterable was created — before the model call ran — in the streaming path
+  of both runners and the non-streaming path of the TS runner. Model spans
+  were created outside the prompt span (orphaned into a separate trace,
+  patched over only by the local server's SessionId-based virtual
+  hierarchy), the wrapper span's duration was meaningless (~5ms), and
+  streamed runs never recorded `agentmark.output`.
+
+  Both runners now end the prompt span when the event stream drains: the
+  Python NDJSON generators take ownership of the span context manager, and
+  the TS streaming path resolves the span-hook callback only after the
+  wire-stream pump completes (TS non-streaming now drains inside the hook,
+  so failed runs also mark the span ERROR).
+
+  The runner — never executors — now records `agentmark.input` (the
+  formatted {role, content} messages, JSON) on the prompt span right after
+  format(), and `agentmark.output` after drain, in BOTH streaming and
+  non-streaming modes. This is what trace-level I/O derivation reads first.
+
+  Cross-language contract pinned by new shared conformance vectors
+  (`conformance-vectors/vectors/span-io.json`) run by both suites — all six
+  cases fail against the previous runner behavior.
+
+- feat(runner): stamp model and usage on the prompt span ([#740](https://github.com/agentmark-ai/agentmark/pull/740))
+
+  The runner now records `gen_ai.request.model` (from the prompt's
+  frontmatter config, adapter-agnostic) on the prompt span at start, and
+  `gen_ai.usage.input_tokens`/`gen_ai.usage.output_tokens` (integers, from
+  the executor's finish-event usage) after drain — in both runners, on
+  streaming and non-streaming paths.
+
+  Executors built on raw SDKs with no OTEL GenAI instrumentation (boto3
+  Bedrock, raw OpenAI/Anthropic clients) previously produced traces with
+  no model on any span and no token counts, failing `doctor --smoke`'s
+  traceShape check. With the runner stamping what it already knows, any
+  raw-SDK executor is fully doctor-green with zero instrumentation. The
+  prompt span stays type SPAN, so GENERATION-only rollups never
+  double-count it when instrumented model spans also exist.
+
+  `SpanLike.set_attribute`/`setAttribute` contracts widened to accept
+  numeric values (the normalizer only parses numeric token attributes).
+  Pinned by the extended span-io conformance vectors in both languages.
+
+  Also fixes AgentmarkSampler (agentmark-sdk, Python): per the OTel spec
+  the sampler result replaces a span's create-time attributes, and the
+  sampler returned a bare RECORD_AND_SAMPLE decision — silently stripping
+  every attribute passed at span creation (notably gen_ai.* attributes
+  from instrumentation libraries such as botocore's Bedrock extension,
+  which degraded to generic RPC spans with no model). The sampler now
+  forwards the caller's attributes and parent trace_state.
+
+- Link prompt version (commit sha) to traces on regular prompt runs: the gateway/CLI dev server stamp the served-at commit into agentmark_meta.commit_sha, the runner threads it through PromptSpanParams, and the SDK span hooks emit it as metadata.commit_sha alongside the new agentmark.prompt_name attribute. ([#738](https://github.com/agentmark-ai/agentmark/pull/738))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/fallback-adapter to 1.1.8
+
 ## 0.11.0 (2026-06-09)
 
 ### 🚀 Features

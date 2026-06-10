@@ -1,3 +1,53 @@
+## 0.6.0 (2026-06-10)
+
+### 🚀 Features
+
+- feat(sdk): align with OTel GenAI semantic conventions (dual-emit + standard-shape ingest) ([#736](https://github.com/agentmark-ai/agentmark/pull/736))
+
+  Emit side (additive, no breaking removals):
+  - observe()/@observe and SpanContext setInput/setOutput now dual-emit
+    vendor-namespaced `agentmark.request.input` / `agentmark.response.output`
+    alongside the deprecated `gen_ai.request.input` / `gen_ai.response.output`
+    (the gen_ai keys are not spec attributes and will be removed in a future
+    release).
+  - `sessionId`/`session_id` additionally emits the standard
+    `gen_ai.conversation.id`.
+  - Both masking processors treat the new vendor IO keys as sensitive.
+
+  Ingest side (normalizer): accepts the standard OTel GenAI shapes as
+  fallbacks when AgentMark keys are absent — `gen_ai.input.messages`,
+  `gen_ai.output.messages`, `gen_ai.system_instructions` (folded into input
+  as a leading system message), legacy `gen_ai.prompt`/`gen_ai.completion`,
+  `gen_ai.provider.name` wherever `gen_ai.system` was read,
+  `gen_ai.conversation.id` as a sessionId fallback, and legacy
+  `gen_ai.usage.prompt_tokens`/`completion_tokens`. AgentMark keys always win.
+
+- feat(observability): one canonical trace-level I/O derivation, shared by every read path ([#731](https://github.com/agentmark-ai/agentmark/pull/731))
+
+  Adds `deriveTraceIO` to shared-utils — the single definition of "what is a
+  trace's input/output": the root prompt-run span's
+  `agentmark.input`/`agentmark.output` (written by the WebhookRunner) wins,
+  falling back per-field to the first GENERATION span's input / last
+  GENERATION span's output in timestamp order. Previously three call sites
+  each had their own semantics (cloud: first/last GENERATION only; CLI trace
+  detail: first/last GENERATION only; CLI dataset import-from-traces: root
+  span only), so the same trace answered differently per endpoint.
+
+  Consumers updated: cloud gateway `transformTraceDetail`, CLI
+  `mapRawTraceToDetail` (`GET /v1/traces/:id`), and the CLI's
+  `normalizeLocalTraceSource` (dataset import). The AgentMark OTel
+  transformer now also parses `agentmark.input` JSON messages arrays (the
+  runner's format) instead of wrapping them as a single user message.
+
+  Doctor's traceShape fix text now points at instrumentation/the runner
+  instead of telling users to fix their executor (which cannot set trace
+  I/O). Docs (observe/tracing-setup) and the skill document the derivation.
+
+
+### 🩹 Fixes
+
+- Canonicalize OTLP status codes to numeric strings in the span normalizer; CLI read mappers accept legacy enum-name variants from older local DBs ([#735](https://github.com/agentmark-ai/agentmark/pull/735))
+
 ## 0.5.1 (2026-06-09)
 
 ### 🩹 Fixes

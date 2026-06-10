@@ -1,3 +1,75 @@
+## 0.4.0 (2026-06-10)
+
+### 🚀 Features
+
+- feat(sdk-python): @observe supports generator and async-generator functions ([#731](https://github.com/agentmark-ai/agentmark/pull/731))
+
+  Decorating a generator function with @observe previously took the plain
+  sync path: the span ended when the generator OBJECT was created (before
+  any item was produced), the output captured the generator's repr, and the
+  actual streaming work ran outside the span. Generator and async-generator
+  functions now get dedicated wrappers: the span stays open until the
+  stream is exhausted, producer steps run under the span's context (model
+  spans parent correctly) while consumer code between yields does not (no
+  context leak), and the output is the aggregated yields — concatenated
+  when all items are strings (the LLM text-delta shape), the item list
+  otherwise. Errors mid-stream mark the span ERROR; abandoned streams
+  (GeneratorExit) still end the span.
+
+- feat(sdk): align with OTel GenAI semantic conventions (dual-emit + standard-shape ingest) ([#736](https://github.com/agentmark-ai/agentmark/pull/736))
+
+  Emit side (additive, no breaking removals):
+  - observe()/@observe and SpanContext setInput/setOutput now dual-emit
+    vendor-namespaced `agentmark.request.input` / `agentmark.response.output`
+    alongside the deprecated `gen_ai.request.input` / `gen_ai.response.output`
+    (the gen_ai keys are not spec attributes and will be removed in a future
+    release).
+  - `sessionId`/`session_id` additionally emits the standard
+    `gen_ai.conversation.id`.
+  - Both masking processors treat the new vendor IO keys as sensitive.
+
+  Ingest side (normalizer): accepts the standard OTel GenAI shapes as
+  fallbacks when AgentMark keys are absent — `gen_ai.input.messages`,
+  `gen_ai.output.messages`, `gen_ai.system_instructions` (folded into input
+  as a leading system message), legacy `gen_ai.prompt`/`gen_ai.completion`,
+  `gen_ai.provider.name` wherever `gen_ai.system` was read,
+  `gen_ai.conversation.id` as a sessionId fallback, and legacy
+  `gen_ai.usage.prompt_tokens`/`completion_tokens`. AgentMark keys always win.
+
+- Link prompt version (commit sha) to traces on regular prompt runs: the gateway/CLI dev server stamp the served-at commit into agentmark_meta.commit_sha, the runner threads it through PromptSpanParams, and the SDK span hooks emit it as metadata.commit_sha alongside the new agentmark.prompt_name attribute. ([#738](https://github.com/agentmark-ai/agentmark/pull/738))
+
+### 🩹 Fixes
+
+- feat(runner): stamp model and usage on the prompt span ([#740](https://github.com/agentmark-ai/agentmark/pull/740))
+
+  The runner now records `gen_ai.request.model` (from the prompt's
+  frontmatter config, adapter-agnostic) on the prompt span at start, and
+  `gen_ai.usage.input_tokens`/`gen_ai.usage.output_tokens` (integers, from
+  the executor's finish-event usage) after drain — in both runners, on
+  streaming and non-streaming paths.
+
+  Executors built on raw SDKs with no OTEL GenAI instrumentation (boto3
+  Bedrock, raw OpenAI/Anthropic clients) previously produced traces with
+  no model on any span and no token counts, failing `doctor --smoke`'s
+  traceShape check. With the runner stamping what it already knows, any
+  raw-SDK executor is fully doctor-green with zero instrumentation. The
+  prompt span stays type SPAN, so GENERATION-only rollups never
+  double-count it when instrumented model spans also exist.
+
+  `SpanLike.set_attribute`/`setAttribute` contracts widened to accept
+  numeric values (the normalizer only parses numeric token attributes).
+  Pinned by the extended span-io conformance vectors in both languages.
+
+  Also fixes AgentmarkSampler (agentmark-sdk, Python): per the OTel spec
+  the sampler result replaces a span's create-time attributes, and the
+  sampler returned a bare RECORD_AND_SAMPLE decision — silently stripping
+  every attribute passed at span creation (notably gen_ai.* attributes
+  from instrumentation libraries such as botocore's Bedrock extension,
+  which degraded to generic RPC spans with no model). The sampler now
+  forwards the caller's attributes and parent trace_state.
+
+- fix: mask Vercel AI SDK and OTel GenAI content attributes ([#728](https://github.com/agentmark-ai/agentmark/pull/728))
+
 ## 0.3.0 (2026-06-09)
 
 ### 🚀 Features
