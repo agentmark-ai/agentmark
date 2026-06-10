@@ -413,3 +413,133 @@ class TestObserveDecorator:
 
         calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
         assert calls["openinference.span.kind"] == expected_oi
+
+
+class TestObserveGenerators:
+    """Generator/async-generator support: the span must stay open until the
+    stream is exhausted (not end at generator creation), aggregate yielded
+    items as output, and end exactly once — including on error or
+    abandonment. Uses a real in-memory OTEL pipeline because span-end TIMING
+    is the contract under test."""
+
+    @staticmethod
+    def _real_tracer():
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
+
+        exporter = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(exporter))
+        return provider.get_tracer("agentmark"), exporter
+
+    @pytest.mark.asyncio
+    async def test_async_generator_aggregates_and_defers_span_end(self) -> None:
+        tracer, exporter = self._real_tracer()
+
+        with patch("agentmark_sdk.decorator.otel_trace.get_tracer", return_value=tracer):
+
+            @observe
+            async def stream_text(prefix: str):
+                yield f"{prefix}-a"
+                yield "-b"
+                yield "-c"
+
+            agen = stream_text("x")
+            # Creating the generator must NOT start/end the span.
+            assert exporter.get_finished_spans() == ()
+
+            first = await agen.__anext__()
+            assert first == "x-a"
+            # Mid-stream: span still open.
+            assert exporter.get_finished_spans() == ()
+
+            rest = [item async for item in agen]
+            assert rest == ["-b", "-c"]
+
+        spans = exporter.get_finished_spans()
+        assert len(spans) == 1
+        span = spans[0]
+        assert span.name == "stream_text"
+        # All-string yields concatenate.
+        assert span.attributes["gen_ai.response.output"] == '"x-a-b-c"'
+        assert "prefix" in span.attributes["gen_ai.request.input"]
+
+    def test_sync_generator_aggregates_and_defers_span_end(self) -> None:
+        tracer, exporter = self._real_tracer()
+
+        with patch("agentmark_sdk.decorator.otel_trace.get_tracer", return_value=tracer):
+
+            @observe
+            def stream_chunks():
+                yield "hel"
+                yield "lo"
+
+            gen = stream_chunks()
+            assert exporter.get_finished_spans() == ()
+            assert list(gen) == ["hel", "lo"]
+
+        spans = exporter.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].attributes["gen_ai.response.output"] == '"hello"'
+
+    @pytest.mark.asyncio
+    async def test_async_generator_non_string_items_capture_list(self) -> None:
+        tracer, exporter = self._real_tracer()
+
+        with patch("agentmark_sdk.decorator.otel_trace.get_tracer", return_value=tracer):
+
+            @observe
+            async def stream_objects():
+                yield {"a": 1}
+                yield {"b": 2}
+
+            items = [item async for item in stream_objects()]
+
+        assert items == [{"a": 1}, {"b": 2}]
+        spans = exporter.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].attributes["gen_ai.response.output"] == '[{"a": 1}, {"b": 2}]'
+
+    @pytest.mark.asyncio
+    async def test_async_generator_error_marks_span_and_raises(self) -> None:
+        from opentelemetry.trace import StatusCode
+
+        tracer, exporter = self._real_tracer()
+
+        with patch("agentmark_sdk.decorator.otel_trace.get_tracer", return_value=tracer):
+
+            @observe
+            async def stream_then_boom():
+                yield "ok"
+                raise RuntimeError("boom")
+
+            agen = stream_then_boom()
+            assert await agen.__anext__() == "ok"
+            with pytest.raises(RuntimeError, match="boom"):
+                await agen.__anext__()
+
+        spans = exporter.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].status.status_code == StatusCode.ERROR
+
+    @pytest.mark.asyncio
+    async def test_abandoned_async_generator_still_ends_span(self) -> None:
+        tracer, exporter = self._real_tracer()
+
+        with patch("agentmark_sdk.decorator.otel_trace.get_tracer", return_value=tracer):
+
+            @observe
+            async def endless():
+                while True:
+                    yield "tick"
+
+            agen = endless()
+            assert await agen.__anext__() == "tick"
+            assert exporter.get_finished_spans() == ()
+            await agen.aclose()
+
+        spans = exporter.get_finished_spans()
+        assert len(spans) == 1

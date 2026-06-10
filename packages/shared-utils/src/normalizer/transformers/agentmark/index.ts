@@ -257,7 +257,28 @@ export class AgentMarkTransformer implements ScopeTransformer {
         // works without forcing them to migrate.
         const amInput = attributes['agentmark.input'] ?? attributes['agentmark.props'];
         if (amInput && typeof amInput === 'string' && !result.input) {
-            result.input = [{ role: 'user', content: amInput }];
+            // The WebhookRunner writes agentmark.input as a JSON messages
+            // array ({role, content} pairs). Parse it so the wrapper span's
+            // input renders as messages, mirroring the REQUEST_INPUT
+            // handling above; anything else stays a single user message.
+            let parsedMessages: Message[] | null = null;
+            try {
+                const parsed = JSON.parse(amInput);
+                if (
+                    Array.isArray(parsed) &&
+                    parsed.length > 0 &&
+                    parsed.every(
+                        (item: unknown) =>
+                            item &&
+                            typeof item === 'object' &&
+                            'role' in item &&
+                            'content' in item
+                    )
+                ) {
+                    parsedMessages = parsed as Message[];
+                }
+            } catch { /* not JSON — fall through to plain text */ }
+            result.input = parsedMessages ?? [{ role: 'user', content: amInput }];
         }
         const amOutput = attributes['agentmark.output'];
         if (amOutput && typeof amOutput === 'string' && !result.output) {

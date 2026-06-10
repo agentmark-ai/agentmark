@@ -79,6 +79,23 @@ spans (e.g. a retrieval step) around the model call. They are **not** a
 substitute for the telemetry-on-`format()` step above — use both if you want
 custom spans plus the generation span.
 
+## Where trace-level input/output come from
+
+The trace list/detail's single input/output per trace is **derived at read
+time**, identically in cloud and the local dev server: the root (prompt-run)
+span's `agentmark.input`/`agentmark.output` attributes win when present — the
+WebhookRunner writes them automatically on every run — with a fallback to the
+first GENERATION span's input and last GENERATION span's output (timestamp
+order) for traces emitted without the runner. Two consequences:
+
+- **Never "fix" missing trace I/O in an executor.** Executors don't set it.
+  If `doctor --smoke` reports the trace missing input/output, the gap is in
+  instrumentation (the model SDK isn't emitting GENERATION spans with I/O) or
+  an outdated runner — not in customer code.
+- GENERATION spans come from the host model SDK's instrumentation (AI SDK
+  `experimental_telemetry`, Pydantic AI `InstrumentationSettings(version=3)`,
+  …), which is exactly what the telemetry-on-`format()` step above enables.
+
 > **Benign warning:** with a `<System>` block in your prompt, the AI SDK may log
 > *"System messages in the prompt or messages fields can be a security risk… Use
 > the system option instead."* This is expected for AgentMark prompts (the
