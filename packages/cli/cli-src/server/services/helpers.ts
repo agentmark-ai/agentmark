@@ -1,3 +1,4 @@
+import { deriveTraceIO } from '@agentmark-ai/shared-utils';
 import type { Span, TraceDetail } from './types';
 
 /** Map OTEL numeric status code to human-readable name. */
@@ -74,6 +75,13 @@ export function mapRawTraceToDetail(raw: Record<string, unknown>): TraceDetail {
   const startMs = (data.start as number) || 0;
   const endMs = (data.end as number) || 0;
 
+  // Trace-level input/output: canonical shared derivation (root span first,
+  // GENERATION fallback) — same helper the cloud gateway uses, so local and
+  // cloud answer identically. getTraceById's SQL doesn't aggregate these, so
+  // without this the local `GET /v1/traces/:id` never carries trace-level
+  // I/O and `doctor --smoke`'s traceShape check can never pass locally.
+  const traceIO = deriveTraceIO(spans);
+
   return {
     id: raw.id as string,
     name: (data.name as string) || (raw.name as string) || '',
@@ -83,6 +91,8 @@ export function mapRawTraceToDetail(raw: Record<string, unknown>): TraceDetail {
     latencyMs: (data.latency as number) || 0,
     cost: (data.cost as number) || 0,
     tokens: (data.tokens as number) || 0,
+    ...(traceIO.input !== undefined ? { input: traceIO.input as string } : {}),
+    ...(traceIO.output !== undefined ? { output: traceIO.output as string } : {}),
     spans,
   };
 }

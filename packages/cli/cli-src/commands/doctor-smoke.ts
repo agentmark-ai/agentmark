@@ -323,7 +323,7 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
           title: "trace has the expected shape",
           status: "fail",
           detail: `the trace is missing: ${missing.join(", ")}`,
-          fix: "The trace round-tripped but is incomplete. Check your adapter/executor maps usage + I/O onto the span. See https://docs.agentmark.co/observe/tracing-setup.",
+          fix: "The trace round-tripped but is incomplete. Trace-level input/output come from the prompt (root) span — written by the WebhookRunner — falling back to GENERATION spans from your model SDK's OTEL instrumentation; missing I/O usually means that instrumentation isn't enabled (it is NOT something your executor sets). Missing tokens means the executor's finish event carries no usage. See https://docs.agentmark.co/observe/tracing-setup.",
         },
   );
 

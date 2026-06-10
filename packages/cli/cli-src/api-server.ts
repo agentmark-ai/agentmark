@@ -4,7 +4,7 @@ import crypto from "crypto";
 import fs from "fs";
 import rateLimit from "express-rate-limit";
 import path from "path";
-import { findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark-ai/shared-utils";
+import { deriveTraceIO, findPromptFiles, normalizeOtlpSpans, type OtlpResourceSpans } from "@agentmark-ai/shared-utils";
 import cors from "cors";
 import { z } from "zod";
 import {
@@ -212,6 +212,19 @@ function normalizeLocalTraceSource(trace: any) {
 
   const rootSpan = spans.find((span: any) => !span.parent_id) ?? spans[0];
 
+  // Canonical shared derivation (root span first, GENERATION fallback) —
+  // keeps dataset import-from-traces consistent with GET /v1/traces/:id
+  // and the cloud gateway instead of its old root-span-only semantics.
+  const traceIO = deriveTraceIO(
+    spans.map((s: any) => ({
+      parentId: s.parent_id,
+      type: s.type,
+      timestamp: s.timestamp,
+      input: s.input,
+      output: s.output,
+    }))
+  );
+
   return {
     id: trace.id,
     name: trace.name,
@@ -221,8 +234,8 @@ function normalizeLocalTraceSource(trace: any) {
     latency_ms: trace.data?.latency ?? null,
     cost: trace.data?.cost ?? null,
     tokens: trace.data?.tokens ?? null,
-    input: rootSpan?.input,
-    output: rootSpan?.output,
+    input: traceIO.input,
+    output: traceIO.output,
     metadata: rootSpan?.metadata ?? {},
     root_span: rootSpan ?? null,
     spans,

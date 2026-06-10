@@ -85,6 +85,17 @@ def _capture_output(
     return serialize_value(output)
 
 
+def _aggregate_stream_items(items: list[Any]) -> Any:
+    """Aggregate yielded items into a single output value.
+
+    All-string streams (the common LLM text-delta shape) concatenate;
+    anything else is captured as the list of yielded items.
+    """
+    if items and all(isinstance(i, str) for i in items):
+        return "".join(items)
+    return items
+
+
 @overload
 def observe(_fn: F) -> F: ...
 
@@ -114,7 +125,11 @@ def observe(
 ) -> F | Callable[[F], F]:
     """Decorator that auto-captures function IO as span attributes.
 
-    Supports both @observe and @observe() syntax, sync and async functions.
+    Supports both @observe and @observe() syntax; sync and async functions;
+    and sync/async GENERATOR functions — for generators the span stays open
+    until the stream is exhausted (not just until the generator object is
+    created) and the output is the aggregated yields (concatenated when all
+    items are strings, the item list otherwise).
 
     Args:
         name: Custom span name. Defaults to the function name.
@@ -189,6 +204,94 @@ def observe(
                     span.set_status(StatusCode.ERROR, str(e))
                     raise
 
+        @functools.wraps(fn)
+        async def async_gen_wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Generator functions need their own lifecycle: the plain
+            # wrappers would end the span at generator CREATION (before any
+            # item is produced) and capture the generator's repr as output.
+            # Instead the span stays open until the stream is exhausted, the
+            # producer steps run under the span's context (so model spans
+            # parent correctly), and the consumer's code between yields does
+            # NOT run under it (no context leak across yields).
+            tracer = otel_trace.get_tracer("agentmark")
+            span = tracer.start_span(span_name)
+            span.set_attribute(SPAN_KIND_KEY, kind.value)
+            span.set_attribute(
+                "openinference.span.kind", _OPENINFERENCE_KIND_MAP.get(kind.value, "CHAIN")
+            )
+            if capture_input:
+                input_str = _capture_inputs(fn, args, kwargs, process_inputs)
+                if input_str is not None:
+                    span.set_attribute(INPUT_KEY, input_str)
+
+            items: list[Any] = []
+            try:
+                agen = fn(*args, **kwargs)
+                while True:
+                    with otel_trace.use_span(span, end_on_exit=False):
+                        try:
+                            item = await agen.__anext__()
+                        except StopAsyncIteration:
+                            break
+                    items.append(item)
+                    yield item
+                if capture_output:
+                    output_str = _capture_output(
+                        _aggregate_stream_items(items), process_outputs
+                    )
+                    if output_str is not None:
+                        span.set_attribute(OUTPUT_KEY, output_str)
+                span.set_status(StatusCode.OK)
+            except Exception as e:
+                span.set_status(StatusCode.ERROR, str(e))
+                raise
+            finally:
+                # Also covers an abandoned stream (GeneratorExit): the span
+                # ends with whatever was produced so far.
+                span.end()
+
+        @functools.wraps(fn)
+        def sync_gen_wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Sync mirror of async_gen_wrapper.
+            tracer = otel_trace.get_tracer("agentmark")
+            span = tracer.start_span(span_name)
+            span.set_attribute(SPAN_KIND_KEY, kind.value)
+            span.set_attribute(
+                "openinference.span.kind", _OPENINFERENCE_KIND_MAP.get(kind.value, "CHAIN")
+            )
+            if capture_input:
+                input_str = _capture_inputs(fn, args, kwargs, process_inputs)
+                if input_str is not None:
+                    span.set_attribute(INPUT_KEY, input_str)
+
+            items: list[Any] = []
+            try:
+                gen = fn(*args, **kwargs)
+                while True:
+                    with otel_trace.use_span(span, end_on_exit=False):
+                        try:
+                            item = next(gen)
+                        except StopIteration:
+                            break
+                    items.append(item)
+                    yield item
+                if capture_output:
+                    output_str = _capture_output(
+                        _aggregate_stream_items(items), process_outputs
+                    )
+                    if output_str is not None:
+                        span.set_attribute(OUTPUT_KEY, output_str)
+                span.set_status(StatusCode.OK)
+            except Exception as e:
+                span.set_status(StatusCode.ERROR, str(e))
+                raise
+            finally:
+                span.end()
+
+        if inspect.isasyncgenfunction(fn):
+            return async_gen_wrapper  # type: ignore[return-value]
+        if inspect.isgeneratorfunction(fn):
+            return sync_gen_wrapper  # type: ignore[return-value]
         if inspect.iscoroutinefunction(fn):
             return async_wrapper  # type: ignore[return-value]
         return sync_wrapper  # type: ignore[return-value]
