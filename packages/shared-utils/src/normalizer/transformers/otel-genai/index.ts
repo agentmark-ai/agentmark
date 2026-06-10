@@ -44,6 +44,15 @@ const Attrs = {
     SYSTEM_INSTRUCTIONS: 'gen_ai.system_instructions',
     TOOL_DEFINITIONS: 'gen_ai.tool.definitions',
 
+    // Legacy (pre-1.27) OTel GenAI content keys, accepted as last-resort
+    // fallbacks below the canonical and AgentMark-scoped keys.
+    LEGACY_PROMPT: 'gen_ai.prompt',
+    LEGACY_COMPLETION: 'gen_ai.completion',
+
+    // Legacy OTel GenAI usage keys (pre input_tokens/output_tokens rename).
+    USAGE_PROMPT_TOKENS: 'gen_ai.usage.prompt_tokens',
+    USAGE_COMPLETION_TOKENS: 'gen_ai.usage.completion_tokens',
+
     // Tool call attributes (v1.37.0+)
     TOOL_NAME: 'gen_ai.tool.name',
     TOOL_CALL_ID: 'gen_ai.tool.call.id',
@@ -144,9 +153,12 @@ export class OtelGenAiTransformer implements ScopeTransformer {
             result.model = model;
         }
 
-        // Tokens
-        const inputTokens = attributes[Attrs.USAGE_INPUT_TOKENS];
-        const outputTokens = attributes[Attrs.USAGE_OUTPUT_TOKENS];
+        // Tokens — current spec keys win; legacy prompt_tokens /
+        // completion_tokens names accepted as fallbacks for older emitters.
+        const inputTokens = attributes[Attrs.USAGE_INPUT_TOKENS]
+            ?? attributes[Attrs.USAGE_PROMPT_TOKENS];
+        const outputTokens = attributes[Attrs.USAGE_OUTPUT_TOKENS]
+            ?? attributes[Attrs.USAGE_COMPLETION_TOKENS];
         if (typeof inputTokens === 'number') result.inputTokens = inputTokens;
         if (typeof outputTokens === 'number') result.outputTokens = outputTokens;
         if (result.inputTokens !== undefined && result.outputTokens !== undefined) {
@@ -168,15 +180,40 @@ export class OtelGenAiTransformer implements ScopeTransformer {
         // Input messages — canonical OTel GenAI key (gen_ai.input.messages).
         // Fall back to the AgentMark-scoped equivalent (gen_ai.request.input)
         // so SDKs that picked the older key set don't lose IO data on ingest.
-        const inputMessages = attributes[Attrs.INPUT_MESSAGES] ?? attributes[Attrs.REQUEST_INPUT_FALLBACK];
+        const inputMessages = attributes[Attrs.INPUT_MESSAGES]
+            ?? attributes[Attrs.REQUEST_INPUT_FALLBACK]
+            ?? attributes[Attrs.LEGACY_PROMPT];
         if (inputMessages && typeof inputMessages === 'string') {
             const messages = normalizeMessages(inputMessages);
             if (messages) result.input = messages;
         }
 
+        // gen_ai.system_instructions: fold into the input messages as a
+        // leading system message — matching how AgentMark SDKs embed the
+        // system prompt as messages[0] of the input.
+        const systemInstructions = attributes[Attrs.SYSTEM_INSTRUCTIONS];
+        if (systemInstructions && typeof systemInstructions === 'string') {
+            let text: string | null = null;
+            try {
+                const parsed = JSON.parse(systemInstructions);
+                if (Array.isArray(parsed)) {
+                    text = partsToText(parsed) || null;
+                } else if (typeof parsed === 'string') {
+                    text = parsed || null;
+                }
+            } catch {
+                text = systemInstructions;
+            }
+            if (text && (!result.input || result.input[0]?.role !== 'system')) {
+                result.input = [{ role: 'system', content: text }, ...(result.input ?? [])];
+            }
+        }
+
         // Output messages — canonical OTel GenAI key (gen_ai.output.messages),
         // with gen_ai.response.output as a fallback for older SDK emitters.
-        const outputMessages = attributes[Attrs.OUTPUT_MESSAGES] ?? attributes[Attrs.RESPONSE_OUTPUT_FALLBACK];
+        const outputMessages = attributes[Attrs.OUTPUT_MESSAGES]
+            ?? attributes[Attrs.RESPONSE_OUTPUT_FALLBACK]
+            ?? attributes[Attrs.LEGACY_COMPLETION];
         if (outputMessages && typeof outputMessages === 'string') {
             const extracted = extractStructuredOutput(outputMessages);
             if (extracted) {
@@ -184,6 +221,10 @@ export class OtelGenAiTransformer implements ScopeTransformer {
                 if (extracted.outputObject) {
                     result.outputObject = extracted.outputObject;
                 }
+            } else {
+                // Not a spec messages array — the legacy gen_ai.completion
+                // key (and some emitters' response.output) carry plain text.
+                result.output = outputMessages;
             }
         }
 

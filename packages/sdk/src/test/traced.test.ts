@@ -115,6 +115,20 @@ describe("observe wrapper", () => {
     expect(basicSpan!.attrMap.get("gen_ai.request.input")).toContain("hello");
     expect(basicSpan!.attrMap.get("gen_ai.response.output")).toContain('"total":5');
     expect(basicSpan!.attrMap.get("agentmark.span.kind")).toBe("function");
+    // Dual-emit: the vendor-namespaced keys carry the identical value as the
+    // deprecated gen_ai-namespaced keys during the migration release cycle.
+    expect(basicSpan!.attrMap.get("agentmark.request.input")).toBe(
+      basicSpan!.attrMap.get("gen_ai.request.input")
+    );
+    expect(basicSpan!.attrMap.get("agentmark.response.output")).toBe(
+      basicSpan!.attrMap.get("gen_ai.response.output")
+    );
+    expect(basicSpan!.attrMap.get("agentmark.request.input")).toBe(
+      '{"arg0":"hello","arg1":5}'
+    );
+    expect(basicSpan!.attrMap.get("agentmark.response.output")).toBe(
+      '{"results":["hello"],"total":5}'
+    );
 
     // ===== Test 2: Span kind =====
     const toolFn = observe(
@@ -139,6 +153,7 @@ describe("observe wrapper", () => {
     const noInputSpan = findSpanByName("no-input-observe");
     expect(noInputSpan).not.toBeNull();
     expect(noInputSpan!.attrMap.has("gen_ai.request.input")).toBe(false);
+    expect(noInputSpan!.attrMap.has("agentmark.request.input")).toBe(false);
     expect(noInputSpan!.attrMap.get("gen_ai.response.output")).toBe('"ok"');
 
     // ===== Test 4: captureOutput=false =====
@@ -153,6 +168,7 @@ describe("observe wrapper", () => {
     expect(noOutputSpan).not.toBeNull();
     expect(noOutputSpan!.attrMap.get("gen_ai.request.input")).toContain("test");
     expect(noOutputSpan!.attrMap.has("gen_ai.response.output")).toBe(false);
+    expect(noOutputSpan!.attrMap.has("agentmark.response.output")).toBe(false);
 
     // ===== Test 5: processInputs =====
     const redactedFn = observe(
@@ -253,5 +269,29 @@ describe("observe wrapper", () => {
     expect(manualIoSpan).not.toBeNull();
     expect(manualIoSpan!.attrMap.get("gen_ai.request.input")).toContain("manual-input");
     expect(manualIoSpan!.attrMap.get("gen_ai.response.output")).toContain("manual-output-value");
+    // Dual-emit: setInput/setOutput write the identical value to the
+    // vendor-namespaced keys (the deprecated gen_ai keys remain for one
+    // release cycle).
+    expect(manualIoSpan!.attrMap.get("agentmark.request.input")).toBe(
+      '{"query":"manual-input"}'
+    );
+    expect(manualIoSpan!.attrMap.get("agentmark.request.input")).toBe(
+      manualIoSpan!.attrMap.get("gen_ai.request.input")
+    );
+    expect(manualIoSpan!.attrMap.get("agentmark.response.output")).toBe(
+      '"manual-output-value"'
+    );
+    expect(manualIoSpan!.attrMap.get("agentmark.response.output")).toBe(
+      manualIoSpan!.attrMap.get("gen_ai.response.output")
+    );
+
+    // ===== Test 11: sessionId also emits gen_ai.conversation.id =====
+    await span({ name: "session-span", sessionId: "sess-42" }, async () => "ok");
+    await flushSpans();
+
+    const sessionSpan = findSpanByName("session-span");
+    expect(sessionSpan).not.toBeNull();
+    expect(sessionSpan!.attrMap.get("agentmark.session_id")).toBe("sess-42");
+    expect(sessionSpan!.attrMap.get("gen_ai.conversation.id")).toBe("sess-42");
   });
 });

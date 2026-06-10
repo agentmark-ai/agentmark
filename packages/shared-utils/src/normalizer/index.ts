@@ -116,6 +116,13 @@ export function normalizeSpan(
     const agentMarkAttributes = parseAgentMarkAttributes(allAttributes);
     Object.assign(normalized, agentMarkAttributes);
 
+    // 5b. Standard OTel GenAI conversation id (gen_ai.conversation.id) as a
+    // sessionId fallback. agentmark.session_id always wins when present —
+    // this only fills the gap for spec-conformant emitters.
+    if (!normalized.sessionId && allAttributes['gen_ai.conversation.id']) {
+        normalized.sessionId = String(allAttributes['gen_ai.conversation.id']);
+    }
+
     // 6. Resolve semantic kind from all available attribute sources
     normalized.semanticKind = resolveSemanticKind(normalized, allAttributes);
 

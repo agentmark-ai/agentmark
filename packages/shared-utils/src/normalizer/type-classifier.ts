@@ -3,8 +3,9 @@ import { OtelSpan, SpanType } from './types';
 export class TypeClassifier {
     classify(span: OtelSpan, attributes: Record<string, any>): SpanType {
         // 1. Check for GenAI semantic conventions
-        // OTel GenAI semantic conventions use gen_ai.system as a strong indicator
-        if (attributes['gen_ai.system'] || attributes['gen_ai.request.model'] || attributes['gen_ai.operation.name']) {
+        // OTel GenAI semantic conventions use gen_ai.system (deprecated) /
+        // gen_ai.provider.name (its spec replacement) as strong indicators
+        if (attributes['gen_ai.system'] || attributes['gen_ai.provider.name'] || attributes['gen_ai.request.model'] || attributes['gen_ai.operation.name']) {
             return SpanType.GENERATION;
         }
 

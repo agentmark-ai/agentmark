@@ -158,6 +158,11 @@ def _set_agentmark_attributes(span: Span, options: TraceOptions) -> None:
 
     if options.session_id:
         span.set_attribute(f"{AGENTMARK_KEY}.session_id", options.session_id)
+        # Standard OTel GenAI key for conversation/session correlation,
+        # emitted alongside the AgentMark key so spec-conformant consumers
+        # see it too. Mirrors setAgentmarkAttributes in the TS SDK.
+        # https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/
+        span.set_attribute("gen_ai.conversation.id", options.session_id)
     if options.session_name:
         span.set_attribute(f"{AGENTMARK_KEY}.session_name", options.session_name)
     if options.user_id:
