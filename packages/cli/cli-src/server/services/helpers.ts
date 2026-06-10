@@ -1,9 +1,18 @@
 import { deriveTraceIO } from '@agentmark-ai/shared-utils';
 import type { Span, TraceDetail } from './types';
 
-/** Map OTEL numeric status code to human-readable name. */
+/**
+ * Map OTEL status code to human-readable name. New spans are stored with
+ * the canonical numeric codes (the shared normalizer canonicalizes
+ * status.code), but local DBs written by older CLI versions may hold raw
+ * OTLP enum-name variants — accept both.
+ */
 export function mapStatusCodeToName(code: string): string {
-  const map: Record<string, string> = { '0': 'UNSET', '1': 'OK', '2': 'ERROR' };
+  const map: Record<string, string> = {
+    '0': 'UNSET', 'STATUS_CODE_UNSET': 'UNSET', 'Unset': 'UNSET',
+    '1': 'OK', 'STATUS_CODE_OK': 'OK', 'Ok': 'OK',
+    '2': 'ERROR', 'STATUS_CODE_ERROR': 'ERROR', 'Error': 'ERROR',
+  };
   return map[code] ?? code;
 }
 

@@ -16,6 +16,28 @@ registry.register('pydantic-ai', new OtelGenAiTransformer());       // Pydantic 
 // Default: OTel GenAI semconv v1.37+ (the official standard)
 registry.setDefault(new OtelGenAiTransformer());
 
+/**
+ * OTLP status.code arrives in different encodings depending on the SDK's
+ * JSON serializer: the numeric enum value (0/1/2), the proto enum name
+ * ('STATUS_CODE_ERROR'), or a short name ('Error', 'OK'). Normalize to the
+ * canonical numeric strings '0' (Unset) / '1' (Ok) / '2' (Error) so every
+ * downstream store (gateway ClickHouse rows, CLI local SQLite) gets one
+ * vocabulary. Unknown values pass through unchanged.
+ */
+const OTLP_STATUS_CODE_MAP: Record<string, string> = {
+    '0': '0', STATUS_CODE_UNSET: '0', UNSET: '0', Unset: '0',
+    '1': '1', STATUS_CODE_OK: '1', OK: '1', Ok: '1',
+    '2': '2', STATUS_CODE_ERROR: '2', ERROR: '2', Error: '2',
+};
+
+export function normalizeOtlpStatusCode(raw: string | number | undefined | null): string {
+    if (raw === undefined || raw === null || raw === '') {
+        return '0';
+    }
+    const key = String(raw);
+    return OTLP_STATUS_CODE_MAP[key] ?? key;
+}
+
 export function normalizeSpan(
     resource: OtelResource,
     scope: OtelScope,
@@ -64,7 +86,7 @@ export function normalizeSpan(
         name: span.name,
         kind: span.kind.toString(),
         serviceName: resource.attributes?.['service.name'] as string | undefined,
-        statusCode: span.status?.code.toString() || '0',
+        statusCode: normalizeOtlpStatusCode(span.status?.code),
         statusMessage: span.status?.message,
 
         // Raw Data

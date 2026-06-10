@@ -20,11 +20,16 @@ import type {
   RequestsResponse,
 } from "./services/types";
 
-/** Map an OTEL numeric status code (string) to the canonical name. */
+/**
+ * Map an OTEL status code (string) to the canonical name. Accepts the
+ * canonical numeric codes plus the legacy OTLP enum-name variants that
+ * older CLI versions stored before the shared normalizer canonicalized
+ * status.code.
+ */
 function statusCodeToName(code: unknown): "UNSET" | "OK" | "ERROR" {
   const s = String(code ?? "0");
-  if (s === "1" || s === "1.0" || s === "OK") return "OK";
-  if (s === "2" || s === "2.0" || s === "ERROR") return "ERROR";
+  if (s === "1" || s === "1.0" || s === "OK" || s === "Ok" || s === "STATUS_CODE_OK") return "OK";
+  if (s === "2" || s === "2.0" || s === "ERROR" || s === "Error" || s === "STATUS_CODE_ERROR") return "ERROR";
   return "UNSET";
 }
 

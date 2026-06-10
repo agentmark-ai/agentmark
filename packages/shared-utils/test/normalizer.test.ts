@@ -192,6 +192,54 @@ describe('Normalizer', () => {
       expect(result.statusMessage).toBeUndefined();
     });
 
+    it('should canonicalize OTLP enum-name status codes to numeric strings', () => {
+      // OTLP/JSON encoders may emit the enum NAME instead of the numeric
+      // value. The normalizer must canonicalize so downstream stores
+      // (gateway ClickHouse, CLI SQLite) get one vocabulary.
+      const cases: Array<[string | number, string]> = [
+        ['STATUS_CODE_UNSET', '0'],
+        ['STATUS_CODE_OK', '1'],
+        ['STATUS_CODE_ERROR', '2'],
+        ['Error', '2'],
+        ['OK', '1'],
+        [2, '2'],
+        [0, '0'],
+      ];
+      for (const [code, expected] of cases) {
+        const result = normalizeSpan(
+          { attributes: {} },
+          { name: 'test' },
+          {
+            traceId: 'trace-1',
+            spanId: 'span-1',
+            name: 'test',
+            kind: 1,
+            startTimeUnixNano: '1000000000',
+            endTimeUnixNano: '2000000000',
+            status: { code: code as number },
+          },
+        );
+        expect(result.statusCode).toBe(expected);
+      }
+    });
+
+    it('should pass unknown status codes through unchanged', () => {
+      const result = normalizeSpan(
+        { attributes: {} },
+        { name: 'test' },
+        {
+          traceId: 'trace-1',
+          spanId: 'span-1',
+          name: 'test',
+          kind: 1,
+          startTimeUnixNano: '1000000000',
+          endTimeUnixNano: '2000000000',
+          status: { code: 7 },
+        },
+      );
+      expect(result.statusCode).toBe('7');
+    });
+
     it('should classify span type as GENERATION when transformer exists and classifies it', () => {
       const resource: OtelResource = {
         attributes: {
