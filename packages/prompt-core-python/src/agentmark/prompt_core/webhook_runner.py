@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, suppress
@@ -131,6 +132,28 @@ def _serialize_value(value: Any) -> Any:
     if hasattr(value, "model_dump"):
         return value.model_dump()
     return value
+
+
+def _set_span_input(span: PromptSpan, formatted: Any) -> None:
+    """Record the formatted messages as `agentmark.input` on the prompt span.
+
+    The runner owns the prompt (root) span, so it is the one place that
+    knows the request boundary — executors must not set this. Trace-level
+    input derivation reads the root span's input first, falling back to
+    GENERATION spans emitted by the host SDK's instrumentation.
+    """
+    messages = getattr(formatted, "messages", None)
+    if not messages:
+        return
+    with suppress(Exception):
+        serialized = [
+            {
+                "role": getattr(m, "role", None) or m.get("role"),
+                "content": getattr(m, "content", None) or m.get("content", ""),
+            }
+            for m in messages
+        ]
+        span.set_attribute("agentmark.input", json.dumps(serialized, default=str))
 
 
 def _compute_dataset_item_name(dataset_input: Any, index: int) -> str:
@@ -475,13 +498,21 @@ class WebhookRunner:
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
     ) -> dict[str, Any]:
-        async with self._prompt_span(prompt_name) as span:
+        # The span is entered manually (not `async with`) because on the
+        # streaming path its ownership transfers to the NDJSON generator:
+        # the span must end when the stream drains, not when this method
+        # returns the stream object — otherwise the span closes before the
+        # model call runs and the model spans land in a separate trace.
+        span_cm = self._prompt_span(prompt_name)
+        span = await span_cm.__aenter__()
+        try:
             prompt = await self._client.load_text_prompt(prompt_ast)
             formatted = (
                 await prompt.format(props=custom_props)
                 if custom_props
                 else await prompt.format_with_test_props()
             )
+            _set_span_input(span, formatted)
             ctx = ExecCtx(
                 telemetry=telemetry,
                 trace_id=getattr(span, "trace_id", None),
@@ -493,7 +524,9 @@ class WebhookRunner:
                 return self._with_trace_id(
                     {
                         "type": "stream",
-                        "stream": self._stream_text_ndjson(formatted, ctx),
+                        "stream": self._stream_text_ndjson(
+                            formatted, ctx, span=span, span_cm=span_cm
+                        ),
                     },
                     ctx.trace_id,
                 )
@@ -509,7 +542,7 @@ class WebhookRunner:
             # Envelope assembly is the pure _text_response_to_wire, pinned by
             # the shared response-envelopes.json golden vectors that the TS
             # runner's mirror also runs.
-            return _text_response_to_wire(
+            response = _text_response_to_wire(
                 result=text,
                 usage=usage,
                 finish_reason=finish_reason,
@@ -517,6 +550,11 @@ class WebhookRunner:
                 tool_results=tool_results,
                 trace_id=ctx.trace_id,
             )
+        except BaseException:
+            await span_cm.__aexit__(*sys.exc_info())
+            raise
+        await span_cm.__aexit__(None, None, None)
+        return response
 
     async def _run_object(
         self,
@@ -526,13 +564,18 @@ class WebhookRunner:
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
     ) -> dict[str, Any]:
-        async with self._prompt_span(prompt_name) as span:
+        # See _run_text for why the span is entered manually: streaming
+        # transfers span ownership to the NDJSON generator.
+        span_cm = self._prompt_span(prompt_name)
+        span = await span_cm.__aenter__()
+        try:
             prompt = await self._client.load_object_prompt(prompt_ast)
             formatted = (
                 await prompt.format(props=custom_props)
                 if custom_props
                 else await prompt.format_with_test_props()
             )
+            _set_span_input(span, formatted)
             ctx = ExecCtx(
                 telemetry=telemetry,
                 trace_id=getattr(span, "trace_id", None),
@@ -544,7 +587,9 @@ class WebhookRunner:
                 return self._with_trace_id(
                     {
                         "type": "stream",
-                        "stream": self._stream_object_ndjson(formatted, ctx),
+                        "stream": self._stream_object_ndjson(
+                            formatted, ctx, span=span, span_cm=span_cm
+                        ),
                     },
                     ctx.trace_id,
                 )
@@ -558,12 +603,17 @@ class WebhookRunner:
             with suppress(Exception):
                 span.set_attribute("agentmark.output", json.dumps(serialized, default=str))
             # See _run_text — vector-pinned envelope assembly.
-            return _object_response_to_wire(
+            response = _object_response_to_wire(
                 result=serialized,
                 usage=usage,
                 finish_reason=finish_reason,
                 trace_id=ctx.trace_id,
             )
+        except BaseException:
+            await span_cm.__aexit__(*sys.exc_info())
+            raise
+        await span_cm.__aexit__(None, None, None)
+        return response
 
     async def _run_image(
         self,
@@ -596,6 +646,7 @@ class WebhookRunner:
                 should_stream=False,
                 extra={"span": span},
             )
+            _set_span_input(span, formatted)
             result = await execute_image(formatted, ctx)
             return self._with_trace_id(dict(result), ctx.trace_id)
 
@@ -630,6 +681,7 @@ class WebhookRunner:
                 should_stream=False,
                 extra={"span": span},
             )
+            _set_span_input(span, formatted)
             result = await execute_speech(formatted, ctx)
             return self._with_trace_id(dict(result), ctx.trace_id)
 
@@ -648,35 +700,75 @@ class WebhookRunner:
         return payload
 
     async def _stream_text_ndjson(
-        self, formatted: Any, ctx: ExecCtx
+        self,
+        formatted: Any,
+        ctx: ExecCtx,
+        span: PromptSpan | None = None,
+        span_cm: AbstractAsyncContextManager[PromptSpan] | None = None,
     ) -> AsyncIterator[str]:
+        # When span/span_cm are passed, this generator owns the prompt span:
+        # it records the accumulated output and ends the span when the stream
+        # drains (or errors), keeping the model call inside the span.
+        text_parts: list[str] = []
         try:
-            async for ev in self._executor.execute_text(formatted, ctx):
-                # Pure event→chunk mapping is module-level, pinned by the
-                # shared wire-chunks.json golden vectors that the TS runner's
-                # mirror also runs. Terminal handling stays here.
-                chunk = _text_event_to_wire(ev)
-                if chunk is not None:
-                    yield json.dumps(chunk) + "\n"
-                if isinstance(ev, ErrorEvent):
-                    return
-        except Exception as exc:  # noqa: BLE001 — executor errors become wire errors
-            yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
+            try:
+                async for ev in self._executor.execute_text(formatted, ctx):
+                    if isinstance(ev, TextDeltaEvent):
+                        text_parts.append(ev.text)
+                    # Pure event→chunk mapping is module-level, pinned by the
+                    # shared wire-chunks.json golden vectors that the TS runner's
+                    # mirror also runs. Terminal handling stays here.
+                    chunk = _text_event_to_wire(ev)
+                    if chunk is not None:
+                        yield json.dumps(chunk) + "\n"
+                    if isinstance(ev, ErrorEvent):
+                        return
+            except Exception as exc:  # noqa: BLE001 — executor errors become wire errors
+                yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
+        finally:
+            if span is not None and text_parts:
+                with suppress(Exception):
+                    span.set_attribute("agentmark.output", "".join(text_parts))
+            if span_cm is not None:
+                with suppress(Exception):
+                    await span_cm.__aexit__(None, None, None)
 
     async def _stream_object_ndjson(
-        self, formatted: Any, ctx: ExecCtx
+        self,
+        formatted: Any,
+        ctx: ExecCtx,
+        span: PromptSpan | None = None,
+        span_cm: AbstractAsyncContextManager[PromptSpan] | None = None,
     ) -> AsyncIterator[str]:
+        # Span ownership mirrors _stream_text_ndjson.
+        obj_value: Any = None
         try:
-            async for ev in self._executor.execute_object(formatted, ctx):
-                # Pure event→chunk mapping is module-level (vector-pinned, see
-                # _stream_text_ndjson): usage-less finish emits nothing.
-                chunk = _object_event_to_wire(ev)
-                if chunk is not None:
-                    yield json.dumps(chunk) + "\n"
-                if isinstance(ev, ErrorEvent):
-                    return
-        except Exception as exc:  # noqa: BLE001
-            yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
+            try:
+                async for ev in self._executor.execute_object(formatted, ctx):
+                    # Same accumulation semantics as _drain_events.
+                    if isinstance(ev, ObjectFinalEvent):
+                        obj_value = ev.value
+                    elif isinstance(ev, ObjectDeltaEvent):
+                        obj_value = ev.partial
+                    # Pure event→chunk mapping is module-level (vector-pinned, see
+                    # _stream_text_ndjson): usage-less finish emits nothing.
+                    chunk = _object_event_to_wire(ev)
+                    if chunk is not None:
+                        yield json.dumps(chunk) + "\n"
+                    if isinstance(ev, ErrorEvent):
+                        return
+            except Exception as exc:  # noqa: BLE001
+                yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
+        finally:
+            if span is not None and obj_value is not None:
+                with suppress(Exception):
+                    span.set_attribute(
+                        "agentmark.output",
+                        json.dumps(_serialize_value(obj_value), default=str),
+                    )
+            if span_cm is not None:
+                with suppress(Exception):
+                    await span_cm.__aexit__(None, None, None)
 
     async def run_experiment(
         self,

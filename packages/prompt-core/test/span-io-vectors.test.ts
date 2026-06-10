@@ -1,0 +1,160 @@
+/**
+ * Cross-language span-I/O conformance: drive the WebhookRunner with the
+ * pinned cases in `conformance-vectors/vectors/span-io.json` and assert the
+ * prompt span receives the contracted `agentmark.input` / `agentmark.output`
+ * attributes — and that the span ends at stream drain, never at iterable
+ * creation (the early-span-end regression that split model spans into a
+ * separate trace).
+ *
+ * Mirror of `prompt-core-python/tests/test_span_io_vectors.py`. Both suites
+ * read the SAME vector file, so a drift in either runner's span-attribute
+ * behavior fails loudly in both CI runs.
+ */
+import { describe, it, expect } from "vitest";
+import path from "path";
+import fs from "fs";
+import type { ExecCtx, ExecutorCapabilities, Executor } from "../src/index";
+import { WebhookRunner } from "../src/webhook-runner";
+import type { PromptSpanHook, SpanLike } from "../src/span-hook";
+
+const VECTORS = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "..", "conformance-vectors", "vectors", "span-io.json"),
+    "utf8"
+  )
+);
+
+const TEXT_AST = {
+  children: [{ type: "yaml", value: "text_config:\n  model_name: test\n" }],
+} as any;
+const OBJECT_AST = {
+  children: [{ type: "yaml", value: "object_config:\n  model_name: test\n" }],
+} as any;
+
+/** Executor that replays the vector's events verbatim. */
+function replayExecutor(events: any[]): Executor {
+  async function* replay() {
+    for (const ev of events) yield ev;
+  }
+  return {
+    name: "replay",
+    capabilities: (): ExecutorCapabilities => ({
+      text: true,
+      object: true,
+      image: false,
+      speech: false,
+    }),
+    async *executeText(_formatted: unknown, _ctx: ExecCtx) {
+      yield* replay();
+    },
+    async *executeObject(_formatted: unknown, _ctx: ExecCtx) {
+      yield* replay();
+    },
+  };
+}
+
+/** Client whose prompts format to the vector's messages. */
+function clientWithMessages(messages: unknown[]) {
+  const prompt = {
+    async format() {
+      return { messages };
+    },
+    async formatWithTestProps() {
+      return { messages };
+    },
+  };
+  return {
+    getLoader: () => ({}),
+    getEvalRegistry: () => undefined,
+    loadTextPrompt: async () => prompt,
+    loadObjectPrompt: async () => prompt,
+  } as any;
+}
+
+/** Recording span hook: captures attributes and when the span ended. */
+function recordingHook() {
+  const attributes: Record<string, string> = {};
+  const state = { ended: false };
+  const hook: PromptSpanHook = async (_params, fn) => {
+    const span: SpanLike = {
+      traceId: "abc123abc123abc123abc123abc123ab",
+      setAttribute: (key, value) => {
+        attributes[key] = value;
+      },
+    };
+    try {
+      const result = await fn(span);
+      return { result, traceId: span.traceId };
+    } finally {
+      state.ended = true;
+    }
+  };
+  return { hook, attributes, state };
+}
+
+async function drain(stream: ReadableStream): Promise<void> {
+  const reader = stream.getReader();
+  for (;;) {
+    const { done } = await reader.read();
+    if (done) break;
+  }
+}
+
+function assertAttributes(
+  attributes: Record<string, string>,
+  expected: { input: unknown[]; output: unknown }
+) {
+  // Input is always compared as parsed JSON — TS/Python spacing differs.
+  expect(attributes["agentmark.input"]).toBeDefined();
+  expect(JSON.parse(attributes["agentmark.input"])).toEqual(expected.input);
+
+  if (expected.output === null) {
+    expect(attributes["agentmark.output"]).toBeUndefined();
+  } else if (typeof expected.output === "string") {
+    expect(attributes["agentmark.output"]).toBe(expected.output);
+  } else {
+    expect(JSON.parse(attributes["agentmark.output"])).toEqual(expected.output);
+  }
+}
+
+describe("span-io conformance vectors", () => {
+  for (const c of VECTORS.cases) {
+    it(c.name, async () => {
+      const { hook, attributes, state } = recordingHook();
+      const runner = new WebhookRunner(
+        clientWithMessages(c.messages),
+        replayExecutor(c.events),
+        { promptSpanHook: hook }
+      );
+      const ast = c.kind === "text" ? TEXT_AST : OBJECT_AST;
+
+      if (c.throws) {
+        await expect(
+          runner.runPrompt(ast, { shouldStream: c.shouldStream })
+        ).rejects.toThrow();
+        assertAttributes(attributes, c.expected);
+        expect(state.ended).toBe(true);
+        return;
+      }
+
+      const response = await runner.runPrompt(ast, {
+        shouldStream: c.shouldStream,
+      });
+
+      if (c.shouldStream) {
+        // The span must NOT have ended at hand-back: the model call runs
+        // during the drain, and ending early orphans the model spans.
+        expect(state.ended).toBe(false);
+        await drain((response as any).stream);
+        // Drain completion settles the hook callback on a microtask;
+        // give it one turn before asserting.
+        await new Promise((res) => setTimeout(res, 0));
+        expect(state.ended).toBe(true);
+      } else {
+        expect(state.ended).toBe(true);
+      }
+
+      assertAttributes(attributes, c.expected);
+    });
+  }
+});
