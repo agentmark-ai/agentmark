@@ -292,6 +292,7 @@ describe("MaskingSpanProcessor", () => {
 // They MUST stay identical to the Python SDK's masking_processor.py sets.
 const EXPECTED_INPUT_KEYS = [
   "agentmark.dataset_input",
+  "agentmark.request.input",
   "ai.prompt",
   "ai.prompt.messages",
   "ai.prompt.toolChoice",
@@ -308,6 +309,7 @@ const EXPECTED_INPUT_KEYS = [
 ];
 
 const EXPECTED_OUTPUT_KEYS = [
+  "agentmark.response.output",
   "ai.response.object",
   "ai.response.text",
   "ai.response.toolCalls",

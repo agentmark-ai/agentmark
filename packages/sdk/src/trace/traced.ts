@@ -32,9 +32,24 @@ const OPENINFERENCE_KIND_MAP: Record<string, string> = {
   guardrail: "GUARDRAIL",
 };
 
-// Attribute keys matching the gen_ai semantic conventions used by the adapter
-const INPUT_KEY = "gen_ai.request.input";
-const OUTPUT_KEY = "gen_ai.response.output";
+/**
+ * Legacy attribute keys.
+ *
+ * @deprecated `gen_ai.request.input` / `gen_ai.response.output` are NOT part
+ * of the OTel GenAI semantic conventions — they live inside the reserved
+ * `gen_ai.*` namespace and will collide with the spec once it stabilizes
+ * (the spec uses `gen_ai.input.messages` / `gen_ai.output.messages` with a
+ * structured message schema). observe() wraps arbitrary functions, not model
+ * calls, so its IO now also goes to the vendor-namespaced
+ * `agentmark.request.input` / `agentmark.response.output` keys. The legacy
+ * gen_ai-namespaced keys are dual-emitted for one release cycle and will be
+ * removed in a future release.
+ */
+const LEGACY_INPUT_KEY = "gen_ai.request.input";
+const LEGACY_OUTPUT_KEY = "gen_ai.response.output";
+// Vendor-namespaced IO keys for generic (non-model) observed functions.
+const INPUT_KEY = "agentmark.request.input";
+const OUTPUT_KEY = "agentmark.response.output";
 const SPAN_KIND_KEY = "agentmark.span.kind";
 
 /** Options for the observe() wrapper. */
@@ -59,8 +74,10 @@ export type ObserveOptions = {
  * Wrap an async function with automatic IO observation.
  *
  * Creates an OpenTelemetry span that captures function arguments as input
- * and return value as output, using gen_ai.request.input / gen_ai.response.output
- * attribute keys for UI display.
+ * and return value as output, using agentmark.request.input /
+ * agentmark.response.output attribute keys for UI display (the deprecated
+ * gen_ai.request.input / gen_ai.response.output aliases are also emitted
+ * for one release cycle — see LEGACY_INPUT_KEY).
  *
  * @example
  * ```typescript
@@ -110,7 +127,10 @@ export function observe<TArgs extends unknown[], TReturn>(
         if (processInputs) {
           inputs = processInputs(inputs);
         }
-        span.setAttribute(INPUT_KEY, serializeValue(inputs));
+        const serialized = serializeValue(inputs);
+        span.setAttribute(INPUT_KEY, serialized);
+        // Deprecated dual-emit — see LEGACY_INPUT_KEY above.
+        span.setAttribute(LEGACY_INPUT_KEY, serialized);
       }
 
       try {
@@ -121,7 +141,10 @@ export function observe<TArgs extends unknown[], TReturn>(
           if (processOutputs) {
             output = processOutputs(output);
           }
-          span.setAttribute(OUTPUT_KEY, serializeValue(output));
+          const serialized = serializeValue(output);
+          span.setAttribute(OUTPUT_KEY, serialized);
+          // Deprecated dual-emit — see LEGACY_OUTPUT_KEY above.
+          span.setAttribute(LEGACY_OUTPUT_KEY, serialized);
         }
 
         span.setStatus({ code: SpanStatusCode.OK });

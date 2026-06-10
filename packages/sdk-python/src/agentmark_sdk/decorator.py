@@ -19,9 +19,23 @@ from .serialize import serialize_value
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-# Attribute keys matching the gen_ai semantic conventions used by the adapter
-INPUT_KEY = "gen_ai.request.input"
-OUTPUT_KEY = "gen_ai.response.output"
+# Legacy attribute keys.
+#
+# Deprecated: ``gen_ai.request.input`` / ``gen_ai.response.output`` are NOT
+# part of the OTel GenAI semantic conventions — they live inside the reserved
+# ``gen_ai.*`` namespace and will collide with the spec once it stabilizes
+# (the spec uses ``gen_ai.input.messages`` / ``gen_ai.output.messages`` with a
+# structured message schema). ``@observe`` wraps arbitrary functions, not model
+# calls, so its IO now also goes to the vendor-namespaced
+# ``agentmark.request.input`` / ``agentmark.response.output`` keys. The legacy
+# gen_ai-namespaced keys are dual-emitted for one release cycle and will be
+# removed in a future release. Mirrors LEGACY_INPUT_KEY in the TS SDK's
+# trace/traced.ts.
+LEGACY_INPUT_KEY = "gen_ai.request.input"
+LEGACY_OUTPUT_KEY = "gen_ai.response.output"
+# Vendor-namespaced IO keys for generic (non-model) observed functions.
+INPUT_KEY = f"{AGENTMARK_KEY}.request.input"
+OUTPUT_KEY = f"{AGENTMARK_KEY}.response.output"
 SPAN_KIND_KEY = f"{AGENTMARK_KEY}.span.kind"
 
 
@@ -167,6 +181,8 @@ def observe(
                     input_str = _capture_inputs(fn, args, kwargs, process_inputs)
                     if input_str is not None:
                         span.set_attribute(INPUT_KEY, input_str)
+                        # Deprecated dual-emit -- see LEGACY_INPUT_KEY above.
+                        span.set_attribute(LEGACY_INPUT_KEY, input_str)
 
                 try:
                     result = await fn(*args, **kwargs)
@@ -174,6 +190,8 @@ def observe(
                         output_str = _capture_output(result, process_outputs)
                         if output_str is not None:
                             span.set_attribute(OUTPUT_KEY, output_str)
+                            # Deprecated dual-emit -- see LEGACY_OUTPUT_KEY above.
+                            span.set_attribute(LEGACY_OUTPUT_KEY, output_str)
                     span.set_status(StatusCode.OK)
                     return result
                 except Exception as e:
@@ -191,6 +209,8 @@ def observe(
                     input_str = _capture_inputs(fn, args, kwargs, process_inputs)
                     if input_str is not None:
                         span.set_attribute(INPUT_KEY, input_str)
+                        # Deprecated dual-emit -- see LEGACY_INPUT_KEY above.
+                        span.set_attribute(LEGACY_INPUT_KEY, input_str)
 
                 try:
                     result = fn(*args, **kwargs)
@@ -198,6 +218,8 @@ def observe(
                         output_str = _capture_output(result, process_outputs)
                         if output_str is not None:
                             span.set_attribute(OUTPUT_KEY, output_str)
+                            # Deprecated dual-emit -- see LEGACY_OUTPUT_KEY above.
+                            span.set_attribute(LEGACY_OUTPUT_KEY, output_str)
                     span.set_status(StatusCode.OK)
                     return result
                 except Exception as e:
@@ -223,6 +245,8 @@ def observe(
                 input_str = _capture_inputs(fn, args, kwargs, process_inputs)
                 if input_str is not None:
                     span.set_attribute(INPUT_KEY, input_str)
+                    # Deprecated dual-emit -- see LEGACY_INPUT_KEY above.
+                    span.set_attribute(LEGACY_INPUT_KEY, input_str)
 
             items: list[Any] = []
             try:
@@ -241,6 +265,8 @@ def observe(
                     )
                     if output_str is not None:
                         span.set_attribute(OUTPUT_KEY, output_str)
+                        # Deprecated dual-emit -- see LEGACY_OUTPUT_KEY above.
+                        span.set_attribute(LEGACY_OUTPUT_KEY, output_str)
                 span.set_status(StatusCode.OK)
             except Exception as e:
                 span.set_status(StatusCode.ERROR, str(e))
@@ -263,6 +289,8 @@ def observe(
                 input_str = _capture_inputs(fn, args, kwargs, process_inputs)
                 if input_str is not None:
                     span.set_attribute(INPUT_KEY, input_str)
+                    # Deprecated dual-emit -- see LEGACY_INPUT_KEY above.
+                    span.set_attribute(LEGACY_INPUT_KEY, input_str)
 
             items: list[Any] = []
             try:
@@ -281,6 +309,8 @@ def observe(
                     )
                     if output_str is not None:
                         span.set_attribute(OUTPUT_KEY, output_str)
+                        # Deprecated dual-emit -- see LEGACY_OUTPUT_KEY above.
+                        span.set_attribute(LEGACY_OUTPUT_KEY, output_str)
                 span.set_status(StatusCode.OK)
             except Exception as e:
                 span.set_status(StatusCode.ERROR, str(e))

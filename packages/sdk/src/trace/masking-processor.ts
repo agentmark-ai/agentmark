@@ -24,6 +24,9 @@ export const INPUT_KEYS = new Set([
   // AgentMark executor / SDK
   "gen_ai.request.input",
   "gen_ai.request.tool_calls",
+  // Vendor-namespaced observe()/setInput() key (dual-emitted with the
+  // deprecated gen_ai.request.input during the OTel GenAI spec migration).
+  "agentmark.request.input",
   // Carries the full JSON-serialized dataset row input (experiment runs).
   "agentmark.dataset_input",
   // Vercel AI SDK (experimental_telemetry) — each is a JSON string except
@@ -52,6 +55,9 @@ export const OUTPUT_KEYS = new Set([
   // AgentMark executor / SDK
   "gen_ai.response.output",
   "gen_ai.response.output_object",
+  // Vendor-namespaced observe()/setOutput() key (dual-emitted with the
+  // deprecated gen_ai.response.output during the OTel GenAI spec migration).
+  "agentmark.response.output",
   // Vercel AI SDK (experimental_telemetry)
   "ai.response.text",
   "ai.response.toolCalls",

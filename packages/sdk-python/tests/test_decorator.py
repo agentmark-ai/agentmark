@@ -47,6 +47,10 @@ class TestObserveDecorator:
         assert "gen_ai.response.output" in calls
         assert '"name": "test"' in calls["gen_ai.request.input"]
         assert '"count": 5' in calls["gen_ai.response.output"]
+        # Dual-emit: the vendor-namespaced keys carry the identical value as
+        # the deprecated gen_ai-namespaced keys during the migration cycle.
+        assert calls["agentmark.request.input"] == calls["gen_ai.request.input"]
+        assert calls["agentmark.response.output"] == calls["gen_ai.response.output"]
 
     def test_basic_sync_function(self) -> None:
         """Auto-captures args and return value for sync functions."""
@@ -66,6 +70,9 @@ class TestObserveDecorator:
         calls = {call[0][0]: call[0][1] for call in mock_span.set_attribute.call_args_list}
         assert '"x": 3' in calls["gen_ai.request.input"]
         assert calls["gen_ai.response.output"] == "7"
+        # Dual-emit parity for sync functions too.
+        assert calls["agentmark.request.input"] == calls["gen_ai.request.input"]
+        assert calls["agentmark.response.output"] == "7"
 
     @pytest.mark.asyncio
     async def test_custom_name(self) -> None:
@@ -129,6 +136,7 @@ class TestObserveDecorator:
 
         attr_keys = [call[0][0] for call in mock_span.set_attribute.call_args_list]
         assert "gen_ai.request.input" not in attr_keys
+        assert "agentmark.request.input" not in attr_keys
         assert "gen_ai.response.output" in attr_keys
 
     @pytest.mark.asyncio
@@ -147,6 +155,7 @@ class TestObserveDecorator:
         attr_keys = [call[0][0] for call in mock_span.set_attribute.call_args_list]
         assert "gen_ai.request.input" in attr_keys
         assert "gen_ai.response.output" not in attr_keys
+        assert "agentmark.response.output" not in attr_keys
 
     @pytest.mark.asyncio
     async def test_process_inputs(self) -> None:
