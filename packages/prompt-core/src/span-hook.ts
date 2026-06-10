@@ -35,6 +35,13 @@ export interface PromptSpanParams {
   name: string;
   /** Prompt name from frontmatter, for the trace surface's label column. */
   promptName?: string;
+  /**
+   * Commit sha the prompt content was served at. Populated from the served
+   * AST's `agentmark_meta.commit_sha` (stamped by the gateway / CLI dev
+   * server), so regular `runPrompt` traces link to the exact prompt VERSION
+   * — not just the prompt name. Mirrors `ExperimentItemParams.commitSha`.
+   */
+  commitSha?: string;
 }
 
 export interface ExperimentItemParams {

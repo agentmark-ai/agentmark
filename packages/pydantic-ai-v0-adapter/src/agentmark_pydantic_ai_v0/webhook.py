@@ -95,6 +95,9 @@ async def _pydantic_prompt_span(params: PromptSpanParams):
     options = SpanOptions(
         name=params.name,
         prompt_name=params.prompt_name,
+        metadata=(
+            {"commit_sha": params.commit_sha} if params.commit_sha else None
+        ),
     )
     async with span_context(options) as ctx:
         yield _PydanticSpanCtx(_inner=ctx, trace_id=ctx.trace_id)

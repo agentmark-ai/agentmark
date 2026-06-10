@@ -93,6 +93,12 @@ class PromptSpanParams:
 
     name: str
     prompt_name: str | None
+    # Commit sha the prompt content was served at (stamped by the gateway /
+    # CLI dev server into the AST's ``agentmark_meta.commit_sha``). Lets
+    # regular prompt-run traces link to the exact prompt VERSION. Mirrors
+    # ``ExperimentItemParams.commit_sha``. Defaults to ``None`` so existing
+    # hook implementations and call sites stay source-compatible.
+    commit_sha: str | None = None
 
 
 class PromptSpan(Protocol):
@@ -125,6 +131,18 @@ async def _null_span_hook(_params: ExperimentItemParams) -> AsyncIterator[_NullS
 @asynccontextmanager
 async def _null_prompt_span_hook(_params: PromptSpanParams) -> AsyncIterator[_NullSpan]:
     yield _NullSpan()
+
+
+def _commit_sha_from_frontmatter(frontmatter: Any) -> str | None:
+    """Read the served-at commit sha the gateway/CLI dev server stamped into
+    the AST frontmatter (``agentmark_meta.commit_sha``)."""
+    if not isinstance(frontmatter, dict):
+        return None
+    meta = frontmatter.get("agentmark_meta")
+    if not isinstance(meta, dict):
+        return None
+    sha = meta.get("commit_sha")
+    return sha if isinstance(sha, str) and sha else None
 
 
 def _serialize_value(value: Any) -> Any:
@@ -466,25 +484,26 @@ class WebhookRunner:
         custom_props = options.get("customProps")
         telemetry = options.get("telemetry")
         prompt_name = frontmatter.get("name") if isinstance(frontmatter, dict) else None
+        commit_sha = _commit_sha_from_frontmatter(frontmatter)
 
         # Use `in` rather than `.get(...)` — an empty config dict is valid
         # (users sometimes declare just `text_config: {}` to pick up
         # adapter defaults) but `{}` is falsy via .get().
         if "object_config" in frontmatter:
             return await self._run_object(
-                prompt_ast, should_stream, custom_props, telemetry, prompt_name
+                prompt_ast, should_stream, custom_props, telemetry, prompt_name, commit_sha
             )
         if "text_config" in frontmatter:
             return await self._run_text(
-                prompt_ast, should_stream, custom_props, telemetry, prompt_name
+                prompt_ast, should_stream, custom_props, telemetry, prompt_name, commit_sha
             )
         if "image_config" in frontmatter:
             return await self._run_image(
-                prompt_ast, custom_props, telemetry, prompt_name
+                prompt_ast, custom_props, telemetry, prompt_name, commit_sha
             )
         if "speech_config" in frontmatter:
             return await self._run_speech(
-                prompt_ast, custom_props, telemetry, prompt_name
+                prompt_ast, custom_props, telemetry, prompt_name, commit_sha
             )
         raise ValueError(
             "Invalid prompt: no text_config, object_config, image_config, or speech_config found"
@@ -497,13 +516,14 @@ class WebhookRunner:
         custom_props: dict[str, Any] | None,
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
+        commit_sha: str | None = None,
     ) -> dict[str, Any]:
         # The span is entered manually (not `async with`) because on the
         # streaming path its ownership transfers to the NDJSON generator:
         # the span must end when the stream drains, not when this method
         # returns the stream object — otherwise the span closes before the
         # model call runs and the model spans land in a separate trace.
-        span_cm = self._prompt_span(prompt_name)
+        span_cm = self._prompt_span(prompt_name, commit_sha)
         span = await span_cm.__aenter__()
         try:
             prompt = await self._client.load_text_prompt(prompt_ast)
@@ -563,10 +583,11 @@ class WebhookRunner:
         custom_props: dict[str, Any] | None,
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
+        commit_sha: str | None = None,
     ) -> dict[str, Any]:
         # See _run_text for why the span is entered manually: streaming
         # transfers span ownership to the NDJSON generator.
-        span_cm = self._prompt_span(prompt_name)
+        span_cm = self._prompt_span(prompt_name, commit_sha)
         span = await span_cm.__aenter__()
         try:
             prompt = await self._client.load_object_prompt(prompt_ast)
@@ -621,6 +642,7 @@ class WebhookRunner:
         custom_props: dict[str, Any] | None,
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
+        commit_sha: str | None = None,
     ) -> dict[str, Any]:
         if not self._executor.capabilities().image:
             raise ValueError(
@@ -632,7 +654,7 @@ class WebhookRunner:
                 f"Executor '{self._executor.name}' does not implement execute_image()."
             )
 
-        async with self._prompt_span(prompt_name) as span:
+        async with self._prompt_span(prompt_name, commit_sha) as span:
             prompt = await self._client.load_image_prompt(prompt_ast)
             formatted = (
                 await prompt.format(props=custom_props, telemetry=telemetry)
@@ -656,6 +678,7 @@ class WebhookRunner:
         custom_props: dict[str, Any] | None,
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
+        commit_sha: str | None = None,
     ) -> dict[str, Any]:
         if not self._executor.capabilities().speech:
             raise ValueError(
@@ -667,7 +690,7 @@ class WebhookRunner:
                 f"Executor '{self._executor.name}' does not implement execute_speech()."
             )
 
-        async with self._prompt_span(prompt_name) as span:
+        async with self._prompt_span(prompt_name, commit_sha) as span:
             prompt = await self._client.load_speech_prompt(prompt_ast)
             formatted = (
                 await prompt.format(props=custom_props, telemetry=telemetry)
@@ -686,9 +709,15 @@ class WebhookRunner:
             return self._with_trace_id(dict(result), ctx.trace_id)
 
     @asynccontextmanager
-    async def _prompt_span(self, prompt_name: str | None) -> AsyncIterator[PromptSpan]:
+    async def _prompt_span(
+        self, prompt_name: str | None, commit_sha: str | None = None
+    ) -> AsyncIterator[PromptSpan]:
         async with self._prompt_span_hook(
-            PromptSpanParams(name=prompt_name or "prompt-run", prompt_name=prompt_name)
+            PromptSpanParams(
+                name=prompt_name or "prompt-run",
+                prompt_name=prompt_name,
+                commit_sha=commit_sha,
+            )
         ) as span:
             yield span
 
@@ -803,6 +832,10 @@ class WebhookRunner:
             else None
         )
         prompt_name = frontmatter.get("name") if isinstance(frontmatter, dict) else None
+        # Caller-supplied commit_sha (e.g. the CLI's run-experiment git
+        # stamping) wins; the AST's served-at agentmark_meta.commit_sha is
+        # only a fallback for cloud-loaded prompts run without an explicit sha.
+        commit_sha = commit_sha or _commit_sha_from_frontmatter(frontmatter)
 
         if "text_config" in frontmatter:
             kind = "text"

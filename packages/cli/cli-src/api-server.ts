@@ -59,6 +59,7 @@ import {
 } from "./api-helpers";
 import { structuredError } from "@agentmark-ai/api-schemas";
 import { findProjectRoot } from "./config";
+import { injectCommitShaIntoAst, resolveLocalCommitSha } from "./utils/commit-stamp";
 
 // Envelope-only schema for /v1/scores/batch. The `createScoresBatch` service
 // does its own per-item validation and returns a 207 with per-row errors
@@ -752,6 +753,19 @@ ${promptsList}
 
       // Parse using the TemplateDX instance (which has System/User/Assistant tags registered)
       const data = await templateDX.parse(fileContent, path.dirname(fullPath), contentLoader);
+
+      // Mirror the cloud gateway: stamp the served-at commit into the AST's
+      // `agentmark_meta.commit_sha` so local prompt runs link traces to the
+      // exact prompt version (the SDK run path reads it from the frontmatter).
+      // Best-effort — outside a git repo the AST is served unstamped. The
+      // response stays the canonical `{ data }` envelope, same as cloud.
+      let commitSha: string | null = null;
+      try {
+        commitSha = resolveLocalCommitSha(findProjectRoot(currentPath));
+      } catch {
+        // findProjectRoot throws outside an agentmark project; serve unstamped.
+      }
+      injectCommitShaIntoAst(data, commitSha);
       return res.json({ data });
     } catch (_error) {
       return sendNotFound(res, "File not found or invalid");
