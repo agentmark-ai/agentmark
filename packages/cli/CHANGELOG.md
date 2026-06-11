@@ -1,3 +1,27 @@
+## 0.20.2 (2026-06-11)
+
+### 🩹 Fixes
+
+- Onboarding fixes from a real-world setup report: ([#752](https://github.com/agentmark-ai/agentmark/pull/752))
+
+  - mcp-server: expired sessions auto-refresh via the `refresh_token` in
+    `~/.agentmark/auth.json` (persisted back, CLI-compatible); login hints name
+    `npx @agentmark-ai/cli login` (the `agentmark` npm package does not exist)
+  - cli: doctor labels state the actual condition ("dev server entry missing",
+    not "present ⚠"); python dev server gets the project root on PYTHONPATH and
+    a per-run bytecode-cache prefix (stale .pyc can no longer mask edits);
+    `dev` warns when the linked trace-forwarding endpoint is unreachable;
+    dev-config.json is never written outside an agentmark project;
+    `doctor --smoke` names missing init_tracing as the likely no-trace cause
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.9.0
+- Updated @agentmark-ai/shared-utils to 0.6.1
+- Updated @agentmark-ai/api-schemas to 0.5.0
+- Updated @agentmark-ai/prompt-core to 0.13.0
+- Updated @agentmark-ai/api-types to 0.6.0
+
 ## 0.20.1 (2026-06-10)
 
 ### 🧱 Updated Dependencies

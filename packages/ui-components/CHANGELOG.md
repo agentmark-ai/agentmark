@@ -1,3 +1,38 @@
+## 0.9.0 (2026-06-11)
+
+### 🚀 Features
+
+- feat(experiments): placeholder states (`running` / `stalled`) on experiment summaries ([#749](https://github.com/agentmark-ai/agentmark/pull/749))
+
+  `ExperimentSummarySchema` gains an optional `status` field so a backend can
+  surface a dispatched run whose spans haven't landed in analytics storage yet:
+  `"running"` while data is expected, `"stalled"` when none arrived (telemetry
+  likely not configured). The experiments list renders both as placeholders —
+  a status label next to the name, no stats, not clickable, excluded from
+  selection/compare and charts. Stalled rows render a warning label with an
+  explanatory tooltip and, when the new optional `onDismissExperiment` prop is
+  provided, a dismiss button. Rows without `status` render exactly as before,
+  so existing consumers are unaffected.
+
+
+### 🩹 Fixes
+
+- fix(ui-components): export useSelectedSpanIO so hosts can hydrate lazy span IO ([#746](https://github.com/agentmark-ai/agentmark/pull/746))
+
+  Extracts the trace drawer's lazy span-IO hydration (host-provided
+  fetchSpanIO, synthetic trace-root → real root-span resolution, per-span
+  caching) out of useSpanPrompts into a reusable, exported
+  useSelectedSpanIO hook. Hosts that load traces "lightweight" (IO columns
+  stripped from the initial fetch) and read input/output off the selected
+  span outside the IO tab — e.g. the dashboard's Add-to-Dataset capture —
+  previously saw empty strings (agentmark-ai/app#2785). mergeSpanIO moved
+  with it and is re-exported from its old module; behavior is unchanged.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.5.0
+- Updated @agentmark-ai/prompt-core to 0.13.0
+
 ## 0.8.2 (2026-06-10)
 
 ### 🧱 Updated Dependencies

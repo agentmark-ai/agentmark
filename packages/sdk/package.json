@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/sdk",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "description": "SDK for communicating with the Agentmark hosted platform",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-api": "0.1.2",
-    "@agentmark-ai/prompt-core": "0.12.1",
+    "@agentmark-ai/prompt-core": "0.13.0",
     "@mastra/core": "^0.13.2",
     "@sentry/node": "^10.0.0",
     "@types/node": "^20.0.0",
