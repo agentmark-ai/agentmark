@@ -45,10 +45,13 @@ export const TracesListParamsSchema = PaginationParamsSchema
     // from commit abc1234". Cloud: exact match on the dedicated
     // `CommitSha` column; local CLI: extracted from `Metadata.commit_sha`.
     commit_sha: z.string().optional(),
-    // Advanced filter — a human-readable string expression. Predicates are
-    // combined with `and` (AND-only). Quote values that contain spaces.
+    // Advanced filter — a human-readable string expression. Clauses are
+    // combined with `and`; a clause is a predicate or a parenthesized
+    // OR-group (one level deep — `or` only inside parens, `and` only
+    // outside). Quote values that contain spaces.
     //
-    //   filter      = predicate ("and" predicate)*
+    //   filter      = clause ("and" clause)*
+    //   clause      = predicate | "(" predicate ("or" predicate)* ")"
     //   predicate   = field operator [value]
     //   operator    = "=" | "!=" | ">" | ">=" | "<" | "<="
     //               | "contains" | "not contains"
@@ -71,6 +74,7 @@ export const TracesListParamsSchema = PaginationParamsSchema
     //   filter=metadata.debug_screenshot_url exists
     //   filter=metadata.env = "prod" and status = ERROR
     //   filter=cost > 0.01 and latency_ms <= 2000
+    //   filter=(model = "gpt-4o" or model = "o3") and status = ERROR
     //
     // A malformed or unsupported filter returns 400 (it is never silently
     // ignored).
@@ -78,15 +82,17 @@ export const TracesListParamsSchema = PaginationParamsSchema
       .string()
       .optional()
       .describe(
-        'Filter expression (string DSL). Predicates combined with `and`: ' +
-          '`field operator [value]`. Operators: `=`, `!=`, `>`, `>=`, `<`, `<=`, ' +
+        'Filter expression (string DSL). Clauses combined with `and`; a clause ' +
+          'is a predicate (`field operator [value]`) or a parenthesized OR-group ' +
+          'of predicates: `(a = 1 or b = 2)`. `or` only inside parens, `and` only ' +
+          'outside; groups do not nest. Operators: `=`, `!=`, `>`, `>=`, `<`, `<=`, ' +
           '`contains`, `not contains`, `starts with`, `ends with`, and (for ' +
           '`metadata.<key>`) `exists` / `does not exist`. Quote values with ' +
           'spaces. Fields: model, user_id, session_id, trace_id, prompt_name, ' +
           'input, output, props, semantic_kind, latency_ms, cost, prompt_tokens, ' +
           'completion_tokens, status (OK|ERROR), tags, metadata.<key>, ' +
-          'score__<name>. Example: `metadata.env = "prod" and status = ERROR`. ' +
-          'Malformed filters return 400.',
+          'score__<name>. Example: `(model = "gpt-4o" or model = "o3") and ' +
+          'status = ERROR`. Malformed filters return 400.',
       ),
   });
 

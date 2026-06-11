@@ -354,7 +354,11 @@ export interface TracesParams extends PaginationParams {
   name?: string;
   tags?: string[];
   commitSha?: string;
-  filters?: AnalyticsFilter[];
+  /**
+   * AND of leaves and one-level OR-groups (see {@link AnalyticsFilterNode}).
+   * Plain `AnalyticsFilter[]` callers keep working unchanged.
+   */
+  filters?: AnalyticsFilterNode[];
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   /** Single-env scoping per FR-031/FR-051. Undefined = no env filter. */
@@ -900,6 +904,31 @@ export interface AnalyticsFilter {
   field: string;
   operator: string;
   value: string | string[];
+}
+
+/**
+ * Disjunction of leaf predicates — matches rows satisfying ANY member.
+ * One level deep by design: a filter list is an AND of leaves and OR-groups
+ * (conjunctive normal form); members are always leaves, never nested groups.
+ */
+export interface AnalyticsFilterOrGroup {
+  or: AnalyticsFilter[];
+}
+
+/**
+ * One element of a filter list: a leaf predicate or an OR-group.
+ * `AnalyticsFilter[]` stays assignable wherever `AnalyticsFilterNode[]` is
+ * accepted, so existing AND-only callers are unaffected.
+ */
+export type AnalyticsFilterNode = AnalyticsFilter | AnalyticsFilterOrGroup;
+
+/**
+ * Type guard for OR-group nodes in a filter list.
+ */
+export function isAnalyticsFilterOrGroup(
+  node: AnalyticsFilterNode
+): node is AnalyticsFilterOrGroup {
+  return typeof node === 'object' && node !== null && Array.isArray((node as AnalyticsFilterOrGroup).or);
 }
 
 /**
