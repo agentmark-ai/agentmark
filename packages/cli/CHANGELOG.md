@@ -1,3 +1,31 @@
+## 0.21.0 (2026-06-11)
+
+### 🚀 Features
+
+- feat(search): structured JSON filter schemas for the v2 search endpoints ([#753](https://github.com/agentmark-ai/agentmark/pull/753))
+
+  New `filters` schemas (`FilterLeafSchema`, `FilterOrGroupSchema`,
+  `FilterNodeSchema`) and search body schemas (`TracesSearchBodySchema`,
+  `SpansSearchBodySchema`, `ScoresSearchBodySchema`) backing
+  `POST /v1/{traces|spans|scores}/search`, plus
+  `FilterSchemaResponseSchema` for the `GET /v1/filter-schema` discovery
+  endpoint. Operators reuse the canonical `AnalyticsFilter` vocabulary and
+  add JSON-only `in` / `notIn` / `between`. `ScoresParams` gains an optional
+  `filters?: AnalyticsFilterNode[]` (api-types) — existing callers are
+  unaffected.
+
+  The local dev server (`agentmark dev`) serves `GET /v1/filter-schema` from
+  the same shared tables (identical contract to cloud by construction) and
+  answers the `POST /search` endpoints with a structured
+  `501 not_available_locally` until the local SQLite filter compiler lands.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.9.1
+- Updated @agentmark-ai/api-schemas to 0.6.0
+- Updated @agentmark-ai/prompt-core to 1.0.0
+- Updated @agentmark-ai/api-types to 0.7.0
+
 ## 0.20.2 (2026-06-11)
 
 ### 🩹 Fixes

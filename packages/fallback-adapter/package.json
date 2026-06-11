@@ -1,7 +1,7 @@
 {
   "name": "@agentmark-ai/fallback-adapter",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "DEPRECATED — import createAgentMark from @agentmark-ai/prompt-core instead. This package is an unchanged re-export shim and will be removed in a future major.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@agentmark-ai/loader-file": "*",
-    "@agentmark-ai/prompt-core": "0.13.0",
+    "@agentmark-ai/prompt-core": "1.0.0",
     "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
