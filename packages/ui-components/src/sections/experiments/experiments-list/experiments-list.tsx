@@ -12,6 +12,7 @@ import {
   Autocomplete,
   Button,
   Checkbox,
+  IconButton,
   Table,
   TableBody,
   TableCell,
@@ -25,6 +26,7 @@ import Box from "@mui/material/Box";
 import { Stack } from "@mui/system";
 import {
   Iconify,
+  Label,
   TableHeadCustom,
   TablePaginationCustom,
   TableSkeleton,
@@ -55,6 +57,9 @@ export interface ExperimentsListProps {
   onCompare?: (experimentIds: string[]) => void;
   onPageChange?: (page: number, rowsPerPage: number) => void;
   onSelectionChange?: (selectedExperiments: ExperimentSummary[]) => void;
+  /** Dismisses a stalled placeholder row (a run that produced no analytics
+   * data). When omitted, stalled rows render without a dismiss button. */
+  onDismissExperiment?: (experimentId: string) => void;
   t: (key: string) => string;
   actionsSlot?: React.ReactNode;
   chartsSlot?: React.ReactNode;
@@ -77,6 +82,7 @@ export const ExperimentsList = ({
   onCompare,
   onPageChange,
   onSelectionChange,
+  onDismissExperiment,
   t,
   actionsSlot,
   chartsSlot,
@@ -91,10 +97,13 @@ export const ExperimentsList = ({
     notFound && table.page === 0 && !promptNameFilter && !datasetPathFilter;
 
   const chartsData = useMemo(() => {
+    // Placeholder rows (running/stalled) carry no stats — charting them
+    // would drag every series toward zero.
+    const completed = experiments.filter((exp) => exp.status === undefined);
     if (table.selected.length >= 2) {
-      return experiments.filter((exp) => table.selected.includes(exp.id));
+      return completed.filter((exp) => table.selected.includes(exp.id));
     }
-    return experiments;
+    return completed;
   }, [experiments, table.selected]);
 
   useEffect(() => {
@@ -251,97 +260,182 @@ export const ExperimentsList = ({
                   onSelectAllRows={(checked) =>
                     table.onSelectAllRows(
                       checked,
-                      experiments.map((row) => row.id)
+                      experiments
+                        .filter((row) => row.status === undefined)
+                        .map((row) => row.id)
                     )
                   }
                 />
                 <TableBody>
                   {experiments.length > 0 &&
                     !isLoading &&
-                    experiments.map((experiment) => (
-                      <TableRow
-                        hover
-                        key={experiment.id}
-                        selected={table.selected.includes(experiment.id)}
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => onExperimentClick(experiment.id)}
-                      >
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={table.selected.includes(experiment.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={() => table.onSelectRow(experiment.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Tooltip title={<>{experiment.id}</>}>
-                            <span>{experiment.id.slice(0, 13)}</span>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            color="primary.main"
-                            sx={{
-                              cursor: "pointer",
-                              "&:hover": { textDecoration: "underline" },
-                            }}
-                          >
-                            {experiment.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            noWrap
-                            sx={{ maxWidth: 150 }}
-                          >
-                            {experiment.promptName || "-"}
-                          </Typography>
-                        </TableCell>
-                        {showDatasetColumn && (
+                    experiments.map((experiment) => {
+                      // A dispatched run whose spans haven't landed in
+                      // analytics storage yet — a placeholder row with no
+                      // stats and nothing to navigate to. `running` = inside
+                      // the expected ingestion window; `stalled` = no data
+                      // arrived (telemetry likely not configured).
+                      const isRunning = experiment.status === "running";
+                      const isStalled = experiment.status === "stalled";
+                      const isPlaceholder = isRunning || isStalled;
+                      return (
+                        <TableRow
+                          hover={!isPlaceholder}
+                          key={experiment.id}
+                          selected={table.selected.includes(experiment.id)}
+                          sx={{ cursor: isPlaceholder ? "default" : "pointer" }}
+                          onClick={
+                            isPlaceholder
+                              ? undefined
+                              : () => onExperimentClick(experiment.id)
+                          }
+                          data-testid={
+                            isRunning
+                              ? "experiment-row-running"
+                              : isStalled
+                                ? "experiment-row-stalled"
+                                : undefined
+                          }
+                        >
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={table.selected.includes(experiment.id)}
+                              disabled={isPlaceholder}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => table.onSelectRow(experiment.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title={<>{experiment.id}</>}>
+                              <span>{experiment.id.slice(0, 13)}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="body2"
+                                color={
+                                  isPlaceholder ? "text.primary" : "primary.main"
+                                }
+                                sx={
+                                  isPlaceholder
+                                    ? undefined
+                                    : {
+                                        cursor: "pointer",
+                                        "&:hover": {
+                                          textDecoration: "underline",
+                                        },
+                                      }
+                                }
+                              >
+                                {experiment.name}
+                              </Typography>
+                              {isRunning && (
+                                <Label
+                                  color="info"
+                                  startIcon={
+                                    <Iconify icon="mdi:progress-clock" />
+                                  }
+                                >
+                                  {t("running")}
+                                </Label>
+                              )}
+                              {isStalled && (
+                                <>
+                                  <Tooltip title={t("stalledTooltip")}>
+                                    <span>
+                                      <Label
+                                        color="warning"
+                                        startIcon={
+                                          <Iconify icon="mdi:alert-circle-outline" />
+                                        }
+                                      >
+                                        {t("stalled")}
+                                      </Label>
+                                    </span>
+                                  </Tooltip>
+                                  {onDismissExperiment && (
+                                    <Tooltip title={t("dismissStalled")}>
+                                      <IconButton
+                                        size="small"
+                                        data-testid="experiment-dismiss-stalled"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDismissExperiment(experiment.id);
+                                        }}
+                                      >
+                                        <Iconify
+                                          icon="mdi:close"
+                                          width={16}
+                                        />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
+                                </>
+                              )}
+                            </Stack>
+                          </TableCell>
                           <TableCell>
                             <Typography
                               variant="body2"
                               noWrap
                               sx={{ maxWidth: 150 }}
                             >
-                              {experiment.datasetPath || "-"}
+                              {experiment.promptName || "-"}
                             </Typography>
                           </TableCell>
-                        )}
-                        <TableCell>{experiment.itemCount}</TableCell>
-                        <TableCell>
-                          {fNumber(experiment.avgLatencyMs / 1000)}s
-                        </TableCell>
-                        <TableCell>
-                          {fCurrency(experiment.totalCost, 5)}
-                        </TableCell>
-                        <TableCell>
-                          {experiment.avgScore != null ? (
-                            <Typography variant="body2">
-                              {fNumber(experiment.avgScore, true)}
-                            </Typography>
-                          ) : (
-                            <Typography
-                              variant="body2"
-                              color="text.disabled"
-                            >
-                              --
-                            </Typography>
+                          {showDatasetColumn && (
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                noWrap
+                                sx={{ maxWidth: 150 }}
+                              >
+                                {experiment.datasetPath || "-"}
+                              </Typography>
+                            </TableCell>
                           )}
-                        </TableCell>
-                        {showCreatedColumn && (
                           <TableCell>
-                            <Typography variant="body2" noWrap>
-                              {experiment.createdAt
-                                ? new Date(experiment.createdAt).toLocaleDateString()
-                                : "-"}
-                            </Typography>
+                            {isPlaceholder ? "--" : experiment.itemCount}
                           </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
+                          <TableCell>
+                            {isPlaceholder
+                              ? "--"
+                              : `${fNumber(experiment.avgLatencyMs / 1000)}s`}
+                          </TableCell>
+                          <TableCell>
+                            {isPlaceholder ? "--" : fCurrency(experiment.totalCost, 5)}
+                          </TableCell>
+                          <TableCell>
+                            {!isPlaceholder && experiment.avgScore != null ? (
+                              <Typography variant="body2">
+                                {fNumber(experiment.avgScore, true)}
+                              </Typography>
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                color="text.disabled"
+                              >
+                                --
+                              </Typography>
+                            )}
+                          </TableCell>
+                          {showCreatedColumn && (
+                            <TableCell>
+                              <Typography variant="body2" noWrap>
+                                {experiment.createdAt
+                                  ? new Date(experiment.createdAt).toLocaleDateString()
+                                  : "-"}
+                              </Typography>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
 
                   {isLoading && <TableSkeleton />}
 
