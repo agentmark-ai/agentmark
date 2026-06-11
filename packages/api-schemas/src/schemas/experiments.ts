@@ -53,6 +53,12 @@ export const ExperimentSummarySchema = z.object({
   avgScore: z.number().nullable(),
   commitSha: z.string().optional(),
   createdAt: z.string().optional(),
+  // Placeholder states for a dispatched run whose spans have not landed in
+  // analytics storage yet — no items/stats, not navigable. `running` = still
+  // inside the expected ingestion window; `stalled` = no data after the
+  // window (telemetry likely not configured), rendered as a dismissible
+  // warning rather than an active run.
+  status: z.enum(["running", "stalled"]).optional(),
 });
 
 export const ExperimentItemSummarySchema = z.object({
