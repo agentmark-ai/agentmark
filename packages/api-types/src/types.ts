@@ -743,6 +743,12 @@ export interface ScoresParams extends Partial<PaginationParams> {
   sessionId?: string;
   startDate?: string;
   endDate?: string;
+  /**
+   * Structured filters over scores-table fields (name, score, source,
+   * user_id, resource_id, created_at) — AND of leaves and one-level
+   * OR-groups. Ignored by resource-keyed lookups (`resourceId` set).
+   */
+  filters?: AnalyticsFilterNode[];
   /** Single-env scoping per FR-031/FR-051/FR-109. Undefined = no env filter. */
   environment?: EnvironmentScope;
   /** Env-name allow-list from a saved filter (FR-122..FR-124). */

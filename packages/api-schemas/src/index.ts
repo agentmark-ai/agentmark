@@ -6,6 +6,8 @@ export * from "./schemas/constants";
 export * from "./schemas/common";
 export * from "./schemas/traces";
 export * from "./schemas/spans";
+export * from "./schemas/filters";
+export * from "./schemas/filter-fields";
 export * from "./schemas/sessions";
 export * from "./schemas/requests";
 export * from "./schemas/scores";

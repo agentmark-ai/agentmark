@@ -47,6 +47,7 @@ import {
   ImportDatasetRowsFromTracesBodySchema,
   ImportDatasetRowsFromSpansBodySchema,
   ListPromptsQuerySchema,
+  buildFilterSchemaPayload,
   type DatasetImportMapping,
   type DatasetRow,
 } from "@agentmark-ai/api-schemas";
@@ -1450,6 +1451,43 @@ ${promptsList}
 
   app.get("/v1/deployments", deploymentsNotAvailableLocally);
   app.get("/v1/deployments/:deploymentId", deploymentsNotAvailableLocally);
+
+  // ---------------------------------------------------------------------------
+  // Structured search (v2 query mechanism).
+  //
+  // GET /v1/filter-schema is fully local: the payload is generated from the
+  // filterable-field allowlists in @agentmark-ai/api-schemas — the exact
+  // tables the cloud gateway validates against — so cloud and local serve an
+  // identical filter contract by construction.
+  //
+  // The POST /search endpoints are 501 stubs for now: serving them locally
+  // needs a SQLite filter compiler mirroring the cloud's ClickHouse one
+  // (metadata/tags/score semantics, OR-groups, membership operators).
+  // Tracked with the local/cloud API alignment work. Stubbing (rather than
+  // 404ing) keeps the gap loud and machine-readable for clients moving
+  // between targets.
+  // ---------------------------------------------------------------------------
+
+  app.get("/v1/filter-schema", (_req: Request, res: Response) => {
+    res.json({ data: buildFilterSchemaPayload() });
+  });
+
+  const searchNotAvailableLocally = (_req: Request, res: Response) => {
+    res.status(501).json(
+      structuredError(
+        'not_available_locally',
+        'Structured search is not yet available on the local dev server.',
+        {
+          hint:
+            'Use --remote to target a hosted backend. The filter contract is machine-readable locally at GET /v1/filter-schema.',
+        },
+      ),
+    );
+  };
+
+  app.post("/v1/traces/search", searchNotAvailableLocally);
+  app.post("/v1/spans/search", searchNotAvailableLocally);
+  app.post("/v1/scores/search", searchNotAvailableLocally);
 
   app.get("/v1/sessions", async (req: Request, res: Response) => {
     const query = parseOrBadRequest(SessionsListParamsSchema, req.query, res, 'query');
