@@ -172,6 +172,22 @@ See the [`examples/`](./examples) directory for complete, runnable projects:
 | [`@agentmark-ai/model-registry`](./packages/model-registry) | Centralized LLM model metadata and pricing. |
 | [`create-agentmark`](./packages/create-agentmark) | Project scaffolding tool. |
 
+### Version compatibility
+
+Packages are versioned independently. The pairings below are what each release
+line is tested against — mixing outside them can fail **at runtime**, because
+`@agentmark-ai/sdk` imports `@agentmark-ai/prompt-core` lazily (a mismatch
+surfaces when `runExperiment`/the webhook runner first executes, not at
+install time):
+
+| `@agentmark-ai/sdk` | `@agentmark-ai/prompt-core` | `@agentmark-ai/cli` |
+|---|---|---|
+| 2.x | ≥1.0 | ≥0.21 |
+
+The loaders (`@agentmark-ai/loader-api`, `@agentmark-ai/loader-file`) are
+re-export shims of `@agentmark-ai/prompt-core/loader-api` /
+`/loader-file` — prefer the prompt-core subpaths in new code.
+
 ## Self-host vs Cloud
 
 AgentMark is open-core. The full development loop runs locally with no cloud dependency.

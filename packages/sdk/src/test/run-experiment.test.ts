@@ -61,6 +61,35 @@ describe("AgentMarkSDK.runExperiment", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it("signal stops dispatching new rows; completed rows keep dataset order", async () => {
+    mockBackend(0.5);
+    const sdk = new AgentMarkSDK({ apiKey: "k", appId: "a" });
+    const controller = new AbortController();
+    const ran: number[] = [];
+
+    const result = await sdk.runExperiment({
+      experimentKey: "cancel-test",
+      dataset: Array.from({ length: 10 }, (_, i) => ({ input: { q: `row-${i}` } })),
+      // concurrency 1 → rows run strictly in order; abort after the 3rd row
+      // is dispatched, so rows 3-9 must never run.
+      concurrency: 1,
+      signal: controller.signal,
+      task: async (taskInput: { q: string }) => {
+        const i = Number(taskInput.q.split("-")[1]);
+        ran.push(i);
+        if (i === 2) controller.abort();
+        return `out-${i}`;
+      },
+    });
+
+    expect(ran).toEqual([0, 1, 2]);
+    expect(result.rows.map((r) => (r.input as { q: string }).q)).toEqual([
+      "row-0",
+      "row-1",
+      "row-2",
+    ]);
+  });
+
   it("runs the task + evaluators and fails the gate when a scorer regresses beyond tolerance", async () => {
     mockBackend(0.9); // live 0.5 vs baseline 0.9 = 44% drop, over 5% tolerance
     const sdk = new AgentMarkSDK({ apiKey: "k", appId: "a" });

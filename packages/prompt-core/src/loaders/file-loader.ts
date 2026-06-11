@@ -29,7 +29,7 @@ export interface BuiltPrompt {
  *
  * @example
  * ```typescript
- * import { FileLoader } from '@agentmark-ai/loader-file';
+ * import { FileLoader } from '@agentmark-ai/prompt-core/loader-file';
  *
  * // Point to the build output directory
  * const loader = new FileLoader('./dist/agentmark');

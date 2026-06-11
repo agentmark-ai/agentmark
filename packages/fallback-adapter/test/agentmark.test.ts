@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark-ai/loader-file";
-import { createAgentMarkClient } from "../src";
+import { createAgentMark } from "../src";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
@@ -35,7 +35,7 @@ describe("AgentMark Integration", () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
       const fileLoader = new FileLoader(fixturesDir);
 
-      const agentMark = createAgentMarkClient<TestPromptTypes>({
+      const agentMark = createAgentMark<TestPromptTypes>({
         loader: fileLoader,
       });
 
@@ -60,7 +60,7 @@ describe("AgentMark Integration", () => {
       const fixturesDir = path.resolve(__dirname, "./fixtures");
       const fileLoader = new FileLoader(fixturesDir);
 
-      const agentMark = createAgentMarkClient<TestPromptTypes>({
+      const agentMark = createAgentMark<TestPromptTypes>({
         loader: fileLoader,
       });
 

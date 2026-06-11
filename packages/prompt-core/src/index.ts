@@ -2,10 +2,11 @@ export { AgentMark, createAgentMark } from "./agentmark";
 export { buildEvalsResponse } from "./control-plane";
 export type { ControlPlaneClient, EvalsResponse } from "./control-plane";
 export { DefaultAdapter } from "./adapters/default";
-export { createAgentMarkClient } from "./adapters/default-client";
 export type { DefaultAgentmark, DefaultObjectPrompt } from "./adapters/default-client";
 
 export { TemplateDXTemplateEngine } from "./template_engines/templatedx";
+// The shared compiler-instance accessor — the canonical way the CLI, gateway,
+// and dashboard obtain the TemplateDX compiler. Public API.
 export { getTemplateDXInstance } from "./template_engines/templatedx-instances";
 export { ObjectPrompt, TextPrompt } from "./prompts";
 export type { PromptFormatParams } from "./prompts";
@@ -23,14 +24,9 @@ export type { GateEval, GateRow, GateInput, GateResult, GateRowResult, ScoreThre
 // JUnit rendering of a gate result — single-sourced here so the CLI (prompt
 // experiments) and the SDK (code/agent/workflow experiments) emit the identical
 // report and surface the same way in CI.
-export {
-  buildJUnitXml,
-  buildJUnitReport,
-  escapeXmlAttribute,
-  escapeXmlText,
-  wrapCdata,
-  stringifyForXml,
-} from './junit';
+export { buildJUnitXml, buildJUnitReport } from './junit';
+// XML-escaping internals moved to the "./internal" subpath (used by the CLI's
+// JUnit formatter); they are no longer part of the main barrel.
 export type { JUnitRow, JUnitEval, JUnitSuiteOptions, JUnitReport } from './junit';
 
 export { baselineKey, baselineRequestQuery, parseBaselineResponse } from './baseline';
@@ -142,6 +138,12 @@ export type { CanonicalUsage, FinalizedUsage } from "./executor-helpers";
 // "call my SDK, return {text|object, usage}" handlers into a protocol-correct
 // Executor (conformance-by-construction). SDK-shape agnostic.
 export { createExecutor } from "./executor-builder";
+
+// One-call webhook-runner wiring (also exported from ./webhook-runner for
+// deploy trees). No default tracing hooks here — the @agentmark-ai/sdk
+// re-export defaults them to AgentMark tracing.
+export { createWebhookRunner } from "./create-webhook-runner";
+export type { CreateWebhookRunnerOptions } from "./create-webhook-runner";
 export type {
   ExecutorDefinition,
   ExecutorTextResult,

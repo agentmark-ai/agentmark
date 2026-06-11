@@ -37,7 +37,7 @@ dependencies = [ ]
   Repository = "https://github.com/agentmark/agentmark"
 
 [tool.hatch.build.targets.wheel]
-packages = [ "src/templatedx" ]
+packages = [ "src/templatedx", "src/agentmark" ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

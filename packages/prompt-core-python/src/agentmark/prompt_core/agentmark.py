@@ -24,7 +24,6 @@ class AgentMark:
         loader: Loader | None = None,
         template_engine: TemplateEngine | None = None,
         evals: EvalRegistry | None = None,
-        eval_registry: EvalRegistry | None = None,
     ) -> None:
         """Initialize AgentMark.
 
@@ -33,13 +32,11 @@ class AgentMark:
             loader: Optional loader for loading prompts from paths
             template_engine: Optional custom template engine
             evals: Optional dict mapping eval names to eval functions.
-            eval_registry: Deprecated alias for evals. When evals is
-                provided, eval_registry is ignored.
         """
         self._adapter = adapter
         self._loader = loader
         self._template_engine: TemplateEngine = template_engine or TemplateDXTemplateEngine()
-        self._eval_registry = evals or eval_registry
+        self._eval_registry = evals
 
     @property
     def loader(self) -> Loader | None:
@@ -235,7 +232,6 @@ def create_agentmark(
     loader: Loader | None = None,
     template_engine: TemplateEngine | None = None,
     evals: EvalRegistry | None = None,
-    eval_registry: EvalRegistry | None = None,
 ) -> AgentMark:
     """Factory function to create an AgentMark instance.
 
@@ -248,7 +244,6 @@ def create_agentmark(
         loader: Optional loader for loading prompts from paths
         template_engine: Optional custom template engine
         evals: Optional dict mapping eval names to eval functions.
-        eval_registry: Deprecated alias for evals.
 
     Returns:
         Configured AgentMark instance
@@ -260,5 +255,4 @@ def create_agentmark(
         loader=loader,
         template_engine=template_engine,
         evals=evals,
-        eval_registry=eval_registry,
     )

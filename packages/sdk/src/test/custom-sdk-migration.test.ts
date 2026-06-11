@@ -12,7 +12,7 @@
  *   3. `sdk.runExperiment({ task })`  — run a dataset through THEIR call + gate
  *
  * (Prompt management — the third leg — is proven SDK-agnostically in
- * prompt-core/test/byo-prompt-management.test.ts via the DefaultAdapter, so a
+ * prompt-core/test/custom-sdk-prompt-management.test.ts via the DefaultAdapter, so a
  * full migration needs zero Adapter/Executor code. The heavy Adapter+Executor
  * contract is only for the managed/cloud webhook runner, not this path.)
  *

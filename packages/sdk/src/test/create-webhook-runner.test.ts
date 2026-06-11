@@ -1,14 +1,17 @@
 /**
- * Proves the one-call BYO wiring: `createWebhookRunner({ executor })` +
- * `createExecutor` give a Bedrock-style SDK the full webhook/runPrompt path
- * (the shape the cloud/managed runner dispatches to) end-to-end, with no
- * Adapter and no hand-assembly. Parses an inline prompt → renders via the
- * neutral DefaultAdapter → executes through the BYO executor → returns output.
+ * Proves the one-call webhook wiring: `createAgentMark` (loader/evals
+ * registered ONCE) + `createWebhookRunner({ client, executor })` give a
+ * Bedrock-style SDK the full webhook/runPrompt path (the shape the
+ * cloud/managed runner dispatches to) end-to-end, with no Adapter and no
+ * SDK-specific glue. Parses an inline prompt → renders via the neutral
+ * DefaultAdapter → executes through the custom executor → returns output.
+ * The runner sources BOTH the loader and the eval registry from the single
+ * client it is handed — there is no second registration point to drift.
  */
 
 import { describe, it, expect } from "vitest";
-import { createExecutor, getTemplateDXInstance } from "@agentmark-ai/prompt-core";
-import { createWebhookRunner } from "../byo";
+import { createAgentMark, createExecutor, getTemplateDXInstance } from "@agentmark-ai/prompt-core";
+import { createWebhookRunner } from "../create-webhook-runner";
 
 const PROMPT = `---
 name: support
@@ -29,11 +32,11 @@ class FakeBedrockRuntime {
   }
 }
 
-describe("createWebhookRunner — one-call BYO webhook path", () => {
-  it("loads → renders (DefaultAdapter) → executes (BYO executor) → returns output", async () => {
+describe("createWebhookRunner — client + executor → cloud-dispatched webhook path", () => {
+  it("loads → renders (DefaultAdapter) → executes (custom executor) → returns output", async () => {
     const bedrock = new FakeBedrockRuntime();
 
-    // The whole BYO integration: an executor + one wiring call.
+    // The whole integration: an executor + one client + one wiring call.
     const executor = createExecutor({
       name: "bedrock-converse",
       // `formatted` is the neutral rendered prompt (DefaultAdapter) — messages
@@ -45,7 +48,7 @@ describe("createWebhookRunner — one-call BYO webhook path", () => {
       },
     });
 
-    const runner = createWebhookRunner({ executor });
+    const runner = createWebhookRunner({ client: createAgentMark({}), executor });
     expect(typeof runner.runPrompt).toBe("function");
     expect(typeof runner.runExperiment).toBe("function");
 
@@ -65,20 +68,21 @@ describe("createWebhookRunner — one-call BYO webhook path", () => {
     expect(res.result).toContain("refund"); // the rendered user message reached Bedrock
   });
 
-  it("threads evals into the client → runner.dispatch lists them for get-evals", async () => {
+  it("evals registered on the client → runner.dispatch lists them for get-evals", async () => {
     const executor = createExecutor({
       name: "noop",
       text: async () => ({ text: "x", usage: { inputTokens: 1, outputTokens: 1 } }),
     });
-    // Register evals via the builder — the input that was missing, which left
-    // BYO apps' New Experiment dialog empty even when they "had" evals.
-    const runner = createWebhookRunner({
-      executor,
+    // Register evals ONCE, on the client — the runner sources its registry
+    // from there, so they both run in experiments and list in the New
+    // Experiment dialog (the regression that used to leave it empty).
+    const client = createAgentMark({
       evals: {
         acc: () => ({ score: 1 }),
         safety: () => ({ score: 1 }),
       },
     });
+    const runner = createWebhookRunner({ client, executor });
 
     const res = await runner.dispatch({ type: "get-evals", data: {} });
     expect(res).toEqual({
@@ -88,12 +92,12 @@ describe("createWebhookRunner — one-call BYO webhook path", () => {
     });
   });
 
-  it("without evals, get-evals lists none", async () => {
+  it("without evals on the client, get-evals lists none", async () => {
     const executor = createExecutor({
       name: "noop",
       text: async () => ({ text: "x", usage: { inputTokens: 1, outputTokens: 1 } }),
     });
-    const runner = createWebhookRunner({ executor });
+    const runner = createWebhookRunner({ client: createAgentMark({}), executor });
     const res = (await runner.dispatch({ type: "get-evals", data: {} })) as {
       data: { result: string };
     };

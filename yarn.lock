@@ -148,11 +148,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/loader-api@npm:0.1.2, @agentmark-ai/loader-api@workspace:packages/loader-api":
+"@agentmark-ai/loader-api@workspace:packages/loader-api":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/loader-api@workspace:packages/loader-api"
   dependencies:
-    "@isaacs/ttlcache": "npm:^1.4.1"
+    "@agentmark-ai/prompt-core": "npm:*"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.3"
   languageName: unknown
@@ -162,6 +162,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/loader-file@workspace:packages/loader-file"
   dependencies:
+    "@agentmark-ai/prompt-core": "npm:*"
     "@types/node": "npm:^22.8.1"
     tsup: "npm:^8.3.5"
     typescript: "npm:^5.6.3"
@@ -201,13 +202,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/prompt-core@npm:0.13.0, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
+"@agentmark-ai/prompt-core@npm:*, @agentmark-ai/prompt-core@npm:0.13.0, @agentmark-ai/prompt-core@workspace:packages/prompt-core":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/prompt-core@workspace:packages/prompt-core"
   dependencies:
     "@agentmark-ai/conformance-vectors": "npm:*"
-    "@agentmark-ai/loader-file": "npm:*"
     "@agentmark-ai/templatedx": "npm:0.4.1"
+    "@isaacs/ttlcache": "npm:^1.4.1"
     "@types/mdast": "npm:^4.0.0"
     "@types/node": "npm:^22.8.1"
     "@types/react": "npm:^18"
@@ -225,7 +226,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/sdk@workspace:packages/sdk"
   dependencies:
-    "@agentmark-ai/loader-api": "npm:0.1.2"
     "@agentmark-ai/prompt-core": "npm:0.13.0"
     "@mastra/core": "npm:^0.13.2"
     "@opentelemetry/api": "npm:^1.9.0"
@@ -242,7 +242,6 @@ __metadata:
     typescript: "npm:^5.6.3"
     vitest: "npm:^4.1.8"
   peerDependencies:
-    "@agentmark-ai/loader-api": ">=0.0.0"
     "@agentmark-ai/prompt-core": ">=0.0.0"
   languageName: unknown
   linkType: soft

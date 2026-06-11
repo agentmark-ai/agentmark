@@ -126,5 +126,5 @@ class TestAgentMarkProperties:
         from agentmark.prompt_core import EvalRegistry
 
         registry: EvalRegistry = {}
-        am = create_agentmark(eval_registry=registry)
+        am = create_agentmark(evals=registry)
         assert am.eval_registry is registry

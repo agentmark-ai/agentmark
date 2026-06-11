@@ -20,7 +20,7 @@
 import { buildEvalsResponse } from './control-plane';
 import type { ControlPlaneClient } from './control-plane';
 import type { WebhookPromptResponse, WebhookDatasetResponse } from './runner';
-import type { RunExperimentOptions } from './webhook-runner';
+import type { WebhookExperimentOptions } from './webhook-runner';
 
 // Re-export the cross-language control-plane contract so adapters and the
 // dispatch share one definition. The CLIENT (not the handler) owns these.
@@ -49,7 +49,7 @@ export interface TelemetryOptions {
  */
 export interface WebhookHandler {
   runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
-  runExperiment(promptAst: any, datasetRunName: string, options?: RunExperimentOptions): Promise<WebhookDatasetResponse>;
+  runExperiment(promptAst: any, datasetRunName: string, options?: WebhookExperimentOptions): Promise<WebhookDatasetResponse>;
   /**
    * The AgentMark client this handler executes against, surfaced so the shared
    * dispatch can answer control-plane jobs (e.g. `get-evals`) without the caller

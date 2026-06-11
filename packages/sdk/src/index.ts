@@ -23,11 +23,13 @@ export {
   createAgentmarkSpanHooks,
 } from "./span-hooks";
 
-// One-call BYO wiring: turn a custom `Executor` into a ready-to-serve
-// WebhookRunner (DefaultAdapter + span hooks) for the cloud/managed path.
-export { createWebhookRunner } from "./byo";
-export type { CreateWebhookRunnerOptions } from "./byo";
+// One-call wiring for cloud-dispatched runs: your client + a custom
+// `Executor` → a ready-to-serve WebhookRunner with AgentMark span hooks
+// defaulted. Loader/evals are read from the client — register them once,
+// on `createAgentMark`.
+export { createWebhookRunner } from "./create-webhook-runner";
+export type { CreateWebhookRunnerOptions } from "./create-webhook-runner";
 
-// Re-export ApiLoader from @agentmark-ai/loader-api for convenience
-export { ApiLoader } from "@agentmark-ai/loader-api";
-export type { CloudLoaderOptions, LocalLoaderOptions } from "@agentmark-ai/loader-api";
+// Re-export ApiLoader from @agentmark-ai/prompt-core/loader-api for convenience
+export { ApiLoader } from "@agentmark-ai/prompt-core/loader-api";
+export type { CloudLoaderOptions, LocalLoaderOptions } from "@agentmark-ai/prompt-core/loader-api";

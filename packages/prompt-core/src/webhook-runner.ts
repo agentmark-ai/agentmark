@@ -70,8 +70,13 @@ export interface RunPromptOptions {
  * `RunPromptOptions`) rather than 5+ positional args — additive, hard to
  * misorder, and lets cancellation (`signal`) be passed without a positional
  * break.
+ *
+ * Named `WebhookExperimentOptions` to stop colliding with the UNRELATED
+ * `RunExperimentOptions` that `@agentmark-ai/sdk` exports for in-process
+ * (Path A) experiments — same name, different shape, real confusion for
+ * anyone importing both packages.
  */
-export interface RunExperimentOptions {
+export interface WebhookExperimentOptions {
   /** Override the dataset path (defaults to the prompt's `test_settings.dataset`). */
   datasetPath?: string;
   /** Row sampling spec forwarded to `formatWithDataset`. */
@@ -900,7 +905,7 @@ export class WebhookRunner<
   async runExperiment(
     promptAst: Ast,
     datasetRunName: string,
-    options?: RunExperimentOptions
+    options?: WebhookExperimentOptions
   ): Promise<WebhookDatasetResponse> {
     const {
       datasetPath,
@@ -1234,3 +1239,7 @@ export type {
   WebhookPromptResponse,
   WebhookDatasetResponse,
 } from "./webhook-dispatch";
+
+
+export { createWebhookRunner } from "./create-webhook-runner";
+export type { CreateWebhookRunnerOptions } from "./create-webhook-runner";

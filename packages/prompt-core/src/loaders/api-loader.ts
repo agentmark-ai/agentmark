@@ -129,10 +129,10 @@ export class ApiLoader {
   ): Promise<
     ReadableStream<{ input: Record<string, unknown>; expected_output?: string }>
   > {
-    const response = await this.fetchRequest(
+    const response = (await this.fetchRequest(
       { path: datasetPath },
       { stream: true }
-    );
+    )) as Response;
 
     const reader = response.body?.getReader();
     if (!reader) {
@@ -239,9 +239,10 @@ export class ApiLoader {
         return response;
       }
 
-      return (await response.json()).data;
+      const body = (await response.json()) as { data: unknown };
+      return body.data;
     }
-    const errorResponse = await response.json();
+    const errorResponse = (await response.json()) as { error?: unknown };
     throw errorResponse.error;
   }
 }

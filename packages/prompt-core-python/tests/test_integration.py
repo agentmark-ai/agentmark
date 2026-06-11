@@ -20,7 +20,7 @@ class TestEndToEndPipeline:
     def agentmark(self) -> AgentMark:
         """Create a fully configured AgentMark instance."""
         return create_agentmark(
-            eval_registry={},
+            evals={},
         )
 
     async def test_text_prompt_full_pipeline(self, agentmark: AgentMark) -> None:
@@ -356,7 +356,7 @@ class TestEvalRegistryIntegration:
         registry: EvalRegistry = {"length_check": length_check}
 
         agentmark = create_agentmark(
-            eval_registry=registry,
+            evals=registry,
         )
 
         assert agentmark.eval_registry is registry

@@ -32,8 +32,6 @@ export interface AgentMarkOptions<
   loader?: Loader<T>;
   adapter: A;
   templateEngine?: TemplateEngine;
-  /** @deprecated Use `evals` instead. Will be removed in a future major version. */
-  evalRegistry?: EvalRegistry;
   /** Plain eval functions keyed by name. */
   evals?: EvalRegistry;
   /** List of allowed model names (e.g. from agentmark.json's builtInModels). When provided,
@@ -59,12 +57,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>>
   protected _evalRegistry: EvalRegistry;
   protected builtInModels?: string[];
 
-  constructor({ loader, adapter, templateEngine, evalRegistry, evals, builtInModels }: AgentMarkOptions<T, A>) {
+  constructor({ loader, adapter, templateEngine, evals, builtInModels }: AgentMarkOptions<T, A>) {
     this.loader = loader;
     this.adapter = adapter;
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
     this.builtInModels = builtInModels;
-    this._evalRegistry = evals ?? evalRegistry ?? {};
+    this._evalRegistry = evals ?? {};
   }
 
   getLoader() {
@@ -221,8 +219,6 @@ export function createAgentMark<D extends PromptShape<D>>(
   opts: {
     loader?: Loader<D>;
     templateEngine?: TemplateEngine;
-    /** @deprecated Use `evals` instead. */
-    evalRegistry?: EvalRegistry;
     evals?: EvalRegistry;
     builtInModels?: string[];
   } = {}
