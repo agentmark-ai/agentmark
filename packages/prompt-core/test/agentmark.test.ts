@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import path from "path";
-import { createAgentMarkClient } from "@agentmark-ai/fallback-adapter";
+import { createAgentMark } from "../src";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
@@ -46,7 +46,7 @@ describe("AgentMark Integration", () => {
   // Use the test directory as base to allow access to both fixtures and datasets
   const testDir = path.resolve(__dirname);
   const fileLoader = new FileLoader(testDir);
-  const agentMark = createAgentMarkClient<TestPromptTypes>({
+  const agentMark = createAgentMark<TestPromptTypes>({
     loader: fileLoader,
   });
 

@@ -14,16 +14,9 @@ import {
 
 function createMinimalAgentMarkConfig(): string {
   return `
-import { AgentMark } from '@agentmark-ai/prompt-core';
-import { VercelAIAdapter, VercelAIModelRegistry } from '@agentmark-ai/ai-sdk-v4-adapter';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createAgentMark } from '@agentmark-ai/prompt-core';
 
-const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || 'test-key' });
-const modelRegistry = new VercelAIModelRegistry();
-modelRegistry.registerModels(['openai/gpt-4o'], (name: string) => openai(name));
-
-const adapter = new VercelAIAdapter(modelRegistry);
-export const client = new AgentMark({ prompt: {}, adapter });
+export const client = createAgentMark({});
 `;
 }
 
@@ -32,7 +25,8 @@ function getDevEntryTemplate(clientImportPath) {
 // This file is version controlled - customize as needed for your project
 
 import { createWebhookServer } from '@agentmark-ai/cli/runner-server';
-import { VercelAdapterWebhookHandler } from '@agentmark-ai/ai-sdk-v4-adapter/runner';
+import { createExecutor } from '@agentmark-ai/prompt-core';
+import { WebhookRunner } from '@agentmark-ai/prompt-core/webhook-runner';
 
 async function main() {
   const { client } = await import('\${clientImportPath}');
@@ -41,7 +35,13 @@ async function main() {
   const runnerPortArg = args.find(arg => arg.startsWith('--webhook-port='));
   const runnerPort = runnerPortArg ? parseInt(runnerPortArg.split('=')[1]) : 9417;
 
-  const handler = new VercelAdapterWebhookHandler(client as any);
+  const executor = createExecutor({
+    name: 'test-executor',
+    async text() {
+      return { text: 'ok' };
+    },
+  });
+  const handler = new WebhookRunner(client as any, executor);
   await createWebhookServer({ port: runnerPort, handler });
 }
 
@@ -56,8 +56,19 @@ function setupTestDir(tempDir: string, useLegacyLocation = false) {
   // Create package.json for proper module resolution
   fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'test-app', type: 'module' }, null, 2));
 
-  // Symlink node_modules from monorepo root to temp dir
-  const monorepoRoot = path.resolve(__dirname, '../../..');
+  // Symlink node_modules into the temp dir. Walk up from the repo root until
+  // we find the node_modules that actually carries the workspace packages —
+  // in the standalone repo that's the repo root, in a monorepo checkout the
+  // packages hoist further up.
+  let monorepoRoot = path.resolve(__dirname, '../../..');
+  let searchDir = monorepoRoot;
+  while (searchDir !== path.dirname(searchDir)) {
+    if (fs.existsSync(path.join(searchDir, 'node_modules', '@agentmark-ai', 'cli'))) {
+      monorepoRoot = searchDir;
+      break;
+    }
+    searchDir = path.dirname(searchDir);
+  }
   const nodeModulesSource = path.join(monorepoRoot, 'node_modules');
   const nodeModulesTarget = path.join(tempDir, 'node_modules');
   try {

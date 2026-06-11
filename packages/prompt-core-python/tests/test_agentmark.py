@@ -11,7 +11,7 @@ class TestAgentMarkIntegration:
     @pytest.fixture
     def agentmark(self) -> AgentMark:
         """Create an AgentMark instance with default adapter."""
-        return create_agentmark(adapter=DefaultAdapter())
+        return create_agentmark()
 
     async def test_load_object_prompt(self, agentmark, math_ast: dict) -> None:
         """Test loading and formatting an object prompt."""
@@ -112,14 +112,13 @@ class TestAgentMarkProperties:
     """Tests for AgentMark properties."""
 
     def test_adapter_property(self) -> None:
-        """Test adapter property."""
-        adapter = DefaultAdapter()
-        am = create_agentmark(adapter=adapter)
-        assert am.adapter is adapter
+        """The factory always wires the neutral DefaultAdapter."""
+        am = create_agentmark()
+        assert isinstance(am.adapter, DefaultAdapter)
 
     def test_loader_property_none(self) -> None:
         """Test loader property when None."""
-        am = create_agentmark(adapter=DefaultAdapter())
+        am = create_agentmark()
         assert am.loader is None
 
     def test_eval_registry_property(self) -> None:
@@ -127,5 +126,5 @@ class TestAgentMarkProperties:
         from agentmark.prompt_core import EvalRegistry
 
         registry: EvalRegistry = {}
-        am = create_agentmark(adapter=DefaultAdapter(), eval_registry=registry)
+        am = create_agentmark(eval_registry=registry)
         assert am.eval_registry is registry

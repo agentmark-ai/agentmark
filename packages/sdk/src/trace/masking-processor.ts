@@ -17,7 +17,7 @@ export interface MaskingProcessorOptions {
 // Content-bearing input attributes. Covers the AgentMark executor keys
 // (gen_ai.request.*), the Vercel AI SDK experimental_telemetry keys (ai.*),
 // the OTel GenAI semantic-convention keys (gen_ai.input.messages et al.,
-// plus the legacy gen_ai.prompt), and the claude-agent-sdk adapter's tool
+// plus the legacy gen_ai.prompt), and agent-SDK tool
 // keys (gen_ai.tool.input). NOTE: this list MUST stay identical to
 // INPUT_KEYS in sdk-python/src/agentmark_sdk/masking_processor.py.
 export const INPUT_KEYS = new Set([
@@ -43,7 +43,7 @@ export const INPUT_KEYS = new Set([
   "gen_ai.tool.call.arguments",
   // Legacy OTel GenAI key
   "gen_ai.prompt",
-  // claude-agent-sdk adapter tool spans
+  // Agent-SDK tool spans
   "gen_ai.tool.input",
 ]);
 
@@ -71,7 +71,7 @@ export const OUTPUT_KEYS = new Set([
   "gen_ai.tool.call.result",
   // Legacy OTel GenAI key
   "gen_ai.completion",
-  // claude-agent-sdk adapter tool spans
+  // Agent-SDK tool spans
   "gen_ai.tool.output",
 ]);
 

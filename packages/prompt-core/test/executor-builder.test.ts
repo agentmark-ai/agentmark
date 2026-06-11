@@ -6,8 +6,7 @@
  * plumbing, no usage/finish/error-ordering footguns.
  *
  * This is the executor-bootstrapping improvement: contrast with hand-writing
- * the ~180 LOC `Executor` (see ai-sdk-shared/src/executor-factory.ts) and
- * debugging it against conformance.
+ * a ~180 LOC `Executor` by hand and debugging it against conformance.
  */
 
 import { describe, it, expect } from "vitest";

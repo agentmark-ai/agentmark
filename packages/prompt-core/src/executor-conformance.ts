@@ -187,8 +187,7 @@ export async function assertErrorStream(
  * no hang). Returns the observed events — boundary assertions (no
  * post-abort emissions, signal forwarded to the SDK) are the CALLER's to
  * pin, since what "after abort" may legitimately contain (e.g. a terminal
- * `error` from a cancelled SDK call) is executor-specific. See
- * ai-sdk-shared/test/executor-conformance.test.ts for the full pattern.
+ * `error` from a cancelled SDK call) is executor-specific.
  */
 export async function assertAbortStream(
   events: AsyncIterable<AgentEvent>,

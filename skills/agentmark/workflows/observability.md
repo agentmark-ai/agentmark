@@ -27,8 +27,8 @@ that catch agents out, because they're hard to see in the docs:
 The model call below uses the **Vercel AI SDK** (`generateText` from `ai`) as a
 concrete example, because its built-in telemetry is what emits the generation
 span. Swap step 3 for whatever SDK you call — the tracing wiring (steps 1, 2, 4)
-is identical regardless of SDK. The client is the neutral one (`createAgentMarkClient`
-from `@agentmark-ai/fallback-adapter`); it only loads + renders prompts, and you
+is identical regardless of SDK. The client is the neutral one (`createAgentMark`
+from `@agentmark-ai/prompt-core`); it only loads + renders prompts, and you
 call the model.
 
 ```ts
@@ -36,7 +36,7 @@ import { AgentMarkSDK } from "@agentmark-ai/sdk";
 import { createPromptTelemetry } from "@agentmark-ai/prompt-core";
 import { generateText } from "ai";
 // plus your usual client setup:
-//   createAgentMarkClient({ loader }) from "@agentmark-ai/fallback-adapter"
+//   createAgentMark({ loader }) from "@agentmark-ai/prompt-core"
 
 // 1. Register the AgentMark span processor AS THE GLOBAL OTel provider.
 //    registerGlobally: true is REQUIRED for the generation span: the AI SDK

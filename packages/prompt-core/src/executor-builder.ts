@@ -14,10 +14,8 @@
  * and guarantees the wire protocol BY CONSTRUCTION. The unfamiliar SDK author
  * never touches the AgentEvent stream.
  *
- * Unlike `@agentmark-ai/ai-sdk-shared`'s `createVercelExecutor` (which is
- * coupled to the Vercel `fullStream` chunk shape), this builder is SDK-shape
- * agnostic — a raw AWS Bedrock `ConverseCommand`, an OpenAI call, a bespoke
- * HTTP client all fit the same handler signature.
+ * The builder is SDK-shape agnostic — a raw AWS Bedrock `ConverseCommand`,
+ * an OpenAI call, a bespoke HTTP client all fit the same handler signature.
  */
 
 import type {

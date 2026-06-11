@@ -5,7 +5,7 @@
  * `agentmark dev`'s webhook, experiments the platform drives), a BYO SDK needs
  * a handler exposing `runPrompt` / `runExperiment`. Assembling that by hand is:
  *
- *   const client = createAgentMark({ adapter: new DefaultAdapter(), loader });
+ *   const client = createAgentMark({ loader });
  *   const runner = new WebhookRunner(client, executor, createAgentmarkSpanHooks());
  *
  * `createWebhookRunner` collapses that to a single call and picks the sensible
@@ -56,8 +56,7 @@ export interface CreateWebhookRunnerOptions<D extends PromptShape<D>> {
 export function createWebhookRunner<
   D extends PromptShape<D> = PromptShape<Record<string, never>>,
 >(opts: CreateWebhookRunnerOptions<D>): WebhookRunner<D, DefaultAdapter<D>> {
-  const client = createAgentMark({
-    adapter: new DefaultAdapter<D>(),
+  const client = createAgentMark<D>({
     loader: opts.loader,
     evals: opts.evals,
   });

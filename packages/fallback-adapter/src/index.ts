@@ -1,43 +1,19 @@
-import {
-  AgentMark,
-  KeysWithKind,
-  Loader,
-  ObjectPrompt,
-  PromptFormatParams,
-  PromptShape,
+/**
+ * DEPRECATED shim. The neutral client factory and `DefaultAdapter` live in
+ * `@agentmark-ai/prompt-core` now — import from there instead:
+ *
+ *   import { createAgentMark } from "@agentmark-ai/prompt-core";
+ *
+ * This package re-exports them unchanged so existing imports keep working
+ * (`createAgentMarkClient` is itself a deprecated alias of `createAgentMark`).
+ */
+export {
+  createAgentMark,
+  createAgentMarkClient,
+  DefaultAdapter,
 } from "@agentmark-ai/prompt-core";
-import { DefaultAdapter } from "./adapter";
-import type { Root } from "mdast";
-
-export interface DefaultObjectPrompt<
-  T extends PromptShape<T>,
-  A extends DefaultAdapter<T>,
-  K extends KeysWithKind<T, "object"> & string
-> extends ObjectPrompt<T, A, K> {
-  format({
-    props,
-  }: PromptFormatParams<T[K]["input"]>): Promise<Awaited<ReturnType<A["adaptObject"]>>>;
-}
-
-export interface DefaultAgentmark<T extends PromptShape<T>>
-  extends AgentMark<T, DefaultAdapter<T>> {
-  loadObjectPrompt<K extends KeysWithKind<T, "object"> & string>(
-    pathOrPreloaded: K | Root,
-    options?: any
-  ): Promise<DefaultObjectPrompt<T, DefaultAdapter<T>, K>>;
-}
-
-export function createAgentMarkClient<D extends PromptShape<D>>(opts: {
-  loader?: Loader<D>;
-}): DefaultAgentmark<D> {
-  const adapter = new DefaultAdapter<D>();
-
-  return new AgentMark<D, DefaultAdapter<D>>({
-    loader: opts.loader,
-    adapter,
-  });
-}
-
-export { DefaultAdapter } from "./adapter";
-
-export type { FormatWithDatasetOptions } from "@agentmark-ai/prompt-core";
+export type {
+  DefaultAgentmark,
+  DefaultObjectPrompt,
+  FormatWithDatasetOptions,
+} from "@agentmark-ai/prompt-core";

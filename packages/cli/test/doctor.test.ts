@@ -42,7 +42,7 @@ const HEALTHY: Record<string, string> = {
     name: 'app',
     dependencies: {
       '@agentmark-ai/sdk': '^0.4.0',
-      '@agentmark-ai/ai-sdk-v5-adapter': '^0.1.0',
+      '@agentmark-ai/fallback-adapter': '^1.0.0',
       '@ai-sdk/openai': '^2.0.0',
     },
   }),

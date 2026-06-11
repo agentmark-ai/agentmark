@@ -125,7 +125,6 @@ jobs:
             "packages/sdk-python:agentmark-sdk"
             "packages/prompt-core-python:agentmark-prompt-core"
             "packages/templatedx-python:agentmark-templatedx"
-            "packages/pydantic-ai-v0-adapter:agentmark-pydantic-ai-v0"
           )
 
           for entry in "${PYTHON_PACKAGES[@]}"; do
@@ -157,7 +156,6 @@ jobs:
             "packages/sdk-python:agentmark-sdk"
             "packages/prompt-core-python:agentmark-prompt-core"
             "packages/templatedx-python:agentmark-templatedx"
-            "packages/pydantic-ai-v0-adapter:agentmark-pydantic-ai-v0"
           )
 
           for entry in "${PYTHON_PACKAGES[@]}"; do
@@ -203,7 +201,6 @@ jobs:
             "packages/sdk-python:agentmark-sdk"
             "packages/prompt-core-python:agentmark-prompt-core"
             "packages/templatedx-python:agentmark-templatedx"
-            "packages/pydantic-ai-v0-adapter:agentmark-pydantic-ai-v0"
           )
 
           for entry in "${PYTHON_PACKAGES[@]}"; do

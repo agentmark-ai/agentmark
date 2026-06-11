@@ -125,13 +125,7 @@ describe("executor conformance meta-gate", () => {
     // If a refactor moves/renames implementations, update this inventory —
     // it exists so the gate can't rot into passing vacuously.
     const found = scans.map((s) => s.name).sort();
-    for (const known of [
-      "ai-sdk-shared",
-      "ai-sdk-v4-adapter",
-      "ai-sdk-v5-adapter",
-      "mastra-v0-adapter",
-      "prompt-core",
-    ]) {
+    for (const known of ["prompt-core"]) {
       expect(found, `scanner lost track of ${known}`).toContain(known);
     }
   });
@@ -148,7 +142,7 @@ describe("executor conformance meta-gate", () => {
           `(${scan.implementationFiles.join(", ")}) but its tests never ` +
           `invoke the conformance suite. Add a test that calls ` +
           `runExecutorConformance(executor, { text, object, errorInput }) ` +
-          `— see mastra-v0-adapter/test/executor.test.ts ` +
+          `— see prompt-core/test/executor-builder.test.ts ` +
           `for the pattern.`
       ).toBe(true);
     });

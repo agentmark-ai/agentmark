@@ -23,7 +23,6 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
-from .adapters import DefaultAdapter
 from .agentmark import create_agentmark
 from .webhook_runner import WebhookRunner
 
@@ -64,7 +63,6 @@ def create_webhook_runner(
             item_span_hook = hooks["item_span_hook"]
 
     client = create_agentmark(
-        adapter=DefaultAdapter(),
         loader=loader,
         evals=evals,
     )

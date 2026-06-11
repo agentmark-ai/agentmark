@@ -269,6 +269,5 @@ __all__ = [
 ]
 
 # Read runtime __version__ from installed dist metadata to prevent drift
-# against pyproject.toml across releases. See pydantic-ai-v0-adapter for
-# the same pattern and rationale.
+# against pyproject.toml across releases.
 __version__ = _pkg_version("agentmark-prompt-core")

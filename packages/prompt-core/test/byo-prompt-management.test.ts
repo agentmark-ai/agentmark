@@ -3,8 +3,8 @@
  *
  * Proves a team with a PRE-EXISTING raw LLM SDK (here a fake AWS Bedrock
  * client) can adopt AgentMark for prompt management WITHOUT writing a custom
- * Adapter: the `DefaultAdapter` (shipped as `@agentmark-ai/fallback-adapter`'s
- * `createAgentMarkClient`) renders a `.prompt.mdx` to a NEUTRAL
+ * Adapter: `createAgentMark` (no adapter argument — the neutral
+ * `DefaultAdapter` is the default) renders a `.prompt.mdx` to a NEUTRAL
  * `{ messages, text_config }` shape — with full type-safe props — that feeds
  * straight into the user's own SDK call.
  *
@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import path from "path";
-import { createAgentMarkClient } from "@agentmark-ai/fallback-adapter";
+import { createAgentMark } from "../src";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { setupFixtures, cleanupFixtures } from "./setup-fixtures";
 
@@ -41,7 +41,7 @@ type SupportPromptTypes = {
 
 describe("BYO-SDK prompt management (DefaultAdapter, no SDK adapter)", () => {
   const testDir = path.resolve(__dirname);
-  const client = createAgentMarkClient<SupportPromptTypes>({
+  const client = createAgentMark<SupportPromptTypes>({
     loader: new FileLoader(testDir),
   });
 
