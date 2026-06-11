@@ -19,7 +19,7 @@ import {
   resolveDevEntry,
   devEntryNotFoundMessages,
 } from "../utils/setup-files";
-import { buildAdapterEnv, hasCloudCreds } from "./dev-env";
+import { buildAdapterEnv, buildPythonDevEnv, hasCloudCreds } from "./dev-env";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -42,6 +42,20 @@ function findPythonExecutable(cwd: string): string {
   }
 
   return pythonCmd;
+}
+
+/**
+ * One-shot reachability probe for the trace-forwarding endpoint. Any HTTP
+ * response (even 401/404) counts as reachable — we're detecting a dead
+ * host/port (stale dev-config.json), not validating auth.
+ */
+async function probeForwardingEndpoint(baseUrl: string, timeoutMs = 3000): Promise<boolean> {
+  try {
+    await fetch(baseUrl, { method: 'HEAD', signal: AbortSignal.timeout(timeoutMs) });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isPortFree(port: number): Promise<boolean> {
@@ -124,11 +138,8 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     ], {
       stdio: 'inherit',
       cwd,
-      env: {
-        ...adapterEnv,
-        PYTHONDONTWRITEBYTECODE: '1',
-        PYTHONUNBUFFERED: '1',
-      }
+      // sys.path + bytecode-cache fixes live in buildPythonDevEnv — see its doc.
+      env: buildPythonDevEnv(adapterEnv, cwd),
     });
   } else {
     const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
@@ -285,6 +296,22 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
           forwardingStatus = 'active';
           forwardingAppName = forwardingConfig.appName || 'Unknown App';
           forwardingBaseUrl = forwardingConfig.baseUrl;
+
+          // The forwarder buffers and retries quietly, so a dead endpoint
+          // (a stale dev-config.json pointing at a stack that no longer
+          // runs, e.g. leftover test data) otherwise LOOKS active while
+          // every trace silently queues. Probe once at startup and say so.
+          const probeUrl = forwardingConfig.baseUrl;
+          probeForwardingEndpoint(probeUrl).then((reachable) => {
+            if (!reachable) {
+              console.warn(
+                `\n⚠️  Trace forwarding is configured for ${probeUrl}, but that endpoint is not reachable.` +
+                `\n   Traces will buffer locally and never arrive. If this config is stale (an old linked` +
+                `\n   app or leftover test data in .agentmark/dev-config.json), re-run \`agentmark link\`` +
+                `\n   — or start with --no-forward.\n`
+              );
+            }
+          });
         } catch (error) {
           console.error('⚠️  Failed to initialize trace forwarding:', (error as Error).message);
           forwardingStatus = 'inactive';

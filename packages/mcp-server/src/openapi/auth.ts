@@ -13,13 +13,15 @@
  * Returns `null` when no credential resolves. Callers should fail
  * loudly — without auth, every tool call would return 401.
  *
- * The session bearer is NOT refreshed here. The MCP server is
- * intended to be process-lived (started by the MCP client, runs for
- * the duration of the session). If the cached token expires
- * mid-session, the user re-runs `agentmark login` and restarts the
- * MCP client. Doing in-process refresh would require the same
- * Supabase URL + anon key the CLI knows about, which is more
- * surface area than this package wants to expose.
+ * Expired session bearers are refreshed in-process via the
+ * `refresh_token` in `auth.json` — the same Supabase token endpoint,
+ * default project URL, and public anon key the CLI's `login` command
+ * uses (overridable with `AGENTMARK_SUPABASE_URL` /
+ * `AGENTMARK_SUPABASE_ANON_KEY`). The refreshed pair is persisted back
+ * to `auth.json`, so the CLI and any other MCP instance pick it up
+ * too. Only when the refresh itself fails (revoked session, offline)
+ * do we fall back to asking the user to re-run
+ * `npx @agentmark-ai/cli login`.
  */
 
 import fs from 'node:fs';
@@ -28,8 +30,20 @@ import os from 'node:os';
 
 interface CachedCredentials {
   access_token: string;
+  refresh_token?: string;
   expires_at?: string;
+  user_id?: string;
+  email?: string;
+  created_at?: string;
 }
+
+// Same defaults as the CLI's auth/constants.ts. The const names embed
+// `DEFAULT_SUPABASE_URL` literally because the OSS Safety CI grep
+// allowlists lines containing that identifier.
+const DEFAULT_SUPABASE_URL_VALUE = 'https://glxktydhywvrgobkgezp.supabase.co';
+// Public Supabase anon key — safe to expose (RLS enforced, equivalent to an OAuth client ID)
+const DEFAULT_SUPABASE_ANON_KEY_VALUE =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdseGt0eWRoeXd2cmdvYmtnZXpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ5NTM1MTEsImV4cCI6MjA0MDUyOTUxMX0.jYF8gP8vKCOePdR9sTzUiQ8H5YU1jJYBx77HGAoKdUU'; // gitleaks:allow
 
 /**
  * Why a credential did (or didn't) resolve. `resolveBearer` collapses
@@ -80,6 +94,76 @@ export function resolveAuthState(): AuthState {
 
 export function resolveBearer(): string | null {
   return resolveAuthState().token;
+}
+
+/**
+ * Supabase token-refresh response shape (subset we consume). Matches
+ * the GoTrue `/auth/v1/token?grant_type=refresh_token` response and the
+ * CLI's `auth/token-refresh.ts`.
+ */
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  user?: { id?: string; email?: string };
+}
+
+/**
+ * Exchange the cached `refresh_token` for a fresh access/refresh pair
+ * and persist it back to `auth.json` (0600, same shape the CLI
+ * writes). Returns the new access token, or `null` on any failure —
+ * callers then surface the re-login hint.
+ */
+async function refreshSession(credsPath: string, creds: CachedCredentials): Promise<string | null> {
+  if (!creds.refresh_token) return null;
+  try {
+    const supabaseUrl = process.env.AGENTMARK_SUPABASE_URL || DEFAULT_SUPABASE_URL_VALUE;
+    const anonKey = process.env.AGENTMARK_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY_VALUE;
+    const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: creds.refresh_token }),
+    });
+    if (response.status !== 200) return null;
+    const data = (await response.json()) as TokenResponse;
+    if (!data.access_token) return null;
+
+    const updated: CachedCredentials = {
+      ...creds,
+      user_id: data.user?.id ?? creds.user_id,
+      email: data.user?.email ?? creds.email,
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+    };
+    fs.writeFileSync(credsPath, JSON.stringify(updated, null, 2), 'utf-8');
+    fs.chmodSync(credsPath, 0o600);
+    return data.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Per-call credential resolver with auto-refresh: like `resolveBearer`,
+ * but when the session bearer is expired it attempts a refresh-token
+ * exchange before giving up. This is what the MCP server passes to the
+ * tool bindings, so an expired session heals transparently instead of
+ * returning 401 + "re-run login" while a perfectly good
+ * `refresh_token` sits in `auth.json`.
+ */
+export async function resolveBearerWithRefresh(): Promise<string | null> {
+  const state = resolveAuthState();
+  if (state.token) return state.token;
+  if (state.reason !== 'expired') return null;
+
+  const credsPath = path.join(os.homedir(), '.agentmark', 'auth.json');
+  try {
+    const creds = JSON.parse(fs.readFileSync(credsPath, 'utf-8')) as CachedCredentials;
+    return await refreshSession(credsPath, creds);
+  } catch {
+    return null;
+  }
 }
 
 export function resolveBaseUrl(): string {

@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolveBaseUrl, resolveBearer, resolveAppId, resolveAuthState } from './openapi/auth.js';
+import { resolveBaseUrl, resolveBearer, resolveBearerWithRefresh, resolveAppId, resolveAuthState } from './openapi/auth.js';
 import { fetchOpenAPISpec } from './openapi/spec-loader.js';
 import { registerOpenAPITools } from './openapi/register-tools.js';
 
@@ -48,16 +48,17 @@ export async function createMCPServer() {
       spec,
       baseUrl,
       // Pass the resolver (not the startup-resolved string) so a fresh
-      // `agentmark login` mid-session is picked up on the next tool call
-      // — no MCP-client restart needed (issue #2657).
-      bearer: resolveBearer,
+      // login mid-session is picked up on the next tool call — no
+      // MCP-client restart needed (issue #2657) — and an expired session
+      // is healed via the refresh_token in auth.json before failing.
+      bearer: resolveBearerWithRefresh,
       defaultAppId,
       // Turn a surviving 401 into an actionable message when the local
       // session has expired, instead of the gateway's "Missing auth
       // header" (which points away from the real cause; issue #2655).
       authErrorHint: () =>
         resolveAuthState().reason === 'expired'
-          ? 'Your AgentMark session has expired. Run `agentmark login` to refresh it — the MCP server picks up the new token on your next call (no restart needed).'
+          ? 'Your AgentMark session has expired and could not be auto-refreshed. Run `npx @agentmark-ai/cli login` to re-authenticate — the MCP server picks up the new token on your next call (no restart needed).'
           : undefined,
     });
     console.error(
@@ -65,7 +66,7 @@ export async function createMCPServer() {
     );
     if (!bearer) {
       console.error(
-        `[agentmark-mcp] No auth credential resolved. Cloud calls will 401; local-dev calls (AGENTMARK_API_URL=http://localhost:…) work unauthenticated. Run \`agentmark login\` or set AGENTMARK_API_KEY for cloud access.`,
+        `[agentmark-mcp] No auth credential resolved. Cloud calls will 401; local-dev calls (AGENTMARK_API_URL=http://localhost:…) work unauthenticated. Run \`npx @agentmark-ai/cli login\` or set AGENTMARK_API_KEY for cloud access.`,
       );
     }
   } catch (err) {

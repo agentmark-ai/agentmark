@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildAdapterEnv, hasCloudCreds } from '../cli-src/commands/dev-env';
+import path from 'node:path';
+import os from 'node:os';
+import { buildAdapterEnv, buildPythonDevEnv, hasCloudCreds } from '../cli-src/commands/dev-env';
 
 // This repo augments NodeJS.ProcessEnv to require NODE_ENV, so a bare object
 // literal isn't assignable. `env()` builds a ProcessEnv-typed value from a
@@ -70,5 +72,26 @@ describe('dev adapter env (local-mode isolation)', () => {
       expect(input.AGENTMARK_BASE_URL).toBe('https://api.agentmark.co');
       expect(input).not.toHaveProperty('AGENTMARK_DEV_SERVER');
     });
+  });
+});
+
+describe('buildPythonDevEnv', () => {
+  const base = { AGENTMARK_DEV_SERVER: 'http://localhost:9418' } as NodeJS.ProcessEnv;
+
+  it('prepends the project root to PYTHONPATH so root-level imports resolve (issue #8)', () => {
+    const env = buildPythonDevEnv({ ...base }, '/proj');
+    expect(env.PYTHONPATH).toBe('/proj');
+
+    const withExisting = buildPythonDevEnv({ ...base, PYTHONPATH: '/site' }, '/proj');
+    expect(withExisting.PYTHONPATH).toBe(`/proj${path.delimiter}/site`);
+  });
+
+  it('redirects the bytecode cache to a per-run temp dir and disables writes (issue #11)', () => {
+    const env = buildPythonDevEnv({ ...base }, '/proj');
+    expect(env.PYTHONDONTWRITEBYTECODE).toBe('1');
+    expect(env.PYTHONUNBUFFERED).toBe('1');
+    // Reading from the project __pycache__ is what masked source edits — the
+    // prefix must point OUTSIDE the project.
+    expect(env.PYTHONPYCACHEPREFIX).toBe(path.join(os.tmpdir(), `agentmark-dev-pyc-${process.pid}`));
   });
 });

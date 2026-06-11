@@ -10,6 +10,9 @@
  * spawned adapter pointed at the local dev server.
  */
 
+import path from "path";
+import os from "os";
+
 /**
  * Whether both cloud credentials are present — the client's cloud-mode switch.
  * Empty-string values count as absent (an empty key never authenticates).
@@ -37,4 +40,28 @@ export function buildAdapterEnv(env: NodeJS.ProcessEnv, apiPort: number): NodeJS
   delete adapterEnv.AGENTMARK_APP_ID;
   delete adapterEnv.AGENTMARK_BASE_URL;
   return adapterEnv;
+}
+
+/**
+ * Python-specific additions on top of `buildAdapterEnv` for the spawned
+ * `dev_server.py`:
+ *
+ * - `PYTHONPATH` gets the project root PREPENDED. The dev entry usually lives
+ *   at `.agentmark/dev_server.py`, and Python puts the SCRIPT's directory on
+ *   `sys.path` — not the cwd — so imports of project-root modules
+ *   (`agentmark_client`) would otherwise fail with `ModuleNotFoundError`.
+ * - `PYTHONPYCACHEPREFIX` points at a per-run temp dir.
+ *   `PYTHONDONTWRITEBYTECODE` only stops WRITING bytecode; a stale `.pyc`
+ *   left in the project's `__pycache__` by an earlier direct `python` run
+ *   would still be READ and mask source edits between dev restarts.
+ */
+export function buildPythonDevEnv(adapterEnv: NodeJS.ProcessEnv, cwd: string): NodeJS.ProcessEnv {
+  const existingPythonPath = adapterEnv.PYTHONPATH;
+  return {
+    ...adapterEnv,
+    PYTHONPATH: existingPythonPath ? `${cwd}${path.delimiter}${existingPythonPath}` : cwd,
+    PYTHONDONTWRITEBYTECODE: '1',
+    PYTHONUNBUFFERED: '1',
+    PYTHONPYCACHEPREFIX: path.join(os.tmpdir(), `agentmark-dev-pyc-${process.pid}`),
+  };
 }

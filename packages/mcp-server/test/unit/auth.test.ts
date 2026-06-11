@@ -14,11 +14,11 @@
  *   - no file → reason:'none'                     (never logged in)
  *   - malformed JSON → reason:'none', no throw    (corrupt cache is recoverable)
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveAuthState, resolveBearer } from '../../src/openapi/auth.js';
+import { resolveAuthState, resolveBearer, resolveBearerWithRefresh } from '../../src/openapi/auth.js';
 
 describe('resolveAuthState', () => {
   const realHome = process.env.HOME;
@@ -89,5 +89,81 @@ describe('resolveAuthState', () => {
     mkdirSync(join(home, '.agentmark'), { recursive: true });
     writeFileSync(join(home, '.agentmark', 'auth.json'), '{ not valid json');
     expect(resolveAuthState()).toEqual({ token: null, reason: 'none' });
+  });
+
+  describe('resolveBearerWithRefresh', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('exchanges the refresh_token for a new pair and persists it (expired session heals)', async () => {
+      writeAuth({
+        access_token: 'sess_old',
+        refresh_token: 'refresh_abc',
+        expires_at: new Date(Date.now() - 60_000).toISOString(),
+        user_id: 'u1',
+        email: 'u@example.com',
+      });
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        json: async () => ({
+          access_token: 'sess_new',
+          refresh_token: 'refresh_new',
+          expires_in: 3600,
+          user: { id: 'u1', email: 'u@example.com' },
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(resolveBearerWithRefresh()).resolves.toBe('sess_new');
+
+      // Hits the Supabase refresh grant with the cached refresh token.
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/v1/token?grant_type=refresh_token'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ refresh_token: 'refresh_abc' }),
+        }),
+      );
+
+      // Persists the rotated pair so the CLI and future calls reuse it.
+      const persisted = JSON.parse(readFileSync(join(home, '.agentmark', 'auth.json'), 'utf-8'));
+      expect(persisted.access_token).toBe('sess_new');
+      expect(persisted.refresh_token).toBe('refresh_new');
+      expect(new Date(persisted.expires_at).getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('returns null when the refresh grant is rejected (revoked session)', async () => {
+      writeAuth({
+        access_token: 'sess_old',
+        refresh_token: 'refresh_revoked',
+        expires_at: new Date(Date.now() - 60_000).toISOString(),
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 400, json: async () => ({}) }));
+      await expect(resolveBearerWithRefresh()).resolves.toBeNull();
+    });
+
+    it('returns the valid session without any network call', async () => {
+      writeAuth({
+        access_token: 'sess_ok',
+        refresh_token: 'refresh_abc',
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      });
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      await expect(resolveBearerWithRefresh()).resolves.toBe('sess_ok');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('returns null without a network call when there is no refresh_token', async () => {
+      writeAuth({
+        access_token: 'sess_old',
+        expires_at: new Date(Date.now() - 60_000).toISOString(),
+      });
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      await expect(resolveBearerWithRefresh()).resolves.toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });

@@ -193,6 +193,11 @@ describe('agentmark doctor — runDoctor', () => {
     const report = await run(makeProject(files));
 
     expect(statusOf(report, 'devEntry.file')).toBe('warn');
+    // The label must state the ACTUAL condition — a missing file printed as
+    // "dev server entry present: ⚠" reads as a false positive (onboarding
+    // report issue #6).
+    const devEntry = report.results.find((r) => r.id === 'devEntry.file');
+    expect(devEntry?.title).toBe('dev server entry missing');
     // Shares dev's exact remediation line (same setup-files helper).
     expect(fixOf(report, 'devEntry.file')).toBe(devEntryNotFoundMessages('typescript')[2]);
     expect(report.ok).toBe(true);

@@ -288,7 +288,7 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
       title: "trace emitted",
       status: "fail",
       detail: `trace ${webhook.traceId} did not arrive at ${apiUrl} within ${Math.round(deadline / 1000)}s`,
-      fix: "Traces flush asynchronously; if it never lands, confirm the SDK tracing exporter points at the local dev API server.",
+      fix: "Most common cause: tracing was never initialized — the webhook runner wires span hooks, but spans only export after AgentMarkSDK(...).initTracing() / init_tracing(disable_batch=True) runs at dev-server startup, pointed at the local dev API server. See docs.agentmark.co/observe/tracing-setup.",
     });
     return results;
   }
