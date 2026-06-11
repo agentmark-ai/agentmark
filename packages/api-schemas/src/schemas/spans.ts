@@ -30,15 +30,18 @@ export const SpansListParamsSchema = PaginationParamsSchema.extend({
   session_id: z.string().refine(...noLoneSurrogates).optional(),
   // Advanced filter — a human-readable string expression, mirroring the
   // trace-side `filter` parameter (see TracesListParamsSchema for the full
-  // grammar). Predicates combine with `and`; a malformed filter returns 400.
+  // grammar). Clauses combine with `and`; a clause is a predicate or a
+  // parenthesized OR-group. A malformed filter returns 400.
   filter: z
     .string()
     .optional()
     .describe(
       'Filter expression (string DSL), same grammar as GET /v1/traces. ' +
-        'Predicates combined with `and`: `field operator [value]`. Supports ' +
-        '`metadata.<key>` with `exists` / `does not exist` / `=` / string ' +
-        'operators. Example: `metadata.env = "prod" and status = ERROR`. ' +
+        'Clauses combined with `and`; a clause is a predicate ' +
+        '(`field operator [value]`) or a parenthesized OR-group: ' +
+        '`(a = 1 or b = 2)`. Supports `metadata.<key>` with `exists` / ' +
+        '`does not exist` / `=` / string operators. Example: ' +
+        '`(model = "gpt-4o" or model = "o3") and status = ERROR`. ' +
         'Malformed filters return 400.',
     ),
 });
