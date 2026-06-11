@@ -54,7 +54,7 @@ export interface RegisterOpenAPIToolsOptions {
    * a re-login is never seen (issue #2657). A plain string keeps the
    * old static behavior (used by tests and the local-dev unauth path).
    */
-  bearer: string | (() => string | null);
+  bearer: string | (() => string | null | Promise<string | null>);
   /**
    * Default `X-Agentmark-App-Id` for app-scoped routes whose path has
    * no `{appId}` param (GET /v1/traces, /v1/spans, POST /v1/scores, …).
@@ -264,7 +264,7 @@ export function registerOpenAPITools(
   // keeps the old behavior; a function is re-invoked on every tool call
   // (and again on a 401) so a fresh `agentmark login` is picked up
   // without restarting the MCP client (issue #2657).
-  const getBearer: () => string | null =
+  const getBearer: () => string | null | Promise<string | null> =
     typeof bearer === 'function' ? bearer : () => bearer;
   const registered: RegisteredOpenAPITool[] = [];
   // Defense against operationId collisions inside the spec. There used
@@ -331,14 +331,14 @@ export function registerOpenAPITools(
 
             // Resolve the credential fresh for THIS call (picks up a
             // mid-session `agentmark login`), then send.
-            let usedToken = getBearer();
+            let usedToken = await getBearer();
             let response = await send(usedToken);
 
             // On a 401, re-resolve once: if the on-disk credential changed
             // (the user logged in since we read it), retry with the fresh
             // token before surfacing the error (issue #2657).
             if (response.status === 401) {
-              const fresh = getBearer();
+              const fresh = await getBearer();
               if (fresh && fresh !== usedToken) {
                 usedToken = fresh;
                 response = await send(fresh);

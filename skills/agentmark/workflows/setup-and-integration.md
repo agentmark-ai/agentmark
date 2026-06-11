@@ -14,15 +14,15 @@ If the docs MCP isn't responding, or doesn't cover the user's framework, **stop 
 
 ## Before you start — `doctor` is your setup checklist
 
-**Whenever a user wants to set up AgentMark — a fresh `npm create agentmark` scaffold *or* an existing repo — run `npx agentmark doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 7.)
+**Whenever a user wants to set up AgentMark — a fresh `npm create agentmark` scaffold *or* an existing repo — run `npx agentmark doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 6.)
 
 Then confirm the CLI handoff actually happened — if any are missing, the user skipped `npm create agentmark`:
 
 - [ ] `agentmark.json` exists at the project root
 - [ ] `agentmark/` directory exists (the CLI creates it empty, with a `.gitkeep`); `agentmarkPath` in `agentmark.json` resolves the prompt-root to `<agentmarkPath>/agentmark`
 - [ ] At least one MCP config file exists (`.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, or `.zed/settings.json`) and lists **both** the `agentmark` (Cloud) server and the `agentmark-docs` (docs MCP) server
-- [ ] Cloud auth resolves — `~/.agentmark/auth.json` exists OR `AGENTMARK_API_KEY` is set
-- [ ] Your MCP client lists tools from `agentmark` AND from `agentmark-docs`. Both are required — `agentmark` for Cloud ops, `agentmark-docs` for the integration content this workflow defers to.
+- [ ] Your MCP client lists tools from `agentmark-docs` (required — this workflow defers all integration content to it) and from `agentmark` (needed only for the optional Cloud step)
+- [ ] *(Cloud features only)* Cloud auth resolves — `~/.agentmark/auth.json` exists OR `AGENTMARK_API_KEY` is set. **Do not block local setup on this**: installing packages, writing the client and prompt files, and running `npx agentmark dev` need no cloud auth at all. If auth is missing, proceed local-first and treat Cloud linking as the deferred final step.
 
 If any are missing, tell the user to run `npm create agentmark` first. Do not recreate those files from this workflow — that is the CLI's job, and duplicating it here is how the two paths drift apart.
 
@@ -75,13 +75,7 @@ Always cite the docs page. If the user disagrees with the guidance, the disagree
 
 The user's "yes" is consent to **write new files only** — not to refactor existing code (Step 8).
 
-## Step 4 — Provision the Cloud app (Cloud mode only)
-
-If `agentmark.json` has `handler` set, or the user wants Cloud features, provision via the `agentmark` MCP server. See [headless-with-mcp.md](headless-with-mcp.md) for the `create_app` + `mint_api_key` sequence.
-
-Write `AGENTMARK_API_KEY` and `AGENTMARK_APP_ID` to `.env` (create if absent; **never overwrite existing values without asking**). Confirm `.env` is in `.gitignore`.
-
-## Step 5 — Write files per the docs guidance
+## Step 4 — Write files per the docs guidance
 
 Place files at the paths the docs page specified. Two SDK-contract rules override convention (and are themselves documented at SKILL.md and in the docs):
 
@@ -92,17 +86,23 @@ For the full client recipe — `agentmark.client.ts`, the `dev-entry.ts` dev-ser
 
 If the docs guidance contradicts those two rules, prefer the docs (they may have evolved) but flag the discrepancy to the user.
 
-## Step 6 — Scaffold the first prompt
+## Step 5 — Scaffold the first prompt
 
 One prompt only, named after the host's primary use case. Use the minimum viable shape from [creating-prompts.md](creating-prompts.md). After writing, regenerate types per the docs' instructions for the detected language (do not encode the command here).
 
-## Step 7 — Smoke test
+## Step 6 — Smoke test (local — no cloud auth needed)
 
-Verify the scaffold before handing back. Run `npx agentmark doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx agentmark doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK/adapter mismatch, or unwired tracing. Exact commands and flags via `npx agentmark <cmd> --help`. **Do not encode CLI surface in this workflow.** In Cloud mode, also confirm the trace appears via the `agentmark` MCP server's trace tools within a few seconds. If anything fails, fix it (doctor names the fix) before handing back to the user.
+Verify the scaffold before handing back. Run `npx agentmark doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx agentmark doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK/adapter mismatch, or unwired tracing. Exact commands and flags via `npx agentmark <cmd> --help`. **Do not encode CLI surface in this workflow.** If anything fails, fix it (doctor names the fix) before handing back to the user.
+
+## Step 7 — Provision the Cloud app (optional, Cloud mode only)
+
+Everything up to here runs **entirely locally** — no login, no cloud API. Only now, if `agentmark.json` has `handler` set or the user wants Cloud features (hosted dashboard, trace forwarding, managed experiments), provision via the `agentmark` MCP server. See [headless-with-mcp.md](headless-with-mcp.md) for the `create_app` + `mint_api_key` sequence. If cloud auth is missing or the user declines, **stop here with a working local setup** — never report local setup as blocked on login.
+
+Write `AGENTMARK_API_KEY` and `AGENTMARK_APP_ID` to `.env` (create if absent; **never overwrite existing values without asking**). Confirm `.env` is in `.gitignore`. In Cloud mode, also confirm the trace appears via the `agentmark` MCP server's trace tools within a few seconds.
 
 ## Step 8 — Migrate existing LLM code (separate confirmation)
 
-If Step 1 found existing `streamText` / `generateObject` / `client.messages.create` calls, **do not migrate them as part of setup**. Setup ends at Step 7. Migration is a separate confirmation:
+If Step 1 found existing `streamText` / `generateObject` / `client.messages.create` calls, **do not migrate them as part of setup**. Setup ends at Step 6 (Step 7 only when the user wants Cloud). Migration is a separate confirmation:
 
 > Setup is done. I noticed 3 places that call the AI SDK directly. Want me to migrate those to load AgentMark prompts? I'll preserve inputs/outputs and open it as a separate change so it's easy to review.
 

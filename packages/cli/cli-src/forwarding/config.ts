@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { loadLocalConfig, LocalConfig } from '../config';
+import { findProjectRoot, loadLocalConfig, LocalConfig } from '../config';
 
 export type ForwardingConfig = NonNullable<LocalConfig['forwarding']>;
 
@@ -20,8 +20,15 @@ function getConfigPath(): string {
     return path.join(os.tmpdir(), `.agentmark-dev-config-${process.pid}.json`);
   }
 
-  const cwd = process.cwd();
-  return path.join(cwd, '.agentmark', 'dev-config.json');
+  // Resolve the agentmark project root (the directory holding
+  // agentmark.json) rather than using the raw cwd — running from a
+  // subdirectory must hit the same file `agentmark link` wrote, and a
+  // non-project cwd (e.g. $HOME) must never grow a `.agentmark/` dir.
+  const projectRoot = findProjectRoot(process.cwd());
+  if (!fs.existsSync(path.join(projectRoot, 'agentmark.json'))) {
+    return path.join(os.tmpdir(), '.agentmark-dev-config.json');
+  }
+  return path.join(projectRoot, '.agentmark', 'dev-config.json');
 }
 
 /**

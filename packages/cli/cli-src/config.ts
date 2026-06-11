@@ -60,6 +60,16 @@ function getConfigPath(): string {
   // Use .agentmark directory in project root for config
   try {
     const projectRoot = findProjectRoot(process.cwd());
+
+    // Only write into a directory that actually IS an agentmark project.
+    // findProjectRoot falls back to startDir when no agentmark.json exists
+    // anywhere up the tree — creating `.agentmark/` (and editing .gitignore)
+    // in an arbitrary cwd would pollute unrelated directories (running the
+    // CLI from $HOME left a confusing ~/.agentmark/dev-config.json behind).
+    if (!fs.existsSync(path.join(projectRoot, 'agentmark.json'))) {
+      return path.join(os.tmpdir(), '.agentmark-dev-config.json');
+    }
+
     const configDir = path.join(projectRoot, '.agentmark');
 
     // Create .agentmark directory if it doesn't exist

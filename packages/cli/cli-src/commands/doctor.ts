@@ -126,7 +126,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
     add({
       id: "config.found",
       group: GROUP.project,
-      title: "agentmark.json present",
+      title: "agentmark.json missing",
       status: "fail",
       detail: "no agentmark.json in this directory",
       fix: AGENTMARK_CONFIG_NOT_FOUND,
@@ -135,7 +135,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
     add({
       id: "config.found",
       group: GROUP.project,
-      title: "agentmark.json present",
+      title: "agentmark.json invalid",
       status: "fail",
       detail: cfg.parseError,
       fix: "Fix the JSON syntax in agentmark.json.",
@@ -210,7 +210,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       : {
           id: "client.file",
           group: GROUP.project,
-          title: `${clientFile} present`,
+          title: `${clientFile} missing`,
           status: "fail",
           detail: `no ${clientFile} at the project root`,
           fix: clientNotFoundMessages(language)[1],
@@ -225,7 +225,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       : {
           id: "devEntry.file",
           group: GROUP.project,
-          title: "dev server entry present",
+          title: "dev server entry missing",
           status: "warn",
           detail: '`agentmark dev` and the local Run button need it (tracing-only setups do not)',
           fix: devEntryNotFoundMessages(language)[2],
@@ -254,7 +254,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       add({
         id: "deploy.handler",
         group: GROUP.project,
-        title: "deployment handler present",
+        title: "deployment handler broken",
         status: "fail",
         detail: `config.handler points to "${String(config.handler)}", which does not exist`,
         fix: 'Create that file, or fix the "handler" path in agentmark.json. It is the entry AgentMark Cloud bundles for managed deployment. See https://docs.agentmark.co/deploy/deployment.',
@@ -263,7 +263,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       add({
         id: "deploy.handler",
         group: GROUP.project,
-        title: "deployment handler present",
+        title: "deployment handler missing",
         status: "warn",
         detail: `no ${defaultHandler} found; AgentMark Cloud needs it to deploy your client (the hosted Dashboard's Run buttons)`,
         fix: `Add a deployment entry (${defaultHandler}), or set "handler" in agentmark.json. See https://docs.agentmark.co/deploy/deployment.`,
@@ -450,7 +450,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       ? { ...((pkg.dependencies as Record<string, unknown>) ?? {}), ...((pkg.devDependencies as Record<string, unknown>) ?? {}) }
       : {};
     if (!pkg) {
-      add({ id: "deps.packageJson", group: GROUP.deps, title: "package.json present", status: "skip", detail: "no package.json found" });
+      add({ id: "deps.packageJson", group: GROUP.deps, title: "package.json missing", status: "skip", detail: "no package.json found" });
     } else {
       add(
         deps["@agentmark-ai/sdk"]
