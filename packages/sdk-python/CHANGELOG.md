@@ -1,3 +1,18 @@
+## 0.4.1 (2026-06-11)
+
+### 🩹 Fixes
+
+- Remove the SDK-specific adapter packages (ai-sdk-v4-adapter, ai-sdk-v5-adapter, ([#751](https://github.com/agentmark-ai/agentmark/pull/751))
+  ai-sdk-shared, mastra-v0-adapter, pydantic-ai-v0-adapter). AgentMark integrates
+  with any SDK through the neutral render / executor seam.
+
+  `createAgentMark` is now the single client factory: its `adapter` argument is
+  optional in both languages (TypeScript `createAgentMark({ loader })`, Python
+  `create_agentmark(loader=loader)`) and defaults to the neutral
+  `DefaultAdapter`. `createAgentMarkClient` is a deprecated alias in
+  `@agentmark-ai/prompt-core`; `@agentmark-ai/fallback-adapter` is deprecated
+  and re-exports both unchanged.
+
 ## 0.4.0 (2026-06-10)
 
 ### 🚀 Features

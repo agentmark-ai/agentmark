@@ -1,3 +1,30 @@
+## 0.5.0 (2026-06-11)
+
+### 🚀 Features
+
+- feat(experiments): placeholder states (`running` / `stalled`) on experiment summaries ([#749](https://github.com/agentmark-ai/agentmark/pull/749))
+
+  `ExperimentSummarySchema` gains an optional `status` field so a backend can
+  surface a dispatched run whose spans haven't landed in analytics storage yet:
+  `"running"` while data is expected, `"stalled"` when none arrived (telemetry
+  likely not configured). The experiments list renders both as placeholders —
+  a status label next to the name, no stats, not clickable, excluded from
+  selection/compare and charts. Stalled rows render a warning label with an
+  explanatory tooltip and, when the new optional `onDismissExperiment` prop is
+  provided, a dismiss button. Rows without `status` render exactly as before,
+  so existing consumers are unaffected.
+
+- feat(filters): one-level OR-groups in analytics filters ([#750](https://github.com/agentmark-ai/agentmark/pull/750))
+
+  `AnalyticsFilterOrGroup` / `AnalyticsFilterNode` (plus the
+  `isAnalyticsFilterOrGroup` guard) model a parenthesized disjunction of leaf
+  predicates inside an otherwise AND-combined filter list (conjunctive normal
+  form, one level deep). `TracesParams.filters` widens to
+  `AnalyticsFilterNode[]` — plain `AnalyticsFilter[]` callers are unaffected.
+  The `filter` query param on `GET /v1/traces` and `GET /v1/spans` gains the
+  matching grammar: `(a = 1 or b = 2) and c = 3` (`or` only inside parens,
+  `and` only outside; groups do not nest).
+
 ## 0.4.0 (2026-06-05)
 
 ### 🚀 Features
