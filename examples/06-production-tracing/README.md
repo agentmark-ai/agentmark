@@ -9,7 +9,7 @@ Trace LLM calls in production with the AgentMark SDK and OpenTelemetry.
 ## Setup
 
 ```bash
-npm install @agentmark-ai/sdk @agentmark-ai/ai-sdk-v5-adapter
+npm install @agentmark-ai/sdk @agentmark-ai/prompt-core
 ```
 
 Set environment variables:

@@ -33,7 +33,7 @@ const Attrs = {
 
     // v1.37.0+ content attributes (canonical OTel GenAI semantic conventions).
     // SDKs that emit the AgentMark-scoped equivalents (`gen_ai.request.input`
-    // / `gen_ai.response.output` — used by `claude-agent-sdk-v0-adapter`) are
+    // / `gen_ai.response.output`) are
     // also accepted here as fallbacks so an SDK picking either key set
     // doesn't silently lose IO data on ingest. The canonical pair always wins
     // when both are present.

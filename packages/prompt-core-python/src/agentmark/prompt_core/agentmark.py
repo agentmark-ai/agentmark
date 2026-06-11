@@ -232,7 +232,6 @@ class AgentMark:
 
 
 def create_agentmark(
-    adapter: Adapter,
     loader: Loader | None = None,
     template_engine: TemplateEngine | None = None,
     evals: EvalRegistry | None = None,
@@ -240,8 +239,12 @@ def create_agentmark(
 ) -> AgentMark:
     """Factory function to create an AgentMark instance.
 
+    Prompts render to the neutral ``TextConfigSchema``/``ObjectConfigSchema``
+    shape, ready to hand to any SDK — there is no adapter to pick. (The
+    ``AgentMark`` class still takes an ``Adapter`` for the internal render
+    seam; this factory always wires the neutral ``DefaultAdapter``.)
+
     Args:
-        adapter: Adapter for formatting prompt output
         loader: Optional loader for loading prompts from paths
         template_engine: Optional custom template engine
         evals: Optional dict mapping eval names to eval functions.
@@ -250,8 +253,10 @@ def create_agentmark(
     Returns:
         Configured AgentMark instance
     """
+    from .adapters.default import DefaultAdapter
+
     return AgentMark(
-        adapter=adapter,
+        adapter=DefaultAdapter(),
         loader=loader,
         template_engine=template_engine,
         evals=evals,

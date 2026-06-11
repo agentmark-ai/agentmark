@@ -38,7 +38,7 @@ AgentMark is an open-source platform for building reliable AI agents. Define pro
 > **Requires:** Node.js 18 or newer.
 
 ```bash
-# Scaffold a new project (interactive: picks your language and adapter)
+# Scaffold a new project (interactive: picks your language)
 npm create agentmark@latest my-agents
 cd my-agents
 
@@ -96,7 +96,7 @@ Run it:
 agentmark run-prompt customer-support.prompt.mdx
 ```
 
-The prompt is version-controlled, type-checked, and traced. The same file works with the Vercel AI SDK, Mastra, the Claude Agent SDK, or Pydantic AI. You pick the adapter; AgentMark formats the call.
+The prompt is version-controlled, type-checked, and traced. The same file works with any SDK — the Vercel AI SDK, the raw OpenAI or Anthropic client, Pydantic AI, or your own bespoke client. AgentMark renders the prompt to a neutral `{ messages, ...config }` shape; your SDK makes the call.
 
 ## Why git-native
 
@@ -126,19 +126,20 @@ And when you decide to leave, your prompts are already in your repo and your tra
 | [MCP servers](https://docs.agentmark.co/build/mcp) | Call Model Context Protocol tools directly from prompts. |
 | [MCP trace server](https://www.npmjs.com/package/@agentmark-ai/mcp-server) | Debug traces from Claude Code, Cursor, or any MCP client. |
 
-## SDK adapters
+## Bring your own SDK
 
-AgentMark doesn't call LLM APIs directly. Adapters format your prompt for the SDK you already use, so you keep your existing client, retry logic, and auth.
+AgentMark doesn't call LLM APIs directly, and there are no SDK-specific adapters to install. Prompts render to a neutral `{ messages, ...config }` shape that you hand to whatever SDK you already use — so you keep your existing client, retry logic, and auth:
 
-| Adapter | Language | Package |
-|---------|----------|---------|
-| [Vercel AI SDK v5](https://docs.agentmark.co/integrations/typescript/ai-sdk) | TypeScript | `@agentmark-ai/ai-sdk-v5-adapter` |
-| [Vercel AI SDK v4](https://docs.agentmark.co/integrations/typescript/ai-sdk) | TypeScript | `@agentmark-ai/ai-sdk-v4-adapter` |
-| [Mastra](https://docs.agentmark.co/integrations/typescript/mastra) | TypeScript | `@agentmark-ai/mastra-v0-adapter` |
-| [Pydantic AI](https://docs.agentmark.co/integrations/python/pydantic-ai) | Python | `agentmark-pydantic-ai-v0` |
-| [Fallback](https://docs.agentmark.co/integrations/fallback) | TypeScript | `@agentmark-ai/fallback-adapter` |
+```ts
+import { createAgentMark } from "@agentmark-ai/prompt-core";
 
-Want another adapter? [Open an issue](https://github.com/agentmark-ai/agentmark/issues).
+const agentmark = createAgentMark({ loader });
+const prompt = await agentmark.loadTextPrompt("customer-support.prompt.mdx");
+const { messages, ...config } = await prompt.format({ props });
+// hand `messages` + `config` to your SDK of choice
+```
+
+See the [bring-your-own-SDK guide](https://docs.agentmark.co/integrations/bring-your-own-sdk) for the full integration path, including the `createExecutor` builder that lets AgentMark Cloud and `agentmark dev` run prompts through your SDK.
 
 ## Language support
 
@@ -175,7 +176,7 @@ See the [`examples/`](./examples) directory for complete, runnable projects:
 
 AgentMark is open-core. The full development loop runs locally with no cloud dependency.
 
-- **Self-hosted (this repo, AGPL-3.0).** CLI, SDK, adapters, prompt engine, local trace UI (`agentmark dev`), eval runner, MCP server. Ship to production using only what's in this repo, and forward traces to any OpenTelemetry backend.
+- **Self-hosted (this repo, AGPL-3.0).** CLI, SDK, prompt engine, local trace UI (`agentmark dev`), eval runner, MCP server. Ship to production using only what's in this repo, and forward traces to any OpenTelemetry backend.
 - **AgentMark Cloud (hosted, proprietary).** The team layer on top: persistent trace storage, dashboards, collaborative prompt editing, annotations, alerts, and two-way Git sync. Free tier covers most small teams.
 
 If you only need observability and you already have an OTEL backend, the self-hosted setup is enough. Cloud is for teams that want the dashboard, collaboration, and managed trace storage.
@@ -199,7 +200,7 @@ We welcome contributions. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Community
 
-- **[GitHub Issues](https://github.com/agentmark-ai/agentmark/issues):** bugs, feature requests, adapter requests
+- **[GitHub Issues](https://github.com/agentmark-ai/agentmark/issues):** bugs and feature requests
 - **[GitHub Discussions](https://github.com/agentmark-ai/agentmark/discussions):** questions, ideas, and help
 - **[LinkedIn](https://www.linkedin.com/company/agentmark/):** product updates and team posts
 - **[Docs](https://docs.agentmark.co):** reference, guides, and tutorials

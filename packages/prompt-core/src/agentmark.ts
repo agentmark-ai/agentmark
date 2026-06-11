@@ -20,6 +20,10 @@ import type {
 import type { Root } from "mdast";
 import { EvalRegistry } from "./eval-registery";
 import type { ControlPlaneClient } from "./control-plane";
+import { DefaultAdapter } from "./adapters/default";
+// Type-only import — default-client.ts imports this module's values, so the
+// reverse edge must stay erased at runtime to avoid a require cycle.
+import type { DefaultAgentmark } from "./adapters/default-client";
 
 export interface AgentMarkOptions<
   T extends PromptShape<T>,
@@ -206,16 +210,25 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>>
   }
 }
 
-type DictOf<A extends Adapter<any>> = A["__dict"];
-
-export function createAgentMark<A extends Adapter<any>>(opts: {
-  adapter: A;
-  loader?: Loader<DictOf<A>>;
-  templateEngine?: TemplateEngine;
-  /** @deprecated Use `evals` instead. */
-  evalRegistry?: EvalRegistry;
-  evals?: EvalRegistry;
-  builtInModels?: string[];
-}): AgentMark<DictOf<A>, A> {
-  return new AgentMark(opts);
+/**
+ * Create an AgentMark client. Prompts render to the neutral
+ * `{ messages, ...config }` shape, ready to hand to ANY SDK — there is no
+ * adapter to pick. (The `AgentMark` class still takes an `Adapter` for the
+ * internal render seam; `createAgentMark` always wires the neutral
+ * `DefaultAdapter`.)
+ */
+export function createAgentMark<D extends PromptShape<D>>(
+  opts: {
+    loader?: Loader<D>;
+    templateEngine?: TemplateEngine;
+    /** @deprecated Use `evals` instead. */
+    evalRegistry?: EvalRegistry;
+    evals?: EvalRegistry;
+    builtInModels?: string[];
+  } = {}
+): DefaultAgentmark<D> {
+  return new AgentMark<D, DefaultAdapter<D>>({
+    ...opts,
+    adapter: new DefaultAdapter<D>(),
+  });
 }

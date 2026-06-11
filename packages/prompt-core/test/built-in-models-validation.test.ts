@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll } from "vitest";
 import path from "path";
 import { FileLoader } from "@agentmark-ai/loader-file";
 import { createAgentMark } from "../src/agentmark";
-import { DefaultAdapter } from "../src/adapters/default";
 import { setupFixtures } from "./setup-fixtures";
 
 type TestPromptTypes = {
@@ -33,7 +32,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("loads prompt successfully when builtInModels is not provided (no enforcement)", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
     });
 
@@ -46,7 +44,6 @@ describe("AgentMark builtInModels validation", () => {
   it("loads prompt successfully when model_name is in builtInModels", async () => {
     // The math fixture uses "test-model"
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: ["test-model", "openai/gpt-4o"],
     });
@@ -58,7 +55,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("throws when model_name is not in builtInModels (object prompt)", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: ["openai/gpt-4o", "anthropic/claude-3-haiku"],
     });
@@ -73,7 +69,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("throws when model_name is not in builtInModels (image prompt)", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: ["openai/gpt-4o"],
     });
@@ -88,7 +83,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("throws when model_name is not in builtInModels (speech prompt)", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: ["openai/gpt-4o"],
     });
@@ -103,7 +97,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("does not enforce when builtInModels is an empty array", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: [],
     });
@@ -116,7 +109,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("error message includes the unregistered model name", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: ["openai/gpt-4o"],
     });
@@ -128,7 +120,6 @@ describe("AgentMark builtInModels validation", () => {
 
   it("error message includes pull-models hint", async () => {
     const agentMark = createAgentMark({
-      adapter: new DefaultAdapter<TestPromptTypes>(),
       loader: fileLoader,
       builtInModels: ["openai/gpt-4o"],
     });

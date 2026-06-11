@@ -20,7 +20,6 @@ class TestEndToEndPipeline:
     def agentmark(self) -> AgentMark:
         """Create a fully configured AgentMark instance."""
         return create_agentmark(
-            adapter=DefaultAdapter(),
             eval_registry={},
         )
 
@@ -357,7 +356,6 @@ class TestEvalRegistryIntegration:
         registry: EvalRegistry = {"length_check": length_check}
 
         agentmark = create_agentmark(
-            adapter=DefaultAdapter(),
             eval_registry=registry,
         )
 

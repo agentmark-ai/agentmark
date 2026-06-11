@@ -34,7 +34,7 @@ export interface BuiltPrompt {
  * // Point to the build output directory
  * const loader = new FileLoader('./dist/agentmark');
  *
- * const client = createAgentMarkClient({ adapter, loader });
+ * const client = createAgentMark({ loader });
  *
  * // Load a pre-built prompt - extension is optional
  * const prompt = await client.loadTextPrompt('party-planner');

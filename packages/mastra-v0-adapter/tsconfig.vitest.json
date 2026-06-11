@@ -1,5 +1,0 @@
-{
-  "// purpose": "vitest typecheck mode runs tsc with THIS config — the (skip-worktree-managed) package tsconfig only includes src/, which would make type tests vacuously pass. New file, base tsconfig untouched.",
-  "extends": "./tsconfig.json",
-  "include": ["src", "test"]
-}

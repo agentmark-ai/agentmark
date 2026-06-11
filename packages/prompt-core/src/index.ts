@@ -2,6 +2,8 @@ export { AgentMark, createAgentMark } from "./agentmark";
 export { buildEvalsResponse } from "./control-plane";
 export type { ControlPlaneClient, EvalsResponse } from "./control-plane";
 export { DefaultAdapter } from "./adapters/default";
+export { createAgentMarkClient } from "./adapters/default-client";
+export type { DefaultAgentmark, DefaultObjectPrompt } from "./adapters/default-client";
 
 export { TemplateDXTemplateEngine } from "./template_engines/templatedx";
 export { getTemplateDXInstance } from "./template_engines/templatedx-instances";
