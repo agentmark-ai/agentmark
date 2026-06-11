@@ -27,7 +27,6 @@
     "@opentelemetry/semantic-conventions": "^1.28.0"
   },
   "devDependencies": {
-    "@agentmark-ai/loader-api": "0.1.2",
     "@agentmark-ai/prompt-core": "0.13.0",
     "@mastra/core": "^0.13.2",
     "@sentry/node": "^10.0.0",
@@ -37,7 +36,6 @@
     "vitest": "^4.1.8"
   },
   "peerDependencies": {
-    "@agentmark-ai/loader-api": ">=0.0.0",
     "@agentmark-ai/prompt-core": ">=0.0.0"
   }
 }

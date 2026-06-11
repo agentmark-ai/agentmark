@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import path from "path";
 import fs from "fs";
-import { FileLoader, BuiltPrompt } from "@agentmark-ai/loader-file";
+import { FileLoader, type BuiltPrompt } from "../src/loaders/file-loader";
 
 describe("FileLoader", () => {
   const testDir = path.join(__dirname, "test-built-prompts");

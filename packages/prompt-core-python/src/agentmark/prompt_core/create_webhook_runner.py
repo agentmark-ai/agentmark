@@ -1,21 +1,25 @@
-"""BYO-SDK convenience builder: an Executor → a ready-to-dispatch WebhookRunner.
+"""One-call webhook-runner wiring: your client + an Executor → a ready-to-dispatch WebhookRunner.
 
-Mirror of the TypeScript ``createWebhookRunner`` (``@agentmark-ai/sdk``).
-Collapses the client + neutral adapter + runner wiring to one call and —
-critically — threads ``evals`` into the client, so the runner BOTH runs evals
-during experiments AND lists them for the dashboard's New Experiment dialog (the
-``get-evals`` control-plane job). The absence of an ``evals`` input on the BYO
-path was exactly why custom-SDK apps silently showed *"No evals available"* — a
-runner has nowhere to source the registry from.
+Mirror of the TypeScript ``createWebhookRunner``. Wraps
+``WebhookRunner(client, executor, ...)`` and defaults the span hooks to
+AgentMark tracing. The runner sources BOTH the prompt loader and the eval
+registry from the ``client`` you pass — register them exactly once, on
+:func:`create_agentmark`:
 
-    runner = create_webhook_runner(my_executor, loader=loader, evals=my_evals)
+    client = create_agentmark(loader=loader, evals=my_evals)
+    runner = create_webhook_runner(client, my_executor)
     # the deployed managed handler is just:  handler = runner.dispatch
+
+There is deliberately no ``loader``/``evals`` input: a second registration
+point is how apps ended up with a runner whose client drifted from the one
+their app loaded prompts with (the *"No evals available"* class of bug).
 
 Tracing: defaults to AgentMark SDK tracing when ``agentmark_sdk`` is installed
 (via its ``create_agentmark_span_hooks``), mirroring the TS
-``createWebhookRunner``. Explicit ``prompt_span_hook`` / ``item_span_hook`` win;
-without the SDK you simply get no default tracing. The SDK import is lazy and
-optional, so prompt-core stays lower-level than (and SDK-free of) the SDK.
+``createWebhookRunner`` from ``@agentmark-ai/sdk``. Explicit
+``prompt_span_hook`` / ``item_span_hook`` win; without the SDK you simply get
+no default tracing. The SDK import is lazy and optional, so prompt-core stays
+lower-level than (and SDK-free of) the SDK.
 """
 
 from __future__ import annotations
@@ -23,31 +27,33 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
-from .agentmark import create_agentmark
+from .agentmark import AgentMark
 from .webhook_runner import WebhookRunner
 
 if TYPE_CHECKING:
-    from .eval_registry import EvalRegistry
     from .executor import Executor
-    from .types import Loader
     from .webhook_runner import ExperimentItemSpanHook, PromptSpanHook
 
 
 def create_webhook_runner(
+    client: AgentMark,
     executor: Executor,
     *,
-    loader: Loader | None = None,
-    evals: EvalRegistry | None = None,
     prompt_span_hook: PromptSpanHook | None = None,
     item_span_hook: ExperimentItemSpanHook | None = None,
 ) -> WebhookRunner:
-    """Build a ready-to-serve :class:`WebhookRunner` from a BYO ``Executor``,
-    wired with the neutral ``DefaultAdapter`` and the given ``evals``.
+    """Build a ready-to-serve :class:`WebhookRunner` from your client + a custom
+    ``Executor``, wired with AgentMark span hooks by default.
 
-    The returned runner exposes ``dispatch`` (and ``run_prompt`` /
-    ``run_experiment``) — exactly the shape the CLI dev server and the gateway
-    dispatch expect. ``register evals once`` → they list AND run.
+    ``create_webhook_runner(client, executor)`` — loader and evals come from
+    the client; register them once, on :func:`create_agentmark`.
     """
+    if not isinstance(client, AgentMark):
+        raise TypeError(
+            "create_webhook_runner: the first argument must be your AgentMark "
+            "client (from create_agentmark); the executor is the second argument."
+        )
+
     if prompt_span_hook is None and item_span_hook is None:
         # Default to AgentMark SDK tracing when the SDK is installed — mirrors the
         # TS createWebhookRunner default. Lazy + optional: prompt-core never hard-
@@ -62,10 +68,6 @@ def create_webhook_runner(
             prompt_span_hook = hooks["prompt_span_hook"]
             item_span_hook = hooks["item_span_hook"]
 
-    client = create_agentmark(
-        loader=loader,
-        evals=evals,
-    )
     return WebhookRunner(
         client,
         executor,

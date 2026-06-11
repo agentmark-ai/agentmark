@@ -8,7 +8,7 @@
  * `{ messages, text_config }` shape — with full type-safe props — that feeds
  * straight into the user's own SDK call.
  *
- * Companion to sdk/src/test/byo-migration.test.ts (tracing + experiments).
+ * Companion to sdk/src/test/custom-sdk-migration.test.ts (tracing + experiments).
  * Together they show the full migration needs zero Adapter/Executor code.
  */
 

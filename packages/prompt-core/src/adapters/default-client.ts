@@ -3,7 +3,7 @@ import type { Root } from "mdast";
 import { AgentMark } from "../agentmark";
 import { ObjectPrompt } from "../prompts";
 import type { PromptFormatParams } from "../prompts";
-import type { KeysWithKind, Loader, PromptShape } from "../types";
+import type { KeysWithKind, PromptShape } from "../types";
 import { DefaultAdapter } from "./default";
 
 export interface DefaultObjectPrompt<
@@ -22,21 +22,4 @@ export interface DefaultAgentmark<T extends PromptShape<T>>
     pathOrPreloaded: K | Root,
     options?: any
   ): Promise<DefaultObjectPrompt<T, DefaultAdapter<T>, K>>;
-}
-
-/**
- * @deprecated Use `createAgentMark` from `@agentmark-ai/prompt-core` instead —
- * it now defaults to the neutral `DefaultAdapter` when no `adapter` is passed
- * and accepts the same `loader`. This alias is kept so existing imports
- * (including via `@agentmark-ai/fallback-adapter`) keep working.
- */
-export function createAgentMarkClient<D extends PromptShape<D>>(opts: {
-  loader?: Loader<D>;
-}): DefaultAgentmark<D> {
-  const adapter = new DefaultAdapter<D>();
-
-  return new AgentMark<D, DefaultAdapter<D>>({
-    loader: opts.loader,
-    adapter,
-  });
 }

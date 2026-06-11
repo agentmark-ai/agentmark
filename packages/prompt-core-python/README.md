@@ -65,3 +65,10 @@ mypy src/agentmark --strict
 ## License
 
 MIT
+
+## TypeScript parity roadmap
+
+Known gaps vs `@agentmark-ai/prompt-core`, tracked as roadmap items:
+
+- **`built_in_models` validation** — TS `createAgentMark({ builtInModels })`
+  has no Python equivalent yet.

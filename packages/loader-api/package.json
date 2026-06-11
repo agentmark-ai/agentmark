@@ -1,10 +1,13 @@
 {
   "name": "@agentmark-ai/loader-api",
   "version": "0.1.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "HTTP-based loader for AgentMark prompts - works with local dev server and cloud API",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "description": "HTTP-based loader for AgentMark prompts - works with local dev server and cloud API",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "tsup": "^8.3.5",
@@ -20,7 +23,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@isaacs/ttlcache": "^1.4.1"
+    "@agentmark-ai/prompt-core": "*"
   },
   "exports": {
     ".": {

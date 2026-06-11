@@ -4,15 +4,13 @@
  * module re-exports it to preserve the CLI's existing `../utils/junit-formatter`
  * import path.
  */
+export { buildJUnitXml, buildJUnitReport, isRegression } from "@agentmark-ai/prompt-core";
 export {
-  buildJUnitXml,
-  buildJUnitReport,
   escapeXmlAttribute,
   escapeXmlText,
   wrapCdata,
   stringifyForXml,
-  isRegression,
-} from "@agentmark-ai/prompt-core";
+} from "@agentmark-ai/prompt-core/internal";
 export type {
   JUnitRow,
   JUnitEval,

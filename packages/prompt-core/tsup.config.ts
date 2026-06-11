@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/test-utils.ts', 'src/webhook-runner.ts'],
+  entry: ['src/index.ts', 'src/test-utils.ts', 'src/webhook-runner.ts', 'src/loader-api.ts', 'src/loader-file.ts', 'src/internal.ts'],
   format: ['cjs', 'esm'],
   dts: true,
   splitting: false,

@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { FileLoader } from "../src/file-loader";
+// Import through the shim entry on purpose: this package is now a re-export
+// of @agentmark-ai/prompt-core/loader-file, and this suite proves the chain.
+import { FileLoader } from "../src/index";
 
 /**
  * Tests for FileLoader, focused on the two contracts the customer

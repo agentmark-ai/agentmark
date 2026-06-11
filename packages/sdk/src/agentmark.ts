@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { AGENTMARK_SCORE_ENDPOINT } from "./config";
 import { initialize, span } from "./trace";
-import { ApiLoader } from "@agentmark-ai/loader-api";
+import { ApiLoader } from "@agentmark-ai/prompt-core/loader-api";
 import type { MaskFunction } from "./trace";
 // Type-only (erased at build, so prompt-core stays off the SDK's load path; the
 // value helpers are lazy-imported in getBaselineScores).
@@ -35,6 +35,12 @@ export type RunExperimentOptions<I = any, O = any> = {
   regressionTolerance?: number;
   scoreThresholds?: Record<string, number>;
   concurrency?: number;
+  /**
+   * Cancellation: when it fires, the pool stops dispatching new rows
+   * (in-flight rows finish). Mirrors the webhook runner's experiment
+   * `signal` so Path A and Path B cancel the same way.
+   */
+  signal?: AbortSignal;
   /**
    * If set, write a JUnit XML report of this run to this path — the identical
    * format the CLI emits for prompt experiments, so SDK/code experiments surface
@@ -208,19 +214,25 @@ export class AgentMarkSDK<
   async runExperiment<I = any, O = any>(
     opts: RunExperimentOptions<I, O>,
   ): Promise<RunExperimentResult<O>> {
-    const { hashRowInput, evaluateExperimentGate } = await import("@agentmark-ai/prompt-core");
+    const { hashRowInput, evaluateExperimentGate, runDatasetPool } = await import("@agentmark-ai/prompt-core");
     const runId = randomUUID();
     const evaluators = opts.evaluators ?? [];
     const concurrency = Math.max(1, Math.floor(opts.concurrency ?? 20) || 1);
     const out: Array<{ input: I; output: O; expectedOutput?: any; evals: Array<{ name: string; score?: number; passed?: boolean; reason?: string; label?: string }>; inputHash: string } | undefined> =
       new Array(opts.dataset.length);
 
-    let nextIndex = 0;
-    const worker = async (): Promise<void> => {
-      for (;;) {
-        const i = nextIndex++;
-        if (i >= opts.dataset.length) return;
-        const { input, expectedOutput } = opts.dataset[i];
+    // Same row pool as the webhook runner's experiments (prompt-core
+    // runDatasetPool) — one implementation of ordering, dispatch, and
+    // signal-driven cancellation across Path A and Path B.
+    const reader = new ReadableStream<{ input: I; expectedOutput?: any }>({
+      start(controller) {
+        for (const row of opts.dataset) controller.enqueue(row);
+        controller.close();
+      },
+    }).getReader();
+    await runDatasetPool(
+      reader,
+      async ({ input, expectedOutput }, i) => {
         const { result, traceId } = await span(
           {
             name: opts.experimentKey,
@@ -255,9 +267,10 @@ export class AgentMarkSDK<
           }
         }
         out[i] = { input, output, expectedOutput, evals, inputHash: hashRowInput(input) };
-      }
-    };
-    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+      },
+      concurrency,
+      opts.signal,
+    );
     const rows = out.filter((r): r is NonNullable<typeof r> => !!r);
 
     let resolved: BaselineResolved | null = null;

@@ -25,6 +25,7 @@ from agentmark.prompt_core import (
     WEBHOOK_JOB_TYPES,
     AgentMark,
     DefaultAdapter,
+    create_agentmark,
     create_webhook_runner,
     handle_webhook_request,
 )
@@ -258,12 +259,12 @@ async def test_runner_dispatch_rejects_unknown_job() -> None:
         await runner.dispatch({"type": "nope", "data": {}})
 
 
-# ── BYO builder threads evals (Part 2 — the custom-SDK gap) ────────────────────
+# ── create_webhook_runner sources evals from the client ───────────────────────
 #
-# A bring-your-own-SDK app builds its managed runner with create_webhook_runner.
-# Before this, there was NO evals input on that path, so a BYO app's New
-# Experiment dialog was always empty — with no parameter to fix it. Now: register
-# once → listed (and run).
+# A custom-SDK app registers loader/evals ONCE, on create_agentmark, and hands
+# that client to create_webhook_runner. The runner must source its eval
+# registry from the client — a second registration point is how runners ended
+# up with an empty New Experiment dialog while the app "had" evals.
 
 
 def _noop_executor() -> object:
@@ -273,15 +274,22 @@ def _noop_executor() -> object:
     )
 
 
-async def test_create_webhook_runner_threads_evals_to_get_evals() -> None:
-    runner = create_webhook_runner(
-        _noop_executor(), evals={"acc": lambda p: p, "safety": lambda p: p}
-    )
+async def test_create_webhook_runner_lists_client_evals_for_get_evals() -> None:
+    client = create_agentmark(evals={"acc": lambda p: p, "safety": lambda p: p})
+    runner = create_webhook_runner(client, _noop_executor())
     result = await runner.dispatch({"type": "get-evals", "data": {}})
     assert result == {"type": "evals", "result": '["acc","safety"]', "traceId": ""}
 
 
-async def test_create_webhook_runner_without_evals_lists_none() -> None:
-    runner = create_webhook_runner(_noop_executor())
+async def test_create_webhook_runner_without_client_evals_lists_none() -> None:
+    runner = create_webhook_runner(create_agentmark(), _noop_executor())
     result = await runner.dispatch({"type": "get-evals", "data": {}})
     assert result["result"] == "[]"
+
+
+async def test_create_webhook_runner_executor_first_raises_type_error() -> None:
+    # The legacy executor-first signature was removed — passing the executor
+    # as the first argument gets a clear TypeError naming the fix, not an
+    # AttributeError from deep inside the runner.
+    with pytest.raises(TypeError, match="first argument must be your AgentMark"):
+        create_webhook_runner(_noop_executor(), _noop_executor())

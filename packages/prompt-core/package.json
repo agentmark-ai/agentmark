@@ -8,11 +8,20 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
+      "test-utils": [
+        "./dist/test-utils.d.ts"
+      ],
       "webhook-runner": [
         "./dist/webhook-runner.d.ts"
       ],
-      "test-utils": [
-        "./dist/test-utils.d.ts"
+      "loader-api": [
+        "./dist/loader-api.d.ts"
+      ],
+      "loader-file": [
+        "./dist/loader-file.d.ts"
+      ],
+      "internal": [
+        "./dist/internal.d.ts"
       ]
     }
   },
@@ -46,6 +55,36 @@
         "types": "./dist/webhook-runner.d.cts",
         "default": "./dist/webhook-runner.cjs"
       }
+    },
+    "./loader-api": {
+      "import": {
+        "types": "./dist/loader-api.d.ts",
+        "default": "./dist/loader-api.js"
+      },
+      "require": {
+        "types": "./dist/loader-api.d.cts",
+        "default": "./dist/loader-api.cjs"
+      }
+    },
+    "./loader-file": {
+      "import": {
+        "types": "./dist/loader-file.d.ts",
+        "default": "./dist/loader-file.js"
+      },
+      "require": {
+        "types": "./dist/loader-file.d.cts",
+        "default": "./dist/loader-file.cjs"
+      }
+    },
+    "./internal": {
+      "import": {
+        "types": "./dist/internal.d.ts",
+        "default": "./dist/internal.js"
+      },
+      "require": {
+        "types": "./dist/internal.d.cts",
+        "default": "./dist/internal.cjs"
+      }
     }
   },
   "scripts": {
@@ -57,7 +96,6 @@
   },
   "devDependencies": {
     "@agentmark-ai/conformance-vectors": "*",
-    "@agentmark-ai/loader-file": "*",
     "@types/mdast": "^4.0.0",
     "@types/node": "^22.8.1",
     "@types/react": "^18",
@@ -70,6 +108,7 @@
   },
   "dependencies": {
     "@agentmark-ai/templatedx": "0.4.1",
+    "@isaacs/ttlcache": "^1.4.1",
     "zod": "^3.23.8"
   },
   "files": [

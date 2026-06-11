@@ -13,8 +13,8 @@ from .base_adapter import (
     apply_param_map,
     build_telemetry_metadata,
 )
-from .byo import create_webhook_runner
 from .control_plane import ControlPlaneClient, build_evals_response
+from .create_webhook_runner import create_webhook_runner
 from .eval_registry import EvalRegistry
 from .executor import (
     AgentEvent,
@@ -153,7 +153,7 @@ __all__ = [
     "handle_webhook_request",
     "WebhookHandler",
     "WEBHOOK_JOB_TYPES",
-    # BYO-SDK convenience builder (evals threaded in → list + run)
+    # One-call webhook-runner wiring (loader/evals come from the client)
     "create_webhook_runner",
     # Experiment runner concurrency
     "run_dataset_pool",
