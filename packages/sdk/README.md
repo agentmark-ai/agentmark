@@ -1,6 +1,6 @@
 # AgentMark SDK
 
-The SDK for tracing LLM calls and integrating with AgentMark Cloud. Built on OpenTelemetry.
+The SDK for tracing LLM calls, running experiments, and integrating with AgentMark Cloud. Built on OpenTelemetry.
 
 ## Installation
 
@@ -52,14 +52,16 @@ const sdk = new AgentMarkSDK({
   apiKey: string;    // Your AgentMark API key
   appId: string;     // Your AgentMark app ID
   baseUrl?: string;  // Custom API URL (default: https://api.agentmark.co)
+  mask?: MaskFunction; // Redact sensitive data before spans are exported
 });
 ```
 
 **Methods:**
 
-- **`sdk.initTracing(options?)`** — Start the OpenTelemetry tracer. Options: `{ disableBatch?: boolean }`.
+- **`sdk.initTracing(options?)`** — Start the OpenTelemetry tracer. Options: `{ disableBatch?: boolean, registerGlobally?: boolean }`.
 - **`sdk.getApiLoader()`** — Get an `ApiLoader` instance for loading prompts from AgentMark Cloud.
 - **`sdk.score(props)`** — Submit an evaluation score for a trace.
+- **`sdk.runExperiment(options)`** — Run a dataset through a task with evaluators, score thresholds, and a regression gate. Use `experimentResultToJUnit` to emit a JUnit report for CI.
 
 ### `span(options, fn)`
 
@@ -122,10 +124,18 @@ const localLoader = ApiLoader.local({
 });
 ```
 
+## Also exported
+
+- **`trace(options, fn)`** — alias for `span()`; use it for root spans when the name reads better.
+- **`observe(fn, options?)` / `SpanKind`** — wrap a function so every call is traced.
+- **`streamWithSpan(...)`** — trace streaming LLM responses.
+- **`createPiiMasker(config)`** — build a `mask` function that redacts emails, phone numbers, and other PII before spans leave the process. See [PII masking](https://docs.agentmark.co/observe/pii-masking).
+- **`createWebhookRunner(options)`** — handle cloud-dispatched prompt and experiment runs in your own infrastructure.
+
 ## Documentation
 
-Full documentation at [docs.agentmark.co](https://docs.agentmark.co/agentmark/).
+Full documentation at [docs.agentmark.co](https://docs.agentmark.co/observe/tracing-setup).
 
 ## License
 
-[MIT](../../LICENSE.md)
+[AGPL-3.0-or-later](../../LICENSE.md)

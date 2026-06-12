@@ -1,91 +1,48 @@
 # @agentmark-ai/mcp-server
 
-MCP (Model Context Protocol) server for AgentMark trace debugging. This server enables AI assistants to query and analyze traces from your AgentMark applications.
+MCP (Model Context Protocol) server for [AgentMark](https://github.com/agentmark-ai/agentmark). Exposes the full AgentMark API to AI editors like Claude Code and Cursor: list traces and drill into spans, append dataset rows, write scores, run experiments, manage apps, deployments, environments, alerts, and annotation queues.
 
-## Installation
+## How it works
 
-```bash
-npm install @agentmark-ai/mcp-server
-# or
-yarn add @agentmark-ai/mcp-server
-```
+The server doesn't ship a fixed, hand-written tool list. On startup it reads the gateway's OpenAPI contract from `<AGENTMARK_API_URL>/v1/openapi.json` and registers **one MCP tool per endpoint** — tool names are the spec's operationIds in snake_case (`list_traces`, `get_trace`, `create_score`, `append_dataset_row`, `create_app`, ...). The tool surface always matches what the gateway actually accepts.
+
+Both the local `agentmark dev` server and the Cloud gateway serve the same OpenAPI contract, so the same binary works against either — only the configured URL differs.
 
 ## Usage
 
-### As a CLI tool
+Run it with `npx`; there's nothing to install. `npm create agentmark@latest` wires this up for you (as the `agentmark` and `agentmark-local` entries); the configs below are the manual equivalent.
 
-Run the MCP server directly:
+### Local dev server (Claude Code, Cursor, etc.)
 
-```bash
-npx @agentmark-ai/mcp-server
-```
-
-### With Claude Code
-
-Add to your project's `.mcp.json`:
+Point at your running `agentmark dev` server. Add to `.mcp.json` (Claude Code), `.cursor/mcp.json` (Cursor), or your editor's MCP config:
 
 ```json
 {
   "mcpServers": {
-    "agentmark-traces": {
+    "agentmark-local": {
       "command": "npx",
-      "args": ["@agentmark-ai/mcp-server"],
+      "args": ["-y", "@agentmark-ai/mcp-server"],
       "env": {
-        "AGENTMARK_URL": "http://localhost:9418"
+        "AGENTMARK_API_URL": "http://localhost:9418"
       }
     }
   }
 }
 ```
 
-### With Cursor
+Local calls are unauthenticated — no key needed.
 
-Add to your project's `.cursor/mcp.json`:
+### AgentMark Cloud
 
-```json
-{
-  "mcpServers": {
-    "agentmark-traces": {
-      "command": "npx",
-      "args": ["@agentmark-ai/mcp-server"],
-      "env": {
-        "AGENTMARK_URL": "http://localhost:9418"
-      }
-    }
-  }
-}
-```
-
-### With Claude Desktop
-
-Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+After `agentmark login`, no key is needed: the server resolves your session from `~/.agentmark/auth.json` and refreshes it automatically. For CI or agents without a login session, supply an API key (it takes precedence over the session):
 
 ```json
 {
   "mcpServers": {
-    "agentmark-traces": {
+    "agentmark": {
       "command": "npx",
-      "args": ["@agentmark-ai/mcp-server"],
+      "args": ["-y", "@agentmark-ai/mcp-server"],
       "env": {
-        "AGENTMARK_URL": "http://localhost:9418"
-      }
-    }
-  }
-}
-```
-
-### Cloud Configuration
-
-For AM Cloud integration, add your API key:
-
-```json
-{
-  "mcpServers": {
-    "agentmark-traces": {
-      "command": "npx",
-      "args": ["@agentmark-ai/mcp-server"],
-      "env": {
-        "AGENTMARK_URL": "https://api.agentmark.co",
         "AGENTMARK_API_KEY": "your-api-key"
       }
     }
@@ -93,123 +50,20 @@ For AM Cloud integration, add your API key:
 }
 ```
 
-## Requirements
-
-For local development, this MCP server connects to the AgentMark CLI local API server:
-
-1. The AgentMark CLI installed and running (`agentmark dev`)
-2. Traces recorded in your local AgentMark database
-
 ## Configuration
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `AGENTMARK_URL` | `http://localhost:9418` | URL of the AgentMark API server |
-| `AGENTMARK_API_KEY` | - | API key for authentication (required for cloud) |
-| `AGENTMARK_TIMEOUT_MS` | `30000` | Request timeout in milliseconds |
+| `AGENTMARK_API_URL` | `https://api.agentmark.co` | Gateway URL; set to `http://localhost:9418` for the local dev server |
+| `AGENTMARK_API_KEY` | - | API key for Cloud authentication (optional after `agentmark login`; local dev is unauthenticated) |
+| `AGENTMARK_TIMEOUT_MS` | `30000` | Per-request timeout in milliseconds |
 
-## Available Tools
+## Requirements
 
-### `list_traces`
+For local development:
 
-List recent traces with metadata including IDs, names, status, latency, cost, and token counts. Supports cursor-based pagination.
-
-**Parameters:**
-- `limit` (optional): Maximum traces to return (default: 50, max: 200)
-- `sessionId` (optional): Filter by session ID
-- `datasetRunId` (optional): Filter by dataset run ID
-- `cursor` (optional): Pagination cursor from previous response
-
-**Returns:**
-```json
-{
-  "items": [...],
-  "cursor": "eyJvZmZzZXQiOjUwfQ==",
-  "hasMore": true
-}
-```
-
-### `get_trace`
-
-Get trace summary with filtered/paginated spans. Includes trace metadata (status, latency, cost, tokens) and spans matching your filters.
-
-**Parameters:**
-- `traceId` (required): The trace ID to retrieve
-- `filters` (optional): Array of filter objects with `field`, `operator`, and `value`
-- `limit` (optional): Results per page (default: 50, max: 200)
-- `cursor` (optional): Pagination cursor from previous response
-
-**Supported Filters:**
-
-| Field | Operators | Description |
-|-------|-----------|-------------|
-| `status` | `eq` | Span status ("0"=ok, "1"=warning, "2"=error) |
-| `duration` | `gt`, `gte`, `lt`, `lte` | Span duration in milliseconds |
-| `name` | `contains` | Span name substring match |
-| `data.type` | `eq` | Span type ("GENERATION", "SPAN", "EVENT") |
-| `data.model` | `contains` | Model name substring match |
-
-**Note:** Duration filters use `>=` for `gt`/`gte` and `<=` for `lt`/`lte` at the database level.
-
-**Example - Get trace with error spans:**
-```json
-{
-  "traceId": "trace-123",
-  "filters": [
-    { "field": "status", "operator": "eq", "value": "2" }
-  ]
-}
-```
-
-**Example - Find slow LLM generations in a trace:**
-```json
-{
-  "traceId": "trace-123",
-  "filters": [
-    { "field": "data.type", "operator": "eq", "value": "GENERATION" },
-    { "field": "duration", "operator": "gt", "value": 5000 }
-  ]
-}
-```
-
-**Returns:**
-```json
-{
-  "trace": {
-    "id": "trace-123",
-    "name": "my-trace",
-    "spans": [],
-    "data": {
-      "status": "0",
-      "latency": 1234,
-      "cost": 0.05,
-      "tokens": 500
-    }
-  },
-  "spans": {
-    "items": [...],
-    "cursor": "eyJvZmZzZXQiOjUwfQ==",
-    "hasMore": true
-  }
-}
-
-## Error Handling
-
-All tools return structured errors with codes:
-
-```json
-{
-  "error": "Trace not found: trace-123",
-  "code": "NOT_FOUND",
-  "details": { "traceId": "trace-123" }
-}
-```
-
-**Error Codes:**
-- `CONNECTION_FAILED` - Cannot reach data source
-- `INVALID_QUERY` - Malformed filter or unsupported field/operator combination
-- `NOT_FOUND` - Resource doesn't exist
-- `TIMEOUT` - Request exceeded time limit
+1. The AgentMark CLI installed and running (`agentmark dev`)
+2. Traces recorded in your local AgentMark database
 
 ## Programmatic Usage
 
@@ -223,6 +77,10 @@ await runServer();
 const server = await createMCPServer();
 ```
 
+## Documentation
+
+Full reference at [docs.agentmark.co/reference/mcp-servers](https://docs.agentmark.co/reference/mcp-servers).
+
 ## License
 
-MIT
+[AGPL-3.0-or-later](../../LICENSE.md)

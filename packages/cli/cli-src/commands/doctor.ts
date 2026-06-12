@@ -1,6 +1,7 @@
 import path from "path";
 import { spawnSync } from "child_process";
 import fs from "fs-extra";
+import { findProjectPython } from "../utils/platform";
 import {
   detectProjectLanguage,
   readAgentmarkConfig,
@@ -99,6 +100,7 @@ function nodeBelow(version: string, major: number, minor: number): boolean {
   return maj < major || (maj === major && min < minor);
 }
 
+
 export interface RunDoctorOptions {
   /** Defaults to `process.env`; overridable for tests. Only a couple of keys are read. */
   env?: Record<string, string | undefined>;
@@ -108,7 +110,7 @@ export interface RunDoctorOptions {
    * Injectable for tests: return the list of missing Python packages, `null`
    * when pip is unavailable, or `undefined` to run the real `pip show` check.
    */
-  checkPythonDeps?: () => { missing: string[] } | null;
+  checkPythonDeps?: (cwd: string) => { missing: string[] } | null;
 }
 
 /**
@@ -118,28 +120,18 @@ export interface RunDoctorOptions {
 export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promise<DoctorReport> {
   const env = opts.env ?? process.env;
   const nodeVersion = opts.nodeVersion ?? process.versions.node;
-  const checkPythonDeps = opts.checkPythonDeps ?? (() => {
-    const pipCandidates = [
-      "pip",
-      "pip3",
-      process.platform === "win32"
-        ? path.join(cwd, ".venv", "Scripts", "pip")
-        : path.join(cwd, ".venv", "bin", "pip"),
-    ];
-    for (const pip of pipCandidates) {
-      const res = spawnSync(pip, ["show", "agentmark-prompt-core", "agentmark-sdk"], {
-        encoding: "utf8",
-        timeout: 10_000,
-      });
-      if (!res.error) {
-        const stdout = res.stdout ?? "";
-        const missing = ["agentmark-prompt-core", "agentmark-sdk"].filter(
-          (pkg) => !stdout.includes(`Name: ${pkg}`)
-        );
-        return { missing };
-      }
-    }
-    return null;
+  const checkPythonDeps = opts.checkPythonDeps ?? ((dir: string) => {
+    const python = findProjectPython(dir);
+    const res = spawnSync(python, ["-m", "pip", "show", "agentmark-prompt-core", "agentmark-sdk"], {
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    if (res.error) return null;
+    const stdout = res.stdout ?? "";
+    const missing = ["agentmark-prompt-core", "agentmark-sdk"].filter(
+      (pkg) => !stdout.includes(`Name: ${pkg}`)
+    );
+    return { missing };
   });
   const results: CheckResult[] = [];
   const add = (r: CheckResult) => results.push(r);
@@ -495,15 +487,15 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       );
     }
   } else {
-    const pipResult = checkPythonDeps();
+    const pipResult = checkPythonDeps(cwd);
     if (pipResult === null) {
       add({
         id: "deps.python",
         group: GROUP.deps,
         title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)",
         status: "skip",
-        detail: "pip not found on PATH (tried pip, pip3, .venv/bin/pip) — cannot verify packages are installed",
-        fix: "Ensure pip or pip3 is on your PATH (or activate your venv), then re-run to confirm agentmark-prompt-core and agentmark-sdk are installed.",
+        detail: "python -m pip failed — cannot verify packages are installed",
+        fix: "Create a virtual environment (python -m venv .venv) and install: pip install agentmark-prompt-core agentmark-sdk",
       });
     } else {
       add(

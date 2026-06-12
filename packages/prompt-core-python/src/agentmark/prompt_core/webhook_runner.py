@@ -1046,11 +1046,13 @@ class WebhookRunner:
                 commit_sha=commit_sha,
             )
 
+            trace_id: str | None = None
             try:
                 # Wrap the executor call in the adapter's per-item span. The
-                # shared runner sets two conventional attributes — props
-                # (input) before execution and output after — so SDK-native
-                # span hooks don't each re-implement the same recording.
+                # shared runner records props before execution, model/classify
+                # after entering the span, and output/usage after execution —
+                # mirroring _run_text so item spans carry the same attributes
+                # as single-prompt spans.
                 async with item_span_hook(span_params) as item_span:
                     if input_data is not None:
                         with suppress(TypeError, ValueError):
@@ -1058,6 +1060,9 @@ class WebhookRunner:
                                 "agentmark.props",
                                 json.dumps(input_data, default=str),
                             )
+
+                    _set_span_model(item_span, prompt_ast)  # type: ignore[arg-type]
+                    _classify_span_as_llm(item_span)  # type: ignore[arg-type]
 
                     events = (
                         self._executor.execute_text(formatted, ctx)
@@ -1067,28 +1072,27 @@ class WebhookRunner:
                     text, obj_value, _tc, _tr, usage, _fr, err = (
                         await _drain_events(events)
                     )
+
                     if err is not None:
-                        # Capture error on the span too so tracing shows the
-                        # failure point, not just a missing success.
-                        with suppress(TypeError, ValueError):
-                            item_span.set_attribute("agentmark.error", str(err))
+                        # Raise so the span hook's __aexit__ receives the
+                        # exception and marks the span ERROR — setting an
+                        # attribute then returning cleanly leaves the span
+                        # status as OK.
+                        raise RuntimeError(err)
+
+                    _set_span_usage(item_span, usage)  # type: ignore[arg-type]
 
                     output: Any = (
                         text if kind == "text" else _serialize_value(obj_value)
                     )
 
-                    if err is None:
-                        with suppress(TypeError, ValueError):
-                            item_span.set_attribute(
-                                "agentmark.output",
-                                json.dumps(output, default=str),
-                            )
+                    with suppress(TypeError, ValueError):
+                        item_span.set_attribute(
+                            "agentmark.output",
+                            json.dumps(output, default=str),
+                        )
 
                     trace_id = getattr(item_span, "trace_id", None)
-
-                if err is not None:
-                    # Executor-level failure → unified error chunk.
-                    return json.dumps({"type": "error", "error": err})
 
                 eval_results: list[dict[str, Any]] = []
                 score_names = _get(item, "evals") or []
@@ -1122,11 +1126,18 @@ class WebhookRunner:
                 # Row assembly is the pure _dataset_row_to_wire (module
                 # level), pinned by the shared dataset-rows.json golden
                 # vectors that the TS runner's mirror also runs.
+                tokens: int | None = None
+                if usage is not None:
+                    tokens = (
+                        usage.total_tokens
+                        if usage.total_tokens is not None
+                        else usage.input_tokens + usage.output_tokens
+                    )
                 payload = _dataset_row_to_wire(
                     input_data=input_data,
                     expected_output=expected,
                     actual_output=output,
-                    tokens=usage.total_tokens if usage is not None else None,
+                    tokens=tokens,
                     evals=eval_results,
                     trace_id=trace_id,
                     run_id=experiment_run_id,

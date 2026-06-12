@@ -1,10 +1,9 @@
 import { spawn, ChildProcess } from "child_process";
 import path from "path";
-import fs from "fs";
 import net from "net";
 import { createApiServer } from "../api-server";
 import { loadLocalConfig, setAppPort } from "../config";
-import { IS_WINDOWS, killProcessTree, getPythonPaths } from "../utils/platform";
+import { IS_WINDOWS, killProcessTree, getPythonPaths, findProjectPython } from "../utils/platform";
 import { loadForwardingConfig, isKeyExpired, saveForwardingConfig } from "../forwarding/config";
 import { TraceForwarder } from "../forwarding/forwarder";
 import { ForwardingStatusReporter } from "../forwarding/status";
@@ -30,18 +29,13 @@ function getSafeCwd(): string {
  * Checks .venv and venv directories in the project root.
  */
 function findPythonExecutable(cwd: string): string {
-  const { binDir, pythonExe, pythonCmd } = getPythonPaths();
-
-  const venvDirs = ['.venv', 'venv'];
-  for (const venvDir of venvDirs) {
-    const venvPython = path.join(cwd, venvDir, binDir, pythonExe);
-    if (fs.existsSync(venvPython)) {
-      console.log(`Using virtual environment: ${venvDir}/`);
-      return venvPython;
-    }
+  const python = findProjectPython(cwd);
+  const { pythonCmd } = getPythonPaths();
+  if (python !== pythonCmd) {
+    const venvDir = python.includes('.venv') ? '.venv' : 'venv';
+    console.log(`Using virtual environment: ${venvDir}/`);
   }
-
-  return pythonCmd;
+  return python;
 }
 
 /**
@@ -344,10 +338,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log('─'.repeat(70));
     console.log('\n  Open a new terminal window and run:');
     console.log('\n  Run a prompt:');
-    console.log('  $ npx @agentmark-ai/cli run-prompt ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx @agentmark-ai/cli run-prompt ./agentmark/<your-prompt>.prompt.mdx');
     console.log('\n  Run an experiment:');
-    console.log('  $ npx @agentmark-ai/cli run-experiment ./agentmark/party-planner.prompt.mdx');
-    console.log('\n  (Replace with any prompt file in ./agentmark/)');
+    console.log('  $ npx @agentmark-ai/cli run-experiment ./agentmark/<your-prompt>.prompt.mdx');
 
     console.log('\n' + '═'.repeat(70));
     console.log('Press Ctrl+C in this terminal to stop the servers');

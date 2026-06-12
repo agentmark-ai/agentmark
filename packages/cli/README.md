@@ -38,12 +38,23 @@ Start the local development environment: API server, webhook server, and trace U
 
 ```bash
 agentmark dev
-agentmark dev --api-port 9418 --app-port 3000
-agentmark dev --remote    # Connect to AgentMark Cloud (login + trace forwarding)
-agentmark dev --tunnel    # Expose webhook server publicly
+agentmark dev --api-port 9418 --webhook-port 9417 --app-port 3000
+agentmark dev --no-ui         # API + webhook only (CI / headless use)
+agentmark dev --no-forward    # Disable trace forwarding to AgentMark Cloud
 ```
 
 The dev server auto-detects your project language (TypeScript or Python), finds your virtual environment, and handles port conflicts automatically.
+
+### `agentmark doctor`
+
+Diagnose your project setup: config, prompts, environment, and (optionally) a live smoke test against the dev server.
+
+```bash
+agentmark doctor
+agentmark doctor --json             # Machine-readable report
+agentmark doctor --strict           # Exit non-zero on warnings too (useful in CI)
+agentmark doctor --smoke --boot     # Also run a prompt end-to-end and verify the trace
+```
 
 ### `agentmark run-prompt <filepath>`
 
@@ -78,9 +89,18 @@ agentmark run-experiment my-prompt.prompt.mdx --format json
 
 # Fail if pass rate is below 80%
 agentmark run-experiment my-prompt.prompt.mdx --threshold 80
+
+# Sample 20% of the dataset, reproducibly
+agentmark run-experiment my-prompt.prompt.mdx --sample 20 --seed 42
+
+# Run specific rows only
+agentmark run-experiment my-prompt.prompt.mdx --rows 0,3-5,9
+
+# Compare against a prior run and fail on regressions
+agentmark run-experiment my-prompt.prompt.mdx --baseline-commit <ref>
 ```
 
-Output formats: `table` (default), `csv`, `json`, `jsonl`.
+Output formats: `table` (default), `csv`, `json`, `jsonl`, `junit`.
 
 ### `agentmark build`
 
@@ -88,15 +108,16 @@ Pre-compile `.prompt.mdx` files into JSON for production use with the file loade
 
 ```bash
 agentmark build
-agentmark build --out dist/prompts
+agentmark build --out dist/agentmark   # default output directory
 ```
 
 ### `agentmark generate-types`
 
-Generate TypeScript type definitions from your prompts for type-safe usage in code.
+Generate type definitions from your prompts for type-safe usage in code.
 
 ```bash
 agentmark generate-types
+agentmark generate-types --language python
 ```
 
 ### `agentmark generate-schema`
@@ -114,6 +135,7 @@ Interactively select and add LLM models from a provider to your `agentmark.json`
 
 ```bash
 agentmark pull-models
+agentmark pull-models --provider anthropic --models <csv>   # non-interactive
 ```
 
 ### `agentmark login` / `agentmark logout`
@@ -136,8 +158,8 @@ agentmark link --app-id <uuid>
 
 ## Documentation
 
-Full documentation at [docs.agentmark.co](https://docs.agentmark.co/agentmark/).
+Full CLI reference at [docs.agentmark.co/reference/cli-commands](https://docs.agentmark.co/reference/cli-commands).
 
 ## License
 
-[MIT](../../LICENSE.md)
+[AGPL-3.0-or-later](../../LICENSE.md)

@@ -14,6 +14,7 @@ import pytest
 from pydantic import BaseModel
 
 from agentmark.prompt_core import (
+    ErrorEvent,
     ExecCtx,
     ExecutorCapabilities,
     FinishEvent,
@@ -617,3 +618,183 @@ async def test_async_eval_function_still_works():
 
     assert rows, "no rows emitted"
     assert rows[0].get("type") != "error", f"unexpected error row: {rows[0]}"
+
+
+# ---------------------------------------------------------------------------
+# Bug #3 — experiment items missing model/classify/usage span attributes
+# Bug #2 — executor ErrorEvent exits span cleanly (status OK instead of ERROR)
+# ---------------------------------------------------------------------------
+
+
+class _ItemCapturingSpan:
+    """Records every set_attribute call and whether __aexit__ saw an exception."""
+
+    def __init__(self, trace_id: str = "item-trace-abc") -> None:
+        self.trace_id = trace_id
+        self.attrs: dict[str, object] = {}
+        self.exited_with_exc: bool = False
+
+    def set_attribute(self, key: str, value: object) -> None:
+        self.attrs[key] = value
+
+
+_last_item_span: _ItemCapturingSpan | None = None
+
+
+@asynccontextmanager
+async def _capturing_item_span(_params):
+    global _last_item_span
+    span = _ItemCapturingSpan()
+    _last_item_span = span
+    try:
+        yield span
+    except Exception:
+        span.exited_with_exc = True
+        raise
+
+
+@pytest.mark.asyncio
+async def test_experiment_item_span_gets_model_and_classify_attributes():
+    """Bug #3: item spans must carry gen_ai.request.model and gen_ai.operation.name
+    so the dashboard's Model column and Requests view work for experiment rows."""
+    formatted_stub = type("Fmt", (), {"messages": []})()
+    dataset_items = [
+        {
+            "formatted": formatted_stub,
+            "dataset": {"input": {"q": "hi"}, "expected_output": "hello"},
+            "evals": [],
+        }
+    ]
+
+    runner = WebhookRunner(
+        _ExperimentClient(_ExperimentPrompt(dataset_items), {}),
+        _PydanticStubExecutor(),
+        item_span_hook=_capturing_item_span,
+    )
+    ast = {"children": [{"type": "yaml", "value": "text_config:\n  model_name: bedrock/claude\n"}]}
+
+    response = await runner.run_experiment(ast, "model-attr-test")
+    async for _ in response["stream"]:
+        pass
+
+    span = _last_item_span
+    assert span is not None
+    assert span.attrs.get("gen_ai.request.model") == "bedrock/claude", (
+        "item span missing gen_ai.request.model — dashboard Model column shows '-'"
+    )
+    assert span.attrs.get("gen_ai.operation.name") == "chat", (
+        "item span missing gen_ai.operation.name — Requests view query returns nothing"
+    )
+
+
+@pytest.mark.asyncio
+async def test_experiment_item_span_gets_usage_attributes():
+    """Bug #3: item spans must carry gen_ai.usage.* so the Tokens column works."""
+    formatted_stub = type("Fmt", (), {"messages": []})()
+    dataset_items = [
+        {
+            "formatted": formatted_stub,
+            "dataset": {"input": {}, "expected_output": ""},
+            "evals": [],
+        }
+    ]
+
+    runner = WebhookRunner(
+        _ExperimentClient(_ExperimentPrompt(dataset_items), {}),
+        _PydanticStubExecutor(),  # yields UsageData(input=3, output=5, total=8)
+        item_span_hook=_capturing_item_span,
+    )
+    ast = {"children": [{"type": "yaml", "value": "text_config:\n  model_name: test\n"}]}
+
+    response = await runner.run_experiment(ast, "usage-attr-test")
+    async for _ in response["stream"]:
+        pass
+
+    span = _last_item_span
+    assert span is not None
+    assert span.attrs.get("gen_ai.usage.input_tokens") == 3
+    assert span.attrs.get("gen_ai.usage.output_tokens") == 5
+
+
+@pytest.mark.asyncio
+async def test_experiment_tokens_wire_field_sums_when_total_tokens_absent():
+    """Bug #3: when the executor returns UsageData without total_tokens, the wire
+    `tokens` field must be input+output — not omitted (which shows as 0 in UI)."""
+
+    class _NoTotalExecutor(_PydanticStubExecutor):
+        async def execute_text(self, formatted, ctx: ExecCtx):
+            yield TextDeltaEvent(text="hi")
+            yield FinishEvent(
+                reason="stop",
+                usage=UsageData(input_tokens=4, output_tokens=6),  # total_tokens omitted
+            )
+
+    formatted_stub = type("Fmt", (), {"messages": []})()
+    dataset_items = [
+        {
+            "formatted": formatted_stub,
+            "dataset": {"input": {}, "expected_output": ""},
+            "evals": [],
+        }
+    ]
+
+    runner = WebhookRunner(
+        _ExperimentClient(_ExperimentPrompt(dataset_items), {}),
+        _NoTotalExecutor(),
+    )
+    ast = {"children": [{"type": "yaml", "value": "text_config:\n  model_name: test\n"}]}
+
+    response = await runner.run_experiment(ast, "tokens-fallback-test")
+    rows = []
+    async for chunk in response["stream"]:
+        rows.append(json.loads(chunk))
+
+    assert rows, "no rows emitted"
+    row = rows[0]
+    assert row.get("type") != "error", f"unexpected error: {row}"
+    assert row["result"]["tokens"] == 10, (
+        "tokens should be input(4)+output(6)=10 when total_tokens is not provided"
+    )
+
+
+@pytest.mark.asyncio
+async def test_experiment_executor_error_event_exits_span_with_exception():
+    """Bug #2: an ErrorEvent from the executor must propagate as an exception
+    through the item span hook so the OTel span status is ERROR, not OK."""
+
+    class _ErrorExecutor(_PydanticStubExecutor):
+        async def execute_text(self, formatted, ctx: ExecCtx):
+            yield ErrorEvent(error="bedrock rate limit")
+
+    formatted_stub = type("Fmt", (), {"messages": []})()
+    dataset_items = [
+        {
+            "formatted": formatted_stub,
+            "dataset": {"input": {"q": "hi"}, "expected_output": ""},
+            "evals": [],
+        }
+    ]
+
+    runner = WebhookRunner(
+        _ExperimentClient(_ExperimentPrompt(dataset_items), {}),
+        _ErrorExecutor(),
+        item_span_hook=_capturing_item_span,
+    )
+    ast = {"children": [{"type": "yaml", "value": "text_config:\n  model_name: test\n"}]}
+
+    response = await runner.run_experiment(ast, "error-status-test")
+    rows = []
+    async for chunk in response["stream"]:
+        rows.append(json.loads(chunk))
+
+    assert rows, "no rows emitted"
+    assert rows[0].get("type") == "error", (
+        "executor ErrorEvent must produce an error wire chunk"
+    )
+    assert "bedrock rate limit" in rows[0].get("error", "")
+
+    span = _last_item_span
+    assert span is not None
+    assert span.exited_with_exc, (
+        "span hook __aexit__ must receive an exception so OTel marks the span ERROR"
+    )

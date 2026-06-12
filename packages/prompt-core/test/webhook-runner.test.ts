@@ -18,6 +18,8 @@ import type {
   TextStreamEvent,
   ObjectStreamEvent,
   DatasetStreamChunk,
+  SpanLike,
+  ExperimentItemSpanHook,
 } from "../src/index";
 import { WebhookRunner } from "../src/webhook-runner";
 
@@ -897,5 +899,113 @@ describe("WebhookRunner — runExperiment enables telemetry per row (regression)
       isEnabled: true,
       metadata: { user_id: "u1", trace_name: "prompt-run" },
     });
+  });
+});
+
+// ── REGRESSION: experiment item spans must carry model/classify/usage attrs ──
+//
+// Bug: process_item (both Python and TS) never called setSpanModel,
+// classifySpanAsLlm, or setSpanUsage on the per-row span. Symptoms:
+//   - Requests view showed "No Requests" (classifySpanAsLlm missing → span
+//     type != GENERATION → dashboard WHERE Type='GENERATION' returned nothing)
+//   - Model column showed "-" (setSpanModel never called)
+//   - Tokens column showed 0 (setSpanUsage never called + tokens wire field
+//     was None when totalTokens was absent)
+
+describe("WebhookRunner — runExperiment item span attributes (regression)", () => {
+  /** Capturing SpanLike that records every setAttribute call. */
+  function makeCapturingSpan(): SpanLike & { attrs: Record<string, string | number> } {
+    const attrs: Record<string, string | number> = {};
+    return {
+      traceId: "abc123",
+      setAttribute(key: string, value: string | number) { attrs[key] = value; },
+      attrs,
+    };
+  }
+
+  /** ExperimentItemSpanHook that uses the capturing span and exposes it. */
+  function makeCapturingHook(): {
+    hook: ExperimentItemSpanHook;
+    span: ReturnType<typeof makeCapturingSpan>;
+  } {
+    const span = makeCapturingSpan();
+    const hook = (async <T>(_params: unknown, fn: (s: SpanLike) => Promise<T>) => {
+      const result = await fn(span);
+      return { result, traceId: span.traceId };
+    }) as ExperimentItemSpanHook;
+    return { hook, span };
+  }
+
+  const datasetItem = (input: Record<string, unknown>): DatasetStreamChunk<unknown> => ({
+    type: "dataset",
+    dataset: { input },
+    formatted: input,
+    evals: [],
+  });
+
+  it("stamps gen_ai.request.model and classifies as llm on the item span", async () => {
+    const { hook, span } = makeCapturingHook();
+    const exec = makeExecutor({
+      async *text() {
+        yield { type: "finish", reason: "stop", usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 } };
+      },
+    });
+    const client = makeClient([datasetItem({ x: 1 })]);
+    const runner = new WebhookRunner(client, exec, { experimentItemSpanHook: hook });
+    const res = await runner.runExperiment(TEXT_AST, "run-span-attrs");
+    await drain(res.stream);
+
+    // setSpanModel: reads model_name from text_config
+    expect(span.attrs["gen_ai.request.model"]).toBe("test");
+    // classifySpanAsLlm: both attributes required for Requests view
+    expect(span.attrs["gen_ai.operation.name"]).toBe("chat");
+    expect(span.attrs["agentmark.span.kind"]).toBe("llm");
+  });
+
+  it("stamps gen_ai.usage.* on the item span from finish.usage", async () => {
+    const { hook, span } = makeCapturingHook();
+    const exec = makeExecutor({
+      async *text() {
+        yield { type: "finish", reason: "stop", usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 } };
+      },
+    });
+    const client = makeClient([datasetItem({ x: 1 })]);
+    const runner = new WebhookRunner(client, exec, { experimentItemSpanHook: hook });
+    const res = await runner.runExperiment(TEXT_AST, "run-usage-attrs");
+    await drain(res.stream);
+
+    expect(span.attrs["gen_ai.usage.input_tokens"]).toBe(10);
+    expect(span.attrs["gen_ai.usage.output_tokens"]).toBe(20);
+  });
+
+  it("uses totalTokens for the wire tokens field when present", async () => {
+    const exec = makeExecutor({
+      async *text() {
+        yield { type: "text-delta", text: "hi" };
+        yield { type: "finish", reason: "stop", usage: { inputTokens: 3, outputTokens: 7, totalTokens: 10 } };
+      },
+    });
+    const client = makeClient([datasetItem({ x: 1 })]);
+    const runner = new WebhookRunner(client, exec);
+    const res = await runner.runExperiment(TEXT_AST, "run-tokens-total");
+    const lines = await drain(res.stream);
+    const row = lines.find((l) => l.type === "dataset");
+    expect(row?.result?.tokens).toBe(10);
+  });
+
+  it("falls back to inputTokens+outputTokens for tokens when totalTokens is absent", async () => {
+    const exec = makeExecutor({
+      async *text() {
+        yield { type: "text-delta", text: "hi" };
+        // no totalTokens field
+        yield { type: "finish", reason: "stop", usage: { inputTokens: 4, outputTokens: 6 } };
+      },
+    });
+    const client = makeClient([datasetItem({ x: 1 })]);
+    const runner = new WebhookRunner(client, exec);
+    const res = await runner.runExperiment(TEXT_AST, "run-tokens-fallback");
+    const lines = await drain(res.stream);
+    const row = lines.find((l) => l.type === "dataset");
+    expect(row?.result?.tokens).toBe(10); // 4 + 6
   });
 });
