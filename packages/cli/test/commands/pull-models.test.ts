@@ -221,6 +221,53 @@ describe('pull-models (non-interactive)', () => {
   });
 });
 
+describe('pull-models --list (agent-friendly discovery)', () => {
+  function parsedOutput(): unknown {
+    const raw = consoleLog.mock.calls.map((c: unknown[]) => c[0]).join('');
+    return JSON.parse(raw);
+  }
+
+  it('prints all providers as a JSON array when --list is passed alone', async () => {
+    await pullModels({ list: true });
+
+    expect(prompts).not.toHaveBeenCalled();
+    const result = parsedOutput() as Array<{ id: string; label: string; languageModels: string[] }>;
+    expect(Array.isArray(result)).toBe(true);
+    const ids = result.map((p) => p.id);
+    expect(ids).toContain('openai');
+    expect(ids).toContain('anthropic');
+    // Each entry must carry the label and model arrays
+    const openai = result.find((p) => p.id === 'openai')!;
+    expect(openai.label).toBe('OpenAI');
+    expect(openai.languageModels).toContain('openai/gpt-4o');
+  });
+
+  it('prints a single provider object when --list + --provider are passed', async () => {
+    await pullModels({ list: true, provider: 'anthropic' });
+
+    expect(prompts).not.toHaveBeenCalled();
+    const result = parsedOutput() as { id: string; label: string; languageModels: string[] };
+    expect(result.id).toBe('anthropic');
+    expect(result.label).toBe('Anthropic');
+    expect(result.languageModels).toEqual([
+      'anthropic/claude-3-5-sonnet',
+      'anthropic/claude-3-5-haiku',
+    ]);
+  });
+
+  it('rejects an unknown provider in --list mode without touching agentmark.json', async () => {
+    // No agentmark.json needed — --list exits before reading config.
+    await expect(
+      pullModels({ list: true, provider: 'fakeprovider' }),
+    ).rejects.toThrow(/Unknown provider "fakeprovider"/);
+  });
+
+  it('does not require agentmark.json when --list is passed', async () => {
+    // workDir has no agentmark.json — must not throw.
+    await expect(pullModels({ list: true })).resolves.toBeUndefined();
+  });
+});
+
 describe('pull-models provider setup hint', () => {
   function loggedText(): string {
     return consoleLog.mock.calls.map((c: unknown[]) => c.join(' ')).join('\n');

@@ -106,7 +106,8 @@ program
   .description('Pull models from a provider')
   .option('--provider <name>', 'Provider key (skips the interactive picker)')
   .option('--models <csv>', 'Comma-separated model IDs to add (skips the interactive multi-select)')
-  .action(async (options: { provider?: string; models?: string }) => {
+  .option('--list', 'Print available providers (or models for --provider <name>) as JSON and exit — no agentmark.json changes')
+  .action(async (options: { provider?: string; models?: string; list?: boolean }) => {
     try {
       await (pullModels as any)(options);
     } catch (error) {

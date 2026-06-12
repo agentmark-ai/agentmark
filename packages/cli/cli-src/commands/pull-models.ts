@@ -17,12 +17,36 @@ export interface PullModelsOptions {
    * and is safe for CI.
    */
   models?: string;
+  /**
+   * Instead of modifying agentmark.json, print available providers (or
+   * models for `--provider <name>`) as JSON and exit. Safe for CI/agents.
+   *
+   * Without `--provider`: `[{ id, label, languageModels, imageModels, speechModels }]`
+   * With `--provider <name>`: `{ id, label, languageModels, imageModels, speechModels }`
+   */
+  list?: boolean;
 }
 
 const pullModels = async (options: PullModelsOptions = {}) => {
-  const agentmarkConfig = loadAgentmarkConfig();
-
   const providers = await getProviders();
+
+  if (options.list) {
+    if (options.provider) {
+      if (!(options.provider in providers)) {
+        throw new Error(
+          `Unknown provider "${options.provider}". Available: ${Object.keys(providers).join(", ")}`,
+        );
+      }
+      const p = providers[options.provider]!;
+      console.log(JSON.stringify({ id: options.provider, ...p }, null, 2));
+    } else {
+      const list = Object.entries(providers).map(([id, p]) => ({ id, ...p }));
+      console.log(JSON.stringify(list, null, 2));
+    }
+    return;
+  }
+
+  const agentmarkConfig = loadAgentmarkConfig();
 
   let provider: string;
   if (options.provider) {
