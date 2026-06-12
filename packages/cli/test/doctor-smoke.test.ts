@@ -95,7 +95,12 @@ function opts(over: Partial<SmokeOptions>): SmokeOptions {
 }
 
 const WELL_FORMED_TRACE = {
-  data: { tokens: { total: 20 }, input: 'Hi', output: 'Hello', spans: [{ model: 'openai/gpt-4o' }] },
+  data: {
+    tokens: { total: 20 },
+    input: 'Hi',
+    output: 'Hello',
+    spans: [{ model: 'openai/gpt-4o', type: 'GENERATION' }],
+  },
 };
 const RAN_OK = { type: 'text', result: 'Hello', usage: { promptTokens: 12, completionTokens: 8, totalTokens: 20 }, traceId: 't-123' };
 
@@ -372,6 +377,209 @@ describe('runSmoke', () => {
     );
     expect(statusOf(results, 'smoke.prompt')).toBe('fail');
     expect(detailOf(results, 'smoke.prompt')).toContain('could not parse');
+  });
+
+  // smoke.generationSpan — Requests view + cost attribution
+  it('passes smoke.generationSpan when the trace has a GENERATION-type span', async () => {
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          trace: () => ({ ok: true, body: WELL_FORMED_TRACE }),
+        }),
+      }),
+    );
+
+    expect(statusOf(results, 'smoke.generationSpan')).toBe('pass');
+    expect(detailOf(results, 'smoke.generationSpan')).toContain('openai/gpt-4o');
+  });
+
+  it('fails smoke.generationSpan when the trace has no GENERATION span — executor missed gen_ai.operation.name', async () => {
+    const traceWithoutGenerationSpan = {
+      data: {
+        tokens: { total: 20 },
+        input: 'Hi',
+        output: 'Hello',
+        // spans exist but none has type=GENERATION (e.g. old executor, no _classify_span_as_llm)
+        spans: [{ model: 'openai/gpt-4o', type: 'SPAN' }],
+      },
+    };
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          trace: () => ({ ok: true, body: traceWithoutGenerationSpan }),
+        }),
+      }),
+    );
+
+    // smoke.run and smoke.traceShape pass — tokens, input, output, model are all present.
+    // Only the GENERATION classification is missing.
+    expect(statusOf(results, 'smoke.run')).toBe('pass');
+    expect(statusOf(results, 'smoke.traceShape')).toBe('pass');
+    expect(statusOf(results, 'smoke.generationSpan')).toBe('fail');
+    expect(detailOf(results, 'smoke.generationSpan')).toContain('GENERATION');
+    expect(results.find((r) => r.id === 'smoke.generationSpan')?.fix).toContain('gen_ai.operation.name');
+  });
+
+  it('fails smoke.generationSpan when the trace has no spans at all', async () => {
+    const traceNoSpans = {
+      data: { tokens: { total: 20 }, input: 'Hi', output: 'Hello', spans: [] },
+    };
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          trace: () => ({ ok: true, body: traceNoSpans }),
+        }),
+      }),
+    );
+
+    expect(statusOf(results, 'smoke.generationSpan')).toBe('fail');
+  });
+});
+
+// ── traceShape × generationSpan conformance table ────────────────────────────
+//
+// These two checks are the only ones whose result depends entirely on the trace
+// body. The table below enumerates every structurally-distinct combination so
+// that a future edit to either check must turn a row red before it can ship.
+// Each row is independent — a single runSmoke call per vector, no shared state.
+//
+//  traceShape  fails when any of: tokens==null | input==null | output==null |
+//              no span has a non-empty `model` string
+//  generationSpan  fails when: no span has type==="GENERATION"
+//
+// The checks are orthogonal: a missing model span keeps `generationSpan` passing
+// (type can still be GENERATION on that span); a SPAN-typed span keeps
+// `traceShape` passing (model is still present).
+
+describe('traceShape × generationSpan conformance table', () => {
+  interface TraceVariant {
+    label: string;
+    data: {
+      tokens?: { total: number } | null;
+      input?: string | null;
+      output?: string | null;
+      spans?: Array<{ model?: string; type?: string }>;
+    };
+    traceShape: CheckStatus;
+    /** Substrings the traceShape detail must contain when traceShape=fail. */
+    traceShapeMissing?: string[];
+    generationSpan: CheckStatus;
+  }
+
+  const GEN_SPAN = { model: 'm', type: 'GENERATION' };
+
+  const vectors: TraceVariant[] = [
+    {
+      label: 'full trace with GENERATION span',
+      data: { tokens: { total: 20 }, input: 'Hi', output: 'Hi back', spans: [GEN_SPAN] },
+      traceShape: 'pass',
+      generationSpan: 'pass',
+    },
+    {
+      label: 'tokens null',
+      data: { tokens: null, input: 'Hi', output: 'Hi back', spans: [GEN_SPAN] },
+      traceShape: 'fail',
+      traceShapeMissing: ['token usage'],
+      generationSpan: 'pass',
+    },
+    {
+      label: 'input null',
+      data: { tokens: { total: 20 }, input: null, output: 'Hi back', spans: [GEN_SPAN] },
+      traceShape: 'fail',
+      traceShapeMissing: ['input'],
+      generationSpan: 'pass',
+    },
+    {
+      label: 'output null',
+      data: { tokens: { total: 20 }, input: 'Hi', output: null, spans: [GEN_SPAN] },
+      traceShape: 'fail',
+      traceShapeMissing: ['output'],
+      generationSpan: 'pass',
+    },
+    {
+      // model absent from the span — traceShape fails (no model on any span) but
+      // the GENERATION type is still present so generationSpan passes.
+      label: 'spans have no model field',
+      data: { tokens: { total: 20 }, input: 'Hi', output: 'Hi back', spans: [{ type: 'GENERATION' }] },
+      traceShape: 'fail',
+      traceShapeMissing: ['a model on any span'],
+      generationSpan: 'pass',
+    },
+    {
+      // span carries a model but no type field at all — traceShape passes because
+      // it only checks for a non-empty model string, not the type.
+      label: 'spans have no type field',
+      data: { tokens: { total: 20 }, input: 'Hi', output: 'Hi back', spans: [{ model: 'm' }] },
+      traceShape: 'pass',
+      generationSpan: 'fail',
+    },
+    {
+      // Bedrock/custom executor without _classify_span_as_llm: spans land with
+      // type=SPAN (the OTel default) instead of GENERATION.
+      label: 'span type=SPAN not GENERATION',
+      data: { tokens: { total: 20 }, input: 'Hi', output: 'Hi back', spans: [{ model: 'm', type: 'SPAN' }] },
+      traceShape: 'pass',
+      generationSpan: 'fail',
+    },
+    {
+      // No spans at all: both fail (no model on any span, no GENERATION span).
+      label: 'empty spans array',
+      data: { tokens: { total: 20 }, input: 'Hi', output: 'Hi back', spans: [] },
+      traceShape: 'fail',
+      traceShapeMissing: ['a model on any span'],
+      generationSpan: 'fail',
+    },
+    {
+      // Two spans, only the second is GENERATION — both checks should pass since
+      // model is on span[0] and generationSpan is on span[1].
+      label: 'multiple spans, only one is GENERATION',
+      data: {
+        tokens: { total: 20 }, input: 'Hi', output: 'Hi back',
+        spans: [{ model: 'm', type: 'SPAN' }, { model: 'm', type: 'GENERATION' }],
+      },
+      traceShape: 'pass',
+      generationSpan: 'pass',
+    },
+    {
+      // Both checks fail independently: token usage is missing AND classification
+      // is SPAN — the Requests view shows nothing AND cost shows $0.
+      label: 'tokens null + type SPAN (both fail independently)',
+      data: { tokens: null, input: 'Hi', output: 'Hi back', spans: [{ model: 'm', type: 'SPAN' }] },
+      traceShape: 'fail',
+      traceShapeMissing: ['token usage'],
+      generationSpan: 'fail',
+    },
+    {
+      // Multiple fields absent — the missing array must list all of them.
+      label: 'tokens + output both null',
+      data: { tokens: null, input: 'Hi', output: null, spans: [GEN_SPAN] },
+      traceShape: 'fail',
+      traceShapeMissing: ['token usage', 'output'],
+      generationSpan: 'pass',
+    },
+  ];
+
+  it.each(vectors)('$label', async ({ data, traceShape, traceShapeMissing, generationSpan }) => {
+    const results = await runSmoke(
+      opts({
+        fetchImpl: mockFetch({
+          webhook: () => ({ ok: true, body: RAN_OK }),
+          trace: () => ({ ok: true, body: { data } }),
+        }),
+      }),
+    );
+
+    expect(statusOf(results, 'smoke.traceShape')).toBe(traceShape);
+    if (traceShape === 'fail' && traceShapeMissing) {
+      const detail = detailOf(results, 'smoke.traceShape') ?? '';
+      for (const field of traceShapeMissing) {
+        expect(detail).toContain(field);
+      }
+    }
+    expect(statusOf(results, 'smoke.generationSpan')).toBe(generationSpan);
   });
 });
 

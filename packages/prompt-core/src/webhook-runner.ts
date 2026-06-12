@@ -225,11 +225,37 @@ function setSpanModel(ctx: SpanLike, frontmatter: Frontmatter): void {
 }
 
 /**
+ * Classify the prompt span as a GENERATION span so the normalizer and
+ * Requests view recognise it when the executor has no auto-instrumented
+ * model SDK (e.g. AWS Bedrock via raw boto3 / boto3 client).
+ *
+ * gen_ai.operation.name is the key discriminator — without it the normalizer
+ * does not return SpanType.GENERATION and the Requests view query
+ * (WHERE Type = 'GENERATION') returns nothing.
+ *
+ * The runner stamps the config-name alias first via setSpanModel. Executors
+ * that resolve a different model ID (e.g. a Bedrock cross-region inference
+ * profile) can override gen_ai.request.model by calling
+ * ctx.setAttribute("gen_ai.request.model", realId) inside their handler;
+ * setAttribute is last-write-wins on the same span object.
+ */
+function classifySpanAsLlm(ctx: SpanLike): void {
+  try {
+    ctx.setAttribute("gen_ai.operation.name", "chat");
+  } catch {
+    /* tracing must never break the run */
+  }
+  try {
+    ctx.setAttribute("agentmark.span.kind", "llm");
+  } catch {
+    /* tracing must never break the run */
+  }
+}
+
+/**
  * Record the executor-reported usage as `gen_ai.usage.*` on the prompt
  * span. Numbers, not strings — the normalizer only accepts numeric token
- * attributes. Gives instrumentation-less traces token counts (trace-level
- * aggregation reads span tokens). The wrapper span stays type SPAN, so
- * GENERATION-only rollups never double-count it when model spans exist.
+ * attributes.
  */
 function setSpanUsage(
   ctx: SpanLike,
@@ -476,6 +502,7 @@ export class WebhookRunner<
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
           setSpanModel(ctx, frontmatter);
+          classifySpanAsLlm(ctx);
           const ctxExec: ExecCtx = {
             telemetry,
             signal: options?.signal,
@@ -572,6 +599,7 @@ export class WebhookRunner<
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
         setSpanModel(ctx, frontmatter);
+        classifySpanAsLlm(ctx);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,
@@ -674,6 +702,7 @@ export class WebhookRunner<
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
           setSpanModel(ctx, frontmatter);
+          classifySpanAsLlm(ctx);
           const ctxExec: ExecCtx = {
             telemetry,
             signal: options?.signal,
@@ -769,6 +798,7 @@ export class WebhookRunner<
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
         setSpanModel(ctx, frontmatter);
+        classifySpanAsLlm(ctx);
         const ctxExec: ExecCtx = {
           telemetry,
           signal: options?.signal,

@@ -107,6 +107,7 @@ function assertAttributes(
     output: unknown;
     model: string;
     usage: { input: number; output: number } | null;
+    classification: { operationName: string; spanKind: string };
   }
 ) {
   // Input is always compared as parsed JSON — TS/Python spacing differs.
@@ -132,6 +133,13 @@ function assertAttributes(
     expect(attributes["gen_ai.usage.input_tokens"]).toBe(expected.usage.input);
     expect(attributes["gen_ai.usage.output_tokens"]).toBe(expected.usage.output);
   }
+
+  // GENERATION classification — required for the Requests view and cost attribution.
+  // The runner stamps these before the executor runs, so they're present on every path
+  // including error and throw cases. Executors may override gen_ai.request.model via
+  // last-write-wins but must NOT override these two (they're runner-owned).
+  expect(attributes["gen_ai.operation.name"]).toBe(expected.classification.operationName);
+  expect(attributes["agentmark.span.kind"]).toBe(expected.classification.spanKind);
 }
 
 describe("span-io conformance vectors", () => {

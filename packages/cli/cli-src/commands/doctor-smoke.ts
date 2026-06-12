@@ -76,7 +76,7 @@ interface TraceDetailShape {
   tokens?: unknown;
   input?: unknown;
   output?: unknown;
-  spans?: Array<{ model?: string | null }>;
+  spans?: Array<{ model?: string | null; type?: string }>;
 }
 
 /** True when the runner returned actual content (string, object, or media array). */
@@ -327,6 +327,35 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
           status: "fail",
           detail: `the trace is missing: ${missing.join(", ")}`,
           fix: "The trace round-tripped but is incomplete. Trace-level input/output come from the prompt (root) span — written by the WebhookRunner — falling back to GENERATION spans from your model SDK's OTEL instrumentation; missing I/O usually means that instrumentation isn't enabled (it is NOT something your executor sets). Missing tokens means the executor's finish event carries no usage. See https://docs.agentmark.co/observe/tracing-setup.",
+        },
+  );
+
+  // 7. At least one GENERATION span exists — required for the Requests view and
+  //    cost attribution. The normalizer only classifies a span as GENERATION when
+  //    gen_ai.operation.name is "chat" / "text_completion" / "embeddings". Without
+  //    it the Requests view query (WHERE Type = 'GENERATION') returns nothing even
+  //    though the trace landed and usage is non-zero.
+  const generationSpan = (trace.spans ?? []).find((s) => s.type === "GENERATION");
+  results.push(
+    generationSpan
+      ? {
+          id: "smoke.generationSpan",
+          group: SMOKE_GROUP,
+          title: "GENERATION span present (Requests view + cost attribution)",
+          status: "pass",
+          detail: `GENERATION span found${generationSpan.model ? `: model ${generationSpan.model}` : ""}`,
+        }
+      : {
+          id: "smoke.generationSpan",
+          group: SMOKE_GROUP,
+          title: "GENERATION span present (Requests view + cost attribution)",
+          status: "fail",
+          detail:
+            "no GENERATION span found — the Requests view will show nothing and cost will show $0",
+          fix:
+            "The runner now stamps gen_ai.operation.name automatically. If you are on an older version, upgrade @agentmark-ai/prompt-core (Python) or @agentmark-ai/sdk. " +
+            "If you use a custom executor, ensure you call span.set_attribute('gen_ai.operation.name', 'chat') and span.set_attribute('agentmark.span.kind', 'llm') " +
+            "on ctx.extra['span'] (Python) or ctx.extra.span (TS) after your model call.",
         },
   );
 

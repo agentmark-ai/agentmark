@@ -218,20 +218,61 @@ describe('agentmark doctor — runDoctor', () => {
     expect(statusOf(report, 'deps.provider')).toBeUndefined();
   });
 
-  it('treats a Python project correctly (skips JS deps, checks agentmark_client.py)', async () => {
-    const report = await run(
+  it('treats a Python project correctly (checks agentmark_client.py, runs pip check)', async () => {
+    const report = await runDoctor(
       makeProject({
         'pyproject.toml': '[project]\nname = "app"\n',
         'agentmark_client.py': '# client',
         'agentmark.json': JSON.stringify({ agentmarkPath: '.', builtInModels: ['openai/gpt-4o'] }),
         'agentmark/greeting.prompt.mdx': '---\nname: greeting\ntext_config:\n  model_name: openai/gpt-4o\n---\n\nHi',
       }),
+      { env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' }, nodeVersion: '22.0.0', checkPythonDeps: () => ({ missing: [] }) },
     );
 
     expect(statusOf(report, 'client.file')).toBe('pass');
-    expect(statusOf(report, 'deps.python')).toBe('skip');
+    expect(statusOf(report, 'deps.python')).toBe('pass');
     // The JS dependency checks must not run for a Python project.
     expect(statusOf(report, 'deps.sdk')).toBeUndefined();
+  });
+
+  it('deps.python fails when agentmark-prompt-core or agentmark-sdk is absent', async () => {
+    const report = await runDoctor(
+      makeProject({
+        'pyproject.toml': '[project]\nname = "app"\n',
+        'agentmark_client.py': '# client',
+        'agentmark.json': JSON.stringify({ agentmarkPath: '.', builtInModels: ['openai/gpt-4o'] }),
+        'agentmark/greeting.prompt.mdx': '---\nname: greeting\ntext_config:\n  model_name: openai/gpt-4o\n---\n\nHi',
+      }),
+      {
+        env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+        nodeVersion: '22.0.0',
+        checkPythonDeps: () => ({ missing: ['agentmark-prompt-core'] }),
+      },
+    );
+
+    expect(statusOf(report, 'deps.python')).toBe('fail');
+    expect(detailOf(report, 'deps.python')).toContain('agentmark-prompt-core');
+    expect(fixOf(report, 'deps.python')).toBe('pip install agentmark-prompt-core');
+    expect(report.ok).toBe(false);
+  });
+
+  it('deps.python skips when pip is not on PATH', async () => {
+    const report = await runDoctor(
+      makeProject({
+        'pyproject.toml': '[project]\nname = "app"\n',
+        'agentmark_client.py': '# client',
+        'agentmark.json': JSON.stringify({ agentmarkPath: '.', builtInModels: ['openai/gpt-4o'] }),
+        'agentmark/greeting.prompt.mdx': '---\nname: greeting\ntext_config:\n  model_name: openai/gpt-4o\n---\n\nHi',
+      }),
+      {
+        env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+        nodeVersion: '22.0.0',
+        checkPythonDeps: () => null, // pip not found
+      },
+    );
+
+    expect(statusOf(report, 'deps.python')).toBe('skip');
+    expect(report.ok).toBe(true); // skip is not a failure
   });
 
   it('warns when .env exists but is not gitignored', async () => {
