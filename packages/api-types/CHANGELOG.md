@@ -1,3 +1,15 @@
+## 0.8.0 (2026-06-12)
+
+### 🚀 Features
+
+- feat(analytics): optional `env` scope on `AggregateRequestsParams` ([#764](https://github.com/agentmark-ai/agentmark/pull/764))
+
+  `AggregateRequestsParams` gains an optional `env?: EnvironmentQueryScope`
+  field so dimension-grouped request aggregations can be scoped to a single
+  environment (with the default-env legacy-row rule) instead of silently
+  summing every environment's traffic. Omitting the field preserves the
+  previous unscoped behaviour, so existing callers are unaffected.
+
 ## 0.7.0 (2026-06-11)
 
 ### 🚀 Features

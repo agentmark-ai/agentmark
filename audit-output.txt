@@ -6,15 +6,36 @@
 │  ├─ Vulnerable Versions: [38;5;37m<=3.0.97[39m
 │  │ 
 │  ├─ Tree Versions
-│  │  ├─ [38;5;111m2.2.8[39m
-│  │  ├─ [38;5;111m3.0.17[39m
-│  │  └─ [38;5;111m3.0.21[39m
+│  │  └─ [38;5;111m2.2.8[39m
 │  │ 
 │  └─ Dependents
-│     ├─ [38;5;166m@ai-sdk/[39m[38;5;173mmcp[39m[38;5;111m@[39m[38;5;111mnpm:0.0.8 [61ce7][39m
-│     ├─ [38;5;166m@ai-sdk/[39m[38;5;173mopenai[39m[38;5;111m@[39m[38;5;111mnpm:1.3.24 [18865][39m
-│     ├─ [38;5;166m@ai-sdk/[39m[38;5;173mopenai[39m[38;5;111m@[39m[38;5;111mnpm:2.0.91 [61ce7][39m
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
+│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [cea8d][39m
+│
+├─ [38;5;166m@grpc/[39m[38;5;173mgrpc-js[39m
+│  ├─ ID: [38;5;220m1120582[39m
+│  ├─ Issue: @grpc/grpc-js: A malformed request can cause a server crash
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-5375-pq7m-f5r2[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=1.14.0 <1.14.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.14.3[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@opentelemetry/[39m[38;5;173mexporter-trace-otlp-grpc[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [6b62f][39m
+│
+├─ [38;5;166m@grpc/[39m[38;5;173mgrpc-js[39m
+│  ├─ ID: [38;5;220m1120588[39m
+│  ├─ Issue: @grpc/grpc-js: An incoming malformed compressed message can cause a client or server crash
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-99f4-grh7-6pcq[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=1.14.0 <1.14.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m1.14.3[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@opentelemetry/[39m[38;5;173mexporter-trace-otlp-grpc[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [6b62f][39m
 │
 ├─ [38;5;166m@ungap/[39m[38;5;173mstructured-clone[39m
 │  ├─ ID: [38;5;111m@ungap/structured-clone (deprecation)[39m
@@ -39,8 +60,7 @@
 │  │  └─ [38;5;111m4.3.19[39m
 │  │ 
 │  └─ Dependents
-│     ├─ [38;5;166m@agentmark-ai/[39m[38;5;173mai-sdk-v4-adapter[39m[38;5;111m@[39m[38;5;111mworkspace:packages/ai-sdk-v4-adapter[39m
-│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [e812c][39m
+│     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [cea8d][39m
 │
 ├─ [38;5;173majv[39m
 │  ├─ ID: [38;5;220m1113714[39m
