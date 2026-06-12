@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-12T01:18:37.754Z",
+  "generatedAt": "2026-06-12T04:13:37.446Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-12T01:18:37.754Z",
-      "modelCount": 1208
+      "fetchedAt": "2026-06-12T04:13:37.446Z",
+      "modelCount": 1422
     },
     "openrouter": {
-      "fetchedAt": "2026-06-12T01:18:37.754Z",
+      "fetchedAt": "2026-06-12T04:13:37.446Z",
       "modelCount": 125
     }
   },
@@ -4810,7 +4810,7 @@
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 6e-7,
-        "outputCostPerToken": 0.00000303
+        "outputCostPerToken": 0.000003
       },
       "context": {
         "maxInputTokens": 262144,
@@ -4818,8 +4818,7 @@
       },
       "capabilities": {
         "vision": true,
-        "functionCalling": true,
-        "reasoning": true
+        "functionCalling": true
       }
     },
     "ap-south-1/meta.llama3-70b-instruct-v1:0": {
@@ -7654,23 +7653,20 @@
       }
     },
     "deepseek-r1": {
-      "provider": "deepseek",
-      "displayName": "DeepSeek: R1",
+      "provider": "ollama",
+      "displayName": "DeepSeek R1",
       "mode": "chat",
-      "source": "litellm",
+      "source": "override",
       "pricing": {
-        "inputCostPerToken": 5.5e-7,
-        "outputCostPerToken": 0.00000219
+        "inputCostPerToken": 0.00000135,
+        "outputCostPerToken": 0.0000054
       },
       "context": {
-        "maxInputTokens": 65536,
-        "maxOutputTokens": 8192
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
-        "functionCalling": true,
-        "promptCaching": true,
-        "reasoning": true,
-        "structuredOutput": true
+        "reasoning": true
       },
       "supportedParameters": [
         "frequency_penalty",
@@ -7682,33 +7678,27 @@
       ]
     },
     "deepseek-v3": {
-      "provider": "deepseek",
+      "provider": "azure",
       "displayName": "Deepseek V3",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 2.7e-7,
-        "outputCostPerToken": 0.0000011,
-        "cacheCreationCostPerToken": 0,
-        "cacheReadCostPerToken": 7e-8
+        "inputCostPerToken": 0.00000114,
+        "outputCostPerToken": 0.00000456
       },
       "context": {
-        "maxInputTokens": 65536,
+        "maxInputTokens": 128000,
         "maxOutputTokens": 8192
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "promptCaching": true
       }
     },
     "deepseek-v3.2": {
-      "provider": "deepseek",
+      "provider": "azure",
       "displayName": "DeepSeek: DeepSeek V3.2",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 2.8e-7,
-        "outputCostPerToken": 4e-7
+        "inputCostPerToken": 5.8e-7,
+        "outputCostPerToken": 0.00000168
       },
       "context": {
         "maxInputTokens": 163840,
@@ -11427,21 +11417,20 @@
       }
     },
     "mistral-large-2407": {
-      "provider": "mistral",
+      "provider": "azure",
       "displayName": "Mistral Large 2407",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 0.000003,
-        "outputCostPerToken": 0.000009
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006
       },
       "context": {
         "maxInputTokens": 128000,
-        "maxOutputTokens": 128000
+        "maxOutputTokens": 4096
       },
       "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
+        "functionCalling": true
       }
     },
     "mistral-large-2411": {
@@ -11463,7 +11452,7 @@
       }
     },
     "mistral-large-3": {
-      "provider": "mistral",
+      "provider": "azure",
       "displayName": "Mistral Large 3",
       "mode": "chat",
       "source": "litellm",
@@ -11472,13 +11461,12 @@
         "outputCostPerToken": 0.0000015
       },
       "context": {
-        "maxInputTokens": 262144,
-        "maxOutputTokens": 262144
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 8191
       },
       "capabilities": {
         "vision": true,
-        "functionCalling": true,
-        "structuredOutput": true
+        "functionCalling": true
       }
     },
     "mistral-large-2512": {
@@ -11535,7 +11523,7 @@
       }
     },
     "mistral-medium-2505": {
-      "provider": "mistral",
+      "provider": "azure",
       "displayName": "Mistral Medium 2505",
       "mode": "chat",
       "source": "litellm",
@@ -11548,8 +11536,7 @@
         "maxOutputTokens": 8191
       },
       "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
+        "functionCalling": true
       }
     },
     "mistral-medium-latest": {
@@ -11591,21 +11578,20 @@
       }
     },
     "mistral-small": {
-      "provider": "mistral",
+      "provider": "ollama",
       "displayName": "Mistral Small",
       "mode": "chat",
-      "source": "litellm",
+      "source": "override",
       "pricing": {
-        "inputCostPerToken": 1e-7,
-        "outputCostPerToken": 3e-7
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.000003
       },
       "context": {
-        "maxInputTokens": 32000,
-        "maxOutputTokens": 8191
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
+        "functionCalling": true
       }
     },
     "mistral-small-latest": {
@@ -15663,14 +15649,13 @@
       }
     },
     "grok-3": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 3",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 0.000003,
-        "outputCostPerToken": 0.000015,
-        "cacheReadCostPerToken": 7.5e-7
+        "outputCostPerToken": 0.000015
       },
       "context": {
         "maxInputTokens": 131072,
@@ -15679,10 +15664,9 @@
       "capabilities": {
         "functionCalling": true,
         "structuredOutput": false,
-        "promptCaching": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-05-15"
+      "deprecationDate": null
     },
     "grok-3-beta": {
       "provider": "xai",
@@ -15769,14 +15753,13 @@
       }
     },
     "grok-3-mini": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 3 Mini",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 3e-7,
-        "outputCostPerToken": 5e-7,
-        "cacheReadCostPerToken": 7.5e-8
+        "inputCostPerToken": 2.5e-7,
+        "outputCostPerToken": 0.00000127
       },
       "context": {
         "maxInputTokens": 131072,
@@ -15785,11 +15768,10 @@
       "capabilities": {
         "functionCalling": true,
         "structuredOutput": false,
-        "promptCaching": true,
         "reasoning": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-02-28"
+      "deprecationDate": null
     },
     "grok-3-mini-beta": {
       "provider": "xai",
@@ -15903,7 +15885,7 @@
       }
     },
     "grok-4": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 4",
       "mode": "chat",
       "source": "litellm",
@@ -15912,56 +15894,54 @@
         "outputCostPerToken": 0.000015
       },
       "context": {
-        "maxInputTokens": 256000,
-        "maxOutputTokens": 256000
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
-        "promptCaching": true,
+        "structuredOutput": true,
         "webSearch": true
       }
     },
     "grok-4-fast-reasoning": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 4 Fast Reasoning",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 2e-7,
-        "outputCostPerToken": 5e-7,
-        "cacheReadCostPerToken": 5e-8
+        "outputCostPerToken": 5e-7
       },
       "context": {
-        "maxInputTokens": 2000000,
-        "maxOutputTokens": 2000000
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
-        "promptCaching": true,
+        "structuredOutput": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-05-15"
+      "deprecationDate": null
     },
     "grok-4-fast-non-reasoning": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 4 Fast Non Reasoning",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 2e-7,
-        "outputCostPerToken": 5e-7,
-        "cacheReadCostPerToken": 5e-8
+        "outputCostPerToken": 5e-7
       },
       "context": {
-        "maxInputTokens": 2000000,
-        "maxOutputTokens": 2000000
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
-        "promptCaching": true,
+        "structuredOutput": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-05-15"
+      "deprecationDate": null
     },
     "grok-4-0709": {
       "provider": "xai",
@@ -16027,29 +16007,25 @@
       }
     },
     "grok-4-1-fast-reasoning": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 4 1 Fast Reasoning",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 2e-7,
-        "outputCostPerToken": 5e-7,
-        "cacheReadCostPerToken": 5e-8
+        "outputCostPerToken": 5e-7
       },
       "context": {
-        "maxInputTokens": 2000000,
-        "maxOutputTokens": 2000000
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
-        "vision": true,
         "functionCalling": true,
         "structuredOutput": true,
-        "promptCaching": true,
         "reasoning": true,
-        "audioInput": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-05-15"
+      "deprecationDate": null
     },
     "grok-4-1-fast-reasoning-latest": {
       "provider": "xai",
@@ -16077,28 +16053,24 @@
       "deprecationDate": "2026-05-15"
     },
     "grok-4-1-fast-non-reasoning": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok 4 1 Fast Non Reasoning",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 2e-7,
-        "outputCostPerToken": 5e-7,
-        "cacheReadCostPerToken": 5e-8
+        "outputCostPerToken": 5e-7
       },
       "context": {
-        "maxInputTokens": 2000000,
-        "maxOutputTokens": 2000000
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
-        "vision": true,
         "functionCalling": true,
         "structuredOutput": true,
-        "promptCaching": true,
-        "audioInput": true,
         "webSearch": true
       },
-      "deprecationDate": "2026-05-15"
+      "deprecationDate": null
     },
     "grok-4-1-fast-non-reasoning-latest": {
       "provider": "xai",
@@ -16296,25 +16268,24 @@
       }
     },
     "grok-code-fast-1": {
-      "provider": "xai",
+      "provider": "azure",
       "displayName": "Grok Code Fast 1",
       "mode": "chat",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 2e-7,
-        "outputCostPerToken": 0.0000015,
-        "cacheReadCostPerToken": 2e-8
+        "outputCostPerToken": 0.0000015
       },
       "context": {
-        "maxInputTokens": 256000,
-        "maxOutputTokens": 256000
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
       },
       "capabilities": {
         "functionCalling": true,
-        "promptCaching": true,
-        "reasoning": true
+        "structuredOutput": true,
+        "webSearch": true
       },
-      "deprecationDate": "2026-05-15"
+      "deprecationDate": null
     },
     "grok-code-fast-1-0825": {
       "provider": "xai",
@@ -20094,49 +20065,57 @@
       "provider": "google",
       "displayName": "Google: Lyria 3 Pro Preview",
       "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "max_tokens",
-        "temperature",
-        "top_p"
-      ],
+      "source": "litellm",
       "pricing": {
         "inputCostPerToken": 0,
         "outputCostPerToken": 0
       },
       "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 65536
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 8192
       },
       "capabilities": {
-        "vision": true,
+        "vision": false,
+        "functionCalling": false,
+        "structuredOutput": false,
+        "promptCaching": false,
+        "audioInput": false,
         "audioOutput": true,
-        "structuredOutput": true
-      }
+        "webSearch": false
+      },
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ]
     },
     "lyria-3-clip-preview": {
       "provider": "google",
       "displayName": "Google: Lyria 3 Clip Preview",
       "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "max_tokens",
-        "temperature",
-        "top_p"
-      ],
+      "source": "litellm",
       "pricing": {
         "inputCostPerToken": 0,
         "outputCostPerToken": 0
       },
       "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 65536
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 8192
       },
       "capabilities": {
-        "vision": true,
+        "vision": false,
+        "functionCalling": false,
+        "structuredOutput": false,
+        "promptCaching": false,
+        "audioInput": false,
         "audioOutput": true,
-        "structuredOutput": true
-      }
+        "webSearch": false
+      },
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ]
     },
     "claude-sonnet-4.6": {
       "provider": "anthropic",
@@ -20189,30 +20168,24 @@
       }
     },
     "deepseek-v3.2-speciale": {
-      "provider": "deepseek",
-      "displayName": "DeepSeek: DeepSeek V3.2 Speciale",
+      "provider": "azure",
+      "displayName": "Deepseek V3.2 Speciale",
       "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
+      "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 2.87e-7,
-        "outputCostPerToken": 4.31e-7
+        "inputCostPerToken": 5.8e-7,
+        "outputCostPerToken": 0.00000168
       },
       "context": {
         "maxInputTokens": 163840,
         "maxOutputTokens": 163840
       },
       "capabilities": {
-        "structuredOutput": true
+        "functionCalling": true,
+        "promptCaching": true,
+        "reasoning": true
       },
-      "deprecationDate": "2026-05-30"
+      "deprecationDate": null
     },
     "claude-opus-4.5": {
       "provider": "anthropic",
@@ -20486,10 +20459,23 @@
       }
     },
     "gpt-oss-120b": {
-      "provider": "openai",
+      "provider": "azure",
       "displayName": "OpenAI: gpt-oss-120b",
       "mode": "chat",
-      "source": "openrouter",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true
+      },
       "supportedParameters": [
         "frequency_penalty",
         "max_tokens",
@@ -20497,18 +20483,7 @@
         "temperature",
         "top_k",
         "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 3.9e-8,
-        "outputCostPerToken": 1.8e-7
-      },
-      "context": {
-        "maxInputTokens": 131072
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
+      ]
     },
     "gpt-oss-20b:free": {
       "provider": "openai",
@@ -20855,7 +20830,21 @@
       "provider": "google",
       "displayName": "Google: Gemma 3 27B",
       "mode": "chat",
-      "source": "openrouter",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "audioOutput": false
+      },
       "supportedParameters": [
         "frequency_penalty",
         "max_tokens",
@@ -20863,20 +20852,7 @@
         "temperature",
         "top_k",
         "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 8e-8,
-        "outputCostPerToken": 1.6e-7
-      },
-      "context": {
-        "maxInputTokens": 131072,
-        "maxOutputTokens": 16384
-      },
-      "capabilities": {
-        "vision": true,
-        "functionCalling": true,
-        "structuredOutput": true
-      }
+      ]
     },
     "o3-mini-high": {
       "provider": "openai",
@@ -22029,21 +22005,14 @@
     "gemini-1.5-flash": {
       "provider": "google",
       "displayName": "Gemini 1.5 Flash",
-      "mode": "chat",
+      "mode": "embedding",
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 7.5e-8,
-        "outputCostPerToken": 3e-7
+        "outputCostPerToken": 0
       },
       "context": {
-        "maxInputTokens": 1000000,
-        "maxOutputTokens": 8192
-      },
-      "capabilities": {
-        "vision": true,
-        "functionCalling": true,
-        "parallelFunctionCalling": true,
-        "structuredOutput": true
+        "maxInputTokens": 8192
       },
       "deprecationDate": "2025-09-29"
     },
@@ -23788,6 +23757,3991 @@
         "reasoning": true,
         "pdfInput": true
       }
+    },
+    "us.writer.palmyra-x4-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.writer.palmyra X4 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.00001
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "pdfInput": true
+      }
+    },
+    "us.writer.palmyra-x5-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.writer.palmyra X5 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.000006
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "pdfInput": true
+      }
+    },
+    "writer.palmyra-x4-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Writer.palmyra X4 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.00001
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "pdfInput": true
+      }
+    },
+    "writer.palmyra-x5-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Writer.palmyra X5 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.000006
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "pdfInput": true
+      }
+    },
+    "amazon.nova-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Amazon.nova Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-8,
+        "outputCostPerToken": 2.4e-7
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "amazon.nova-2-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Amazon.nova 2 Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025,
+        "cacheReadCostPerToken": 7.5e-8
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "amazon.nova-2-pro-preview-20251202-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Amazon.nova 2 Pro Preview 20251202 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000021875,
+        "outputCostPerToken": 0.0000175,
+        "cacheReadCostPerToken": 5.46875e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "apac.amazon.nova-2-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.amazon.nova 2 Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.3e-7,
+        "outputCostPerToken": 0.00000275,
+        "cacheReadCostPerToken": 8.25e-8
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "apac.amazon.nova-2-pro-preview-20251202-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.amazon.nova 2 Pro Preview 20251202 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000021875,
+        "outputCostPerToken": 0.0000175,
+        "cacheReadCostPerToken": 5.46875e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.amazon.nova-2-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.amazon.nova 2 Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.3e-7,
+        "outputCostPerToken": 0.00000275,
+        "cacheReadCostPerToken": 8.25e-8
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.amazon.nova-2-pro-preview-20251202-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.amazon.nova 2 Pro Preview 20251202 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000021875,
+        "outputCostPerToken": 0.0000175,
+        "cacheReadCostPerToken": 5.46875e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.amazon.nova-2-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova 2 Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.3e-7,
+        "outputCostPerToken": 0.00000275,
+        "cacheReadCostPerToken": 8.25e-8
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.amazon.nova-2-pro-preview-20251202-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova 2 Pro Preview 20251202 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000021875,
+        "outputCostPerToken": 0.0000175,
+        "cacheReadCostPerToken": 5.46875e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "amazon.nova-micro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Amazon.nova Micro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.5e-8,
+        "outputCostPerToken": 1.4e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true
+      }
+    },
+    "amazon.nova-pro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Amazon.nova Pro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 8e-7,
+        "outputCostPerToken": 0.0000032
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.000005,
+        "cacheCreationCostPerToken": 0.00000125,
+        "cacheReadCostPerToken": 1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-haiku-4-5@20251001": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Haiku 4 5@20251001",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.000005,
+        "cacheCreationCostPerToken": 0.00000125,
+        "cacheReadCostPerToken": 1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-3-7-sonnet-20250219-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude 3 7 Sonnet 20250219 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-opus-4-1-20250805-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Opus 4 1 20250805 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000015,
+        "outputCostPerToken": 0.000075,
+        "cacheCreationCostPerToken": 0.00001875,
+        "cacheReadCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 32000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-opus-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Opus 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000015,
+        "outputCostPerToken": 0.000075,
+        "cacheCreationCostPerToken": 0.00001875,
+        "cacheReadCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 32000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-opus-4-5-20251101-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Opus 4 5 20251101 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-opus-4-6-v1": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Opus 4 6 V1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-opus-4-6-v1": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Opus 4 6 V1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-opus-4-6-v1": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Opus 4 6 V1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-opus-4-6-v1": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Opus 4 6 V1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-opus-4-6-v1": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Opus 4 6 V1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-opus-4-7": {
+      "provider": "bedrock",
+      "displayName": "Claude Opus 4.7",
+      "mode": "chat",
+      "source": "override",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-opus-4-7": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-opus-4-7": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-opus-4-7": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-opus-4-7": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-fable-5": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Fable 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00001,
+        "outputCostPerToken": 0.00005,
+        "cacheCreationCostPerToken": 0.0000125,
+        "cacheReadCostPerToken": 0.000001
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-fable-5": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Fable 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00001,
+        "outputCostPerToken": 0.00005,
+        "cacheCreationCostPerToken": 0.0000125,
+        "cacheReadCostPerToken": 0.000001
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-fable-5": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Fable 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000011,
+        "outputCostPerToken": 0.000055,
+        "cacheCreationCostPerToken": 0.00001375,
+        "cacheReadCostPerToken": 0.0000011
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-fable-5": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Fable 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000011,
+        "outputCostPerToken": 0.000055,
+        "cacheCreationCostPerToken": 0.00001375,
+        "cacheReadCostPerToken": 0.0000011
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-opus-4-8": {
+      "provider": "bedrock",
+      "displayName": "Claude Opus 4.8",
+      "mode": "chat",
+      "source": "override",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-opus-4-8": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Opus 4 8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-opus-4-8": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Opus 4 8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-opus-4-8": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Opus 4 8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-opus-4-8": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Opus 4 8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "jp.anthropic.claude-opus-4-7": {
+      "provider": "bedrock",
+      "displayName": "Jp.anthropic.claude Opus 4 7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-sonnet-4-6": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Sonnet 4 6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-sonnet-4-6": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Sonnet 4 6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-sonnet-4-6": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Sonnet 4 6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-sonnet-4-6": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Sonnet 4 6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-sonnet-4-6": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Sonnet 4 6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "jp.anthropic.claude-sonnet-4-6": {
+      "provider": "bedrock",
+      "displayName": "Jp.anthropic.claude Sonnet 4 6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-sonnet-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Sonnet 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "apac.amazon.nova-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.amazon.nova Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6.3e-8,
+        "outputCostPerToken": 2.52e-7
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "apac.amazon.nova-micro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.amazon.nova Micro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.7e-8,
+        "outputCostPerToken": 1.48e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true
+      }
+    },
+    "apac.amazon.nova-pro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.amazon.nova Pro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 8.4e-7,
+        "outputCostPerToken": 0.00000336
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "apac.anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000011,
+        "outputCostPerToken": 0.0000055,
+        "cacheCreationCostPerToken": 0.000001375,
+        "cacheReadCostPerToken": 1.1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "apac.anthropic.claude-sonnet-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Apac.anthropic.claude Sonnet 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "model_router": {
+      "provider": "azure",
+      "displayName": "Model Router",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.4e-7,
+        "outputCostPerToken": 0
+      }
+    },
+    "Cohere-embed-v3-english": {
+      "provider": "azure",
+      "displayName": "Cohere Embed V3 English",
+      "mode": "embedding",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 512
+      }
+    },
+    "Cohere-embed-v3-multilingual": {
+      "provider": "azure",
+      "displayName": "Cohere Embed V3 Multilingual",
+      "mode": "embedding",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 512
+      }
+    },
+    "FLUX-1.1-pro": {
+      "provider": "azure",
+      "displayName": "FLUX 1.1 Pro",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "FLUX.1-Kontext-pro": {
+      "provider": "azure",
+      "displayName": "FLUX.1 Kontext Pro",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "flux.2-pro": {
+      "provider": "azure",
+      "displayName": "Flux.2 Pro",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "Llama-3.2-11B-Vision-Instruct": {
+      "provider": "azure",
+      "displayName": "Llama 3.2 11B Vision Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.7e-7,
+        "outputCostPerToken": 3.7e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 2048
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "Llama-3.2-90B-Vision-Instruct": {
+      "provider": "azure",
+      "displayName": "Llama 3.2 90B Vision Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000204,
+        "outputCostPerToken": 0.00000204
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 2048
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "Llama-3.3-70B-Instruct": {
+      "provider": "azure",
+      "displayName": "Llama 3.3 70B Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.1e-7,
+        "outputCostPerToken": 7.1e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 2048
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "Llama-4-Maverick-17B-128E-Instruct-FP8": {
+      "provider": "azure",
+      "displayName": "Llama 4 Maverick 17B 128E Instruct FP8",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000141,
+        "outputCostPerToken": 3.5e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 16384
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "Llama-4-Scout-17B-16E-Instruct": {
+      "provider": "azure",
+      "displayName": "Llama 4 Scout 17B 16E Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2e-7,
+        "outputCostPerToken": 7.8e-7
+      },
+      "context": {
+        "maxInputTokens": 10000000,
+        "maxOutputTokens": 16384
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "Meta-Llama-3-70B-Instruct": {
+      "provider": "azure",
+      "displayName": "Meta Llama 3 70B Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000011,
+        "outputCostPerToken": 3.7e-7
+      },
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 2048
+      }
+    },
+    "Meta-Llama-3.1-405B-Instruct": {
+      "provider": "azure",
+      "displayName": "Meta Llama 3.1 405B Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000533,
+        "outputCostPerToken": 0.000016
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 2048
+      }
+    },
+    "Meta-Llama-3.1-70B-Instruct": {
+      "provider": "azure",
+      "displayName": "Meta Llama 3.1 70B Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000268,
+        "outputCostPerToken": 0.00000354
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 2048
+      }
+    },
+    "Meta-Llama-3.1-8B-Instruct": {
+      "provider": "azure",
+      "displayName": "Meta Llama 3.1 8B Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 6.1e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 2048
+      }
+    },
+    "Phi-3-medium-128k-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3 Medium 128k Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.7e-7,
+        "outputCostPerToken": 6.8e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3-medium-4k-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3 Medium 4k Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.7e-7,
+        "outputCostPerToken": 6.8e-7
+      },
+      "context": {
+        "maxInputTokens": 4096,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3-mini-128k-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3 Mini 128k Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.3e-7,
+        "outputCostPerToken": 5.2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3-mini-4k-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3 Mini 4k Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.3e-7,
+        "outputCostPerToken": 5.2e-7
+      },
+      "context": {
+        "maxInputTokens": 4096,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3-small-128k-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3 Small 128k Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3-small-8k-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3 Small 8k Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3.5-MoE-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3.5 MoE Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.6e-7,
+        "outputCostPerToken": 6.4e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3.5-mini-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3.5 Mini Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.3e-7,
+        "outputCostPerToken": 5.2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": false
+      }
+    },
+    "Phi-3.5-vision-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 3.5 Vision Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.3e-7,
+        "outputCostPerToken": 5.2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": true
+      }
+    },
+    "Phi-4": {
+      "provider": "azure",
+      "displayName": "Phi 4",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.25e-7,
+        "outputCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 16384,
+        "maxOutputTokens": 16384
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true
+      }
+    },
+    "Phi-4-mini-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 4 Mini Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.5e-8,
+        "outputCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "Phi-4-multimodal-instruct": {
+      "provider": "azure",
+      "displayName": "Phi 4 Multimodal Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 8e-8,
+        "outputCostPerToken": 3.2e-7
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "audioInput": true
+      }
+    },
+    "Phi-4-mini-reasoning": {
+      "provider": "azure",
+      "displayName": "Phi 4 Mini Reasoning",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 8e-8,
+        "outputCostPerToken": 3.2e-7
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "Phi-4-reasoning": {
+      "provider": "azure",
+      "displayName": "Phi 4 Reasoning",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.25e-7,
+        "outputCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 32768,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "mistral-document-ai-2505": {
+      "provider": "azure",
+      "displayName": "Mistral Document Ai 2505",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "mistral-document-ai-2512": {
+      "provider": "azure",
+      "displayName": "Mistral Document Ai 2512",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "doc-intelligence/prebuilt-read": {
+      "provider": "azure",
+      "displayName": "Doc Intelligence/prebuilt Read",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "doc-intelligence/prebuilt-layout": {
+      "provider": "azure",
+      "displayName": "Doc Intelligence/prebuilt Layout",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "doc-intelligence/prebuilt-document": {
+      "provider": "azure",
+      "displayName": "Doc Intelligence/prebuilt Document",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "MAI-DS-R1": {
+      "provider": "azure",
+      "displayName": "MAI DS R1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000135,
+        "outputCostPerToken": 0.0000054
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "reasoning": true
+      }
+    },
+    "cohere-rerank-v3-english": {
+      "provider": "azure",
+      "displayName": "Cohere Rerank V3 English",
+      "mode": "rerank",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 4096,
+        "maxOutputTokens": 4096
+      }
+    },
+    "cohere-rerank-v3-multilingual": {
+      "provider": "azure",
+      "displayName": "Cohere Rerank V3 Multilingual",
+      "mode": "rerank",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 4096,
+        "maxOutputTokens": 4096
+      }
+    },
+    "cohere-rerank-v3.5": {
+      "provider": "azure",
+      "displayName": "Cohere Rerank V3.5",
+      "mode": "rerank",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 4096,
+        "maxOutputTokens": 4096
+      }
+    },
+    "cohere-rerank-v4.0-pro": {
+      "provider": "azure",
+      "displayName": "Cohere Rerank V4.0 Pro",
+      "mode": "rerank",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 32768,
+        "maxOutputTokens": 32768
+      }
+    },
+    "cohere-rerank-v4.0-fast": {
+      "provider": "azure",
+      "displayName": "Cohere Rerank V4.0 Fast",
+      "mode": "rerank",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 32768,
+        "maxOutputTokens": 32768
+      }
+    },
+    "deepseek-v3-0324": {
+      "provider": "azure",
+      "displayName": "Deepseek V3 0324",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000114,
+        "outputCostPerToken": 0.00000456
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "embed-v-4-0": {
+      "provider": "azure",
+      "displayName": "Embed V 4 0",
+      "mode": "embedding",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.2e-7,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 128000
+      }
+    },
+    "global/grok-3": {
+      "provider": "azure",
+      "displayName": "Global/grok 3",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": false,
+        "webSearch": true
+      }
+    },
+    "global/grok-3-mini": {
+      "provider": "azure",
+      "displayName": "Global/grok 3 Mini",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.5e-7,
+        "outputCostPerToken": 0.00000127
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": false,
+        "reasoning": true,
+        "webSearch": true
+      }
+    },
+    "jais-30b-chat": {
+      "provider": "azure",
+      "displayName": "Jais 30b Chat",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0032,
+        "outputCostPerToken": 0.00971
+      },
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 8192
+      }
+    },
+    "jamba-instruct": {
+      "provider": "azure",
+      "displayName": "Jamba Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 7e-7
+      },
+      "context": {
+        "maxInputTokens": 70000,
+        "maxOutputTokens": 4096
+      }
+    },
+    "kimi-k2.5": {
+      "provider": "azure",
+      "displayName": "Kimi K2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "kimi-k2.6": {
+      "provider": "azure",
+      "displayName": "Kimi K2.6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 9.5e-7,
+        "outputCostPerToken": 0.000004
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "ministral-3b": {
+      "provider": "azure",
+      "displayName": "Ministral 3b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-8,
+        "outputCostPerToken": 4e-8
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral-large": {
+      "provider": "azure",
+      "displayName": "Mistral Large",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000004,
+        "outputCostPerToken": 0.000012
+      },
+      "context": {
+        "maxInputTokens": 32000,
+        "maxOutputTokens": 8191
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral-nemo": {
+      "provider": "azure",
+      "displayName": "Mistral Nemo",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 1.5e-7
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral-small-2503": {
+      "provider": "azure",
+      "displayName": "Mistral Small 2503",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "deepseek.v3-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Deepseek.v3 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5.8e-7,
+        "outputCostPerToken": 0.00000168
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 81920
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6.2e-7,
+        "outputCostPerToken": 0.00000185
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "eu.amazon.nova-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.amazon.nova Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.8e-8,
+        "outputCostPerToken": 3.12e-7
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "eu.amazon.nova-micro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.amazon.nova Micro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4.6e-8,
+        "outputCostPerToken": 1.84e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true
+      }
+    },
+    "eu.amazon.nova-pro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.amazon.nova Pro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000105,
+        "outputCostPerToken": 0.0000042
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000011,
+        "outputCostPerToken": 0.0000055,
+        "cacheCreationCostPerToken": 0.000001375,
+        "cacheReadCostPerToken": 1.1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      },
+      "deprecationDate": "2026-10-15"
+    },
+    "eu.anthropic.claude-opus-4-1-20250805-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Opus 4 1 20250805 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000015,
+        "outputCostPerToken": 0.000075,
+        "cacheCreationCostPerToken": 0.00001875,
+        "cacheReadCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 32000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-opus-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Opus 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000015,
+        "outputCostPerToken": 0.000075,
+        "cacheCreationCostPerToken": 0.00001875,
+        "cacheReadCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 32000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-sonnet-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Sonnet 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.mistral.pixtral-large-2502-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.mistral.pixtral Large 2502 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "gemini-flash-latest": {
+      "provider": "google",
+      "displayName": "Gemini Flash Latest",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025,
+        "cacheReadCostPerToken": 3e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65535
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      }
+    },
+    "gemini-flash-lite-latest": {
+      "provider": "google",
+      "displayName": "Gemini Flash Lite Latest",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 4e-7,
+        "cacheReadCostPerToken": 1e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65535
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      }
+    },
+    "gemini-2.5-flash-preview-tts": {
+      "provider": "google",
+      "displayName": "Gemini 2.5 Flash",
+      "mode": "audio_speech",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025
+      }
+    },
+    "gemini-exp-1114": {
+      "provider": "google",
+      "displayName": "Gemini Exp 1114",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "gemini-exp-1206": {
+      "provider": "google",
+      "displayName": "Gemini Exp 1206",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025,
+        "cacheReadCostPerToken": 3e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65535
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioOutput": false,
+        "pdfInput": true,
+        "webSearch": true
+      }
+    },
+    "gemini-gemma-2-27b-it": {
+      "provider": "google",
+      "displayName": "Gemini Gemma 2 27b It",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.5e-7,
+        "outputCostPerToken": 0.00000105
+      },
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "gemini-gemma-2-9b-it": {
+      "provider": "google",
+      "displayName": "Gemini Gemma 2 9b It",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.5e-7,
+        "outputCostPerToken": 0.00000105
+      },
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "imagen-3.0-fast-generate-001": {
+      "provider": "google",
+      "displayName": "Imagen 3.0 Fast Generate 001",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "imagen-3.0-generate-001": {
+      "provider": "google",
+      "displayName": "Imagen 3.0 Generate 001",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "imagen-3.0-generate-002": {
+      "provider": "google",
+      "displayName": "Imagen 3.0 Generate 002",
+      "mode": "image_generation",
+      "source": "litellm",
+      "deprecationDate": "2025-11-10"
+    },
+    "imagen-4.0-fast-generate-001": {
+      "provider": "google",
+      "displayName": "Imagen 4.0 Fast Generate 001",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "imagen-4.0-generate-001": {
+      "provider": "google",
+      "displayName": "Imagen 4.0 Generate 001",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "imagen-4.0-ultra-generate-001": {
+      "provider": "google",
+      "displayName": "Imagen 4.0 Ultra Generate 001",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "learnlm-1.5-pro-experimental": {
+      "provider": "google",
+      "displayName": "Learnlm 1.5 Pro Experimental",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 32767,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "audioOutput": false
+      }
+    },
+    "veo-2.0-generate-001": {
+      "provider": "google",
+      "displayName": "Veo 2.0 Generate 001",
+      "mode": "chat",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 1024
+      }
+    },
+    "veo-3.1-fast-generate-preview": {
+      "provider": "google",
+      "displayName": "Veo 3.1 Fast Generate Preview",
+      "mode": "chat",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 1024
+      }
+    },
+    "veo-3.1-generate-preview": {
+      "provider": "google",
+      "displayName": "Veo 3.1 Generate Preview",
+      "mode": "chat",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 1024
+      }
+    },
+    "veo-3.1-lite-generate-preview": {
+      "provider": "google",
+      "displayName": "Veo 3.1 Lite Generate Preview",
+      "mode": "chat",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 1024
+      }
+    },
+    "veo-3.1-fast-generate-001": {
+      "provider": "google",
+      "displayName": "Veo 3.1 Fast Generate 001",
+      "mode": "chat",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 1024
+      }
+    },
+    "veo-3.1-generate-001": {
+      "provider": "google",
+      "displayName": "Veo 3.1 Generate 001",
+      "mode": "chat",
+      "source": "litellm",
+      "context": {
+        "maxInputTokens": 1024
+      }
+    },
+    "google.gemma-3-12b-it": {
+      "provider": "bedrock",
+      "displayName": "Google.gemma 3 12b It",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 9e-8,
+        "outputCostPerToken": 2.9e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true
+      }
+    },
+    "google.gemma-3-27b-it": {
+      "provider": "bedrock",
+      "displayName": "Google.gemma 3 27b It",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.3e-7,
+        "outputCostPerToken": 3.8e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true
+      }
+    },
+    "google.gemma-3-4b-it": {
+      "provider": "bedrock",
+      "displayName": "Google.gemma 3 4b It",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-8,
+        "outputCostPerToken": 8e-8
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true
+      }
+    },
+    "global.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-sonnet-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Sonnet 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.000005,
+        "cacheCreationCostPerToken": 0.00000125,
+        "cacheReadCostPerToken": 1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.amazon.nova-2-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Global.amazon.nova 2 Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025,
+        "cacheReadCostPerToken": 7.5e-8
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "jp.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Jp.anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "jp.anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Jp.anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000011,
+        "outputCostPerToken": 0.0000055,
+        "cacheCreationCostPerToken": 0.000001375,
+        "cacheReadCostPerToken": 1.1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "meta.llama3-3-70b-instruct-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Meta.llama3 3 70b Instruct V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 7.2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "meta.llama4-maverick-17b-instruct-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Meta.llama4 Maverick 17b Instruct V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.4e-7,
+        "outputCostPerToken": 9.7e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "meta.llama4-scout-17b-instruct-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Meta.llama4 Scout 17b Instruct V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.7e-7,
+        "outputCostPerToken": 6.6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "minimax.minimax-m2": {
+      "provider": "bedrock",
+      "displayName": "Minimax.minimax M2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      }
+    },
+    "minimax.minimax-m2.1": {
+      "provider": "bedrock",
+      "displayName": "Minimax.minimax M2.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 196000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "minimax.minimax-m2.5": {
+      "provider": "bedrock",
+      "displayName": "Minimax.minimax M2.5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral.devstral-2-123b": {
+      "provider": "bedrock",
+      "displayName": "Mistral.devstral 2 123b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-7,
+        "outputCostPerToken": 0.000002
+      },
+      "context": {
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral.magistral-small-2509": {
+      "provider": "bedrock",
+      "displayName": "Mistral.magistral Small 2509",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "mistral.ministral-3-14b-instruct": {
+      "provider": "bedrock",
+      "displayName": "Mistral.ministral 3 14b Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2e-7,
+        "outputCostPerToken": 2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral.ministral-3-3b-instruct": {
+      "provider": "bedrock",
+      "displayName": "Mistral.ministral 3 3b Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 1e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral.ministral-3-8b-instruct": {
+      "provider": "bedrock",
+      "displayName": "Mistral.ministral 3 8b Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 1.5e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral.mistral-large-3-675b-instruct": {
+      "provider": "bedrock",
+      "displayName": "Mistral.mistral Large 3 675b Instruct",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "mistral.voxtral-mini-3b-2507": {
+      "provider": "bedrock",
+      "displayName": "Mistral.voxtral Mini 3b 2507",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-8,
+        "outputCostPerToken": 4e-8
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "audioInput": true
+      }
+    },
+    "mistral.voxtral-small-24b-2507": {
+      "provider": "bedrock",
+      "displayName": "Mistral.voxtral Small 24b 2507",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "audioInput": true
+      }
+    },
+    "moonshot.kimi-k2-thinking": {
+      "provider": "bedrock",
+      "displayName": "Moonshot.kimi K2 Thinking",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.0000025
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "reasoning": true
+      }
+    },
+    "nvidia.nemotron-nano-12b-v2": {
+      "provider": "bedrock",
+      "displayName": "Nvidia.nemotron Nano 12b V2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true
+      }
+    },
+    "nvidia.nemotron-nano-9b-v2": {
+      "provider": "bedrock",
+      "displayName": "Nvidia.nemotron Nano 9b V2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-8,
+        "outputCostPerToken": 2.3e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      }
+    },
+    "nvidia.nemotron-nano-3-30b": {
+      "provider": "bedrock",
+      "displayName": "Nvidia.nemotron Nano 3 30b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-8,
+        "outputCostPerToken": 2.4e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "nvidia.nemotron-super-3-120b": {
+      "provider": "bedrock",
+      "displayName": "Nvidia.nemotron Super 3 120b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6.5e-7
+      },
+      "context": {
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 32768
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "openai.gpt-oss-120b-1:0": {
+      "provider": "bedrock",
+      "displayName": "Openai.gpt Oss 120b 1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "openai.gpt-oss-20b-1:0": {
+      "provider": "bedrock",
+      "displayName": "Openai.gpt Oss 20b 1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7e-8,
+        "outputCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "openai.gpt-oss-safeguard-120b": {
+      "provider": "bedrock",
+      "displayName": "Openai.gpt Oss Safeguard 120b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      }
+    },
+    "openai.gpt-oss-safeguard-20b": {
+      "provider": "bedrock",
+      "displayName": "Openai.gpt Oss Safeguard 20b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7e-8,
+        "outputCostPerToken": 2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      }
+    },
+    "qwen.qwen3-coder-480b-a35b-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 Coder 480b A35b V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.2e-7,
+        "outputCostPerToken": 0.0000018
+      },
+      "context": {
+        "maxInputTokens": 262000,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "qwen.qwen3-235b-a22b-2507-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 235b A22b 2507 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.2e-7,
+        "outputCostPerToken": 8.8e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "qwen.qwen3-coder-30b-a3b-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 Coder 30b A3b V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "qwen.qwen3-32b-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 32b V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 6e-7
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 16384
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "qwen.qwen3-next-80b-a3b": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 Next 80b A3b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.5e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "qwen.qwen3-vl-235b-a22b": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 Vl 235b A22b",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5.3e-7,
+        "outputCostPerToken": 0.00000266
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      }
+    },
+    "qwen.qwen3-coder-next": {
+      "provider": "bedrock",
+      "displayName": "Qwen.qwen3 Coder Next",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.0000012
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "us.amazon.nova-lite-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova Lite V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-8,
+        "outputCostPerToken": 2.4e-7
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "us.amazon.nova-micro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova Micro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3.5e-8,
+        "outputCostPerToken": 1.4e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true
+      }
+    },
+    "us.amazon.nova-premier-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova Premier V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000025,
+        "outputCostPerToken": 0.0000125
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": false,
+        "pdfInput": true
+      }
+    },
+    "us.amazon.nova-pro-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.amazon.nova Pro V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 8e-7,
+        "outputCostPerToken": 0.0000032
+      },
+      "context": {
+        "maxInputTokens": 300000,
+        "maxOutputTokens": 10000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000011,
+        "outputCostPerToken": 0.0000055,
+        "cacheCreationCostPerToken": 0.000001375,
+        "cacheReadCostPerToken": 1.1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-3-7-sonnet-20250219-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude 3 7 Sonnet 20250219 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-opus-4-1-20250805-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Opus 4 1 20250805 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000015,
+        "outputCostPerToken": 0.000075,
+        "cacheCreationCostPerToken": 0.00001875,
+        "cacheReadCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 32000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us Gov.anthropic.claude Sonnet 4 5 20250929 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000036,
+        "outputCostPerToken": 0.000018,
+        "cacheCreationCostPerToken": 0.0000045,
+        "cacheReadCostPerToken": 3.6e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Haiku 4 5 20251001 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000011,
+        "outputCostPerToken": 0.0000055,
+        "cacheCreationCostPerToken": 0.000001375,
+        "cacheReadCostPerToken": 1.1e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-opus-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Opus 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000015,
+        "outputCostPerToken": 0.000075,
+        "cacheCreationCostPerToken": 0.00001875,
+        "cacheReadCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 32000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-opus-4-5-20251101-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Opus 4 5 20251101 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000055,
+        "outputCostPerToken": 0.0000275,
+        "cacheCreationCostPerToken": 0.000006875,
+        "cacheReadCostPerToken": 5.5e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-opus-4-5-20251101-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Opus 4 5 20251101 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-opus-4-5-20251101-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Opus 4 5 20251101 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000005,
+        "outputCostPerToken": 0.000025,
+        "cacheCreationCostPerToken": 0.00000625,
+        "cacheReadCostPerToken": 5e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-sonnet-4-20250514-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Sonnet 4 20250514 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.deepseek.r1-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.deepseek.r1 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000135,
+        "outputCostPerToken": 0.0000054
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": false,
+        "reasoning": true
+      }
+    },
+    "us.deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Us.deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6.2e-7,
+        "outputCostPerToken": 0.00000185
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "eu.deepseek.v3.2": {
+      "provider": "bedrock",
+      "displayName": "Eu.deepseek.v3.2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.4e-7,
+        "outputCostPerToken": 0.00000222
+      },
+      "context": {
+        "maxInputTokens": 163840,
+        "maxOutputTokens": 163840
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "us.meta.llama3-3-70b-instruct-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.meta.llama3 3 70b Instruct V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.2e-7,
+        "outputCostPerToken": 7.2e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "us.meta.llama4-maverick-17b-instruct-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.meta.llama4 Maverick 17b Instruct V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 2.4e-7,
+        "outputCostPerToken": 9.7e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "us.meta.llama4-scout-17b-instruct-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.meta.llama4 Scout 17b Instruct V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.7e-7,
+        "outputCostPerToken": 6.6e-7
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "us.mistral.pixtral-large-2502-v1:0": {
+      "provider": "bedrock",
+      "displayName": "Us.mistral.pixtral Large 2502 V1:0",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000006
+      },
+      "context": {
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
+    },
+    "zai.glm-4.7": {
+      "provider": "bedrock",
+      "displayName": "Zai.glm 4.7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 6e-7,
+        "outputCostPerToken": 0.0000022
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "zai.glm-5": {
+      "provider": "bedrock",
+      "displayName": "Zai.glm 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000001,
+        "outputCostPerToken": 0.0000032
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "zai.glm-4.7-flash": {
+      "provider": "bedrock",
+      "displayName": "Zai.glm 4.7 Flash",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7e-8,
+        "outputCostPerToken": 4e-7
+      },
+      "context": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "gemini-2.0-flash-exp-image-generation": {
+      "provider": "google",
+      "displayName": "Gemini 2.0 Flash",
+      "mode": "image_generation",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 32768,
+        "maxOutputTokens": 32768
+      },
+      "capabilities": {
+        "vision": true
+      }
+    },
+    "gemini-2.5-flash-native-audio-latest": {
+      "provider": "google",
+      "displayName": "Gemini 2.5 Flash Native Audio Latest",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "audioInput": true,
+        "audioOutput": true
+      }
+    },
+    "gemini-2.5-flash-native-audio-preview-09-2025": {
+      "provider": "google",
+      "displayName": "Gemini 2.5 Flash Native Audio Preview 09 2025",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "audioInput": true,
+        "audioOutput": true
+      }
+    },
+    "gemini-2.5-flash-native-audio-preview-12-2025": {
+      "provider": "google",
+      "displayName": "Gemini 2.5 Flash Native Audio Preview 12 2025",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000025
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "audioInput": true,
+        "audioOutput": true
+      }
+    },
+    "gemini-3.1-flash-live-preview": {
+      "provider": "google",
+      "displayName": "Gemini 3.1 Flash Live Preview",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7.5e-7,
+        "outputCostPerToken": 0.0000045
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "audioInput": true,
+        "audioOutput": true,
+        "webSearch": true
+      }
+    },
+    "gemini-pro-latest": {
+      "provider": "google",
+      "displayName": "Gemini Pro Latest",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000125,
+        "outputCostPerToken": 0.00001,
+        "cacheReadCostPerToken": 1.25e-7
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65535
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "audioInput": true,
+        "pdfInput": true,
+        "webSearch": true
+      }
+    },
+    "llama3.1": {
+      "provider": "ollama",
+      "displayName": "Llama 3.1",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true
+      },
+      "source": "override"
+    },
+    "llama3.2": {
+      "provider": "ollama",
+      "displayName": "Llama 3.2",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      },
+      "source": "override"
+    },
+    "mistral": {
+      "provider": "ollama",
+      "displayName": "Mistral",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 32768,
+        "maxOutputTokens": 32768
+      },
+      "source": "override"
+    },
+    "mistral-small3.1": {
+      "provider": "ollama",
+      "displayName": "Mistral Small 3.1",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true
+      },
+      "source": "override"
+    },
+    "gemma": {
+      "provider": "ollama",
+      "displayName": "Gemma",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 8192
+      },
+      "source": "override"
+    },
+    "gemma2": {
+      "provider": "ollama",
+      "displayName": "Gemma 2",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 8192,
+        "maxOutputTokens": 8192
+      },
+      "source": "override"
+    },
+    "llava": {
+      "provider": "ollama",
+      "displayName": "LLaVA",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 4096,
+        "maxOutputTokens": 4096
+      },
+      "capabilities": {
+        "vision": true
+      },
+      "source": "override"
+    },
+    "codellama": {
+      "provider": "ollama",
+      "displayName": "Code Llama",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 16384,
+        "maxOutputTokens": 16384
+      },
+      "source": "override"
+    },
+    "qwen": {
+      "provider": "ollama",
+      "displayName": "Qwen",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 32768,
+        "maxOutputTokens": 32768
+      },
+      "source": "override"
+    },
+    "qwen2.5": {
+      "provider": "ollama",
+      "displayName": "Qwen 2.5",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true
+      },
+      "source": "override"
+    },
+    "tinyllama": {
+      "provider": "ollama",
+      "displayName": "TinyLlama",
+      "mode": "chat",
+      "context": {
+        "maxInputTokens": 2048,
+        "maxOutputTokens": 2048
+      },
+      "source": "override"
     }
   }
 }
