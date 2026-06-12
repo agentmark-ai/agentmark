@@ -3,7 +3,7 @@
  * Consolidates all platform-specific logic in one place.
  */
 
-import { spawn, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 
 /** True if running on Windows */
@@ -41,38 +41,19 @@ export function killProcessTree(pid: number): void {
         // Ignore errors (process may already be dead)
       }
     } else {
-      // On Unix, kill child processes first, then parent
+      // On Unix, kill children synchronously then force-kill the parent so the
+      // port is freed before the caller returns. Using spawnSync (not spawn)
+      // prevents the async callback chain from being abandoned when the doctor
+      // process exits immediately after teardown().
       try {
-        const result = spawn('pkill', ['-TERM', '-P', String(pid)], { stdio: 'pipe' });
-        result.on('close', () => {
-          try {
-            process.kill(pid, 'SIGTERM');
-          } catch {
-            // Ignore errors (process may already be dead)
-          }
-          // Force kill after delay if still alive
-          setTimeout(() => {
-            try {
-              process.kill(pid, 'SIGKILL');
-            } catch {
-              // Ignore errors (process may already be dead)
-            }
-          }, 200);
-        });
+        spawnSync('pkill', ['-KILL', '-P', String(pid)], { stdio: 'pipe' });
       } catch {
-        // If pkill fails, just kill the parent process
-        try {
-          process.kill(pid, 'SIGTERM');
-          setTimeout(() => {
-            try {
-              process.kill(pid, 'SIGKILL');
-            } catch {
-              // Ignore errors (process may already be dead)
-            }
-          }, 200);
-        } catch {
-          // Ignore errors (process may already be dead)
-        }
+        // pkill may not exist or may report "no process found" — ignore
+      }
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch {
+        // already dead
       }
     }
   } catch {
