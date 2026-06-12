@@ -39,9 +39,21 @@ program
   .option("--smoke", "Also run a live tier: execute a prompt against `agentmark dev` and verify the emitted trace")
   .option("--boot", "With --smoke, start `agentmark dev` automatically and tear it down after (one command, e.g. for CI/agents)")
   .option("--prompt <path>", "Prompt to run for --smoke (defaults to the first prompt found)")
+  .option("--props <json>", "Props as a JSON string for the --smoke prompt (requires --prompt; e.g. '{\"name\":\"Alice\"}')")
   .option("--webhook-port <number>", "Webhook port --smoke targets / --boot starts dev on (default: 9417)")
   .option("--api-port <number>", "API-server port --smoke reads traces from / --boot starts dev on (default: 9418)")
-  .action(async (options: { json?: boolean; strict?: boolean; smoke?: boolean; boot?: boolean; prompt?: string; webhookPort?: string; apiPort?: string }) => {
+  .action(async (options: { json?: boolean; strict?: boolean; smoke?: boolean; boot?: boolean; prompt?: string; props?: string; webhookPort?: string; apiPort?: string }) => {
+    let parsedProps: Record<string, unknown> | undefined;
+    if (options.props) {
+      if (!options.prompt) {
+        program.error("--props requires --prompt <path> (props only make sense for a specific prompt)");
+      }
+      try {
+        parsedProps = JSON.parse(options.props) as Record<string, unknown>;
+      } catch {
+        program.error("--props must be valid JSON (e.g. '{\"name\":\"Alice\"}')");
+      }
+    }
     try {
       await doctor({
         json: options.json,
@@ -49,6 +61,7 @@ program
         smoke: options.smoke,
         boot: options.boot,
         prompt: options.prompt,
+        props: parsedProps,
         webhookPort: options.webhookPort ? parseInt(options.webhookPort, 10) : undefined,
         apiPort: options.apiPort ? parseInt(options.apiPort, 10) : undefined,
       });

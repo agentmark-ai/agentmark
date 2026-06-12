@@ -38,6 +38,8 @@ export interface SmokeOptions {
   cwd: string;
   /** Explicit prompt to run; defaults to the first discovered `.prompt.mdx`. */
   promptPath?: string;
+  /** Props forwarded as `customProps` in the prompt-run webhook body. Only meaningful with an explicit `promptPath`. */
+  customProps?: Record<string, unknown>;
   /** Webhook the dev server serves (`run-prompt`'s target). */
   webhookUrl?: string;
   /** Local API server that stores + serves traces. */
@@ -112,6 +114,7 @@ function parseEvalNames(payload: unknown): string[] | null {
 export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
   const {
     cwd,
+    customProps,
     webhookUrl = DEFAULT_WEBHOOK_URL,
     apiUrl = DEFAULT_API_URL,
     traceTimeoutMs = 8000,
@@ -159,7 +162,7 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "prompt-run",
-        data: { ast, promptPath: promptName, options: { shouldStream: false } },
+        data: { ast, customProps, promptPath: promptName, options: { shouldStream: false } },
       }),
     });
     if (!res.ok) {
