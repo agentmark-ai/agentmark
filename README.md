@@ -27,7 +27,7 @@
 
 AgentMark is an open-source platform for building reliable AI agents. Define prompts in Markdown, run them with the SDK you already use, evaluate against datasets locally or in CI, and trace every call with OpenTelemetry.
 
-- **Prompt management.** Prompts are `.prompt.mdx` files with type-safe inputs, tool definitions, structured outputs, conditionals, loops, and reusable components. They live in your repo, get reviewed in PRs, and roll back with `git revert`.
+- **Prompt management.** Prompts are `.prompt.mdx` files with type-safe inputs, tools, structured outputs, conditionals, loops, and reusable components. They live in your repo, get reviewed in PRs, and roll back with `git revert`.
 - **Datasets.** JSONL files in your repo. Each row is a line, so git diffs show exactly which test cases changed.
 - **Evaluations.** Run prompts over datasets with built-in or custom evaluators. Use the CLI or call the SDK from your own pipelines. Block merges on regressions, the way tests do.
 - **Tracing.** Every LLM call emits an OpenTelemetry span. Inspect traces in the local dev UI, or forward them to AgentMark Cloud (or any OTEL backend) for search, dashboards, and alerts in production.
@@ -46,10 +46,10 @@ cd my-agents
 agentmark dev
 
 # Run a single prompt
-agentmark run-prompt prompts/my-prompt.prompt.mdx
+agentmark run-prompt agentmark/my-prompt.prompt.mdx
 
 # Run an experiment against a dataset
-agentmark run-experiment prompts/my-prompt.prompt.mdx
+agentmark run-experiment agentmark/my-prompt.prompt.mdx
 ```
 
 About five minutes from `npm create` to a traced prompt running locally (assuming you have an LLM API key set up).
@@ -63,14 +63,7 @@ text_config:
   model_name: anthropic/claude-sonnet-4-20250514
   max_calls: 2
   tools:
-    search_knowledgebase:
-      description: Search the knowledge base for shipping, warranty, and returns info.
-      parameters:
-        type: object
-        properties:
-          query:
-            type: string
-        required: [query]
+    - search_knowledgebase
 test_settings:
   props:
     customer_question: "How long does shipping take?"
@@ -89,6 +82,8 @@ when customers ask about shipping, warranty, or returns.
 
 <User>{props.customer_question}</User>
 ```
+
+The frontmatter declares which tools the prompt may call; the implementations live in your code, resolved where you call the model. See [Tools and agents](https://docs.agentmark.co/build/tools-and-agents).
 
 Run it:
 
@@ -115,16 +110,16 @@ And when you decide to leave, your prompts are already in your repo and your tra
 | Feature | Description |
 |---------|-------------|
 | [Multimodal generation](https://docs.agentmark.co/build/generation-types/overview) | Generate text, structured objects, images, and speech from a single prompt file. |
-| [Tools and agents](https://docs.agentmark.co/build/tools-and-agents) | Define tools inline. Build agentic loops with `max_calls`. |
+| [Tools and agents](https://docs.agentmark.co/build/tools-and-agents) | Declare tools by name in frontmatter; your code owns the implementations. Build agentic loops with `max_calls`. |
 | [Structured output](https://docs.agentmark.co/build/generation-types/object) | Type-safe JSON output via JSON Schema definitions. |
 | [Datasets and evals](https://docs.agentmark.co/evaluate/overview) | Run prompts over JSONL datasets with built-in or custom evaluators. |
 | [Tracing](https://docs.agentmark.co/observe/tracing-setup) | OpenTelemetry-native tracing for every LLM call, local and cloud. |
-| [Type safety](https://docs.agentmark.co/sdk-reference/typescript/type-safety) | Auto-generated TypeScript types from your prompts. JSON Schema validation in your IDE. |
+| [Type safety](https://docs.agentmark.co/configure/type-safety) | Auto-generated TypeScript types from your prompts. JSON Schema validation in your IDE. |
 | [Reusable components](https://docs.agentmark.co/build/components) | Import and compose prompt fragments across files. |
 | [Conditionals and loops](https://docs.agentmark.co/build/syntax) | Dynamic prompts with `<If>`, `<ForEach>`, props, and filter functions. |
 | [File attachments](https://docs.agentmark.co/build/file-attachments) | Attach images and documents for vision and document tasks. |
 | [MCP servers](https://docs.agentmark.co/build/mcp) | Call Model Context Protocol tools directly from prompts. |
-| [MCP trace server](https://www.npmjs.com/package/@agentmark-ai/mcp-server) | Debug traces from Claude Code, Cursor, or any MCP client. |
+| [MCP server](https://docs.agentmark.co/reference/mcp-servers) | Drive the full AgentMark API — traces, datasets, scores, deployments — from Claude Code, Cursor, or any MCP client. |
 
 ## Bring your own SDK
 
@@ -168,7 +163,7 @@ See the [`examples/`](./examples) directory for complete, runnable projects:
 | [`@agentmark-ai/sdk`](./packages/sdk) | SDK for tracing and cloud platform integration. |
 | [`@agentmark-ai/prompt-core`](./packages/prompt-core) | Core prompt parsing and formatting engine. |
 | [`@agentmark-ai/templatedx`](./packages/templatedx) | MDX-based template engine with JSX components, conditionals, and loops. |
-| [`@agentmark-ai/mcp-server`](./packages/mcp-server) | MCP server for trace debugging in Claude Code, Cursor, and more. |
+| [`@agentmark-ai/mcp-server`](./packages/mcp-server) | MCP server exposing the AgentMark API to Claude Code, Cursor, and other MCP clients. |
 | [`@agentmark-ai/model-registry`](./packages/model-registry) | Centralized LLM model metadata and pricing. |
 | [`create-agentmark`](./packages/create-agentmark) | Project scaffolding tool. |
 

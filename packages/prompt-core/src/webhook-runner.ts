@@ -1028,6 +1028,8 @@ export class WebhookRunner<
                           /* ignore */
                         }
                       }
+                      setSpanModel(ctx, frontmatter);
+                      classifySpanAsLlm(ctx);
                       const ctxExec: ExecCtx = {
                         telemetry: { isEnabled: true },
                         span: ctx,
@@ -1058,6 +1060,7 @@ export class WebhookRunner<
                           throw new Error(ev.error);
                         }
                       }
+                      setSpanUsage(ctx, usageCap);
                       const output = kind === "text" ? textBuf : objectFinal;
                       try {
                         const outStr =
@@ -1115,7 +1118,11 @@ export class WebhookRunner<
                     input: item.dataset?.input,
                     expectedOutput: item.dataset?.expected_output,
                     actualOutput: output,
-                    tokens: usage?.totalTokens,
+                    tokens:
+                      usage?.totalTokens ??
+                      (usage != null
+                        ? (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0)
+                        : undefined),
                     evals: evalResults,
                     traceId,
                     runId: experimentRunId,

@@ -3,6 +3,7 @@
  * Consolidates all platform-specific logic in one place.
  */
 
+import path from 'path';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 
@@ -115,4 +116,20 @@ export function getPythonPaths() {
     venvBinDir: IS_WINDOWS ? '.venv\\Scripts' : '.venv/bin',
     exeExtension: IS_WINDOWS ? '.exe' : '',
   };
+}
+
+/**
+ * Resolve the Python executable for a project directory, preferring a local
+ * virtual environment (.venv, then venv) over the system Python.
+ *
+ * Pure — no console output. Call sites that want to log "Using virtual
+ * environment: ..." should do so after calling this.
+ */
+export function findProjectPython(cwd: string): string {
+  const { binDir, pythonExe, pythonCmd } = getPythonPaths();
+  for (const venvDir of ['.venv', 'venv']) {
+    const candidate = path.join(cwd, venvDir, binDir, pythonExe);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return pythonCmd;
 }

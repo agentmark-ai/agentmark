@@ -28,7 +28,7 @@ npx tsx index.ts
 ## What to notice
 
 - `sdk.initTracing()` starts the OpenTelemetry exporter — all traces are sent to AgentMark Cloud
-- `trace()` creates a root span. The callback receives a `TraceContext` with `traceId`, `spanId`, and `span()` for nesting
+- `trace()` creates a root span. The callback receives a `SpanContext` with `traceId`, `spanId`, and `span()` for nesting
 - Child spans (via `ctx.span()`) let you trace sub-operations like database calls or post-processing
 - The `traceId` is returned immediately — use it to link traces to your application logs
 - Traces are viewable locally (via `agentmark dev`) or in AgentMark Cloud
