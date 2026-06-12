@@ -1,3 +1,14 @@
+## 0.23.2 (2026-06-12)
+
+### 🩹 Fixes
+
+- Replace hardcoded `party-planner.prompt.mdx` example path in the `dev` startup banner with a generic `<your-prompt>.prompt.mdx` placeholder. ([#773](https://github.com/agentmark-ai/agentmark/pull/773))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.9.4
+- Updated @agentmark-ai/prompt-core to 1.0.3
+
 ## 0.23.1 (2026-06-12)
 
 ### 🩹 Fixes
