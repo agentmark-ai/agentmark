@@ -43,7 +43,7 @@
 
 ## Quick Start
 
-### Intialize AgentMark
+### Initialize AgentMark
 
 Get started by first initializing your AgentMark app.
 
