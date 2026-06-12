@@ -1,3 +1,13 @@
+## 1.0.3 (2026-06-12)
+
+### 🩹 Fixes
+
+- Fix experiment item spans missing model/classify/usage attributes in both Python and TypeScript runners. Fixes Requests view showing "No Requests", Model=-, and Tokens=0 in the experiment view. Also fixes Python executor ErrorEvents exiting the span cleanly (status OK) instead of propagating as exceptions (status ERROR). ([#773](https://github.com/agentmark-ai/agentmark/pull/773))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.7
+
 ## 1.0.2 (2026-06-12)
 
 ### 🩹 Fixes
