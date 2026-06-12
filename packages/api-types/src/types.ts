@@ -308,6 +308,12 @@ export interface AggregateRequestsParams extends PaginationParams {
   filters?: AnalyticsFilter[];
   startDate?: string;
   endDate?: string;
+  /**
+   * Env scoping. Aggregations must be computed over a single environment's
+   * rows — an unscoped groupBy silently sums every env's traffic into one
+   * table. Undefined means "no env filter" (legacy callers only).
+   */
+  env?: EnvironmentQueryScope;
 }
 
 /**
