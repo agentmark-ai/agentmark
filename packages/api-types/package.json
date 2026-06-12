@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/api-types",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Shared API contract types (analytics service, traces, scores) used by the AgentMark CLI dev server and platform. For the public wire schemas use @agentmark-ai/api-schemas.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

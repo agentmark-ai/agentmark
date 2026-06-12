@@ -1,3 +1,9 @@
+## 0.22.1 (2026-06-12)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-types to 0.8.0
+
 ## 0.22.0 (2026-06-12)
 
 ### 🚀 Features
