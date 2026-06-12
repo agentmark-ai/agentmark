@@ -1,4 +1,5 @@
 import path from "path";
+import { spawnSync } from "child_process";
 import fs from "fs-extra";
 import {
   detectProjectLanguage,
@@ -103,6 +104,11 @@ export interface RunDoctorOptions {
   env?: Record<string, string | undefined>;
   /** Defaults to `process.versions.node`; overridable for tests. */
   nodeVersion?: string;
+  /**
+   * Injectable for tests: return the list of missing Python packages, `null`
+   * when pip is unavailable, or `undefined` to run the real `pip show` check.
+   */
+  checkPythonDeps?: () => { missing: string[] } | null;
 }
 
 /**
@@ -112,6 +118,18 @@ export interface RunDoctorOptions {
 export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promise<DoctorReport> {
   const env = opts.env ?? process.env;
   const nodeVersion = opts.nodeVersion ?? process.versions.node;
+  const checkPythonDeps = opts.checkPythonDeps ?? (() => {
+    const res = spawnSync("pip", ["show", "agentmark-prompt-core", "agentmark-sdk"], {
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+    if (res.error) return null;
+    const stdout = res.stdout ?? "";
+    const missing = ["agentmark-prompt-core", "agentmark-sdk"].filter(
+      (pkg) => !stdout.includes(`Name: ${pkg}`)
+    );
+    return { missing };
+  });
   const results: CheckResult[] = [];
   const add = (r: CheckResult) => results.push(r);
 
@@ -466,13 +484,30 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
       );
     }
   } else {
-    add({
-      id: "deps.python",
-      group: GROUP.deps,
-      title: "dependency checks",
-      status: "skip",
-      detail: "Python project; ensure agentmark-prompt-core and agentmark-sdk are installed",
-    });
+    const pipResult = checkPythonDeps();
+    if (pipResult === null) {
+      add({
+        id: "deps.python",
+        group: GROUP.deps,
+        title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)",
+        status: "skip",
+        detail: "pip not found on PATH — cannot verify packages are installed",
+        fix: "Ensure pip is on your PATH, then re-run to confirm agentmark-prompt-core and agentmark-sdk are installed.",
+      });
+    } else {
+      add(
+        pipResult.missing.length === 0
+          ? { id: "deps.python", group: GROUP.deps, title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)", status: "pass" }
+          : {
+              id: "deps.python",
+              group: GROUP.deps,
+              title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)",
+              status: "fail",
+              detail: `missing: ${pipResult.missing.join(", ")}`,
+              fix: `pip install ${pipResult.missing.join(" ")}`,
+            }
+      );
+    }
   }
 
   const counts: Record<CheckStatus, number> = { pass: 0, warn: 0, fail: 0, skip: 0 };

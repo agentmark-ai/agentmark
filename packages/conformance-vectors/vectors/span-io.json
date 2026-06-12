@@ -49,6 +49,10 @@
         "usage": {
           "input": 7,
           "output": 11
+        },
+        "classification": {
+          "operationName": "chat",
+          "spanKind": "llm"
         }
       },
       "throws": false
@@ -101,6 +105,10 @@
         "usage": {
           "input": 7,
           "output": 11
+        },
+        "classification": {
+          "operationName": "chat",
+          "spanKind": "llm"
         }
       },
       "throws": false
@@ -153,6 +161,10 @@
         "usage": {
           "input": 7,
           "output": 11
+        },
+        "classification": {
+          "operationName": "chat",
+          "spanKind": "llm"
         }
       },
       "throws": false
@@ -205,6 +217,10 @@
         "usage": {
           "input": 7,
           "output": 11
+        },
+        "classification": {
+          "operationName": "chat",
+          "spanKind": "llm"
         }
       },
       "throws": false
@@ -238,7 +254,11 @@
         ],
         "output": null,
         "model": "test",
-        "usage": null
+        "usage": null,
+        "classification": {
+          "operationName": "chat",
+          "spanKind": "llm"
+        }
       },
       "throws": true
     },
@@ -271,7 +291,11 @@
         ],
         "output": "par",
         "model": "test",
-        "usage": null
+        "usage": null,
+        "classification": {
+          "operationName": "chat",
+          "spanKind": "llm"
+        }
       },
       "throws": false
     }

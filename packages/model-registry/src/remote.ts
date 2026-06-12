@@ -10,13 +10,19 @@ import { modelsFileSchema, overridesFileSchema } from "./validation.js";
 import { ModelRegistryImpl } from "./registry.js";
 import type { ModelRegistry, ModelsFile, OverridesFile } from "./types.js";
 
-// jsdelivr mirrors GitHub with no rate limits and ~24h edge cache.
+// Raw GitHub is always up-to-date (no CDN cache lag). jsdelivr is a fallback:
+// it mirrors GitHub with ~24h edge cache but has higher availability.
+const RAW_BASE =
+  "https://raw.githubusercontent.com/agentmark-ai/agentmark/main/packages/model-registry";
 const CDN_BASE =
   "https://cdn.jsdelivr.net/gh/agentmark-ai/agentmark@main/packages/model-registry";
 
-const MODELS_URL = `${CDN_BASE}/models.json`;
-const OVERRIDES_URL = `${CDN_BASE}/overrides.json`;
-const PROVIDER_LABELS_URL = `${CDN_BASE}/provider-labels.json`;
+const MODELS_URL = `${RAW_BASE}/models.json`;
+const OVERRIDES_URL = `${RAW_BASE}/overrides.json`;
+const PROVIDER_LABELS_URL = `${RAW_BASE}/provider-labels.json`;
+const MODELS_URL_FALLBACK = `${CDN_BASE}/models.json`;
+const OVERRIDES_URL_FALLBACK = `${CDN_BASE}/overrides.json`;
+const PROVIDER_LABELS_URL_FALLBACK = `${CDN_BASE}/provider-labels.json`;
 
 /** How long to wait for the CDN before falling back to bundled data. */
 const FETCH_TIMEOUT_MS = 5_000;
@@ -41,16 +47,25 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function fetchJsonWithFallback<T>(primary: string, fallback: string): Promise<T> {
+  try {
+    return await fetchJson<T>(primary);
+  } catch {
+    return fetchJson<T>(fallback);
+  }
+}
+
 /**
- * Fetch the model registry from the CDN.
+ * Fetch the model registry, trying raw GitHub first (no cache lag) then
+ * falling back to the jsdelivr CDN mirror (~24h edge cache).
  * Returns null on any failure (network, parse, timeout).
  */
 async function fetchRemoteRegistry(): Promise<ModelRegistry | null> {
   try {
     const [modelsRaw, overridesRaw, labelsRaw] = await Promise.all([
-      fetchJson<unknown>(MODELS_URL),
-      fetchJson<unknown>(OVERRIDES_URL).catch(() => null),
-      fetchJson<Record<string, string>>(PROVIDER_LABELS_URL).catch(() => ({})),
+      fetchJsonWithFallback<unknown>(MODELS_URL, MODELS_URL_FALLBACK),
+      fetchJsonWithFallback<unknown>(OVERRIDES_URL, OVERRIDES_URL_FALLBACK).catch(() => null),
+      fetchJsonWithFallback<Record<string, string>>(PROVIDER_LABELS_URL, PROVIDER_LABELS_URL_FALLBACK).catch(() => ({})),
     ]);
 
     const modelsFile: ModelsFile = modelsFileSchema.parse(modelsRaw);

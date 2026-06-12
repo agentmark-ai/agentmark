@@ -14,6 +14,7 @@ native return type.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import sys
 import uuid
@@ -172,11 +173,30 @@ def _set_span_model(span: PromptSpan, prompt_ast: Any) -> None:
             span.set_attribute("gen_ai.request.model", model)
 
 
+def _classify_span_as_llm(span: PromptSpan) -> None:
+    """Classify the prompt span as a GENERATION span so the normalizer and
+    Requests view recognise it when the executor has no auto-instrumented
+    model SDK (e.g. AWS Bedrock via raw boto3).
+
+    gen_ai.operation.name is the key discriminator — without it the
+    normalizer does not return SpanType.GENERATION and the Requests view
+    query (WHERE Type = 'GENERATION') returns nothing.
+
+    The runner stamps the config-name alias first via _set_span_model.
+    Executors that resolve a different model ID (e.g. a Bedrock cross-region
+    inference profile) can override gen_ai.request.model by calling
+    span.set_attribute("gen_ai.request.model", real_id) inside their handler;
+    set_attribute is last-write-wins on the same span object."""
+    with suppress(Exception):
+        span.set_attribute("gen_ai.operation.name", "chat")
+    with suppress(Exception):
+        span.set_attribute("agentmark.span.kind", "llm")
+
+
 def _set_span_usage(span: PromptSpan, usage: UsageData | None) -> None:
     """Record executor-reported usage as `gen_ai.usage.*` on the prompt span.
     Integers, not strings — the normalizer only accepts numeric token
-    attributes. The wrapper span stays type SPAN, so GENERATION-only rollups
-    never double-count it when model spans exist."""
+    attributes."""
     if usage is None:
         return
     with suppress(Exception):
@@ -568,6 +588,7 @@ class WebhookRunner:
             )
             _set_span_input(span, formatted)
             _set_span_model(span, prompt_ast)
+            _classify_span_as_llm(span)
             ctx = ExecCtx(
                 telemetry=telemetry,
                 trace_id=getattr(span, "trace_id", None),
@@ -634,6 +655,7 @@ class WebhookRunner:
             )
             _set_span_input(span, formatted)
             _set_span_model(span, prompt_ast)
+            _classify_span_as_llm(span)
             ctx = ExecCtx(
                 telemetry=telemetry,
                 trace_id=getattr(span, "trace_id", None),
@@ -1089,11 +1111,12 @@ class WebhookRunner:
                             or getattr(formatted, "_raw_messages", None)
                             or getattr(formatted, "user_prompt", None)
                         )
-                        r = await fn({
+                        _eval_result = fn({
                             "input": eval_input,
                             "output": output,
                             "expectedOutput": expected,
                         })
+                        r = await _eval_result if inspect.isawaitable(_eval_result) else _eval_result
                         eval_results.append({"name": name, **(r or {})})
 
                 # Row assembly is the pure _dataset_row_to_wire (module

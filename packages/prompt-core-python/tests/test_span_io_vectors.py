@@ -170,6 +170,13 @@ def _assert_attributes(attributes: dict[str, str | int], expected: dict[str, Any
         assert attributes["gen_ai.usage.input_tokens"] == expected["usage"]["input"]
         assert attributes["gen_ai.usage.output_tokens"] == expected["usage"]["output"]
 
+    # GENERATION classification — required for the Requests view and cost attribution.
+    # The runner stamps these before the executor runs, so they're present on every path
+    # including error and throw cases.
+    cls = expected["classification"]
+    assert attributes["gen_ai.operation.name"] == cls["operationName"]
+    assert attributes["agentmark.span.kind"] == cls["spanKind"]
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", VECTORS["cases"], ids=[c["name"] for c in VECTORS["cases"]])

@@ -466,3 +466,154 @@ from agentmark.prompt_core.webhook_runner import _compute_dataset_item_name
 )
 def test_dataset_item_name_parity_vectors(value, index, expected):
     assert _compute_dataset_item_name(value, index) == expected
+
+
+# ---------------------------------------------------------------------------
+# Executor span-attribute override — last-write-wins (e.g. Bedrock real model ID)
+# ---------------------------------------------------------------------------
+# The classification attributes (gen_ai.operation.name, agentmark.span.kind)
+# are tested via the shared span-io conformance vectors in test_span_io_vectors.py.
+# This test covers the orthogonal contract: executors CAN override
+# gen_ai.request.model (e.g. to stamp the real cross-region inference profile
+# ID instead of the config alias), and the runner's first-write doesn't win.
+
+
+class _CapturingSpan:
+    """Records every set_attribute call so tests can assert on them."""
+
+    def __init__(self, trace_id: str = "trace-abc") -> None:
+        self.trace_id = trace_id
+        self.attrs: dict[str, object] = {}
+
+    def set_attribute(self, key: str, value: object) -> None:
+        self.attrs[key] = value
+
+
+@asynccontextmanager
+async def _capturing_span(_params):
+    span = _CapturingSpan()
+    yield span
+    # Expose the span on the context manager itself so tests can inspect it.
+    _capturing_span._last_span = span  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_executor_can_override_model_attribute_last_write_wins():
+    """An executor that resolves the real inference profile ID should be able to
+    override gen_ai.request.model by calling span.set_attribute() — the runner
+    stamps the config alias first and the executor's call wins (last-write)."""
+
+    class _BedrockLikeExecutor(_PydanticStubExecutor):
+        async def execute_text(self, formatted, ctx: ExecCtx):
+            span = (ctx.extra or {}).get("span")
+            if span:
+                span.set_attribute(
+                    "gen_ai.request.model",
+                    "us.anthropic.claude-opus-4-8-20251101-v1:0",
+                )
+            yield TextDeltaEvent(text="ok")
+            yield FinishEvent(
+                reason="stop",
+                usage=UsageData(input_tokens=1, output_tokens=1, total_tokens=2),
+            )
+
+    runner = WebhookRunner(
+        _StubClient(),
+        _BedrockLikeExecutor(),
+        prompt_span_hook=_capturing_span,
+    )
+    ast = {
+        "children": [
+            {"type": "yaml", "value": "text_config:\n  model_name: us.anthropic.claude-opus-4-8\n"}
+        ]
+    }
+
+    await runner.run_prompt(ast, {"shouldStream": False})
+
+    span = _capturing_span._last_span  # type: ignore[attr-defined]
+    # The executor's value must win over the config alias the runner stamped first.
+    assert span.attrs.get("gen_ai.request.model") == "us.anthropic.claude-opus-4-8-20251101-v1:0"
+
+
+# ---------------------------------------------------------------------------
+# Sync / async eval parity — inspect.isawaitable fix (Issue 4)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_sync_eval_function_does_not_raise():
+    """A synchronous eval function returning a plain dict must not raise
+    ``TypeError: 'dict' object can't be awaited``."""
+
+    def sync_exact_match(params):
+        match = params["output"] == params.get("expectedOutput")
+        return {"score": 1.0 if match else 0.0, "passed": match}
+
+    formatted_stub = type("Fmt", (), {"messages": [{"role": "user", "content": "hi"}]})()
+    dataset_items = [
+        {
+            "formatted": formatted_stub,
+            "dataset": {"input": {"q": "1+1"}, "expected_output": "hello"},
+            "evals": ["exact_match"],
+        }
+    ]
+
+    runner = WebhookRunner(
+        _ExperimentClient(
+            _ExperimentPrompt(dataset_items),
+            {"exact_match": sync_exact_match},
+        ),
+        _PydanticStubExecutor(),
+    )
+    ast = {
+        "children": [
+            {"type": "yaml", "value": "text_config:\n  model_name: test\n"}
+        ]
+    }
+
+    response = await runner.run_experiment(ast, "sync-eval-test")
+    rows = []
+    async for chunk in response["stream"]:
+        rows.append(json.loads(chunk))
+
+    # The row must have been emitted (not swallowed by a TypeError).
+    assert rows, "no rows emitted — sync eval likely raised instead of returning"
+    assert rows[0].get("type") != "error", f"unexpected error row: {rows[0]}"
+
+
+@pytest.mark.asyncio
+async def test_async_eval_function_still_works():
+    """Async eval functions must continue to work after the isawaitable fix."""
+
+    async def async_scorer(params):
+        return {"score": 0.5, "passed": False}
+
+    formatted_stub = type("Fmt", (), {"messages": []})()
+    dataset_items = [
+        {
+            "formatted": formatted_stub,
+            "dataset": {"input": {}, "expected_output": "x"},
+            "evals": ["async_scorer"],
+        }
+    ]
+
+    runner = WebhookRunner(
+        _ExperimentClient(
+            _ExperimentPrompt(dataset_items),
+            {"async_scorer": async_scorer},
+        ),
+        _PydanticStubExecutor(),
+    )
+    ast = {
+        "children": [
+            {"type": "yaml", "value": "text_config:\n  model_name: test\n"}
+        ]
+    }
+
+    response = await runner.run_experiment(ast, "async-eval-test")
+    rows = []
+    async for chunk in response["stream"]:
+        rows.append(json.loads(chunk))
+
+    assert rows, "no rows emitted"
+    assert rows[0].get("type") != "error", f"unexpected error row: {rows[0]}"
