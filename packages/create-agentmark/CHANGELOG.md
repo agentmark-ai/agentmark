@@ -1,3 +1,9 @@
+## 1.1.4 (2026-06-12)
+
+### 🩹 Fixes
+
+- Default editor selection to detected editors instead of all four ([#769](https://github.com/agentmark-ai/agentmark/pull/769))
+
 ## 1.1.3 (2026-06-11)
 
 ### 🧱 Updated Dependencies
