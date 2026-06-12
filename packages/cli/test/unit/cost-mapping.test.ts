@@ -27,13 +27,11 @@ describe("getModelCostMappings", () => {
     expect(gpt4o.completionPrice).toBeGreaterThan(0);
   });
 
-  it("returns zero pricing for models without per-token pricing", async () => {
+  it("omits models without per-token pricing", async () => {
     const prices = await getModelCostMappings();
-    // dall-e models use per-image pricing — fallback to zero
-    const dalle = prices["dall-e-3"];
-    expect(dalle).toBeDefined();
-    expect(dalle!.promptPrice).toBe(0);
-    expect(dalle!.completionPrice).toBe(0);
+    // dall-e models use per-image pricing — no inputCostPerToken/outputCostPerToken,
+    // so they are excluded rather than recorded as $0 (which would be misleading)
+    expect(prices["dall-e-3"]).toBeUndefined();
   });
 
   it("returns zero pricing for free-tier models", async () => {

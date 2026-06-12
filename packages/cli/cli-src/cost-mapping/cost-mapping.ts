@@ -12,13 +12,19 @@ export const getModelCostMappings = async (): Promise<{
   const registry = await getModelRegistryAsync();
   const allModels = registry.getAllModels();
   prices = Object.fromEntries(
-    allModels.map((m) => [
-      m.id,
-      {
-        promptPrice: (m.pricing?.inputCostPerToken ?? 0) * 1000,
-        completionPrice: (m.pricing?.outputCostPerToken ?? 0) * 1000,
-      },
-    ])
+    allModels
+      .filter(
+        (m) =>
+          m.pricing?.inputCostPerToken != null &&
+          m.pricing?.outputCostPerToken != null
+      )
+      .map((m) => [
+        m.id,
+        {
+          promptPrice: m.pricing!.inputCostPerToken! * 1000,
+          completionPrice: m.pricing!.outputCostPerToken! * 1000,
+        },
+      ])
   );
   return prices;
 };
