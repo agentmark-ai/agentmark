@@ -525,6 +525,8 @@ interface DoctorOptions {
   smoke?: boolean;
   /** Prompt to run for `--smoke` (defaults to the first discovered prompt). */
   prompt?: string;
+  /** Props forwarded as `customProps` in the `--smoke` webhook call (satisfies required variables). */
+  props?: Record<string, unknown>;
   /** With `--smoke`, boot `agentmark dev` automatically (and tear it down after). */
   boot?: boolean;
   /** Webhook port `--smoke` targets (and `--boot` starts dev on). Defaults to 9417. */
@@ -567,6 +569,7 @@ const doctor = async (options: DoctorOptions = {}): Promise<void> => {
         const smokeResults = await runSmoke({
           cwd: process.cwd(),
           promptPath: options.prompt,
+          customProps: options.props,
           webhookUrl: `http://localhost:${webhookPort}`,
           apiUrl: `http://localhost:${apiPort}`,
         });

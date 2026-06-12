@@ -38,6 +38,7 @@ npx @agentmark-ai/cli doctor [options]
 | `--smoke` | Also run a live tier: execute a prompt against `agentmark dev` and verify the emitted trace |
 | `--boot` | With --smoke, start `agentmark dev` automatically and tear it down after (one command, e.g. for CI/agents) |
 | `--prompt <path>` | Prompt to run for --smoke (defaults to the first prompt found) |
+| `--props <json>` | Props as a JSON string for the --smoke prompt (requires --prompt; e.g. '{"name":"Alice"}') |
 | `--webhook-port <number>` | Webhook port --smoke targets / --boot starts dev on (default: 9417) |
 | `--api-port <number>` | API-server port --smoke reads traces from / --boot starts dev on (default: 9418) |
 
