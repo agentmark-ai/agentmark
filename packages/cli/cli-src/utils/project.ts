@@ -18,12 +18,29 @@ export type ProjectLanguage = "typescript" | "python";
 /**
  * Detect whether a project is Python or TypeScript from filesystem markers.
  * (Moved verbatim from `dev.ts` so `dev` and `doctor` agree.)
+ *
+ * Explicit AgentMark setup files win over ecosystem manifests: a stray
+ * `requirements.txt` in a TS repo (or a `pyproject.toml` in a polyglot one)
+ * must not flip an already-set-up project's language. Ecosystem manifests
+ * matter for FIRST contact — before any client file exists, a
+ * requirements.txt-only project must still get Python guidance from
+ * `doctor`/`dev`, not "agentmark.client.ts missing".
  */
 export function detectProjectLanguage(cwd: string): ProjectLanguage {
   if (
-    fs.existsSync(path.join(cwd, "pyproject.toml")) ||
     fs.existsSync(path.join(cwd, "agentmark_client.py")) ||
-    fs.existsSync(path.join(cwd, ".agentmark", "dev_server.py"))
+    fs.existsSync(path.join(cwd, ".agentmark", "dev_server.py")) ||
+    fs.existsSync(path.join(cwd, "dev_server.py"))
+  ) {
+    return "python";
+  }
+  if (fs.existsSync(path.join(cwd, "agentmark.client.ts"))) {
+    return "typescript";
+  }
+  if (
+    fs.existsSync(path.join(cwd, "pyproject.toml")) ||
+    fs.existsSync(path.join(cwd, "requirements.txt")) ||
+    fs.existsSync(path.join(cwd, "setup.py"))
   ) {
     return "python";
   }

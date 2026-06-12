@@ -176,9 +176,9 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
             `❌ Could not connect to AgentMark server at ${server}\n\n` +
             `The server is not running or not reachable.\n\n` +
             `To start the server, run:\n` +
-            `  agentmark dev\n\n` +
+            `  npx @agentmark-ai/cli dev\n\n` +
             `Or specify a different server URL with:\n` +
-            `  agentmark run-prompt <filepath> --server <url>`
+            `  npx @agentmark-ai/cli run-prompt <filepath> --server <url>`
           );
         }
         // Re-throw other network errors with context

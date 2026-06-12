@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import os from 'node:os';
-import { buildAdapterEnv, buildPythonDevEnv, hasCloudCreds } from '../cli-src/commands/dev-env';
+import { buildDevServerEnv, buildPythonDevEnv, hasCloudCreds } from '../cli-src/commands/dev-env';
 
 // This repo augments NodeJS.ProcessEnv to require NODE_ENV, so a bare object
 // literal isn't assignable. `env()` builds a ProcessEnv-typed value from a
@@ -9,7 +9,7 @@ import { buildAdapterEnv, buildPythonDevEnv, hasCloudCreds } from '../cli-src/co
 const env = (overrides: Record<string, string | undefined>): NodeJS.ProcessEnv =>
   overrides as NodeJS.ProcessEnv;
 
-describe('dev adapter env (local-mode isolation)', () => {
+describe('dev server env (local-mode isolation)', () => {
   describe('hasCloudCreds', () => {
     it('is true only when both API key and app id are present', () => {
       expect(hasCloudCreds(env({ AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' }))).toBe(true);
@@ -24,9 +24,9 @@ describe('dev adapter env (local-mode isolation)', () => {
     });
   });
 
-  describe('buildAdapterEnv', () => {
+  describe('buildDevServerEnv', () => {
     it('strips the cloud creds so the client stays in local mode', () => {
-      const out = buildAdapterEnv(
+      const out = buildDevServerEnv(
         env({
           AGENTMARK_API_KEY: 'secret-key',
           AGENTMARK_APP_ID: 'app-123',
@@ -40,18 +40,18 @@ describe('dev adapter env (local-mode isolation)', () => {
     });
 
     it('pins AGENTMARK_DEV_SERVER to the local API server port', () => {
-      expect(buildAdapterEnv(env({}), 9418).AGENTMARK_DEV_SERVER).toBe('http://localhost:9418');
+      expect(buildDevServerEnv(env({}), 9418).AGENTMARK_DEV_SERVER).toBe('http://localhost:9418');
       // honors a custom --api-port
-      expect(buildAdapterEnv(env({}), 4321).AGENTMARK_DEV_SERVER).toBe('http://localhost:4321');
+      expect(buildDevServerEnv(env({}), 4321).AGENTMARK_DEV_SERVER).toBe('http://localhost:4321');
     });
 
     it('overrides an inherited AGENTMARK_DEV_SERVER with this server', () => {
-      const out = buildAdapterEnv(env({ AGENTMARK_DEV_SERVER: 'http://localhost:1111' }), 9418);
+      const out = buildDevServerEnv(env({ AGENTMARK_DEV_SERVER: 'http://localhost:1111' }), 9418);
       expect(out.AGENTMARK_DEV_SERVER).toBe('http://localhost:9418');
     });
 
     it('preserves unrelated env vars', () => {
-      const out = buildAdapterEnv(
+      const out = buildDevServerEnv(
         env({ PATH: '/usr/bin', ANTHROPIC_API_KEY: 'sk-ant', OPENAI_API_KEY: 'sk-oai' }),
         9418,
       );
@@ -66,7 +66,7 @@ describe('dev adapter env (local-mode isolation)', () => {
         AGENTMARK_APP_ID: 'app-123',
         AGENTMARK_BASE_URL: 'https://api.agentmark.co',
       });
-      buildAdapterEnv(input, 9418);
+      buildDevServerEnv(input, 9418);
       expect(input.AGENTMARK_API_KEY).toBe('secret-key');
       expect(input.AGENTMARK_APP_ID).toBe('app-123');
       expect(input.AGENTMARK_BASE_URL).toBe('https://api.agentmark.co');

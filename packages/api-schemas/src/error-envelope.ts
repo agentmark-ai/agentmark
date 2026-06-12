@@ -8,7 +8,7 @@
  *   { error: { code: string, message: string, details?: Record<string, string> } }
  *
  * Why this lives in the shared api-contract package:
- *   Phase B of #2081 wants agents written against `npx agentmark dev`
+ *   Phase B of #2081 wants agents written against `npx @agentmark-ai/cli dev`
  *   (local dev) to receive the exact same error body they'd see from
  *   `api.agentmark.co` (cloud). Before Phase B the two diverged — cloud
  *   emitted `chanfana_<num>` codes with no `details`, OSS emitted
@@ -41,7 +41,7 @@ import { z, ZodError } from "zod";
  *
  * The shared codes here are the ones that MUST be identical across both
  * sides — primarily the validation error codes, since Phase B's promise
- * is that `npx agentmark dev` and cloud produce the same body for the
+ * is that `npx @agentmark-ai/cli dev` and cloud produce the same body for the
  * same bad request.
  */
 export type SharedErrorCode =

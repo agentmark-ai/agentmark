@@ -104,7 +104,7 @@ function formatMarkdown(commands: Command[], cliVersion: string): string {
   lines.push('');
   lines.push('# AgentMark CLI commands');
   lines.push('');
-  lines.push(`> Reference for \`@agentmark-ai/cli@${cliVersion}\`. Always prefer \`npx agentmark <cmd> --help\` for the most current flag set.`);
+  lines.push(`> Reference for \`@agentmark-ai/cli@${cliVersion}\`. Always prefer \`npx @agentmark-ai/cli <cmd> --help\` for the most current flag set.`);
   lines.push('');
   lines.push('## Command index');
   lines.push('');
@@ -124,8 +124,8 @@ function formatMarkdown(commands: Command[], cliVersion: string): string {
       lines.push('');
     }
     const usage = cmd.args
-      ? `npx agentmark ${cmd.name} ${cmd.args} [options]`
-      : `npx agentmark ${cmd.name} [options]`;
+      ? `npx @agentmark-ai/cli ${cmd.name} ${cmd.args} [options]`
+      : `npx @agentmark-ai/cli ${cmd.name} [options]`;
     lines.push('```bash');
     lines.push(usage);
     lines.push('```');

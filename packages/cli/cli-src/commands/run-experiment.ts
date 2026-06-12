@@ -404,7 +404,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
   if (!server || !/^https?:\/\//i.test(server)) {
     throw new Error(
       'Invalid or missing server URL.\n' +
-      'Please ensure the AgentMark dev server is running with: agentmark dev\n' +
+      'Please ensure the AgentMark dev server is running with: npx @agentmark-ai/cli dev\n' +
       `Expected format: http://localhost:9417 (got: ${server || 'undefined'})`
     );
   }
@@ -518,7 +518,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
         `❌ Could not connect to AgentMark server at ${server}\n\n` +
         `The server is not running or not reachable.\n\n` +
         `To start the server, run:\n` +
-        `  agentmark dev\n\n` +
+        `  npx @agentmark-ai/cli dev\n\n` +
         `Or specify a different server URL with:\n` +
         `  agentmark run-experiment <filepath> --server <url>`
       );
@@ -549,7 +549,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     } else if (res.status === 500) {
       helpText = '\n\nTip: The server encountered an error. Check the dev server logs for more details.';
     } else if (res.status === 503 || res.status === 502) {
-      helpText = '\n\nTip: The server is unavailable. Make sure the dev server is running with: agentmark dev';
+      helpText = '\n\nTip: The server is unavailable. Make sure the dev server is running with: npx @agentmark-ai/cli dev';
     }
 
     const details = `HTTP ${statusLine} — Content-Type: ${ct}`;

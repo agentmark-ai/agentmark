@@ -82,9 +82,6 @@
     "agentmark-prompt-core": {
       "built": false
     },
-    "agentmark-pydantic-ai-v0": {
-      "built": false
-    },
     "agentmark-sdk": {
       "built": false
     },

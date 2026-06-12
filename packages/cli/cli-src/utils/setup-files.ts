@@ -29,7 +29,7 @@ export function clientNotFoundMessages(language: ProjectLanguage): string[] {
   const root = language === "python" ? "AgentMark Python project root" : "AgentMark project root";
   return [
     `Error: ${clientFileName(language)} not found in current directory.`,
-    `Run \`agentmark dev\` from your ${root}. If the client is not set up yet, ${CLIENT_SETUP_HINT}`,
+    `Run \`npx @agentmark-ai/cli dev\` from your ${root}. If the client is not set up yet, ${CLIENT_SETUP_HINT}`,
   ];
 }
 

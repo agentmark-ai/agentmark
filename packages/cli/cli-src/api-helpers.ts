@@ -2,7 +2,7 @@
  * HTTP helpers for the OSS CLI dev server.
  *
  * Shape matches the cloud gateway's canonical error envelope so that
- * agents written against `npx agentmark dev` receive the same error body
+ * agents written against `npx @agentmark-ai/cli dev` receive the same error body
  * they'd see in production. Body construction goes through the
  * `@agentmark-ai/api-schemas` package's envelope helpers — the same
  * functions the cloud gateway calls. Any divergence between cloud and
@@ -27,7 +27,7 @@ import {
  * tenant-scoped codes (`trace_not_found`, `span_limit_exceeded`, etc.)
  * that don't apply locally; OSS stays minimal on purpose. All codes here
  * are a subset of cloud's `GatewayErrorCode` — an agent receiving a
- * `DevServerErrorCode` from `npx agentmark dev` will always receive a
+ * `DevServerErrorCode` from `npx @agentmark-ai/cli dev` will always receive a
  * superset-compatible code from cloud for the same failure kind.
  */
 /**

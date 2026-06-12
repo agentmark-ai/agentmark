@@ -1,13 +1,13 @@
 /**
- * Environment helpers for the adapter that `agentmark dev` spawns.
+ * Environment helpers for the dev server that `agentmark dev` spawns.
  *
  * `agentmark dev` is a LOCAL development server: it serves prompts and datasets
  * from the API server it starts. The client treats the presence of cloud creds
  * (AGENTMARK_API_KEY + AGENTMARK_APP_ID) as "use cloud", so without intervention
- * the spawned adapter would load *deployed* prompts/datasets from
+ * the spawned dev server would load *deployed* prompts/datasets from
  * api.agentmark.co and silently bypass the local files — local edits and
  * locally-preprocessed datasets would never reach it. These helpers keep the
- * spawned adapter pointed at the local dev server.
+ * spawned dev server pointed at the local API server.
  */
 
 import path from "path";
@@ -22,28 +22,28 @@ export function hasCloudCreds(env: NodeJS.ProcessEnv): boolean {
 }
 
 /**
- * Build the env for the spawned dev adapter so it loads from the local API
+ * Build the env for the spawned dev server so it loads from the local API
  * server on `apiPort`.
  *
  * Strips the cloud creds (and any cloud `AGENTMARK_BASE_URL`) so the client
  * stays in local mode, and pins `AGENTMARK_DEV_SERVER` to this server. Returns a
  * copy — the input env is not mutated. Trace forwarding to prod is unaffected:
  * it's done by the dev process's own TraceForwarder using `agentmark link`
- * creds, not the adapter's env.
+ * creds, not the dev server's env.
  */
-export function buildAdapterEnv(env: NodeJS.ProcessEnv, apiPort: number): NodeJS.ProcessEnv {
-  const adapterEnv: NodeJS.ProcessEnv = {
+export function buildDevServerEnv(env: NodeJS.ProcessEnv, apiPort: number): NodeJS.ProcessEnv {
+  const devServerEnv: NodeJS.ProcessEnv = {
     ...env,
     AGENTMARK_DEV_SERVER: `http://localhost:${apiPort}`,
   };
-  delete adapterEnv.AGENTMARK_API_KEY;
-  delete adapterEnv.AGENTMARK_APP_ID;
-  delete adapterEnv.AGENTMARK_BASE_URL;
-  return adapterEnv;
+  delete devServerEnv.AGENTMARK_API_KEY;
+  delete devServerEnv.AGENTMARK_APP_ID;
+  delete devServerEnv.AGENTMARK_BASE_URL;
+  return devServerEnv;
 }
 
 /**
- * Python-specific additions on top of `buildAdapterEnv` for the spawned
+ * Python-specific additions on top of `buildDevServerEnv` for the spawned
  * `dev_server.py`:
  *
  * - `PYTHONPATH` gets the project root PREPENDED. The dev entry usually lives
@@ -55,10 +55,10 @@ export function buildAdapterEnv(env: NodeJS.ProcessEnv, apiPort: number): NodeJS
  *   left in the project's `__pycache__` by an earlier direct `python` run
  *   would still be READ and mask source edits between dev restarts.
  */
-export function buildPythonDevEnv(adapterEnv: NodeJS.ProcessEnv, cwd: string): NodeJS.ProcessEnv {
-  const existingPythonPath = adapterEnv.PYTHONPATH;
+export function buildPythonDevEnv(devServerEnv: NodeJS.ProcessEnv, cwd: string): NodeJS.ProcessEnv {
+  const existingPythonPath = devServerEnv.PYTHONPATH;
   return {
-    ...adapterEnv,
+    ...devServerEnv,
     PYTHONPATH: existingPythonPath ? `${cwd}${path.delimiter}${existingPythonPath}` : cwd,
     PYTHONDONTWRITEBYTECODE: '1',
     PYTHONUNBUFFERED: '1',

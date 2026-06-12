@@ -103,7 +103,7 @@ order) for traces emitted without the runner. Two consequences:
 
 ## Version compatibility
 
-The adapter targets Vercel AI SDK v5 (`ai@^5`), which expects a **v2 provider**.
+These examples target Vercel AI SDK v5 (`ai@^5`), which expects a **v2 provider**.
 Use `@ai-sdk/openai@^2` — the v3 provider throws `UnsupportedModelVersionError`
 (model-spec v3 vs v2) against `ai@5`:
 

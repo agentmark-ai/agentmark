@@ -299,7 +299,7 @@ export async function createWebhookServer(options: WebhookServerOptions): Promis
   <h2>What is this?</h2>
   <p>
     This is the <strong>AgentMark CLI Runner</strong>, an internal development server that executes
-    prompts and experiments locally. It's automatically started when you run <code>agentmark dev</code>
+    prompts and experiments locally. It's automatically started when you run <code>npx @agentmark-ai/cli dev</code>
     and is used by CLI commands to process your prompts.
   </p>
 
@@ -311,10 +311,10 @@ ${promptsList}
   <h2>Available Commands</h2>
 
   <h3>Run a Single Prompt</h3>
-  <div class="command">$ npx agentmark run-prompt agentmark/&lt;file&gt;.prompt.mdx</div>
+  <div class="command">$ npx @agentmark-ai/cli run-prompt agentmark/&lt;file&gt;.prompt.mdx</div>
 
   <h3>Run Experiments with Datasets</h3>
-  <div class="command">$ npx agentmark run-experiment agentmark/&lt;file&gt;.prompt.mdx</div>
+  <div class="command">$ npx @agentmark-ai/cli run-experiment agentmark/&lt;file&gt;.prompt.mdx</div>
 
   <h2>API Endpoints</h2>
 
