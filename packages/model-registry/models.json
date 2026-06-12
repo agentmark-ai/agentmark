@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-09T18:38:00.611Z",
+  "generatedAt": "2026-06-12T01:18:37.754Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-09T18:38:00.611Z",
-      "modelCount": 1205
+      "fetchedAt": "2026-06-12T01:18:37.754Z",
+      "modelCount": 1208
     },
     "openrouter": {
-      "fetchedAt": "2026-06-09T18:38:00.611Z",
+      "fetchedAt": "2026-06-12T01:18:37.754Z",
       "modelCount": 125
     }
   },
@@ -19909,12 +19909,11 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 9.83e-8,
-        "outputCostPerToken": 1.966e-7
+        "inputCostPerToken": 9.8e-8,
+        "outputCostPerToken": 1.96e-7
       },
       "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 131072
+        "maxInputTokens": 1048576
       },
       "capabilities": {
         "functionCalling": true,
@@ -20079,11 +20078,11 @@
       ],
       "pricing": {
         "inputCostPerToken": 1.2e-7,
-        "outputCostPerToken": 3.6e-7
+        "outputCostPerToken": 3.5e-7
       },
       "context": {
         "maxInputTokens": 262144,
-        "maxOutputTokens": 8192
+        "maxOutputTokens": 262144
       },
       "capabilities": {
         "vision": true,
@@ -20938,15 +20937,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 7e-7,
+        "inputCostPerToken": 8e-7,
         "outputCostPerToken": 8e-7
       },
       "context": {
-        "maxInputTokens": 131072,
-        "maxOutputTokens": 16384
-      },
-      "capabilities": {
-        "structuredOutput": true
+        "maxInputTokens": 128000,
+        "maxOutputTokens": 8192
       }
     },
     "command-r7b-12-2024": {
@@ -23722,13 +23718,12 @@
       "provider": "anthropic",
       "displayName": "Anthropic: Claude Fable 5",
       "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "max_tokens"
-      ],
+      "source": "litellm",
       "pricing": {
         "inputCostPerToken": 0.00001,
-        "outputCostPerToken": 0.00005
+        "outputCostPerToken": 0.00005,
+        "cacheCreationCostPerToken": 0.0000125,
+        "cacheReadCostPerToken": 0.000001
       },
       "context": {
         "maxInputTokens": 1000000,
@@ -23737,7 +23732,61 @@
       "capabilities": {
         "vision": true,
         "functionCalling": true,
-        "structuredOutput": true
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      },
+      "supportedParameters": [
+        "max_tokens"
+      ]
+    },
+    "vertex_ai/claude-fable-5": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Fable 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00001,
+        "outputCostPerToken": 0.00005,
+        "cacheCreationCostPerToken": 0.0000125,
+        "cacheReadCostPerToken": 0.000001
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "vertex_ai/claude-fable-5@default": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Fable 5@default",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00001,
+        "outputCostPerToken": 0.00005,
+        "cacheCreationCostPerToken": 0.0000125,
+        "cacheReadCostPerToken": 0.000001
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
       }
     }
   }
