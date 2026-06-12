@@ -101,6 +101,7 @@ npx @agentmark-ai/cli pull-models [options]
 |---|---|
 | `--provider <name>` | Provider key (skips the interactive picker) |
 | `--models <csv>` | Comma-separated model IDs to add (skips the interactive multi-select) |
+| `--list` | Print available providers (or models for --provider <name>) as JSON and exit — no agentmark.json changes |
 
 ---
 
