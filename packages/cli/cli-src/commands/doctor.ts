@@ -119,16 +119,27 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
   const env = opts.env ?? process.env;
   const nodeVersion = opts.nodeVersion ?? process.versions.node;
   const checkPythonDeps = opts.checkPythonDeps ?? (() => {
-    const res = spawnSync("pip", ["show", "agentmark-prompt-core", "agentmark-sdk"], {
-      encoding: "utf8",
-      timeout: 10_000,
-    });
-    if (res.error) return null;
-    const stdout = res.stdout ?? "";
-    const missing = ["agentmark-prompt-core", "agentmark-sdk"].filter(
-      (pkg) => !stdout.includes(`Name: ${pkg}`)
-    );
-    return { missing };
+    const pipCandidates = [
+      "pip",
+      "pip3",
+      process.platform === "win32"
+        ? path.join(cwd, ".venv", "Scripts", "pip")
+        : path.join(cwd, ".venv", "bin", "pip"),
+    ];
+    for (const pip of pipCandidates) {
+      const res = spawnSync(pip, ["show", "agentmark-prompt-core", "agentmark-sdk"], {
+        encoding: "utf8",
+        timeout: 10_000,
+      });
+      if (!res.error) {
+        const stdout = res.stdout ?? "";
+        const missing = ["agentmark-prompt-core", "agentmark-sdk"].filter(
+          (pkg) => !stdout.includes(`Name: ${pkg}`)
+        );
+        return { missing };
+      }
+    }
+    return null;
   });
   const results: CheckResult[] = [];
   const add = (r: CheckResult) => results.push(r);
@@ -491,8 +502,8 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
         group: GROUP.deps,
         title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)",
         status: "skip",
-        detail: "pip not found on PATH — cannot verify packages are installed",
-        fix: "Ensure pip is on your PATH, then re-run to confirm agentmark-prompt-core and agentmark-sdk are installed.",
+        detail: "pip not found on PATH (tried pip, pip3, .venv/bin/pip) — cannot verify packages are installed",
+        fix: "Ensure pip or pip3 is on your PATH (or activate your venv), then re-run to confirm agentmark-prompt-core and agentmark-sdk are installed.",
       });
     } else {
       add(

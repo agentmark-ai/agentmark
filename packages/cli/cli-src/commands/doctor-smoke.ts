@@ -353,9 +353,10 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
           detail:
             "no GENERATION span found — the Requests view will show nothing and cost will show $0",
           fix:
-            "The runner now stamps gen_ai.operation.name automatically. If you are on an older version, upgrade @agentmark-ai/prompt-core (Python) or @agentmark-ai/sdk. " +
-            "If you use a custom executor, ensure you call span.set_attribute('gen_ai.operation.name', 'chat') and span.set_attribute('agentmark.span.kind', 'llm') " +
-            "on ctx.extra['span'] (Python) or ctx.extra.span (TS) after your model call.",
+            "Upgrade your AgentMark package — 0.11.0+ stamps gen_ai.operation.name automatically on every run: " +
+            "pip install 'agentmark-prompt-core>=0.11.0' (Python) or npm install @agentmark-ai/sdk@latest (TypeScript). " +
+            "If you use a custom executor, set span.set_attribute('gen_ai.operation.name', 'chat') and " +
+            "span.set_attribute('agentmark.span.kind', 'llm') on ctx.extra['span'] (Python) / ctx.extra.span (TS) after your model call.",
         },
   );
 
