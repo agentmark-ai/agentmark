@@ -1,4 +1,5 @@
 import fs from "fs-extra";
+import os from "os";
 import path from "path";
 import prompts from "prompts";
 import { pathToFileURL, fileURLToPath } from "url";
@@ -47,7 +48,7 @@ export interface CliArgs {
   help?: boolean;
 }
 
-export const ALL_CLIENTS: readonly McpClient[] = ["claude-code", "cursor", "vscode", "zed"];
+export const ALL_CLIENTS: readonly McpClient[] = ["claude-code", "codex", "cursor", "vscode", "zed"];
 
 export const AGENTMARK_JSON: Record<string, unknown> = {
   $schema:
@@ -101,7 +102,8 @@ export const clientLabel = (id: string): string =>
     : id === "zed" ? "Zed"
       : id === "cursor" ? "Cursor"
         : id === "claude-code" ? "Claude Code"
-          : id;
+          : id === "codex" ? "Codex"
+            : id;
 
 /**
  * The folder the interactive prompt would offer as its default: "." when
@@ -146,14 +148,73 @@ export const resolveTargetPath = async (
 };
 
 /**
- * Resolves which IDE clients to wire MCP into. All 4 are pre-selected on
- * the prompt so the typical "I use everything" case is one keystroke
- * (Enter). Empty selection is equivalent to the old "Skip" option — the
- * caller just writes nothing.
+ * Detects which IDE clients the user has installed or is actively running.
+ *
+ * Detection order (matches the vercel-labs/skills CLI approach):
+ *   1. Home dir — which editors are *installed* (`~/.claude`, `~/.cursor`,
+ *      Zed config dir). Most reliable; works for greenfield projects too.
+ *   2. Env vars — detect the *current* editor session. VS Code has no
+ *      canonical home-dir marker, so env vars are the right signal for it.
+ *      Cursor-specific vars are checked before VS Code vars because Cursor
+ *      inherits `VSCODE_PID`/`TERM_PROGRAM=vscode`.
+ *   3. Project dir — already-wired editors in this specific repo (fallback
+ *      when steps 1–2 return nothing, e.g. in a fully offline environment
+ *      with a pre-existing project).
+ *
+ * Returns an empty array when nothing can be inferred — callers treat that
+ * as "no default; let the user choose explicitly."
+ *
+ * `homedir` is injectable for tests (defaults to `os.homedir()`).
+ */
+export const detectCurrentClients = (
+  targetPath: string,
+  homedir: string = os.homedir(),
+): McpClient[] => {
+  const detected = new Set<McpClient>();
+
+  // 1. Home dir: editors with a known config location
+  if (fs.existsSync(path.join(homedir, ".claude"))) detected.add("claude-code");
+  if (fs.existsSync(path.join(homedir, ".codex"))) detected.add("codex");
+  if (fs.existsSync(path.join(homedir, ".cursor"))) detected.add("cursor");
+  // Zed uses platform-specific config dirs; check the two common ones
+  if (
+    fs.existsSync(path.join(homedir, ".config", "zed")) ||
+    fs.existsSync(path.join(homedir, "Library", "Application Support", "zed"))
+  ) detected.add("zed");
+
+  // 2. Env vars: detect active editor session (VS Code has no home-dir marker)
+  if (process.env["CURSOR_TRACE_ID"] ?? process.env["CURSOR_CHANNEL"]) {
+    detected.add("cursor");
+  } else if (process.env["VSCODE_PID"] ?? process.env["TERM_PROGRAM"] === "vscode") {
+    detected.add("vscode");
+  }
+
+  if (detected.size > 0) return [...detected];
+
+  // 3. Project dir fallback: editors already wired in this repo
+  if (fs.existsSync(path.join(targetPath, ".vscode"))) detected.add("vscode");
+  if (fs.existsSync(path.join(targetPath, ".codex"))) detected.add("codex");
+  if (fs.existsSync(path.join(targetPath, ".cursor"))) detected.add("cursor");
+  if (fs.existsSync(path.join(targetPath, ".zed"))) detected.add("zed");
+  if (
+    fs.existsSync(path.join(targetPath, ".mcp.json")) ||
+    fs.existsSync(path.join(targetPath, ".claude"))
+  ) detected.add("claude-code");
+
+  return [...detected];
+};
+
+/**
+ * Resolves which IDE clients to wire MCP into. The prompt pre-selects
+ * clients already detected in the project (or the running editor via env
+ * vars); if nothing is detected the list starts with nothing selected so
+ * the user makes an explicit choice. Empty selection skips MCP wiring
+ * entirely.
  */
 export const resolveClients = async (
   cliClients: McpClient[] | undefined,
   yes?: boolean,
+  targetPath?: string,
 ): Promise<McpClient[]> => {
   if (cliClients && cliClients.length > 0) {
     for (const c of cliClients) {
@@ -163,8 +224,10 @@ export const resolveClients = async (
     }
     return cliClients;
   }
-  // --yes mirrors the interactive default: all clients pre-selected.
+  // --yes is the non-interactive/CI/agent path: wire everything so headless
+  // onboarding never silently skips an editor the agent expects to use.
   if (yes) return [...ALL_CLIENTS];
+  const defaultSelected = targetPath ? detectCurrentClients(targetPath) : [];
   const response = await prompts({
     name: "clients",
     type: "multiselect",
@@ -174,7 +237,7 @@ export const resolveClients = async (
     choices: ALL_CLIENTS.map((id) => ({
       title: clientLabel(id),
       value: id,
-      selected: true,
+      selected: defaultSelected.includes(id),
     })),
   });
   return (response.clients ?? []) as McpClient[];
@@ -246,7 +309,7 @@ export const main = async (): Promise<void> => {
   const { targetPath } = target;
 
   const projectInfo = detectProjectInfo(targetPath);
-  const clients = await resolveClients(cliArgs.clients, cliArgs.yes);
+  const clients = await resolveClients(cliArgs.clients, cliArgs.yes, targetPath);
 
   console.log("");
 

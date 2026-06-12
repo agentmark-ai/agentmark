@@ -45,7 +45,7 @@
 import fs from "fs-extra";
 import * as path from "path";
 
-export type McpClient = "vscode" | "zed" | "cursor" | "claude-code" | "skip";
+export type McpClient = "vscode" | "zed" | "cursor" | "claude-code" | "codex" | "skip";
 
 /** URL the cloud-pointing `agentmark` MCP entry talks to by default. */
 const CLOUD_API_URL = "https://api.agentmark.co";
@@ -55,6 +55,9 @@ const LOCAL_DEV_URL = "http://localhost:9418";
 
 /** The npm package id of the stdio MCP server (used for both entries). */
 const MCP_SERVER_PACKAGE = "@agentmark-ai/mcp-server";
+
+/** Docs MCP endpoint (remote HTTP, used across all clients). */
+const DOCS_ENTRY_URL = "https://docs.agentmark.co/mcp";
 
 interface StdioServerEntry {
   command: string;
@@ -174,6 +177,35 @@ export function writeMcpConfig(
       },
     };
     fs.writeJsonSync(configPath, config, { spaces: 2 });
+    return { configPath };
+  }
+
+  if (client === "codex") {
+    const codexDir = path.join(targetPath, ".codex");
+    fs.ensureDirSync(codexDir);
+    const configPath = path.join(codexDir, "config.toml");
+    // Codex uses TOML with an untagged transport enum: presence of `url`
+    // selects StreamableHttp; presence of `command` selects Stdio. No
+    // explicit `type` field is written.
+    const cloudEnv = cloudUrl !== CLOUD_API_URL
+      ? `\nenv = { AGENTMARK_API_URL = "${cloudUrl}" }`
+      : "";
+    const toml = [
+      "# AgentMark MCP servers — managed by create-agentmark",
+      "[mcp_servers.agentmark-docs]",
+      `url = "${DOCS_ENTRY_URL}"`,
+      "",
+      "[mcp_servers.agentmark]",
+      `command = "npx"`,
+      `args = ["-y", "${MCP_SERVER_PACKAGE}"]${cloudEnv}`,
+      "",
+      "[mcp_servers.agentmark-local]",
+      `command = "npx"`,
+      `args = ["-y", "${MCP_SERVER_PACKAGE}"]`,
+      `env = { AGENTMARK_API_URL = "${LOCAL_DEV_URL}" }`,
+      "",
+    ].join("\n");
+    fs.writeFileSync(configPath, toml, "utf8");
     return { configPath };
   }
 
