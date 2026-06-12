@@ -2,7 +2,7 @@ import path from "path";
 import { getProviders } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
-import { loadAgentmarkConfig } from "../utils/project";
+import { detectProjectLanguage, loadAgentmarkConfig } from "../utils/project";
 
 export interface PullModelsOptions {
   /**
@@ -85,17 +85,44 @@ const pullModels = async (options: PullModelsOptions = {}) => {
       .split(",")
       .map((m) => m.trim())
       .filter((m) => m.length > 0);
-    const knownValues = new Set(modelChoices.map((m) => m.value));
-    const unknown = requested.filter((m) => !knownValues.has(m));
-    if (unknown.length > 0) {
-      throw new Error(
-        `Unknown or already-added models for provider "${provider}": ${unknown.join(", ")}`,
-      );
-    }
     if (requested.length === 0) {
       throw new Error("--models was empty after parsing. Pass a comma-separated list.");
     }
-    models = requested;
+    // Registry model IDs are provider-prefixed (`anthropic/claude-opus-4-8`).
+    // With an explicit `--provider` the prefix is redundant, so accept the
+    // leaf name too by resolving it against the chosen provider.
+    const resolveRequested = (m: string): string =>
+      m.includes("/") ? m : `${provider}/${m}`;
+    const addable = new Set(modelChoices.map((m) => m.value));
+    const allProviderModels = new Set(allModels.map((m) => m.value));
+    const resolved: string[] = [];
+    const alreadyAdded: string[] = [];
+    const unknown: string[] = [];
+    for (const m of requested) {
+      const id = resolveRequested(m);
+      if (addable.has(id)) resolved.push(id);
+      else if (allProviderModels.has(id)) alreadyAdded.push(id);
+      else unknown.push(m);
+    }
+    if (unknown.length > 0) {
+      const sample = allModels[0]?.value ?? `${provider}/<model>`;
+      throw new Error(
+        `Unknown models for provider "${provider}": ${unknown.join(", ")}.\n` +
+          `Model IDs are provider-prefixed (e.g. "${sample}"); with --provider ${provider} ` +
+          `the leaf name (e.g. "${sample.split("/").slice(1).join("/")}") also works.\n` +
+          `Run \`npx @agentmark-ai/cli pull-models --provider ${provider}\` without --models to list what's available.`,
+      );
+    }
+    if (alreadyAdded.length > 0) {
+      // Idempotent for CI: re-requesting a model that's already in
+      // builtInModels is a no-op, not an error.
+      console.log(`Already in builtInModels (skipped): ${alreadyAdded.join(", ")}`);
+    }
+    if (resolved.length === 0) {
+      console.log("All requested models already added.");
+      return;
+    }
+    models = [...new Set(resolved)];
   } else {
     const picked = await prompts({
       name: "models",
@@ -118,23 +145,33 @@ const pullModels = async (options: PullModelsOptions = {}) => {
   if (selectedProviders.size > 0) {
     const providerList = Array.from(selectedProviders);
 
-    // The hint assumes `@ai-sdk/*` providers — correct for the Vercel AI SDK
-    // adapters (the default) AND Mastra (whose model registry consumes the
-    // same providers). This used to branch on an `agentmark.json#adapter`
-    // field, but nothing else in the ecosystem reads or writes that field
-    // and the schema (additionalProperties: false) rejected it anyway —
-    // adapter selection lives in the IDE-skill integration flow, not here.
     console.log("\n📦 Provider setup reminder:");
-    console.log(
-      "Make sure these providers are registered in your model registry:\n"
-    );
+    if (detectProjectLanguage(process.cwd()) === "python") {
+      // Python projects have no `@ai-sdk/*` packages or `.registerProviders`
+      // — the executor owns the model mapping. Point there instead of
+      // printing TypeScript imports that mean nothing in this project.
+      console.log(
+        "Make sure your executor handles models from: " +
+          providerList.join(", ") +
+          "\nYour executor maps each prompt's model_name to your SDK's model ID — see\n" +
+          "https://docs.agentmark.co/integrations/bring-your-own-sdk\n"
+      );
+    } else {
+      // The hint assumes `@ai-sdk/*` providers — correct for Vercel AI SDK
+      // and Mastra setups, whose model registries consume those provider
+      // packages. Executor-based setups map models inside the executor and
+      // get the neutral hint above instead.
+      console.log(
+        "Make sure these providers are registered in your model registry:\n"
+      );
 
-    for (const provider of providerList) {
-      console.log(`  import { ${provider} } from "@ai-sdk/${provider}";`);
+      for (const provider of providerList) {
+        console.log(`  import { ${provider} } from "@ai-sdk/${provider}";`);
+      }
+
+      const providerObj = providerList.map((p) => p).join(", ");
+      console.log(`\n  .registerProviders({ ${providerObj} })\n`);
     }
-
-    const providerObj = providerList.map((p) => p).join(", ");
-    console.log(`\n  .registerProviders({ ${providerObj} })\n`);
   }
 
   agentmarkConfig["builtInModels"] = [

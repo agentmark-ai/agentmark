@@ -398,7 +398,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
             title: "prompt models declared in builtInModels",
             status: "warn",
             detail: "builtInModels is empty: no allowlist enforcement and no IDE autocomplete for model_name",
-            fix: "Run `agentmark pull-models` to populate builtInModels, then `agentmark generate-schema`.",
+            fix: "Run `npx @agentmark-ai/cli pull-models` to populate builtInModels, then `npx @agentmark-ai/cli generate-schema`.",
           });
         } else {
           const notDeclared = [...usedModels].filter((m) => !builtIn.includes(m));
@@ -411,7 +411,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
                   title: "prompt models declared in builtInModels",
                   status: "warn",
                   detail: `not in builtInModels: ${notDeclared.join(", ")}. builtInModels is non-empty, so prompt-core enforces it as an allowlist and rejects these prompts at runtime`,
-                  fix: "Add them to builtInModels (or run `agentmark pull-models`), then `agentmark generate-schema`.",
+                  fix: "Add them to builtInModels (or run `npx @agentmark-ai/cli pull-models`), then `npx @agentmark-ai/cli generate-schema`.",
                 }
           );
         }
@@ -433,7 +433,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
               title: "builtInModels recognized by the model catalog",
               status: "warn",
               detail: `not in AgentMark's model catalog: ${unknownModels.join(", ")} (a typo, or a very new model)`,
-              fix: "Double-check the name, or run `agentmark pull-models` to add a known model.",
+              fix: "Double-check the name, or run `npx @agentmark-ai/cli pull-models` to add a known model.",
             }
       );
     } catch {
@@ -557,7 +557,7 @@ const doctor = async (options: DoctorOptions = {}): Promise<void> => {
           title: "dev server booted",
           status: "fail",
           detail: (err as Error).message,
-          fix: "Start it yourself with `agentmark dev` in another terminal and re-run `agentmark doctor --smoke` (without --boot), or fix the startup error reported above.",
+          fix: "Start it yourself with `npx @agentmark-ai/cli dev` in another terminal and re-run `npx @agentmark-ai/cli doctor --smoke` (without --boot), or fix the startup error reported above.",
         });
         report.counts.fail++;
       }

@@ -19,7 +19,7 @@ import {
   resolveDevEntry,
   devEntryNotFoundMessages,
 } from "../utils/setup-files";
-import { buildAdapterEnv, buildPythonDevEnv, hasCloudCreds } from "./dev-env";
+import { buildDevServerEnv, buildPythonDevEnv, hasCloudCreds } from "./dev-env";
 
 function getSafeCwd(): string {
   try { return process.cwd(); } catch { return process.env.PWD || process.env.INIT_CWD || '.'; }
@@ -113,15 +113,15 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
   let isShuttingDown = false;
 
   // `agentmark dev` is a LOCAL development server: it serves prompts and datasets
-  // from the API server it starts on `apiPort`. Keep the spawned adapter pointed
+  // from the API server it starts on `apiPort`. Keep the spawned dev server pointed
   // there (see ./dev-env) — a project with cloud creds in its env would otherwise
   // load *deployed* data from api.agentmark.co and silently bypass local files.
-  const adapterEnv = buildAdapterEnv(process.env, apiPort);
+  const devServerEnv = buildDevServerEnv(process.env, apiPort);
   if (hasCloudCreds(process.env)) {
     console.log(
-      'ℹ️  Detected AGENTMARK_API_KEY/APP_ID in your environment — running the adapter in ' +
+      'ℹ️  Detected AGENTMARK_API_KEY/APP_ID in your environment — running the dev server in ' +
       'local mode so it loads your local prompts/datasets, not deployed copies. ' +
-      'Forwarding traces to cloud still works via `agentmark dev` + `agentmark link` ' +
+      'Forwarding traces to cloud still works via `npx @agentmark-ai/cli dev` + `link` ' +
       '(disable with --no-forward).'
     );
   }
@@ -139,14 +139,14 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       stdio: 'inherit',
       cwd,
       // sys.path + bytecode-cache fixes live in buildPythonDevEnv — see its doc.
-      env: buildPythonDevEnv(adapterEnv, cwd),
+      env: buildPythonDevEnv(devServerEnv, cwd),
     });
   } else {
     const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
     webhookServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`], {
       stdio: 'inherit',
       cwd,
-      env: adapterEnv,
+      env: devServerEnv,
     });
   }
 
@@ -241,7 +241,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
       }
 
       if (forwardingConfig && isKeyExpired(forwardingConfig)) {
-        console.log('⚠️  Dev API key expired. Run `agentmark link` to refresh.\n');
+        console.log('⚠️  Dev API key expired. Run `npx @agentmark-ai/cli link` to refresh.\n');
         forwardingStatus = 'expired';
       } else if (forwardingConfig?.expiresAt) {
         const expiryDate = new Date(forwardingConfig.expiresAt);
@@ -272,10 +272,10 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
                 forwardingConfig = loadForwardingConfig()!;
                 console.log('✓ Dev API key refreshed\n');
               } else {
-                console.log('⚠️  Failed to refresh key automatically. Run `agentmark link` to refresh.\n');
+                console.log('⚠️  Failed to refresh key automatically. Run `npx @agentmark-ai/cli link` to refresh.\n');
               }
             } catch {
-              console.log('⚠️  Failed to refresh key automatically. Run `agentmark link` to refresh.\n');
+              console.log('⚠️  Failed to refresh key automatically. Run `npx @agentmark-ai/cli link` to refresh.\n');
             }
           }
         }
@@ -307,7 +307,7 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
               console.warn(
                 `\n⚠️  Trace forwarding is configured for ${probeUrl}, but that endpoint is not reachable.` +
                 `\n   Traces will buffer locally and never arrive. If this config is stale (an old linked` +
-                `\n   app or leftover test data in .agentmark/dev-config.json), re-run \`agentmark link\`` +
+                `\n   app or leftover test data in .agentmark/dev-config.json), re-run \`npx @agentmark-ai/cli link\`` +
                 `\n   — or start with --no-forward.\n`
               );
             }
@@ -334,9 +334,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     } else if (forwardingStatus === 'disabled') {
       console.log(`\n  Forwarding:    ○ Disabled (--no-forward)`);
     } else if (forwardingStatus === 'expired') {
-      console.log(`\n  Forwarding:    ⚠️  Expired (run 'agentmark link' to refresh)`);
+      console.log(`\n  Forwarding:    ⚠️  Expired (run 'npx @agentmark-ai/cli link' to refresh)`);
     } else {
-      console.log(`\n  Forwarding:    ○ Not linked (run 'agentmark link')`);
+      console.log(`\n  Forwarding:    ○ Not linked (run 'npx @agentmark-ai/cli link')`);
     }
 
     console.log('\n' + '─'.repeat(70));
@@ -344,9 +344,9 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     console.log('─'.repeat(70));
     console.log('\n  Open a new terminal window and run:');
     console.log('\n  Run a prompt:');
-    console.log('  $ npx agentmark run-prompt ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx @agentmark-ai/cli run-prompt ./agentmark/party-planner.prompt.mdx');
     console.log('\n  Run an experiment:');
-    console.log('  $ npx agentmark run-experiment ./agentmark/party-planner.prompt.mdx');
+    console.log('  $ npx @agentmark-ai/cli run-experiment ./agentmark/party-planner.prompt.mdx');
     console.log('\n  (Replace with any prompt file in ./agentmark/)');
 
     console.log('\n' + '═'.repeat(70));

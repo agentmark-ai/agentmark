@@ -1,0 +1,25 @@
+{
+  "description": "HTTP layer of the LOCAL dev webhook servers — the contract `run-prompt` / `run-experiment` / the dashboard consume, pinned identically for TS (`createWebhookServer` serving `handleWebhookRequest`, cli/runner-server.ts + prompt-core/src/webhook-dispatch.ts) and Python (`serve_webhook_runner`, prompt_core/serve_webhook_runner.py). The managed deploy servers (apps/builder server-generator.ts + python-server-generator.ts) already conform; this vector exists so the local servers can't drift from them or from each other. `streamHeaders` are REQUIRED on every streaming response regardless of what the runner supplies (runners only set the AgentMark-Streaming marker; servers must default Content-Type — clients gate on AgentMark-Streaming and parse NDJSON lines). The `done` event is appended by the SERVER after the runner's stream drains, exactly when the dispatch result carries a truthy traceId — it is not part of the runner's own stream in either language. Error responses are a non-2xx status with a JSON object whose `message` key carries the human-readable error. Changing any value here is a wire-format break for CLI/dashboard clients: semver-major.",
+  "streamResponse": {
+    "requiredHeaders": {
+      "AgentMark-Streaming": "true",
+      "Content-Type": "application/x-ndjson"
+    },
+    "doneEvent": {
+      "appendedWhenResultHasTraceId": true,
+      "omittedWithoutTraceId": true,
+      "shape": { "type": "done", "traceId": "<the dispatch result's traceId>" }
+    }
+  },
+  "jsonResponse": {
+    "status": 200
+  },
+  "errorResponse": {
+    "bodyKey": "message",
+    "statuses": {
+      "unknownJobType": 400,
+      "malformedRequestBody": 400,
+      "executionFailure": 500
+    }
+  }
+}

@@ -230,7 +230,15 @@ export async function handleWebhookRequest(
         return {
           type: 'stream',
           stream: response.stream,
-          headers: response.streamHeader || { 'AgentMark-Streaming': 'true' },
+          // Merge defaults UNDER runner-supplied headers: runners only set the
+          // AgentMark-Streaming marker, so without the merge the local dev
+          // server ships streams with no Content-Type — unlike the managed
+          // servers, which always send application/x-ndjson. Pinned by
+          // conformance-vectors/webhook-http.json on both languages.
+          headers: Object.assign(
+            { 'Content-Type': 'application/x-ndjson', 'AgentMark-Streaming': 'true' },
+            response.streamHeader,
+          ),
           traceId: response.traceId
         };
       }
@@ -275,7 +283,11 @@ export async function handleWebhookRequest(
         return {
           type: 'stream',
           stream: response.stream,
-          headers: response.streamHeaders || { 'AgentMark-Streaming': 'true' }
+          // Same default-merge as prompt-run above (webhook-http.json).
+          headers: Object.assign(
+            { 'Content-Type': 'application/x-ndjson', 'AgentMark-Streaming': 'true' },
+            response.streamHeaders,
+          )
         };
       }
 

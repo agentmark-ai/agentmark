@@ -395,7 +395,7 @@ describe('TraceForwarder', () => {
       await vi.runAllTimersAsync();
 
       expect(consoleMock.error).toHaveBeenCalledWith(
-        "[trace-forward] ✗ Auth expired. Run 'agentmark login' to re-authenticate."
+        "[trace-forward] ✗ Auth expired. Run 'npx @agentmark-ai/cli login' to re-authenticate."
       );
 
       const stats = forwarder.getStats();

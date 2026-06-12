@@ -5,7 +5,7 @@
 
 # AgentMark CLI commands
 
-> Reference for `@agentmark-ai/cli@0.15.0`. Always prefer `npx agentmark <cmd> --help` for the most current flag set.
+> Reference for `@agentmark-ai/cli@0.15.0`. Always prefer `npx @agentmark-ai/cli <cmd> --help` for the most current flag set.
 
 ## Command index
 
@@ -28,7 +28,7 @@
 Check that your AgentMark project is set up correctly (config, prompts, client, dependencies)
 
 ```bash
-npx agentmark doctor [options]
+npx @agentmark-ai/cli doctor [options]
 ```
 
 | Flag | Description |
@@ -48,7 +48,7 @@ npx agentmark doctor [options]
 Start development servers (API server + webhook + UI app)
 
 ```bash
-npx agentmark dev [options]
+npx @agentmark-ai/cli dev [options]
 ```
 
 | Flag | Description |
@@ -64,7 +64,7 @@ npx agentmark dev [options]
 ## `agentmark generate-types`
 
 ```bash
-npx agentmark generate-types [options]
+npx @agentmark-ai/cli generate-types [options]
 ```
 
 | Flag | Description |
@@ -80,7 +80,7 @@ npx agentmark generate-types [options]
 Generate JSON Schema for .prompt.mdx frontmatter (enables IDE squiggles for model_name)
 
 ```bash
-npx agentmark generate-schema [options]
+npx @agentmark-ai/cli generate-schema [options]
 ```
 
 | Flag | Description |
@@ -94,7 +94,7 @@ npx agentmark generate-schema [options]
 Pull models from a provider
 
 ```bash
-npx agentmark pull-models [options]
+npx @agentmark-ai/cli pull-models [options]
 ```
 
 | Flag | Description |
@@ -109,7 +109,7 @@ npx agentmark pull-models [options]
 Run a prompt with test props
 
 ```bash
-npx agentmark run-prompt <filepath> [options]
+npx @agentmark-ai/cli run-prompt <filepath> [options]
 ```
 
 | Flag | Description |
@@ -125,7 +125,7 @@ npx agentmark run-prompt <filepath> [options]
 Run an experiment against its dataset, with evals by default
 
 ```bash
-npx agentmark run-experiment <filepath> [options]
+npx @agentmark-ai/cli run-experiment <filepath> [options]
 ```
 
 | Flag | Description |
@@ -149,7 +149,7 @@ npx agentmark run-experiment <filepath> [options]
 Build prompts and datasets into pre-compiled JSON files for static loading
 
 ```bash
-npx agentmark build [options]
+npx @agentmark-ai/cli build [options]
 ```
 
 | Flag | Description |
@@ -163,7 +163,7 @@ npx agentmark build [options]
 Authenticate with the AgentMark platform
 
 ```bash
-npx agentmark login [options]
+npx @agentmark-ai/cli login [options]
 ```
 
 | Flag | Description |
@@ -180,7 +180,7 @@ npx agentmark login [options]
 Clear CLI authentication and revoke dev API keys
 
 ```bash
-npx agentmark logout [options]
+npx @agentmark-ai/cli logout [options]
 ```
 
 | Flag | Description |
@@ -195,7 +195,7 @@ npx agentmark logout [options]
 Link current project to a platform app for trace forwarding
 
 ```bash
-npx agentmark link [options]
+npx @agentmark-ai/cli link [options]
 ```
 
 | Flag | Description |

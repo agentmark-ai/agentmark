@@ -8,13 +8,13 @@ If the user wants to *provision a Cloud app and connect git* without touching lo
 
 This file describes the **shape** of the conversation and the **order** of operations — nothing else. Framework-specific paths, package names, CLI flags, `agentmarkPath` conventions, and every other piece of integration content live in **one place**: `https://docs.agentmark.co`, queryable via the docs MCP server (`https://docs.agentmark.co/mcp`) or by appending `.md` to any docs URL and using `WebFetch`.
 
-**Never encode integration content into this workflow.** When you need to know where a Next.js project's client file goes, what package to install for Pydantic AI, or what flag `agentmark run-prompt` takes — query the docs MCP, or run `npx agentmark <cmd> --help`. If two sources disagree, the docs win. This is the same rule SKILL.md establishes in [How to find current information](../SKILL.md#how-to-find-current-information); a setup workflow is no exception.
+**Never encode integration content into this workflow.** When you need to know where a Next.js project's client file goes, what package to install for Pydantic AI, or what flag `agentmark run-prompt` takes — query the docs MCP, or run `npx @agentmark-ai/cli <cmd> --help`. If two sources disagree, the docs win. This is the same rule SKILL.md establishes in [How to find current information](../SKILL.md#how-to-find-current-information); a setup workflow is no exception.
 
 If the docs MCP isn't responding, or doesn't cover the user's framework, **stop and tell the user**. Do not invent paths or package names from memory. The right escalation is "the docs don't cover this framework — want me to set it up using the closest covered pattern (X), or hold while we add docs for your stack?"
 
 ## Before you start — `doctor` is your setup checklist
 
-**Whenever a user wants to set up AgentMark — a fresh `npm create agentmark` scaffold *or* an existing repo — run `npx agentmark doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 6.)
+**Whenever a user wants to set up AgentMark — a fresh `npm create agentmark` scaffold *or* an existing repo — run `npx @agentmark-ai/cli doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 6.)
 
 Then confirm the CLI handoff actually happened — if any are missing, the user skipped `npm create agentmark`:
 
@@ -22,7 +22,7 @@ Then confirm the CLI handoff actually happened — if any are missing, the user 
 - [ ] `agentmark/` directory exists (the CLI creates it empty, with a `.gitkeep`); `agentmarkPath` in `agentmark.json` resolves the prompt-root to `<agentmarkPath>/agentmark`
 - [ ] At least one MCP config file exists (`.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, or `.zed/settings.json`) and lists **both** the `agentmark` (Cloud) server and the `agentmark-docs` (docs MCP) server
 - [ ] Your MCP client lists tools from `agentmark-docs` (required — this workflow defers all integration content to it) and from `agentmark` (needed only for the optional Cloud step)
-- [ ] *(Cloud features only)* Cloud auth resolves — `~/.agentmark/auth.json` exists OR `AGENTMARK_API_KEY` is set. **Do not block local setup on this**: installing packages, writing the client and prompt files, and running `npx agentmark dev` need no cloud auth at all. If auth is missing, proceed local-first and treat Cloud linking as the deferred final step.
+- [ ] *(Cloud features only)* Cloud auth resolves — `~/.agentmark/auth.json` exists OR `AGENTMARK_API_KEY` is set. **Do not block local setup on this**: installing packages, writing the client and prompt files, and running `npx @agentmark-ai/cli dev` need no cloud auth at all. If auth is missing, proceed local-first and treat Cloud linking as the deferred final step.
 
 If any are missing, tell the user to run `npm create agentmark` first. Do not recreate those files from this workflow — that is the CLI's job, and duplicating it here is how the two paths drift apart.
 
@@ -92,7 +92,7 @@ One prompt only, named after the host's primary use case. Use the minimum viable
 
 ## Step 6 — Smoke test (local — no cloud auth needed)
 
-Verify the scaffold before handing back. Run `npx agentmark doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx agentmark doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK/adapter mismatch, or unwired tracing. Exact commands and flags via `npx agentmark <cmd> --help`. **Do not encode CLI surface in this workflow.** If anything fails, fix it (doctor names the fix) before handing back to the user.
+Verify the scaffold before handing back. Run `npx @agentmark-ai/cli doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx @agentmark-ai/cli doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK mismatch, or unwired tracing. Exact commands and flags via `npx @agentmark-ai/cli <cmd> --help`. **Do not encode CLI surface in this workflow.** If anything fails, fix it (doctor names the fix) before handing back to the user.
 
 ## Step 7 — Provision the Cloud app (optional, Cloud mode only)
 

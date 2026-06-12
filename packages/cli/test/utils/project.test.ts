@@ -52,6 +52,32 @@ describe('detectProjectLanguage', () => {
   it('detects python via .agentmark/dev_server.py', () => {
     expect(detectProjectLanguage(mkProject({ '.agentmark/dev_server.py': '' }))).toBe('python');
   });
+  it('detects python via a root dev_server.py (custom dev entry)', () => {
+    expect(detectProjectLanguage(mkProject({ 'dev_server.py': '' }))).toBe('python');
+  });
+  it('detects python via requirements.txt before any client file exists', () => {
+    // First-contact onboarding: a pip project has no pyproject.toml and no
+    // AgentMark files yet — doctor must still give Python guidance, not
+    // "agentmark.client.ts missing".
+    expect(detectProjectLanguage(mkProject({ 'requirements.txt': 'openai\n' }))).toBe('python');
+  });
+  it('detects python via setup.py', () => {
+    expect(detectProjectLanguage(mkProject({ 'setup.py': '' }))).toBe('python');
+  });
+  it('an explicit agentmark.client.ts wins over a stray requirements.txt', () => {
+    expect(
+      detectProjectLanguage(
+        mkProject({ 'agentmark.client.ts': '', 'requirements.txt': 'some-tooling\n' }),
+      ),
+    ).toBe('typescript');
+  });
+  it('an explicit agentmark_client.py wins over agentmark.client.ts', () => {
+    expect(
+      detectProjectLanguage(
+        mkProject({ 'agentmark_client.py': '', 'agentmark.client.ts': '' }),
+      ),
+    ).toBe('python');
+  });
 });
 
 describe('readAgentmarkConfig / loadAgentmarkConfig', () => {

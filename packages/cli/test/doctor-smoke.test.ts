@@ -206,7 +206,7 @@ describe('runSmoke', () => {
     expect(results).toHaveLength(1); // returns early — later checks can't be meaningful
     expect(statusOf(results, 'smoke.run')).toBe('fail');
     expect(detailOf(results, 'smoke.run')).toContain('could not reach the dev server');
-    expect(results[0].fix).toContain('agentmark dev');
+    expect(results[0].fix).toContain('npx @agentmark-ai/cli dev');
   });
 
   it('fails the run when the server responds but reports no token usage', async () => {

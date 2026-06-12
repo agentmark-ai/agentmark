@@ -154,7 +154,7 @@ export class TraceForwarder {
       // Stop forwarding on 401 (auth failure)
       if (result.status === 401) {
         console.error(
-          '[trace-forward] ✗ Auth expired. Run \'agentmark login\' to re-authenticate.'
+          '[trace-forward] ✗ Auth expired. Run \'npx @agentmark-ai/cli login\' to re-authenticate.'
         );
         this.stop();
         return false;

@@ -2,7 +2,7 @@
  * Envelope parity test — the single strongest guard against cloud/OSS
  * divergence.
  *
- * Phase B of #2081 promises: a bad request to `npx agentmark dev`
+ * Phase B of #2081 promises: a bad request to `npx @agentmark-ai/cli dev`
  * returns the same body as the same bad request to `api.agentmark.co`.
  * Two entry points feed into the envelope — OSS's Zod-driven
  * `parseOrBadRequest` (→ `zodErrorToEnvelope`) and cloud's

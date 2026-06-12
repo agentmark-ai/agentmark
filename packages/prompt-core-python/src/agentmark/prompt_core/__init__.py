@@ -86,6 +86,7 @@ from .schemas import (
     TextConfigSchema,
     TextSettingsSchema,
 )
+from .serve_webhook_runner import serve_webhook_runner
 from .template_engines import TemplateDXTemplateEngine, get_front_matter
 from .types import (
     AdaptOptions,
@@ -155,6 +156,11 @@ __all__ = [
     "WEBHOOK_JOB_TYPES",
     # One-call webhook-runner wiring (loader/evals come from the client)
     "create_webhook_runner",
+    # HTTP serving for the dev-server entry point (`agentmark dev`). The
+    # package root exports ONLY the documented one-liner; the embeddable
+    # pieces (create_webhook_server, parse_webhook_port, …) stay on the
+    # .serve_webhook_runner submodule until something real needs them public.
+    "serve_webhook_runner",
     # Experiment runner concurrency
     "run_dataset_pool",
     "DEFAULT_EXPERIMENT_CONCURRENCY",

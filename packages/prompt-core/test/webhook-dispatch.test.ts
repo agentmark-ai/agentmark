@@ -238,13 +238,16 @@ describe('handleWebhookRequest — prompt-run', () => {
 
     expect(res.type).toBe('stream');
     expect((res as { stream: ReadableStream }).stream).toBe(stream);
-    expect((res as { headers: Record<string, string> }).headers).toEqual({ 'AgentMark-Streaming': 'true' });
+    expect((res as { headers: Record<string, string> }).headers).toEqual({
+      'Content-Type': 'application/x-ndjson',
+      'AgentMark-Streaming': 'true',
+    });
     expect((res as { traceId?: string }).traceId).toBe('trace-1');
     // shouldStream + customProps are threaded through verbatim.
     expect(handler.runPrompt).toHaveBeenCalledWith(ast, { shouldStream: true, customProps: undefined });
   });
 
-  it('streaming response with no streamHeader → falls back to the default streaming header', async () => {
+  it('streaming response with no streamHeader → falls back to the default streaming headers', async () => {
     const stream = new ReadableStream({ start(c) { c.close(); } });
     const handler: WebhookHandler = {
       runPrompt: vi.fn(async () => ({ type: 'stream', stream, traceId: 't' })) as any,
@@ -253,7 +256,10 @@ describe('handleWebhookRequest — prompt-run', () => {
 
     const res = await handleWebhookRequest({ type: 'prompt-run', data: { ast } }, handler);
 
-    expect((res as { headers: Record<string, string> }).headers).toEqual({ 'AgentMark-Streaming': 'true' });
+    expect((res as { headers: Record<string, string> }).headers).toEqual({
+      'Content-Type': 'application/x-ndjson',
+      'AgentMark-Streaming': 'true',
+    });
   });
 
   it('non-streaming response → wrapped verbatim in a json envelope (status 200)', async () => {
@@ -338,5 +344,127 @@ describe('handleWebhookRequest — request validation', () => {
     };
     const res = await handleWebhookRequest({ type: 'dataset-run', data: { ast, experimentId: 'e' } }, handler);
     expect(res).toEqual({ type: 'error', error: 'Expected stream from dataset-run', details: expect.any(String), status: 500 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HTTP wire contract (conformance-vectors/webhook-http.json)
+//
+// The dispatch's stream envelope carries the headers the local dev server
+// writes verbatim. Runners only set the AgentMark-Streaming marker, so the
+// dispatch must default Content-Type — the managed servers already send both,
+// and Python's serve_webhook_runner asserts the same vector, so neither local
+// server can drift from the cloud or from the other language.
+// ---------------------------------------------------------------------------
+describe('handleWebhookRequest — HTTP wire contract (webhook-http.json)', () => {
+  const VECTOR = loadVector('webhook-http');
+
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  const emptyStream = () =>
+    new ReadableStream({ start(controller) { controller.close(); } }) as any;
+
+  function handlerWith(overrides: Partial<WebhookHandler>): WebhookHandler {
+    return {
+      runPrompt: vi.fn(),
+      runExperiment: vi.fn(),
+      ...overrides,
+    } as WebhookHandler;
+  }
+
+  it('prompt-run streams carry the required headers even when the runner only sets the streaming marker', async () => {
+    const handler = handlerWith({
+      runPrompt: vi.fn(async () => ({
+        type: 'stream',
+        stream: emptyStream(),
+        streamHeader: { 'AgentMark-Streaming': 'true' },
+        traceId: 't-1',
+      })) as any,
+    });
+
+    const result = await handleWebhookRequest(
+      { type: 'prompt-run', data: { ast: {} } } as any,
+      handler,
+    );
+
+    expect(result.type).toBe('stream');
+    expect((result as any).headers).toEqual(VECTOR.streamResponse.requiredHeaders);
+  });
+
+  it('dataset-run streams carry the required headers', async () => {
+    const handler = handlerWith({
+      runExperiment: vi.fn(async () => ({
+        stream: emptyStream(),
+        streamHeaders: { 'AgentMark-Streaming': 'true' },
+      })) as any,
+    });
+
+    const result = await handleWebhookRequest(
+      { type: 'dataset-run', data: { ast: {}, experimentId: 'e' } } as any,
+      handler,
+    );
+
+    expect(result.type).toBe('stream');
+    expect((result as any).headers).toEqual(VECTOR.streamResponse.requiredHeaders);
+  });
+
+  it('runner-supplied stream headers survive the default merge', async () => {
+    const handler = handlerWith({
+      runPrompt: vi.fn(async () => ({
+        type: 'stream',
+        stream: emptyStream(),
+        streamHeader: { 'AgentMark-Streaming': 'true', 'X-Custom': '1' },
+      })) as any,
+    });
+
+    const result = await handleWebhookRequest(
+      { type: 'prompt-run', data: { ast: {} } } as any,
+      handler,
+    );
+
+    expect((result as any).headers).toEqual({
+      ...VECTOR.streamResponse.requiredHeaders,
+      'X-Custom': '1',
+    });
+  });
+
+  it('unknown job types map to the vector status', async () => {
+    const result = await handleWebhookRequest(
+      { type: 'bogus', data: {} } as any,
+      handlerWith({}),
+    );
+
+    expect(result.type).toBe('error');
+    expect((result as any).status).toBe(VECTOR.errorResponse.statuses.unknownJobType);
+  });
+
+  it('execution failures map to the vector status', async () => {
+    const handler = handlerWith({
+      runPrompt: vi.fn(async () => { throw new Error('provider exploded'); }) as any,
+    });
+
+    const result = await handleWebhookRequest(
+      { type: 'prompt-run', data: { ast: {} } } as any,
+      handler,
+    );
+
+    expect(result.type).toBe('error');
+    expect((result as any).status).toBe(VECTOR.errorResponse.statuses.executionFailure);
+  });
+
+  it('non-stream success maps to the vector json status', async () => {
+    const handler = handlerWith({
+      runPrompt: vi.fn(async () => ({ type: 'text', result: 'hi' })) as any,
+    });
+
+    const result = await handleWebhookRequest(
+      { type: 'prompt-run', data: { ast: {} } } as any,
+      handler,
+    );
+
+    expect(result.type).toBe('json');
+    expect((result as any).status).toBe(VECTOR.jsonResponse.status);
   });
 });

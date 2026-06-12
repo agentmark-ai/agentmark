@@ -19,7 +19,7 @@ import type { CheckResult } from "./doctor";
  * It runs one representative prompt through the already-running dev server (the
  * same webhook `run-prompt` hits), then fetches the trace that run emitted from
  * the local API server and checks its shape. A real answer with token usage
- * proves the SDK/adapter and provider credentials work; a well-formed trace
+ * proves the SDK wiring and provider credentials work; a well-formed trace
  * coming back proves tracing is wired in the right format. Both are verified
  * indirectly, so there is no per-provider map to maintain.
  *
@@ -169,7 +169,7 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
         "smoke.run",
         `prompt runs (${relPrompt})`,
         `the dev server returned HTTP ${res.status} ${res.statusText}: ${body.slice(0, 300)}`,
-        "Check the `agentmark dev` terminal for the error (often a bad provider key or an adapter/SDK mismatch).",
+        "Check the `agentmark dev` terminal for the error (often a bad provider key or an SDK mismatch).",
       );
     }
     webhook = (await res.json()) as WebhookResult;
@@ -179,7 +179,7 @@ export async function runSmoke(opts: SmokeOptions): Promise<CheckResult[]> {
         "smoke.run",
         `prompt runs (${relPrompt})`,
         `could not reach the dev server at ${webhookUrl}`,
-        "Start it in another terminal with `agentmark dev`, then re-run `agentmark doctor --smoke`.",
+        "Start it in another terminal with `npx @agentmark-ai/cli dev`, then re-run `npx @agentmark-ai/cli doctor --smoke`.",
       );
     }
     return fail("smoke.run", `prompt runs (${relPrompt})`, `request to ${webhookUrl} failed: ${(err as Error).message}`);

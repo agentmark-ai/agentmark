@@ -30,7 +30,7 @@ The wrapper block (`text_config`, `object_config`, `image_config`, or `speech_co
 The frontmatter is YAML. Required fields depend on the generation type. For the authoritative schema, generate it locally:
 
 ```bash
-npx agentmark generate-schema
+npx @agentmark-ai/cli generate-schema
 ```
 
 This writes `.agentmark/prompt.schema.json`, which gives you IDE squiggles for `model_name`, schema fields, and provider options.
@@ -82,20 +82,20 @@ For the full syntax (loops, conditionals, components), fetch `https://docs.agent
 
 ```bash
 # Run with inline props
-npx agentmark run-prompt agentmark/greeting.prompt.mdx --props '{"name":"Alice"}'
+npx @agentmark-ai/cli run-prompt agentmark/greeting.prompt.mdx --props '{"name":"Alice"}'
 
 # Run with props from a YAML or JSON file
-npx agentmark run-prompt agentmark/greeting.prompt.mdx --props-file ./test-props.yaml
+npx @agentmark-ai/cli run-prompt agentmark/greeting.prompt.mdx --props-file ./test-props.yaml
 ```
 
-For local execution, ensure `npx agentmark dev` is running in another shell. `run-prompt` posts to the **webhook server** (default `http://localhost:9417`), not the API server on 9418. Override with `--server <url>` or `AGENTMARK_WEBHOOK_URL`.
+For local execution, ensure `npx @agentmark-ai/cli dev` is running in another shell. `run-prompt` posts to the **webhook server** (default `http://localhost:9417`), not the API server on 9418. Override with `--server <url>` or `AGENTMARK_WEBHOOK_URL`.
 
 ## Generating types after authoring
 
 After adding a prompt, regenerate types so the SDK has typed inputs and outputs:
 
 ```bash
-npx agentmark generate-types --root-dir ./agentmark > agentmark.types.ts
+npx @agentmark-ai/cli generate-types --root-dir ./agentmark > agentmark.types.ts
 ```
 
 For TypeScript projects this is required before the SDK's `loadTextPrompt('greeting')` will type-check.
@@ -105,5 +105,5 @@ For TypeScript projects this is required before the SDK's `loadTextPrompt('greet
 - **Putting `model_name` at the top level of frontmatter** instead of inside `text_config` / `object_config` / `image_config` / `speech_config`. The schema rejects top-level `model_name`. Match the shape above.
 - **Putting prompts at the repo root (or anywhere outside `agentmark/`)** — the prompt-root is `<agentmarkPath>/agentmark`, so the default `agentmarkPath: "."` means prompts go in `agentmark/`, *not* the repo root. A `.prompt.mdx` at the repo root is silently ignored: `agentmark dev` won't find it, and **a git deploy will report success while materializing zero templates** (`/v1/prompts?name=…` returns no paths). Always put prompts under `agentmark/`.
 - **Using `"/"` as `agentmarkPath`** instead of `"."` — known footgun; use `"."`.
-- **Hard-coding model IDs that don't exist** — run `npx agentmark pull-models` for a current list, or fetch `https://docs.agentmark.co/configure/client-config.md`. Real examples from the docs include `gpt-5-mini`, `gpt-5`, `claude-4-sonnet-20250514`. Do not invent versions.
+- **Hard-coding model IDs that don't exist** — run `npx @agentmark-ai/cli pull-models` for a current list, or fetch `https://docs.agentmark.co/configure/client-config.md`. Real examples from the docs include `gpt-5-mini`, `gpt-5`, `claude-4-sonnet-20250514`. Do not invent versions.
 - **Forgetting to regenerate types** after adding a prompt — TypeScript will not see the new prompt path until you re-run `generate-types`.
