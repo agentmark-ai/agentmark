@@ -25,6 +25,7 @@ import {
   resolveTargetPath,
   resolveClients,
   shouldWriteAgentmarkJson,
+  detectCurrentClients,
   ALL_CLIENTS,
   USAGE,
 } from '../../src/index.js';
@@ -116,6 +117,95 @@ describe('shouldWriteAgentmarkJson with --yes', () => {
     const target = path.join(tmpDir, 'agentmark.json');
     fs.writeJsonSync(target, { existing: true });
     expect(await shouldWriteAgentmarkJson(target, true, true)).toBe(true);
+  });
+});
+
+describe('detectCurrentClients', () => {
+  // Use tmpDir/home as the fake homedir and tmpDir/project as the target.
+  // This isolates tests from the real home dir and real env vars.
+  let fakeHome: string;
+  let projectDir: string;
+
+  beforeEach(() => {
+    fakeHome = path.join(tmpDir, 'home');
+    projectDir = path.join(tmpDir, 'project');
+    fs.ensureDirSync(fakeHome);
+    fs.ensureDirSync(projectDir);
+  });
+
+  it('returns [] when no editor config dirs exist anywhere', () => {
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual([]);
+  });
+
+  // ── Home dir (primary signal) ─────────────────────────────────────────
+  it('detects claude-code from ~/.claude/', () => {
+    fs.ensureDirSync(path.join(fakeHome, '.claude'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['claude-code']);
+  });
+
+  it('detects codex from ~/.codex/', () => {
+    fs.ensureDirSync(path.join(fakeHome, '.codex'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['codex']);
+  });
+
+  it('detects cursor from ~/.cursor/', () => {
+    fs.ensureDirSync(path.join(fakeHome, '.cursor'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['cursor']);
+  });
+
+  it('detects zed from ~/.config/zed/', () => {
+    fs.ensureDirSync(path.join(fakeHome, '.config', 'zed'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['zed']);
+  });
+
+  it('detects zed from ~/Library/Application Support/zed/', () => {
+    fs.ensureDirSync(path.join(fakeHome, 'Library', 'Application Support', 'zed'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['zed']);
+  });
+
+  it('detects multiple installed editors from co-existing home dirs', () => {
+    fs.ensureDirSync(path.join(fakeHome, '.claude'));
+    fs.ensureDirSync(path.join(fakeHome, '.cursor'));
+    const result = detectCurrentClients(projectDir, fakeHome);
+    expect(result).toContain('claude-code');
+    expect(result).toContain('cursor');
+    expect(result).not.toContain('vscode');
+    expect(result).not.toContain('zed');
+  });
+
+  // ── Project dir fallback (only when home dir + env return nothing) ────
+  it('falls back to project .vscode/ when home dir is empty', () => {
+    fs.ensureDirSync(path.join(projectDir, '.vscode'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['vscode']);
+  });
+
+  it('falls back to project .cursor/ when home dir is empty', () => {
+    fs.ensureDirSync(path.join(projectDir, '.cursor'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['cursor']);
+  });
+
+  it('falls back to project .zed/ when home dir is empty', () => {
+    fs.ensureDirSync(path.join(projectDir, '.zed'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['zed']);
+  });
+
+  it('falls back to project .mcp.json when home dir is empty', () => {
+    fs.writeJsonSync(path.join(projectDir, '.mcp.json'), {});
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['claude-code']);
+  });
+
+  it('falls back to project .claude/ when home dir is empty', () => {
+    fs.ensureDirSync(path.join(projectDir, '.claude'));
+    expect(detectCurrentClients(projectDir, fakeHome)).toEqual(['claude-code']);
+  });
+
+  it('home dir wins over project dir when both have configs', () => {
+    // Home has cursor; project has vscode — should return cursor only (home wins)
+    fs.ensureDirSync(path.join(fakeHome, '.cursor'));
+    fs.ensureDirSync(path.join(projectDir, '.vscode'));
+    const result = detectCurrentClients(projectDir, fakeHome);
+    expect(result).toContain('cursor');
+    expect(result).not.toContain('vscode');
   });
 });
 

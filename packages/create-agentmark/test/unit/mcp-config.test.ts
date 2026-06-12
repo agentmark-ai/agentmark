@@ -178,17 +178,55 @@ describe("writeMcpConfig", () => {
     });
   });
 
+  describe("Codex", () => {
+    it("writes .codex/config.toml with docs (HTTP) + cloud + local stdio entries", () => {
+      const result = writeMcpConfig("codex", tmp);
+      expect(result?.configPath).toBe(path.join(tmp, ".codex", "config.toml"));
+      const toml = fs.readFileSync(path.join(tmp, ".codex", "config.toml"), "utf8");
+      // HTTP docs entry — url only, no command (untagged enum: url → StreamableHttp)
+      expect(toml).toContain('[mcp_servers.agentmark-docs]');
+      expect(toml).toContain('url = "https://docs.agentmark.co/mcp"');
+      expect(toml).not.toMatch(/\[mcp_servers\.agentmark-docs\][^[]*command/s);
+      // Cloud stdio entry — no env block for prod URL
+      expect(toml).toContain('[mcp_servers.agentmark]');
+      expect(toml).toContain('command = "npx"');
+      expect(toml).toContain('args = ["-y", "@agentmark-ai/mcp-server"]');
+      // Local stdio entry — always has env block
+      expect(toml).toContain('[mcp_servers.agentmark-local]');
+      expect(toml).toContain('AGENTMARK_API_URL = "http://localhost:9418"');
+    });
+
+    it("omits env block on the cloud entry when using prod URL", () => {
+      writeMcpConfig("codex", tmp);
+      const toml = fs.readFileSync(path.join(tmp, ".codex", "config.toml"), "utf8");
+      // The agentmark (cloud) section should not reference api.agentmark.co
+      const cloudSection = toml.split("[mcp_servers.agentmark-local]")[0]!
+        .split("[mcp_servers.agentmark]")[1] ?? "";
+      expect(cloudSection).not.toContain("AGENTMARK_API_URL");
+    });
+
+    it("writes env block on cloud entry for a custom API URL", () => {
+      writeMcpConfig("codex", tmp, { customApiUrl: "https://api-stg.agentmark.co" });
+      const toml = fs.readFileSync(path.join(tmp, ".codex", "config.toml"), "utf8");
+      expect(toml).toContain('AGENTMARK_API_URL = "https://api-stg.agentmark.co"');
+      // Local entry still points at localhost regardless of customApiUrl
+      expect(toml).toContain('AGENTMARK_API_URL = "http://localhost:9418"');
+    });
+  });
+
   describe("file location parity with pre-change behavior", () => {
     it("each client still writes to its historical path", () => {
       const vscode = writeMcpConfig("vscode", tmp);
       const zed = writeMcpConfig("zed", tmp);
       const cursor = writeMcpConfig("cursor", tmp);
       const claude = writeMcpConfig("claude-code", tmp);
+      const codex = writeMcpConfig("codex", tmp);
 
       expect(vscode?.configPath.endsWith(path.join(".vscode", "mcp.json"))).toBe(true);
       expect(zed?.configPath.endsWith(path.join(".zed", "settings.json"))).toBe(true);
       expect(cursor?.configPath.endsWith(path.join(".cursor", "mcp.json"))).toBe(true);
       expect(claude?.configPath.endsWith(path.sep + ".mcp.json")).toBe(true);
+      expect(codex?.configPath.endsWith(path.join(".codex", "config.toml"))).toBe(true);
     });
   });
 });
