@@ -1,0 +1,57 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "service.name", "value": { "stringValue": "agent-service" } }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "opentelemetry.instrumentation.openai.v1",
+            "version": "0.33.9"
+          },
+          "spans": [
+            {
+              "traceId": "ol0000000000000000000000000001",
+              "spanId": "ol00000000000001",
+              "name": "openai.chat",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000000900000000",
+              "status": { "code": 1 },
+              "attributes": [
+                { "key": "traceloop.span.kind", "value": { "stringValue": "LLM" } },
+                { "key": "gen_ai.system", "value": { "stringValue": "openai" } },
+                { "key": "gen_ai.request.model", "value": { "stringValue": "gpt-4o-mini" } },
+                { "key": "gen_ai.response.model", "value": { "stringValue": "gpt-4o-mini-2024-07-18" } },
+                { "key": "gen_ai.request.temperature", "value": { "doubleValue": 0.7 } },
+                { "key": "gen_ai.usage.prompt_tokens", "value": { "intValue": 18 } },
+                { "key": "gen_ai.usage.completion_tokens", "value": { "intValue": 9 } },
+                { "key": "llm.usage.total_tokens", "value": { "intValue": 27 } },
+                { "key": "gen_ai.prompt.0.role", "value": { "stringValue": "system" } },
+                {
+                  "key": "gen_ai.prompt.0.content",
+                  "value": { "stringValue": "You are concise." }
+                },
+                { "key": "gen_ai.prompt.1.role", "value": { "stringValue": "user" } },
+                {
+                  "key": "gen_ai.prompt.1.content",
+                  "value": { "stringValue": "Say hi in one word." }
+                },
+                { "key": "gen_ai.completion.0.role", "value": { "stringValue": "assistant" } },
+                { "key": "gen_ai.completion.0.content", "value": { "stringValue": "Hi" } },
+                { "key": "gen_ai.completion.0.finish_reason", "value": { "stringValue": "stop" } },
+                {
+                  "key": "traceloop.association.properties.user_id",
+                  "value": { "stringValue": "user-77" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
