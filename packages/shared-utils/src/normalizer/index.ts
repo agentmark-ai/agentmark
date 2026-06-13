@@ -4,6 +4,7 @@ import { AiSdkTransformer } from './transformers/ai-sdk';
 import { MastraTransformer } from './transformers/mastra';
 import { AgentMarkTransformer } from './transformers/agentmark';
 import { OtelGenAiTransformer } from './transformers/otel-genai';
+import { DispatchingTransformer } from './transformers/dispatching';
 import { OtlpResourceSpans, extractResourceScopeSpan } from './converters/otlp-converter';
 import { parseAgentMarkAttributes } from './extractors/agentmark-parser';
 import { resolveSemanticKind } from './resolvers/semantic-kind-resolver';
@@ -13,8 +14,11 @@ registry.register('ai', new AiSdkTransformer());                    // Vercel AI
 registry.register('default-tracer', new MastraTransformer());        // Mastra
 registry.register('agentmark', new AgentMarkTransformer());          // AgentMark SDK
 registry.register('pydantic-ai', new OtelGenAiTransformer());       // Pydantic AI
-// Default: OTel GenAI semconv v1.37+ (the official standard)
-registry.setDefault(new OtelGenAiTransformer());
+// Default: signature-dispatching transformer. Routes OpenInference- and
+// OpenLLMetry-instrumented spans (which each emit dozens of distinct scope
+// names, so can't be scope-registered) to their extractors by attribute shape,
+// and falls back to the official OTel GenAI semconv v1.37+ when neither matches.
+registry.setDefault(new DispatchingTransformer());
 
 /**
  * OTLP status.code arrives in different encodings depending on the SDK's
@@ -153,6 +157,7 @@ export * from './converters/otlp-converter';
 export { parseTokens } from './extractors/token-parser';
 export * from './extractors/metadata-parser';
 export * from './extractors/agentmark-parser';
+export * from './extractors/indexed-message-parser';
 export * from './resolvers/semantic-kind-resolver';
 export * from './transformers/ai-sdk';
 export * from './transformers/ai-sdk/token-helpers';
@@ -160,3 +165,6 @@ export * from './transformers/ai-sdk/version-detector';
 export * from './transformers/mastra';
 export * from './transformers/agentmark';
 export * from './transformers/otel-genai';
+export * from './transformers/openinference';
+export * from './transformers/openllmetry';
+export * from './transformers/dispatching';

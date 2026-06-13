@@ -1,0 +1,68 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "service.name", "value": { "stringValue": "my-rag-app" } },
+          { "key": "telemetry.sdk.language", "value": { "stringValue": "python" } }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "openinference.instrumentation.langchain",
+            "version": "0.1.29"
+          },
+          "spans": [
+            {
+              "traceId": "oi0000000000000000000000000001",
+              "spanId": "oi00000000000001",
+              "name": "ChatOpenAI",
+              "kind": 1,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000001500000000",
+              "status": { "code": 1 },
+              "attributes": [
+                { "key": "openinference.span.kind", "value": { "stringValue": "LLM" } },
+                { "key": "llm.provider", "value": { "stringValue": "openai" } },
+                { "key": "llm.model_name", "value": { "stringValue": "gpt-4o" } },
+                { "key": "llm.token_count.prompt", "value": { "intValue": 11 } },
+                { "key": "llm.token_count.completion", "value": { "intValue": 5 } },
+                { "key": "llm.token_count.total", "value": { "intValue": 16 } },
+                {
+                  "key": "llm.invocation_parameters",
+                  "value": { "stringValue": "{\"temperature\": 0.0, \"max_tokens\": 512}" }
+                },
+                {
+                  "key": "llm.input_messages.0.message.role",
+                  "value": { "stringValue": "system" }
+                },
+                {
+                  "key": "llm.input_messages.0.message.content",
+                  "value": { "stringValue": "You are a geography expert." }
+                },
+                {
+                  "key": "llm.input_messages.1.message.role",
+                  "value": { "stringValue": "user" }
+                },
+                {
+                  "key": "llm.input_messages.1.message.content",
+                  "value": { "stringValue": "What is the capital of France?" }
+                },
+                {
+                  "key": "llm.output_messages.0.message.role",
+                  "value": { "stringValue": "assistant" }
+                },
+                {
+                  "key": "llm.output_messages.0.message.content",
+                  "value": { "stringValue": "The capital of France is Paris." }
+                },
+                { "key": "session.id", "value": { "stringValue": "session-abc" } }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
