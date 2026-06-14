@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-12T04:13:37.446Z",
+  "generatedAt": "2026-06-14T01:18:27.682Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-12T04:13:37.446Z",
+      "fetchedAt": "2026-06-14T01:18:27.682Z",
       "modelCount": 1422
     },
     "openrouter": {
-      "fetchedAt": "2026-06-12T04:13:37.446Z",
+      "fetchedAt": "2026-06-14T01:18:27.682Z",
       "modelCount": 125
     }
   },
@@ -15665,8 +15665,7 @@
         "functionCalling": true,
         "structuredOutput": false,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-3-beta": {
       "provider": "xai",
@@ -15770,8 +15769,7 @@
         "structuredOutput": false,
         "reasoning": true,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-3-mini-beta": {
       "provider": "xai",
@@ -15920,8 +15918,7 @@
         "functionCalling": true,
         "structuredOutput": true,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-4-fast-non-reasoning": {
       "provider": "azure",
@@ -15940,8 +15937,7 @@
         "functionCalling": true,
         "structuredOutput": true,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-4-0709": {
       "provider": "xai",
@@ -16024,8 +16020,7 @@
         "structuredOutput": true,
         "reasoning": true,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-4-1-fast-reasoning-latest": {
       "provider": "xai",
@@ -16069,8 +16064,7 @@
         "functionCalling": true,
         "structuredOutput": true,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-4-1-fast-non-reasoning-latest": {
       "provider": "xai",
@@ -16284,8 +16278,7 @@
         "functionCalling": true,
         "structuredOutput": true,
         "webSearch": true
-      },
-      "deprecationDate": null
+      }
     },
     "grok-code-fast-1-0825": {
       "provider": "xai",
@@ -19880,11 +19873,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 9.8e-8,
-        "outputCostPerToken": 1.96e-7
+        "inputCostPerToken": 9e-8,
+        "outputCostPerToken": 1.8e-7
       },
       "context": {
-        "maxInputTokens": 1048576
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
       },
       "capabilities": {
         "functionCalling": true,
@@ -20184,8 +20178,7 @@
         "functionCalling": true,
         "promptCaching": true,
         "reasoning": true
-      },
-      "deprecationDate": null
+      }
     },
     "claude-opus-4.5": {
       "provider": "anthropic",
