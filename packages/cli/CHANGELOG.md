@@ -1,3 +1,13 @@
+## 0.23.3 (2026-06-14)
+
+### 🩹 Fixes
+
+- fix pip fallback chain (pip → pip3 → .venv/bin/pip), clearer GENERATION span fix message, synchronous dev-server teardown to free port after --smoke --boot ([#776](https://github.com/agentmark-ai/agentmark/pull/776))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/shared-utils to 0.7.0
+
 ## 0.23.2 (2026-06-12)
 
 ### 🩹 Fixes
