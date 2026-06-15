@@ -206,6 +206,22 @@ def _set_span_usage(span: PromptSpan, usage: UsageData | None) -> None:
             span.set_attribute("gen_ai.usage.output_tokens", usage.output_tokens)
 
 
+def _msg_field(m: Any, key: str, default: Any = "") -> Any:
+    """Read a message field from either a dict or an object (e.g. a Pydantic
+    message), preserving falsy-but-present values like an empty string.
+
+    The naive ``getattr(m, key, None) or m.get(key, default)`` pattern breaks on
+    object messages whose field is ``""``: the empty string is falsy, so ``or``
+    falls through to ``m.get`` — which a non-dict message does not have, raising
+    AttributeError. Under the caller's ``suppress(Exception)`` that silently
+    drops the WHOLE ``agentmark.input`` attribute (the list comprehension aborts
+    on the first such message), so a prompt whose user content is empty produces
+    a trace with no input at all.
+    """
+    val = m.get(key, default) if isinstance(m, dict) else getattr(m, key, None)
+    return default if val is None else val
+
+
 def _set_span_input(span: PromptSpan, formatted: Any) -> None:
     """Record the formatted messages as `agentmark.input` on the prompt span.
 
@@ -220,8 +236,8 @@ def _set_span_input(span: PromptSpan, formatted: Any) -> None:
     with suppress(Exception):
         serialized = [
             {
-                "role": getattr(m, "role", None) or m.get("role"),
-                "content": getattr(m, "content", None) or m.get("content", ""),
+                "role": _msg_field(m, "role", None),
+                "content": _msg_field(m, "content", ""),
             }
             for m in messages
         ]

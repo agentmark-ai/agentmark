@@ -107,10 +107,27 @@ export interface RunDoctorOptions {
   /** Defaults to `process.versions.node`; overridable for tests. */
   nodeVersion?: string;
   /**
-   * Injectable for tests: return the list of missing Python packages, `null`
-   * when pip is unavailable, or `undefined` to run the real `pip show` check.
+   * Injectable for tests: return the list of missing Python packages (and the
+   * installer to suggest in the fix), `null` when Python can't verify them, or
+   * `undefined` to run the real `importlib.metadata` probe.
    */
-  checkPythonDeps?: (cwd: string) => { missing: string[] } | null;
+  checkPythonDeps?: (cwd: string) => { missing: string[]; installer?: "uv" | "pip" } | null;
+}
+
+/**
+ * Which installer the project uses, for venv-appropriate fix advice. A uv
+ * project (`uv.lock`, or a `[tool.uv]` table in pyproject.toml) wants
+ * `uv add`, not `pip install` — and uv-created venvs ship no `pip` at all.
+ */
+function detectPythonInstaller(cwd: string): "uv" | "pip" {
+  if (fs.existsSync(path.join(cwd, "uv.lock"))) return "uv";
+  try {
+    const pyproject = fs.readFileSync(path.join(cwd, "pyproject.toml"), "utf8");
+    if (/^\s*\[tool\.uv[\].]/m.test(pyproject)) return "uv";
+  } catch {
+    // no pyproject.toml — fall through to pip
+  }
+  return "pip";
 }
 
 /**
@@ -122,16 +139,30 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
   const nodeVersion = opts.nodeVersion ?? process.versions.node;
   const checkPythonDeps = opts.checkPythonDeps ?? ((dir: string) => {
     const python = findProjectPython(dir);
-    const res = spawnSync(python, ["-m", "pip", "show", "agentmark-prompt-core", "agentmark-sdk"], {
+    // Probe via importlib.metadata, NOT `pip show`: uv-created venvs (the modern
+    // default) deliberately ship no `pip`, so `pip show` reports every package
+    // missing even when they're installed. importlib.metadata reads the
+    // installed dist metadata directly and works in any venv. A package prints
+    // `MISSING:<name>` only when truly absent; the script exits 0 either way.
+    const probe = [
+      "import importlib.metadata as m",
+      "for p in ('agentmark-prompt-core','agentmark-sdk'):",
+      "    try: m.version(p)",
+      "    except m.PackageNotFoundError: print('MISSING:'+p)",
+    ].join("\n");
+    const res = spawnSync(python, ["-c", probe], {
       encoding: "utf8",
       timeout: 10_000,
     });
-    if (res.error) return null;
+    // res.error → Python not spawnable. Non-zero status (or signal kill) →
+    // the probe itself failed (e.g. Python < 3.8 without importlib.metadata);
+    // treat as "can't verify" rather than falsely reporting everything present.
+    if (res.error || res.status !== 0) return null;
     const stdout = res.stdout ?? "";
     const missing = ["agentmark-prompt-core", "agentmark-sdk"].filter(
-      (pkg) => !stdout.includes(`Name: ${pkg}`)
+      (pkg) => stdout.includes(`MISSING:${pkg}`)
     );
-    return { missing };
+    return { missing, installer: detectPythonInstaller(dir) };
   });
   const results: CheckResult[] = [];
   const add = (r: CheckResult) => results.push(r);
@@ -489,15 +520,26 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
   } else {
     const pipResult = checkPythonDeps(cwd);
     if (pipResult === null) {
+      const installer = detectPythonInstaller(cwd);
+      const installFix =
+        installer === "uv"
+          ? "Set up the project with `uv sync` (or `uv add agentmark-prompt-core agentmark-sdk`)."
+          : "Create a virtual environment (python -m venv .venv) and install: pip install agentmark-prompt-core agentmark-sdk";
       add({
         id: "deps.python",
         group: GROUP.deps,
         title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)",
         status: "skip",
-        detail: "python -m pip failed — cannot verify packages are installed",
-        fix: "Create a virtual environment (python -m venv .venv) and install: pip install agentmark-prompt-core agentmark-sdk",
+        detail: "could not run Python to verify packages are installed",
+        fix: installFix,
       });
     } else {
+      // uv venvs ship no pip, so a uv project needs `uv add`, not `pip install`.
+      const installer = pipResult.installer ?? "pip";
+      const installFix =
+        installer === "uv"
+          ? `uv add ${pipResult.missing.join(" ")}`
+          : `pip install ${pipResult.missing.join(" ")}`;
       add(
         pipResult.missing.length === 0
           ? { id: "deps.python", group: GROUP.deps, title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)", status: "pass" }
@@ -507,7 +549,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
               title: "Python packages installed (agentmark-prompt-core, agentmark-sdk)",
               status: "fail",
               detail: `missing: ${pipResult.missing.join(", ")}`,
-              fix: `pip install ${pipResult.missing.join(" ")}`,
+              fix: installFix,
             }
       );
     }

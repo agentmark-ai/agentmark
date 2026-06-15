@@ -40,6 +40,17 @@ export const CreateApiKeyParamsSchema = z.object({
   // Optional: org-level keys may omit app_id once supported. Today every key
   // is bound to an app per the existing `api_key.app_id NOT NULL` constraint.
   app_id: z.string().uuid().nullable().optional(),
+  // Optional environment target by NAME (e.g. "production"). Resolved to the
+  // env id server-side and validated against the app; 400 if the app has no
+  // env with this name. Omit to bind the key to the caller's own environment
+  // (key-auth) or the app's default environment (session/bearer auth).
+  environment_name: z
+    .preprocess(stripNullBytes, z.string().min(1).max(255))
+    .nullable()
+    .optional()
+    .describe(
+      'Name of the environment to bind the new key to (e.g. "production"). Defaults to the app\'s default environment.',
+    ),
 });
 
 export const ApiKeysListParamsSchema = PaginationParamsSchema;
@@ -54,6 +65,10 @@ export const ApiKeySchema = z.object({
   name: z.string(),
   // Nullable to allow a future org-level-key shape; today always set.
   app_id: z.string().uuid().nullable(),
+  // The environment this key is bound to (api_key.environment_id). Every key
+  // carries one — set by the dashboard CTA, managed deployment, and this API.
+  // Nullable only to tolerate pre-environment legacy rows.
+  environment_id: z.string().uuid().nullable().optional(),
   // Gateway permission codes. May be empty for legacy keys (spec 051).
   permissions: z.array(z.string()),
   // Safe-to-display prefix (e.g. `sk_agentmark_abc1`). Sourced from Unkey.
