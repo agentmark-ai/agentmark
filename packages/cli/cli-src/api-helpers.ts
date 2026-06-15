@@ -41,7 +41,8 @@ export type DevServerErrorCode =
   | 'config_not_found'
   | 'spec_unavailable'
   | 'protobuf_decode_failed'
-  | 'invalid_otlp_payload';
+  | 'invalid_otlp_payload'
+  | 'template_parse_error';
 
 function sendEnvelope(
   res: Response,
