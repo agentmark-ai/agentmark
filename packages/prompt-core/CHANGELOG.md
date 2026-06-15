@@ -1,3 +1,13 @@
+## 1.0.4 (2026-06-15)
+
+### 🩹 Fixes
+
+- doctor now parses each prompt's TemplateDX body (not just frontmatter), so malformed templates (e.g. a blank line inside a tag) fail at doctor instead of surfacing later as a misleading dev-server error; the dev server's /v1/templates endpoint distinguishes a parse error (400 template_parse_error, carrying the parse message) from a genuinely missing file (404) instead of collapsing both into "File not found or invalid"; ApiLoader 404s on a bare prompt slug now hint the canonical `<name>.prompt.mdx` path. ([#781](https://github.com/agentmark-ai/agentmark/pull/781))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.8
+
 ## 1.0.3 (2026-06-12)
 
 ### 🩹 Fixes

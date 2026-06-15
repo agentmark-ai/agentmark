@@ -1,3 +1,17 @@
+## 0.23.4 (2026-06-15)
+
+### 🩹 Fixes
+
+- Fix `doctor` reporting installed Python packages as missing in uv-based projects. uv-created virtualenvs ship no `pip`, so the old `pip show` probe found nothing and advised a wrong `pip install`. The check now probes via `importlib.metadata` (works without pip) and tailors the fix to the project's installer (`uv add` for uv projects, `pip install` otherwise). ([#779](https://github.com/agentmark-ai/agentmark/pull/779))
+- doctor now parses each prompt's TemplateDX body (not just frontmatter), so malformed templates (e.g. a blank line inside a tag) fail at doctor instead of surfacing later as a misleading dev-server error; the dev server's /v1/templates endpoint distinguishes a parse error (400 template_parse_error, carrying the parse message) from a genuinely missing file (404) instead of collapsing both into "File not found or invalid"; ApiLoader 404s on a bare prompt slug now hint the canonical `<name>.prompt.mdx` path. ([#781](https://github.com/agentmark-ai/agentmark/pull/781))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.9.5
+- Updated @agentmark-ai/api-schemas to 0.7.0
+- Updated @agentmark-ai/prompt-core to 1.0.4
+- Updated @agentmark-ai/api-types to 0.8.1
+
 ## 0.23.3 (2026-06-14)
 
 ### 🩹 Fixes

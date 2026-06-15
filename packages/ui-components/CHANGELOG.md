@@ -1,3 +1,10 @@
+## 0.9.5 (2026-06-15)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.7.0
+- Updated @agentmark-ai/prompt-core to 1.0.4
+
 ## 0.9.4 (2026-06-12)
 
 ### 🧱 Updated Dependencies
