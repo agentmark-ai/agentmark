@@ -798,3 +798,104 @@ async def test_experiment_executor_error_event_exits_span_with_exception():
     assert span.exited_with_exc, (
         "span hook __aexit__ must receive an exception so OTel marks the span ERROR"
     )
+
+
+# ---------------------------------------------------------------------------
+# Regression: agentmark.input dropped when a Pydantic message has empty content
+# ---------------------------------------------------------------------------
+# The naive `getattr(m, "content", None) or m.get("content", "")` accessor in
+# _set_span_input crashed on an OBJECT message whose content was "": the empty
+# string is falsy, so `or` fell through to `m.get` — which a Pydantic message
+# does not have — raising AttributeError that suppress() swallowed, dropping the
+# WHOLE agentmark.input attribute for the trace. doctor --smoke's trace-shape
+# check then failed with "missing: input". This pins the empty-content path.
+
+
+class _Msg(BaseModel):
+    role: str
+    content: str
+
+
+class _MessagesFormatted:
+    """Formatted payload exposing AI SDK-style `.messages` (object messages)."""
+
+    def __init__(self, messages: list) -> None:
+        self.messages = messages
+
+
+class _MessagesPrompt:
+    def __init__(self, messages: list) -> None:
+        self._messages = messages
+
+    async def format(self, props=None, telemetry=None):
+        del props, telemetry
+        return _MessagesFormatted(self._messages)
+
+    async def format_with_test_props(self, telemetry=None):
+        del telemetry
+        return _MessagesFormatted(self._messages)
+
+
+class _MessagesClient:
+    def __init__(self, messages: list) -> None:
+        self._prompt = _MessagesPrompt(messages)
+
+    async def load_text_prompt(self, _ast):
+        return self._prompt
+
+    async def load_object_prompt(self, _ast):
+        return self._prompt
+
+    def get_eval_registry(self):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_span_input_preserved_for_empty_content_pydantic_message():
+    """A Pydantic message with content="" must NOT drop agentmark.input — the
+    empty string is recorded, and the other messages survive too."""
+    messages = [
+        _Msg(role="system", content="You are helpful."),
+        _Msg(role="user", content=""),  # the trigger: falsy content on an object
+    ]
+    runner = WebhookRunner(
+        _MessagesClient(messages),
+        _PydanticStubExecutor(),
+        prompt_span_hook=_capturing_span,
+    )
+    ast = {"children": [{"type": "yaml", "value": "text_config:\n  model_name: test\n"}]}
+
+    await runner.run_prompt(ast, {"shouldStream": False})
+
+    span = _capturing_span._last_span  # type: ignore[attr-defined]
+    recorded = span.attrs.get("agentmark.input")
+    assert recorded is not None, "agentmark.input was dropped for an empty-content message"
+    assert json.loads(recorded) == [
+        {"role": "system", "content": "You are helpful."},
+        {"role": "user", "content": ""},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_span_input_handles_dict_messages_with_empty_content():
+    """The dict-message path must also preserve empty content (not regress)."""
+    messages = [
+        {"role": "user", "content": ""},
+        {"role": "assistant", "content": "ok"},
+    ]
+    runner = WebhookRunner(
+        _MessagesClient(messages),
+        _PydanticStubExecutor(),
+        prompt_span_hook=_capturing_span,
+    )
+    ast = {"children": [{"type": "yaml", "value": "text_config:\n  model_name: test\n"}]}
+
+    await runner.run_prompt(ast, {"shouldStream": False})
+
+    span = _capturing_span._last_span  # type: ignore[attr-defined]
+    recorded = span.attrs.get("agentmark.input")
+    assert recorded is not None
+    assert json.loads(recorded) == [
+        {"role": "user", "content": ""},
+        {"role": "assistant", "content": "ok"},
+    ]

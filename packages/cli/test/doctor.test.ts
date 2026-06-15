@@ -275,6 +275,66 @@ describe('agentmark doctor — runDoctor', () => {
     expect(report.ok).toBe(true); // skip is not a failure
   });
 
+  it('deps.python fix uses `uv add` (not `pip install`) for a uv project', async () => {
+    const report = await runDoctor(
+      makeProject({
+        'pyproject.toml': '[project]\nname = "app"\n',
+        'agentmark_client.py': '# client',
+        'agentmark.json': JSON.stringify({ agentmarkPath: '.', builtInModels: ['openai/gpt-4o'] }),
+        'agentmark/greeting.prompt.mdx': '---\nname: greeting\ntext_config:\n  model_name: openai/gpt-4o\n---\n\nHi',
+      }),
+      {
+        env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+        nodeVersion: '22.0.0',
+        checkPythonDeps: () => ({ missing: ['agentmark-prompt-core', 'agentmark-sdk'], installer: 'uv' }),
+      },
+    );
+
+    expect(statusOf(report, 'deps.python')).toBe('fail');
+    expect(fixOf(report, 'deps.python')).toBe('uv add agentmark-prompt-core agentmark-sdk');
+  });
+
+  it('detects uv from uv.lock and tailors the skip fix to uv', async () => {
+    const report = await runDoctor(
+      makeProject({
+        'uv.lock': '# lockfile',
+        'pyproject.toml': '[project]\nname = "app"\n',
+        'agentmark_client.py': '# client',
+        'agentmark.json': JSON.stringify({ agentmarkPath: '.', builtInModels: ['openai/gpt-4o'] }),
+        'agentmark/greeting.prompt.mdx': '---\nname: greeting\ntext_config:\n  model_name: openai/gpt-4o\n---\n\nHi',
+      }),
+      {
+        env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+        nodeVersion: '22.0.0',
+        checkPythonDeps: () => null, // can't verify (e.g. uv venv has no pip → handled upstream)
+      },
+    );
+
+    expect(statusOf(report, 'deps.python')).toBe('skip');
+    // uv-appropriate guidance — never tell a uv user to `python -m venv` + pip.
+    expect(fixOf(report, 'deps.python')).toContain('uv sync');
+    expect(fixOf(report, 'deps.python')).not.toContain('pip install');
+  });
+
+  it('detects uv from a [tool.uv] table when no uv.lock exists', async () => {
+    const report = await runDoctor(
+      makeProject({
+        'pyproject.toml': '[project]\nname = "app"\n\n[tool.uv]\ndev-dependencies = []\n',
+        'agentmark_client.py': '# client',
+        'agentmark.json': JSON.stringify({ agentmarkPath: '.', builtInModels: ['openai/gpt-4o'] }),
+        'agentmark/greeting.prompt.mdx': '---\nname: greeting\ntext_config:\n  model_name: openai/gpt-4o\n---\n\nHi',
+      }),
+      {
+        env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+        nodeVersion: '22.0.0',
+        checkPythonDeps: () => null,
+      },
+    );
+
+    expect(statusOf(report, 'deps.python')).toBe('skip');
+    expect(fixOf(report, 'deps.python')).toContain('uv');
+  });
+
   it('warns when .env exists but is not gitignored', async () => {
     const report = await run(
       makeProject({
