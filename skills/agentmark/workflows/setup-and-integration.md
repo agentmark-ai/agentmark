@@ -94,19 +94,28 @@ One prompt only, named after the host's primary use case. Use the minimum viable
 
 Verify the scaffold before handing back. Run `npx @agentmark-ai/cli doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx @agentmark-ai/cli doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK mismatch, or unwired tracing. Exact commands and flags via `npx @agentmark-ai/cli <cmd> --help`. **Do not encode CLI surface in this workflow.** If anything fails, fix it (doctor names the fix) before handing back to the user.
 
+**`doctor` passing is not "done."** It validates the scaffold, not whether the host's existing LLM code actually uses AgentMark. A green `doctor` means the wiring is correct — it does not mean there's nothing left to do. Do not report "all set" off a passing `doctor` alone; you still owe the user Step 8.
+
 ## Step 7 — Provision the Cloud app (optional, Cloud mode only)
 
 Everything up to here runs **entirely locally** — no login, no cloud API. Only now, if `agentmark.json` has `handler` set or the user wants Cloud features (hosted dashboard, trace forwarding, managed experiments), provision via the `agentmark` MCP server. See [headless-with-mcp.md](headless-with-mcp.md) for the `create_app` + `mint_api_key` sequence. If cloud auth is missing or the user declines, **stop here with a working local setup** — never report local setup as blocked on login.
 
 Write `AGENTMARK_API_KEY` and `AGENTMARK_APP_ID` to `.env` (create if absent; **never overwrite existing values without asking**). Confirm `.env` is in `.gitignore`. In Cloud mode, also confirm the trace appears via the `agentmark` MCP server's trace tools within a few seconds.
 
-## Step 8 — Migrate existing LLM code (separate confirmation)
+## Step 8 — Surface next steps, then offer migration (always)
 
-If Step 1 found existing `streamText` / `generateObject` / `client.messages.create` calls, **do not migrate them as part of setup**. Setup ends at Step 6 (Step 7 only when the user wants Cloud). Migration is a separate confirmation:
+This step is **mandatory** — the hand-back is not complete until you've done it. Reconcile the passing scaffold against what Step 1 found and tell the user explicitly which case they're in:
 
-> Setup is done. I noticed 3 places that call the AI SDK directly. Want me to migrate those to load AgentMark prompts? I'll preserve inputs/outputs and open it as a separate change so it's easy to review.
+- **Step 1 found existing `streamText` / `generateObject` / `client.messages.create` calls** → name them and offer to migrate (script below).
+- **Step 1 found no direct LLM call sites** → say so plainly ("no existing LLM calls to migrate — you're ready to write prompts") so "done" is a stated conclusion, not a silent stop.
 
-Migration is a refactor with its own risk profile. Conflating it with setup makes review harder and inflates blast radius.
+Either way the user must hear where things stand. The failure mode this guards against: scaffolding, watching `doctor` pass, and reporting "all done" while leaving the user's actual AI code still calling the provider directly — they never learn migration was the next move.
+
+When there are call sites, **do not migrate them as part of setup**. Setup ends at Step 6 (Step 7 only when the user wants Cloud). Migration is a separate confirmation:
+
+> Setup is done and `doctor` passes. I noticed 3 places that call the AI SDK directly. Want me to migrate those to load AgentMark prompts? I'll preserve inputs/outputs and open it as a separate change so it's easy to review.
+
+Migration is a refactor with its own risk profile. Conflating it with setup makes review harder and inflates blast radius — but skipping the *offer* is how setup silently stops half-done.
 
 ## Common mistakes
 
@@ -116,4 +125,5 @@ Migration is a refactor with its own risk profile. Conflating it with setup make
 - **Recreating `agentmark.json` or MCP config files from this workflow** — that's the CLI's job. If those files are missing, send the user back to `npm create agentmark`.
 - **Calling the `agentmark` (Cloud) MCP server for project detection** — that server is for AgentMark Cloud, not local file inspection. Use `Read` / `Glob` / `Grep`.
 - **Migrating existing LLM code without a second confirmation.** Setup consent ≠ refactor consent.
+- **Reporting "all done" off a passing `doctor` without surfacing Step 8.** A green `doctor` validates the scaffold, not that the host's code uses AgentMark. Always close by stating the migration status (call sites to migrate, or none) — never let a passing check be the silent end of the conversation.
 - **Hunting for an "adapter," or defaulting to the custom-adapter page.** There are no SDK-specific adapters — every SDK integrates through the neutral render. Fetch `/integrations/bring-your-own-sdk` and route to Path A (lightweight, no executor) or Path B (`createExecutor`, cloud-executed). A full custom adapter only earns its keep when you want AgentMark to own the provider request shape — rarely what these users need.

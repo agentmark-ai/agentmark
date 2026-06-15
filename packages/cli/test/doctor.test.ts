@@ -158,6 +158,32 @@ describe('agentmark doctor — runDoctor', () => {
     expect(report.ok).toBe(false);
   });
 
+  it('fails prompt parsing when the body is unparseable despite valid frontmatter', async () => {
+    // A blank line after inline content on the opening-tag line breaks MDX
+    // paragraph parsing ("Expected a closing tag ... before the end of
+    // paragraph") even though the tag IS closed. Frontmatter is valid and
+    // declares a model, so the old frontmatter-only check false-passed this
+    // and the dev server was the first thing to choke — with a misleading
+    // "not found". doctor must parse the body and catch it here.
+    const report = await run(
+      makeProject({
+        ...HEALTHY,
+        'agentmark/blankline.prompt.mdx':
+          '---\nname: blankline\ntext_config:\n  model_name: openai/gpt-4o\n---\n\n<User>Hello\n\nworld</User>',
+      }),
+    );
+
+    expect(statusOf(report, 'prompts.parse')).toBe('fail');
+    expect(detailOf(report, 'prompts.parse')).toContain('blankline.prompt.mdx');
+    expect(detailOf(report, 'prompts.parse')).toContain('closing tag');
+    expect(report.ok).toBe(false);
+  });
+
+  it('passes prompt parsing for a well-formed body (guards against false-fail)', async () => {
+    const report = await run(makeProject({ ...HEALTHY }));
+    expect(statusOf(report, 'prompts.parse')).toBe('pass');
+  });
+
   it('warns when builtInModels is empty (no allowlist, no autocomplete)', async () => {
     const report = await run(
       makeProject({

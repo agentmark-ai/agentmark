@@ -167,4 +167,40 @@ describe("getPromptPathByName (e2e against real api-server)", () => {
     expect(elapsed).toBeLessThan(10_000);
   });
 
+  it("returns 400 (not 404) when a prompt exists but fails to parse", async () => {
+    // Inline content on the opening-tag line followed by a blank line breaks
+    // MDX paragraph parsing even though the tag is closed. The file exists, so
+    // collapsing this into a 404 would send the dev chasing a path typo. The
+    // endpoint must distinguish a parse error from a missing file.
+    writePrompt(
+      "broken-body.prompt.mdx",
+      "name: broken_body\ntext_config:\n  model_name: anthropic/claude-sonnet-4-20250514",
+      "<User>Hello\n\nworld</User>"
+    );
+
+    // `/v1/templates` addresses files relative to the `agentmark/` base, so
+    // the path here omits that prefix.
+    const res = await fetch(
+      `http://localhost:${port}/v1/templates?path=${encodeURIComponent(
+        "broken-body.prompt.mdx"
+      )}&promptKind=text`
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string; message?: string } };
+    expect(body.error?.code).toBe("template_parse_error");
+    // The actual parser message must survive, not be swallowed.
+    expect(body.error?.message).toContain("closing tag");
+  });
+
+  it("returns 404 for a genuinely missing prompt file", async () => {
+    const res = await fetch(
+      `http://localhost:${port}/v1/templates?path=${encodeURIComponent(
+        "no-such-file.prompt.mdx"
+      )}&promptKind=text`
+    );
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("not_found");
+  });
+
 });

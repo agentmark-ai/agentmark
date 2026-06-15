@@ -243,6 +243,34 @@ export class ApiLoader {
       return body.data;
     }
     const errorResponse = (await response.json()) as { error?: unknown };
-    throw errorResponse.error;
+    const error = errorResponse.error;
+
+    // ApiLoader addresses prompts strictly by their canonical
+    // `<name>.prompt.mdx` path; FileLoader's leniency (accepting the bare
+    // slug) means code that works locally can 404 here on the same name.
+    // When a bare/short form 404s, point at the canonical form rather than
+    // letting an addressing mismatch read as "the prompt doesn't exist".
+    const requestedPath = queryParams.path;
+    if (
+      response.status === 404 &&
+      typeof requestedPath === "string" &&
+      queryParams.promptKind &&
+      !requestedPath.endsWith(".prompt.mdx")
+    ) {
+      const canonical = `${requestedPath.replace(/\.(mdx|prompt)$/, "")}.prompt.mdx`;
+      const hint = `Did you mean "${canonical}"? Prompts are addressed by their full path.`;
+      if (error && typeof error === "object") {
+        (error as Record<string, unknown>).hint = hint;
+        const message = (error as Record<string, unknown>).message;
+        if (typeof message === "string") {
+          (error as Record<string, unknown>).message = `${message} ${hint}`;
+        }
+      } else {
+        throw new Error(
+          `${typeof error === "string" ? error : "Not found"}. ${hint}`
+        );
+      }
+    }
+    throw error;
   }
 }

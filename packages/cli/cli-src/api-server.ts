@@ -768,8 +768,21 @@ ${promptsList}
       }
       injectCommitShaIntoAst(data, commitSha);
       return res.json({ data });
-    } catch (_error) {
-      return sendNotFound(res, "File not found or invalid");
+    } catch (error) {
+      // Don't conflate "file missing" with "file present but unparseable".
+      // A malformed template (e.g. a blank line inside a TemplateDX tag)
+      // throws here, and collapsing it into a 404 sends developers chasing a
+      // path typo that doesn't exist. Only a genuinely absent file is a 404;
+      // a present-but-broken template is a 400 carrying the parse error.
+      if (!fs.existsSync(fullPath)) {
+        return sendNotFound(res, "File not found");
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      return sendBadRequest(
+        res,
+        "template_parse_error",
+        `Failed to parse template: ${message}`,
+      );
     }
   });
 

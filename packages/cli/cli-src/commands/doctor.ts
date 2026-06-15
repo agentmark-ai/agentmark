@@ -22,6 +22,7 @@ import {
   resolveHandler,
 } from "../utils/setup-files";
 import { getRegistryModelMap, classifyModels } from "../utils/models";
+import { detectPromptTypeFromContent } from "../utils/prompt-detection";
 
 /**
  * `agentmark doctor`: a static health check for an AgentMark project.
@@ -394,6 +395,11 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
         detail: `${promptFiles.length} prompt(s)`,
       });
 
+      // TemplateDX parser, imported once for the whole prompt sweep. Same
+      // entrypoint `build` and the dev server use, so doctor parses prompts
+      // exactly the way they will at build/run time.
+      const { getTemplateDXInstance } = await import("@agentmark-ai/prompt-core");
+
       const parseErrors: string[] = [];
       for (const file of promptFiles) {
         const rel = path.relative(cwd, file);
@@ -424,6 +430,25 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
           continue;
         }
         usedModels.add(model);
+
+        // Valid frontmatter is necessary but not sufficient: the TemplateDX
+        // body can still be malformed (e.g. a blank line inside a <User> tag)
+        // in a way that only surfaces at parse time. Without this, doctor
+        // false-passes and the dev server is the first thing to choke on it —
+        // with a misleading "not found". Parse the body the same way build
+        // and the dev server do so the failure shows up here, named.
+        try {
+          const parserType = detectPromptTypeFromContent(content);
+          const templateDX = getTemplateDXInstance(parserType);
+          const contentLoader = async (p: string) => {
+            const resolved = path.resolve(path.dirname(file), p);
+            return fs.readFile(resolved, "utf8");
+          };
+          await templateDX.parse(content, path.dirname(file), contentLoader);
+        } catch (err) {
+          parseErrors.push(`${rel}: ${err instanceof Error ? err.message : String(err)}`);
+          continue;
+        }
       }
 
       add(
