@@ -1,3 +1,9 @@
+## 0.9.0 (2026-06-16)
+
+### 🚀 Features
+
+- Add optional `inputPreview` / `outputPreview` fields to `TraceSummary` (the trace-list row shape) — truncated trace-level I/O (root span, GENERATION fallback) so list views can show an input/output snippet per row. Removes the short-lived `model` field (a trace spans many models; model is a per-span property surfaced in the trace detail, not the trace row). ([#782](https://github.com/agentmark-ai/agentmark/pull/782))
+
 ## 0.8.1 (2026-06-15)
 
 ### 🧱 Updated Dependencies

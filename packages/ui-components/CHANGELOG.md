@@ -1,3 +1,11 @@
+## 0.10.0 (2026-06-16)
+
+### 🚀 Features
+
+- Render vector-database / retrieval spans richly instead of as an opaque text blob. The normalizer now extracts retrieved documents into a structured `outputObject.documents` shape (`{ id, content, score, distance, metadata }`) from both OpenInference (`retrieval.documents.{i}.document.*` attributes) and OpenLLMetry vector-store instrumentation (`db.query.result` / `db.search.result` span events), preserving per-document relevance scores and ranks that were previously discarded. The dispatching transformer and semantic-kind resolver now recognize vector-store query spans (a known vector-DB `db.system`, `db.vector.query.*` attributes, or result events) so they route to the vector extractor and classify as `retrieval` instead of falling through to the OTel-GenAI catch-all / `function`. A new ranked retrieved-documents panel in the trace drawer shows each match with its id, score/distance, content and metadata; the joined-content text output is retained for full-text search and legacy traces. No ClickHouse schema change — documents ride the existing `OutputObject` column and lazy-IO fetch. ([#784](https://github.com/agentmark-ai/agentmark/pull/784))
+
+  Verified end-to-end against live instrumentation (real DB clients → gateway OTLP ingest → ClickHouse → UI): Chroma and OpenInference/LangChain extract fully; Milvus is supported including its `db.search.result.entity` payload (recovered into metadata). Coverage is bounded by what each upstream instrumentor actually emits — Qdrant and LanceDB instrumentors emit no per-match results, and Weaviate's does not fire on the v4 query path, so those spans classify as `retrieval` but carry no documents (nothing on the wire to extract).
+
 ## 0.9.5 (2026-06-15)
 
 ### 🧱 Updated Dependencies
