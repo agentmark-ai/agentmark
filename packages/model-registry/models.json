@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-14T01:18:27.682Z",
+  "generatedAt": "2026-06-16T01:23:34.383Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-14T01:18:27.682Z",
+      "fetchedAt": "2026-06-16T01:23:34.383Z",
       "modelCount": 1422
     },
     "openrouter": {
-      "fetchedAt": "2026-06-14T01:18:27.682Z",
+      "fetchedAt": "2026-06-16T01:23:34.383Z",
       "modelCount": 125
     }
   },
@@ -19873,12 +19873,11 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 9e-8,
-        "outputCostPerToken": 1.8e-7
+        "inputCostPerToken": 9.8e-8,
+        "outputCostPerToken": 1.96e-7
       },
       "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 65536
+        "maxInputTokens": 1048576
       },
       "capabilities": {
         "functionCalling": true,
@@ -19960,8 +19959,11 @@
       "mode": "chat",
       "source": "openrouter",
       "supportedParameters": [
+        "frequency_penalty",
         "max_tokens",
+        "presence_penalty",
         "temperature",
+        "top_k",
         "top_p"
       ],
       "pricing": {
@@ -20484,8 +20486,12 @@
       "mode": "chat",
       "source": "openrouter",
       "supportedParameters": [
+        "frequency_penalty",
         "max_tokens",
-        "temperature"
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
       ],
       "pricing": {
         "inputCostPerToken": 0,
@@ -20496,7 +20502,8 @@
         "maxOutputTokens": 8192
       },
       "capabilities": {
-        "functionCalling": true
+        "functionCalling": true,
+        "structuredOutput": true
       }
     },
     "gpt-oss-20b": {
