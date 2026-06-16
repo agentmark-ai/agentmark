@@ -395,6 +395,19 @@ export interface TraceSummary {
   environment?: string;
   /** Env version at ingest (feature 054). `0` marks legacy/no-pin rows. */
   environmentVersion?: number;
+  /**
+   * Truncated preview of the trace's input — the root span's input, falling
+   * back to the first GENERATION span (canonical `deriveTraceIO` semantics).
+   * Absent/`null` when the trace has no input. This is a trace-level value:
+   * one logical input per trace, NOT a per-span field.
+   */
+  inputPreview?: string | null;
+  /**
+   * Truncated preview of the trace's output — the root span's output, falling
+   * back to the last GENERATION span. Absent/`null` when the trace has no
+   * output.
+   */
+  outputPreview?: string | null;
 }
 
 /**
