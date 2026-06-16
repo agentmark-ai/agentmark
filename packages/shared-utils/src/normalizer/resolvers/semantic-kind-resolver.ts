@@ -18,6 +18,45 @@ const OPENINFERENCE_MAP: Record<string, SemanticKind> = {
     'RERANKER': 'retrieval',
 };
 
+/**
+ * Vector-store `db.system` values (lowercased) that OpenLLMetry / OTel emit.
+ * A query against one of these is a retrieval, not a plain SQL query — the
+ * casing varies by instrumentor (Pinecone="Pinecone", chroma="chroma"), so we
+ * compare lowercased.
+ */
+const VECTOR_DB_SYSTEMS = new Set<string>([
+    'pinecone',
+    'qdrant',
+    'weaviate',
+    'milvus',
+    'chroma',
+    'chromadb',
+    'marqo',
+    'lancedb',
+]);
+
+/** Span events that carry per-match vector-store results (OpenLLMetry). */
+const VECTOR_RESULT_EVENT_NAMES = new Set<string>(['db.query.result', 'db.search.result']);
+
+/**
+ * True when a span looks like a vector-store query: a recognized vector-DB
+ * `db.system`, any `db.vector.query.*` attribute, or `db.query.result` /
+ * `db.search.result` events. Distinguishes a vector search from a plain SQL
+ * query (which carries none of these). Shared by the semantic-kind resolver
+ * (→ classifies as "retrieval") and the dispatching transformer (→ routes to
+ * the OpenLLMetry extractor so the result events become documents).
+ */
+export function hasVectorStoreSignature(
+    attributes: Record<string, any>,
+    events?: ReadonlyArray<{ name: string }>,
+): boolean {
+    const dbSystem = attributes['db.system'] ?? attributes['db.system.name'];
+    if (typeof dbSystem === 'string' && VECTOR_DB_SYSTEMS.has(dbSystem.toLowerCase())) return true;
+    if (Object.keys(attributes).some((k) => k.startsWith('db.vector.query.'))) return true;
+    if (events?.some((e) => VECTOR_RESULT_EVENT_NAMES.has(e.name))) return true;
+    return false;
+}
+
 /** Framework-specific attribute mappings (checked in order). */
 const FRAMEWORK_MAPPINGS: Array<{ key: string; map: Record<string, SemanticKind> }> = [
     {
@@ -90,6 +129,14 @@ export function resolveSemanticKind(
             const mapped = map[String(val)];
             if (mapped) return mapped;
         }
+    }
+
+    // 3b. Vector-store query spans (OpenLLMetry: Pinecone/Chroma/Qdrant/…).
+    // Signalled by a recognized vector-DB `db.system`, vector-specific query
+    // attributes, or per-match result events. Kept distinct from a plain SQL
+    // query (which stays "function") so it renders with the documents panel.
+    if (hasVectorStoreSignature(allAttributes, normalized.events)) {
+        return 'retrieval';
     }
 
     // 4. gen_ai.operation.name
