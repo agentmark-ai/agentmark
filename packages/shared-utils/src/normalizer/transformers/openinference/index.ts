@@ -15,7 +15,7 @@
  * @see https://github.com/Arize-ai/openinference/blob/main/spec/semantic_conventions.md
  */
 
-import { NormalizedSpan, OtelSpan, ScopeTransformer, SpanType } from '../../types';
+import { NormalizedSpan, OtelSpan, ScopeTransformer, SpanType, RetrievalDocument } from '../../types';
 import {
     IndexedMessageConfig,
     parseIndexedMessages,
@@ -138,14 +138,55 @@ function extractGenericOutput(attributes: Record<string, any>): Partial<Normaliz
     return { output: String(value) };
 }
 
-/** Join retriever document contents into a readable output for retrieval spans. */
-function extractRetrievalDocuments(attributes: Record<string, any>): string | undefined {
-    const docs: string[] = [];
-    for (const i of collectIndices(attributes, RETRIEVAL_PREFIX)) {
-        const content = attributes[`${RETRIEVAL_PREFIX}.${i}.document.content`];
-        if (typeof content === 'string' && content.length > 0) docs.push(content);
+/** Parse a `metadata` attribute that may arrive as a JSON string or an object. */
+function parseDocumentMetadata(raw: any): Record<string, any> | undefined {
+    let parsed: any = raw;
+    if (typeof raw === 'string') {
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            return undefined;
+        }
     }
-    return docs.length > 0 ? docs.join('\n\n') : undefined;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    return undefined;
+}
+
+/**
+ * Extract retriever documents from OpenInference's flattened attributes,
+ * preserving per-document id, relevance score, and metadata. Returns one
+ * structured entry per `retrieval.documents.{i}.*` index that carries any field.
+ */
+function extractRetrievalDocuments(attributes: Record<string, any>): RetrievalDocument[] {
+    const docs: RetrievalDocument[] = [];
+    for (const i of collectIndices(attributes, RETRIEVAL_PREFIX)) {
+        const base = `${RETRIEVAL_PREFIX}.${i}.document`;
+        const doc: RetrievalDocument = {};
+
+        const id = attributes[`${base}.id`];
+        if (id !== undefined && id !== null && String(id).length > 0) doc.id = String(id);
+
+        const content = attributes[`${base}.content`];
+        if (typeof content === 'string' && content.length > 0) doc.content = content;
+
+        const score = toNumber(attributes[`${base}.score`]);
+        if (score !== undefined) doc.score = score;
+
+        const metadata = parseDocumentMetadata(attributes[`${base}.metadata`]);
+        if (metadata !== undefined) doc.metadata = metadata;
+
+        if (Object.keys(doc).length > 0) docs.push(doc);
+    }
+    return docs;
+}
+
+/** Join document contents into a readable, searchable text output. */
+export function retrievalDocumentsToText(documents: RetrievalDocument[]): string | undefined {
+    const text = documents
+        .map((d) => d.content)
+        .filter((c): c is string => typeof c === 'string' && c.length > 0)
+        .join('\n\n');
+    return text.length > 0 ? text : undefined;
 }
 
 export class OpenInferenceTransformer implements ScopeTransformer {
@@ -204,10 +245,16 @@ export class OpenInferenceTransformer implements ScopeTransformer {
             Object.assign(result, extractGenericOutput(attributes));
         }
 
-        // Retrieval spans: surface document contents as output when nothing else did.
-        if (result.output === undefined) {
-            const docs = extractRetrievalDocuments(attributes);
-            if (docs) result.output = docs;
+        // Retrieval spans: surface documents as a structured outputObject (rich
+        // per-document rendering: id / score / content / metadata) and, when no
+        // other output was produced, a joined-text output (search + fallback).
+        const documents = extractRetrievalDocuments(attributes);
+        if (documents.length > 0) {
+            if (result.outputObject === undefined) result.outputObject = { documents };
+            if (result.output === undefined) {
+                const text = retrievalDocumentsToText(documents);
+                if (text) result.output = text;
+            }
         }
 
         // Tool-execution spans: name the span after the tool for graph grouping.

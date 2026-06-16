@@ -46,6 +46,22 @@ describe("DispatchingTransformer.select — routing by attribute signature", () 
       d.select({ "openinference.span.kind": "LLM", "traceloop.span.kind": "LLM" })
     ).toBeInstanceOf(OpenInferenceTransformer);
   });
+
+  it("routes a bare vector-store db.system (no traceloop marker) to OpenLLMetry", () => {
+    expect(d.select({ "db.system": "Pinecone" })).toBeInstanceOf(OpenLLMetryTransformer);
+  });
+
+  it("routes a span carrying db.query.result events to OpenLLMetry even with no db.* attributes", () => {
+    const s = {
+      ...span("pinecone.query"),
+      events: [{ timeUnixNano: "0", name: "db.query.result", attributes: { "db.query.result.id": "x" } }],
+    };
+    expect(d.select({}, s)).toBeInstanceOf(OpenLLMetryTransformer);
+  });
+
+  it("does NOT route a plain SQL db.system (postgresql) to OpenLLMetry", () => {
+    expect(d.select({ "db.system": "postgresql" })).toBeInstanceOf(OtelGenAiTransformer);
+  });
 });
 
 describe("DispatchingTransformer — classify/transform agree with the selected extractor", () => {
@@ -66,5 +82,30 @@ describe("DispatchingTransformer — classify/transform agree with the selected 
     });
     expect(out.model).toBe("gpt-4o");
     expect(out.input).toEqual([{ role: "user", content: "hi" }]);
+  });
+
+  it("transform extracts vector-store documents from a bare Pinecone span (db.system + result events)", () => {
+    const s = {
+      ...span("pinecone.query"),
+      events: [
+        {
+          timeUnixNano: "0",
+          name: "db.query.result",
+          attributes: { "db.query.result.id": "p1", "db.query.result.score": 0.88 },
+        },
+        {
+          timeUnixNano: "1",
+          name: "db.query.result",
+          attributes: { "db.query.result.id": "p2", "db.query.result.distance": 0.34 },
+        },
+      ],
+    };
+    const out = d.transform(s, { "db.system": "Pinecone", "db.operation": "query" });
+    expect(out.outputObject).toEqual({
+      documents: [
+        { id: "p1", score: 0.88 },
+        { id: "p2", distance: 0.34 },
+      ],
+    });
   });
 });

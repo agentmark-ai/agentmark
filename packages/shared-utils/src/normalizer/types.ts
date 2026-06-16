@@ -54,6 +54,24 @@ export interface ToolCall {
     providerMetadata?: Record<string, any>;  // v5 specific: provider-specific metadata
 }
 
+/**
+ * A single document returned by a retriever / vector-store search, normalized
+ * from instrumentation that carries documents per-index (OpenInference's
+ * flattened `retrieval.documents.{i}.document.*`) or per-event (OpenLLMetry's
+ * `db.query.result` span events). Stored under a span's `outputObject` as
+ * `{ documents: RetrievalDocument[] }` so the UI can render a ranked panel
+ * (relevance score / distance, content, metadata) instead of a single blob.
+ */
+export interface RetrievalDocument {
+    id?: string;
+    content?: string;
+    /** Relevance/similarity score (higher = more relevant). */
+    score?: number;
+    /** Vector distance (lower = closer). Some stores report this instead of a score. */
+    distance?: number;
+    metadata?: Record<string, any>;
+}
+
 export interface OtelScope {
     name?: string;
     version?: string;

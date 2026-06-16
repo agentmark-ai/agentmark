@@ -21,6 +21,7 @@ import { NormalizedSpan, OtelSpan, ScopeTransformer, SpanType } from '../../type
 import { OpenInferenceTransformer } from '../openinference';
 import { OpenLLMetryTransformer } from '../openllmetry';
 import { OtelGenAiTransformer } from '../otel-genai';
+import { hasVectorStoreSignature } from '../../resolvers/semantic-kind-resolver';
 
 const OPENINFERENCE_INDEXED = /^llm\.(input_messages|output_messages|token_count)\./;
 const OPENLLMETRY_INDEXED = /^gen_ai\.(prompt|completion)\.\d+\./;
@@ -47,21 +48,26 @@ export class DispatchingTransformer implements ScopeTransformer {
     private readonly openLLMetry = new OpenLLMetryTransformer();
     private readonly otelGenAi = new OtelGenAiTransformer();
 
-    /** Choose the extractor for a span from its attribute signature. OpenInference
-     *  is checked before OpenLLMetry because its markers (`llm.*`,
-     *  `openinference.span.kind`) are more specific; the bare OTel GenAI
-     *  transformer is the catch-all. */
-    select(attributes: Record<string, any>): ScopeTransformer {
+    /** Choose the extractor for a span from its attribute/event signature.
+     *  OpenInference is checked before OpenLLMetry because its markers (`llm.*`,
+     *  `openinference.span.kind`) are more specific. Vector-store query spans
+     *  route to the OpenLLMetry extractor — they may carry no `traceloop.*`
+     *  marker (a bare Pinecone span is just `db.system` + `db.query.result`
+     *  events), so without this they'd fall through to the OTel-GenAI catch-all
+     *  and their result documents would be dropped. The bare OTel GenAI
+     *  transformer is the final catch-all. */
+    select(attributes: Record<string, any>, span?: OtelSpan): ScopeTransformer {
         if (isOpenInference(attributes)) return this.openInference;
         if (isOpenLLMetry(attributes)) return this.openLLMetry;
+        if (hasVectorStoreSignature(attributes, span?.events)) return this.openLLMetry;
         return this.otelGenAi;
     }
 
     classify(span: OtelSpan, attributes: Record<string, any>): SpanType {
-        return this.select(attributes).classify(span, attributes);
+        return this.select(attributes, span).classify(span, attributes);
     }
 
     transform(span: OtelSpan, attributes: Record<string, any>): Partial<NormalizedSpan> {
-        return this.select(attributes).transform(span, attributes);
+        return this.select(attributes, span).transform(span, attributes);
     }
 }

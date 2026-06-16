@@ -5,7 +5,7 @@
 
 # AgentMark CLI commands
 
-> Reference for `@agentmark-ai/cli@0.15.0`. Always prefer `npx @agentmark-ai/cli <cmd> --help` for the most current flag set.
+> Generated from the CLI command definitions in `cli-src/index.ts`. Always prefer `npx @agentmark-ai/cli <cmd> --help` for the exact flag set on your installed version — the published CLI may be newer than the source this was generated from.
 
 ## Command index
 

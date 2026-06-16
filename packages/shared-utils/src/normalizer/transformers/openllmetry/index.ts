@@ -15,7 +15,7 @@
  * @see https://www.traceloop.com/docs/openllmetry/privacy/traces
  */
 
-import { NormalizedSpan, OtelSpan, ScopeTransformer, SpanType, Message } from '../../types';
+import { NormalizedSpan, OtelSpan, ScopeTransformer, SpanType, Message, RetrievalDocument } from '../../types';
 import { parseTokens } from '../../extractors/token-parser';
 import {
     IndexedMessageConfig,
@@ -117,6 +117,75 @@ function extractFromEvents(
     return undefined;
 }
 
+/** Parse a result-event `metadata` value that may be a JSON string or object. */
+function parseResultMetadata(raw: any): Record<string, any> | undefined {
+    let parsed: any = raw;
+    if (typeof raw === 'string') {
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            return undefined;
+        }
+    }
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    return undefined;
+}
+
+const VECTOR_RESULT_EVENT_NAMES = new Set(['db.query.result', 'db.search.result']);
+
+/**
+ * Vector-store instrumentation (Pinecone, Chroma, Marqo, Milvus, …) records one
+ * span EVENT per returned match — named `db.query.result` / `db.search.result`
+ * — carrying that match's id, relevance score OR vector distance, content
+ * (`document`), and metadata. Stores differ in which fields they populate AND in
+ * the attribute prefix (Chroma → `db.query.result.{distance,document,metadata}`;
+ * Milvus → `db.search.result.{distance,entity}`), so both prefixes and both
+ * score/distance are honored. Milvus packs the matched row (content + user
+ * fields) into a single `entity` value — recovered into metadata so nothing is
+ * lost, since we can't reliably know which entity field is the "content".
+ * Returns matches in event (rank) order as structured RetrievalDocuments.
+ *
+ * Verified live against real Traceloop instrumentation for Chroma (full) and
+ * Milvus (`entity` recovery); Qdrant/LanceDB/Weaviate instrumentors emit no
+ * per-match result data at all, so those spans classify as retrieval but carry
+ * no documents (nothing to extract).
+ */
+function extractVectorResultDocuments(events: OtelSpan['events']): RetrievalDocument[] {
+    if (!events) return [];
+    const docs: RetrievalDocument[] = [];
+    for (const event of events) {
+        if (!VECTOR_RESULT_EVENT_NAMES.has(event.name)) continue;
+        const a = event.attributes ?? {};
+        const get = (field: string) =>
+            a[`db.query.result.${field}`] ?? a[`db.search.result.${field}`];
+
+        const doc: RetrievalDocument = {};
+        const id = get('id');
+        if (id !== undefined && id !== null && String(id).length > 0) doc.id = String(id);
+        const content = get('document');
+        if (typeof content === 'string' && content.length > 0) doc.content = content;
+        const score = toNumber(get('score'));
+        if (score !== undefined) doc.score = score;
+        const distance = toNumber(get('distance'));
+        if (distance !== undefined) doc.distance = distance;
+
+        let metadata = parseResultMetadata(get('metadata'));
+        // Milvus carries the matched row in `entity` rather than `metadata`; it
+        // may be JSON or a Python-repr dict string. Parse what we can, else keep
+        // the raw value so the content/fields stay visible in the UI.
+        if (metadata === undefined) {
+            const entity = get('entity');
+            if (entity !== undefined && entity !== null && String(entity).length > 0) {
+                metadata = parseResultMetadata(entity) ?? { entity: String(entity) };
+            }
+        }
+        if (metadata !== undefined) doc.metadata = metadata;
+
+        if (Object.keys(doc).length > 0) docs.push(doc);
+    }
+    return docs;
+}
+
 function extractFinishReason(attributes: Record<string, any>): string | undefined {
     const direct = attributes[Attrs.RESPONSE_FINISH_REASON];
     if (direct !== undefined) {
@@ -201,6 +270,23 @@ export class OpenLLMetryTransformer implements ScopeTransformer {
             } else {
                 const eventCompletion = extractFromEvents(span.events, 'gen_ai.completion');
                 if (eventCompletion) result.output = eventCompletion;
+            }
+        }
+
+        // Vector-store query spans: results arrive as `db.query.result` span
+        // events (one per match). Surface them as a structured outputObject for
+        // the ranked-documents panel, plus joined text for search/fallback.
+        if (result.outputObject === undefined) {
+            const documents = extractVectorResultDocuments(span.events);
+            if (documents.length > 0) {
+                result.outputObject = { documents };
+                if (result.output === undefined) {
+                    const text = documents
+                        .map((d) => d.content)
+                        .filter((c): c is string => typeof c === 'string' && c.length > 0)
+                        .join('\n\n');
+                    if (text) result.output = text;
+                }
             }
         }
 

@@ -190,7 +190,7 @@ describe("OpenInferenceTransformer.transform — generic input.value / output.va
 });
 
 describe("OpenInferenceTransformer.transform — retrieval, tool name, context", () => {
-  it("surfaces retriever document contents as output, skipping empty/non-string ones", () => {
+  it("surfaces retriever documents as structured outputObject + joined text, skipping empty/non-string content", () => {
     expect(
       t.transform(span(), {
         "retrieval.documents.0.document.content": "d0",
@@ -198,20 +198,30 @@ describe("OpenInferenceTransformer.transform — retrieval, tool name, context",
         "retrieval.documents.2.document.content": 7,
         "retrieval.documents.3.document.content": "d3",
       })
-    ).toStrictEqual({ output: "d0\n\nd3" });
+    ).toStrictEqual({
+      output: "d0\n\nd3",
+      // index 1 (empty) and 2 (non-string) contribute no content; index 1 has
+      // no other field so it is dropped, index 2 likewise.
+      outputObject: { documents: [{ content: "d0" }, { content: "d3" }] },
+    });
   });
 
-  it("does not overwrite an existing output with retrieval documents", () => {
+  it("adds structured documents without overwriting an existing text output", () => {
     expect(
       t.transform(span(), {
         "output.value": "real output",
         "retrieval.documents.0.document.content": "doc",
       })
-    ).toStrictEqual({ output: "real output" });
+    ).toStrictEqual({
+      output: "real output",
+      outputObject: { documents: [{ content: "doc" }] },
+    });
   });
 
-  it("emits nothing for retrieval when no document contents are present", () => {
-    expect(t.transform(span(), { "retrieval.documents.0.document.id": "only-id" })).toStrictEqual({});
+  it("keeps an id-only document (e.g. Pinecone with no inline content) in outputObject, with no text output", () => {
+    expect(t.transform(span(), { "retrieval.documents.0.document.id": "only-id" })).toStrictEqual({
+      outputObject: { documents: [{ id: "only-id" }] },
+    });
   });
 
   it("renames the span to the tool name only for a non-empty string", () => {
