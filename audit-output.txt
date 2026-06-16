@@ -11,6 +11,19 @@
 │  └─ Dependents
 │     └─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [cea8d][39m
 │
+├─ [38;5;166m@babel/[39m[38;5;173mcore[39m
+│  ├─ ID: [38;5;220m1120793[39m
+│  ├─ Issue: @babel/core: Arbitrary File Read via sourceMappingURL Comment
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-4x5r-pxfx-6jf8[39m
+│  ├─ Severity: low
+│  ├─ Vulnerable Versions: [38;5;37m<=7.29.0[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.29.0[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@nx/[39m[38;5;173mjs[39m[38;5;111m@[39m[38;5;111mnpm:22.6.4 [f9974][39m
+│
 ├─ [38;5;166m@grpc/[39m[38;5;173mgrpc-js[39m
 │  ├─ ID: [38;5;220m1120582[39m
 │  ├─ Issue: @grpc/grpc-js: A malformed request can cause a server crash
@@ -36,6 +49,28 @@
 │  │ 
 │  └─ Dependents
 │     └─ [38;5;166m@opentelemetry/[39m[38;5;173mexporter-trace-otlp-grpc[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [6b62f][39m
+│
+├─ [38;5;166m@opentelemetry/[39m[38;5;173mcore[39m
+│  ├─ ID: [38;5;220m1120821[39m
+│  ├─ Issue: OpenTelemetry Core: Unbounded memory allocation in W3C Baggage propagation
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-8988-4f7v-96qf[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<2.8.0[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  ├─ [38;5;111m2.0.1[39m
+│  │  ├─ [38;5;111m2.5.1[39m
+│  │  ├─ [38;5;111m2.6.1[39m
+│  │  └─ [38;5;111m2.7.1[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@fastify/[39m[38;5;173motel[39m[38;5;111m@[39m[38;5;111mnpm:0.18.0 [9f219][39m
+│     ├─ [38;5;166m@mastra/[39m[38;5;173mcore[39m[38;5;111m@[39m[38;5;111mnpm:0.13.2 [cea8d][39m
+│     ├─ [38;5;166m@opentelemetry/[39m[38;5;173mexporter-trace-otlp-grpc[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [6b62f][39m
+│     ├─ [38;5;166m@opentelemetry/[39m[38;5;173mexporter-trace-otlp-http[39m[38;5;111m@[39m[38;5;111mnpm:0.217.0 [cea8d][39m
+│     ├─ [38;5;166m@opentelemetry/[39m[38;5;173minstrumentation-http[39m[38;5;111m@[39m[38;5;111mnpm:0.214.0 [9f219][39m
+│     ├─ [38;5;166m@opentelemetry/[39m[38;5;173motlp-transformer[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [2b500][39m
+│     └─ [38;5;166m@sentry/[39m[38;5;173mnode[39m[38;5;111m@[39m[38;5;111mnpm:10.52.0[39m
 │
 ├─ [38;5;166m@ungap/[39m[38;5;173mstructured-clone[39m
 │  ├─ ID: [38;5;111m@ungap/structured-clone (deprecation)[39m
@@ -116,6 +151,19 @@
 │  └─ Dependents
 │     └─ [38;5;173mtsup[39m[38;5;111m@[39m[38;5;111mnpm:8.5.1 [f9974][39m
 │
+├─ [38;5;173mform-data[39m
+│  ├─ ID: [38;5;220m1120743[39m
+│  ├─ Issue: form-data: CRLF injection in form-data via unescaped multipart field names and filenames
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-hmw2-7cc7-3qxx[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=4.0.0 <4.0.6[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.0.5[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mjsdom[39m[38;5;111m@[39m[38;5;111mnpm:25.0.1 [ff149][39m
+│
 ├─ [38;5;173mglob[39m
 │  ├─ ID: [38;5;111mglob (deprecation)[39m
 │  ├─ Issue: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
@@ -127,6 +175,86 @@
 │  │ 
 │  └─ Dependents
 │     └─ [38;5;166m@nxlv/[39m[38;5;173mpython[39m[38;5;111m@[39m[38;5;111mnpm:22.1.1[39m
+│
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1120910[39m
+│  ├─ Issue: hono: Path traversal in `serve-static` on Windows via encoded backslash (`%5C`)
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-wwfh-h76j-fc44[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<4.12.25[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.12.23[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1120911[39m
+│  ├─ Issue: hono: AWS Lambda adapter merges multiple `Set-Cookie` headers into one value, dropping cookies on ALB single-header and Lattice
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-j6c9-x7qj-28xf[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<4.12.25[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.12.23[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1120913[39m
+│  ├─ Issue: hono: CORS Middleware reflects any Origin with credentials when `origin` defaults to the wildcard
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-88fw-hqm2-52qc[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<4.12.25[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.12.23[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1120921[39m
+│  ├─ Issue: hono: Body Limit Middleware can be bypassed on AWS Lambda by understating `Content-Length`
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-rv63-4mwf-qqc2[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<4.12.25[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.12.23[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
+├─ [38;5;173mhono[39m
+│  ├─ ID: [38;5;220m1120922[39m
+│  ├─ Issue: hono: Lambda@Edge adapter keeps only the last value of a repeated request header, dropping the rest
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-wgpf-jwqj-8h8p[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<4.12.25[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m4.12.23[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@modelcontextprotocol/[39m[38;5;173msdk[39m[38;5;111m@[39m[38;5;111mnpm:1.26.0 [c08a3][39m
+│
+├─ [38;5;173mjs-yaml[39m
+│  ├─ ID: [38;5;220m1120792[39m
+│  ├─ Issue: JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-h67p-54hq-rp68[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<=4.1.1[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  ├─ [38;5;111m3.14.2[39m
+│  │  └─ [38;5;111m4.1.1[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;166m@agentmark-ai/[39m[38;5;173mshared-utils[39m[38;5;111m@[39m[38;5;111mworkspace:packages/shared-utils[39m
+│     └─ [38;5;166m@yarnpkg/[39m[38;5;173mparsers[39m[38;5;111m@[39m[38;5;111mnpm:3.0.2[39m
 │
 ├─ [38;5;173mnode-domexception[39m
 │  ├─ ID: [38;5;111mnode-domexception (deprecation)[39m
@@ -151,6 +279,75 @@
 │  │ 
 │  └─ Dependents
 │     └─ [38;5;173mbetter-sqlite3[39m[38;5;111m@[39m[38;5;111mnpm:12.6.2[39m
+│
+├─ [38;5;173mprotobufjs[39m
+│  ├─ ID: [38;5;220m1120742[39m
+│  ├─ Issue: protobufjs : Schema-derived names can shadow runtime-significant properties
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-f38q-mgvj-vph7[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<=7.6.2[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.5.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@opentelemetry/[39m[38;5;173motlp-transformer[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [2b500][39m
+│
+├─ [38;5;173mprotobufjs[39m
+│  ├─ ID: [38;5;220m1120799[39m
+│  ├─ Issue: protobufjs: Denial of service through unbounded Any expansion during JSON conversion
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-wcpc-wj8m-hjx6[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m<=7.6.0[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.5.8[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;166m@opentelemetry/[39m[38;5;173motlp-transformer[39m[38;5;111m@[39m[38;5;111mnpm:0.203.0 [2b500][39m
+│
+├─ [38;5;173mtar[39m
+│  ├─ ID: [38;5;220m1120782[39m
+│  ├─ Issue: node-tar applies PAX size override to intermediary GNU long-name/long-link headers, causing tar parser interpretation differential (file smuggling)
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-vmf3-w455-68vh[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m<=7.5.15[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.5.13[39m
+│  │ 
+│  └─ Dependents
+│     └─ [38;5;173mnode-gyp[39m[38;5;111m@[39m[38;5;111mnpm:12.2.0[39m
+│
+├─ [38;5;173mvite[39m
+│  ├─ ID: [38;5;220m1120785[39m
+│  ├─ Issue: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-v6wh-96g9-6wx3[39m
+│  ├─ Severity: moderate
+│  ├─ Vulnerable Versions: [38;5;37m>=7.0.0 <=7.3.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.3.2[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:4.1.8 [2b500][39m
+│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:4.1.8 [7dc72][39m
+│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:4.1.8 [88e57][39m
+│
+├─ [38;5;173mvite[39m
+│  ├─ ID: [38;5;220m1120790[39m
+│  ├─ Issue: vite: `server.fs.deny` bypass on Windows alternate paths
+│  ├─ URL: [38;5;170mhttps://github.com/advisories/GHSA-fx2h-pf6j-xcff[39m
+│  ├─ Severity: high
+│  ├─ Vulnerable Versions: [38;5;37m>=7.0.0 <=7.3.4[39m
+│  │ 
+│  ├─ Tree Versions
+│  │  └─ [38;5;111m7.3.2[39m
+│  │ 
+│  └─ Dependents
+│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:4.1.8 [2b500][39m
+│     ├─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:4.1.8 [7dc72][39m
+│     └─ [38;5;173mvitest[39m[38;5;111m@[39m[38;5;111mnpm:4.1.8 [88e57][39m
 │
 ├─ [38;5;173mwhatwg-encoding[39m
 │  ├─ ID: [38;5;111mwhatwg-encoding (deprecation)[39m

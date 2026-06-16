@@ -1,3 +1,48 @@
+## 0.24.0 (2026-06-16)
+
+### 🚀 Features
+
+- Trace-list I/O preview parity for self-hosted / OSS. ([#787](https://github.com/agentmark-ai/agentmark/pull/787))
+
+  The trace list now shows a truncated input/output snippet under each trace name
+  (the way the cloud dashboard already does, mirroring Langfuse/LangSmith), so you
+  can scan what a run sent and received without opening each trace. Previously this
+  lived only in the cloud dashboard; the public `/v1/traces` wire shape, the local
+  dev server, and the OSS `TracesList` had no preview.
+
+  - **shared-utils**: new canonical `attachTraceIOPreviews(traces, rows)` plus the
+    `TRACE_IO_PREVIEW_MAX_CHARS` (160) cut — the ONE "rows → one preview per trace"
+    step (root span wins, GENERATION fallback via `deriveTraceIO`). Shared by the
+    cloud trace service and the local CLI server so the two can never derive a
+    preview differently.
+  - **api-schemas**: `TraceResponseSchema` gains optional, nullable
+    `input_preview` / `output_preview` on the `/v1/traces` list wire shape
+    (additive — existing consumers are unaffected).
+  - **cli**: the local dev server derives the preview from each page's root +
+    GENERATION spans (a bounded `TraceId IN (…)` SQLite read, truncated in SQL so a
+    large chat history never lands in memory) and emits the two new wire fields.
+    Best-effort — a preview-query failure degrades to "no preview", never fails the
+    list.
+  - **ui-components**: `TracesList` renders the input/output preview lines under the
+    trace name (input in `text.secondary`, output in the dimmer `text.disabled`,
+    each clamped to a single line with the full text in the `title`).
+
+- Add `agentmark init` as a first-class CLI command: install `@agentmark-ai/cli` globally and run `agentmark init` to scaffold a project (`agentmark.json`, prompts dir, IDE MCP configs, agent skill). `init` additionally pins `@agentmark-ai/cli` as a local dev dependency and adds npm scripts to the project's `package.json` (non-destructively — never clobbering an existing `dev`/`build` script), so CI and teammates resolve the same CLI version from `node_modules/.bin` without a global install. `agentmark doctor` now reports whether that local pin is present (advisory `deps.cli` check). `create-agentmark` (`npm create agentmark`) becomes a thin, dependency-free wrapper that delegates to `agentmark init` via `npx` (reusing an installed CLI or fetching on demand), so both entry points produce identical output without pulling the CLI's full tree into the scaffolder. ([#787](https://github.com/agentmark-ai/agentmark/pull/787))
+- Onboarding-smoke fixes: ([#787](https://github.com/agentmark-ai/agentmark/pull/787))
+
+  - **`doctor --smoke --boot` no longer leaks a server process.** `killProcessTree` ran `pkill -KILL -P <pid>` on Unix, which reaches only *direct* children — so `agentmark dev`'s `tsx --watch` worker (a grandchild that owns the webhook port) was orphaned, leaking port 9417 after a run and across repeated runs. The Unix path now walks the tree leaf-first via `pgrep -P` and SIGKILLs every descendant, matching the `taskkill /T` behavior already used on Windows.
+
+  - **`doctor`'s JSON `ok` now reflects `--strict`** (behavior change; may affect consumers). Previously `ok` meant "no failures" and ignored `--strict`, so with `--strict` and only warnings present the process exited 1 while the JSON still reported `ok: true`. `ok` now matches the exit code: failures always fail; warnings fail only under `--strict`. A new exported `isOk(counts, strict)` is the single source of truth for both.
+
+  - Fix a stale docs URL printed by `pull-models` (`/integrations/bring-your-own-sdk` → `/configure/connect-your-sdk`).
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.11.0
+- Updated @agentmark-ai/shared-utils to 0.9.0
+- Updated @agentmark-ai/api-schemas to 0.8.0
+- Updated @agentmark-ai/api-types to 0.9.1
+
 ## 0.23.5 (2026-06-16)
 
 ### 🧱 Updated Dependencies
