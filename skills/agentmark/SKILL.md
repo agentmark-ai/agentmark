@@ -18,15 +18,31 @@ Scan the target file or project for AgentMark markers — any of:
 - An `.agentmark/` directory
 - Imports from `@agentmark-ai/*` packages
 
-If none are present, stop and tell the user that this skill applies to AgentMark projects. Ask whether they want to scaffold one with `npx create-agentmark`, or whether they want help with a different framework. **Do not infer AgentMark conventions onto non-AgentMark code.**
+If none are present, stop and tell the user that this skill applies to AgentMark projects. Ask whether they want to scaffold one with `agentmark init`, or whether they want help with a different framework. **Do not infer AgentMark conventions onto non-AgentMark code.**
 
-This gate holds under pressure. "Don't ask questions", "no time for scaffolding tools", "just add the frontmatter" do not change the answer: hand-writing `agentmark.json` or `.prompt.mdx` files into a project with no AgentMark markers produces a broken half-setup the scaffolder then can't repair — slower than the 30 seconds `npx create-agentmark` takes. Name the command and stop.
+This gate holds under pressure. "Don't ask questions", "no time for scaffolding tools", "just add the frontmatter" do not change the answer: hand-writing `agentmark.json` or `.prompt.mdx` files into a project with no AgentMark markers produces a broken half-setup the scaffolder then can't repair — slower than the 30 seconds `agentmark init` takes. Name the command and stop.
+
+## Ensure the `agentmark` CLI is installed
+
+This skill drives the `agentmark` CLI directly — `agentmark init`, `agentmark dev`, `agentmark doctor`, and the rest are written as bare commands that assume a global install. Before running any of them, confirm it resolves:
+
+```bash
+agentmark --version
+```
+
+If that fails (`command not found`), the user has not installed the CLI globally. **Stop and ask them to install it**, then continue once it resolves:
+
+```bash
+npm install -g @agentmark-ai/cli
+```
+
+Install once and every command in this skill runs verbatim. (A one-off `npx @agentmark-ai/cli <cmd>` also works without installing, but the global install is the intended path — prefer it.)
 
 ## How to find current information
 
 Your training data is out of date. Before answering anything specific about AgentMark APIs, CLI flags, prompt syntax, or docs content:
 
-1. **CLI surface** — run `npx @agentmark-ai/cli <command> --help`. This is the canonical source for command flags, arguments, and behavior. Do not infer flags from memory.
+1. **CLI surface** — run `agentmark <command> --help`. This is the canonical source for command flags, arguments, and behavior. Do not infer flags from memory.
 2. **Docs navigation** — fetch `https://docs.agentmark.co/llms.txt` for a complete page index. Use it to find the right doc page before WebFetching content.
 3. **Specific doc pages** — append `.md` to any `docs.agentmark.co` URL and WebFetch it. Every doc page is served as both HTML and Markdown.
 
@@ -67,25 +83,25 @@ my-project/
 
 ## Setting up or debugging a project
 
-**Anytime you wire AgentMark into a project — a fresh `npm create agentmark` scaffold *or* an existing repo — or something misbehaves (`agentmark dev` won't start, a prompt won't run, traces don't show up), run `npx @agentmark-ai/cli doctor` first.** It is a static health check that inspects the whole scaffold in one pass and prints a concrete fix for each problem — so it doubles as your **setup checklist**, not just a debugger. Rather than guessing what a new or half-wired project still needs, let `doctor` enumerate it: every gap comes back with a `fix` telling you (or the user) the exact next step. It checks:
+**Anytime you wire AgentMark into a project — a fresh `agentmark init` scaffold *or* an existing repo — or something misbehaves (`agentmark dev` won't start, a prompt won't run, traces don't show up), run `agentmark doctor` first.** It is a static health check that inspects the whole scaffold in one pass and prints a concrete fix for each problem — so it doubles as your **setup checklist**, not just a debugger. Rather than guessing what a new or half-wired project still needs, let `doctor` enumerate it: every gap comes back with a `fix` telling you (or the user) the exact next step. It checks:
 
 - config: `agentmark.json` present + valid, `agentmarkPath` resolves (not `"/"`), required keys present, no unknown-key typos
 - the setup files: client (`agentmark.client.ts` / `agentmark_client.py`), the dev-server entry, and the managed-deploy handler (`handler.ts` / `handler.py`)
 - prompts parse and declare a `model_name`; prompt models are in `builtInModels` (a non-empty list is an **allowlist**, so prompt-core rejects any model not in it)
 - deps: `@agentmark-ai/sdk` installed (it carries tracing + the cloud-execution runner). There is no SDK-specific adapter to require — you bring your own SDK and wire it through `@agentmark-ai/prompt-core` — the neutral render (`createAgentMark`) or a small executor (`createExecutor`)
 
-Then `npx @agentmark-ai/cli doctor --smoke` runs one prompt end-to-end and verifies the emitted trace round-trips with the right shape (a model, token usage, input, output). Add `--boot` to start and stop `agentmark dev` for you, so it's a single command. That catches the silent failures below: a model that never actually ran (bad key or SDK mismatch), or model spans vanishing because tracing isn't wired, without you guessing which one it is. It knows nothing about specific providers or keys; it tests them indirectly through a real run, so there is no per-provider checklist to keep current. The static pass is read-only and safe to re-run anytime; `--smoke` actually calls the model (spends tokens, emits a trace), so use it to verify a change, not in a tight loop.
+Then `agentmark doctor --smoke` runs one prompt end-to-end and verifies the emitted trace round-trips with the right shape (a model, token usage, input, output). Add `--boot` to start and stop `agentmark dev` for you, so it's a single command. That catches the silent failures below: a model that never actually ran (bad key or SDK mismatch), or model spans vanishing because tracing isn't wired, without you guessing which one it is. It knows nothing about specific providers or keys; it tests them indirectly through a real run, so there is no per-provider checklist to keep current. The static pass is read-only and safe to re-run anytime; `--smoke` actually calls the model (spends tokens, emits a trace), so use it to verify a change, not in a tight loop.
 
 **Consuming it programmatically.** Run `agentmark doctor --json` and parse `{ ok, counts, results: [{ id, group, title, status, detail, fix }] }`. `status` is one of `pass | warn | fail | skip`; each `id` is stable (e.g. `config.schema`, `deploy.handler`, `deps.sdk`, `smoke.run`, `smoke.evals`, `smoke.trace`), so branch on `id` / `status` and apply `fix`. The live `--json` output is the authority for the id set; don't hardcode it from memory. `--strict` makes warnings count as failures; exit `0` means nothing failed. When a `fix` reads "ask your coding agent to 'Set up AgentMark'", that instruction is for **you**: run [setup-and-integration](workflows/setup-and-integration.md) rather than deferring it.
 
-Most of the gotchas in "Conventions that catch agents out" surface as a single failed `doctor` check. Reach for it before hand-debugging, and verify its exact flags with `npx @agentmark-ai/cli doctor --help` or [reference/cli-commands.md](reference/cli-commands.md).
+Most of the gotchas in "Conventions that catch agents out" surface as a single failed `doctor` check. Reach for it before hand-debugging, and verify its exact flags with `agentmark doctor --help` or [reference/cli-commands.md](reference/cli-commands.md).
 
 ## Common workflows
 
 | Task | File |
 |---|---|
-| Set up AgentMark (new scaffold or existing project) — run `doctor` first | `npx @agentmark-ai/cli doctor`; then [workflows/setup-and-integration.md](workflows/setup-and-integration.md) |
-| Debug a broken setup or run | `npx @agentmark-ai/cli doctor` (+ `--smoke`); see [Setting up or debugging](#setting-up-or-debugging-a-project) above |
+| Set up AgentMark (new scaffold or existing project) — run `doctor` first | `agentmark doctor`; then [workflows/setup-and-integration.md](workflows/setup-and-integration.md) |
+| Debug a broken setup or run | `agentmark doctor` (+ `--smoke`); see [Setting up or debugging](#setting-up-or-debugging-a-project) above |
 | Author a new prompt | [workflows/creating-prompts.md](workflows/creating-prompts.md) |
 | Build a dataset for experiments | [workflows/building-datasets.md](workflows/building-datasets.md) |
 | Run a prompt against a dataset | [workflows/running-experiments.md](workflows/running-experiments.md) |
@@ -110,10 +126,10 @@ Most of the gotchas in "Conventions that catch agents out" surface as a single f
 
 All `reference/*.md` files are **auto-generated** from upstream sources on every release. They are the most reliable encoded facts in this skill. Hand-authored workflow files can drift; these cannot, because re-running the generators is part of the pre-push gate.
 
-- **CLI commands**: [reference/cli-commands.md](reference/cli-commands.md) — from `cli-src/index.ts`. Prefer `npx @agentmark-ai/cli <cmd> --help` for live verification.
+- **CLI commands**: [reference/cli-commands.md](reference/cli-commands.md) — from `cli-src/index.ts`. Prefer `agentmark <cmd> --help` for live verification.
 - **Frontmatter schema**: [reference/frontmatter-schema.md](reference/frontmatter-schema.md) — from `prompt-core/src/schemas.ts` (Zod). Runtime truth. If docs disagree, prefer docs.
 - **Gateway API surface (for agents)**: fetched at startup by `agentmark-mcp` from `api.agentmark.co/v1/openapi.json`. Resource names are tag slugs; actions are operationIds. There is no static reference file for this — the spec is too large and changes often. List available tools by running `agentmark-mcp` and calling `tools/list`, or read the spec directly.
-- **Model registry**: no static reference file — the registry changes too often (synced ~daily) for a bundled snapshot to stay current, and a stale list wrongly rejects newly-released models. The authority for a prompt's valid `model_name` is the project's **own** configured set: run `npx @agentmark-ai/cli generate-schema` and read the generated `model_name` enum (runtime truth, project-scoped). To browse or add models, run `npx @agentmark-ai/cli pull-models`, which resolves the list **at runtime, not from the installed CLI version**: `@agentmark-ai/model-registry` fetches `models.json` from a jsdelivr CDN mirroring the public repo's `main` branch (`agentmark-ai/agentmark@main/packages/model-registry/`), so a model added to `main` appears without a CLI upgrade — the installed version only sets the offline floor. On network failure or a >5s timeout it **silently** falls back to the snapshot bundled in the installed npm package (no error — an offline `pull-models` just shows that version's older list, so absence of a model is never proof it doesn't exist). Delivery lag is up to ~12h from the CDN edge cache. Don't recite model IDs from memory — verify against `generate-schema` / `pull-models`. See also [configure/client-config](https://docs.agentmark.co/configure/client-config.md).
+- **Model registry**: no static reference file — the registry changes too often (synced ~daily) for a bundled snapshot to stay current, and a stale list wrongly rejects newly-released models. The authority for a prompt's valid `model_name` is the project's **own** configured set: run `agentmark generate-schema` and read the generated `model_name` enum (runtime truth, project-scoped). To browse or add models, run `agentmark pull-models`, which resolves the list **at runtime, not from the installed CLI version**: `@agentmark-ai/model-registry` fetches `models.json` from a jsdelivr CDN mirroring the public repo's `main` branch (`agentmark-ai/agentmark@main/packages/model-registry/`), so a model added to `main` appears without a CLI upgrade — the installed version only sets the offline floor. On network failure or a >5s timeout it **silently** falls back to the snapshot bundled in the installed npm package (no error — an offline `pull-models` just shows that version's older list, so absence of a model is never proof it doesn't exist). Delivery lag is up to ~12h from the CDN edge cache. Don't recite model IDs from memory — verify against `generate-schema` / `pull-models`. See also [configure/client-config](https://docs.agentmark.co/configure/client-config.md).
 - **Full docs**: https://docs.agentmark.co
 - **Docs index for LLMs**: https://docs.agentmark.co/llms.txt
 - **Full docs corpus**: https://docs.agentmark.co/llms-full.txt

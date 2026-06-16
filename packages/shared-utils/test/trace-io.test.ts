@@ -8,7 +8,11 @@
  * fields resolve independently.
  */
 import { describe, it, expect } from "vitest";
-import { deriveTraceIO } from "../src/trace-io";
+import {
+  deriveTraceIO,
+  attachTraceIOPreviews,
+  TRACE_IO_PREVIEW_MAX_CHARS,
+} from "../src/trace-io";
 
 const ROOT = {
   parentId: null,
@@ -100,5 +104,79 @@ describe("deriveTraceIO", () => {
 
   it("returns empty for an empty span list", () => {
     expect(deriveTraceIO([])).toEqual({});
+  });
+});
+
+/**
+ * Pins the shared "rows → one preview per trace" step used by BOTH the cloud
+ * trace service (ClickHouse rows) and the local CLI server (SQLite rows). The
+ * point of this helper existing is that those two paths can never derive a
+ * preview differently — so the tests assert grouping, fallback, isolation, and
+ * the blank-rejection guard that protect that invariant.
+ */
+describe("attachTraceIOPreviews", () => {
+  type Row = Parameters<typeof attachTraceIOPreviews>[1][number];
+  const row = (over: Partial<Row> & { traceId: string }): Row => ({
+    parentId: null,
+    type: "SPAN",
+    timestamp: 0,
+    input: null,
+    output: null,
+    ...over,
+  });
+
+  it("derives input/output from the root span when it carries them", () => {
+    const traces = [{ id: "t1" }];
+    attachTraceIOPreviews(traces, [
+      row({ traceId: "t1", parentId: null, type: "SPAN", timestamp: 1, input: "root in", output: "root out" }),
+      row({ traceId: "t1", parentId: "s-root", type: "GENERATION", timestamp: 2, input: "gen in", output: "gen out" }),
+    ]);
+    expect(traces[0]).toEqual({ id: "t1", inputPreview: "root in", outputPreview: "root out" });
+  });
+
+  it("falls back to first-GENERATION input / last-GENERATION output when the root has none", () => {
+    const traces = [{ id: "t1" }];
+    attachTraceIOPreviews(traces, [
+      row({ traceId: "t1", parentId: null, type: "SPAN", timestamp: 1 }),
+      row({ traceId: "t1", parentId: "s", type: "GENERATION", timestamp: 3, input: "last in", output: "last out" }),
+      row({ traceId: "t1", parentId: "s", type: "GENERATION", timestamp: 2, input: "first in", output: "first out" }),
+    ]);
+    // input = FIRST generation (ts 2), output = LAST generation (ts 3) — by
+    // timestamp, not row order.
+    expect(traces[0]).toEqual({ id: "t1", inputPreview: "first in", outputPreview: "last out" });
+  });
+
+  it("groups rows per trace — no cross-trace bleed", () => {
+    const traces = [{ id: "t1" }, { id: "t2" }];
+    attachTraceIOPreviews(traces, [
+      row({ traceId: "t1", input: "t1 in", output: "t1 out" }),
+      row({ traceId: "t2", input: "t2 in", output: "t2 out" }),
+    ]);
+    expect(traces[0]).toEqual({ id: "t1", inputPreview: "t1 in", outputPreview: "t1 out" });
+    expect(traces[1]).toEqual({ id: "t2", inputPreview: "t2 in", outputPreview: "t2 out" });
+  });
+
+  it("leaves a trace with no source rows untouched (no preview keys assigned)", () => {
+    const traces = [{ id: "t1" }, { id: "t2" }];
+    attachTraceIOPreviews(traces, [row({ traceId: "t1", input: "only t1", output: "only t1 out" })]);
+    expect(traces[1]).toEqual({ id: "t2" });
+    expect("inputPreview" in traces[1]).toBe(false);
+  });
+
+  it("never overwrites with an empty string (deriveTraceIO rejects blanks)", () => {
+    const traces = [{ id: "t1" }];
+    attachTraceIOPreviews(traces, [row({ traceId: "t1", type: "SPAN", input: "", output: "" })]);
+    expect(traces[0]).toEqual({ id: "t1" });
+  });
+
+  it("returns the same array reference it mutated in place", () => {
+    const traces = [{ id: "t1" }];
+    expect(attachTraceIOPreviews(traces, [])).toBe(traces);
+  });
+});
+
+describe("TRACE_IO_PREVIEW_MAX_CHARS", () => {
+  it("is the canonical 160-char preview cut shared by cloud and local", () => {
+    expect(TRACE_IO_PREVIEW_MAX_CHARS).toBe(160);
   });
 });

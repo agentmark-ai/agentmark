@@ -7982,7 +7982,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/prompts@npm:^2, @types/prompts@npm:^2.4.9":
+"@types/prompts@npm:^2":
   version: 2.4.9
   resolution: "@types/prompts@npm:2.4.9"
   dependencies:
@@ -10471,12 +10471,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "create-agentmark@workspace:packages/create-agentmark"
   dependencies:
-    "@agentmark-ai/shared-utils": "npm:0.8.0"
-    "@types/fs-extra": "npm:^11.0.4"
     "@types/node": "npm:^20"
-    "@types/prompts": "npm:^2.4.9"
-    fs-extra: "npm:^11.2.0"
-    prompts: "npm:^2.4.2"
     tsup: "npm:^8.5.1"
     typescript: "npm:^5"
     vitest: "npm:^4.1.8"

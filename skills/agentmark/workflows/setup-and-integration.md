@@ -1,6 +1,6 @@
 # Setup & integration
 
-Triggered when a user says "set up AgentMark in this project," "wire AgentMark into my app," "integrate AgentMark with my existing code," or after they hit the handoff line printed by `npm create agentmark`. This workflow takes the user from "MCP config + `agentmark.json` on disk" to "a working prompt loads in the SDK and a trace shows up in `agentmark dev`."
+Triggered when a user says "set up AgentMark in this project," "wire AgentMark into my app," "integrate AgentMark with my existing code," or after they hit the handoff line printed by `agentmark init`. This workflow takes the user from "MCP config + `agentmark.json` on disk" to "a working prompt loads in the SDK and a trace shows up in `agentmark dev`."
 
 If the user wants to *provision a Cloud app and connect git* without touching local code yet, use [headless-with-mcp.md](headless-with-mcp.md) instead.
 
@@ -8,23 +8,23 @@ If the user wants to *provision a Cloud app and connect git* without touching lo
 
 This file describes the **shape** of the conversation and the **order** of operations — nothing else. Framework-specific paths, package names, CLI flags, `agentmarkPath` conventions, and every other piece of integration content live in **one place**: `https://docs.agentmark.co`, queryable via the docs MCP server (`https://docs.agentmark.co/mcp`) or by appending `.md` to any docs URL and using `WebFetch`.
 
-**Never encode integration content into this workflow.** When you need to know where a Next.js project's client file goes, what package to install for Pydantic AI, or what flag `agentmark run-prompt` takes — query the docs MCP, or run `npx @agentmark-ai/cli <cmd> --help`. If two sources disagree, the docs win. This is the same rule SKILL.md establishes in [How to find current information](../SKILL.md#how-to-find-current-information); a setup workflow is no exception.
+**Never encode integration content into this workflow.** When you need to know where a Next.js project's client file goes, what package to install for Pydantic AI, or what flag `agentmark run-prompt` takes — query the docs MCP, or run `agentmark <cmd> --help`. If two sources disagree, the docs win. This is the same rule SKILL.md establishes in [How to find current information](../SKILL.md#how-to-find-current-information); a setup workflow is no exception.
 
 If the docs MCP isn't responding, or doesn't cover the user's framework, **stop and tell the user**. Do not invent paths or package names from memory. The right escalation is "the docs don't cover this framework — want me to set it up using the closest covered pattern (X), or hold while we add docs for your stack?"
 
 ## Before you start — `doctor` is your setup checklist
 
-**Whenever a user wants to set up AgentMark — a fresh `npm create agentmark` scaffold *or* an existing repo — run `npx @agentmark-ai/cli doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 6.)
+**Whenever a user wants to set up AgentMark — a fresh `agentmark init` scaffold *or* an existing repo — run `agentmark doctor` first.** It inventories the whole scaffold (config, the client / dev-entry / handler files, prompts + `builtInModels`, deps) and prints a concrete `fix` for every gap, so it tells you exactly what the project still needs instead of you guessing. Act on its fixes, re-run to confirm, and keep it in the loop through this entire workflow — it bootstraps the integration and verifies it at the end. (`doctor` is read-only and safe to re-run anytime; `--smoke` actually runs a prompt — see Step 6.)
 
-Then confirm the CLI handoff actually happened — if any are missing, the user skipped `npm create agentmark`:
+Then confirm the CLI handoff actually happened — if any are missing, the user skipped `agentmark init`:
 
 - [ ] `agentmark.json` exists at the project root
 - [ ] `agentmark/` directory exists (the CLI creates it empty, with a `.gitkeep`); `agentmarkPath` in `agentmark.json` resolves the prompt-root to `<agentmarkPath>/agentmark`
 - [ ] At least one MCP config file exists (`.mcp.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, or `.zed/settings.json`) and lists **both** the `agentmark` (Cloud) server and the `agentmark-docs` (docs MCP) server
 - [ ] Your MCP client lists tools from `agentmark-docs` (required — this workflow defers all integration content to it) and from `agentmark` (needed only for the optional Cloud step)
-- [ ] *(Cloud features only)* Cloud auth resolves — `~/.agentmark/auth.json` exists OR `AGENTMARK_API_KEY` is set. **Do not block local setup on this**: installing packages, writing the client and prompt files, and running `npx @agentmark-ai/cli dev` need no cloud auth at all. If auth is missing, proceed local-first and treat Cloud linking as the deferred final step.
+- [ ] *(Cloud features only)* Cloud auth resolves — `~/.agentmark/auth.json` exists OR `AGENTMARK_API_KEY` is set. **Do not block local setup on this**: installing packages, writing the client and prompt files, and running `agentmark dev` need no cloud auth at all. If auth is missing, proceed local-first and treat Cloud linking as the deferred final step.
 
-If any are missing, tell the user to run `npm create agentmark` first. Do not recreate those files from this workflow — that is the CLI's job, and duplicating it here is how the two paths drift apart.
+If any are missing, tell the user to run `agentmark init` first (install the CLI with `npm install -g @agentmark-ai/cli` if it isn't available). Do not recreate those files from this workflow — that is the CLI's job, and duplicating it here is how the two paths drift apart.
 
 ## Step 1 — Detect the project (filesystem only)
 
@@ -92,7 +92,7 @@ One prompt only, named after the host's primary use case. Use the minimum viable
 
 ## Step 6 — Smoke test (local — no cloud auth needed)
 
-Verify the scaffold before handing back. Run `npx @agentmark-ai/cli doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `npx @agentmark-ai/cli doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK mismatch, or unwired tracing. Exact commands and flags via `npx @agentmark-ai/cli <cmd> --help`. **Do not encode CLI surface in this workflow.** If anything fails, fix it (doctor names the fix) before handing back to the user.
+Verify the scaffold before handing back. Run `agentmark doctor` first: it statically checks `agentmark.json`, the client / dev-entry / handler files, prompts + `builtInModels`, and deps, and prints a concrete fix for anything wrong. Then boot the dev server and run an end-to-end check with `agentmark doctor --smoke`: it runs the prompt and confirms the emitted trace round-trips with the right shape (a model, token usage, input, output), which is the fastest way to catch a bad key, an SDK mismatch, or unwired tracing. Exact commands and flags via `agentmark <cmd> --help`. **Do not encode CLI surface in this workflow.** If anything fails, fix it (doctor names the fix) before handing back to the user.
 
 **`doctor` passing is not "done."** It validates the scaffold, not whether the host's existing LLM code actually uses AgentMark. A green `doctor` means the wiring is correct — it does not mean there's nothing left to do. Do not report "all set" off a passing `doctor` alone; you still owe the user Step 8.
 
@@ -122,7 +122,7 @@ Migration is a refactor with its own risk profile. Conflating it with setup make
 - **Encoding integration content into this workflow.** Paths, packages, CLI flags, framework recommendations — all of those live in the docs. Drift between skill and docs is how agents end up recommending stale packages. Always defer to the docs MCP.
 - **Skipping the docs-MCP query** because you "remember" how Next.js / FastAPI / Mastra setup works. Your memory is wrong; the docs are right.
 - **Inventing a path or package when no docs page covers the framework.** Stop and tell the user. The escalation is to ask whether to use the closest covered pattern as a starting point — not to guess.
-- **Recreating `agentmark.json` or MCP config files from this workflow** — that's the CLI's job. If those files are missing, send the user back to `npm create agentmark`.
+- **Recreating `agentmark.json` or MCP config files from this workflow** — that's the CLI's job. If those files are missing, send the user back to `agentmark init`.
 - **Calling the `agentmark` (Cloud) MCP server for project detection** — that server is for AgentMark Cloud, not local file inspection. Use `Read` / `Glob` / `Grep`.
 - **Migrating existing LLM code without a second confirmation.** Setup consent ≠ refactor consent.
 - **Reporting "all done" off a passing `doctor` without surfacing Step 8.** A green `doctor` validates the scaffold, not that the host's code uses AgentMark. Always close by stating the migration status (call sites to migrate, or none) — never let a passing check be the silent end of the conversation.

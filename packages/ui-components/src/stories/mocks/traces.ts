@@ -13,6 +13,9 @@ export const traces: Trace[] = [
     end: "2021-01-01T00:00:01Z",
     span_count: 3,
     tags: [],
+    input_preview: "What's the weather in San Francisco today?",
+    output_preview:
+      "It's currently 62°F and foggy in San Francisco, clearing to sun by the afternoon.",
   },
   {
     id: "2",
@@ -25,6 +28,8 @@ export const traces: Trace[] = [
     end: "2021-01-01T00:00:02Z",
     span_count: 1,
     tags: [],
+    // Input-only preview — the output line is omitted when absent.
+    input_preview: "Summarize the attached quarterly earnings report.",
   },
   {
     id: "3",

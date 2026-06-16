@@ -7,7 +7,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { RequestsListResponseSchema } from '@agentmark-ai/api-schemas';
+import {
+  RequestsListResponseSchema,
+  TracesListResponseSchema as PublishedTracesListResponseSchema,
+} from '@agentmark-ai/api-schemas';
 import {
   toTracesListResponseWire,
   toRequestsListWire,
@@ -32,6 +35,8 @@ const TraceResponseSchema = z.object({
   tokens: z.number().int().nonnegative(),
   span_count: z.number().int().nonnegative(),
   tags: z.array(z.string()).optional(),
+  input_preview: z.string().nullable().optional(),
+  output_preview: z.string().nullable().optional(),
 });
 
 const TracesListResponseSchema = z.object({
@@ -153,6 +158,51 @@ describe('toTracesListResponseWire', () => {
     expect(wire.data).toEqual([]);
     const parsed = TracesListResponseSchema.safeParse(wire);
     expect(parsed.success).toBe(true);
+  });
+
+  it('maps inputPreview/outputPreview to snake_case, only when present, and stays valid against the published schema', () => {
+    const wire = toTracesListResponseWire(
+      makeServiceResult({
+        traces: [
+          {
+            id: 'trace-preview',
+            name: 'Has preview',
+            status: 'OK',
+            start: '2026-01-01T00:00:00.000Z',
+            end: '2026-01-01T00:00:01.500Z',
+            latencyMs: 1500,
+            cost: 0,
+            tokens: 0,
+            spanCount: 2,
+            inputPreview: 'What is the capital of France?',
+            outputPreview: 'Paris.',
+          },
+          {
+            id: 'trace-no-preview',
+            name: 'No preview',
+            status: 'OK',
+            start: '2026-01-01T00:00:00.000Z',
+            end: '2026-01-01T00:00:01.500Z',
+            latencyMs: 1500,
+            cost: 0,
+            tokens: 0,
+            spanCount: 1,
+          },
+        ] as TracesResponse['traces'],
+      }),
+    );
+
+    // Present → snake_case wire names, exact values.
+    expect(wire.data[0].input_preview).toBe('What is the capital of France?');
+    expect(wire.data[0].output_preview).toBe('Paris.');
+    // The camelCase service field names must never leak onto the wire.
+    expect(wire.data[0]).not.toHaveProperty('inputPreview');
+    expect(wire.data[0]).not.toHaveProperty('outputPreview');
+    // Absent → keys omitted entirely (lean wire; "not computed" ≠ null ≠ '').
+    expect(wire.data[1]).not.toHaveProperty('input_preview');
+    expect(wire.data[1]).not.toHaveProperty('output_preview');
+    // The mapper output still satisfies the PUBLISHED api-schemas contract.
+    expect(PublishedTracesListResponseSchema.safeParse(wire).success).toBe(true);
   });
 });
 

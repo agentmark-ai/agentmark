@@ -84,3 +84,67 @@ export function deriveTraceIO(spans: readonly TraceIOSpan[]): TraceIO {
     ...(present(output) ? { output } : {}),
   };
 }
+
+/**
+ * Canonical max characters of trace-level Input/Output read into a list-row
+ * preview. ONE definition for every preview path so the boundary can never
+ * drift between cloud and local: the cloud gateway truncates to this in
+ * ClickHouse (`substringUTF8`), the local CLI server truncates to it in SQLite
+ * (`substr`), and the trace lists size the muted preview line for it.
+ */
+export const TRACE_IO_PREVIEW_MAX_CHARS = 160;
+
+/**
+ * A preview-source span row: a {@link TraceIOSpan} tagged with the trace it
+ * belongs to, so rows spanning many traces can be grouped into one preview per
+ * trace.
+ */
+export interface TraceIOPreviewSourceRow extends TraceIOSpan {
+  traceId: string;
+}
+
+/**
+ * Subset of a trace-list row a preview attaches onto — `id` to match the
+ * source rows, plus the two mutable preview fields.
+ */
+export interface TraceIOPreviewTarget {
+  id: string;
+  inputPreview?: string | null;
+  outputPreview?: string | null;
+}
+
+/**
+ * Attach truncated trace-level `inputPreview` / `outputPreview` onto a page of
+ * trace-list rows, in place, from their preview-source spans. The ONE place the
+ * "rows → one preview per trace" step lives, shared by the cloud trace service
+ * (ClickHouse rows) and the local CLI server (SQLite rows) so the two never
+ * derive previews differently.
+ *
+ * Rows are grouped by `traceId`, then each trace's spans run through the
+ * canonical {@link deriveTraceIO} (root span wins, GENERATION fallback) — the
+ * same helper the trace-detail drawer uses, so the list preview and the detail
+ * never disagree about a trace's I/O. A trace with no rows is left untouched
+ * (no preview); `deriveTraceIO`'s own emptiness check guarantees an assigned
+ * field is a non-empty string, so a blank value never overwrites as `''`.
+ */
+export function attachTraceIOPreviews<T extends TraceIOPreviewTarget>(
+  traces: T[],
+  rows: readonly TraceIOPreviewSourceRow[],
+): T[] {
+  const spansByTrace = new Map<string, TraceIOSpan[]>();
+  for (const row of rows) {
+    const list = spansByTrace.get(row.traceId);
+    if (list) list.push(row);
+    else spansByTrace.set(row.traceId, [row]);
+  }
+
+  for (const trace of traces) {
+    const spans = spansByTrace.get(trace.id);
+    if (!spans) continue;
+    const io = deriveTraceIO(spans);
+    if (typeof io.input === "string") trace.inputPreview = io.input;
+    if (typeof io.output === "string") trace.outputPreview = io.output;
+  }
+
+  return traces;
+}

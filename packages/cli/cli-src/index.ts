@@ -18,6 +18,8 @@ import login from './commands/login';
 import logout from './commands/logout';
 import link from './commands/link';
 import doctor from './commands/doctor';
+import init, { ALL_CLIENTS } from './commands/init';
+import type { McpClient } from './commands/init/mcp-config';
 import { startUpdateCheck, displayUpdateNotification } from './update-notifier';
 
 // Start async update check early (non-blocking)
@@ -30,6 +32,39 @@ program
   .version(packageJson.version, '-v, --version', 'Output the current version')
   .name('agentmark')
   .description('AgentMark CLI - Build and test AI agents');
+
+/** Parses `--client claude-code,cursor` / `--client all` into a client list. */
+const parseClientList = (value?: string): McpClient[] | undefined => {
+  if (!value) return undefined;
+  if (value === "all") return [...ALL_CLIENTS];
+  return value.split(",").map((s) => s.trim()).filter(Boolean) as McpClient[];
+};
+
+program
+  .command("init [folder]")
+  .description("Set up AgentMark in a new or existing project: writes agentmark.json, creates the prompts dir, pins @agentmark-ai/cli locally, and wires IDE MCP configs")
+  .option("--path <folder>", "Target directory (alternative to the positional [folder]). Default: \".\" inside an existing project, else \"my-agentmark-app\"")
+  .option("--client <ids>", "IDE clients to wire MCP configs for, comma-separated: claude-code, codex, cursor, vscode, zed (or \"all\")")
+  .option("-y, --yes", "Non-interactive: accept the default for every prompt (folder default, all IDE clients, keep an existing agentmark.json). For CI and coding agents")
+  .option("--overwrite", "Replace an existing agentmark.json with the default config")
+  .option("--api-url <url>", "Override the AgentMark gateway URL for the cloud MCP entry (internal staging / self-host)")
+  .action(async (folder: string | undefined, options: { path?: string; client?: string; yes?: boolean; overwrite?: boolean; apiUrl?: string }) => {
+    if (options.apiUrl && !/^https?:\/\//.test(options.apiUrl)) {
+      program.error(`--api-url requires a full http(s) URL (got "${options.apiUrl}")`);
+    }
+    try {
+      await init({
+        path: folder ?? options.path,
+        clients: parseClientList(options.client),
+        yes: options.yes,
+        overwrite: options.overwrite,
+        apiUrl: options.apiUrl,
+        cliVersion: packageJson.version as string,
+      });
+    } catch (error) {
+      program.error((error as Error).message);
+    }
+  });
 
 program
   .command("doctor")

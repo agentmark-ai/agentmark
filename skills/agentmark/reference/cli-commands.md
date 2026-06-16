@@ -5,10 +5,11 @@
 
 # AgentMark CLI commands
 
-> Generated from the CLI command definitions in `cli-src/index.ts`. Always prefer `npx @agentmark-ai/cli <cmd> --help` for the exact flag set on your installed version — the published CLI may be newer than the source this was generated from.
+> Generated from the CLI command definitions in `cli-src/index.ts`. Install once with `npm install -g @agentmark-ai/cli` (or prefix any command with `npx`), then prefer `agentmark <cmd> --help` for the exact flag set on your installed version — the published CLI may be newer than the source this was generated from.
 
 ## Command index
 
+- [`agentmark init`](#agentmark-init) — Set up AgentMark in a new or existing project: writes agentmark.json, creates the prompts dir, pins @agentmark-ai/cli locally, and wires IDE MCP configs
 - [`agentmark doctor`](#agentmark-doctor) — Check that your AgentMark project is set up correctly (config, prompts, client, dependencies)
 - [`agentmark dev`](#agentmark-dev) — Start development servers (API server + webhook + UI app)
 - [`agentmark generate-types`](#agentmark-generate-types) — (no description)
@@ -23,12 +24,30 @@
 
 ---
 
+## `agentmark init`
+
+Set up AgentMark in a new or existing project: writes agentmark.json, creates the prompts dir, pins @agentmark-ai/cli locally, and wires IDE MCP configs
+
+```bash
+agentmark init [folder] [options]
+```
+
+| Flag | Description |
+|---|---|
+| `--path <folder>` | Target directory (alternative to the positional [folder]). Default: "." inside an existing project, else "my-agentmark-app" |
+| `--client <ids>` | IDE clients to wire MCP configs for, comma-separated: claude-code, codex, cursor, vscode, zed (or "all") |
+| `-y, --yes` | Non-interactive: accept the default for every prompt (folder default, all IDE clients, keep an existing agentmark.json). For CI and coding agents |
+| `--overwrite` | Replace an existing agentmark.json with the default config |
+| `--api-url <url>` | Override the AgentMark gateway URL for the cloud MCP entry (internal staging / self-host) |
+
+---
+
 ## `agentmark doctor`
 
 Check that your AgentMark project is set up correctly (config, prompts, client, dependencies)
 
 ```bash
-npx @agentmark-ai/cli doctor [options]
+agentmark doctor [options]
 ```
 
 | Flag | Description |
@@ -49,7 +68,7 @@ npx @agentmark-ai/cli doctor [options]
 Start development servers (API server + webhook + UI app)
 
 ```bash
-npx @agentmark-ai/cli dev [options]
+agentmark dev [options]
 ```
 
 | Flag | Description |
@@ -65,7 +84,7 @@ npx @agentmark-ai/cli dev [options]
 ## `agentmark generate-types`
 
 ```bash
-npx @agentmark-ai/cli generate-types [options]
+agentmark generate-types [options]
 ```
 
 | Flag | Description |
@@ -81,7 +100,7 @@ npx @agentmark-ai/cli generate-types [options]
 Generate JSON Schema for .prompt.mdx frontmatter (enables IDE squiggles for model_name)
 
 ```bash
-npx @agentmark-ai/cli generate-schema [options]
+agentmark generate-schema [options]
 ```
 
 | Flag | Description |
@@ -95,7 +114,7 @@ npx @agentmark-ai/cli generate-schema [options]
 Pull models from a provider
 
 ```bash
-npx @agentmark-ai/cli pull-models [options]
+agentmark pull-models [options]
 ```
 
 | Flag | Description |
@@ -111,7 +130,7 @@ npx @agentmark-ai/cli pull-models [options]
 Run a prompt with test props
 
 ```bash
-npx @agentmark-ai/cli run-prompt <filepath> [options]
+agentmark run-prompt <filepath> [options]
 ```
 
 | Flag | Description |
@@ -127,7 +146,7 @@ npx @agentmark-ai/cli run-prompt <filepath> [options]
 Run an experiment against its dataset, with evals by default
 
 ```bash
-npx @agentmark-ai/cli run-experiment <filepath> [options]
+agentmark run-experiment <filepath> [options]
 ```
 
 | Flag | Description |
@@ -151,7 +170,7 @@ npx @agentmark-ai/cli run-experiment <filepath> [options]
 Build prompts and datasets into pre-compiled JSON files for static loading
 
 ```bash
-npx @agentmark-ai/cli build [options]
+agentmark build [options]
 ```
 
 | Flag | Description |
@@ -165,7 +184,7 @@ npx @agentmark-ai/cli build [options]
 Authenticate with the AgentMark platform
 
 ```bash
-npx @agentmark-ai/cli login [options]
+agentmark login [options]
 ```
 
 | Flag | Description |
@@ -182,7 +201,7 @@ npx @agentmark-ai/cli login [options]
 Clear CLI authentication and revoke dev API keys
 
 ```bash
-npx @agentmark-ai/cli logout [options]
+agentmark logout [options]
 ```
 
 | Flag | Description |
@@ -197,7 +216,7 @@ npx @agentmark-ai/cli logout [options]
 Link current project to a platform app for trace forwarding
 
 ```bash
-npx @agentmark-ai/cli link [options]
+agentmark link [options]
 ```
 
 | Flag | Description |

@@ -1,5 +1,5 @@
 /**
- * Type definitions for the minimal `npm create agentmark` init flow.
+ * Type definitions for the `agentmark init` flow.
  *
  * Pared down from the pre-1.0 surface, which carried PackageManager
  * detection, Python venv detection, file-merge metadata, and adapter

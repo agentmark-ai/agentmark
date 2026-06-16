@@ -1,4 +1,4 @@
-import { TableCell, TableRow, useTheme } from "@mui/material";
+import { Stack, TableCell, TableRow, Typography, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { Iconify, Label } from "@/components";
 import { fCurrency, fNumber } from "@/utils";
@@ -9,20 +9,73 @@ interface TraceListItemProps {
   onClick: (trace: Trace) => void;
 }
 
+export interface TracePreviewLine {
+  /** `'input'` then `'output'` — also used as the React key. */
+  kind: "input" | "output";
+  text: string;
+  /** Muted MUI palette token; output renders dimmer than input. */
+  color: "text.secondary" | "text.disabled";
+}
+
+/**
+ * The preview lines to render under a trace's name — input first, then output,
+ * each included only when present. Mirrors how Langfuse/LangSmith preview a
+ * trace's I/O in the list. The preview is a single trace-level value (root
+ * span, GENERATION fallback — see `deriveTraceIO`), NOT a per-span model.
+ * Pure + exported so the selection logic is unit-tested directly rather than
+ * through the DOM. Empty ⇒ the row shows no preview.
+ */
+export function tracePreviewLines(
+  trace: Pick<Trace, "input_preview" | "output_preview">,
+): TracePreviewLine[] {
+  const lines: TracePreviewLine[] = [];
+  if (trace.input_preview) {
+    lines.push({
+      kind: "input",
+      text: trace.input_preview,
+      color: "text.secondary",
+    });
+  }
+  if (trace.output_preview) {
+    lines.push({
+      kind: "output",
+      text: trace.output_preview,
+      color: "text.disabled",
+    });
+  }
+  return lines;
+}
+
 const TraceListItem = ({ trace, onClick }: TraceListItemProps) => {
   const theme = useTheme();
 
   return (
     <TableRow onClick={() => onClick(trace)} hover sx={{ cursor: "pointer" }}>
       <TableCell>
-        <Label
-          color="primary"
-          sx={{
-            textTransform: "none",
-          }}
-        >
-          {trace.name}
-        </Label>
+        <Stack spacing={0.25} sx={{ alignItems: "flex-start" }}>
+          <Label
+            color="primary"
+            sx={{
+              textTransform: "none",
+            }}
+          >
+            {trace.name}
+          </Label>
+          {/* Truncated trace-level I/O preview under the name — each line
+              clamps to one row with an ellipsis; the full text is in `title`. */}
+          {tracePreviewLines(trace).map((line) => (
+            <Typography
+              key={line.kind}
+              variant="caption"
+              color={line.color}
+              noWrap
+              title={line.text}
+              sx={{ maxWidth: 340 }}
+            >
+              {line.text}
+            </Typography>
+          ))}
+        </Stack>
       </TableCell>
       <TableCell>
         <Iconify

@@ -5,6 +5,7 @@ import {
 import { resolveModelPrice } from "@agentmark-ai/model-registry/pricing";
 import db from "../../database";
 import type { NormalizedSpan } from "@agentmark-ai/shared-utils";
+import { TRACE_IO_PREVIEW_MAX_CHARS } from "@agentmark-ai/shared-utils";
 
 /**
  * Extract + validate the `agentmark.tags` attribute from span/resource
@@ -557,6 +558,55 @@ ${whereClause};
 
   const row = db.prepare(sql).get(...params) as { total: number };
   return row.total;
+};
+
+/** Raw preview-source span row — one per root/GENERATION span of a paged trace. */
+export interface TraceIOPreviewRow {
+  trace_id: string;
+  parent_id: string | null;
+  type: string | null;
+  timestamp: number;
+  input: string | null;
+  output: string | null;
+}
+
+/**
+ * Fetch the spans a trace-level I/O preview is derived from, for a page of
+ * traces. Returns only the two span classes `deriveTraceIO` consults — the
+ * root span (`ParentSpanId` null/empty) and GENERATION spans — with
+ * Input/Output truncated in SQL so a huge chat history never lands in memory.
+ *
+ * Unlike the cloud ClickHouse path there is no `[min,max]` time-window bound:
+ * SQLite has no partition pruning to exploit, and a `TraceId IN (…)` lookup
+ * over just the page's ids is already cheap. Empty input ⇒ no rows (also
+ * avoids an invalid `IN ()`).
+ */
+export const getTraceIOPreviewRows = (
+  traceIds: string[],
+): TraceIOPreviewRow[] => {
+  if (traceIds.length === 0) return [];
+
+  const placeholders = traceIds.map(() => "?").join(",");
+  const sql = `
+    SELECT
+      TraceId AS trace_id,
+      ParentSpanId AS parent_id,
+      Type AS type,
+      CAST(Timestamp AS REAL) AS timestamp,
+      substr(Input, 1, ?) AS input,
+      substr(Output, 1, ?) AS output
+    FROM traces
+    WHERE TraceId IN (${placeholders})
+      AND ((ParentSpanId IS NULL OR ParentSpanId = '') OR Type = 'GENERATION')
+  `;
+
+  return db
+    .prepare(sql)
+    .all(
+      TRACE_IO_PREVIEW_MAX_CHARS,
+      TRACE_IO_PREVIEW_MAX_CHARS,
+      ...traceIds,
+    ) as TraceIOPreviewRow[];
 };
 
 const SPAN_SELECT_COLUMNS = `

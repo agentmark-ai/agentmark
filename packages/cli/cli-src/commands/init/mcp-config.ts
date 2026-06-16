@@ -1,5 +1,5 @@
 /**
- * Shared MCP-config builder for the scaffolders.
+ * Shared MCP-config builder for `agentmark init`.
  *
  * Writes the project-local IDE config (mcp.json / settings.json) for
  * the four supported clients. Every scaffolded project gets THREE
@@ -191,7 +191,7 @@ export function writeMcpConfig(
       ? `\nenv = { AGENTMARK_API_URL = "${cloudUrl}" }`
       : "";
     const toml = [
-      "# AgentMark MCP servers — managed by create-agentmark",
+      "# AgentMark MCP servers — managed by agentmark init",
       "[mcp_servers.agentmark-docs]",
       `url = "${DOCS_ENTRY_URL}"`,
       "",

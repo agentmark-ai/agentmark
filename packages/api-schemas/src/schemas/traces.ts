@@ -129,6 +129,14 @@ export const TraceResponseSchema = z.object({
   tokens: z.number().int().nonnegative(),
   span_count: z.number().int().nonnegative(),
   tags: z.array(z.string()).optional(),
+  // Truncated trace-level I/O preview — the root span's input/output, falling
+  // back to the first/last GENERATION span (canonical `deriveTraceIO`
+  // semantics, identical to the trace-detail drawer). Lets a list consumer
+  // show an input/output snippet per row without a second round trip.
+  // `optional`: a gateway that doesn't compute previews omits the field.
+  // `nullable`: present-but-empty (the trace has no input/output) is a `null`.
+  input_preview: z.string().nullable().optional(),
+  output_preview: z.string().nullable().optional(),
 });
 
 // Wire shape for spans embedded in a trace detail. Principle: this is a

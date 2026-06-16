@@ -91,8 +91,8 @@ The CLI also accepts `--base-url` on `login` / `logout` / `link` for one-shot ov
 ```bash
 # Print the URL instead of opening a browser. The CLI's local server still
 # listens on a random port and the dashboard still relays tokens back.
-npx @agentmark-ai/cli login --print-url
-npx @agentmark-ai/cli login --print-url --json     # machine-readable envelopes
+agentmark login --print-url
+agentmark login --print-url --json     # machine-readable envelopes
 ```
 
 With `--json`, login emits two events on stdout (one per line of JSON):
@@ -259,10 +259,10 @@ The response includes `deployment_status`, `files_status`, `code_status`, commit
 - **`agentmark link`** binds the *project* (working directory) to a specific Cloud app. Interactive picker (or `--app-id`), writes `{ appId, appName, tenantId, orgName, baseUrl }` to `.agentmark/dev-config.json`. **No API key is minted.** The trace forwarder inside `agentmark dev` reads `appId` from this file and authenticates with the session bearer from `auth.json` (auto-refreshed when expired), so the user's actual permissions enforce — there is no scoped per-project key to leak, expire, or diverge from the user's real access.
 
 ```bash
-npx @agentmark-ai/cli login           # OAuth in browser, stores session bearer at ~/.agentmark/auth.json
-npx @agentmark-ai/cli link            # Interactive app selection — binds this project to a Cloud app
+agentmark login           # OAuth in browser, stores session bearer at ~/.agentmark/auth.json
+agentmark link            # Interactive app selection — binds this project to a Cloud app
 # or:
-npx @agentmark-ai/cli link --app-id <uuid>
+agentmark link --app-id <uuid>
 ```
 
 `.agentmark/dev-config.json` is gitignored — each developer links their own working copy.
@@ -277,13 +277,13 @@ This mirrors the pattern wrangler, vercel, gh, and supabase use: one user-scoped
 
 ```bash
 # Local dev with automatic trace forwarding (when linked)
-npx @agentmark-ai/cli dev
+agentmark dev
 
 # Local dev with forwarding disabled (still linked, just don't send traces)
-npx @agentmark-ai/cli dev --no-forward
+agentmark dev --no-forward
 
 # Local dev without the UI app (for CI / headless / test contexts)
-npx @agentmark-ai/cli dev --no-ui
+agentmark dev --no-ui
 ```
 
 If the project is not linked, `dev` still runs — it just has nothing to forward to. Link the project to enable forwarding; there is no flag to enable it explicitly.

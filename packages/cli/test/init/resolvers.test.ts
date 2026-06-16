@@ -4,7 +4,7 @@ import os from 'os';
 import path from 'path';
 
 /**
- * `--yes` exists so CI jobs and coding agents can run the init headlessly —
+ * `--yes` exists so CI jobs and coding agents can run init headlessly —
  * a single blocking TTY prompt is a hang in that context. These tests pin
  * the contract two ways:
  *
@@ -27,15 +27,14 @@ import {
   shouldWriteAgentmarkJson,
   detectCurrentClients,
   ALL_CLIENTS,
-  USAGE,
-} from '../../src/index.js';
+} from '../../cli-src/commands/init';
 
 let tmpDir: string;
 let originalCwd: string;
 
 beforeEach(() => {
   originalCwd = process.cwd();
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'create-agentmark-yes-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentmark-init-yes-'));
   process.chdir(tmpDir);
 });
 
@@ -206,17 +205,5 @@ describe('detectCurrentClients', () => {
     const result = detectCurrentClients(projectDir, fakeHome);
     expect(result).toContain('cursor');
     expect(result).not.toContain('vscode');
-  });
-});
-
-describe('USAGE', () => {
-  it('documents every supported flag', () => {
-    for (const flag of ['--path', '--client', '--yes', '-y', '--overwrite', '--help', '-h']) {
-      expect(USAGE).toContain(flag);
-    }
-  });
-
-  it('does not document the internal --api-url escape hatch', () => {
-    expect(USAGE).not.toContain('--api-url');
   });
 });

@@ -23,7 +23,7 @@ Scores are declared under a `scores` map in `agentmark.json`. Each entry sets a 
 }
 ```
 
-**For the full field reference** (`min`/`max` on numeric, `categories` array on categorical, the absence of `direction`, all gotchas) fetch `https://docs.agentmark.co/evaluate/writing-evals.md`. The authoritative runtime schema comes from `npx @agentmark-ai/cli generate-schema` (writes `.agentmark/prompt.schema.json`).
+**For the full field reference** (`min`/`max` on numeric, `categories` array on categorical, the absence of `direction`, all gotchas) fetch `https://docs.agentmark.co/evaluate/writing-evals.md`. The authoritative runtime schema comes from `agentmark generate-schema` (writes `.agentmark/prompt.schema.json`).
 
 Two facts worth carrying outside the docs because they catch agents out:
 
@@ -50,7 +50,7 @@ For the canonical pattern (including how code-based vs LLM-as-judge evals are re
 After wiring, run an experiment:
 
 ```bash
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx
+agentmark run-experiment agentmark/qa-bot.prompt.mdx
 ```
 
 Each row's output is scored by every linked eval. Scores appear in the result table and are persisted to the trace store.
@@ -60,7 +60,7 @@ Each row's output is scored by every linked eval. Scores appear in the result ta
 Combine `--threshold` with `--format junit` to fail PRs that regress quality:
 
 ```bash
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --threshold 80 --format junit > results.xml
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --threshold 80 --format junit > results.xml
 ```
 
 The CLI exits non-zero when pass rate is below the threshold. Upload `results.xml` as a CI artifact for surfacing in GitHub Actions / GitLab / Jenkins.

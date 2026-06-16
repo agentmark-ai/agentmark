@@ -294,7 +294,7 @@ describe('pull-models provider setup hint', () => {
 
     const text = loggedText();
     expect(text).toContain('Make sure your executor handles models from: anthropic');
-    expect(text).toContain('https://docs.agentmark.co/integrations/bring-your-own-sdk');
+    expect(text).toContain('https://docs.agentmark.co/configure/connect-your-sdk');
     expect(text).not.toContain('@ai-sdk');
     expect(text).not.toContain('registerProviders');
   });

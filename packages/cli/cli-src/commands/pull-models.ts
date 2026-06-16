@@ -178,7 +178,7 @@ const pullModels = async (options: PullModelsOptions = {}) => {
         "Make sure your executor handles models from: " +
           providerList.join(", ") +
           "\nYour executor maps each prompt's model_name to your SDK's model ID — see\n" +
-          "https://docs.agentmark.co/integrations/bring-your-own-sdk\n"
+          "https://docs.agentmark.co/configure/connect-your-sdk\n"
       );
     } else {
       // The hint assumes `@ai-sdk/*` providers — correct for Vercel AI SDK
