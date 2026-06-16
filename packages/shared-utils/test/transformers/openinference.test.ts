@@ -127,13 +127,46 @@ describe("OpenInferenceTransformer.transform — generic IO (CHAIN/TOOL/AGENT sp
 });
 
 describe("OpenInferenceTransformer.transform — retrieval & context", () => {
-  it("surfaces retriever document contents as output", () => {
+  it("surfaces retriever document contents as joined text output", () => {
     const out = t.transform(span("retriever"), {
       "openinference.span.kind": "RETRIEVER",
       "retrieval.documents.0.document.content": "doc one",
       "retrieval.documents.1.document.content": "doc two",
     });
     expect(out.output).toBe("doc one\n\ndoc two");
+  });
+
+  it("extracts structured documents (id, score, metadata) into outputObject, ranked by index", () => {
+    const out = t.transform(span("retriever"), {
+      "openinference.span.kind": "RETRIEVER",
+      // intentionally out of order to prove index ordering, not key order
+      "retrieval.documents.1.document.id": "b",
+      "retrieval.documents.1.document.content": "second",
+      "retrieval.documents.1.document.score": 0.42,
+      "retrieval.documents.0.document.id": "a",
+      "retrieval.documents.0.document.content": "first",
+      "retrieval.documents.0.document.score": "0.91",
+      "retrieval.documents.0.document.metadata": JSON.stringify({ source: "kb.md", page: 3 }),
+    });
+    expect(out.outputObject).toEqual({
+      documents: [
+        { id: "a", content: "first", score: 0.91, metadata: { source: "kb.md", page: 3 } },
+        { id: "b", content: "second", score: 0.42 },
+      ],
+    });
+    // joined text remains for full-text search + non-rich fallback
+    expect(out.output).toBe("first\n\nsecond");
+  });
+
+  it("does not clobber an existing JSON output.value with retrieval documents", () => {
+    const out = t.transform(span("retriever"), {
+      "openinference.span.kind": "RETRIEVER",
+      "output.value": JSON.stringify({ answer: "42" }),
+      "output.mime_type": "application/json",
+      "retrieval.documents.0.document.content": "ctx",
+    });
+    expect(out.outputObject).toEqual({ answer: "42" });
+    expect(out.output).toBe(JSON.stringify({ answer: "42" }));
   });
 
   it("extracts session id, user id and a metadata blob", () => {

@@ -9,7 +9,7 @@
 
 import * as ts from 'typescript';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 
 const HERE = dirname(new URL(import.meta.url).pathname);
 const SOURCE_PATH = resolve(HERE, '../cli-src/index.ts');
@@ -95,7 +95,7 @@ function escapeTableCell(s: string): string {
     .replace(/\n/g, ' ');
 }
 
-function formatMarkdown(commands: Command[], cliVersion: string): string {
+function formatMarkdown(commands: Command[]): string {
   const lines: string[] = [];
   lines.push('<!--');
   lines.push('  Auto-generated from oss/agentmark/packages/cli/cli-src/index.ts.');
@@ -104,7 +104,7 @@ function formatMarkdown(commands: Command[], cliVersion: string): string {
   lines.push('');
   lines.push('# AgentMark CLI commands');
   lines.push('');
-  lines.push(`> Reference for \`@agentmark-ai/cli@${cliVersion}\`. Always prefer \`npx @agentmark-ai/cli <cmd> --help\` for the most current flag set.`);
+  lines.push('> Generated from the CLI command definitions in `cli-src/index.ts`. Always prefer `npx @agentmark-ai/cli <cmd> --help` for the exact flag set on your installed version — the published CLI may be newer than the source this was generated from.');
   lines.push('');
   lines.push('## Command index');
   lines.push('');
@@ -161,8 +161,7 @@ function main() {
     process.exit(1);
   }
 
-  const pkgJson = JSON.parse(readFileSync(join(HERE, '../package.json'), 'utf8')) as { version: string };
-  const markdown = formatMarkdown(commands, pkgJson.version);
+  const markdown = formatMarkdown(commands);
 
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
   writeFileSync(OUTPUT_PATH, markdown);

@@ -15,6 +15,8 @@ import {
   isToolSpan,
   isAgentSpan,
   isGenerationSpan,
+  isRetrievalSpan,
+  parseRetrievalDocuments,
   extractPromptsFromSpan,
   extractOutputFromSpan,
   extractSystemPromptFromTraces,
@@ -764,5 +766,60 @@ describe("generation spans (vendor-neutral classification)", () => {
     expect(result!.text).toBeUndefined();
     // Not mislabeled as a tool call.
     expect(result!.toolCall ?? null).toBeNull();
+  });
+});
+
+// ============================================================================
+// Retrieval / vector-store span Tests
+// ============================================================================
+
+describe("retrieval spans", () => {
+  const retrievalSpan = (overrides: Record<string, any> = {}) => ({
+    name: "pinecone.query",
+    data: { type: "SPAN", spanKind: "retrieval", ...overrides },
+  });
+
+  it("isRetrievalSpan keys off spanKind", () => {
+    expect(isRetrievalSpan(retrievalSpan())).toBe(true);
+    expect(isRetrievalSpan({ data: { spanKind: "llm" } })).toBe(false);
+    expect(isRetrievalSpan(null)).toBe(false);
+  });
+
+  it("a retrieval span is NOT classified as a tool or agent span", () => {
+    // Without the guard, type==='SPAN' would make isToolSpan true.
+    const span = retrievalSpan();
+    expect(isToolSpan(span)).toBe(false);
+    expect(isAgentSpan(span)).toBe(false);
+  });
+
+  it("parseRetrievalDocuments parses the documents array from outputObject (string or object)", () => {
+    const docs = [{ id: "a", content: "x", score: 0.9 }];
+    expect(parseRetrievalDocuments(retrievalSpan({ outputObject: JSON.stringify({ documents: docs }) }))).toEqual(docs);
+    expect(parseRetrievalDocuments(retrievalSpan({ outputObject: { documents: docs } }))).toEqual(docs);
+    expect(parseRetrievalDocuments(retrievalSpan({ outputObject: "not json" }))).toEqual([]);
+    expect(parseRetrievalDocuments(retrievalSpan({}))).toEqual([]);
+  });
+
+  it("extractOutputFromSpan returns structured documents for a retrieval span", () => {
+    const documents = [
+      { id: "a", content: "first", score: 0.91 },
+      { id: "b", content: "second", distance: 0.2 },
+    ];
+    const out = extractOutputFromSpan(
+      retrievalSpan({ outputObject: JSON.stringify({ documents }) }),
+    );
+    expect(out).toEqual({ documents });
+  });
+
+  it("extractOutputFromSpan falls back to joined text for legacy retrieval traces without structured docs", () => {
+    const out = extractOutputFromSpan(retrievalSpan({ output: "doc one\n\ndoc two" }));
+    expect(out).toEqual({ text: "doc one\n\ndoc two" });
+  });
+
+  it("extractPromptsFromSpan surfaces the query under the neutral input role", () => {
+    const prompts = extractPromptsFromSpan(
+      retrievalSpan({ input: JSON.stringify([{ role: "user", content: "what is rag?" }]) }),
+    );
+    expect(prompts).toEqual([{ role: "input", content: "what is rag?" }]);
   });
 });

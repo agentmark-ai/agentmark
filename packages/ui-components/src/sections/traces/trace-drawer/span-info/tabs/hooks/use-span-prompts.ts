@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useTraceDrawerContext } from "../../../trace-drawer-provider";
 import { useSelectedSpanIO, mergeSpanIO } from "../../../hooks/use-selected-span-io";
 import { LLMPrompt } from "@/sections/traces/types";
+import type { RetrievalDocumentView } from "../input-output-tab/retrieval-documents";
 
 // Re-exported for backward compatibility — the canonical declaration moved to
 // `../../../hooks/use-selected-span-io` so non-tab consumers (e.g. the drawer
@@ -15,6 +16,7 @@ interface UseSpanPromptsResult {
     toolCalls?: string;
     toolCall?: any;
     objectResponse?: any;
+    documents?: RetrievalDocumentView[];
   } | null;
   isLoading: boolean;
   isLoadingIO: boolean;
@@ -33,9 +35,17 @@ interface UseSpanPromptsResult {
 export const isGenerationSpan = (span: any): boolean =>
   span?.data?.spanKind === "llm" || !!span?.data?.model;
 
+// Retrieval / vector-store span — the normalizer resolves its semanticKind to
+// "retrieval" (surfaced as `spanKind`). These render with the ranked
+// retrieved-documents panel, never as a tool/agent span (which the generic
+// "type === SPAN" tool heuristic below would otherwise misclassify them as).
+export const isRetrievalSpan = (span: any): boolean =>
+  span?.data?.spanKind === "retrieval";
+
 export const isToolSpan = (span: any): boolean => {
   if (!span?.data) return false;
   if (isGenerationSpan(span)) return false;
+  if (isRetrievalSpan(span)) return false;
   // Has toolCalls data, or type is SPAN (not GENERATION)
   if (span.data.toolCalls) return true;
   if (span.data.type === "SPAN" && span.name && !span.name.startsWith("claude.")) return true;
@@ -44,13 +54,45 @@ export const isToolSpan = (span: any): boolean => {
 
 export const isAgentSpan = (span: any): boolean => {
   if (isGenerationSpan(span)) return false;
+  if (isRetrievalSpan(span)) return false;
   if (span?.name?.startsWith("invoke_agent")) return true;
   // Trace wrapper node: has props, not a GENERATION span
   if (span?.data?.props && span?.data?.type !== "GENERATION") return true;
   return false;
 };
 
+/** Parse the structured retrieved documents stored on a retrieval span's
+ *  outputObject (`{ documents: [...] }`). Returns [] when absent/malformed. */
+export const parseRetrievalDocuments = (span: any): RetrievalDocumentView[] => {
+  const raw = span?.data?.outputObject;
+  if (!raw) return [];
+  let parsed: any = raw;
+  if (typeof raw === "string") {
+    try { parsed = JSON.parse(raw); } catch { return []; }
+  }
+  const docs = parsed?.documents;
+  return Array.isArray(docs) ? (docs as RetrievalDocumentView[]) : [];
+};
+
 export const extractPromptsFromSpan = (span: any): LLMPrompt[] => {
+  // Retrieval spans: the input is the search query. Surface it under the
+  // neutral "input" role (renders as "Input") rather than a chat "user" bubble.
+  if (isRetrievalSpan(span)) {
+    if (!span?.data?.input) return [];
+    try {
+      const parsed = JSON.parse(span.data.input);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // The normalizer wraps a raw query as [{ role: "user", content }].
+        return parsed.map((msg: any) => ({
+          role: "input",
+          content: typeof msg?.content === "string" ? msg.content : JSON.stringify(msg),
+        }));
+      }
+      if (typeof parsed === "string") return [{ role: "input", content: parsed }];
+    } catch { /* fall through to raw string */ }
+    return [{ role: "input", content: span.data.input }];
+  }
+
   // Agent spans (invoke_agent, trace wrapper): show props or input
   if (isAgentSpan(span)) {
     // Prefer props (AgentMark prompt input)
@@ -124,6 +166,16 @@ export const extractPromptsFromSpan = (span: any): LLMPrompt[] => {
 };
 
 export const extractOutputFromSpan = (span: any) => {
+  // Retrieval spans: render the ranked retrieved-documents panel from the
+  // structured outputObject; fall back to plain text for legacy traces that
+  // only carry the joined-content output.
+  if (isRetrievalSpan(span)) {
+    const documents = parseRetrievalDocuments(span);
+    if (documents.length > 0) return { documents };
+    if (span?.data?.output) return { text: span.data.output };
+    return null;
+  }
+
   // Agent spans: render output as plain text (no tool icon)
   if (isAgentSpan(span)) {
     if (!span?.data?.output && !span?.data?.outputObject) return null;
@@ -271,3 +323,4 @@ export const useSpanPrompts = (): UseSpanPromptsResult => {
     isLoadingIO,
   };
 };
+

@@ -138,3 +138,133 @@ describe("OpenLLMetryTransformer.transform — association & events", () => {
     expect(out.output).toBe("bye from event");
   });
 });
+
+describe("OpenLLMetryTransformer.transform — vector-store result events", () => {
+  it("maps Pinecone-shape db.query.result events (id + score + metadata) to structured documents", () => {
+    const out = t.transform(
+      span("pinecone.query", [
+        {
+          timeUnixNano: "0",
+          name: "db.query.result",
+          attributes: {
+            "db.query.result.id": "vec-1",
+            "db.query.result.score": 0.93,
+            "db.query.result.metadata": JSON.stringify({ title: "Intro" }),
+          },
+        },
+        {
+          timeUnixNano: "1",
+          name: "db.query.result",
+          attributes: { "db.query.result.id": "vec-2", "db.query.result.score": "0.71" },
+        },
+      ]),
+      { "db.system": "Pinecone", "db.operation": "query" }
+    );
+    expect(out.outputObject).toEqual({
+      documents: [
+        { id: "vec-1", score: 0.93, metadata: { title: "Intro" } },
+        { id: "vec-2", score: 0.71 },
+      ],
+    });
+    // No document content emitted by Pinecone → no joined text output.
+    expect(out.output).toBeUndefined();
+  });
+
+  it("maps Chroma-shape events (distance + document) and joins content for search", () => {
+    const out = t.transform(
+      span("chroma.query", [
+        {
+          timeUnixNano: "0",
+          name: "db.query.result",
+          attributes: {
+            "db.query.result.id": "c-1",
+            "db.query.result.distance": 0.12,
+            "db.query.result.document": "first chunk",
+          },
+        },
+        {
+          timeUnixNano: "1",
+          name: "db.query.result",
+          attributes: {
+            "db.query.result.id": "c-2",
+            "db.query.result.distance": 0.34,
+            "db.query.result.document": "second chunk",
+          },
+        },
+      ]),
+      { "db.system": "chroma" }
+    );
+    expect(out.outputObject).toEqual({
+      documents: [
+        { id: "c-1", distance: 0.12, content: "first chunk" },
+        { id: "c-2", distance: 0.34, content: "second chunk" },
+      ],
+    });
+    expect(out.output).toBe("first chunk\n\nsecond chunk");
+  });
+
+  it("recognizes events NAMED db.search.result (not only db.query.result)", () => {
+    const out = t.transform(
+      span("vector.search", [
+        {
+          timeUnixNano: "0",
+          name: "db.search.result",
+          attributes: {
+            "db.search.result.id": "w1",
+            "db.search.result.distance": 0.05,
+            "db.search.result.document": "alpha",
+          },
+        },
+      ]),
+      { "db.system": "weaviate" }
+    );
+    expect(out.outputObject).toEqual({ documents: [{ id: "w1", distance: 0.05, content: "alpha" }] });
+    expect(out.output).toBe("alpha");
+  });
+
+  it("maps real Milvus-shape events (db.search.result.{id,distance,entity}) — recovers entity into metadata", () => {
+    // Exact wire shape observed live from opentelemetry-instrumentation-milvus:
+    // event name is db.query.result but attrs use the db.search.result.* prefix,
+    // and the matched row is a Python-repr dict string under `entity`.
+    const out = t.transform(
+      span("milvus.search", [
+        {
+          timeUnixNano: "0",
+          name: "db.query.result",
+          attributes: {
+            "db.search.result.id": "m1",
+            "db.search.result.distance": 0.02,
+            "db.search.result.entity": "{'src': 'z', 'text': 'gamma doc'}",
+          },
+        },
+        {
+          timeUnixNano: "1",
+          name: "db.query.result",
+          attributes: {
+            "db.search.result.id": "m2",
+            "db.search.result.distance": 0.15,
+            // a JSON-shaped entity parses into an object
+            "db.search.result.entity": JSON.stringify({ src: "y", text: "beta doc" }),
+          },
+        },
+      ]),
+      { "db.system": "milvus" }
+    );
+    expect(out.outputObject).toEqual({
+      documents: [
+        { id: "m1", distance: 0.02, metadata: { entity: "{'src': 'z', 'text': 'gamma doc'}" } },
+        { id: "m2", distance: 0.15, metadata: { src: "y", text: "beta doc" } },
+      ],
+    });
+  });
+
+  it("ignores non-result events and produces no documents when none match", () => {
+    const out = t.transform(
+      span("chroma.add", [
+        { timeUnixNano: "0", name: "some.other.event", attributes: { foo: "bar" } },
+      ]),
+      { "db.system": "chroma" }
+    );
+    expect(out.outputObject).toBeUndefined();
+  });
+});

@@ -222,6 +222,24 @@ describe('resolveSemanticKind', () => {
         });
     });
 
+    // ── Level 3b: vector-store query spans ────────────────────────
+
+    describe('Level 3b — vector-store query spans', () => {
+        it('maps a recognized vector-DB db.system to retrieval (case-insensitive)', () => {
+            expect(resolveSemanticKind(makeSpan({ name: 'pinecone.query' }), { 'db.system': 'Pinecone' })).toBe('retrieval');
+            expect(resolveSemanticKind(makeSpan({ name: 'chroma.query' }), { 'db.system': 'chroma' })).toBe('retrieval');
+            expect(resolveSemanticKind(makeSpan({ name: 'q' }), { 'db.system.name': 'qdrant' })).toBe('retrieval');
+        });
+
+        it('maps spans carrying db.vector.query.* attributes to retrieval', () => {
+            expect(resolveSemanticKind(makeSpan({ name: 'search' }), { 'db.vector.query.top_k': 5 })).toBe('retrieval');
+        });
+
+        it('does NOT classify a plain SQL database query as retrieval', () => {
+            expect(resolveSemanticKind(makeSpan({ name: 'SELECT users' }), { 'db.system': 'postgresql' })).toBe('function');
+        });
+    });
+
     // ── Level 4: gen_ai.operation.name ────────────────────────────
 
     describe('Level 4 — gen_ai.operation.name', () => {
