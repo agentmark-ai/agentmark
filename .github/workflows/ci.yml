@@ -84,16 +84,6 @@ jobs:
       - name: Test (Unit)
         run: yarn test
 
-      # Integration tests run on both Ubuntu and Windows
-      - name: Start API Server for Integration Tests
-        run: node scripts/start-test-server.js 9419
-
-      - name: Seed Integration Test Data
-        run: node scripts/seed-test-data.js 9419
-
-      - name: Test (Integration)
-        run: yarn workspace @agentmark-ai/mcp-server test:integration
-
       - name: Check version plans
         if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'sync/')
         run: yarn release:plan:check

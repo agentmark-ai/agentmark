@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
-import { initGitRepo } from '../../src/utils/git-init.js';
+import { initGitRepo } from '../../cli-src/commands/init/git-init';
 
 // Helper: create a git commit that works on CI (no global user config)
 function gitCommit(cwd: string, message: string, allowEmpty = false) {
@@ -40,7 +40,7 @@ describe('initGitRepo', () => {
     // Verify there's exactly one commit
     const log = execSync('git log --oneline', { cwd: tempDir, encoding: 'utf-8' });
     expect(log.trim().split('\n')).toHaveLength(1);
-    expect(log).toContain('Initial commit from create-agentmark');
+    expect(log).toContain('Initial commit from agentmark init');
 
     // Verify files are committed
     const status = execSync('git status --porcelain', { cwd: tempDir, encoding: 'utf-8' });
@@ -103,7 +103,7 @@ describe('initGitRepo', () => {
     fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/\n.env\n');
     fs.writeFileSync(path.join(tempDir, 'agentmark.client.ts'), '// client');
     fs.writeFileSync(path.join(tempDir, 'dev-entry.ts'), '// entry');
-    // agentmark.json written last — mirrors what main() does after createExampleApp returns
+    // agentmark.json written last — mirrors what init does after the scaffold
     fs.writeJsonSync(path.join(tempDir, 'agentmark.json'), { version: '2.0.0', agentmarkPath: '.' });
 
     const result = initGitRepo(tempDir);

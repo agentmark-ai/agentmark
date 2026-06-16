@@ -185,3 +185,104 @@ describe("API Server - POST /v1/traces", () => {
     expect(data.error.code).toBe("invalid_otlp_payload");
   });
 });
+
+/**
+ * End-to-end coverage for the trace-list I/O preview (issue #2899 parity).
+ *
+ * Boots the REAL api-server on the REAL SQLite db, seeds a trace's spans, then
+ * GETs `/v1/traces` over HTTP and asserts `input_preview` / `output_preview`.
+ * This exercises the whole read path the cloud already had — the bounded
+ * preview SQL (`getTraceIOPreviewRows`), the shared `attachTraceIOPreviews` /
+ * `deriveTraceIO` derivation, the snake_case wire mapper, and the Express
+ * route — against a live server, not a mock.
+ */
+describe("API Server - GET /v1/traces (I/O preview)", () => {
+  let previewServer: Server;
+  let previewPort: number;
+
+  beforeAll(async () => {
+    previewPort = 20418 + Math.floor(Math.random() * 1000);
+    previewServer = (await createApiServer(previewPort)) as Server;
+  });
+
+  afterAll(async () => {
+    if (previewServer) {
+      await new Promise<void>((resolve) => previewServer.close(() => resolve()));
+    }
+  });
+
+  beforeEach(() => {
+    db.exec("DELETE FROM traces");
+  });
+
+  // Insert one span row directly — the write/normalize path is orthogonal to
+  // the preview read path under test, so seeding the table is both sufficient
+  // and gives exact control over the stored Input/Output.
+  const seedSpan = (s: {
+    traceId: string;
+    spanId: string;
+    parentSpanId?: string;
+    type?: string;
+    timestampNs?: string;
+    input?: string | null;
+    output?: string | null;
+  }) => {
+    db.prepare(
+      `INSERT INTO traces
+        (TraceId, SpanId, ParentSpanId, Type, Timestamp, SpanName, StatusCode, TraceName, Input, Output, Tags)
+       VALUES (?, ?, ?, ?, ?, 'invoke_agent', '1', 'Preview E2E', ?, ?, '[]')`,
+    ).run(
+      s.traceId,
+      s.spanId,
+      s.parentSpanId ?? "",
+      s.type ?? "SPAN",
+      s.timestampNs ?? "1700000000000000000",
+      s.input ?? null,
+      s.output ?? null,
+    );
+  };
+
+  const listTraces = async () => {
+    const res = await fetch(`http://localhost:${previewPort}/v1/traces?limit=10`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: Array<{ id: string; input_preview?: string; output_preview?: string }>;
+    };
+    return body.data;
+  };
+
+  it("returns a truncated input/output preview per trace, root span winning over its GENERATION child", async () => {
+    // >160 chars so the 160-char cut is observable end-to-end.
+    const longInput = `[{"role":"user","content":"${"q".repeat(220)}"}]`;
+    const longOutput = "A".repeat(220);
+    seedSpan({ traceId: "preview-1", spanId: "root-1", parentSpanId: "", type: "SPAN", input: longInput, output: longOutput });
+    // A GENERATION child with different I/O — must NOT win over the root span.
+    seedSpan({ traceId: "preview-1", spanId: "gen-1", parentSpanId: "root-1", type: "GENERATION", input: "child in", output: "child out" });
+
+    const row = (await listTraces()).find((t) => t.id === "preview-1");
+    expect(row).toBeDefined();
+    expect(row!.input_preview).toBe(longInput.slice(0, 160));
+    expect(row!.output_preview).toBe(longOutput.slice(0, 160));
+    // Proves truncation actually happened (the stored values are 220+ chars).
+    expect(row!.input_preview!.length).toBe(160);
+  });
+
+  it("falls back to the GENERATION span's I/O when the root span carries none", async () => {
+    seedSpan({ traceId: "gen-fallback", spanId: "root-2", parentSpanId: "", type: "SPAN", input: null, output: null });
+    seedSpan({ traceId: "gen-fallback", spanId: "gen-2", parentSpanId: "root-2", type: "GENERATION", input: "the model input", output: "the model output" });
+
+    const row = (await listTraces()).find((t) => t.id === "gen-fallback");
+    expect(row).toBeDefined();
+    expect(row!.input_preview).toBe("the model input");
+    expect(row!.output_preview).toBe("the model output");
+  });
+
+  it("omits the preview fields entirely for a trace with no input/output", async () => {
+    seedSpan({ traceId: "no-io", spanId: "root-3", parentSpanId: "", type: "SPAN", input: null, output: null });
+
+    const row = (await listTraces()).find((t) => t.id === "no-io");
+    expect(row).toBeDefined();
+    expect(row).not.toHaveProperty("input_preview");
+    expect(row).not.toHaveProperty("output_preview");
+  });
+});

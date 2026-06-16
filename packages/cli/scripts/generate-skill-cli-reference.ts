@@ -104,7 +104,7 @@ function formatMarkdown(commands: Command[]): string {
   lines.push('');
   lines.push('# AgentMark CLI commands');
   lines.push('');
-  lines.push('> Generated from the CLI command definitions in `cli-src/index.ts`. Always prefer `npx @agentmark-ai/cli <cmd> --help` for the exact flag set on your installed version — the published CLI may be newer than the source this was generated from.');
+  lines.push('> Generated from the CLI command definitions in `cli-src/index.ts`. Install once with `npm install -g @agentmark-ai/cli` (or prefix any command with `npx`), then prefer `agentmark <cmd> --help` for the exact flag set on your installed version — the published CLI may be newer than the source this was generated from.');
   lines.push('');
   lines.push('## Command index');
   lines.push('');
@@ -124,8 +124,8 @@ function formatMarkdown(commands: Command[]): string {
       lines.push('');
     }
     const usage = cmd.args
-      ? `npx @agentmark-ai/cli ${cmd.name} ${cmd.args} [options]`
-      : `npx @agentmark-ai/cli ${cmd.name} [options]`;
+      ? `agentmark ${cmd.name} ${cmd.args} [options]`
+      : `agentmark ${cmd.name} [options]`;
     lines.push('```bash');
     lines.push(usage);
     lines.push('```');

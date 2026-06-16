@@ -1,405 +1,92 @@
-import fs from "fs-extra";
-import os from "os";
-import path from "path";
-import prompts from "prompts";
-import { pathToFileURL, fileURLToPath } from "url";
-import { writeMcpConfig, type McpClient } from "./utils/examples/mcp-config.js";
-import { installAgentmarkSkill } from "./utils/install-skill.js";
-import { initGitRepo } from "./utils/git-init.js";
-import { detectProjectInfo, isCurrentDirectory } from "./utils/project-detection.js";
+import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 /**
- * `npm create agentmark` — minimal init.
+ * `npm create agentmark` / `npx create-agentmark` — a thin wrapper that
+ * delegates to `agentmark init`, forwarding every argument verbatim.
  *
- * Scope is deliberately small. The CLI does NOT scaffold example code,
- * pick an LLM adapter, or handle login. Its job is:
- *
- *   1. Write `agentmark.json` (the SDK loader's config root)
- *   2. Create an empty `agentmark/` directory (where prompts go)
- *   3. Wire MCP configs for any IDE clients the user selects
- *   4. Install the AgentMark agent skill (`npx skills add agentmark-ai/skills`)
- *   5. Hand off to the AI tool: "Open Claude Code / Cursor and say:
- *      Set up AgentMark in this project."
- *
- * Everything else — framework detection, package install, code wiring,
- * first prompt — is the job of the `setup-and-integration` skill workflow,
- * which runs inside the user's IDE agent. That keeps integration adaptive
- * to whatever stack the user already has, instead of forcing a template.
+ * The scaffold logic (agentmark.json, prompts dir, MCP wiring, local CLI
+ * pin, skill install) lives in `@agentmark-ai/cli`. This package carries
+ * NO dependency on it — instead it invokes the CLI through `npx`, which
+ * reuses a globally- or locally-installed `@agentmark-ai/cli` when present
+ * and downloads it on demand otherwise. That keeps `npm create agentmark`
+ * a tiny, dependency-free scaffolder: running it never drags the CLI's
+ * full tree (Next.js, MUI, the native better-sqlite3 build) into the
+ * install just to print a setup prompt. `agentmark init` and
+ * `npm create agentmark` still produce IDENTICAL output because both run
+ * the same CLI code.
  */
 
-export interface CliArgs {
-  path?: string;
-  clients?: McpClient[];
-  /**
-   * Undocumented escape hatch for internal staging
-   * (`https://api-stg.agentmark.co`) and rare self-hosters. Defaults to
-   * `https://api.agentmark.co`. The `agentmark-local` MCP entry always
-   * points at `http://localhost:9418` regardless of this flag.
-   */
-  apiUrl?: string;
-  overwrite?: boolean;
-  /**
-   * Non-interactive mode for CI and coding agents: every prompt is replaced
-   * by its default (target folder per `defaultFolderName`, all IDE clients,
-   * keep an existing agentmark.json). Headless onboarding depends on this —
-   * without it the init blocks on a TTY no agent has.
-   */
-  yes?: boolean;
-  help?: boolean;
+const CLI_PACKAGE = "@agentmark-ai/cli";
+
+export interface RunDeps {
+  /** Spawns a child process. Injectable for tests. Returns its exit status. */
+  spawn?: (
+    command: string,
+    args: string[],
+  ) => { status: number | null; error?: Error };
 }
 
-export const ALL_CLIENTS: readonly McpClient[] = ["claude-code", "codex", "cursor", "vscode", "zed"];
-
-export const AGENTMARK_JSON: Record<string, unknown> = {
-  $schema:
-    "https://raw.githubusercontent.com/agentmark-ai/agentmark/refs/heads/main/packages/cli/agentmark.schema.json",
-  version: "2.0.0",
-  mdxVersion: "1.0",
-  agentmarkPath: ".",
-  // Seed one model so the dashboard prompt editor isn't an empty dropdown on
-  // first run. Add more with `npx @agentmark-ai/cli pull-models` (writes provider/model
-  // entries here) — see https://docs.agentmark.co/configure/model-schemas.
-  builtInModels: ["openai/gpt-5.5"],
-};
-
-export const parseArgs = (argv: string[] = process.argv.slice(2)): CliArgs => {
-  const result: CliArgs = {};
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === "--path") {
-      result.path = argv[++i];
-    } else if (arg === "--client") {
-      const value = argv[++i];
-      if (!value) throw new Error("--client requires a value");
-      const ids = value === "all"
-        ? [...ALL_CLIENTS]
-        : value.split(",").map((s) => s.trim()).filter(Boolean) as McpClient[];
-      result.clients = [...(result.clients ?? []), ...ids];
-    } else if (arg === "--overwrite") {
-      result.overwrite = true;
-    } else if (arg === "--yes" || arg === "-y") {
-      result.yes = true;
-    } else if (arg === "--help" || arg === "-h") {
-      result.help = true;
-    } else if (arg === "--api-url") {
-      const value = argv[++i];
-      if (!value || !/^https?:\/\//.test(value)) {
-        throw new Error(`--api-url requires a full http(s) URL (got "${value}")`);
-      }
-      result.apiUrl = value;
-    } else if (arg && !arg.startsWith("--") && !result.path) {
-      // Positional: folder name, matches `npx create-next-app my-app` shape.
-      result.path = arg;
-    }
-  }
-
-  return result;
-};
-
-export const clientLabel = (id: string): string =>
-  id === "vscode" ? "VS Code"
-    : id === "zed" ? "Zed"
-      : id === "cursor" ? "Cursor"
-        : id === "claude-code" ? "Claude Code"
-          : id === "codex" ? "Codex"
-            : id;
-
 /**
- * The folder the interactive prompt would offer as its default: "." when
- * cwd looks like an existing project (the common "wire AgentMark into my
- * repo" case), a fresh folder name when cwd is empty (greenfield). `--yes`
- * resolves to exactly this value, so a non-interactive run lands where an
- * Enter-mashing interactive run would have.
- */
-export const defaultFolderName = (cwd: string = process.cwd()): string =>
-  fs.existsSync(path.join(cwd, "package.json")) ||
-  fs.existsSync(path.join(cwd, "pyproject.toml"))
-    ? "."
-    : "my-agentmark-app";
-
-/**
- * Resolves the target folder via positional/flag arg, `--yes` default, or
- * interactive prompt.
- */
-export const resolveTargetPath = async (
-  cliPath: string | undefined,
-  yes?: boolean,
-): Promise<{ targetPath: string; isCurrentDir: boolean } | null> => {
-  let folderName = cliPath;
-  if (!folderName && yes) {
-    folderName = defaultFolderName();
-  }
-  if (!folderName) {
-    const response = await prompts({
-      name: "folderName",
-      type: "text",
-      message: "Where would you like to set up AgentMark?",
-      initial: defaultFolderName(),
-    });
-    folderName = response.folderName;
-  }
-  if (!folderName) return null; // Ctrl+C / empty input
-
-  const isCurrentDir = isCurrentDirectory(folderName);
-  const targetPath = isCurrentDir ? process.cwd() : path.resolve(folderName);
-  if (!isCurrentDir) fs.ensureDirSync(targetPath);
-  return { targetPath, isCurrentDir };
-};
-
-/**
- * Detects which IDE clients the user has installed or is actively running.
+ * Runs `agentmark init` via npx with the forwarded args.
  *
- * Detection order (matches the vercel-labs/skills CLI approach):
- *   1. Home dir — which editors are *installed* (`~/.claude`, `~/.cursor`,
- *      Zed config dir). Most reliable; works for greenfield projects too.
- *   2. Env vars — detect the *current* editor session. VS Code has no
- *      canonical home-dir marker, so env vars are the right signal for it.
- *      Cursor-specific vars are checked before VS Code vars because Cursor
- *      inherits `VSCODE_PID`/`TERM_PROGRAM=vscode`.
- *   3. Project dir — already-wired editors in this specific repo (fallback
- *      when steps 1–2 return nothing, e.g. in a fully offline environment
- *      with a pre-existing project).
+ * `-y` skips npx's install confirmation (headless/CI). With NO version
+ * specifier, npx reuses an already-installed `@agentmark-ai/cli` (global or
+ * local `node_modules/.bin`) and only fetches the latest when none is
+ * found — so a user who already installed the CLI globally pays no
+ * download.
  *
- * Returns an empty array when nothing can be inferred — callers treat that
- * as "no default; let the user choose explicitly."
- *
- * `homedir` is injectable for tests (defaults to `os.homedir()`).
+ * On Windows the npx executable is `npx.cmd`, which Node can't spawn
+ * directly without a shell; anyone running `npm create agentmark`
+ * necessarily has npm/npx on PATH, so resolving it through the shell there
+ * is safe. Returns the child's exit code (1 when npx itself can't be
+ * launched, or the child reports no status — e.g. a signal kill).
  */
-export const detectCurrentClients = (
-  targetPath: string,
-  homedir: string = os.homedir(),
-): McpClient[] => {
-  const detected = new Set<McpClient>();
+export const run = (
+  argv: string[] = process.argv.slice(2),
+  deps: RunDeps = {},
+): number => {
+  const spawn =
+    deps.spawn ??
+    ((command, args) =>
+      spawnSync(command, args, {
+        stdio: "inherit",
+        shell: process.platform === "win32",
+      }));
 
-  // 1. Home dir: editors with a known config location
-  if (fs.existsSync(path.join(homedir, ".claude"))) detected.add("claude-code");
-  if (fs.existsSync(path.join(homedir, ".codex"))) detected.add("codex");
-  if (fs.existsSync(path.join(homedir, ".cursor"))) detected.add("cursor");
-  // Zed uses platform-specific config dirs; check the two common ones
-  if (
-    fs.existsSync(path.join(homedir, ".config", "zed")) ||
-    fs.existsSync(path.join(homedir, "Library", "Application Support", "zed"))
-  ) detected.add("zed");
+  const result = spawn("npx", ["-y", CLI_PACKAGE, "init", ...argv]);
 
-  // 2. Env vars: detect active editor session (VS Code has no home-dir marker)
-  if (process.env["CURSOR_TRACE_ID"] ?? process.env["CURSOR_CHANNEL"]) {
-    detected.add("cursor");
-  } else if (process.env["VSCODE_PID"] ?? process.env["TERM_PROGRAM"] === "vscode") {
-    detected.add("vscode");
+  if (result.error) {
+    console.error(
+      `create-agentmark could not run ${CLI_PACKAGE} via npx (${result.error.message}).\n` +
+        "Install the CLI and run init directly:\n" +
+        `  npm install -g ${CLI_PACKAGE} && agentmark init`,
+    );
+    return 1;
   }
-
-  if (detected.size > 0) return [...detected];
-
-  // 3. Project dir fallback: editors already wired in this repo
-  if (fs.existsSync(path.join(targetPath, ".vscode"))) detected.add("vscode");
-  if (fs.existsSync(path.join(targetPath, ".codex"))) detected.add("codex");
-  if (fs.existsSync(path.join(targetPath, ".cursor"))) detected.add("cursor");
-  if (fs.existsSync(path.join(targetPath, ".zed"))) detected.add("zed");
-  if (
-    fs.existsSync(path.join(targetPath, ".mcp.json")) ||
-    fs.existsSync(path.join(targetPath, ".claude"))
-  ) detected.add("claude-code");
-
-  return [...detected];
+  return result.status ?? 1;
 };
 
 /**
- * Resolves which IDE clients to wire MCP into. The prompt pre-selects
- * clients already detected in the project (or the running editor via env
- * vars); if nothing is detected the list starts with nothing selected so
- * the user makes an explicit choice. Empty selection skips MCP wiring
- * entirely.
- */
-export const resolveClients = async (
-  cliClients: McpClient[] | undefined,
-  yes?: boolean,
-  targetPath?: string,
-): Promise<McpClient[]> => {
-  if (cliClients && cliClients.length > 0) {
-    for (const c of cliClients) {
-      if (!ALL_CLIENTS.includes(c)) {
-        throw new Error(`Invalid client "${c}". Valid: ${ALL_CLIENTS.join(", ")}`);
-      }
-    }
-    return cliClients;
-  }
-  // --yes is the non-interactive/CI/agent path: wire everything so headless
-  // onboarding never silently skips an editor the agent expects to use.
-  if (yes) return [...ALL_CLIENTS];
-  const defaultSelected = targetPath ? detectCurrentClients(targetPath) : [];
-  const response = await prompts({
-    name: "clients",
-    type: "multiselect",
-    message: "Wire AgentMark MCP into which IDE clients?",
-    instructions: false,
-    hint: "Space to toggle. Enter to submit. Skip all = empty selection.",
-    choices: ALL_CLIENTS.map((id) => ({
-      title: clientLabel(id),
-      value: id,
-      selected: defaultSelected.includes(id),
-    })),
-  });
-  return (response.clients ?? []) as McpClient[];
-};
-
-/**
- * agentmark.json is the only file we conflict on (the others — MCP config
- * dirs, agentmark/, .gitkeep — are either additive or no-ops if present).
- * Default to "skip" so we never silently clobber an existing project's
- * config; `--overwrite` is the explicit opt-in for re-init scripts.
- */
-export const shouldWriteAgentmarkJson = async (
-  filePath: string,
-  overwrite: boolean | undefined,
-  yes?: boolean,
-): Promise<boolean> => {
-  if (!fs.existsSync(filePath)) return true;
-  if (overwrite) return true;
-  // --yes takes the safe interactive default: keep the existing file.
-  // Clobbering config is never a default; --overwrite is the explicit opt-in.
-  if (yes) return false;
-  const { action } = await prompts({
-    type: "select",
-    name: "action",
-    message: "agentmark.json already exists. What would you like to do?",
-    choices: [
-      { title: "Skip (keep existing)", value: "skip" },
-      { title: "Overwrite with default config", value: "overwrite" },
-    ],
-    initial: 0,
-  });
-  return action === "overwrite";
-};
-
-export const USAGE = `Usage: npm create agentmark [folder] [-- options]
-       npx create-agentmark [folder] [options]
-
-Sets up AgentMark in a new or existing project: writes agentmark.json,
-creates the agentmark/ prompts directory, wires IDE MCP configs, and
-installs the AgentMark agent skill.
-
-Options:
-  [folder], --path <folder>  Target directory. Default: "." inside an
-                             existing project, else "my-agentmark-app".
-  --client <ids|all>         IDE clients to wire MCP configs for, comma-
-                             separated: claude-code, cursor, vscode, zed.
-  -y, --yes                  Non-interactive: accept the default for every
-                             prompt (folder default above, all IDE clients,
-                             keep an existing agentmark.json). For CI and
-                             coding agents.
-  --overwrite                Replace an existing agentmark.json with the
-                             default config.
-  -h, --help                 Show this help.
-`;
-
-export const main = async (): Promise<void> => {
-  const cliArgs = parseArgs();
-
-  if (cliArgs.help) {
-    console.log(USAGE);
-    return;
-  }
-
-  const target = await resolveTargetPath(cliArgs.path, cliArgs.yes);
-  if (!target) {
-    console.log("Aborted.");
-    return;
-  }
-  const { targetPath } = target;
-
-  const projectInfo = detectProjectInfo(targetPath);
-  const clients = await resolveClients(cliArgs.clients, cliArgs.yes, targetPath);
-
-  console.log("");
-
-  // 1. agentmark.json — the SDK loader's config root
-  const agentmarkJsonPath = path.join(targetPath, "agentmark.json");
-  if (await shouldWriteAgentmarkJson(agentmarkJsonPath, cliArgs.overwrite, cliArgs.yes)) {
-    fs.writeJsonSync(agentmarkJsonPath, AGENTMARK_JSON, { spaces: 2 });
-    console.log("✅ agentmark.json");
-  } else {
-    console.log("⏭️  agentmark.json (kept existing)");
-  }
-
-  // 2. agentmark/ — where prompts go. Empty + .gitkeep so the folder is
-  //    discoverable and version-controlled before the user adds anything.
-  //    Matches agentmarkPath: "." in agentmark.json.
-  const agentmarkDirPath = path.join(targetPath, "agentmark");
-  if (!fs.existsSync(agentmarkDirPath)) {
-    fs.ensureDirSync(agentmarkDirPath);
-    fs.writeFileSync(path.join(agentmarkDirPath, ".gitkeep"), "");
-    console.log("✅ agentmark/ (empty, ready for your .prompt.mdx files)");
-  } else {
-    console.log("⏭️  agentmark/ (kept existing)");
-  }
-
-  // 3. MCP wiring — one config file per selected IDE client
-  for (const client of clients) {
-    try {
-      const result = writeMcpConfig(client, targetPath, { customApiUrl: cliArgs.apiUrl });
-      if (result) {
-        const rel = path.relative(targetPath, result.configPath) || result.configPath;
-        console.log(`✅ MCP wired (${clientLabel(client)}): ${rel}`);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn(`⚠️  Could not write MCP config for ${clientLabel(client)}: ${message}`);
-    }
-  }
-
-  // 4. AgentMark agent skill (best-effort; logs its own status)
-  installAgentmarkSkill(targetPath);
-
-  // 5. git init — only if this is a greenfield folder
-  if (!projectInfo.isExistingProject) {
-    initGitRepo(targetPath);
-  }
-
-  // 6. Handoff to the AI tool. The integration logic lives in the skill
-  //    workflow (`setup-and-integration.md`), not here, so the rest of
-  //    onboarding adapts to whatever stack the user already has.
-  console.log("");
-  console.log("✨ AgentMark is wired up.");
-  console.log("");
-  console.log("   Next: open this project in Claude Code, Cursor, VS Code, or Zed and say:");
-  console.log("");
-  console.log("       \"Set up AgentMark in this project.\"");
-  console.log("");
-  console.log("   The AgentMark skill will detect your stack, propose the wiring against");
-  console.log("   the docs MCP (https://docs.agentmark.co/mcp), and integrate adaptively.");
-};
-
-/**
- * Run main() only when this module is invoked directly as the CLI entry —
- * NOT when imported by a test or another module.
- *
- * Both sides MUST be realpath'd before comparing. npm/npx invoke bins
- * through a `node_modules/.bin` SYMLINK, so `process.argv[1]` is the
- * symlink path while `import.meta.url` is the resolved real path — a naive
- * URL comparison never matches and the CLI exits 0 having done nothing.
- * That exact bug shipped in 1.0.0 and made `npm create agentmark` a silent
- * no-op for every user (macOS additionally symlinks /tmp, which is why
- * even "direct" invocations failed in temp dirs). Regression-pinned by
- * test/bin-invocation.test.ts, which runs the built bin through a symlink.
+ * True only when this module is the process entry (the bin), not when a
+ * test imports it. Both sides are realpath'd because npm/npx invoke bins
+ * through a `node_modules/.bin` symlink — `process.argv[1]` is the symlink
+ * while `import.meta.url` is the resolved real path, so a naive compare
+ * never matches and the wrapper would no-op (the 1.0.0 bug class).
  */
 const isDirectlyInvoked = (): boolean => {
   const entry = process.argv[1];
   if (!entry) return false;
   try {
-    const entryReal = pathToFileURL(fs.realpathSync(entry)).href;
-    const selfReal = pathToFileURL(fs.realpathSync(fileURLToPath(import.meta.url))).href;
+    const entryReal = pathToFileURL(realpathSync(entry)).href;
+    const selfReal = pathToFileURL(realpathSync(fileURLToPath(import.meta.url))).href;
     return entryReal === selfReal;
   } catch {
-    // realpath can throw on exotic entries (deleted cwd, permissions);
-    // treat as "not the CLI entry" rather than crashing an import.
     return false;
   }
 };
 
 if (isDirectlyInvoked()) {
-  main().catch((error) => {
-    console.error("Error:", error);
-    process.exit(1);
-  });
+  process.exit(run());
 }

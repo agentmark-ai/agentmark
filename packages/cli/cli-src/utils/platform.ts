@@ -29,36 +29,68 @@ export function getSymlinkType(): 'junction' | 'dir' {
 }
 
 /**
- * Kill a process and all its children.
- * Uses taskkill on Windows, pkill/kill on Unix.
+ * Kill a process and all its descendants (children, grandchildren, …).
+ *
+ * Windows uses `taskkill /T`, which is already tree-recursive. Unix walks the
+ * tree leaf-first via `pgrep -P` and SIGKILLs each node. The walk MUST recurse:
+ * a single `pkill -KILL -P <pid>` reaches only *direct* children, so any extra
+ * process layer is orphaned. Concretely, `agentmark dev` spawns the webhook via
+ * `tsx --watch`, which runs the dev-entry in its own worker subprocess — a
+ * grandchild of `dev`. Killing only `dev`'s direct children left that worker
+ * alive, leaking the webhook port (9417) after `doctor --smoke --boot` and
+ * across repeated runs. Recursing kills the worker too.
  */
 export function killProcessTree(pid: number): void {
   try {
     if (IS_WINDOWS) {
-      // On Windows, use taskkill to kill the entire process tree synchronously
+      // On Windows, taskkill /T kills the entire tree synchronously.
       try {
         spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)], { stdio: 'pipe' });
       } catch {
         // Ignore errors (process may already be dead)
       }
     } else {
-      // On Unix, kill children synchronously then force-kill the parent so the
-      // port is freed before the caller returns. Using spawnSync (not spawn)
-      // prevents the async callback chain from being abandoned when the doctor
-      // process exits immediately after teardown().
-      try {
-        spawnSync('pkill', ['-KILL', '-P', String(pid)], { stdio: 'pipe' });
-      } catch {
-        // pkill may not exist or may report "no process found" — ignore
-      }
-      try {
-        process.kill(pid, 'SIGKILL');
-      } catch {
-        // already dead
-      }
+      // spawnSync (not spawn) keeps this synchronous so ports are freed before
+      // the caller returns, even when the caller exits right after teardown().
+      killProcessTreeUnix(pid, new Set<number>());
     }
   } catch {
     // Ignore errors (process may already be dead)
+  }
+}
+
+/** Direct child PIDs of `pid` on Unix (via `pgrep -P`); [] on any failure. */
+function getChildPids(pid: number): number[] {
+  try {
+    const res = spawnSync('pgrep', ['-P', String(pid)], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return String(res.stdout || '')
+      .split(/\s+/)
+      .map(s => Number.parseInt(s, 10))
+      .filter(n => Number.isInteger(n) && n > 0 && n !== pid);
+  } catch {
+    // pgrep may be missing or report "no process found" — treat as no children.
+    return [];
+  }
+}
+
+/**
+ * Leaf-first recursive SIGKILL of `pid` and every descendant. Children are
+ * killed before their parent so a freed parent can't leave a still-listening
+ * child behind. `seen` guards against cycles / PID reuse during the walk.
+ */
+function killProcessTreeUnix(pid: number, seen: Set<number>): void {
+  if (seen.has(pid)) return;
+  seen.add(pid);
+  for (const child of getChildPids(pid)) {
+    killProcessTreeUnix(child, seen);
+  }
+  try {
+    process.kill(pid, 'SIGKILL');
+  } catch {
+    // already dead
   }
 }
 

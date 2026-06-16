@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fs from "fs-extra";
 import os from "os";
 import path from "path";
-import { writeMcpConfig } from "../../src/utils/examples/mcp-config";
+import { writeMcpConfig } from "../../cli-src/commands/init/mcp-config";
 
 /**
  * Each test creates a fresh temp dir so writes don't collide across

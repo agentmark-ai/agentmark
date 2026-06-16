@@ -128,13 +128,13 @@ You usually do not need separate train/test files. `agentmark run-experiment` ca
 
 ```bash
 # Run on 20% of rows (reproducible with --seed)
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --sample 20 --seed 42
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --sample 20 --seed 42
 
 # Run on a specific row range
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --rows 0,3-5,9
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --rows 0,3-5,9
 
 # Train/test split
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --split test:80 --seed 42
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --split test:80 --seed 42
 ```
 
 See [running-experiments.md](running-experiments.md) for the full sampling semantics.

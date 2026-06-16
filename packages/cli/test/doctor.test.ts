@@ -44,6 +44,9 @@ const HEALTHY: Record<string, string> = {
       '@agentmark-ai/sdk': '^0.4.0',
       '@ai-sdk/openai': '^2.0.0',
     },
+    devDependencies: {
+      '@agentmark-ai/cli': '^0.15.0',
+    },
   }),
   '.gitignore': 'node_modules\n.env\n',
   '.env': 'AGENTMARK_API_KEY=x\n',
@@ -72,6 +75,7 @@ describe('agentmark doctor — runDoctor', () => {
     expect(statusOf(report, 'prompts.parse')).toBe('pass');
     expect(statusOf(report, 'models.builtIn')).toBe('pass');
     expect(statusOf(report, 'deps.sdk')).toBe('pass');
+    expect(statusOf(report, 'deps.cli')).toBe('pass');
     expect(statusOf(report, 'env.credentials')).toBe('pass');
     expect(statusOf(report, 'env.gitignored')).toBe('pass');
     expect(statusOf(report, 'config.schema')).toBe('pass');
@@ -89,6 +93,7 @@ describe('agentmark doctor — runDoctor', () => {
       'config.found',
       'config.schema',
       'deploy.handler',
+      'deps.cli',
       'deps.sdk',
       'devEntry.file',
       'env.credentials',
@@ -242,6 +247,20 @@ describe('agentmark doctor — runDoctor', () => {
     expect(statusOf(report, 'deps.sdk')).toBe('pass');
     expect(statusOf(report, 'deps.adapter')).toBeUndefined();
     expect(statusOf(report, 'deps.provider')).toBeUndefined();
+  });
+
+  it('warns (not fails) when @agentmark-ai/cli is not pinned locally — the "init has not been run" signal', async () => {
+    const report = await run(
+      makeProject({
+        ...HEALTHY,
+        'package.json': JSON.stringify({ name: 'app', dependencies: { '@agentmark-ai/sdk': '^0.4.0' } }),
+      }),
+    );
+
+    expect(statusOf(report, 'deps.cli')).toBe('warn');
+    expect(fixOf(report, 'deps.cli')).toContain('agentmark init');
+    // It's advisory only — a missing local pin must never fail the report.
+    expect(report.counts.fail).toBe(0);
   });
 
   it('treats a Python project correctly (checks agentmark_client.py, runs pip check)', async () => {
@@ -530,5 +549,27 @@ describe('agentmark doctor — doctor() CLI glue (--json / exit codes)', () => {
     };
     expect((await runCli(makeProject(warnOnly), {})).exitCode).toBe(0);
     expect((await runCli(makeProject(warnOnly), { strict: true })).exitCode).toBe(1);
+  });
+
+  it('an advisory-only warning (missing CLI pin) stays green even under --strict', async () => {
+    // Drop the local CLI pin from an otherwise-HEALTHY project -> deps.cli is
+    // the ONLY warning, and it's advisory. A pre-pin project that passed
+    // `doctor --strict` in CI must NOT go red just because this check exists.
+    const noPin = {
+      ...HEALTHY,
+      'package.json': JSON.stringify({
+        name: 'app',
+        dependencies: { '@agentmark-ai/sdk': '^0.4.0', '@ai-sdk/openai': '^2.0.0' },
+      }),
+    };
+    const dir = makeProject(noPin);
+
+    // Guard the premise: deps.cli warns and it's the only warning in the report.
+    const report = await run(dir);
+    expect(statusOf(report, 'deps.cli')).toBe('warn');
+    expect(report.results.filter((r) => r.status === 'warn').map((r) => r.id)).toEqual(['deps.cli']);
+
+    expect((await runCli(dir, {})).exitCode).toBe(0);
+    expect((await runCli(dir, { strict: true })).exitCode).toBe(0);
   });
 });

@@ -59,13 +59,38 @@ export interface CheckResult {
   detail?: string;
   /** How to fix it (shown on warn/fail). */
   fix?: string;
+  /**
+   * A purely informational `warn` that must never escalate to a failure,
+   * even under `--strict`. Use for nudges that don't indicate a broken
+   * project (e.g. a not-yet-adopted convention) — escalating them would
+   * turn a green CI gate red for every project that predates the check.
+   */
+  advisory?: boolean;
 }
 
 export interface DoctorReport {
-  /** True when no check failed (warnings do not fail the report). */
+  /**
+   * True when the report passes. Fails always count; warnings count only under
+   * `--strict`. The CLI recomputes this with the `--strict` flag before
+   * emitting JSON, so `ok` always matches the process exit code — a JSON
+   * consumer gating on `ok` and a shell gating on `$?` agree. (`runDoctor`
+   * alone, with no strict flag, reports the non-strict value.)
+   */
   ok: boolean;
   counts: Record<CheckStatus, number>;
   results: CheckResult[];
+}
+
+/**
+ * Whether a report passes: a failure always fails; a non-advisory warning fails
+ * only under `--strict` (advisory warnings never escalate — see `advisory`).
+ * Single source of truth for both `runDoctor`'s `ok` and the CLI's exit code,
+ * so the JSON `ok` field and `$?` can never disagree.
+ */
+export function isOk(results: CheckResult[], strict = false): boolean {
+  if (results.some((r) => r.status === "fail")) return false;
+  if (strict && results.some((r) => r.status === "warn" && !r.advisory)) return false;
+  return true;
 }
 
 const GROUP = {
@@ -541,6 +566,26 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
               fix: "npm install @agentmark-ai/sdk",
             }
       );
+      // The local CLI pin is what `agentmark init` adds so CI and teammates
+      // run the same CLI version without a global install (npm resolves
+      // node_modules/.bin before PATH). Its absence is the signal that init
+      // hasn't been run — or was run before pinning existed.
+      add(
+        deps["@agentmark-ai/cli"]
+          ? { id: "deps.cli", group: GROUP.deps, title: "@agentmark-ai/cli pinned locally", status: "pass" }
+          : {
+              id: "deps.cli",
+              group: GROUP.deps,
+              title: "@agentmark-ai/cli pinned locally",
+              status: "warn",
+              // Advisory: a missing pin is a version-consistency nudge, not a
+              // broken project. Never fail on it (even under --strict), or
+              // every pre-pin project's `doctor --strict` CI gate goes red.
+              advisory: true,
+              detail: "no local CLI pin — CI and teammates may run a different version than you",
+              fix: "agentmark init  (adds @agentmark-ai/cli as a devDependency + npm scripts)",
+            }
+      );
     }
   } else {
     const pipResult = checkPythonDeps(cwd);
@@ -583,7 +628,7 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
   const counts: Record<CheckStatus, number> = { pass: 0, warn: 0, fail: 0, skip: 0 };
   for (const r of results) counts[r.status]++;
 
-  return { ok: counts.fail === 0, counts, results };
+  return { ok: isOk(results), counts, results };
 }
 
 const GLYPH: Record<CheckStatus, string> = { pass: "✓", warn: "⚠", fail: "✗", skip: "○" };
@@ -684,8 +729,12 @@ const doctor = async (options: DoctorOptions = {}): Promise<void> => {
     } finally {
       boot?.teardown();
     }
-    report.ok = report.counts.fail === 0;
   }
+
+  // Recompute `ok` with the --strict flag so the emitted JSON matches the exit
+  // code below. Failures always fail; non-advisory warnings fail only under
+  // --strict (advisory warnings never escalate).
+  report.ok = isOk(report.results, options.strict);
 
   if (options.json) {
     console.log(JSON.stringify(report, null, 2));
@@ -693,8 +742,7 @@ const doctor = async (options: DoctorOptions = {}): Promise<void> => {
     printReport(report);
   }
 
-  const failed = report.counts.fail > 0 || (!!options.strict && report.counts.warn > 0);
-  process.exit(failed ? 1 : 0);
+  process.exit(report.ok ? 0 : 1);
 };
 
 export default doctor;

@@ -1,5 +1,5 @@
 /**
- * Project detection for the minimal `npm create agentmark` init flow.
+ * Project detection for the `agentmark init` flow.
  *
  * Two questions only: "is this an existing project?" (drives whether we
  * run `git init`) and "does AgentMark already exist here?" (drives the
@@ -9,12 +9,12 @@
  * of encoding heuristics into the CLI.
  */
 
-import fs from 'fs-extra';
-import path from 'path';
-import type { ProjectInfo } from './types.js';
+import fs from "fs-extra";
+import path from "path";
+import type { ProjectInfo } from "./types";
 
-const TYPESCRIPT_INDICATORS = ['package.json', 'tsconfig.json', 'node_modules'] as const;
-const PYTHON_INDICATORS = ['pyproject.toml', 'requirements.txt', 'setup.py', '.venv', 'venv'] as const;
+const TYPESCRIPT_INDICATORS = ["package.json", "tsconfig.json", "node_modules"] as const;
+const PYTHON_INDICATORS = ["pyproject.toml", "requirements.txt", "setup.py", ".venv", "venv"] as const;
 
 /** Any TypeScript/Node.js project marker present in the target directory. */
 export function detectTypeScriptProject(targetPath: string): boolean {
@@ -34,8 +34,8 @@ export function detectPythonProject(targetPath: string): boolean {
 export function detectProjectInfo(targetPath: string): ProjectInfo {
   return {
     isExistingProject: detectTypeScriptProject(targetPath) || detectPythonProject(targetPath),
-    hasAgentmarkJson: fs.existsSync(path.join(targetPath, 'agentmark.json')),
-    hasAgentmarkDir: fs.existsSync(path.join(targetPath, 'agentmark')),
+    hasAgentmarkJson: fs.existsSync(path.join(targetPath, "agentmark.json")),
+    hasAgentmarkDir: fs.existsSync(path.join(targetPath, "agentmark")),
   };
 }
 
@@ -45,5 +45,5 @@ export function detectProjectInfo(targetPath: string): ProjectInfo {
  * AgentMark into the directory they're already in.
  */
 export function isCurrentDirectory(folderName: string): boolean {
-  return folderName === '.' || folderName === './' || folderName === '.\\';
+  return folderName === "." || folderName === "./" || folderName === ".\\";
 }

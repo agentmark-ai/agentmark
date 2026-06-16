@@ -112,4 +112,16 @@ export interface Trace {
   tokens: number;
   span_count: number;
   tags?: string[];
+  /**
+   * Truncated trace-level input preview — the root span's input, falling back
+   * to the first GENERATION span (canonical `deriveTraceIO` semantics, matching
+   * the trace-detail drawer). Absent when the server didn't compute a preview;
+   * `null`/empty when the trace has no input.
+   */
+  input_preview?: string | null;
+  /**
+   * Truncated trace-level output preview — the root span's output, falling back
+   * to the last GENERATION span. Absent/`null` when the trace has no output.
+   */
+  output_preview?: string | null;
 }

@@ -6,6 +6,7 @@ import type {
   TraceDetail,
   SpanIO,
 } from './types';
+import { attachTraceIOPreviews } from '@agentmark-ai/shared-utils';
 import {
   mapStatusNameToCode,
   mapStatusCodeToName,
@@ -17,6 +18,7 @@ import {
   getTraces as queryTraces,
   getTraceCount as queryTraceCount,
   getTraceById as queryTraceById,
+  getTraceIOPreviewRows as queryTraceIOPreviewRows,
 } from '../routes/traces';
 
 export class LocalTracesService {
@@ -54,7 +56,7 @@ export class LocalTracesService {
       }),
     ]);
 
-    const traces = (rows as Array<Record<string, unknown>>).map((row) => {
+    const traces: TracesResponse['traces'] = (rows as Array<Record<string, unknown>>).map((row) => {
       // SQL returns Tags as a JSON-encoded string (e.g. `'["a","b"]'`)
       // courtesy of `json_group_array` in the trace_tags CTE. Parse so
       // wire-mappers can emit a real array on the response.
@@ -84,6 +86,27 @@ export class LocalTracesService {
         tags,
       };
     });
+
+    // Trace-level I/O preview (issue #2899, parity with the cloud trace list):
+    // enrich this page with a truncated input/output snippet per trace, derived
+    // from each trace's root + GENERATION spans via the canonical
+    // `deriveTraceIO`. Best-effort — a query failure degrades to "no preview"
+    // rather than failing the whole list.
+    try {
+      attachTraceIOPreviews(
+        traces,
+        queryTraceIOPreviewRows(traces.map((t) => t.id)).map((row) => ({
+          traceId: row.trace_id,
+          parentId: row.parent_id,
+          type: row.type,
+          timestamp: row.timestamp,
+          input: row.input,
+          output: row.output,
+        })),
+      );
+    } catch (error) {
+      console.error('[LocalTracesService] attachTraceIOPreviews failed:', error);
+    }
 
     return {
       traces,

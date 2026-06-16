@@ -6,14 +6,14 @@ An experiment runs a prompt against every row in its linked dataset and (by defa
 
 ## Prerequisites
 
-- `agentmark dev` running locally (in another shell), OR pass `--server <url>` to target a non-default webhook server. **`agentmark dev` needs a runnable project**: a `package.json` with your SDK installed, an `agentmark.client.ts` (a `loader`, plus the executor and `evals` that call your SDK), and a `dev-entry.ts` webhook entry point. A prompts-only repo (just `agentmark.json` + `.prompt.mdx` files) has none of these — run `npx create-agentmark` to scaffold them (it writes `dev-entry.ts` + `agentmark.client.ts`), or the dev server exits with "No dev server entry point found."
+- `agentmark dev` running locally (in another shell), OR pass `--server <url>` to target a non-default webhook server. **`agentmark dev` needs a runnable project**: a `package.json` with your SDK installed, an `agentmark.client.ts` (a `loader`, plus the executor and `evals` that call your SDK), and a `dev-entry.ts` webhook entry point. A prompts-only repo (just `agentmark.json` + `.prompt.mdx` files) has none of these — scaffold with `agentmark init`, then complete the wiring via [setup-and-integration.md](setup-and-integration.md) (it adds `agentmark.client.ts` + `dev-entry.ts`), or the dev server exits with "No dev server entry point found."
 - A `.prompt.mdx` file with a dataset reference in its frontmatter.
 - The dataset file exists, with each row **wrapped as `{"input": {…props…}, "expected_output": …}`** (see [building-datasets.md](building-datasets.md)). Flat rows (props at the top level) are silently skipped — the experiment runs 0 rows and exits 0.
 
 ## Basic invocation
 
 ```bash
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx
+agentmark run-experiment agentmark/qa-bot.prompt.mdx
 ```
 
 Default output is a table summarizing each row's input, output, and any eval scores.
@@ -24,16 +24,16 @@ For CI integration or post-processing, change the format:
 
 ```bash
 # Newline-delimited JSON, one row per line
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --format jsonl
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --format jsonl
 
 # Single JSON document (good for piping to jq)
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --format json
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --format json
 
 # CSV for spreadsheets
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --format csv
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --format csv
 
 # JUnit XML — pipe to a file for CI gating
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --format junit > results.xml
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --format junit > results.xml
 ```
 
 ## CI gating with thresholds
@@ -41,7 +41,7 @@ npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --format junit 
 Fail the build if the experiment's pass rate drops below a percentage:
 
 ```bash
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --threshold 80
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --threshold 80
 ```
 
 The CLI exits non-zero if the threshold is not met. Pair with `--format junit` for richer CI surfacing (GitHub Actions, GitLab, Jenkins all consume JUnit XML).
@@ -52,14 +52,14 @@ For fast iteration on a large dataset, sample or pick specific rows:
 
 ```bash
 # Random 20% sample, reproducible
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --sample 20 --seed 42
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --sample 20 --seed 42
 
 # Specific rows by index or range
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --rows 0,3-5,9
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --rows 0,3-5,9
 
 # Train/test split
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --split train:80 --seed 42
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --split test:80 --seed 42
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --split train:80 --seed 42
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --split test:80 --seed 42
 ```
 
 Notes:
@@ -73,7 +73,7 @@ Notes:
 When you only want to see model output (e.g., tuning a prompt template), skip evals:
 
 ```bash
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --skip-eval
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --skip-eval
 ```
 
 This is faster and cheaper. Re-enable evals (drop `--skip-eval`) when you're ready to gate quality.
@@ -84,10 +84,10 @@ By default, `run-experiment` runs **20 dataset rows in parallel** through a boun
 
 ```bash
 # Higher concurrency for fast models / generous rate limits
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --concurrency 50
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --concurrency 50
 
 # Drop to serial when you're hitting provider rate limits
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx --concurrency 1
+agentmark run-experiment agentmark/qa-bot.prompt.mdx --concurrency 1
 ```
 
 Also overridable per-deployment via the `AGENTMARK_EXPERIMENT_CONCURRENCY` env var (clamped to `[1, 20]` unless you set the flag). A single row failure no longer aborts the whole run — the failed row emits an error chunk and the run continues with the remaining rows.
@@ -98,7 +98,7 @@ Also overridable per-deployment via the `AGENTMARK_EXPERIMENT_CONCURRENCY` env v
 
 ```bash
 # Compare to the run that produced the merge-base of the current PR
-npx @agentmark-ai/cli run-experiment agentmark/qa-bot.prompt.mdx \
+agentmark run-experiment agentmark/qa-bot.prompt.mdx \
   --baseline-commit "$(git merge-base origin/main HEAD)"
 ```
 

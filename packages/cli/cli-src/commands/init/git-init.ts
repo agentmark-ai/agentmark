@@ -33,7 +33,7 @@ export function initGitRepo(targetPath: string): boolean {
     execSync("git init", { cwd: targetPath, stdio: "ignore" });
     execSync("git add -A", { cwd: targetPath, stdio: "ignore" });
     execSync(
-      'git -c user.name="create-agentmark" -c user.email="noreply" commit -m "Initial commit from create-agentmark"',
+      'git -c user.name="agentmark" -c user.email="noreply" commit -m "Initial commit from agentmark init"',
       { cwd: targetPath, stdio: "ignore" },
     );
 

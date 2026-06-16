@@ -7,7 +7,7 @@ import {
   detectPythonProject,
   detectProjectInfo,
   isCurrentDirectory,
-} from '../../src/utils/project-detection.js';
+} from '../../cli-src/commands/init/project-detection';
 
 describe('project-detection', () => {
   let tempDir: string;

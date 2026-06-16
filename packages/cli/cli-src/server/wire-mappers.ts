@@ -50,6 +50,10 @@ export interface TraceListItemWire {
   tokens: number;
   span_count: number;
   tags: string[];
+  // Truncated trace-level I/O preview (root span, GENERATION fallback). Emitted
+  // only when the service computed one; an absent key means "no preview".
+  input_preview?: string | null;
+  output_preview?: string | null;
 }
 
 export interface TracesListResponseWire {
@@ -84,6 +88,15 @@ export function toTracesListResponseWire(
       tokens: t.tokens,
       span_count: t.spanCount,
       tags: t.tags ?? [],
+      // Pass the preview through only when present — keeps the wire lean and
+      // lets a consumer distinguish "no preview computed" (key absent) from a
+      // genuinely empty value.
+      ...(typeof t.inputPreview === "string"
+        ? { input_preview: t.inputPreview }
+        : {}),
+      ...(typeof t.outputPreview === "string"
+        ? { output_preview: t.outputPreview }
+        : {}),
     })),
     pagination: {
       total: result.total,
