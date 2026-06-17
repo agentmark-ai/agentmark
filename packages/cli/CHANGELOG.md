@@ -1,3 +1,17 @@
+## 0.24.2 (2026-06-17)
+
+### 🩹 Fixes
+
+- `agentmark init` no longer presumes a provider. It used to seed ([#793](https://github.com/agentmark-ai/agentmark/pull/793))
+  `builtInModels: ["openai/gpt-5.5"]` so the dashboard dropdown wasn't empty on
+  first run — but the model is provider-specific and the provider isn't known at
+  init time, so in (say) an Anthropic project this produced an immediate
+  model/provider mismatch the user (or their coding agent) had to undo. `init`
+  now seeds `builtInModels: []`; the integration step populates it for the chosen
+  provider via `pull-models`. Until then `doctor` warns (with the `pull-models`
+  fix) and prompts can use any model (no allowlist enforcement) — an honest
+  empty default instead of a wrong one.
+
 ## 0.24.1 (2026-06-17)
 
 ### 🩹 Fixes
