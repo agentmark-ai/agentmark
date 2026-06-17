@@ -444,8 +444,10 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
         let kind: ReturnType<typeof determinePromptKind>;
         try {
           kind = determinePromptKind(fm.data);
-        } catch {
-          parseErrors.push(`${rel}: no *_config block in frontmatter`);
+        } catch (err) {
+          // Surface determinePromptKind's actionable message (names the valid
+          // *_config blocks + the correct shape) rather than a terse override.
+          parseErrors.push(`${rel}: ${err instanceof Error ? err.message : "no *_config block in frontmatter"}`);
           continue;
         }
         const settings = fm.data[`${kind}_config`] as Record<string, unknown> | undefined;

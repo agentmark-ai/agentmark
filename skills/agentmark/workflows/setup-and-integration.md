@@ -4,13 +4,13 @@ Triggered when a user says "set up AgentMark in this project," "wire AgentMark i
 
 If the user wants to *provision a Cloud app and connect git* without touching local code yet, use [headless-with-mcp.md](headless-with-mcp.md) instead.
 
-## Single source of truth: the docs MCP
+## Single source of truth: the docs
 
-This file describes the **shape** of the conversation and the **order** of operations — nothing else. Framework-specific paths, package names, CLI flags, `agentmarkPath` conventions, and every other piece of integration content live in **one place**: `https://docs.agentmark.co`, queryable via the docs MCP server (`https://docs.agentmark.co/mcp`) or by appending `.md` to any docs URL and using `WebFetch`.
+This file describes the **shape** of the conversation and the **order** of operations — nothing else. Framework-specific paths, package names, CLI flags, `agentmarkPath` conventions, and every other piece of integration content live in **one place**: the docs at `https://docs.agentmark.co`.
 
-**Never encode integration content into this workflow.** When you need to know where a Next.js project's client file goes, what package to install for Pydantic AI, or what flag `agentmark run-prompt` takes — query the docs MCP, or run `agentmark <cmd> --help`. If two sources disagree, the docs win. This is the same rule SKILL.md establishes in [How to find current information](../SKILL.md#how-to-find-current-information); a setup workflow is no exception.
+**Never encode integration content into this workflow, and never write a client, executor, or prompt from memory.** Look everything up using the skill's single doc-lookup precedence — SKILL.md → [How to find current information](../SKILL.md#how-to-find-current-information): **orient with `https://docs.agentmark.co/llms.txt` to find the right page, then `WebFetch` that page's `.md`** (search the docs MCP `https://docs.agentmark.co/mcp` only if the index doesn't surface it), plus `agentmark <cmd> --help` for CLI flags. Orient and read the page *before* you write the file — that is what prevents invalid shapes (`<Human>`, `metadata.model.name`, a top-level `model`). If two sources disagree, the docs win.
 
-If the docs MCP isn't responding, or doesn't cover the user's framework, **stop and tell the user**. Do not invent paths or package names from memory. The right escalation is "the docs don't cover this framework — want me to set it up using the closest covered pattern (X), or hold while we add docs for your stack?"
+If the docs don't cover the user's framework, **stop and tell the user**. Do not invent paths or package names from memory. The right escalation is "the docs don't cover this framework — want me to set it up using the closest covered pattern (X), or hold while we add docs for your stack?"
 
 ## Before you start — `doctor` is your setup checklist
 
@@ -88,7 +88,7 @@ If the docs guidance contradicts those two rules, prefer the docs (they may have
 
 ## Step 5 — Scaffold the first prompt
 
-One prompt only, named after the host's primary use case. Use the minimum viable shape from [creating-prompts.md](creating-prompts.md). After writing, regenerate types per the docs' instructions for the detected language (do not encode the command here).
+One prompt only, named after the host's primary use case. **Read [creating-prompts.md](creating-prompts.md) and copy its frontmatter shape verbatim — do NOT author the frontmatter from memory** (that is how prompts end up with invalid shapes like `metadata.model.name` or a top-level `model`, which fail to parse). The model lives **inside** a `*_config` block (e.g. a `text_config` block with the model under its `model_name` key), never at the top level or under a `metadata`/`model` key; message tags are `<System>` / `<User>` / `<Assistant>` (not `<Human>`). After writing, run `agentmark doctor` to confirm the prompt parses (it names the fix if the shape is wrong), then regenerate types per the docs' instructions for the detected language (do not encode the command here).
 
 ## Step 6 — Smoke test (local — no cloud auth needed)
 

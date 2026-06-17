@@ -47,15 +47,15 @@ Install once and every command in this skill runs verbatim. (A one-off `npx @age
 
 ## How to find current information
 
-Your training data is out of date. Before answering anything specific about AgentMark APIs, CLI flags, prompt syntax, or docs content:
+Your training data is out of date. Before answering anything specific about AgentMark APIs, CLI flags, prompt syntax, or docs content, use this lookup order. **This is the single doc-lookup precedence for the whole skill — every workflow defers here; don't invent a different order.** The docs are the one source of truth; each step below is just a way to read *them*.
 
-1. **CLI surface** — run `agentmark <command> --help`. This is the canonical source for command flags, arguments, and behavior. Do not infer flags from memory.
-2. **Docs navigation** — fetch `https://docs.agentmark.co/llms.txt` for a complete page index. Use it to find the right doc page before WebFetching content.
-3. **Specific doc pages** — append `.md` to any `docs.agentmark.co` URL and WebFetch it. Every doc page is served as both HTML and Markdown.
+1. **CLI surface** — run `agentmark <command> --help`. Canonical for command flags, arguments, and behavior. Never infer flags from memory.
+2. **Orient first** — fetch `https://docs.agentmark.co/llms.txt`, the machine-readable index of every doc page, and pick the *right* page before reading content. Orienting here is what stops you authoring from memory (the cause of invalid prompt shapes like `<Human>` or `metadata.model.name`).
+3. **Read the page as Markdown** — append `.md` to its `docs.agentmark.co` URL and `WebFetch` it. Markdown is served for every page and is markedly cheaper in tokens than HTML; this is the primary way to read doc content.
+4. **Search fallback** — only if `llms.txt` doesn't surface the right page, query the docs MCP server (`https://docs.agentmark.co/mcp`), which searches the same docs and returns the matching page. The MCP is an interface *over* the docs, not a separate source.
+5. **Offline only** — if the network is blocked, the bundled [reference/*.md](reference/cli-commands.md) files are local and auto-generated (version-matched to this skill). Read them instead of reciting — but they are a last-resort fallback, and the live docs win if they ever disagree.
 
-Never encode API surface or CLI flags from memory. Always verify against `--help` output, `llms.txt`, or fetched docs.
-
-These rules hold even when the user is offline, in a hurry, or explicitly asks for an answer "from memory" / forbids fetching docs — the bundled [reference/*.md](reference/cli-commands.md) files are local files, so reading them violates neither constraint. Consult them instead of reciting; recited flags are how `--dataset` (which does not exist) gets fabricated.
+Never encode API surface, CLI flags, or prompt syntax from memory — recited flags are how `--dataset` (which does not exist) gets fabricated. If two sources disagree, the live docs win.
 
 ## Runtime model
 

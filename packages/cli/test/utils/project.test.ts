@@ -150,8 +150,17 @@ describe('determinePromptKind', () => {
   ])('maps %s to %s', (key, kind) => {
     expect(determinePromptKind({ [key]: {} })).toBe(kind);
   });
-  it('throws when no *_config block is present', () => {
-    expect(() => determinePromptKind({ name: 'x' })).toThrow(/Could not determine prompt kind/);
+  it('throws an actionable error naming the valid config blocks + shape', () => {
+    // The message has to teach the fix: an agent that wrote `metadata.model.name`
+    // (real onboarding failure) must learn the prompt kind comes from a *_config
+    // block, not guess again.
+    expect(() => determinePromptKind({ metadata: { model: { name: 'x' } } }))
+      .toThrow(/Could not determine prompt kind/);
+    let msg = '';
+    try { determinePromptKind({ name: 'x' }); } catch (e) { msg = (e as Error).message; }
+    expect(msg).toContain('text_config');
+    expect(msg).toContain('model_name');
+    expect(msg).toContain('metadata'); // explicitly calls out the wrong shape
   });
 });
 

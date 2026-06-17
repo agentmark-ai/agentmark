@@ -163,7 +163,12 @@ export function determinePromptKind(frontmatter: Record<string, unknown>): Promp
   if (frontmatter.object_config) return "object";
   if (frontmatter.image_config) return "image";
   if (frontmatter.speech_config) return "speech";
-  throw new Error("Could not determine prompt kind from frontmatter");
+  throw new Error(
+    "Could not determine prompt kind: frontmatter needs a *_config block " +
+    "(text_config, object_config, image_config, or speech_config). The model " +
+    "goes inside it, e.g. `text_config:` with `model_name: <provider/model>` " +
+    "(not at the top level, and not under a `metadata`/`model` key)."
+  );
 }
 
 export type FrontmatterResult =
