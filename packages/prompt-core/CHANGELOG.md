@@ -1,3 +1,10 @@
+## 1.0.5 (2026-06-17)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.9
+- Updated @agentmark-ai/templatedx to 0.4.2
+
 ## 1.0.4 (2026-06-15)
 
 ### 🩹 Fixes
