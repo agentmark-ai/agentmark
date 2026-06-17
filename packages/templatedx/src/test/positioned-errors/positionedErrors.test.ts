@@ -3,6 +3,7 @@ import { bundle } from '../../bundler';
 import { transformTree } from '../../transformer';
 import { parse } from '../../ast-utils';
 import { TemplateDXError, recoverParseErrorPosition } from '../../errors';
+import { TagPluginRegistry } from '../../tag-plugin-registry';
 
 const contentLoader = async () => '';
 
@@ -14,6 +15,22 @@ async function catchError(promise: Promise<unknown>): Promise<TemplateDXError> {
   }
   throw new Error('expected promise to reject');
 }
+
+test('unsupported tag error lists the registered tags so the author can self-correct', async () => {
+  // The real-world failure: an agent wrote <Human> (the convention from other
+  // frameworks) instead of AgentMark's <User>, and the error gave no hint that
+  // <User> was the valid option. The message must now enumerate the registry.
+  const plugin = {} as never; // bundler only checks existence + lists names
+  TagPluginRegistry.register(plugin, ['User', 'Assistant', 'System']);
+  try {
+    const error = await catchError(bundle('<Human>{props.q}</Human>\n', __dirname, contentLoader));
+    expect(error.message).toContain("Unsupported tag '<Human>'.");
+    // Sorted, comma-separated — surfaces <User> as the fix for <Human>.
+    expect(error.message).toContain('Registered tags: Assistant, System, User.');
+  } finally {
+    for (const name of ['User', 'Assistant', 'System']) TagPluginRegistry.remove(name);
+  }
+});
 
 test('unsupported tag error carries the exact position of the tag', async () => {
   // <Bogus> opens at line 3, column 1 (1-based), offset 14 into the string.

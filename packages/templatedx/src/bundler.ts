@@ -63,10 +63,14 @@ function validateAllJsxElements(
       return;
     }
 
-    // If none of the above, it's unsupported
+    // If none of the above, it's unsupported. List the registered tags so the
+    // author can see the valid options (e.g. that AgentMark prompts use
+    // <User>, not the <Human> convention from other frameworks).
+    const registered = [...tagRegistry.getAll().keys()].sort();
     throw new TemplateDXError(
       `Unsupported tag '<${componentName}>'. ` +
-      `Only native MDX elements, and registered tags are supported.`,
+      `Only native MDX elements, and registered tags are supported.` +
+      (registered.length ? ` Registered tags: ${registered.join(", ")}.` : ""),
       node.position
     );
   });

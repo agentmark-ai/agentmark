@@ -102,6 +102,7 @@ For TypeScript projects this is required before the SDK's `loadTextPrompt('greet
 
 ## Common mistakes
 
+- **Using `<Human>` / `<AI>` message tags** (the convention from other frameworks) instead of AgentMark's `<User>` and `<Assistant>`. The parser rejects unknown tags — `Unsupported tag '<Human>'` — and lists the registered ones; the message roles are exactly `<System>`, `<User>`, `<Assistant>`.
 - **Putting `model_name` at the top level of frontmatter** instead of inside `text_config` / `object_config` / `image_config` / `speech_config`. The schema rejects top-level `model_name`. Match the shape above.
 - **Putting prompts at the repo root (or anywhere outside `agentmark/`)** — the prompt-root is `<agentmarkPath>/agentmark`, so the default `agentmarkPath: "."` means prompts go in `agentmark/`, *not* the repo root. A `.prompt.mdx` at the repo root is silently ignored: `agentmark dev` won't find it, and **a git deploy will report success while materializing zero templates** (`/v1/prompts?name=…` returns no paths). Always put prompts under `agentmark/`.
 - **Using `"/"` as `agentmarkPath`** instead of `"."` — known footgun; use `"."`.
