@@ -65,10 +65,14 @@ export const AGENTMARK_JSON: Record<string, unknown> = {
   version: "2.0.0",
   mdxVersion: "1.0",
   agentmarkPath: ".",
-  // Seed one model so the dashboard prompt editor isn't an empty dropdown on
-  // first run. Add more with `agentmark pull-models` (writes provider/model
-  // entries here) — see https://docs.agentmark.co/configure/model-schemas.
-  builtInModels: ["openai/gpt-5.5"],
+  // Intentionally empty: the model is provider-specific, and the provider
+  // isn't known at init time (a fresh scaffold has no .env / SDK yet).
+  // Presuming one (we used to seed "openai/gpt-5.5") produces an immediate
+  // model/provider mismatch in, say, an Anthropic project. The integration
+  // step populates this for the chosen provider via `agentmark pull-models`
+  // (see https://docs.agentmark.co/configure/model-schemas); until then
+  // `doctor` warns and prompts can use any model (no allowlist enforcement).
+  builtInModels: [],
 };
 
 export const clientLabel = (id: string): string =>

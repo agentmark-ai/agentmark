@@ -40,7 +40,9 @@ describe("runInit — minimal init", () => {
       version: "2.0.0",
       mdxVersion: "1.0",
       agentmarkPath: ".",
-      builtInModels: ["openai/gpt-5.5"],
+      // Empty by design — the provider is unknown at init time, so init no
+      // longer presumes one; `pull-models` populates this during integration.
+      builtInModels: [],
     });
   });
 
