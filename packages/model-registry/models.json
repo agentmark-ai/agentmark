@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-16T01:23:34.383Z",
+  "generatedAt": "2026-06-17T01:19:03.494Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-16T01:23:34.383Z",
+      "fetchedAt": "2026-06-17T01:19:03.494Z",
       "modelCount": 1422
     },
     "openrouter": {
-      "fetchedAt": "2026-06-16T01:23:34.383Z",
-      "modelCount": 125
+      "fetchedAt": "2026-06-17T01:19:03.494Z",
+      "modelCount": 124
     }
   },
   "models": {
@@ -19873,11 +19873,12 @@
         "top_p"
       ],
       "pricing": {
-        "inputCostPerToken": 9.8e-8,
-        "outputCostPerToken": 1.96e-7
+        "inputCostPerToken": 9e-8,
+        "outputCostPerToken": 1.8e-7
       },
       "context": {
-        "maxInputTokens": 1048576
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 65536
       },
       "capabilities": {
         "functionCalling": true,
@@ -20897,7 +20898,8 @@
       },
       "capabilities": {
         "structuredOutput": true
-      }
+      },
+      "deprecationDate": "2026-06-17"
     },
     "deepseek-r1-distill-llama-70b": {
       "provider": "deepseek",
