@@ -50,6 +50,10 @@ describe('clientNotFoundMessages', () => {
     expect(m).toHaveLength(2);
     expect(m[0]).toBe('Error: agentmark.client.ts not found in current directory.');
     expect(m[1]).toContain('AgentMark project root');
+    // The remediation must tell you to put the file AT the root, not in a
+    // subdirectory (src/) — the recurring onboarding mistake the CLI hard-fails on.
+    expect(m[1]).toContain('Create agentmark.client.ts at your AgentMark project root');
+    expect(m[1]).toContain('not from a subdirectory');
     expect(m[1]).toContain('Set up AgentMark in this project');
     expect(m[1]).toContain('https://docs.agentmark.co/getting-started/client-setup');
     expect(m.join(' ')).not.toContain('—');
