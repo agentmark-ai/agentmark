@@ -1,3 +1,15 @@
+## 0.24.1 (2026-06-17)
+
+### 🩹 Fixes
+
+- `doctor` / `dev` now tell you to create the client file **at the project root**, not just to run from there. The client-missing remediation previously said only "Run `agentmark dev` from your AgentMark project root," which didn't catch the recurring onboarding mistake of placing `agentmark.client.ts` in a subdirectory (e.g. `src/`) — the CLI loads the client from the project root (`path.join(cwd, ...)`), so a misplaced client makes `dev` fail to boot and `doctor` report `client.file` as failed. The message now reads "Create `agentmark.client.ts` at your AgentMark project root (the CLI loads it from there, not from a subdirectory), then run `agentmark dev` from that directory." ([#790](https://github.com/agentmark-ai/agentmark/pull/790))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.11.1
+- Updated @agentmark-ai/prompt-core to 1.0.5
+- Updated @agentmark-ai/templatedx to 0.4.2
+
 ## 0.24.0 (2026-06-16)
 
 ### 🚀 Features
