@@ -38,6 +38,13 @@ npm install -g @agentmark-ai/cli
 
 Install once and every command in this skill runs verbatim. (A one-off `npx @agentmark-ai/cli <cmd>` also works without installing, but the global install is the intended path — prefer it.)
 
+> ⚠️ **The CLI's npm package is the scoped `@agentmark-ai/cli` — the unscoped `agentmark` package on npm is unrelated.** Never install or invoke it by the bare name:
+> - install with `npm install -g @agentmark-ai/cli` — **not** `npm install -g agentmark`
+> - one-off runs use `npx @agentmark-ai/cli <cmd>` — **not** `npx agentmark <cmd>` (that downloads and runs the wrong package)
+> - or use the project-pinned `npm run agentmark:dev` that `agentmark init` wires up
+>
+> The bare `agentmark` *command* is correct only as the binary the scoped package installs (globally or in `node_modules/.bin`). If `agentmark --version` resolves but `init` / `dev` / `doctor` are unknown commands, the wrong `agentmark` is installed — reinstall `@agentmark-ai/cli`.
+
 ## How to find current information
 
 Your training data is out of date. Before answering anything specific about AgentMark APIs, CLI flags, prompt syntax, or docs content:
