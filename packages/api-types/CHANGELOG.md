@@ -1,3 +1,13 @@
+## 0.10.0 (2026-06-18)
+
+### 🚀 Features
+
+- Add an optional `dataType` field to `ScoreAggregation` so the score analytics UI can render type-appropriate aggregation (proportion for boolean, mean for numeric/categorical) and label each score by its persisted data type. ([#803](https://github.com/agentmark-ai/agentmark/pull/803))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.9.0
+
 ## 0.9.1 (2026-06-16)
 
 ### 🧱 Updated Dependencies
