@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-17T01:19:03.494Z",
+  "generatedAt": "2026-06-18T01:17:24.354Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-17T01:19:03.494Z",
+      "fetchedAt": "2026-06-18T01:17:24.354Z",
       "modelCount": 1422
     },
     "openrouter": {
-      "fetchedAt": "2026-06-17T01:19:03.494Z",
-      "modelCount": 124
+      "fetchedAt": "2026-06-18T01:17:24.354Z",
+      "modelCount": 125
     }
   },
   "models": {
@@ -20015,6 +20015,7 @@
       "supportedParameters": [
         "max_tokens",
         "temperature",
+        "top_k",
         "top_p"
       ],
       "pricing": {
@@ -20023,7 +20024,7 @@
       },
       "context": {
         "maxInputTokens": 262144,
-        "maxOutputTokens": 32768
+        "maxOutputTokens": 8192
       },
       "capabilities": {
         "vision": true,
@@ -20440,7 +20441,9 @@
       "source": "openrouter",
       "supportedParameters": [
         "max_tokens",
-        "temperature"
+        "temperature",
+        "top_k",
+        "top_p"
       ],
       "pricing": {
         "inputCostPerToken": 0,
@@ -20500,7 +20503,7 @@
       },
       "context": {
         "maxInputTokens": 131072,
-        "maxOutputTokens": 8192
+        "maxOutputTokens": 32768
       },
       "capabilities": {
         "functionCalling": true,
@@ -27744,6 +27747,31 @@
         "maxOutputTokens": 2048
       },
       "source": "override"
+    },
+    "north-mini-code:free": {
+      "provider": "cohere",
+      "displayName": "Cohere: North Mini Code (free)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "frequency_penalty",
+        "max_tokens",
+        "presence_penalty",
+        "temperature",
+        "top_k",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 64000
+      },
+      "capabilities": {
+        "functionCalling": true
+      }
     }
   }
 }
