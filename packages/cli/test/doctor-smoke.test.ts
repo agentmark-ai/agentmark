@@ -651,6 +651,65 @@ describe('bootDevServer', () => {
     expect(killed).toEqual([5150]);
   });
 
+  it('spawns `agentmark dev` with --no-watch so a crashing dev-entry exits instead of hanging', async () => {
+    // Under `tsx --watch`, a dev-entry that throws at load does NOT exit (tsx
+    // waits for file changes), so boot would hang to the timeout with no signal.
+    // --no-watch makes the crash exit, surfacing the real error.
+    let captured: string[] = [];
+    let probeCalls = 0;
+    const handle = await bootDevServer(
+      bootOpts({
+        spawnImpl: ((_cmd: string, args: string[]) => {
+          captured = args;
+          return fakeChild({ pid: 5150 });
+        }) as unknown as BootOptions['spawnImpl'],
+        probeImpl: async () => ++probeCalls > 2,
+        killImpl: () => {},
+      }),
+    );
+    handle.teardown();
+    expect(captured).toContain('dev');
+    expect(captured).toContain('--no-watch');
+  });
+
+  it('surfaces the dev-server stderr tail when boot times out', async () => {
+    // A dev-entry alive-but-not-listening (e.g. stuck) produces no early-exit;
+    // the timeout error is the only diagnostic, so it must carry the stderr.
+    await expect(
+      bootDevServer(
+        bootOpts({
+          spawnImpl: (() =>
+            fakeChild({ pid: 5150, stderr: "TypeError: Cannot read properties of undefined (reading 'local')" })) as unknown as BootOptions['spawnImpl'],
+          probeImpl: async () => false, // never ready → timeout (not early-exit)
+          killImpl: () => {},
+        }),
+      ),
+    ).rejects.toThrow(/did not become ready within.*Last dev-server output:.*Cannot read properties of undefined/);
+  });
+
+  it('uses AGENTMARK_DEV_READY_TIMEOUT_MS for the default ready timeout (cold CI boots)', async () => {
+    // Without an explicit readyTimeoutMs, the env var sets the budget — a cold
+    // `agentmark dev` (tsx compile) on CI needs more than the historical 30s.
+    const prev = process.env.AGENTMARK_DEV_READY_TIMEOUT_MS;
+    process.env.AGENTMARK_DEV_READY_TIMEOUT_MS = '2000';
+    try {
+      await expect(
+        bootDevServer(
+          // readyTimeoutMs: undefined → the destructuring default (env) applies.
+          bootOpts({
+            readyTimeoutMs: undefined,
+            spawnImpl: (() => fakeChild({ pid: 5150 })) as unknown as BootOptions['spawnImpl'],
+            probeImpl: async () => false, // never ready → hits the timeout
+            killImpl: () => {},
+          }),
+        ),
+      ).rejects.toThrow(/did not become ready within 2s/); // 2000ms, not the 60s base default
+    } finally {
+      if (prev === undefined) delete process.env.AGENTMARK_DEV_READY_TIMEOUT_MS;
+      else process.env.AGENTMARK_DEV_READY_TIMEOUT_MS = prev;
+    }
+  });
+
   it('fails fast on a spawn error instead of waiting out the timeout', async () => {
     let probes = 0;
     await expect(

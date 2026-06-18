@@ -415,7 +415,12 @@ export async function bootDevServer(opts: BootOptions): Promise<BootHandle> {
     cliEntry = process.argv[1],
     webhookPort = 9417,
     apiPort = 9418,
-    readyTimeoutMs = 30000,
+    // A healthy boot opens both ports in ~1s; 30s is already generous. This
+    // timeout only fires when the dev-entry is alive-but-not-listening (e.g.
+    // hangs awaiting forever) — a real crash now exits fast (dev runs with
+    // --no-watch). AGENTMARK_DEV_READY_TIMEOUT_MS is a CI safety valve for a
+    // genuinely-slow cold first-compile on a contended runner.
+    readyTimeoutMs = Number(process.env.AGENTMARK_DEV_READY_TIMEOUT_MS) || 30000,
     readyPollMs = 500,
     spawnImpl = spawn,
     probeImpl = probePort,
@@ -428,7 +433,11 @@ export async function bootDevServer(opts: BootOptions): Promise<BootHandle> {
   // entry; pass it explicitly if you ever invoke through a bundled/renamed shim.
   const child: ChildProcess = spawnImpl(
     process.execPath,
-    [cliEntry, "dev", "--no-ui", "--no-forward", "--webhook-port", String(webhookPort), "--api-port", String(apiPort)],
+    // --no-watch is load-bearing here: under `tsx --watch` a dev-entry that
+    // throws at load doesn't exit (tsx waits for file changes), so boot would
+    // hang to the timeout with no signal. Without watch, the crash exits the
+    // process and the early-exit branch below surfaces its stderr.
+    [cliEntry, "dev", "--no-ui", "--no-forward", "--no-watch", "--webhook-port", String(webhookPort), "--api-port", String(apiPort)],
     { cwd, stdio: ["ignore", "ignore", "pipe"], env: process.env },
   );
 
@@ -477,7 +486,13 @@ export async function bootDevServer(opts: BootOptions): Promise<BootHandle> {
     if (webhookUp && apiUp) return { teardown };
     if (waited >= readyTimeoutMs) {
       teardown();
-      throw new Error(`agentmark dev did not become ready within ${Math.round(readyTimeoutMs / 1000)}s`);
+      // Include the dev server's stderr tail — if the dev-entry is slow-looping
+      // or stuck (not crashed, so no early-exit), this is the only diagnostic.
+      const tail = stderrTail.trim().split(/\r?\n/).filter(Boolean).slice(-3).join(" ");
+      throw new Error(
+        `agentmark dev did not become ready within ${Math.round(readyTimeoutMs / 1000)}s` +
+        (tail ? `. Last dev-server output: ${tail}` : ""),
+      );
     }
     await sleepImpl(readyPollMs);
     waited += readyPollMs;

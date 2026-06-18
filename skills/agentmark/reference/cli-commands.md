@@ -78,6 +78,7 @@ agentmark dev [options]
 | `--app-port <number>` | AgentMark UI app port (default: 3000) |
 | `--no-forward` | Disable trace forwarding to AgentMark Cloud |
 | `--no-ui` | Skip the UI app (API + webhook only) — for CI / headless / test use |
+| `--no-watch` | Don't restart on file changes; exit on a dev-entry crash so the error surfaces (for CI / headless / boot use) |
 
 ---
 

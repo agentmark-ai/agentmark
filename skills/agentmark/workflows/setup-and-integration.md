@@ -32,7 +32,9 @@ Read the codebase with `Read` / `Glob` / `Grep`. The detection task is local; **
 
 - Language (TypeScript / Python / other) — from `package.json` / `pyproject.toml` / `requirements.txt`
 - Framework name and major version (Next.js, Hono, FastAPI, Mastra, etc.)
-- Existing LLM-SDK call sites (`streamText`, `generateObject`, `client.messages.create`, `openai.ChatCompletion`, …) — record locations; needed for Step 8
+- Existing prompts and LLM call sites — record locations; needed for Step 8. Look for **both**:
+  - **Direct SDK calls**: `streamText`, `generateObject`, `client.messages.create`, `openai.chat.completions.create`, `anthropic.messages.create`, `openai.ChatCompletion`, …
+  - **Framework prompt abstractions that hold the prompt** — equally migration targets, not just direct calls: LangChain `ChatPromptTemplate` / `PromptTemplate` (and the `.pipe(model)` / `.invoke(...)` chain that runs them), LlamaIndex `PromptTemplate`, agent-framework `instructions`, or a templated string assembled for an LLM call. A prompt living inside a framework template is exactly as much a "prompt to move into AgentMark" as a raw `messages: [...]` array — don't skip it because it doesn't look like a direct SDK call.
 - Monorepo? Workspace boundaries? Identify the host workspace before deciding where AgentMark sits.
 
 Then move to Step 2 — do not propose a placement from your detection alone.
@@ -45,7 +47,11 @@ Query the docs MCP server for the integration guide. Try in this order:
 2. `<framework> quickstart`
 3. `running prompts` (`/build/running-prompts`) for in-process integration (Path A — the usual case), or `connect your SDK` (`/configure/connect-your-sdk`) for the Cloud-executor path (Path B)
 
-**The neutral render is the universal path.** AgentMark has **no SDK-specific adapters** — whatever the host calls (Vercel AI SDK, the raw OpenAI/Anthropic client, AWS Bedrock `ConverseCommand`, a bespoke HTTP client), the integration is the same: render the prompt to AgentMark's neutral `{ messages, text_config }` and hand it to that SDK. Never escalate "no adapter exists" or default to a heavyweight custom-adapter page. The neutral render has **two paths, now documented on two separate pages**: **Path A** (`createAgentMark` + `loadTextPrompt` + `observe`) for prompt-management / tracing in the user's own process — no executor — at [`/build/running-prompts`](https://docs.agentmark.co/build/running-prompts.md); and **Path B** (`createExecutor` → `createWebhookRunner({ client, executor })` — the runner sources loader AND evals from the client, wired and served per [`/getting-started/client-setup`](https://docs.agentmark.co/getting-started/client-setup.md), with the per-SDK executor at [`/configure/connect-your-sdk`](https://docs.agentmark.co/configure/connect-your-sdk.md)) when the user wants the cloud to *run* their prompts. Pick the path from what the user wants; most "wire AgentMark into my existing app" requests are Path A. On a popular SDK, the [connect-your-SDK guide](https://docs.agentmark.co/configure/connect-your-sdk.md) (Path B) is a copy-paste head start.
+**The neutral render is the universal path.** AgentMark has **no SDK-specific adapters** — whatever the host calls (Vercel AI SDK, the raw OpenAI/Anthropic client, AWS Bedrock `ConverseCommand`, a bespoke HTTP client), the integration is the same: render the prompt to AgentMark's neutral `{ messages, text_config }` and hand it to that SDK. Never escalate "no adapter exists" or default to a heavyweight custom-adapter page.
+
+**Setting up AgentMark ALWAYS scaffolds the runnable trio: the client, `dev-entry.ts`, and `handler.ts`.** Do not treat the dev-entry as optional. `agentmark dev` boots from `dev-entry.ts`; it serves your prompt files on the local API server and executes them through your executor. The scaffolded client loads prompts via `ApiLoader.local(:9418)` — i.e. *from that dev server* — so **without `dev-entry.ts`, `agentmark dev` won't start, nothing local can load a prompt, and the Step 6 smoke (`agentmark doctor --smoke --boot`) fails with "Expected dev-entry.ts at your project root."** `handler.ts` is the same executor wired for cloud deploy. The per-SDK executor body is a copy-paste head start from the [connect-your-SDK guide](https://docs.agentmark.co/configure/connect-your-sdk.md); the full trio recipe is [`/getting-started/client-setup`](https://docs.agentmark.co/getting-started/client-setup.md).
+
+**"Path A" vs "Path B" is about how the *host's application code* obtains a completion — NOT whether to build the dev-entry.** Path A (`createAgentMark` + `loadTextPrompt` + call your SDK in-process, [`/build/running-prompts`](https://docs.agentmark.co/build/running-prompts.md)) is how the user's own app runs a prompt; Path B (the cloud runs your prompt via the webhook) is how AgentMark Cloud executes it. Both still need the scaffolded dev-entry to run and verify locally. Wiring the host's existing call sites to Path A is the migration in Step 8 — it is additive to the trio, never a replacement for it.
 
 Read the page in full. **The page is the authority on**:
 
@@ -82,7 +88,16 @@ Place files at the paths the docs page specified. Two SDK-contract rules overrid
 - Prompts root is always **named `agentmark/`** — the SDK loader resolves `<agentmarkPath>/agentmark/`. Setting `agentmarkPath: "/"` instead of `"."` is a known footgun.
 - The client file is a **configured factory** — reads `AGENTMARK_API_KEY` / `AGENTMARK_APP_ID` from env, exports a configured client. Importers throughout the codebase use it.
 
-For the full client recipe — `agentmark.client.ts`, the `dev-entry.ts` dev-server entry, and the `handler.ts` deployment entry — fetch `set up your AgentMark client` (Getting Started → Client setup) from the docs MCP and follow it verbatim, including its verification step (`agentmark dev` + `run-prompt`). The dashboard's Run buttons stay disabled until the client is deployed (or a webhook is set), so a Cloud-mode setup isn't complete without it.
+**`agentmark init` already scaffolds the client** (`agentmark.client.ts` / `agentmark_client.py`) — the provider-agnostic loader + evals file. **Keep it; do not rewrite it from scratch.** Read it, confirm it matches the docs, and only edit it to register real evals. What you DO still author are the two SDK-specific files: the `dev-entry.ts` dev-server entry and the `handler.ts` deployment entry, whose executor wraps *your* SDK call. For their full recipe, fetch `set up your AgentMark client` (Getting Started → Client setup) from the docs MCP and follow it verbatim, including its verification step (`agentmark dev` + `run-prompt`). The dashboard's Run buttons stay disabled until the client is deployed (or a webhook is set), so a Cloud-mode setup isn't complete without it.
+
+**If you do touch the client, copy its imports exactly — do NOT consolidate them.** The two TypeScript symbols come from **different entry points**, and merging them is a silent, load-time-fatal mistake:
+
+```ts
+import { createAgentMark } from "@agentmark-ai/prompt-core";          // package root
+import { ApiLoader } from "@agentmark-ai/prompt-core/loader-api";     // ⚠️ subpath, NOT the root
+```
+
+`ApiLoader` is **not** exported from `@agentmark-ai/prompt-core` (the barrel deliberately omits loader plumbing for browser/worker consumers). If you import it from the root, `ApiLoader` is `undefined`, `ApiLoader.local(...)` throws `Cannot read properties of undefined (reading 'local')`, and the dev-entry crashes the instant `agentmark dev` loads it. Likewise `createExecutor` / `createWebhookRunner` come from the prompt-core root and `createWebhookServer` from `@agentmark-ai/cli/runner-server` — keep each import on the path the docs show.
 
 If the docs guidance contradicts those two rules, prefer the docs (they may have evolved) but flag the discrepancy to the user.
 
@@ -106,8 +121,8 @@ Write `AGENTMARK_API_KEY` and `AGENTMARK_APP_ID` to `.env` (create if absent; **
 
 This step is **mandatory** — the hand-back is not complete until you've done it. Reconcile the passing scaffold against what Step 1 found and tell the user explicitly which case they're in:
 
-- **Step 1 found existing `streamText` / `generateObject` / `client.messages.create` calls** → name them and offer to migrate (script below).
-- **Step 1 found no direct LLM call sites** → say so plainly ("no existing LLM calls to migrate — you're ready to write prompts") so "done" is a stated conclusion, not a silent stop.
+- **Step 1 found existing prompts** — direct SDK calls (`streamText` / `client.messages.create` / …) **or** framework prompt templates (a LangChain `ChatPromptTemplate`, a LlamaIndex `PromptTemplate`, etc.) → name them and offer to migrate (below). A prompt held in a framework template counts: it is still "your prompt living in code," just wrapped in that framework's abstraction.
+- **Step 1 found no existing prompts or LLM call sites** → say so plainly ("no existing LLM calls to migrate — you're ready to write prompts") so "done" is a stated conclusion, not a silent stop.
 
 Either way the user must hear where things stand. The failure mode this guards against: scaffolding, watching `doctor` pass, and reporting "all done" while leaving the user's actual AI code still calling the provider directly — they never learn migration was the next move.
 
@@ -116,6 +131,15 @@ When there are call sites, **do not migrate them as part of setup**. Setup ends 
 > Setup is done and `doctor` passes. I noticed 3 places that call the AI SDK directly. Want me to migrate those to load AgentMark prompts? I'll preserve inputs/outputs and open it as a separate change so it's easy to review.
 
 Migration is a refactor with its own risk profile. Conflating it with setup makes review harder and inflates blast radius — but skipping the *offer* is how setup silently stops half-done.
+
+**When you DO migrate (the user asked, or pre-authorized it — e.g. "move my existing prompt into AgentMark"), migration is only complete when the ORIGINAL call site loads from AgentMark.** Creating a new `.prompt.mdx` beside an untouched call site is **duplication, not migration** — now the prompt lives in two places and the app still runs the old copy. A prompt held inside a framework template (a LangChain `ChatPromptTemplate`, a LlamaIndex `PromptTemplate`) is a migration target just like an inline call — don't skip it because it isn't a raw `messages: [...]` array. For every call site:
+
+1. Move the prompt text into a `.prompt.mdx` (system/user/assistant turns; the template variables become `{props.*}`).
+2. **Rewrite the call site** to load it: `const prompt = await client.loadTextPrompt("<name>"); const { messages } = await prompt.format({ props });` then feed `messages` to whatever runs the model.
+3. **Keep the host's existing model call** — you are replacing *where the prompt comes from*, not the SDK. A LangChain `ChatPromptTemplate.fromMessages([...]).pipe(model).invoke(vars)` becomes: load + `format(vars)` from AgentMark, then `model.invoke(messages)` (LangChain chat models accept a message array directly). Same for a Vercel-AI/raw-SDK call — swap the inline prompt for the loaded one, leave the `generateText`/`create` call.
+4. Verify the original template/inline prompt string is **gone** from the call site (no leftover duplicate), the function signature is unchanged, and `agentmark doctor` still passes.
+
+If you only see a path to create the prompt but not to rewire a particular call site (an unusual chain, generated code), say so explicitly rather than silently leaving a duplicate.
 
 ## Common mistakes
 
