@@ -45,10 +45,10 @@ AgentMark supports four generation types, selected by the frontmatter shape:
 
 | Type | When to use | Docs |
 |---|---|---|
-| Text | Free-form completion | `https://docs.agentmark.co/build/generation-types/text.md` |
+| Text | Free-form completion | `https://docs.agentmark.co/build/generation-types/overview.md` |
 | Object | Structured JSON with schema validation | `https://docs.agentmark.co/build/generation-types/object.md` |
-| Image | Image generation (DALL-E, Stable Diffusion) | `https://docs.agentmark.co/build/generation-types/image.md` |
-| Speech | Text-to-speech | `https://docs.agentmark.co/build/generation-types/speech.md` |
+| Image | Image generation (DALL-E, Stable Diffusion) | `https://docs.agentmark.co/build/generation-types/overview.md` |
+| Speech | Text-to-speech | `https://docs.agentmark.co/build/generation-types/overview.md` |
 
 WebFetch the relevant page before scaffolding the frontmatter — the required fields per type are not derivable from memory.
 
