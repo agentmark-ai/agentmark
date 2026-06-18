@@ -1,3 +1,13 @@
+## 1.1.0 (2026-06-18)
+
+### 🚀 Features
+
+- Rename the client constructor option `evals` to `scorers` (TS `createAgentMark`/`AgentMark`, Python `create_agentmark`/`AgentMark`). `evals` is kept as a deprecated alias, honored when `scorers` is omitted. The `EvalRegistry`/`EvalFunction` types and the `get-evals` wire contract are unchanged. ([#803](https://github.com/agentmark-ai/agentmark/pull/803))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/loader-file to 0.1.10
+
 ## 1.0.5 (2026-06-17)
 
 ### 🧱 Updated Dependencies

@@ -1,3 +1,14 @@
+## 0.12.0 (2026-06-18)
+
+### 🚀 Features
+
+- Align the score `source` enum with `experiment | annotation | api`. `SCORE_SOURCE_TYPES` (api-schemas) now validates the public score-write API against those three values and defaults an omitted source to `"api"` (was `"eval"`); the legacy `"eval"` value is no longer accepted on write. `score()` (TS + Python SDK) sends `source`, defaulting to `"api"`. Both experiment score-writers stamp `source: "experiment"`: the SDK `runExperiment` eval loop and the CLI `agentmark run-experiment` score POST. ui-components `ScoreData.source` widened to match (`"eval"` kept only as a legacy display value for historical rows). ([#803](https://github.com/agentmark-ai/agentmark/pull/803))
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.9.0
+- Updated @agentmark-ai/prompt-core to 1.1.0
+
 ## 0.11.1 (2026-06-17)
 
 ### 🧱 Updated Dependencies
