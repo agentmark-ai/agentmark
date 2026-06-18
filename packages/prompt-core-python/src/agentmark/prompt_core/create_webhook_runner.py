@@ -6,7 +6,7 @@ AgentMark tracing. The runner sources BOTH the prompt loader and the eval
 registry from the ``client`` you pass — register them exactly once, on
 :func:`create_agentmark`:
 
-    client = create_agentmark(loader=loader, evals=my_evals)
+    client = create_agentmark(loader=loader, scorers=my_scorers)
     runner = create_webhook_runner(client, my_executor)
     # the deployed managed handler is just:  handler = runner.dispatch
 

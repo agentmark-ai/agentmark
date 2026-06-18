@@ -4,7 +4,7 @@
  * every cloud-dispatched run is traced to AgentMark without extra wiring.
  * Pass `hooks: {}` to opt out of tracing.
  *
- * Register loader + evals once, on `createAgentMark`, and pass the `client` —
+ * Register loader + scorers once, on `createAgentMark`, and pass the `client` —
  * the runner sources both from it.
  *
  * Deployed handlers that want a prompt-core-only dependency tree can import

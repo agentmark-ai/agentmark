@@ -81,6 +81,16 @@ describe('constants ↔ schema alignment', () => {
       const body = { resource_id: 'r1', name: 'n1', score: 1, source: 'unknown' };
       expect(() => CreateScoreBodySchema.parse(body)).toThrow();
     });
+
+    it("should reject the legacy 'eval' source", () => {
+      const body = { resource_id: 'r1', name: 'n1', score: 1, source: 'eval' };
+      expect(() => CreateScoreBodySchema.parse(body)).toThrow();
+    });
+
+    it("defaults an omitted source to 'api'", () => {
+      const parsed = CreateScoreBodySchema.parse({ resource_id: 'r1', name: 'n1', score: 1 });
+      expect(parsed.source).toBe('api');
+    });
   });
 
   describe('PAGINATION', () => {

@@ -48,6 +48,7 @@ describe('postExperimentScores', () => {
       reason: 'Good match',
       name: 'quality',
       type: 'experiment',
+      source: 'experiment',
       data_type: '',
     });
 
@@ -58,6 +59,7 @@ describe('postExperimentScores', () => {
       reason: '',
       name: 'relevance',
       type: 'experiment',
+      source: 'experiment',
       data_type: '',
     });
   });
@@ -85,6 +87,7 @@ describe('postExperimentScores', () => {
       reason: 'Mismatch',
       name: 'accuracy',
       type: 'experiment',
+      source: 'experiment',
       data_type: '',
     });
   });
@@ -219,6 +222,7 @@ describe('postExperimentScores', () => {
       reason: 'Exact match',
       name: 'accuracy',
       type: 'experiment',
+      source: 'experiment',
       data_type: 'boolean',
     });
 
@@ -229,6 +233,7 @@ describe('postExperimentScores', () => {
       reason: '',
       name: 'tone',
       type: 'experiment',
+      source: 'experiment',
       data_type: 'categorical',
     });
 
@@ -239,6 +244,7 @@ describe('postExperimentScores', () => {
       reason: 'Good',
       name: 'helpfulness',
       type: 'experiment',
+      source: 'experiment',
       data_type: 'numeric',
     });
   });
@@ -266,6 +272,7 @@ describe('postExperimentScores', () => {
       reason: 'Old style',
       name: 'legacy-eval',
       type: 'experiment',
+      source: 'experiment',
       data_type: '',
     });
   });

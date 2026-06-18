@@ -488,6 +488,20 @@ describe('API server route integration', () => {
     expect(body.message).toBe('Score created successfully');
     // Should NOT have a nested `data` wrapper
     expect(body).not.toHaveProperty('data');
+
+    // No `source` was sent → it defaults to 'api' (matching the cloud gateway),
+    // NOT the legacy 'eval'. The shared CreateScoreBodySchema applies the default.
+    const stored = testDb.prepare('SELECT source FROM scores WHERE id = ?').get(body.id) as { source: string };
+    expect(stored.source).toBe('api');
+  });
+
+  it('POST /v1/scores rejects the legacy source="eval"', async () => {
+    const res = await fetch(`${baseUrl}/v1/scores`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource_id: 'trace-int-1', score: 0.8, name: 'quality', source: 'eval' }),
+    });
+    expect(res.status).toBe(400);
   });
 
   it('POST /v1/scores/batch inserts all items and returns 201 when all valid', async () => {

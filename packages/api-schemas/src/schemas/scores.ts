@@ -21,7 +21,8 @@ export const CreateScoreBodySchema = z.object({
   score: z.number().finite(),
   label: z.string().refine(...noLoneSurrogates).optional(),
   reason: z.string().refine(...noLoneSurrogates).optional(),
-  source: z.enum(SCORE_SOURCE_TYPES).optional().default("eval"),
+  // A score arriving with no source is a direct API submission of unknown provenance.
+  source: z.enum(SCORE_SOURCE_TYPES).optional().default("api"),
 });
 
 export const MAX_SCORES_BATCH_SIZE = 1000;

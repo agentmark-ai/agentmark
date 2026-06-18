@@ -128,3 +128,17 @@ class TestAgentMarkProperties:
         registry: EvalRegistry = {}
         am = create_agentmark(evals=registry)
         assert am.eval_registry is registry
+
+    def test_scorers_option_registers_functions(self) -> None:
+        """The `scorers` kwarg populates the registry; names are listed."""
+        registry = {"exact_match": lambda **_: {"score": 1}}
+        am = create_agentmark(scorers=registry)
+        assert am.eval_registry is registry
+        assert am.get_eval_names() == ["exact_match"]
+
+    def test_scorers_preferred_over_deprecated_evals_alias(self) -> None:
+        """`scorers` wins when both are supplied; `evals` still works alone."""
+        scorers = {"a": lambda **_: {"score": 1}}
+        evals = {"b": lambda **_: {"score": 0}}
+        assert create_agentmark(scorers=scorers, evals=evals).get_eval_names() == ["a"]
+        assert create_agentmark(evals=evals).get_eval_names() == ["b"]

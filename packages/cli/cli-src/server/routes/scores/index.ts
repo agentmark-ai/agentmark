@@ -36,7 +36,8 @@ export const createScore = async (body: ScoreBody) => {
     reason ?? "",
     name,
     type || null,
-    body.source || "eval",
+    // Match the cloud gateway default: an un-sourced score is a direct API submission.
+    body.source || "api",
     new Date().toISOString()
   );
 
@@ -125,7 +126,7 @@ export const createScoresBatch = async (body: { scores?: BatchItem[] }): Promise
       reason: item.reason ?? "",
       name: item.name,
       type: item.type || null,
-      source: item.source || "eval",
+      source: item.source || "api",
       createdAt: new Date().toISOString(),
     });
   }
@@ -177,7 +178,7 @@ export const getScoresByResourceId = async (
     score: row.score,
     label: row.label,
     reason: row.reason,
-    source: row.source || "eval",
+    source: row.source || "api",
     created_at: row.created_at,
   }));
 };

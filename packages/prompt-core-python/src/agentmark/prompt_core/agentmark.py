@@ -23,6 +23,7 @@ class AgentMark:
         adapter: Adapter,
         loader: Loader | None = None,
         template_engine: TemplateEngine | None = None,
+        scorers: EvalRegistry | None = None,
         evals: EvalRegistry | None = None,
     ) -> None:
         """Initialize AgentMark.
@@ -31,12 +32,13 @@ class AgentMark:
             adapter: Adapter for formatting prompt output
             loader: Optional loader for loading prompts from paths
             template_engine: Optional custom template engine
-            evals: Optional dict mapping eval names to eval functions.
+            scorers: Optional dict mapping scorer names to scorer functions.
+            evals: Deprecated alias for ``scorers`` (honored when ``scorers`` is omitted).
         """
         self._adapter = adapter
         self._loader = loader
         self._template_engine: TemplateEngine = template_engine or TemplateDXTemplateEngine()
-        self._eval_registry = evals
+        self._eval_registry = scorers if scorers is not None else evals
 
     @property
     def loader(self) -> Loader | None:
@@ -231,6 +233,7 @@ class AgentMark:
 def create_agentmark(
     loader: Loader | None = None,
     template_engine: TemplateEngine | None = None,
+    scorers: EvalRegistry | None = None,
     evals: EvalRegistry | None = None,
 ) -> AgentMark:
     """Factory function to create an AgentMark instance.
@@ -243,7 +246,8 @@ def create_agentmark(
     Args:
         loader: Optional loader for loading prompts from paths
         template_engine: Optional custom template engine
-        evals: Optional dict mapping eval names to eval functions.
+        scorers: Optional dict mapping scorer names to scorer functions.
+        evals: Deprecated alias for ``scorers`` (honored when ``scorers`` is omitted).
 
     Returns:
         Configured AgentMark instance
@@ -254,5 +258,6 @@ def create_agentmark(
         adapter=DefaultAdapter(),
         loader=loader,
         template_engine=template_engine,
+        scorers=scorers,
         evals=evals,
     )

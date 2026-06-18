@@ -174,6 +174,36 @@ class TestAgentMarkSDKScore:
             assert payload["score"] == 0.8
             assert "label" not in payload
             assert "reason" not in payload
+            # source defaults to "api" for direct score() calls
+            assert payload["source"] == "api"
+
+    @pytest.mark.asyncio
+    async def test_score_explicit_source_passthrough(self) -> None:
+        """An explicit source is sent unchanged."""
+        from unittest.mock import AsyncMock
+
+        sdk = AgentMarkSDK(api_key="sk-test", app_id="app-123")
+
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.json.return_value = {"data": {}}
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_response
+
+        with patch("agentmark_sdk.sdk.httpx.AsyncClient") as mock_client_class:
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client_class.return_value.__aexit__.return_value = None
+
+            await sdk.score(
+                resource_id="trace-123",
+                name="relevance",
+                score=0.8,
+                source="experiment",
+            )
+
+            payload = mock_client.post.call_args.kwargs.get("json", {})
+            assert payload["source"] == "experiment"
 
 
 class TestAgentMarkSDKScoreSync:
