@@ -2,7 +2,7 @@
  * Scaffolds the AgentMark client file during `agentmark init`.
  *
  * The client (`agentmark.client.ts` / `agentmark_client.py`) is the ONE wiring
- * file that is entirely provider-agnostic — it's a loader + evals, with no LLM
+ * file that is entirely provider-agnostic — it's a loader + scorers, with no LLM
  * SDK call in it (that lives in the executor inside the agent-authored
  * `dev-entry`/`handler`). Because it's generic, init can write it correctly
  * here instead of leaving a coding agent to reconstruct it from docs — which is
@@ -44,13 +44,13 @@ const loader = process.env.AGENTMARK_APP_ID
     })
   : ApiLoader.local({ baseUrl: "http://localhost:9418" });
 
-// Evals register here; the webhook runner sources them from the client, so they
+// Scorers register here; the webhook runner sources them from the client, so they
 // run in Cloud experiments and list in the Dashboard's New Experiment dialog.
 // Start with one and add as you go — \`passed\` is what run-experiment's
 // --threshold gate counts.
 export const client = createAgentMark({
   loader,
-  evals: {
+  scorers: {
     exact_match: ({ output, expectedOutput }) => ({
       score: output === expectedOutput ? 1 : 0,
       passed: output === expectedOutput,
@@ -80,7 +80,7 @@ else:
     loader = ApiLoader.local(base_url="http://localhost:9418")
 
 
-# Evals register here; the webhook runner sources them from the client, so they
+# Scorers register here; the webhook runner sources them from the client, so they
 # run in Cloud experiments and list in the New Experiment dialog. Start with one
 # and add as you go — "passed" is what run-experiment's --threshold gate counts.
 def exact_match(params):
@@ -88,7 +88,7 @@ def exact_match(params):
     return {"score": 1.0 if match else 0.0, "passed": match}
 
 
-client = create_agentmark(loader=loader, evals={"exact_match": exact_match})
+client = create_agentmark(loader=loader, scorers={"exact_match": exact_match})
 `;
 
 /** The client filename for a given project language. */
