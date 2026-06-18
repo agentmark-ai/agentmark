@@ -67,7 +67,7 @@ If no page matches, stop and tell the user. Do not extrapolate from a different 
 
 Summarize the docs-page guidance back to the user as a concrete plan, **citing the docs page you read**. Example shape:
 
-> Based on the Next.js integration guide (docs.agentmark.co/integrations/nextjs), here's the plan:
+> Based on the Vercel AI SDK integration guide (docs.agentmark.co/integrations/frameworks/vercel-ai-sdk), here's the plan:
 >
 > 1. Install `<package-from-docs>`
 > 2. Place prompts at `<path-from-docs>`
