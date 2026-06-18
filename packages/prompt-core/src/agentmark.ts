@@ -32,7 +32,9 @@ export interface AgentMarkOptions<
   loader?: Loader<T>;
   adapter: A;
   templateEngine?: TemplateEngine;
-  /** Plain eval functions keyed by name. */
+  /** Plain scorer functions keyed by name. */
+  scorers?: EvalRegistry;
+  /** @deprecated Renamed to `scorers`. Still honored when `scorers` is omitted. */
   evals?: EvalRegistry;
   /** List of allowed model names (e.g. from agentmark.json's builtInModels). When provided,
    *  model_name fields in prompt frontmatter must be one of these values. */
@@ -57,12 +59,12 @@ export class AgentMark<T extends PromptShape<T>, A extends Adapter<T>>
   protected _evalRegistry: EvalRegistry;
   protected builtInModels?: string[];
 
-  constructor({ loader, adapter, templateEngine, evals, builtInModels }: AgentMarkOptions<T, A>) {
+  constructor({ loader, adapter, templateEngine, scorers, evals, builtInModels }: AgentMarkOptions<T, A>) {
     this.loader = loader;
     this.adapter = adapter;
     this.templateEngine = templateEngine ?? new TemplateDXTemplateEngine();
     this.builtInModels = builtInModels;
-    this._evalRegistry = evals ?? {};
+    this._evalRegistry = scorers ?? evals ?? {};
   }
 
   getLoader() {
@@ -219,6 +221,8 @@ export function createAgentMark<D extends PromptShape<D>>(
   opts: {
     loader?: Loader<D>;
     templateEngine?: TemplateEngine;
+    scorers?: EvalRegistry;
+    /** @deprecated Renamed to `scorers`. */
     evals?: EvalRegistry;
     builtInModels?: string[];
   } = {}

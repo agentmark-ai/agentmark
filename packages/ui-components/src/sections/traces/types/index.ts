@@ -14,7 +14,8 @@ export interface ScoreData {
   reason: string;
   name: string;
   id: string;
-  source?: "eval" | "annotation";
+  // "eval" is legacy — historical rows written before the source rename to "experiment".
+  source?: "experiment" | "annotation" | "api" | "eval";
   created_at?: string;
 }
 

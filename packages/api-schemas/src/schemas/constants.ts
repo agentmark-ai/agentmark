@@ -22,7 +22,10 @@ export type DateRangePreset = typeof DATE_RANGE_PRESETS[number];
 export const SCORE_RESOURCE_TYPES = ['trace', 'span'] as const;
 export type ScoreResourceType = typeof SCORE_RESOURCE_TYPES[number];
 
-export const SCORE_SOURCE_TYPES = ['eval', 'annotation'] as const;
+// "experiment" = automated experiment-runner evals, "annotation" = human, "api" = direct sdk.score()/REST.
+// (Legacy rows written before this rename are stored as "eval"; the dashboard still displays those, but
+//  the write API no longer accepts "eval".)
+export const SCORE_SOURCE_TYPES = ['experiment', 'annotation', 'api'] as const;
 export type ScoreSourceType = typeof SCORE_SOURCE_TYPES[number];
 
 export const PERCENTILE_METRICS = ['latency', 'inputTokens', 'outputTokens', 'totalTokens'] as const;

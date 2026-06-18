@@ -103,6 +103,8 @@ type ScoreProps = {
   score: number;
   name: string;
   type?: string;
+  /** Where the score came from. Defaults to "api" for direct sdk.score() calls. */
+  source?: "experiment" | "annotation" | "api";
 };
 
 export class AgentMarkSDK<
@@ -146,10 +148,10 @@ export class AgentMarkSDK<
     });
   }
 
-  async score({ resourceId, label, reason, score, name, type }: ScoreProps) {
+  async score({ resourceId, label, reason, score, name, type, source }: ScoreProps) {
     const response = await fetch(`${this.baseUrl}/${AGENTMARK_SCORE_ENDPOINT}`, {
       method: "POST",
-      body: JSON.stringify({ resourceId, label, reason, score, name, type }),
+      body: JSON.stringify({ resourceId, label, reason, score, name, type, source: source ?? "api" }),
       headers: {
         "Content-Type": "application/json",
         "X-Agentmark-App-Id": this.appId,
@@ -261,6 +263,7 @@ export class AgentMarkSDK<
               label: r.label ?? "",
               reason: r.reason ?? "",
               type: "experiment",
+              source: "experiment",
             });
           } catch {
             // Best-effort: a scoring POST failure must not abort the run.

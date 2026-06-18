@@ -586,20 +586,20 @@ describe('CreateScoreBodySchema', () => {
     expect(result.resource_id).toBe('trace-123');
     expect(result.name).toBe('accuracy');
     expect(result.score).toBe(0.95);
-    expect(result.source).toBe('eval');
+    expect(result.source).toBe('api');
   });
 
-  it('should apply default source of eval', () => {
+  it('should apply default source of api', () => {
     const result = CreateScoreBodySchema.parse({
       resource_id: 'r1',
       name: 'n',
       score: 1,
     });
-    expect(result.source).toBe('eval');
+    expect(result.source).toBe('api');
   });
 
   it('should accept all source enum values', () => {
-    for (const source of ['eval', 'annotation'] as const) {
+    for (const source of ['experiment', 'annotation', 'api'] as const) {
       const result = CreateScoreBodySchema.parse({
         resource_id: 'r1',
         name: 'n',
@@ -688,7 +688,7 @@ describe('ScoresListParamsSchema', () => {
   });
 
   it('should accept source filter', () => {
-    for (const source of ['eval', 'annotation'] as const) {
+    for (const source of ['experiment', 'annotation', 'api'] as const) {
       const result = ScoresListParamsSchema.parse({ source });
       expect(result.source).toBe(source);
     }

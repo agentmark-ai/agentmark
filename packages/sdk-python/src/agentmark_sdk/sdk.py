@@ -158,6 +158,7 @@ class AgentMarkSDK:
         label: str | None = None,
         reason: str | None = None,
         type: str | None = None,
+        source: str | None = None,
     ) -> dict[str, Any]:
         """Submit a score for a trace/span.
 
@@ -168,6 +169,7 @@ class AgentMarkSDK:
             label: Optional label (e.g., "good", "bad", "neutral").
             reason: Optional explanation for the score.
             type: Optional score type identifier.
+            source: Where the score came from. Defaults to "api".
 
         Returns:
             Response data from the API.
@@ -197,6 +199,7 @@ class AgentMarkSDK:
             payload["reason"] = reason
         if type is not None:
             payload["type"] = type
+        payload["source"] = source if source is not None else "api"
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -224,6 +227,7 @@ class AgentMarkSDK:
         label: str | None = None,
         reason: str | None = None,
         type: str | None = None,
+        source: str | None = None,
     ) -> dict[str, Any]:
         """Submit a score for a trace/span (synchronous version).
 
@@ -234,6 +238,7 @@ class AgentMarkSDK:
             label: Optional label.
             reason: Optional explanation.
             type: Optional score type.
+            source: Where the score came from. Defaults to "api".
 
         Returns:
             Response data from the API.
@@ -254,6 +259,7 @@ class AgentMarkSDK:
             payload["reason"] = reason
         if type is not None:
             payload["type"] = type
+        payload["source"] = source if source is not None else "api"
 
         with httpx.Client() as client:
             response = client.post(

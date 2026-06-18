@@ -793,6 +793,12 @@ export interface ScoreAggregation {
   count: number;
   minScore: number;
   maxScore: number;
+  /**
+   * Persisted score data type ("boolean" | "numeric" | "categorical"), or ""
+   * when unknown (legacy rows written before DataType was stored). Drives
+   * type-appropriate aggregation/display in the score analytics UI.
+   */
+  dataType?: string;
 }
 
 /**

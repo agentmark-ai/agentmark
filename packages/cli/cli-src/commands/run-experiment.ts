@@ -237,6 +237,9 @@ export function postExperimentScores(
         reason: evalResult.reason || '',
         name: evalResult.name,
         type: 'experiment',
+        // These scores come from an experiment run, not a direct API call —
+        // stamp the Source accordingly (the API would otherwise default to 'api').
+        source: 'experiment',
         data_type: evalResult.dataType || '',
       }),
     }).catch(() => {}); // fire-and-forget — never block experiment rendering

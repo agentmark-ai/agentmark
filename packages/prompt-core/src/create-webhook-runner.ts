@@ -9,7 +9,7 @@
  * The runner sources BOTH the prompt loader and the eval registry from the
  * `client` you pass — register them exactly once, on `createAgentMark`:
  *
- *   const client = createAgentMark({ loader, evals });
+ *   const client = createAgentMark({ loader, scorers });
  *   const runner = createWebhookRunner({ client, executor });
  *
  * Living in prompt-core, this factory keeps a deployed handler's dependency

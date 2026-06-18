@@ -7,7 +7,7 @@ interface EvaluationItemProps {
   score: number;
   label: string;
   reason: string;
-  source?: "eval" | "annotation";
+  source?: "experiment" | "annotation" | "api" | "eval";
 }
 
 export const EvaluationItem = ({
@@ -26,7 +26,7 @@ export const EvaluationItem = ({
       <TableCell>
         <Chip
           size="small"
-          label={source || "eval"}
+          label={source || "experiment"}
           variant={source === "annotation" ? "filled" : "outlined"}
           color={source === "annotation" ? "primary" : "default"}
         />
