@@ -112,6 +112,7 @@ program
   .option("--app-port <number>", "AgentMark UI app port (default: 3000)")
   .option("--no-forward", "Disable trace forwarding to AgentMark Cloud")
   .option("--no-ui", "Skip the UI app (API + webhook only) — for CI / headless / test use")
+  .option("--no-watch", "Don't restart on file changes; exit on a dev-entry crash so the error surfaces (for CI / headless / boot use)")
   .description("Start development servers (API server + webhook + UI app)")
   .action(async (options) => {
     await (dev as any)({
@@ -120,6 +121,7 @@ program
       appPort: options.appPort ? parseInt(options.appPort, 10) : undefined,
       forward: options.forward, // Commander.js --no-forward sets this to false; defaults to true
       ui: options.ui, // Commander.js --no-ui sets this to false; defaults to true
+      watch: options.watch, // Commander.js --no-watch sets this to false; defaults to true
     });
   });
 

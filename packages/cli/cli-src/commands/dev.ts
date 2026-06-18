@@ -61,7 +61,7 @@ function isPortFree(port: number): Promise<boolean> {
   });
 }
 
-const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; forward?: boolean; ui?: boolean } = {}) => {
+const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: number; forward?: boolean; ui?: boolean; watch?: boolean } = {}) => {
   const apiPort = options.apiPort || 9418;
   const webhookPort = options.webhookPort || 9417;
   const appPort = options.appPort || 3000;
@@ -69,8 +69,15 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
 
   // --no-forward: disables trace forwarding even when linked.
   // --no-ui: skip the Next.js UI app for CI / headless / test contexts.
+  // --no-watch: don't restart on file changes. Critical for headless/boot use
+  //   (e.g. `doctor --smoke --boot`): under `tsx --watch` a dev-entry that throws
+  //   at load is NOT fatal — tsx prints "waiting for file changes" and keeps the
+  //   process alive, so the webhook port never opens and callers see an opaque
+  //   "did not become ready" timeout instead of the actual crash. Without watch,
+  //   the crash exits the process so the real error surfaces immediately.
   const useForwarding = options.forward !== false;
   const useUi = options.ui !== false;
+  const useWatch = options.watch !== false;
 
   loadLocalConfig();
 
@@ -137,7 +144,10 @@ const dev = async (options: { apiPort?: number; webhookPort?: number; appPort?: 
     });
   } else {
     const tsxPath = path.join(require.resolve('tsx'), '../../dist/cli.mjs');
-    webhookServer = spawn(process.execPath, [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`], {
+    const tsxArgs = useWatch
+      ? [tsxPath, '--watch', devServerFile, 'agentmark.client.ts', 'agentmark/**/*', `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`]
+      : [tsxPath, devServerFile, `--webhook-port=${webhookPort}`, `--api-server-port=${apiPort}`];
+    webhookServer = spawn(process.execPath, tsxArgs, {
       stdio: 'inherit',
       cwd,
       env: devServerEnv,

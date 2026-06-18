@@ -55,6 +55,20 @@ describe("runInit — minimal init", () => {
     expect(fs.readdirSync(agentmarkDir)).toEqual([".gitkeep"]);
   });
 
+  it("scaffolds the provider-agnostic client (greenfield → TypeScript) with the correct import", async () => {
+    await runInit({ path: tempDir, clients: ["claude-code"], overwrite: true, cliVersion: CLI_VERSION });
+
+    const clientPath = path.join(tempDir, "agentmark.client.ts");
+    expect(fs.existsSync(clientPath)).toBe(true);
+    // The bug this prevents: ApiLoader must come from the /loader-api subpath.
+    expect(fs.readFileSync(clientPath, "utf8")).toContain(
+      'import { ApiLoader } from "@agentmark-ai/prompt-core/loader-api";',
+    );
+    // dev-entry/handler are SDK-specific and stay agent-authored — not scaffolded.
+    expect(fs.existsSync(path.join(tempDir, "dev-entry.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "handler.ts"))).toBe(false);
+  });
+
   it("writes one MCP config per selected client", async () => {
     await runInit({
       path: tempDir,
