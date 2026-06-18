@@ -7,20 +7,26 @@ import { installAgentmarkSkill } from "./install-skill";
 import { initGitRepo } from "./git-init";
 import { detectProjectInfo, isCurrentDirectory } from "./project-detection";
 import { pinCliInPackageJson } from "./pin-cli";
+import { scaffoldClient } from "./scaffold-client";
+import { detectProjectLanguage, type ProjectLanguage } from "../../utils/project";
 
 /**
  * `agentmark init` — minimal project setup.
  *
- * Scope is deliberately small. It does NOT scaffold example code, pick an
- * LLM adapter, or handle login. Its job is:
+ * Scope is deliberately small. It does NOT pick an LLM adapter, write an
+ * SDK-specific executor (`dev-entry`/`handler`), or handle login. Its job is:
  *
  *   1. Write `agentmark.json` (the SDK loader's config root)
  *   2. Create an empty `agentmark/` directory (where prompts go)
  *   3. Pin `@agentmark-ai/cli` as a local dev dependency + npm scripts so
  *      CI and teammates use the same CLI version without a global install
- *   4. Wire MCP configs for any IDE clients the user selects
- *   5. Install the AgentMark agent skill (`npx skills add agentmark-ai/skills`)
- *   6. Hand off to the AI tool: "Open Claude Code / Cursor and say:
+ *   4. Scaffold the provider-agnostic client (`agentmark.client.ts` /
+ *      `agentmark_client.py`) — loader + evals, no SDK call (that lives in the
+ *      agent-authored executor). The one wiring file generic enough to get
+ *      right here instead of leaving an agent to reconstruct it.
+ *   5. Wire MCP configs for any IDE clients the user selects
+ *   6. Install the AgentMark agent skill (`npx skills add agentmark-ai/skills`)
+ *   7. Hand off to the AI tool: "Open Claude Code / Cursor and say:
  *      Set up AgentMark in this project."
  *
  * Everything else — framework detection, package install, code wiring,
@@ -222,6 +228,35 @@ export const resolveClients = async (
 };
 
 /**
+ * Resolves the project language for the scaffolded client.
+ *
+ * An EXISTING app is auto-detected from its markers (`package.json`/`tsconfig`
+ * → TypeScript; `pyproject.toml`/`requirements.txt`/etc. → Python) — no prompt,
+ * because the answer is already on disk. A greenfield folder has no signal, so
+ * we ASK — except non-interactively (`--yes`, or no TTY: CI / piped / agent
+ * onboarding), which defaults to TypeScript so headless runs stay deterministic.
+ */
+export const resolveLanguage = async (
+  targetPath: string,
+  isExistingProject: boolean,
+  yes?: boolean,
+): Promise<ProjectLanguage> => {
+  if (isExistingProject) return detectProjectLanguage(targetPath);
+  if (yes || !process.stdin.isTTY) return "typescript";
+  const response = await prompts({
+    name: "language",
+    type: "select",
+    message: "Which language is this project?",
+    choices: [
+      { title: "TypeScript", value: "typescript" },
+      { title: "Python", value: "python" },
+    ],
+    initial: 0,
+  });
+  return (response.language as ProjectLanguage) ?? "typescript";
+};
+
+/**
  * agentmark.json is the only file we conflict on (the others — MCP config
  * dirs, agentmark/, .gitkeep — are either additive or no-ops if present).
  * Default to "skip" so we never silently clobber an existing project's
@@ -301,7 +336,20 @@ const runInit = async (args: InitArgs): Promise<void> => {
     console.log(`✅ package.json (scripts: ${pin.addedScripts.join(", ")})`);
   }
 
-  // 4. MCP wiring — one config file per selected IDE client
+  // 4. Scaffold the provider-agnostic client. This is the one wiring file with
+  //    no SDK specifics (loader + evals), so init can write it correctly rather
+  //    than leave a coding agent to reconstruct it — which is how the
+  //    `ApiLoader` import path got fabricated. dev-entry/handler stay
+  //    agent-authored (their executor is SDK-specific). Non-destructive.
+  const language = await resolveLanguage(targetPath, projectInfo.isExistingProject, args.yes);
+  const clientScaffold = scaffoldClient(targetPath, language);
+  console.log(
+    clientScaffold.written
+      ? `✅ ${clientScaffold.fileName} (loader + evals — wire your SDK executor into dev-entry/handler next)`
+      : `⏭️  ${clientScaffold.fileName} (kept existing)`,
+  );
+
+  // 5. MCP wiring — one config file per selected IDE client
   for (const client of clients) {
     try {
       const result = writeMcpConfig(client, targetPath, { customApiUrl: args.apiUrl });
@@ -315,15 +363,15 @@ const runInit = async (args: InitArgs): Promise<void> => {
     }
   }
 
-  // 5. AgentMark agent skill (best-effort; logs its own status)
+  // 6. AgentMark agent skill (best-effort; logs its own status)
   installAgentmarkSkill(targetPath);
 
-  // 6. git init — only if this is a greenfield folder
+  // 7. git init — only if this is a greenfield folder
   if (!projectInfo.isExistingProject) {
     initGitRepo(targetPath);
   }
 
-  // 7. Handoff to the AI tool. The integration logic lives in the skill
+  // 8. Handoff to the AI tool. The integration logic lives in the skill
   //    workflow (`setup-and-integration.md`), not here, so the rest of
   //    onboarding adapts to whatever stack the user already has.
   console.log("");

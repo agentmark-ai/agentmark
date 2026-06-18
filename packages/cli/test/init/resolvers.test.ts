@@ -24,6 +24,7 @@ import {
   defaultFolderName,
   resolveTargetPath,
   resolveClients,
+  resolveLanguage,
   shouldWriteAgentmarkJson,
   detectCurrentClients,
   ALL_CLIENTS,
@@ -56,6 +57,25 @@ describe('defaultFolderName', () => {
 
   it('returns "my-agentmark-app" for an empty directory', () => {
     expect(defaultFolderName(tmpDir)).toBe('my-agentmark-app');
+  });
+});
+
+describe('resolveLanguage', () => {
+  // Existing app → auto-detect from markers (never prompts, even interactively).
+  it('auto-detects Python from pyproject.toml on an existing project', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'pyproject.toml'), '[project]\nname = "host"\n');
+    expect(await resolveLanguage(tmpDir, true)).toBe('python');
+  });
+
+  it('auto-detects TypeScript from package.json on an existing project', async () => {
+    fs.writeJsonSync(path.join(tmpDir, 'package.json'), { name: 'host' });
+    expect(await resolveLanguage(tmpDir, true)).toBe('typescript');
+  });
+
+  // Greenfield + --yes → TypeScript default, WITHOUT prompting (the mocked
+  // prompts() throws, so reaching it would fail this test).
+  it('defaults greenfield to TypeScript under --yes without prompting', async () => {
+    expect(await resolveLanguage(tmpDir, false, true)).toBe('typescript');
   });
 });
 
