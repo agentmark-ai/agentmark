@@ -20,6 +20,7 @@ import type {
   DatasetStreamChunk,
   SpanLike,
   ExperimentItemSpanHook,
+  PromptSpanHook,
 } from "../src/index";
 import { WebhookRunner } from "../src/webhook-runner";
 
@@ -611,6 +612,62 @@ describe("WebhookRunner — image/speech runPrompt", () => {
     await expect(runner.runPrompt(SPEECH_AST)).rejects.toThrow(
       "Executor 'media' does not support speech prompts."
     );
+  });
+
+  // ── setSpanOutput: capture the generated media on the span ──────────────────
+  // Without this the image/audio output is never recorded on a span, so the
+  // gateway has nothing to offload to object storage and the trace viewer has
+  // nothing to render.
+  function makeCapturingPromptHook() {
+    const attrs: Record<string, string | number> = {};
+    const span: SpanLike = { traceId: "", setAttribute: (k, v) => { attrs[k] = v; } };
+    const hook = (async <T>(_p: unknown, fn: (s: SpanLike) => Promise<T>) => {
+      const result = await fn(span);
+      return { result, traceId: span.traceId };
+    }) as PromptSpanHook;
+    return { hook, attrs };
+  }
+
+  it("captures the image result onto the span as agentmark.output (JSON array)", async () => {
+    const { hook, attrs } = makeCapturingPromptHook();
+    const media = [{ mimeType: "image/png", base64: "iVBOR" }];
+    const exec = makeMediaExecutor({ image: async () => ({ type: "image", result: media }) });
+    const runner = new WebhookRunner(makeClient([]), exec, { promptSpanHook: hook });
+
+    await runner.runPrompt(IMAGE_AST);
+
+    expect(attrs["agentmark.output"]).toBe(JSON.stringify(media));
+    expect(attrs["gen_ai.request.model"]).toBe("test"); // setSpanModel still runs
+  });
+
+  it("captures the speech result onto the span as agentmark.output", async () => {
+    const { hook, attrs } = makeCapturingPromptHook();
+    const audio = { mimeType: "audio/mpeg", base64: "SUQz", format: "mp3" };
+    const exec = makeMediaExecutor({ speech: async () => ({ type: "speech", result: audio }) });
+    const runner = new WebhookRunner(makeClient([]), exec, { promptSpanHook: hook });
+
+    await runner.runPrompt(SPEECH_AST);
+
+    expect(attrs["agentmark.output"]).toBe(JSON.stringify(audio));
+  });
+
+  it("does not break the run when setAttribute throws (tracing is best-effort)", async () => {
+    const span: SpanLike = {
+      traceId: "",
+      setAttribute: () => { throw new Error("span backend down"); },
+    };
+    const hook = (async <T>(_p: unknown, fn: (s: SpanLike) => Promise<T>) => {
+      const result = await fn(span);
+      return { result, traceId: span.traceId };
+    }) as PromptSpanHook;
+    const exec = makeMediaExecutor({
+      image: async () => ({ type: "image", result: [{ mimeType: "image/png", base64: "x" }] }),
+    });
+    const runner = new WebhookRunner(makeClient([]), exec, { promptSpanHook: hook });
+
+    // setSpanInput/Model/Output all swallow errors — the run still returns.
+    const res: any = await runner.runPrompt(IMAGE_AST);
+    expect(res.type).toBe("image");
   });
 
   it("throws 'Invalid prompt' when frontmatter declares no recognized config", async () => {

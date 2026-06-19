@@ -72,6 +72,10 @@ export const ExperimentItemSummarySchema = z.object({
   tokens: z.number(),
   model: z.string(),
   scores: z.array(ExperimentItemScoreSchema),
+  // Present (carried from ClickHouse) only when this item's input/output was
+  // offloaded to object storage at ingest. The gateway rehydrates the full
+  // value into `input`/`output` before responding, so consumers can ignore it.
+  blobRefs: z.string().optional(),
 });
 
 export const ExperimentDetailSchema = ExperimentSummarySchema.extend({

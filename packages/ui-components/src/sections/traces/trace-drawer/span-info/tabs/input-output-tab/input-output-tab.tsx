@@ -1,6 +1,7 @@
 import { useSpanPrompts } from "../hooks/use-span-prompts";
 import { PromptList } from "./prompt-list";
 import { OutputDisplay } from "./output-display";
+import { OffloadedFields } from "./offloaded-fields";
 import { TabPanel } from "@mui/lab";
 import { Alert, Box, Skeleton } from "@mui/material";
 import { useSpanInfoContext } from "../../span-info-provider";
@@ -15,7 +16,7 @@ const IOLoadingSkeleton = () => (
 );
 
 export const InputOutputTab = () => {
-  const { prompts, outputData, isLoadingIO } = useSpanPrompts();
+  const { prompts, outputData, isLoadingIO, blobRefs } = useSpanPrompts();
   const { span } = useSpanInfoContext();
 
   return (
@@ -39,6 +40,7 @@ export const InputOutputTab = () => {
         <>
           <PromptList prompts={prompts} />
           <OutputDisplay outputData={outputData} />
+          {blobRefs && <OffloadedFields blobRefs={blobRefs} />}
         </>
       )}
       {span.data.statusMessage && (
