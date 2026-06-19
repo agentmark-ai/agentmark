@@ -665,6 +665,17 @@ describe("mergeSpanIO", () => {
     expect(result.data.cost).toBe(0.01);
   });
 
+  it("carries blobRefs from the lazy IO into span.data (drives OffloadedOutput)", () => {
+    // Regression: the raw selectedSpan has no blobRefs; it only arrives via the
+    // lazy IO merge. If mergeSpanIO drops it, the offloaded image/audio never
+    // renders in the trace viewer.
+    const blobRefs = '[{"field":"Output","blob_id":"t/a/tr/sp/Output","size":102753}]';
+    const io: SpanIOData = { ...sampleIO, blobRefs };
+    const result = mergeSpanIO({ id: "s1", data: { model: "dall-e-3" } }, io);
+
+    expect(result.data.blobRefs).toBe(blobRefs);
+  });
+
   it("should override existing IO fields with merged data", () => {
     const span = { id: "s1", data: { input: "old", output: "old" } };
     const result = mergeSpanIO(span, sampleIO);

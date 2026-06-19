@@ -38,6 +38,13 @@ export interface SpanData {
     output?: string;
     outputObject?: string;
     toolCalls?: string;
+    /**
+     * JSON array of pointers to oversized field payloads offloaded to object
+     * storage: `[{field,blob_id,size}]`. When present, the matching inline
+     * field holds only a preview; the full value (and any media inside it) is
+     * fetched on demand via the host-provided `fetchBlob`.
+     */
+    blobRefs?: string;
     finishReason?: string;
     settings?: string;
     sessionId?: string;
@@ -91,6 +98,8 @@ export interface SpanIOData {
   output: string;
   outputObject: string | null;
   toolCalls: string | null;
+  /** JSON array `[{field,blob_id,size}]` of offloaded fields (see SpanData.data.blobRefs). */
+  blobRefs?: string;
 }
 
 /**

@@ -203,6 +203,24 @@ function setSpanInput(ctx: SpanLike, input: unknown): void {
 }
 
 /**
+ * Record the prompt's output on the span as `agentmark.output` (the key the
+ * normalizer reads as the output fallback). For image/speech prompts this is
+ * what carries the generated media (`{mimeType, base64}`) into the trace so
+ * the gateway can lift it to object storage at ingest — without it the
+ * generated media is never captured on a span.
+ */
+function setSpanOutput(ctx: SpanLike, output: unknown): void {
+  try {
+    ctx.setAttribute(
+      "agentmark.output",
+      typeof output === "string" ? output : JSON.stringify(output)
+    );
+  } catch {
+    /* tracing must never break the run */
+  }
+}
+
+/**
  * Record the prompt's configured model as `gen_ai.request.model` on the
  * prompt span. The runner reads it from frontmatter (adapter-agnostic), so
  * traces from executors with NO model-SDK instrumentation still carry a
@@ -887,7 +905,11 @@ export class WebhookRunner<
           span: ctx,
           promptName: frontmatter.name,
         };
-        return executeImage(input, ctxExec);
+        const exec = await executeImage(input, ctxExec);
+        // result is Array<{ mimeType, base64 }> — captured so the gateway can
+        // lift it to object storage (see utils/media-extraction.ts).
+        setSpanOutput(ctx, (exec as { result?: unknown }).result);
+        return exec;
       }
     );
     return { ...(await result), traceId } as WebhookPromptResponse;
@@ -926,7 +948,11 @@ export class WebhookRunner<
           span: ctx,
           promptName: frontmatter.name,
         };
-        return executeSpeech(input, ctxExec);
+        const exec = await executeSpeech(input, ctxExec);
+        // result is { mimeType, base64, format } — captured so the gateway can
+        // lift it to object storage (see utils/media-extraction.ts).
+        setSpanOutput(ctx, (exec as { result?: unknown }).result);
+        return exec;
       }
     );
     return { ...(await result), traceId } as WebhookPromptResponse;

@@ -451,6 +451,13 @@ export interface Span {
   spanKind: string;
   serviceName: string;
   promptName: string | null;
+  /**
+   * JSON array of pointers to oversized field payloads offloaded to object
+   * storage: `[{field,blob_id,size}]`. Empty/absent when nothing was offloaded.
+   * When present, the matching inline column (input/output/...) holds only a
+   * preview; the full value is fetched from storage by blob_id.
+   */
+  blobRefs?: string;
 }
 
 /**
@@ -461,6 +468,12 @@ export interface SpanIO {
   output: string;
   outputObject: string | null;
   toolCalls: string | null;
+  /**
+   * JSON array of pointers to oversized field payloads offloaded to object
+   * storage: `[{field,blob_id,size}]`. When present, the inline columns hold
+   * previews and the full values are fetched from storage by blob_id.
+   */
+  blobRefs?: string;
   /**
    * Custom per-span metadata (raw map; reserved namespaces stripped at the API
    * boundary). Optional on the internal type so existing producers/mocks need

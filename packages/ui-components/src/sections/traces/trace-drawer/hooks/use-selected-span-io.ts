@@ -22,6 +22,7 @@ export const mergeSpanIO = (
       output: io.output,
       outputObject: io.outputObject,
       toolCalls: io.toolCalls,
+      blobRefs: io.blobRefs,
     } as SpanData["data"],
   };
 };

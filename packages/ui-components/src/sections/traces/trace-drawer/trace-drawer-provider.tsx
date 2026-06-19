@@ -25,6 +25,8 @@ export interface TraceDrawerContextValue {
   findCostAndTokens: (item: any) => { cost: number; tokens: number };
   fetchSpanEvaluations?: (spanId: string) => Promise<ScoreData[]>;
   fetchSpanIO?: (traceId: string, spanId: string) => Promise<SpanIOData | null>;
+  /** Fetch the full content of an offloaded field payload by its blob_id. */
+  fetchBlob?: (path: string) => Promise<string | null>;
   navigateToFile?: (filePath: string) => void;
   traceId?: string;
   setSelectedSpanId: (spanId: string) => void;
@@ -56,6 +58,7 @@ export interface TraceDrawerProviderProps {
   sessionId?: string;
   fetchSpanEvaluations?: (spanId: string) => Promise<ScoreData[]>;
   fetchSpanIO?: (traceId: string, spanId: string) => Promise<SpanIOData | null>;
+  fetchBlob?: (path: string) => Promise<string | null>;
   navigateToFile?: (filePath: string) => void;
   t: (key: string) => string;
   onSpanChange?: (span: SpanData | null) => void;
@@ -110,6 +113,7 @@ export const TraceDrawerProvider = ({
   sessionId,
   fetchSpanEvaluations,
   fetchSpanIO,
+  fetchBlob,
   t,
   onSpanChange,
 }: TraceDrawerProviderProps & { children: ReactNode }) => {
@@ -291,6 +295,7 @@ export const TraceDrawerProvider = ({
     findCostAndTokens,
     fetchSpanEvaluations,
     fetchSpanIO,
+    fetchBlob,
     traceId,
     setSelectedSpanId,
     treeHeight,
@@ -307,6 +312,7 @@ export const TraceDrawerProvider = ({
     findCostAndTokens,
     fetchSpanEvaluations,
     fetchSpanIO,
+    fetchBlob,
     traceId,
     treeHeight,
     handleMouseDown,

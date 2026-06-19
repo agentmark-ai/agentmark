@@ -18,6 +18,8 @@ interface UseSpanPromptsResult {
     objectResponse?: any;
     documents?: RetrievalDocumentView[];
   } | null;
+  /** JSON array of offloaded field pointers from the effective (IO-hydrated) span. */
+  blobRefs?: string;
   isLoading: boolean;
   isLoadingIO: boolean;
 }
@@ -319,6 +321,9 @@ export const useSpanPrompts = (): UseSpanPromptsResult => {
   return {
     prompts,
     outputData,
+    // From the effective span so it reflects the lazily-hydrated IO (the raw
+    // selectedSpan has no blobRefs until merge) — drives OffloadedOutput.
+    blobRefs: effectiveSpan?.data?.blobRefs,
     isLoading: !selectedSpan,
     isLoadingIO,
   };
