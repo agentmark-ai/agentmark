@@ -1,3 +1,9 @@
+## 0.1.11 (2026-06-22)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 1.2.0
+
 ## 0.1.10 (2026-06-18)
 
 ### 🧱 Updated Dependencies

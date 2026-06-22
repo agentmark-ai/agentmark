@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/api-schemas",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Shared Zod schemas + error envelope for the AgentMark public API",
   "license": "AGPL-3.0-or-later",
   "type": "module",
