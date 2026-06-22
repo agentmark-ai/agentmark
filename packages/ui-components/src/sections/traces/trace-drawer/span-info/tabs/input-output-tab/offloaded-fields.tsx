@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
+import { Iconify } from "@/components";
 import { useTraceDrawerContext } from "../../../trace-drawer-provider";
 import { OutputSection } from "../output-section";
 
@@ -20,15 +21,17 @@ interface MediaItem {
 }
 
 /**
- * Human label per offloaded field. Also gates which fields we render. The inline
- * preview for these fields is suppressed upstream (see `OutputAccordion`), so the
- * value rendered here IS the field — hence the plain name, not "Full output".
+ * Translation key per offloaded field — mirrors the inline output bubble's
+ * labels (see `OutputAccordion`) so the same value reads identically whether or
+ * not it was offloaded: a generation's response shows as "Assistant", an object
+ * as "Output", tool calls as "Tool", input as "Input". Keyed off the ClickHouse
+ * column the blob rehydrates into. Also gates which fields render.
  */
-const FIELD_LABEL: Record<string, string> = {
-  Input: "Input",
-  Output: "Output",
-  OutputObject: "Output object",
-  ToolCalls: "Tool calls",
+const FIELD_LABEL_KEY: Record<string, string> = {
+  Input: "input",
+  Output: "assistant",
+  OutputObject: "output",
+  ToolCalls: "tool",
 };
 
 const FIELD_ORDER = ["Input", "Output", "OutputObject", "ToolCalls"];
@@ -41,33 +44,103 @@ const FIELD_ICON: Record<string, string> = {
   ToolCalls: "mdi:tools",
 };
 
+/** Approximate decoded byte size of a base64 string, formatted for display. */
+function humanByteSize(base64: string): string {
+  const bytes = Math.floor((base64.length * 3) / 4);
+  if (bytes >= 1_000_000) return `${(bytes / 1_048_576).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 /**
- * A rendered image, capped to {@link MEDIA_MAX_HEIGHT} so the whole image is
- * visible at once. Click to toggle full (1:1) size, which scrolls within the
- * same bounded box rather than blowing out the drawer.
+ * A rendered image inside a framed, transparency-aware container, capped to
+ * {@link MEDIA_MAX_HEIGHT} so the whole image is visible at once. When (and only
+ * when) the image is actually downscaled to fit the cap, an "Expand" affordance
+ * appears and clicking toggles full (1:1) size, scrolling within the bounded box
+ * rather than blowing out the drawer. A caption shows type, dimensions, and size.
  */
-const MediaImage = ({ src, alt }: { src: string; alt: string }) => {
+const MediaImage = ({ mime, base64, alt }: { mime: string; base64: string; alt: string }) => {
   const [zoomed, setZoomed] = useState(false);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const [zoomable, setZoomable] = useState(false);
+
+  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const el = e.currentTarget;
+    setDims({ w: el.naturalWidth, h: el.naturalHeight });
+    // Zoom only does something when the image is being scaled down to fit the
+    // cap. A small image (already shown 1:1) is not zoomable — no misleading cursor.
+    setZoomable(el.clientWidth > 0 && (el.naturalWidth > el.clientWidth || el.naturalHeight > el.clientHeight));
+  };
+
+  const caption = dims ? `${mime} · ${dims.w}×${dims.h} · ${humanByteSize(base64)}` : mime;
+
   return (
-    <Box sx={{ maxHeight: MEDIA_MAX_HEIGHT, overflow: zoomed ? "auto" : "hidden" }}>
-      <img
-        src={src}
-        alt={alt}
-        onClick={() => setZoomed((z) => !z)}
-        title={zoomed ? "Click to fit" : "Click to view full size"}
-        style={
-          zoomed
-            ? { maxWidth: "none", borderRadius: 4, cursor: "zoom-out", display: "block" }
-            : {
-                maxWidth: "100%",
-                maxHeight: MEDIA_MAX_HEIGHT,
-                objectFit: "contain",
-                borderRadius: 4,
-                cursor: "zoom-in",
-                display: "block",
-              }
-        }
-      />
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, alignItems: "flex-start" }}>
+      <Box
+        sx={{
+          position: "relative",
+          display: "inline-block",
+          maxWidth: "100%",
+          maxHeight: MEDIA_MAX_HEIGHT,
+          overflow: zoomed ? "auto" : "hidden",
+          borderRadius: 1,
+          border: "1px solid",
+          borderColor: "divider",
+          // Checkerboard so transparent PNGs are visible instead of lost on white.
+          backgroundColor: "background.paper",
+          backgroundImage:
+            "linear-gradient(45deg,rgba(0,0,0,0.06) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.06) 75%),linear-gradient(45deg,rgba(0,0,0,0.06) 25%,transparent 25%,transparent 75%,rgba(0,0,0,0.06) 75%)",
+          backgroundSize: "16px 16px",
+          backgroundPosition: "0 0,8px 8px",
+        }}
+      >
+        <img
+          src={`data:${mime};base64,${base64}`}
+          alt={alt}
+          onLoad={onLoad}
+          onClick={zoomable ? () => setZoomed((z) => !z) : undefined}
+          title={zoomable ? (zoomed ? "Click to fit" : "Click to view full size") : undefined}
+          style={
+            zoomed
+              ? { maxWidth: "none", display: "block", cursor: "zoom-out" }
+              : {
+                  maxWidth: "100%",
+                  maxHeight: MEDIA_MAX_HEIGHT,
+                  objectFit: "contain",
+                  display: "block",
+                  cursor: zoomable ? "zoom-in" : "default",
+                }
+          }
+        />
+        {zoomable && !zoomed && (
+          <Box
+            aria-hidden
+            sx={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              display: "flex",
+              alignItems: "center",
+              gap: 0.25,
+              px: 0.5,
+              py: 0.25,
+              borderRadius: 0.5,
+              bgcolor: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              fontSize: 11,
+              lineHeight: 1,
+              pointerEvents: "none",
+            }}
+          >
+            <Iconify icon="mdi:arrow-expand-all" width={12} />
+            Expand
+          </Box>
+        )}
+      </Box>
+      {dims && (
+        <Typography variant="caption" color="text.secondary">
+          {caption}
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -85,7 +158,7 @@ export function parseOffloadedFieldNames(blobRefs?: string): Set<string> {
     if (!Array.isArray(parsed)) return new Set();
     return new Set(
       parsed
-        .filter((r) => r && typeof r.field === "string" && r.field in FIELD_LABEL)
+        .filter((r) => r && typeof r.field === "string" && r.field in FIELD_LABEL_KEY)
         .map((r) => r.field as string),
     );
   } catch {
@@ -117,12 +190,13 @@ function collectMedia(value: unknown, acc: MediaItem[] = []): MediaItem[] {
 /**
  * Renders ONE offloaded field's full value, fetched on demand from object
  * storage via the host `fetchBlob`, inside the shared collapsible section so it
- * matches the inline output bubble. Image/audio render inline (height-capped,
- * click an image to view full size); large text / JSON / tool calls render in a
- * scrollable block so a big payload never blows out the drawer.
+ * matches the inline output bubble (same header label — Assistant / Output /
+ * Tool / Input). Image/audio render inline (height-capped, framed, captioned);
+ * large text / JSON / tool calls render in a scrollable block so a big payload
+ * never blows out the drawer.
  */
 const OffloadedField = ({ field, blobId }: { field: string; blobId: string }) => {
-  const { fetchBlob } = useTraceDrawerContext();
+  const { fetchBlob, t } = useTraceDrawerContext();
   const [state, setState] = useState<{ loading: boolean; content?: string; error?: boolean }>({
     loading: false,
   });
@@ -144,7 +218,7 @@ const OffloadedField = ({ field, blobId }: { field: string; blobId: string }) =>
     };
   }, [blobId, fetchBlob]);
 
-  const label = FIELD_LABEL[field] ?? field;
+  const label = t(FIELD_LABEL_KEY[field] ?? "output");
 
   let body: React.ReactNode;
   let icon = FIELD_ICON[field] ?? "mdi:robot";
@@ -171,7 +245,7 @@ const OffloadedField = ({ field, blobId }: { field: string; blobId: string }) =>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {media.map((m, i) =>
             m.mime.startsWith("image/") ? (
-              <MediaImage key={i} src={`data:${m.mime};base64,${m.base64}`} alt={`${field} media`} />
+              <MediaImage key={i} mime={m.mime} base64={m.base64} alt={`${field} media`} />
             ) : m.mime.startsWith("audio/") ? (
               <audio key={i} controls src={`data:${m.mime};base64,${m.base64}`} />
             ) : null,
@@ -202,8 +276,8 @@ const OffloadedField = ({ field, blobId }: { field: string; blobId: string }) =>
 /**
  * Renders the FULL value of every span field that was offloaded to object
  * storage at ingest (the inline column holds only an 8KB preview). One section
- * per offloaded field — Input / Output / OutputObject / ToolCalls — with media
- * rendered inline (unlabeled) and text/JSON shown in full under the field label.
+ * per offloaded field, labeled to match the inline output bubble (Assistant /
+ * Output / Tool / Input), with media rendered inline and text/JSON shown in full.
  *
  * `OutputObject` is derived from `Output` (the normalizer JSON-parses it), so
  * when both are offloaded we drop `OutputObject` to avoid rendering the same
@@ -219,7 +293,9 @@ export const OffloadedFields = ({ blobRefs }: { blobRefs: string }) => {
     } catch {
       return [];
     }
-    const known = refs.filter((r) => r && typeof r.blob_id === "string" && r.field in FIELD_LABEL);
+    const known = refs.filter(
+      (r) => r && typeof r.blob_id === "string" && r.field in FIELD_LABEL_KEY,
+    );
     const hasOutput = known.some((r) => r.field === "Output");
     const deduped = known.filter((r) => !(r.field === "OutputObject" && hasOutput));
     return deduped.sort((a, b) => FIELD_ORDER.indexOf(a.field) - FIELD_ORDER.indexOf(b.field));
