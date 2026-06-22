@@ -15,7 +15,11 @@ import path from "path";
 import fs from "fs";
 import type { ExecCtx, ExecutorCapabilities, Executor } from "../src/index";
 import { WebhookRunner } from "../src/webhook-runner";
-import type { PromptSpanHook, SpanLike } from "../src/span-hook";
+import type {
+  PromptSpanHook,
+  ExperimentItemSpanHook,
+  SpanLike,
+} from "../src/span-hook";
 
 const VECTORS = JSON.parse(
   fs.readFileSync(
@@ -179,6 +183,77 @@ describe("span-io conformance vectors", () => {
         expect(state.ended).toBe(true);
       }
 
+      assertAttributes(attributes, c.expected);
+    });
+  }
+});
+
+/** Client whose prompts expose `formatWithDataset` → a single-row stream. */
+function clientWithDataset(messages: unknown[], kind: "text" | "object") {
+  const prompt = {
+    async formatWithDataset() {
+      return new ReadableStream({
+        start(controller) {
+          controller.enqueue({
+            type: kind,
+            formatted: { messages },
+            dataset: { input: {}, expected_output: undefined },
+            evals: [],
+          });
+          controller.close();
+        },
+      });
+    },
+  };
+  return {
+    getLoader: () => ({}),
+    getEvalRegistry: () => undefined,
+    loadTextPrompt: async () => prompt,
+    loadObjectPrompt: async () => prompt,
+  } as any;
+}
+
+/** Recording experiment-item span hook: captures the item span's attributes. */
+function recordingExperimentHook() {
+  const attributes: Record<string, string | number> = {};
+  const hook: ExperimentItemSpanHook = async (_params, fn) => {
+    const span: SpanLike = {
+      traceId: "abc123abc123abc123abc123abc123ab",
+      setAttribute: (key, value) => {
+        attributes[key] = value;
+      },
+    };
+    const result = await fn(span);
+    return { result, traceId: span.traceId };
+  };
+  return { hook, attributes };
+}
+
+/**
+ * The experiment path (`runExperiment`) must record the SAME prompt-span I/O on
+ * each item span as the run-prompt path — most critically `agentmark.input`
+ * (the rendered messages), so a failed eval row shows the real
+ * system/user/assistant turns the model received, not just the dataset props.
+ * Drive each clean vector case through `runExperiment` with a one-row dataset
+ * and assert the item span carries the contracted attributes. Error/throw cases
+ * are excluded: the experiment path catches and rides errors on the wire (it
+ * does not re-raise like runPrompt), so their span-end semantics differ.
+ */
+describe("span-io conformance vectors — experiment item span", () => {
+  const cleanCases = VECTORS.cases.filter(
+    (c: any) => !c.throws && !c.events.some((e: any) => e.type === "error")
+  );
+  for (const c of cleanCases) {
+    it(c.name, async () => {
+      const { hook, attributes } = recordingExperimentHook();
+      const runner = new WebhookRunner(
+        clientWithDataset(c.messages, c.kind),
+        replayExecutor(c.events),
+        { experimentItemSpanHook: hook }
+      );
+      const ast = c.kind === "text" ? TEXT_AST : OBJECT_AST;
+      const response = await runner.runExperiment(ast, "run-conformance");
+      await drain((response as any).stream);
       assertAttributes(attributes, c.expected);
     });
   }
