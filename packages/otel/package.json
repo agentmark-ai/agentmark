@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/otel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Group AgentMark traces by session, user, and metadata via OpenTelemetry context. Works with the Vercel AI SDK (v7) and any OTel-instrumented spans.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
