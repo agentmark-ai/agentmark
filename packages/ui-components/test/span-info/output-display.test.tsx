@@ -52,4 +52,41 @@ describe("OutputDisplay dispatch", () => {
     const { container } = render(<OutputDisplay outputData={null} />);
     expect(container.firstChild).toBeNull();
   });
+
+  // The bug this guards: an offloaded image/large-text output has only an 8KB
+  // truncated preview inline. Rendering it here dumped a clipped, unreadable
+  // base64 wall above the real image (rendered by OffloadedFields). When the
+  // field is offloaded we must suppress the preview entirely.
+  it("suppresses the truncated preview when the Output field is offloaded", () => {
+    const { container } = withProvider(
+      <OutputDisplay
+        outputData={{ text: '[{"mimeType":"image/png","base64":"iVBORtruncat' }}
+        offloadedFields={new Set(["Output"])}
+      />,
+    );
+    // No base64 wall, and no empty "No output" bubble — render nothing here.
+    expect(screen.queryByText(/iVBORtruncat/)).toBeNull();
+    expect(screen.queryByText("noOutput")).toBeNull();
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("still renders a non-offloaded field alongside an offloaded one", () => {
+    // Output offloaded (suppressed) but a tool call present inline → tool call shows.
+    withProvider(
+      <OutputDisplay
+        outputData={{
+          text: "truncated-preview",
+          toolCall: { toolName: "search", args: { q: "hi" } },
+        }}
+        offloadedFields={new Set(["Output"])}
+      />,
+    );
+    expect(screen.queryByText(/truncated-preview/)).toBeNull();
+    expect(screen.getByText(/search/)).toBeTruthy();
+  });
+
+  it("renders the preview normally when nothing is offloaded", () => {
+    withProvider(<OutputDisplay outputData={{ text: "normal answer" }} offloadedFields={new Set()} />);
+    expect(screen.getByText("normal answer")).toBeTruthy();
+  });
 });

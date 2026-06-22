@@ -78,7 +78,7 @@ my-project/
 │       └── data.jsonl          # Dataset
 ├── .agentmark/                 # Auto-generated config (gitignored)
 │   └── dev-config.json         # Local dev state, linked app metadata
-├── agentmark.client.ts         # TS AgentMark client (loader + evals)
+├── agentmark.client.ts         # TS AgentMark client (loader + scorers)
 ├── dev-entry.ts                # Local dev webhook entry — `agentmark dev` boots this
 ├── handler.ts                  # Cloud deployment entry
 └── .env                        # API keys, loaded automatically by the CLI
@@ -95,7 +95,7 @@ my-project/
 - config: `agentmark.json` present + valid, `agentmarkPath` resolves (not `"/"`), required keys present, no unknown-key typos
 - the setup files: client (`agentmark.client.ts` / `agentmark_client.py`), the dev-server entry, and the managed-deploy handler (`handler.ts` / `handler.py`)
 - prompts parse and declare a `model_name`; prompt models are in `builtInModels` (a non-empty list is an **allowlist**, so prompt-core rejects any model not in it)
-- deps: `@agentmark-ai/sdk` installed (it carries tracing + the cloud-execution runner). There is no SDK-specific adapter to require — you bring your own SDK and wire it through `@agentmark-ai/prompt-core` — the neutral render (`createAgentMark`) or a small executor (`createExecutor`)
+- deps: the runtime packages are actually **installed** (resolvable from the project), not merely listed in `package.json` — `@agentmark-ai/prompt-core` (load-bearing: the client and dev-entry import it, so a declared-but-uninstalled prompt-core **fails** the check; it's the #1 cause of a `dev` / `--smoke` boot exiting 1) and `@agentmark-ai/sdk` (tracing + the cloud-execution runner; a warn). There is no SDK-specific adapter to require — you bring your own SDK and wire it through `@agentmark-ai/prompt-core` — the neutral render (`createAgentMark`) or a small executor (`createExecutor`)
 
 Then `agentmark doctor --smoke` runs one prompt end-to-end and verifies the emitted trace round-trips with the right shape (a model, token usage, input, output). Add `--boot` to start and stop `agentmark dev` for you, so it's a single command. That catches the silent failures below: a model that never actually ran (bad key or SDK mismatch), or model spans vanishing because tracing isn't wired, without you guessing which one it is. It knows nothing about specific providers or keys; it tests them indirectly through a real run, so there is no per-provider checklist to keep current. The static pass is read-only and safe to re-run anytime; `--smoke` actually calls the model (spends tokens, emits a trace), so use it to verify a change, not in a tight loop.
 

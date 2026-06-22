@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import doctor, { runDoctor, type DoctorReport, type CheckStatus } from '../cli-src/commands/doctor';
+import doctor, { runDoctor, packageResolvableFrom, type DoctorReport, type CheckStatus } from '../cli-src/commands/doctor';
 import { AGENTMARK_CONFIG_NOT_FOUND } from '../cli-src/utils/project';
 import { clientNotFoundMessages, devEntryNotFoundMessages } from '../cli-src/utils/setup-files';
 
@@ -41,6 +41,7 @@ const HEALTHY: Record<string, string> = {
   'package.json': JSON.stringify({
     name: 'app',
     dependencies: {
+      '@agentmark-ai/prompt-core': '^1.0.0',
       '@agentmark-ai/sdk': '^0.4.0',
       '@ai-sdk/openai': '^2.0.0',
     },
@@ -48,6 +49,12 @@ const HEALTHY: Record<string, string> = {
       '@agentmark-ai/cli': '^0.15.0',
     },
   }),
+  // Minimal node_modules so the deps checks see the declared runtime packages as
+  // actually installed (the real resolver probes each package's package.json).
+  // A healthy project has run its install; fixtures that test the not-installed
+  // path inject `isPackageInstalled` to override this.
+  'node_modules/@agentmark-ai/prompt-core/package.json': JSON.stringify({ name: '@agentmark-ai/prompt-core', version: '1.0.0' }),
+  'node_modules/@agentmark-ai/sdk/package.json': JSON.stringify({ name: '@agentmark-ai/sdk', version: '0.4.0' }),
   '.gitignore': 'node_modules\n.env\n',
   '.env': 'AGENTMARK_API_KEY=x\n',
 };
@@ -74,6 +81,7 @@ describe('agentmark doctor — runDoctor', () => {
     expect(statusOf(report, 'client.file')).toBe('pass');
     expect(statusOf(report, 'prompts.parse')).toBe('pass');
     expect(statusOf(report, 'models.builtIn')).toBe('pass');
+    expect(statusOf(report, 'deps.promptCore')).toBe('pass');
     expect(statusOf(report, 'deps.sdk')).toBe('pass');
     expect(statusOf(report, 'deps.cli')).toBe('pass');
     expect(statusOf(report, 'env.credentials')).toBe('pass');
@@ -94,6 +102,7 @@ describe('agentmark doctor — runDoctor', () => {
       'config.schema',
       'deploy.handler',
       'deps.cli',
+      'deps.promptCore',
       'deps.sdk',
       'devEntry.file',
       'env.credentials',
@@ -261,6 +270,52 @@ describe('agentmark doctor — runDoctor', () => {
     expect(fixOf(report, 'deps.cli')).toContain('agentmark init');
     // It's advisory only — a missing local pin must never fail the report.
     expect(report.counts.fail).toBe(0);
+  });
+
+  it('FAILS deps.promptCore when prompt-core is declared but not installed (the forgot-`npm install` case)', async () => {
+    // The exact gap the onboarding smoke hit: package.json lists the runtime deps
+    // but node_modules was never created, so `agentmark dev` boots and exits 1.
+    // doctor must catch that statically — a declared dep is not an installed one —
+    // so the gate trips here with an actionable fix instead of an opaque smoke boot.
+    const report = await runDoctor(makeProject(HEALTHY), {
+      env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+      nodeVersion: '22.0.0',
+      isPackageInstalled: (_cwd, pkg) => pkg !== '@agentmark-ai/prompt-core',
+    });
+
+    expect(statusOf(report, 'deps.promptCore')).toBe('fail');
+    expect(detailOf(report, 'deps.promptCore')).toContain('not found in node_modules');
+    expect(fixOf(report, 'deps.promptCore')).toContain('npm install');
+    // A failed dep check fails the whole report (matches the Python branch).
+    expect(report.ok).toBe(false);
+  });
+
+  it('warns (not fails) when @agentmark-ai/sdk is declared but not installed', async () => {
+    // sdk is tracing + experiments — a prompt still runs via prompt-core without
+    // it — so its absence is a warn, never a hard fail. But a bare declaration
+    // must not read as "installed".
+    const report = await runDoctor(makeProject(HEALTHY), {
+      env: { AGENTMARK_API_KEY: 'k', AGENTMARK_APP_ID: 'a' },
+      nodeVersion: '22.0.0',
+      isPackageInstalled: (_cwd, pkg) => pkg !== '@agentmark-ai/sdk',
+    });
+
+    expect(statusOf(report, 'deps.sdk')).toBe('warn');
+    expect(detailOf(report, 'deps.sdk')).toContain('not found in node_modules');
+    expect(report.counts.fail).toBe(0);
+  });
+
+  it('packageResolvableFrom resolves an installed package and rejects a missing one', async () => {
+    // Exercises the real default resolver (not the injected stub): a package
+    // present in the project's node_modules resolves; an absent one does not.
+    // createRequire is anchored at the project, so a node_modules stub is enough.
+    const dir = makeProject({
+      'package.json': JSON.stringify({ name: 'app', dependencies: { '@agentmark-ai/prompt-core': '^1.0.0' } }),
+      'node_modules/@agentmark-ai/prompt-core/package.json': JSON.stringify({ name: '@agentmark-ai/prompt-core', version: '1.0.0' }),
+    });
+
+    expect(packageResolvableFrom(dir, '@agentmark-ai/prompt-core')).toBe(true);
+    expect(packageResolvableFrom(dir, '@agentmark-ai/sdk')).toBe(false);
   });
 
   it('treats a Python project correctly (checks agentmark_client.py, runs pip check)', async () => {

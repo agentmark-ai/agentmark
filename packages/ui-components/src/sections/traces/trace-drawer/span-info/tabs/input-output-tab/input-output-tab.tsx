@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { useSpanPrompts } from "../hooks/use-span-prompts";
 import { PromptList } from "./prompt-list";
 import { OutputDisplay } from "./output-display";
-import { OffloadedFields } from "./offloaded-fields";
+import { OffloadedFields, parseOffloadedFieldNames } from "./offloaded-fields";
 import { TabPanel } from "@mui/lab";
 import { Alert, Box, Skeleton } from "@mui/material";
 import { useSpanInfoContext } from "../../span-info-provider";
@@ -18,6 +19,10 @@ const IOLoadingSkeleton = () => (
 export const InputOutputTab = () => {
   const { prompts, outputData, isLoadingIO, blobRefs } = useSpanPrompts();
   const { span } = useSpanInfoContext();
+
+  // Fields whose full value lives in object storage — their truncated inline
+  // preview is suppressed in OutputDisplay and rendered in full by OffloadedFields.
+  const offloadedFields = useMemo(() => parseOffloadedFieldNames(blobRefs), [blobRefs]);
 
   return (
     <TabPanel
@@ -39,7 +44,7 @@ export const InputOutputTab = () => {
       ) : (
         <>
           <PromptList prompts={prompts} />
-          <OutputDisplay outputData={outputData} />
+          <OutputDisplay outputData={outputData} offloadedFields={offloadedFields} />
           {blobRefs && <OffloadedFields blobRefs={blobRefs} />}
         </>
       )}
