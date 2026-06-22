@@ -213,7 +213,6 @@ __metadata:
     "@opentelemetry/context-async-hooks": "npm:^2.0.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.217.0"
     "@opentelemetry/resources": "npm:^2.2.0"
-    "@opentelemetry/sdk-node": "npm:^0.217.0"
     "@opentelemetry/sdk-trace-base": "npm:^2.2.0"
     "@opentelemetry/sdk-trace-node": "npm:^2.2.0"
     "@opentelemetry/semantic-conventions": "npm:^1.28.0"
