@@ -1,3 +1,9 @@
+## 0.27.2 (2026-06-22)
+
+### 🩹 Fixes
+
+- `agentmark generate-types` now defaults `--root-dir` to the project's prompts root (`<agentmarkPath>/agentmark`, read from `agentmark.json`) when neither `--root-dir` nor `--local` is given. Previously the command threw "Either --local or --root-dir must be specified"; run as the docs show it (`agentmark generate-types > agentmark.types.ts`), the shell had already truncated the output file by the time the command threw, silently destroying an existing `agentmark.types.ts`. An explicit `--root-dir` / `--local` still takes precedence. ([#817](https://github.com/agentmark-ai/agentmark/pull/817))
+
 ## 0.27.1 (2026-06-22)
 
 ### 🧱 Updated Dependencies
