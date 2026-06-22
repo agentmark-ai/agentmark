@@ -1,15 +1,26 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
 import path from 'path';
-import { execSync } from 'child_process';
+import build from '../cli-src/commands/build';
 
+// `build` is a plain in-process async function: it reads `process.cwd()` and
+// writes compiled prompts to `dist/agentmark`. These tests call it directly
+// rather than spawning `node <cli> build`, matching the other cli command
+// tests (e.g. generate-schema). No subprocess means no cold-start timeout
+// flake on CI, and we exercise the build logic itself instead of the bundle.
 describe('agentmark build', () => {
   const testDir = path.join(__dirname, 'test-build-project');
   const agentmarkDir = path.join(testDir, 'agentmark');
   const outputDir = path.join(testDir, 'dist', 'agentmark');
-  const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
+  let originalCwd: string;
 
   beforeEach(async () => {
+    originalCwd = process.cwd();
+
+    // build() logs progress to the console; keep test output readable.
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
     // Create test project structure
     await fs.ensureDir(agentmarkDir);
 
@@ -80,16 +91,20 @@ Parse the comma-separated list into an array.
 {"input": {"name": "Bob"}, "expected_output": "Hello Bob!"}
 `
     );
+
+    // build() resolves paths from process.cwd(); point it at the fixture.
+    process.chdir(testDir);
   });
 
   afterEach(async () => {
+    process.chdir(originalCwd);
+    vi.restoreAllMocks();
     // Cleanup test directory
     await fs.remove(testDir);
   });
 
   it('builds all prompts', async () => {
-    // Run build command
-    execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
+    await build();
 
     // Check output directory exists
     expect(await fs.pathExists(outputDir)).toBe(true);
@@ -116,7 +131,7 @@ Parse the comma-separated list into an array.
   });
 
   it('creates valid JSON with AST and metadata', async () => {
-    execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
+    await build();
 
     const greetingPrompt = await fs.readJson(path.join(outputDir, 'greeting.prompt.json'));
 
@@ -136,7 +151,7 @@ Parse the comma-separated list into an array.
   });
 
   it('creates manifest with all prompts', async () => {
-    execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
+    await build();
 
     const manifest = await fs.readJson(path.join(outputDir, 'manifest.json'));
 
@@ -155,7 +170,7 @@ Parse the comma-separated list into an array.
   it('supports custom output directory via --out flag', async () => {
     const customOut = path.join(testDir, 'custom-output');
 
-    execSync(`node ${cliPath} build --out ${customOut}`, { cwd: testDir, stdio: 'pipe' });
+    await build({ outDir: customOut });
 
     expect(await fs.pathExists(customOut)).toBe(true);
     expect(await fs.pathExists(path.join(customOut, 'greeting.prompt.json'))).toBe(true);
@@ -178,7 +193,7 @@ text_config:
 `
     );
 
-    execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
+    await build();
 
     // Check nested output was created
     expect(await fs.pathExists(path.join(outputDir, 'nested', 'deep', 'nested.prompt.json'))).toBe(true);
@@ -188,14 +203,14 @@ text_config:
   });
 
   it('correctly identifies object prompts', async () => {
-    execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
+    await build();
 
     const parserPrompt = await fs.readJson(path.join(outputDir, 'parser.prompt.json'));
     expect(parserPrompt.metadata.kind).toBe('object');
   });
 
   it('fails gracefully with invalid prompt', async () => {
-    // Create an invalid prompt
+    // Create an invalid prompt (no *_config in frontmatter)
     await fs.writeFile(
       path.join(agentmarkDir, 'invalid.prompt.mdx'),
       `---
@@ -206,15 +221,14 @@ name: invalid
 `
     );
 
-    // Should exit with error code
-    let exitCode = 0;
-    try {
-      execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
-    } catch (error: any) {
-      exitCode = error.status;
-    }
+    // build() calls process.exit(1) once any prompt fails to compile; intercept
+    // it so the test runner survives and we can assert on the exit code.
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+      throw new Error(`process.exit:${code}`);
+    }) as never);
 
-    expect(exitCode).toBe(1);
+    await expect(build()).rejects.toThrow('process.exit:1');
+    expect(exitSpy).toHaveBeenCalledWith(1);
 
     // But valid prompts should still be built
     expect(await fs.pathExists(path.join(outputDir, 'greeting.prompt.json'))).toBe(true);
@@ -223,13 +237,6 @@ name: invalid
   it('throws error when agentmark.json is missing', async () => {
     await fs.remove(path.join(testDir, 'agentmark.json'));
 
-    let threw = false;
-    try {
-      execSync(`node ${cliPath} build`, { cwd: testDir, stdio: 'pipe' });
-    } catch {
-      threw = true;
-    }
-
-    expect(threw).toBe(true);
+    await expect(build()).rejects.toThrow();
   });
 });
