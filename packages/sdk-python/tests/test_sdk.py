@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agentmark_sdk import AgentMarkSDK
+from agentmark_sdk import AgentMarkGroupingProcessor, AgentMarkSDK
 from agentmark_sdk.config import DEFAULT_BASE_URL
 
 
@@ -62,7 +62,15 @@ class TestAgentMarkSDK:
         assert result == mock_provider
         mock_exporter_class.assert_called_once()
         mock_processor_class.assert_called_once()
-        mock_provider.add_span_processor.assert_called_once()
+        # Two processors are registered: the enrichment-only grouping processor
+        # and the export (batch) processor.
+        assert mock_provider.add_span_processor.call_count == 2
+        registered = [
+            call.args[0] for call in mock_provider.add_span_processor.call_args_list
+        ]
+        assert any(
+            isinstance(p, AgentMarkGroupingProcessor) for p in registered
+        ), "init_tracing must register the AgentMarkGroupingProcessor"
         mock_otel_trace.set_tracer_provider.assert_called_once_with(mock_provider)
 
     @patch("agentmark_sdk.sdk.otel_trace")

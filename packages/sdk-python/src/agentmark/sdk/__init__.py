@@ -13,6 +13,7 @@ from agentmark_sdk import (
     AGENTMARK_TRACE_ENDPOINT,
     DEFAULT_BASE_URL,
     METADATA_KEY,
+    AgentMarkGroupingProcessor,
     AgentMarkSDK,
     AgentmarkSampler,
     CustomPattern,
@@ -31,6 +32,8 @@ from agentmark_sdk import (
     span,
     span_context,
     span_context_sync,
+    to_agentmark_attributes,
+    with_agentmark,
 )
 
 __all__ = [
@@ -39,6 +42,7 @@ __all__ = [
     "AGENTMARK_TRACE_ENDPOINT",
     "DEFAULT_BASE_URL",
     "METADATA_KEY",
+    "AgentMarkGroupingProcessor",
     "AgentMarkSDK",
     "AgentmarkSampler",
     "CustomPattern",
@@ -57,4 +61,6 @@ __all__ = [
     "span",
     "span_context",
     "span_context_sync",
+    "to_agentmark_attributes",
+    "with_agentmark",
 ]

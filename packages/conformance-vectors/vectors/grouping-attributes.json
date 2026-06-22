@@ -1,0 +1,48 @@
+{
+  "description": "Golden vectors for AgentMark trace grouping. The friendly grouping API (sessionId/userId/sessionName/traceName/tags/metadata) maps to these exact OpenTelemetry span attributes, which the normalizer promotes to session/user/metadata for any span scope. @agentmark-ai/otel (TypeScript) and agentmark-sdk (Python) must both produce this mapping so grouping stays identical across languages. All values are strings; tags and object metadata use COMPACT JSON (no spaces) — JS JSON.stringify, Python json.dumps(separators=(',', ':')). Null/undefined fields are omitted.",
+  "cases": [
+    {
+      "name": "session and user only",
+      "input": { "sessionId": "sess-1", "userId": "user-1" },
+      "expected": {
+        "agentmark.session_id": "sess-1",
+        "agentmark.user_id": "user-1"
+      }
+    },
+    {
+      "name": "all fields",
+      "input": {
+        "sessionId": "sess-1",
+        "sessionName": "Support chat",
+        "userId": "user-1",
+        "traceName": "handle-message",
+        "tags": ["prod", "beta"],
+        "metadata": { "feature": "support", "retries": 2 }
+      },
+      "expected": {
+        "agentmark.session_id": "sess-1",
+        "agentmark.session_name": "Support chat",
+        "agentmark.user_id": "user-1",
+        "agentmark.trace_name": "handle-message",
+        "agentmark.tags": "[\"prod\",\"beta\"]",
+        "agentmark.metadata.feature": "support",
+        "agentmark.metadata.retries": "2"
+      }
+    },
+    {
+      "name": "empty tags are omitted",
+      "input": { "sessionId": "s", "tags": [] },
+      "expected": { "agentmark.session_id": "s" }
+    },
+    {
+      "name": "object metadata values use compact JSON",
+      "input": { "metadata": { "ctx": { "k": 1, "nested": ["a"] } } },
+      "expected": { "agentmark.metadata.ctx": "{\"k\":1,\"nested\":[\"a\"]}" }
+    },
+    {
+      "name": "null fields and null metadata values are omitted",
+      "input": { "sessionId": "s", "userId": null, "metadata": { "a": "x", "b": null } },
+      "expected": { "agentmark.session_id": "s", "agentmark.metadata.a": "x" }
+    }
+  ]
+}

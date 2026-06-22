@@ -40,6 +40,11 @@ from .config import (
     METADATA_KEY,
 )
 from .decorator import SpanKind, observe
+from .grouping import (
+    AgentMarkGroupingProcessor,
+    to_agentmark_attributes,
+    with_agentmark,
+)
 from .masking_processor import MaskFunction, MaskingSpanProcessor
 from .otlp_json_exporter import JsonOtlpSpanExporter
 from .pii_masker import CustomPattern, PiiMaskerConfig, create_pii_masker
@@ -63,6 +68,10 @@ __all__ = [
     "SpanOptions",
     "SpanContext",
     "SpanResult",
+    # Trace grouping (session / user / metadata)
+    "with_agentmark",
+    "AgentMarkGroupingProcessor",
+    "to_agentmark_attributes",
     # Span kinds
     "SpanKind",
     # Serialization
