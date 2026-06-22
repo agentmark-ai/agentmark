@@ -1065,8 +1065,8 @@ class WebhookRunner:
             trace_id: str | None = None
             try:
                 # Wrap the executor call in the adapter's per-item span. The
-                # shared runner records props before execution, model/classify
-                # after entering the span, and output/usage after execution —
+                # shared runner records props + input and model/classify after
+                # entering the span, and output/usage after execution —
                 # mirroring _run_text so item spans carry the same attributes
                 # as single-prompt spans.
                 async with item_span_hook(span_params) as item_span:
@@ -1077,6 +1077,11 @@ class WebhookRunner:
                                 json.dumps(input_data, default=str),
                             )
 
+                    # Record the rendered messages as agentmark.input, exactly as
+                    # the run-prompt paths do — so the experiment item span shows the
+                    # real system/user/assistant turns, not just the raw dataset props.
+                    # agentmark.props (above) stays for re-runnable dataset rows.
+                    _set_span_input(item_span, formatted)  # type: ignore[arg-type]
                     _set_span_model(item_span, prompt_ast)  # type: ignore[arg-type]
                     _classify_span_as_llm(item_span)  # type: ignore[arg-type]
 
@@ -1102,10 +1107,17 @@ class WebhookRunner:
                         text if kind == "text" else _serialize_value(obj_value)
                     )
 
+                    # Mirror the run-prompt paths' agentmark.output contract:
+                    # raw string for text, JSON for objects. json.dumps() on a
+                    # text string double-encodes it ('hello' -> '"hello"'),
+                    # diverging from both the TS runner and Python's own
+                    # _run_text. Pinned by span-io.json (experiment cases).
                     with suppress(TypeError, ValueError):
                         item_span.set_attribute(
                             "agentmark.output",
-                            json.dumps(output, default=str),
+                            output
+                            if isinstance(output, str)
+                            else json.dumps(output, default=str),
                         )
 
                     trace_id = getattr(item_span, "trace_id", None)

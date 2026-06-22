@@ -1054,6 +1054,13 @@ export class WebhookRunner<
                           /* ignore */
                         }
                       }
+                      // Record the rendered messages as `agentmark.input`, exactly as
+                      // the run-prompt paths do (setSpanInput) — so the experiment item
+                      // span shows the real system/user/assistant turns the model
+                      // received, not just the raw dataset props. `agentmark.props`
+                      // (above) stays for re-runnable dataset rows; this is additive.
+                      // Pinned cross-language by span-io.json (experiment cases).
+                      setSpanInput(ctx, formatted);
                       setSpanModel(ctx, frontmatter);
                       classifySpanAsLlm(ctx);
                       const ctxExec: ExecCtx = {

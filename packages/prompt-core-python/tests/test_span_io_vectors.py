@@ -209,3 +209,68 @@ async def test_span_io_vector(case: dict[str, Any]) -> None:
         assert hook.ended is True
 
     _assert_attributes(hook.span.attributes, case["expected"])
+
+
+class _StubDatasetPrompt:
+    """Prompt exposing ``format_with_dataset`` → a single-row async stream."""
+
+    def __init__(self, messages: list[dict[str, Any]], kind: str) -> None:
+        self._messages = messages
+        self._kind = kind
+
+    async def format_with_dataset(self, **_kwargs: Any):
+        messages, kind = self._messages, self._kind
+
+        async def _gen():
+            yield {
+                "type": kind,
+                "formatted": _Formatted(messages),
+                "dataset": {"input": {}, "expected_output": None},
+                "evals": [],
+            }
+
+        return _gen()
+
+
+class _StubDatasetClient:
+    def __init__(self, messages: list[dict[str, Any]], kind: str) -> None:
+        self._prompt = _StubDatasetPrompt(messages, kind)
+
+    async def load_text_prompt(self, _ast: Any):
+        return self._prompt
+
+    async def load_object_prompt(self, _ast: Any):
+        return self._prompt
+
+    def get_eval_registry(self):
+        return None
+
+
+# Error/throw cases are excluded: the experiment path catches and rides errors
+# on the wire (it does not re-raise like run_prompt), so their span-end
+# semantics differ.
+_CLEAN_CASES = [
+    c
+    for c in VECTORS["cases"]
+    if not c["throws"] and not any(e["type"] == "error" for e in c["events"])
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("case", _CLEAN_CASES, ids=[c["name"] for c in _CLEAN_CASES])
+async def test_span_io_vector_experiment(case: dict[str, Any]) -> None:
+    """The experiment path (run_experiment) must record the SAME prompt-span
+    I/O on each item span as run_prompt — above all ``agentmark.input`` (the
+    rendered messages), so a failed eval row shows the actual
+    system/user/assistant turns, not just the dataset props. Mirror of the TS
+    "experiment item span" suite, reading the same span-io.json vectors."""
+    hook = _RecordingHook()
+    runner = WebhookRunner(
+        _StubDatasetClient(case["messages"], case["kind"]),
+        _ReplayExecutor(case["events"]),
+    )
+    ast = TEXT_AST if case["kind"] == "text" else OBJECT_AST
+    response = await runner.run_experiment(ast, "run-conformance", item_span_hook=hook)
+    async for _chunk in response["stream"]:
+        pass
+    _assert_attributes(hook.span.attributes, case["expected"])
