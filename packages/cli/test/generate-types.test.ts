@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as path from 'node:path';
 import * as fs from 'fs-extra';
 import generateTypes from '../cli-src/commands/generate-types';
@@ -382,5 +382,65 @@ Second
       expect(types).toContain('interface FirstIn');
       expect(types).toContain('interface SecondIn');
     });
+  });
+
+  describe('command defaults --root-dir from agentmark.json (data-loss guard)', () => {
+    // The data-loss path (command errors -> the shell `>` has already emptied
+    // the output file) is language-independent, but the emitted text differs by
+    // language, so guard BOTH the TypeScript and Python outputs.
+    it.each([
+      {
+        language: 'typescript' as const,
+        marker: 'export default interface AgentmarkTypes',
+        key: '"greeting.prompt.mdx"',
+        badKey: '"agentmark/greeting',
+      },
+      {
+        language: 'python' as const,
+        marker: "AgentmarkTypes = TypedDict('AgentmarkTypes'",
+        key: "'greeting.prompt.mdx'",
+        badKey: "'agentmark/greeting",
+      },
+    ])(
+      'resolves the prompts root and writes $language types when neither --local nor --root-dir is given',
+      async ({ language, marker, key, badKey }) => {
+        // Repro guard: `agentmark generate-types > <out>` with no --root-dir used
+        // to throw AFTER the shell `>` had truncated the file, destroying it. The
+        // command must instead default the root from agentmark.json and SUCCEED,
+        // so the redirect lands real output rather than an empty file.
+        fs.writeJsonSync(path.join(testDir, 'agentmark.json'), { version: '1.0', agentmarkPath: '.' });
+        const promptsDir = path.join(testDir, 'agentmark');
+        fs.mkdirSync(promptsDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(promptsDir, 'greeting.prompt.mdx'),
+          `---\ntext_config:\n  model_name: openai/gpt-4o\n---\nHi\n`
+        );
+
+        const out: string[] = [];
+        let exited = false;
+        const writeSpy = vi
+          .spyOn(process.stdout, 'write')
+          .mockImplementation(((chunk: unknown) => { out.push(String(chunk)); return true; }) as never);
+        const exitSpy = vi
+          .spyOn(process, 'exit')
+          .mockImplementation(((() => { exited = true; return undefined; }) as never));
+        try {
+          await generateTypes({ language });
+        } finally {
+          writeSpy.mockRestore();
+          exitSpy.mockRestore();
+        }
+
+        // Did NOT error -> the shell `>` would have received real output, not an
+        // empty file. This is the data-loss guard.
+        expect(exited).toBe(false);
+        const types = out.join('');
+        expect(types).toContain(marker);
+        // Key is relative to the agentmark/ prompts root: no `agentmark/` prefix
+        // (matches generate-types --root-dir agentmark and the SDK loader).
+        expect(types).toContain(key);
+        expect(types).not.toContain(badKey);
+      }
+    );
   });
 });

@@ -117,7 +117,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@agentmark-ai/eslint-config@npm:*, @agentmark-ai/eslint-config@workspace:*, @agentmark-ai/eslint-config@workspace:packages/eslint-config":
+"@agentmark-ai/eslint-config@npm:*, @agentmark-ai/eslint-config@workspace:packages/eslint-config":
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/eslint-config@workspace:packages/eslint-config"
   dependencies:
@@ -187,7 +187,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@agentmark-ai/otel@workspace:packages/otel"
   dependencies:
-    "@agentmark-ai/eslint-config": "workspace:*"
+    "@agentmark-ai/eslint-config": "npm:*"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http": "npm:^0.217.0"
     "@opentelemetry/sdk-trace-base": "npm:^2.2.0"

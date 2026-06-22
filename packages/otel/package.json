@@ -30,7 +30,7 @@
     "@opentelemetry/sdk-trace-base": "^2.0.0"
   },
   "devDependencies": {
-    "@agentmark-ai/eslint-config": "workspace:*",
+    "@agentmark-ai/eslint-config": "*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-trace-base": "^2.2.0",
     "@opentelemetry/sdk-trace-node": "^2.2.0",
