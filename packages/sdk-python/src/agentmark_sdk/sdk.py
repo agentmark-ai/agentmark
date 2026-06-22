@@ -18,6 +18,7 @@ from .config import (
     AGENTMARK_TRACE_ENDPOINT,
     DEFAULT_BASE_URL,
 )
+from .grouping import AgentMarkGroupingProcessor
 from .masking_processor import MaskFunction, MaskingSpanProcessor
 from .sampler import AgentmarkSampler
 
@@ -143,6 +144,10 @@ class AgentMarkSDK:
             resource=resource,
             sampler=AgentmarkSampler(),
         )
+        # Enrichment-only: stamps any active with_agentmark(...) grouping
+        # (session/user/metadata) onto spans at start. Registered before the
+        # export processor so the attributes are present when the span ends.
+        provider.add_span_processor(AgentMarkGroupingProcessor())
         provider.add_span_processor(processor)
 
         otel_trace.set_tracer_provider(provider)

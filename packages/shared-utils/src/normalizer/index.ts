@@ -7,6 +7,7 @@ import { OtelGenAiTransformer } from './transformers/otel-genai';
 import { DispatchingTransformer } from './transformers/dispatching';
 import { OtlpResourceSpans, extractResourceScopeSpan } from './converters/otlp-converter';
 import { parseAgentMarkAttributes } from './extractors/agentmark-parser';
+import { extractCustomMetadata } from './extractors/metadata-parser';
 import { resolveSemanticKind } from './resolvers/semantic-kind-resolver';
 
 // Register scope-specific transformers
@@ -119,6 +120,18 @@ export function normalizeSpan(
     // These take precedence over metadata.* attributes if both exist
     const agentMarkAttributes = parseAgentMarkAttributes(allAttributes);
     Object.assign(normalized, agentMarkAttributes);
+
+    // 5a. Universal custom metadata: promote `agentmark.metadata.*` on ANY span
+    // scope, not just scopes whose transformer parses metadata. This lets the
+    // context-propagated grouping from @agentmark-ai/otel and the AgentMark
+    // Python SDK carry custom metadata regardless of the instrumentation that
+    // created the span (OpenInference, raw OTel, …). agentmark.metadata.* wins
+    // over a transformer's own metadata on key conflicts, matching the
+    // agentmark.*-takes-precedence rule above.
+    const universalMetadata = extractCustomMetadata(allAttributes, 'agentmark.metadata.');
+    if (Object.keys(universalMetadata).length > 0) {
+        normalized.metadata = { ...(normalized.metadata || {}), ...universalMetadata };
+    }
 
     // 5b. Standard OTel GenAI conversation id (gen_ai.conversation.id) as a
     // sessionId fallback. agentmark.session_id always wins when present —

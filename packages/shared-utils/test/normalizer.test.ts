@@ -53,6 +53,34 @@ describe('Normalizer', () => {
       expect(result.duration).toBe(1000);
     });
 
+    it('universally promotes agentmark.* grouping on any span scope', () => {
+      // @agentmark-ai/otel and the AgentMark Python SDK stamp grouping under
+      // agentmark.* / agentmark.metadata.* onto whatever spans are in scope —
+      // including third-party (OpenInference) spans. The normalizer must promote
+      // those to session/user/metadata regardless of scope (not just 'agentmark').
+      const resource: OtelResource = { attributes: {} };
+      const scope: OtelScope = { name: 'openinference.langchain' };
+      const span: OtelSpan = {
+        traceId: 't',
+        spanId: 's',
+        name: 'ChatOpenAI',
+        kind: 1,
+        startTimeUnixNano: '1000000000',
+        endTimeUnixNano: '2000000000',
+        attributes: {
+          'agentmark.session_id': 'sess-1',
+          'agentmark.user_id': 'user-1',
+          'agentmark.metadata.feature': 'support',
+        },
+      };
+
+      const result = normalizeSpan(resource, scope, span);
+
+      expect(result.sessionId).toBe('sess-1');
+      expect(result.userId).toBe('user-1');
+      expect(result.metadata?.feature).toBe('support');
+    });
+
     it('should merge resource and span attributes', () => {
       const resource: OtelResource = {
         attributes: {
