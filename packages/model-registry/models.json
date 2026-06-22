@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-18T01:17:24.354Z",
+  "generatedAt": "2026-06-22T01:20:05.343Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-18T01:17:24.354Z",
-      "modelCount": 1422
+      "fetchedAt": "2026-06-22T01:20:05.343Z",
+      "modelCount": 1451
     },
     "openrouter": {
-      "fetchedAt": "2026-06-18T01:17:24.354Z",
-      "modelCount": 125
+      "fetchedAt": "2026-06-22T01:20:05.343Z",
+      "modelCount": 126
     }
   },
   "models": {
@@ -8326,13 +8326,15 @@
       "source": "litellm",
       "pricing": {
         "inputCostPerToken": 1.5e-7,
-        "outputCostPerToken": 6e-7
+        "outputCostPerToken": 6e-7,
+        "cacheReadCostPerToken": 1.5e-8
       },
       "context": {
         "maxInputTokens": 131072,
-        "maxOutputTokens": 131072
+        "maxOutputTokens": 32768
       },
       "capabilities": {
+        "vision": false,
         "functionCalling": true,
         "structuredOutput": true,
         "reasoning": true
@@ -8344,14 +8346,16 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 5e-8,
-        "outputCostPerToken": 2e-7
+        "inputCostPerToken": 7e-8,
+        "outputCostPerToken": 3e-7,
+        "cacheReadCostPerToken": 3.5e-8
       },
       "context": {
         "maxInputTokens": 131072,
-        "maxOutputTokens": 131072
+        "maxOutputTokens": 32768
       },
       "capabilities": {
+        "vision": false,
         "functionCalling": true,
         "structuredOutput": true,
         "reasoning": true
@@ -19837,7 +19841,24 @@
       "provider": "deepseek",
       "displayName": "DeepSeek: DeepSeek V4 Pro",
       "mode": "chat",
-      "source": "openrouter",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4.35e-7,
+        "outputCostPerToken": 8.7e-7,
+        "cacheCreationCostPerToken": 0,
+        "cacheReadCostPerToken": 3.625e-9
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true
+      },
       "supportedParameters": [
         "frequency_penalty",
         "max_tokens",
@@ -19845,25 +19866,30 @@
         "temperature",
         "top_k",
         "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 4.35e-7,
-        "outputCostPerToken": 8.7e-7
-      },
-      "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 384000
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
+      ]
     },
     "deepseek-v4-flash": {
       "provider": "deepseek",
       "displayName": "DeepSeek: DeepSeek V4 Flash",
       "mode": "chat",
-      "source": "openrouter",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.4e-7,
+        "outputCostPerToken": 2.8e-7,
+        "cacheCreationCostPerToken": 0,
+        "cacheReadCostPerToken": 2.8e-9
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 8192
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "parallelFunctionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true
+      },
       "supportedParameters": [
         "frequency_penalty",
         "max_tokens",
@@ -19871,19 +19897,7 @@
         "temperature",
         "top_k",
         "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 9e-8,
-        "outputCostPerToken": 1.8e-7
-      },
-      "context": {
-        "maxInputTokens": 1048576,
-        "maxOutputTokens": 65536
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
+      ]
     },
     "gpt-5.4-image-2": {
       "provider": "openai",
@@ -20511,10 +20525,25 @@
       }
     },
     "gpt-oss-20b": {
-      "provider": "openai",
+      "provider": "fireworks_ai",
       "displayName": "OpenAI: gpt-oss-20b",
       "mode": "chat",
-      "source": "openrouter",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 7e-8,
+        "outputCostPerToken": 3e-7,
+        "cacheReadCostPerToken": 3.5e-8
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 32768
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      },
       "supportedParameters": [
         "frequency_penalty",
         "max_tokens",
@@ -20522,18 +20551,7 @@
         "temperature",
         "top_k",
         "top_p"
-      ],
-      "pricing": {
-        "inputCostPerToken": 2.9e-8,
-        "outputCostPerToken": 1.4e-7
-      },
-      "context": {
-        "maxInputTokens": 131072
-      },
-      "capabilities": {
-        "functionCalling": true,
-        "structuredOutput": true
-      }
+      ]
     },
     "claude-opus-4.1": {
       "provider": "anthropic",
@@ -20677,6 +20695,9 @@
       },
       "context": {
         "maxInputTokens": 32768
+      },
+      "capabilities": {
+        "structuredOutput": true
       }
     },
     "gemini-2.5-pro-preview-05-06": {
@@ -20973,7 +20994,8 @@
       "capabilities": {
         "vision": true,
         "functionCalling": true
-      }
+      },
+      "deprecationDate": "2026-06-22"
     },
     "command-r-plus-08-2024": {
       "provider": "cohere",
@@ -23455,11 +23477,12 @@
       },
       "context": {
         "maxInputTokens": 202800,
-        "maxOutputTokens": 202800
+        "maxOutputTokens": 131072
       },
       "capabilities": {
-        "functionCalling": false,
-        "structuredOutput": false,
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
         "reasoning": true
       }
     },
@@ -23475,11 +23498,12 @@
       },
       "context": {
         "maxInputTokens": 202800,
-        "maxOutputTokens": 202800
+        "maxOutputTokens": 131072
       },
       "capabilities": {
-        "functionCalling": false,
-        "structuredOutput": false,
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
         "reasoning": true
       }
     },
@@ -27771,6 +27795,537 @@
       },
       "capabilities": {
         "functionCalling": true
+      }
+    },
+    "gpt-realtime-whisper": {
+      "provider": "openai",
+      "displayName": "Gpt Realtime Whisper",
+      "mode": "audio_transcription",
+      "source": "litellm",
+      "capabilities": {
+        "audioInput": true
+      }
+    },
+    "MAI-Image-2.5": {
+      "provider": "azure",
+      "displayName": "MAI Image 2.5",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "MAI-Image-2.5-Flash": {
+      "provider": "azure",
+      "displayName": "MAI Image 2.5 Flash",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "MAI-Image-2e": {
+      "provider": "azure",
+      "displayName": "MAI Image 2e",
+      "mode": "image_generation",
+      "source": "litellm"
+    },
+    "deepseek-v3.1": {
+      "provider": "azure",
+      "displayName": "Deepseek V3.1",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000123,
+        "outputCostPerToken": 0.00000494
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "functionCalling": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/deepseek-v4-flash": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/deepseek V4 Flash",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1.4e-7,
+        "outputCostPerToken": 2.8e-7,
+        "cacheReadCostPerToken": 2.8e-8
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 384000
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/deepseek-v4-pro": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/deepseek V4 Pro",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.00000174,
+        "outputCostPerToken": 0.00000348,
+        "cacheReadCostPerToken": 1.45e-7
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 384000
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/glm-5p2": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/glm 5p2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000014,
+        "outputCostPerToken": 0.0000044,
+        "cacheReadCostPerToken": 2.6e-7
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/kimi-k2p6": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/kimi K2p6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 9.5e-7,
+        "outputCostPerToken": 0.000004,
+        "cacheReadCostPerToken": 1.6e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/kimi-k2p7-code": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/kimi K2p7 Code",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 9.5e-7,
+        "outputCostPerToken": 0.000004,
+        "cacheReadCostPerToken": 1.9e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/minimax-m2p7": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/minimax M2p7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012,
+        "cacheReadCostPerToken": 6e-8
+      },
+      "context": {
+        "maxInputTokens": 196608,
+        "maxOutputTokens": 196608
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/models/minimax-m3": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/minimax M3",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012,
+        "cacheReadCostPerToken": 6e-8
+      },
+      "context": {
+        "maxInputTokens": 512000,
+        "maxOutputTokens": 512000
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "glm-5p1-fast": {
+      "provider": "fireworks_ai",
+      "displayName": "Glm 5p1 Fast",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000028,
+        "outputCostPerToken": 0.0000088,
+        "cacheReadCostPerToken": 5.2e-7
+      },
+      "context": {
+        "maxInputTokens": 202800,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "glm-5p2": {
+      "provider": "fireworks_ai",
+      "displayName": "Glm 5p2",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000014,
+        "outputCostPerToken": 0.0000044,
+        "cacheReadCostPerToken": 2.6e-7
+      },
+      "context": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "kimi-k2p6": {
+      "provider": "fireworks_ai",
+      "displayName": "Kimi K2p6",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 9.5e-7,
+        "outputCostPerToken": 0.000004,
+        "cacheReadCostPerToken": 1.6e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "kimi-k2p6-fast": {
+      "provider": "fireworks_ai",
+      "displayName": "Kimi K2p6 Fast",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000008,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "kimi-k2p7-code": {
+      "provider": "fireworks_ai",
+      "displayName": "Kimi K2p7 Code",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 9.5e-7,
+        "outputCostPerToken": 0.000004,
+        "cacheReadCostPerToken": 1.9e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "kimi-k2p7-code-fast": {
+      "provider": "fireworks_ai",
+      "displayName": "Kimi K2p7 Code Fast",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000019,
+        "outputCostPerToken": 0.000008,
+        "cacheReadCostPerToken": 3.8e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "minimax-m2p7": {
+      "provider": "fireworks_ai",
+      "displayName": "Minimax M2p7",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012,
+        "cacheReadCostPerToken": 6e-8
+      },
+      "context": {
+        "maxInputTokens": 196608,
+        "maxOutputTokens": 196608
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "minimax-m3": {
+      "provider": "fireworks_ai",
+      "displayName": "Minimax M3",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 3e-7,
+        "outputCostPerToken": 0.0000012,
+        "cacheReadCostPerToken": 6e-8
+      },
+      "context": {
+        "maxInputTokens": 512000,
+        "maxOutputTokens": 512000
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "qwen3p7-plus": {
+      "provider": "fireworks_ai",
+      "displayName": "Qwen3p7 Plus",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-7,
+        "outputCostPerToken": 0.0000016,
+        "cacheReadCostPerToken": 8e-8
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "mistral-medium-3-5": {
+      "provider": "mistral",
+      "displayName": "Mistral Medium 3 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000015,
+        "outputCostPerToken": 0.0000075
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
+      }
+    },
+    "accounts/fireworks/models/qwen3p7-plus": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/models/qwen3p7 Plus",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-7,
+        "outputCostPerToken": 0.0000016,
+        "cacheReadCostPerToken": 8e-8
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/routers/glm-5p1-fast": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/routers/glm 5p1 Fast",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000028,
+        "outputCostPerToken": 0.0000088,
+        "cacheReadCostPerToken": 5.2e-7
+      },
+      "context": {
+        "maxInputTokens": 202800,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": false,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/routers/kimi-k2p6-fast": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/routers/kimi K2p6 Fast",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000008,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "accounts/fireworks/routers/kimi-k2p7-code-fast": {
+      "provider": "fireworks_ai",
+      "displayName": "Accounts/fireworks/routers/kimi K2p7 Code Fast",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000019,
+        "outputCostPerToken": 0.000008,
+        "cacheReadCostPerToken": 3.8e-7
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "gemini-3.1-flash-image": {
+      "provider": "google",
+      "displayName": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "structuredOutput": true
+      }
+    },
+    "gemini-3-pro-image": {
+      "provider": "google",
+      "displayName": "Google: Nano Banana Pro (Gemini 3 Pro Image)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000012
+      },
+      "context": {
+        "maxInputTokens": 65536,
+        "maxOutputTokens": 32768
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true
       }
     }
   }
