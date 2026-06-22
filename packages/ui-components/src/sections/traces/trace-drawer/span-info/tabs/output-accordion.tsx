@@ -1,12 +1,6 @@
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Typography,
-  Box,
-} from "@mui/material";
-import { Iconify } from "@/components";
+import { Typography } from "@mui/material";
 import { MarkdownRenderer } from "./markdown-renderer";
+import { OutputSection } from "./output-section";
 import { useTraceDrawerContext } from "../../trace-drawer-provider";
 
 interface OutputAccordionProps {
@@ -16,6 +10,12 @@ interface OutputAccordionProps {
     toolCall?: any;
     objectResponse?: any;
   } | null;
+  /**
+   * Output fields offloaded to object storage. The inline column holds only a
+   * truncated preview (e.g. a clipped base64 image — invalid and unreadable), so
+   * we drop it here; `OffloadedFields` renders the full value below.
+   */
+  offloadedFields?: Set<string>;
 }
 
 const formatToolCalls = (toolCallsStr?: string) => {
@@ -111,80 +111,56 @@ ${JSON.stringify(objectResponse, null, 2)}
   }
 };
 
-export const OutputAccordion = ({ outputData }: OutputAccordionProps) => {
+export const OutputAccordion = ({ outputData, offloadedFields }: OutputAccordionProps) => {
   const { t } = useTraceDrawerContext();
+
+  // Drop any field whose full value was offloaded — its inline value is only a
+  // truncated preview, and `OffloadedFields` renders the full version below.
+  const offloaded = offloadedFields ?? new Set<string>();
+  const text = offloaded.has("Output") ? undefined : outputData?.text;
+  const rawToolCalls = offloaded.has("ToolCalls") ? undefined : outputData?.toolCalls;
+  const toolCall = offloaded.has("ToolCalls") ? undefined : outputData?.toolCall;
+  const objectResponseValue = offloaded.has("OutputObject") ? undefined : outputData?.objectResponse;
+
   const toolCallsText =
-    !outputData?.text && outputData?.toolCalls
-      ? formatToolCalls(outputData?.toolCalls)
-      : null;
+    !text && rawToolCalls ? formatToolCalls(rawToolCalls) : null;
 
   const toolCallText =
-    !outputData?.text && !toolCallsText && (outputData?.toolCall?.name || outputData?.toolCall?.toolName)
-      ? formatToolCall(outputData?.toolCall)
+    !text && !toolCallsText && (toolCall?.name || toolCall?.toolName)
+      ? formatToolCall(toolCall)
       : null;
 
   const objectResponse =
-    !outputData?.text &&
+    !text &&
     !toolCallsText &&
     !toolCallText &&
-    outputData?.objectResponse
-      ? formatObjectResponse(outputData?.objectResponse)
+    objectResponseValue
+      ? formatObjectResponse(objectResponseValue)
       : null;
 
-  const content =
-    outputData?.text || toolCallsText || toolCallText || objectResponse;
+  const content = text || toolCallsText || toolCallText || objectResponse;
 
-  const isObjectResponse = !!outputData?.objectResponse;
-  const isToolResponse = !!(outputData?.toolCall?.name || outputData?.toolCall?.toolName);
+  // Every output field was offloaded — render nothing here; the full value(s)
+  // show via OffloadedFields. (Suppresses the empty "No output" bubble too.)
+  if (!content && (offloaded.has("Output") || offloaded.has("OutputObject") || offloaded.has("ToolCalls"))) {
+    return null;
+  }
+
+  const isObjectResponse = !!objectResponseValue;
+  const isToolResponse = !!(toolCall?.name || toolCall?.toolName);
 
   return (
-    <Accordion
-      sx={{
-        backgroundColor: "white",
-        "&.MuiAccordion-root": { my: 0.5 },
-        "&:before": { display: "none" },
-      }}
-      defaultExpanded
+    <OutputSection
+      title={isToolResponse || isObjectResponse ? t("output") : t("assistant")}
+      icon={
+        isToolResponse ? "mdi:tools" : isObjectResponse ? "mdi:code-json" : "mdi:robot"
+      }
     >
-      <AccordionSummary
-        expandIcon={<Iconify icon="mdi:chevron-down" width={16} />}
-        sx={{
-          minHeight: "28px !important",
-          px: 1,
-          py: 0,
-          "& .MuiAccordionSummary-content": {
-            alignItems: "center",
-            my: "4px !important",
-          },
-          "&.Mui-expanded": {
-            minHeight: "28px !important",
-            my: 0,
-          },
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Iconify
-            icon={
-              isToolResponse
-                ? "mdi:tools"
-                : isObjectResponse
-                ? "mdi:code-json"
-                : "mdi:robot"
-            }
-            width={16}
-          />
-          <Typography fontWeight={700} variant="body2" fontSize="0.8rem">
-            {isToolResponse || isObjectResponse ? t("output") : t("assistant")}
-          </Typography>
-        </Box>
-      </AccordionSummary>
-      <AccordionDetails sx={{ px: 1, py: 0.5 }}>
-        {content ? (
-          <MarkdownRenderer content={content} />
-        ) : (
-          <Typography variant="body2">{t("noOutput")}</Typography>
-        )}
-      </AccordionDetails>
-    </Accordion>
+      {content ? (
+        <MarkdownRenderer content={content} />
+      ) : (
+        <Typography variant="body2">{t("noOutput")}</Typography>
+      )}
+    </OutputSection>
   );
 };

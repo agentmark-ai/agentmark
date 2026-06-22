@@ -1,5 +1,6 @@
 import path from "path";
 import { spawnSync } from "child_process";
+import { createRequire } from "module";
 import fs from "fs-extra";
 import { findProjectPython } from "../utils/platform";
 import {
@@ -138,6 +139,13 @@ export interface RunDoctorOptions {
    * `undefined` to run the real `importlib.metadata` probe.
    */
   checkPythonDeps?: (cwd: string) => { missing: string[]; installer?: "uv" | "pip" } | null;
+  /**
+   * Injectable for tests: whether `pkg` is actually installed (resolvable) from
+   * the project, not merely listed in package.json. Defaults to a real Node
+   * resolution anchored at `cwd`. Tests inject a stub so fixtures don't have to
+   * materialize a `node_modules/`.
+   */
+  isPackageInstalled?: (cwd: string, pkg: string) => boolean;
 }
 
 /**
@@ -157,12 +165,33 @@ function detectPythonInstaller(cwd: string): "uv" | "pip" {
 }
 
 /**
+ * Whether `pkg` is actually installed — resolvable FROM the project, not just
+ * declared in package.json. Anchored at `cwd` so it follows `node_modules` up
+ * the tree the way Node does (correct in a monorepo where deps hoist to a
+ * parent; a plain `existsSync(cwd/node_modules/pkg)` would false-negative
+ * there). It probes the package's own `package.json`, so the result is
+ * independent of the package's `main`/`exports` entry: an `exports` map that
+ * hides `./package.json` still proves the package is present
+ * (`ERR_PACKAGE_PATH_NOT_EXPORTED`), so that counts as installed — only a real
+ * `MODULE_NOT_FOUND` means "not there." Exported for direct testing.
+ */
+export function packageResolvableFrom(cwd: string, pkg: string): boolean {
+  try {
+    createRequire(path.join(cwd, "package.json")).resolve(`${pkg}/package.json`);
+    return true;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException)?.code === "ERR_PACKAGE_PATH_NOT_EXPORTED";
+  }
+}
+
+/**
  * Run all static checks against `cwd` and return a structured report.
  * Pure: no console output, no `process.exit`.
  */
 export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promise<DoctorReport> {
   const env = opts.env ?? process.env;
   const nodeVersion = opts.nodeVersion ?? process.versions.node;
+  const isPackageInstalled = opts.isPackageInstalled ?? packageResolvableFrom;
   const checkPythonDeps = opts.checkPythonDeps ?? ((dir: string) => {
     const python = findProjectPython(dir);
     // Probe via importlib.metadata, NOT `pip show`: uv-created venvs (the modern
@@ -556,10 +585,34 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
     if (!pkg) {
       add({ id: "deps.packageJson", group: GROUP.deps, title: "package.json missing", status: "skip", detail: "no package.json found" });
     } else {
+      // prompt-core is load-bearing — the client and dev-entry import it — so a
+      // declared-but-uninstalled prompt-core is exactly the "forgot to run
+      // npm install" state that makes `agentmark dev` / `doctor --smoke --boot`
+      // exit 1. Verify it actually resolves, not just that it's listed, so this
+      // check catches the missing install here (cheaply) instead of letting the
+      // smoke boot fail opaquely. Only run when declared — a project that
+      // doesn't depend on it has nothing to install.
+      if (deps["@agentmark-ai/prompt-core"]) {
+        add(
+          isPackageInstalled(cwd, "@agentmark-ai/prompt-core")
+            ? { id: "deps.promptCore", group: GROUP.deps, title: "@agentmark-ai/prompt-core installed", status: "pass" }
+            : {
+                id: "deps.promptCore",
+                group: GROUP.deps,
+                title: "@agentmark-ai/prompt-core installed",
+                status: "fail",
+                detail: "declared in package.json but not found in node_modules — dependencies aren't installed",
+                fix: "Install dependencies (e.g. `npm install`); `agentmark dev` and `doctor --smoke` can't boot without them.",
+              }
+        );
+      }
+      // sdk carries tracing + the experiment runner; a prompt can still render
+      // and run via prompt-core without it, so its absence is a warn, not a
+      // fail. But, like the Python branch, verify it's actually installed when
+      // declared — the "installed" title shouldn't pass on a bare declaration.
       add(
-        deps["@agentmark-ai/sdk"]
-          ? { id: "deps.sdk", group: GROUP.deps, title: "@agentmark-ai/sdk installed", status: "pass" }
-          : {
+        !deps["@agentmark-ai/sdk"]
+          ? {
               id: "deps.sdk",
               group: GROUP.deps,
               title: "@agentmark-ai/sdk installed",
@@ -567,6 +620,16 @@ export async function runDoctor(cwd: string, opts: RunDoctorOptions = {}): Promi
               detail: "needed for tracing and experiments",
               fix: "npm install @agentmark-ai/sdk",
             }
+          : isPackageInstalled(cwd, "@agentmark-ai/sdk")
+            ? { id: "deps.sdk", group: GROUP.deps, title: "@agentmark-ai/sdk installed", status: "pass" }
+            : {
+                id: "deps.sdk",
+                group: GROUP.deps,
+                title: "@agentmark-ai/sdk installed",
+                status: "warn",
+                detail: "declared in package.json but not found in node_modules — dependencies aren't installed",
+                fix: "Install dependencies (e.g. `npm install`).",
+              }
       );
       // The local CLI pin is what `agentmark init` adds so CI and teammates
       // run the same CLI version without a global install (npm resolves

@@ -21,7 +21,7 @@ import { detectProjectLanguage, type ProjectLanguage } from "../../utils/project
  *   3. Pin `@agentmark-ai/cli` as a local dev dependency + npm scripts so
  *      CI and teammates use the same CLI version without a global install
  *   4. Scaffold the provider-agnostic client (`agentmark.client.ts` /
- *      `agentmark_client.py`) — loader + evals, no SDK call (that lives in the
+ *      `agentmark_client.py`) — loader + scorers, no SDK call (that lives in the
  *      agent-authored executor). The one wiring file generic enough to get
  *      right here instead of leaving an agent to reconstruct it.
  *   5. Wire MCP configs for any IDE clients the user selects
@@ -337,7 +337,7 @@ const runInit = async (args: InitArgs): Promise<void> => {
   }
 
   // 4. Scaffold the provider-agnostic client. This is the one wiring file with
-  //    no SDK specifics (loader + evals), so init can write it correctly rather
+  //    no SDK specifics (loader + scorers), so init can write it correctly rather
   //    than leave a coding agent to reconstruct it — which is how the
   //    `ApiLoader` import path got fabricated. dev-entry/handler stay
   //    agent-authored (their executor is SDK-specific). Non-destructive.
@@ -345,7 +345,7 @@ const runInit = async (args: InitArgs): Promise<void> => {
   const clientScaffold = scaffoldClient(targetPath, language);
   console.log(
     clientScaffold.written
-      ? `✅ ${clientScaffold.fileName} (loader + evals — wire your SDK executor into dev-entry/handler next)`
+      ? `✅ ${clientScaffold.fileName} (loader + scorers — wire your SDK executor into dev-entry/handler next)`
       : `⏭️  ${clientScaffold.fileName} (kept existing)`,
   );
 

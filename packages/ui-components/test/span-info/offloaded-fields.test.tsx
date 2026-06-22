@@ -11,7 +11,10 @@ import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { TraceDrawerProvider } from "@/sections/traces/trace-drawer/trace-drawer-provider";
-import { OffloadedFields } from "@/sections/traces/trace-drawer/span-info/tabs/input-output-tab/offloaded-fields";
+import {
+  OffloadedFields,
+  parseOffloadedFieldNames,
+} from "@/sections/traces/trace-drawer/span-info/tabs/input-output-tab/offloaded-fields";
 
 const t = (key: string) => key;
 const OUTPUT_REF = '[{"field":"Output","blob_id":"tnt/app/tr/sp/Output","size":100}]';
@@ -41,6 +44,59 @@ describe("OffloadedFields", () => {
     });
     expect(img.getAttribute("src")).toBe("data:image/png;base64,iVBORw0KGgo=");
     expect(fetchBlob).toHaveBeenCalledWith("tnt/app/tr/sp/Output");
+  });
+
+  it("renders media under the 'Output' section header (collapsible, consistent with the output bubble)", async () => {
+    const fetchBlob = vi
+      .fn()
+      .mockResolvedValue('[{"mimeType":"image/png","base64":"iVBORw0KGgo="}]');
+
+    const { container } = renderWithFetchBlob(OUTPUT_REF, fetchBlob);
+
+    await waitFor(() => {
+      if (!container.querySelector("img")) throw new Error("no img yet");
+    });
+    // The image sits under an "Output" accordion header — never under "Full output".
+    expect(screen.getByText("Output")).toBeTruthy();
+    expect(screen.queryByText("Full output")).toBeNull();
+  });
+
+  it("caps the image height so the whole image is visible at once, and toggles full size on click", async () => {
+    const fetchBlob = vi
+      .fn()
+      .mockResolvedValue('[{"mimeType":"image/png","base64":"iVBORw0KGgo="}]');
+
+    const { container } = renderWithFetchBlob(OUTPUT_REF, fetchBlob);
+
+    const img = (await waitFor(() => {
+      const el = container.querySelector("img");
+      if (!el) throw new Error("no img yet");
+      return el as HTMLImageElement;
+    })) as HTMLImageElement;
+
+    // Fit-to-box by default: capped height + contain.
+    expect(img.style.maxHeight).toBe("480px");
+    expect(img.style.objectFit).toBe("contain");
+
+    // Click zooms to full (1:1) size — cap lifted, scrolls within the box.
+    img.click();
+    await waitFor(() => expect(img.style.objectFit).toBe(""));
+    expect(img.style.maxWidth).toBe("none");
+  });
+
+  it("renders large text in a scrollable block (does not dump the whole payload)", async () => {
+    const fetchBlob = vi.fn().mockResolvedValue("a very long non-media answer");
+    const { container } = renderWithFetchBlob(OUTPUT_REF, fetchBlob);
+
+    const pre = (await waitFor(() => {
+      const el = container.querySelector("pre");
+      if (!el) throw new Error("no pre yet");
+      return el;
+    })) as HTMLElement;
+    // The <pre>'s scroll container caps height and scrolls.
+    const scroller = pre.parentElement as HTMLElement;
+    expect(scroller.style.maxHeight).toBe("360px");
+    expect(scroller.style.overflow).toBe("auto");
   });
 
   it("renders an <audio> player for audio media", async () => {
@@ -80,7 +136,7 @@ describe("OffloadedFields", () => {
 
     await waitFor(() => expect(screen.getByText("a very large prompt / RAG context …")).toBeTruthy());
     expect(fetchBlob).toHaveBeenCalledWith("k/in");
-    expect(screen.getByText("Full input")).toBeTruthy(); // labeled
+    expect(screen.getByText("Input")).toBeTruthy(); // labeled
   });
 
   it("renders a labeled section per offloaded field (Input + Output)", async () => {
@@ -94,8 +150,8 @@ describe("OffloadedFields", () => {
 
     await waitFor(() => expect(screen.getByText("the full input")).toBeTruthy());
     expect(screen.getByText("the full output")).toBeTruthy();
-    expect(screen.getByText("Full input")).toBeTruthy();
-    expect(screen.getByText("Full output")).toBeTruthy();
+    expect(screen.getByText("Input")).toBeTruthy();
+    expect(screen.getByText("Output")).toBeTruthy();
     expect(fetchBlob).toHaveBeenCalledTimes(2);
   });
 
@@ -107,7 +163,7 @@ describe("OffloadedFields", () => {
     );
 
     await waitFor(() => expect(screen.getByText("the output")).toBeTruthy());
-    expect(screen.queryByText("Full output object")).toBeNull(); // deduped
+    expect(screen.queryByText("Output object")).toBeNull(); // deduped
     expect(fetchBlob).toHaveBeenCalledTimes(1);
     expect(fetchBlob).toHaveBeenCalledWith("k/out");
   });
@@ -117,7 +173,7 @@ describe("OffloadedFields", () => {
     renderWithFetchBlob('[{"field":"OutputObject","blob_id":"k/oo","size":1}]', fetchBlob);
 
     await waitFor(() => expect(screen.getByText('{"answer":"structured"}')).toBeTruthy());
-    expect(screen.getByText("Full output object")).toBeTruthy();
+    expect(screen.getByText("Output object")).toBeTruthy();
   });
 
   it("renders nothing when there are no known offloaded fields", () => {
@@ -177,5 +233,25 @@ describe("OffloadedFields", () => {
 
     await waitFor(() => expect(screen.getByText('not valid json {')).toBeTruthy());
     expect(container.querySelector('img')).toBeNull();
+  });
+});
+
+describe("parseOffloadedFieldNames", () => {
+  it("returns the set of known offloaded field names", () => {
+    const refs =
+      '[{"field":"Output","blob_id":"a","size":1},{"field":"Input","blob_id":"b","size":1}]';
+    expect(parseOffloadedFieldNames(refs)).toEqual(new Set(["Output", "Input"]));
+  });
+
+  it("ignores unknown field names", () => {
+    const refs = '[{"field":"Output","blob_id":"a","size":1},{"field":"Bogus","blob_id":"b","size":1}]';
+    expect(parseOffloadedFieldNames(refs)).toEqual(new Set(["Output"]));
+  });
+
+  it("returns an empty set for undefined / malformed / non-array input", () => {
+    expect(parseOffloadedFieldNames(undefined)).toEqual(new Set());
+    expect(parseOffloadedFieldNames("")).toEqual(new Set());
+    expect(parseOffloadedFieldNames("not json")).toEqual(new Set());
+    expect(parseOffloadedFieldNames('{"field":"Output"}')).toEqual(new Set());
   });
 });
