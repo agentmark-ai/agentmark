@@ -1,3 +1,51 @@
+## 0.13.0 (2026-06-22)
+
+### 🚀 Features
+
+- Size-driven blob offload for trace I/O (multimodal output support). ([#809](https://github.com/agentmark-ai/agentmark/pull/809))
+
+  Oversized span fields (image/audio/large text output, large inputs, tool calls)
+  are lifted to object storage at ingest; ClickHouse keeps an 8KB inline preview
+  plus a `BlobRefs` pointer, so the 128KB queue-message limit never truncates a
+  generation. Full-fidelity consumers fetch the full value back on demand.
+
+  - **api-types**: `Span` / `SpanIO` gain an optional `blobRefs` (JSON array of
+    offloaded-field pointers); `ExperimentItemSummary` gains an optional
+    `blobRefs` so the experiment-detail path can rehydrate offloaded item I/O.
+    All additive — existing consumers are unaffected.
+  - **api-schemas**: `ExperimentItemSummarySchema` gains an optional `blobRefs`
+    (the gateway rehydrates the full value into `input`/`output` before
+    responding, so consumers may ignore it).
+  - **prompt-core**: the webhook runner records image/speech generation output via
+    `setSpanOutput` (the `agentmark.output` attribute) so generated media is
+    captured on the span and offloaded like any other oversized field.
+  - **ui-components**: the trace drawer's Input/Output tab renders every offloaded
+    field — image/audio inline (data URIs), full text/JSON otherwise — fetched on
+    demand via the host-provided `fetchBlob`; `OutputObject` is deduped when
+    `Output` is also offloaded.
+
+- Render offloaded media as the span's output instead of a truncated base64 wall. ([#812](https://github.com/agentmark-ai/agentmark/pull/812))
+
+  When an oversized span field (image/audio/large text) is offloaded to object
+  storage, its inline column keeps only an 8KB preview. The trace drawer used to
+  render that truncated preview in the output bubble — for media, an unreadable,
+  clipped base64 string — AND the full value again below under a "Full output"
+  heading. The duplicated, broken preview read as a bug.
+
+  - **OutputDisplay / OutputAccordion**: accept the set of offloaded output fields
+    and suppress their truncated inline preview (no base64 wall, no empty
+    "No output" bubble). Non-offloaded fields on the same span still render.
+  - **OffloadedFields**: render media (image/audio) inline with no overline label
+    so it reads as the output itself; large text / JSON keep a plain field label
+    (`Input` / `Output` / `Output object` / `Tool calls`, no more "Full …").
+    Exposes `parseOffloadedFieldNames(blobRefs)` so the preview renderers and the
+    offloaded renderer agree on which fields are offloaded.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/api-schemas to 0.10.0
+- Updated @agentmark-ai/prompt-core to 1.2.0
+
 ## 0.12.0 (2026-06-18)
 
 ### 🚀 Features

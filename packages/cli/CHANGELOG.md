@@ -1,3 +1,41 @@
+## 0.27.0 (2026-06-22)
+
+### 🚀 Features
+
+- `agentmark doctor` now verifies the TypeScript runtime deps are actually ([#812](https://github.com/agentmark-ai/agentmark/pull/812))
+  **installed** (resolvable from the project), not merely declared in
+  `package.json` — closing the gap where `doctor` passed on a project whose
+  `node_modules` was never created, then `dev` / `doctor --smoke --boot` exited 1
+  with an opaque "webhook server exited with code 1".
+
+  - New check `deps.promptCore`: `@agentmark-ai/prompt-core` is load-bearing (the
+    client and dev-entry import it), so a declared-but-uninstalled prompt-core now
+    **fails** with a "run `npm install`" fix — caught statically instead of at the
+    smoke boot.
+  - `deps.sdk` now also confirms installation when declared (still a **warn**, not
+    a fail — a prompt can render/run via prompt-core without it).
+
+  Resolution is anchored at the project via `createRequire`, so it follows
+  hoisted `node_modules` in a monorepo. Brings the TypeScript deps check to parity
+  with the Python branch, which already verified importability.
+
+
+### 🩹 Fixes
+
+- `agentmark init`'s success line for the scaffolded client now reads "loader + ([#812](https://github.com/agentmark-ai/agentmark/pull/812))
+  scorers" instead of "loader + evals". The scaffold itself already emits the
+  current `scorers` option (the `evals`→`scorers` rename), but the console
+  message still called it "evals" — contradicting the file it had just written
+  and teaching the deprecated alias. Cosmetic; the message now matches the
+  scaffold and the docs.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.13.0
+- Updated @agentmark-ai/api-schemas to 0.10.0
+- Updated @agentmark-ai/prompt-core to 1.2.0
+- Updated @agentmark-ai/api-types to 0.11.0
+
 ## 0.26.0 (2026-06-18)
 
 ### 🚀 Features
