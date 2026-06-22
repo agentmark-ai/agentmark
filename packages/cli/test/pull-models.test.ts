@@ -386,8 +386,11 @@ describe('pull-models', () => {
 
     await pullModels();
 
-    // Verify provider setup reminder was shown
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('registerProviders'));
+    // No package.json here, so this is a raw-SDK project (no @ai-sdk/*): the
+    // reminder is the neutral executor guidance, not the registerProviders hint.
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Provider setup reminder'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Make sure your executor handles models from'));
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('registerProviders'));
 
     consoleLogSpy.mockRestore();
   });

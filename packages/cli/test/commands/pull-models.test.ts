@@ -273,14 +273,40 @@ describe('pull-models provider setup hint', () => {
     return consoleLog.mock.calls.map((c: unknown[]) => c.join(' ')).join('\n');
   }
 
-  it('prints the @ai-sdk import hint in TypeScript projects', async () => {
+  it('prints the @ai-sdk import hint in @ai-sdk (Vercel AI SDK) projects', async () => {
     await writeAgentmarkJson({ agentmarkPath: '.', version: '2.0.0' });
+    // A real @ai-sdk project: the registerProviders hint names packages it has.
+    await fsp.writeFile(
+      path.join(workDir, 'package.json'),
+      JSON.stringify({ dependencies: { ai: '^4.0.0', '@ai-sdk/openai': '^1.0.0' } }),
+      'utf-8',
+    );
 
     await pullModels({ provider: 'openai', models: 'openai/gpt-4o' });
 
     const text = loggedText();
     expect(text).toContain('import { openai } from "@ai-sdk/openai";');
     expect(text).toContain('.registerProviders({ openai })');
+  });
+
+  it('prints executor guidance (no @ai-sdk imports) in raw-SDK TypeScript projects', async () => {
+    // A raw OpenAI/Anthropic-SDK TS project has no @ai-sdk/* packages and no
+    // model registry, so the registerProviders hint would name packages it does
+    // not have. It must get the neutral executor guidance instead. (The bug: the
+    // hint printed for ANY TypeScript project, raw SDK included.)
+    await writeAgentmarkJson({ agentmarkPath: '.', version: '2.0.0' });
+    await fsp.writeFile(
+      path.join(workDir, 'package.json'),
+      JSON.stringify({ dependencies: { openai: '^4.0.0' } }),
+      'utf-8',
+    );
+
+    await pullModels({ provider: 'openai', models: 'openai/gpt-4o' });
+
+    const text = loggedText();
+    expect(text).toContain('Make sure your executor handles models from: openai');
+    expect(text).not.toContain('@ai-sdk');
+    expect(text).not.toContain('registerProviders');
   });
 
   it('prints executor guidance — no TypeScript imports — in Python projects', async () => {

@@ -2,7 +2,7 @@ import path from "path";
 import { getProviders } from "../utils/providers";
 import * as fs from "fs-extra";
 import prompts from "prompts";
-import { detectProjectLanguage, loadAgentmarkConfig } from "../utils/project";
+import { detectProjectLanguage, loadAgentmarkConfig, projectUsesAiSdk } from "../utils/project";
 
 export interface PullModelsOptions {
   /**
@@ -180,11 +180,9 @@ const pullModels = async (options: PullModelsOptions = {}) => {
           "\nYour executor maps each prompt's model_name to your SDK's model ID — see\n" +
           "https://docs.agentmark.co/configure/connect-your-sdk\n"
       );
-    } else {
-      // The hint assumes `@ai-sdk/*` providers — correct for Vercel AI SDK
-      // and Mastra setups, whose model registries consume those provider
-      // packages. Executor-based setups map models inside the executor and
-      // get the neutral hint above instead.
+    } else if (projectUsesAiSdk(process.cwd())) {
+      // @ai-sdk/* project (Vercel AI SDK / Mastra): the model registry consumes
+      // these provider packages, so the import + registerProviders hint applies.
       console.log(
         "Make sure these providers are registered in your model registry:\n"
       );
@@ -195,6 +193,17 @@ const pullModels = async (options: PullModelsOptions = {}) => {
 
       const providerObj = providerList.map((p) => p).join(", ");
       console.log(`\n  .registerProviders({ ${providerObj} })\n`);
+    } else {
+      // Raw provider SDK project (openai, @anthropic-ai/sdk, ...): no @ai-sdk/*
+      // packages and no model registry, so the @ai-sdk import + registerProviders
+      // hint would name packages the project does not have. The executor owns the
+      // model mapping, same as the Python path above.
+      console.log(
+        "Make sure your executor handles models from: " +
+          providerList.join(", ") +
+          "\nYour executor maps each prompt's model_name to your SDK's model ID. See\n" +
+          "https://docs.agentmark.co/getting-started/client-setup#connect-your-sdk\n"
+      );
     }
   }
 

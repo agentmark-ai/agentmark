@@ -11,7 +11,7 @@ import fs from "fs";
 import type { ProjectLanguage } from "./project";
 
 const CLIENT_SETUP_HINT =
-  'ask your coding agent to "Set up AgentMark in this project," or follow https://docs.agentmark.co/getting-started/client-setup.';
+  'follow https://docs.agentmark.co/getting-started/client-setup, which writes the client, dev-entry, and handler (each wrapping your SDK call in an executor). Or ask your coding agent to "Set up AgentMark in this project."';
 
 export function clientFileName(language: ProjectLanguage): string {
   return language === "python" ? "agentmark_client.py" : "agentmark.client.ts";
