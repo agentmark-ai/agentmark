@@ -121,6 +121,31 @@ export function promptsDir(cwd: string, config: AgentmarkConfig): string {
   return path.resolve(cwd, config.agentmarkPath || ".", "agentmark");
 }
 
+/**
+ * True when the project depends on the Vercel AI SDK provider packages
+ * (`@ai-sdk/*`) or its core `ai` package. That is the only setup where the
+ * `.registerProviders({...})` model-registry hint applies; raw provider SDKs
+ * (`openai`, `@anthropic-ai/sdk`, ...) have neither, and their executor owns the
+ * model mapping. Best-effort: a missing/unreadable package.json reads as false.
+ */
+export function projectUsesAiSdk(cwd: string): boolean {
+  try {
+    const pkg = fs.readJsonSync(path.join(cwd, "package.json")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+    };
+    const deps = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies,
+      ...pkg.peerDependencies,
+    };
+    return Object.keys(deps).some((d) => d === "ai" || d.startsWith("@ai-sdk/"));
+  } catch {
+    return false;
+  }
+}
+
 /** Recursively collect files matching `pattern`, skipping `node_modules`. */
 export async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
