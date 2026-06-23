@@ -164,14 +164,34 @@ function resolvePath(source: unknown, path: string): unknown {
   return current;
 }
 
-function buildDatasetRowFromSource(source: unknown, mapping?: DatasetImportMapping): DatasetRow {
-  const inputPath = mapping?.input ?? "$.input";
+/** Non-empty plain object, or null — empty props aren't usable dataset input. */
+function usablePropsObject(v: unknown): Record<string, unknown> | null {
+  if (v && typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length > 0) {
+    return v as Record<string, unknown>;
+  }
+  return null;
+}
+
+/**
+ * Default dataset input: prefer the template variables (`props`) over the
+ * rendered messages (`input`). The row stores what `run-experiment` re-runs
+ * (props), not the derived chat messages; messages are the fallback for spans
+ * that carry no variables. An explicit `mapping.input` overrides this.
+ */
+function resolveDefaultInput(source: unknown): unknown {
+  const props = usablePropsObject(resolvePath(source, "$.props"));
+  return props ?? resolvePath(source, "$.input");
+}
+
+export function buildDatasetRowFromSource(source: unknown, mapping?: DatasetImportMapping): DatasetRow {
   const expectedOutputPath = mapping?.expected_output ?? "$.output";
   const metadataMapping = mapping?.metadata ?? {};
 
-  const input = resolvePath(source, inputPath);
+  const input = mapping?.input
+    ? resolvePath(source, mapping.input)
+    : resolveDefaultInput(source);
   if (input === undefined) {
-    throw new Error(`Mapping path "${inputPath}" did not resolve to an input value`);
+    throw new Error(`Mapping path "${mapping?.input ?? "$.input"}" did not resolve to an input value`);
   }
 
   const expectedOutput = resolvePath(source, expectedOutputPath);
@@ -188,7 +208,7 @@ function buildDatasetRowFromSource(source: unknown, mapping?: DatasetImportMappi
   }));
 }
 
-function normalizeLocalTraceSource(trace: any) {
+export function normalizeLocalTraceSource(trace: any) {
   const spans = Array.isArray(trace.spans) ? trace.spans.map((span: any) => ({
     id: span.id,
     trace_id: span.traceId ?? trace.id,
@@ -210,6 +230,7 @@ function normalizeLocalTraceSource(trace: any) {
     metadata: span.data?.metadata ?? {},
     input: parseJsonLike(span.data?.input),
     output: parseJsonLike(span.data?.output),
+    props: parseJsonLike(span.data?.props ?? span.props),
   })) : [];
 
   const rootSpan = spans.find((span: any) => !span.parent_id) ?? spans[0];
@@ -238,6 +259,9 @@ function normalizeLocalTraceSource(trace: any) {
     tokens: trace.data?.tokens ?? null,
     input: traceIO.input,
     output: traceIO.output,
+    // Surface the prompt span's variables at trace level so the default dataset
+    // input prefers them over the rendered messages (parity with #3a / gateway).
+    props: spans.map((s: any) => usablePropsObject(s.props)).find(Boolean) ?? null,
     metadata: rootSpan?.metadata ?? {},
     root_span: rootSpan ?? null,
     spans,
