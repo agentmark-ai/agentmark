@@ -22,18 +22,44 @@ function safeParseJson<T = unknown>(value: unknown): T | null {
 }
 
 /**
+ * Parse a span's template variables (`props`) into a usable, non-empty object,
+ * or null. Props arrive as a JSON string or an already-parsed object; an empty
+ * object is not usable dataset input, so it is treated as absent.
+ */
+function parseUsableProps(d: Record<string, any> | undefined): Record<string, unknown> | null {
+  if (!d?.props) return null;
+  const props = safeParseJson<Record<string, unknown>>(d.props);
+  if (
+    props &&
+    typeof props === "object" &&
+    !Array.isArray(props) &&
+    Object.keys(props).length > 0
+  ) {
+    return props;
+  }
+  return null;
+}
+
+/**
  * Extract dataset input from a span, aware of span kind.
+ *
+ * Prefers the template variables (`props`) whenever the span carries them —
+ * they are the canonical dataset input (what you would re-run the prompt with),
+ * for any span kind, and what every prompt-as-code eval tool stores (Promptfoo
+ * `vars`, Braintrust/LangSmith template inputs). The rendered messages
+ * (`d.input`) are a derived form, used only as a fallback for spans that carry
+ * no variables (e.g. a raw chat call with no template).
  */
 export function extractSpanInput(span: SpanLike | null | undefined): Record<string, unknown> | null {
   if (!span?.data) return null;
   const d = span.data;
-  const name = span.name || "";
 
-  // Agent/invoke_agent spans: use props (template variables)
-  if (name.startsWith("invoke_agent") && d.props) {
-    const props = safeParseJson<Record<string, unknown>>(d.props);
-    if (props) return props;
-  }
+  // Template variables win over the rendered messages for any span kind. This
+  // used to fire only for `invoke_agent` spans, so GENERATION spans with props
+  // fell through to the messages branch below — making "Add to dataset" capture
+  // the rendered messages instead of the variables sitting right on the span.
+  const props = parseUsableProps(d);
+  if (props) return props;
 
   // Tool spans: use tool arguments from toolCalls
   if (d.toolCalls) {
@@ -65,12 +91,6 @@ export function extractSpanInput(span: SpanLike | null | undefined): Record<stri
       }
       return parsed as Record<string, unknown>;
     }
-  }
-
-  // Fallback: use props if available (e.g. root trace span)
-  if (d.props) {
-    const props = safeParseJson<Record<string, unknown>>(d.props);
-    if (props) return props;
   }
 
   return null;
@@ -182,13 +202,12 @@ export function extractSpanCommitSha(span: SpanLike | null | undefined): string 
 
 /**
  * Extract the *template variables* (frontmatter `props`) used to render
- * this span's prompt — distinct from `extractSpanInput`, which returns the
- * rendered chat messages for GENERATION spans.
+ * this span's prompt. Returns props only — null when the span carries none —
+ * unlike `extractSpanInput`, which also prefers props but falls back to the
+ * rendered messages / tool args for spans that have no props.
  *
- * Use this when the consumer wants to re-run the same prompt with the same
- * inputs (e.g. the "Test prompt" dialog feeds these into
- * `agentmark run-prompt --props '<json>'`). For datasets, prefer
- * `extractSpanInput` — datasets store rendered IO as ground truth.
+ * Use this when the consumer specifically wants the variables (e.g. the
+ * "Test prompt" dialog feeds these into `agentmark run-prompt --props '<json>'`).
  *
  * Returns `null` when the span carries no props.
  */
@@ -218,8 +237,8 @@ export function extractSpanTemplateProps(
 export function getSpanInputKind(span: SpanLike | null | undefined): DatasetInputKind {
   if (!span?.data) return null;
   const d = span.data;
-  const name = span.name || "";
-  if (name.startsWith("invoke_agent") && d.props) return "props";
+  // Mirror extractSpanInput: usable template variables win over the messages.
+  if (parseUsableProps(d)) return "props";
   if (d.toolCalls) return "tool call";
   if (d.input) {
     // Distinguish function IO (from @observe) vs chat messages
@@ -227,6 +246,5 @@ export function getSpanInputKind(span: SpanLike | null | undefined): DatasetInpu
     if (isMessagesArray(parsed)) return "messages";
     return "IO";
   }
-  if (d.props) return "props";
   return null;
 }
