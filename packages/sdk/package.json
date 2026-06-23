@@ -1,6 +1,6 @@
 {
   "name": "@agentmark-ai/sdk",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "description": "SDK for communicating with the Agentmark hosted platform",
@@ -26,7 +26,7 @@
     "@opentelemetry/semantic-conventions": "^1.28.0"
   },
   "devDependencies": {
-    "@agentmark-ai/prompt-core": "1.2.2",
+    "@agentmark-ai/prompt-core": "1.2.3",
     "@mastra/core": "^0.13.2",
     "@sentry/node": "^10.0.0",
     "@types/node": "^20.0.0",
