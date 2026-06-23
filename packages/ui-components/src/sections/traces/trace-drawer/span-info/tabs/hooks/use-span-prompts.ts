@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useTraceDrawerContext } from "../../../trace-drawer-provider";
 import { useSelectedSpanIO, mergeSpanIO } from "../../../hooks/use-selected-span-io";
 import { LLMPrompt } from "@/sections/traces/types";
+import { extractSpanTemplateProps } from "@/sections/traces/utils/extract-span-data";
 import type { RetrievalDocumentView } from "../input-output-tab/retrieval-documents";
 
 // Re-exported for backward compatibility — the canonical declaration moved to
@@ -20,6 +21,9 @@ interface UseSpanPromptsResult {
   } | null;
   /** JSON array of offloaded field pointers from the effective (IO-hydrated) span. */
   blobRefs?: string;
+  /** The prompt's template variables (frontmatter props) for the "Variables"
+   *  input view — null when the span carries no props (e.g. run-prompt spans). */
+  templateProps: Record<string, unknown> | null;
   isLoading: boolean;
   isLoadingIO: boolean;
 }
@@ -318,9 +322,18 @@ export const useSpanPrompts = (): UseSpanPromptsResult => {
     return extractOutputFromSpan(effectiveSpan);
   }, [effectiveSpan]);
 
+  // Template variables (frontmatter props) for the "Variables" input view —
+  // the structured props the prompt was rendered with, distinct from the
+  // rendered chat messages above. From the effective (IO-hydrated) span.
+  const templateProps = useMemo(
+    () => extractSpanTemplateProps(effectiveSpan),
+    [effectiveSpan],
+  );
+
   return {
     prompts,
     outputData,
+    templateProps,
     // From the effective span so it reflects the lazily-hydrated IO (the raw
     // selectedSpan has no blobRefs until merge) — drives OffloadedOutput.
     blobRefs: effectiveSpan?.data?.blobRefs,

@@ -38,6 +38,7 @@ import {
   Snackbar,
 } from "@mui/material";
 import { useState, useCallback } from "react";
+import { TabContext } from "@mui/lab";
 
 const meta: Meta<typeof DrawerTrigger> = {
   title: "Sections/TraceDrawer",
@@ -387,6 +388,48 @@ export const TabLayout: Story = {
       description: {
         story:
           "Tab-based layout following industry patterns. TraceTree is always visible for navigation. Main area has Timeline, Graph, and Details tabs. Clicking a span in Timeline or Graph auto-switches to the Details tab.",
+      },
+    },
+  },
+};
+
+/**
+ * The Input/Output tab for an AgentMark prompt (GENERATION) span that carries
+ * template variables (props). The variables render as their own labeled
+ * "Variables" panel above the rendered messages — a separate section, mirroring
+ * how the ecosystem surfaces variables (Phoenix's "Inputs" panel, OpenInference
+ * `llm.prompt_template.variables`) distinct from the messages, rather than
+ * toggled against them. Layout: Variables → Messages → Output.
+ */
+function InputVariablesDemo() {
+  return (
+    <TraceDrawerProvider traces={traceData} t={(key) => key}>
+      <SpanInfoProvider>
+        <Box
+          sx={{
+            width: 760,
+            p: 2,
+            backgroundColor: "#fff",
+            border: "1px solid #e0e0e0",
+            borderRadius: 1,
+          }}
+        >
+          <TabContext value="inputOutput">
+            <InputOutputTab />
+          </TabContext>
+        </Box>
+      </SpanInfoProvider>
+    </TraceDrawerProvider>
+  );
+}
+
+export const InputWithVariables: Story = {
+  render: () => <InputVariablesDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The Input/Output tab showing template variables (props) as their own labeled panel above the rendered messages, then the output.",
       },
     },
   },
