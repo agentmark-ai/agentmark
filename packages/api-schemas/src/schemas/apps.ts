@@ -10,8 +10,12 @@
  * Deployment-related columns on the underlying `app` table
  * (`fly_app_name`, `fly_machine_id`, `fly_machine_url`, `commit_sha`)
  * are exposed read-only — they're managed by the deploy orchestrator,
- * not by callers. Only `name`, `entry_point`, and `runtime` are
- * writable through this surface.
+ * not by callers. Only `name`, `display_name`, `entry_point`, and
+ * `runtime` are writable through this surface.
+ *
+ * `name` is the URL-stable slug (unique per tenant); `display_name` is
+ * the optional free-form label shown in the UI, falling back to `name`
+ * when unset.
  */
 
 import { z } from "zod";
@@ -38,6 +42,7 @@ export type AppRuntime = (typeof APP_RUNTIME_VALUES)[number];
 
 export const CreateAppBodySchema = z.object({
   name: z.preprocess(stripNullBytes, z.string().min(1).max(100)),
+  display_name: z.preprocess(stripNullBytes, z.string().max(100)).optional(),
   runtime: z.enum(APP_RUNTIME_VALUES).optional(),
   entry_point: z.preprocess(stripNullBytes, z.string().max(255)).optional(),
 });
@@ -52,6 +57,8 @@ export const CreateAppBodySchema = z.object({
 
 const UpdateAppBodyBase = z.object({
   name: z.preprocess(stripNullBytes, z.string().min(1).max(100)).optional(),
+  // Nullable so callers can clear it and fall back to `name` in the UI.
+  display_name: z.preprocess(stripNullBytes, z.string().max(100)).nullable().optional(),
   runtime: z.enum(APP_RUNTIME_VALUES).optional(),
   entry_point: z.preprocess(stripNullBytes, z.string().max(255)).nullable().optional(),
 });
@@ -79,6 +86,7 @@ export const AppSchema = z.object({
   id: z.string().uuid(),
   tenant_id: z.string().uuid(),
   name: z.string(),
+  display_name: z.string().nullable(),
   runtime: z.enum(APP_RUNTIME_VALUES).nullable(),
   entry_point: z.string().nullable(),
   commit_sha: z.string().nullable(),
