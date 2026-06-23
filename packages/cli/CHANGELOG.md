@@ -1,3 +1,10 @@
+## 0.27.4 (2026-06-23)
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/ui-components to 0.13.2
+- Updated @agentmark-ai/prompt-core to 1.2.1
+
 ## 0.27.3 (2026-06-22)
 
 ### 🩹 Fixes
