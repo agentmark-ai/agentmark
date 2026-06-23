@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.agentmark-ai/mcp-server",
+  "description": "Inspect local agentmark dev traces and drive AgentMark Cloud — apps, metrics, experiments, deployments — via tools auto-generated from the gateway OpenAPI.",
+  "repository": {
+    "url": "https://github.com/agentmark-ai/agentmark",
+    "source": "github"
+  },
+  "version": "0.2.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@agentmark-ai/mcp-server",
+      "version": "0.2.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AGENTMARK_API_KEY",
+          "description": "App-scoped API key for CI/automation. Optional — you can instead authenticate with the session bearer written by `agentmark login`.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "AGENTMARK_API_URL",
+          "description": "AgentMark gateway base URL.",
+          "isRequired": false,
+          "default": "https://api.agentmark.co"
+        }
+      ]
+    }
+  ]
+}
