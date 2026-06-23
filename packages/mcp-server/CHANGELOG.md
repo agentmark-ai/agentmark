@@ -1,3 +1,9 @@
+## 0.4.2 (2026-06-23)
+
+### 🩹 Fixes
+
+- Shorten the MCP server's `server.json` description to satisfy the official MCP Registry's 100-character limit on `description`. The 0.4.1 registry publish was rejected with a 422 validation error (`body.description: expected length <= 100`); the next release republishes with a compliant description. ([#831](https://github.com/agentmark-ai/agentmark/pull/831))
+
 ## 0.4.1 (2026-06-23)
 
 ### 🩹 Fixes
