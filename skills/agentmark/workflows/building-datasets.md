@@ -76,6 +76,13 @@ agent: import_dataset_rows_from_spans({  datasetName: "qa-bot/data",
 
 This is the canonical pattern for building a regression dataset from observed failures. The transformation rules (how trace I/O maps to dataset row shape) are documented at `https://docs.agentmark.co/evaluate/annotations.md` — see the "Save to dataset" section, which is the canonical home for the trace→row mapping (relocated from `evaluate/datasets.md`).
 
+**Reshape each imported row before you run it as a test.** The import mirrors the trace, not your test intent — a row captured from a failing trace is not yet a usable test case:
+
+- **`input`** comes back as the **rendered messages** the model received (a `[{role, content}]` array), not the prompt's props. Replace it with the props your prompt expects — the same `input` shape as the hand-authored rows above (e.g. `{"name": "Alice"}`) — or the prompt's `{props.*}` references resolve to nothing and the row tests garbage.
+- **`expected_output`** is the trace's **actual** output. When you are capturing a failure, that output *is* the bug — replace it with the **correct** answer you want to assert, or the eval "passes" against the wrong result.
+
+Reshaping is the step that turns a captured failure into a real regression test; skip it and you get confusing failures or a false pass.
+
 ### 3. Append programmatically
 
 ```bash
