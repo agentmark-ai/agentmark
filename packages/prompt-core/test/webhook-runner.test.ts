@@ -193,6 +193,99 @@ describe("WebhookRunner — streaming text wire (synthetic executor)", () => {
   });
 });
 
+// ── a streamed run that errors marks the span ERROR ───────────────────────────
+//
+// Regression guard: a streaming run used to report an executor error as a wire
+// chunk but leave the span status OK — so a failed prod run looked successful in
+// the trace. The non-streaming path already throws through the span hook; these
+// pin the streaming paths (text + object) to the same contract: the error chunk
+// is STILL emitted to the caller AND the span hook sees the callback throw.
+
+/**
+ * A promptSpanHook spy that runs the runner's span callback and records whether
+ * it threw. Throwing through the hook is exactly how the real adapter marks the
+ * span ERROR, so `state.errored` is a faithful proxy for "span status = ERROR".
+ * For a streamed run the callback only settles once the stream is drained, so
+ * the spy exposes `done` for the test to await after draining.
+ */
+function makeErrorSpy() {
+  const stub: SpanLike = { traceId: "t-err", setAttribute: () => {} };
+  const state: { errored: boolean; error: unknown } = { errored: false, error: undefined };
+  let settle!: () => void;
+  const done = new Promise<void>((r) => {
+    settle = r;
+  });
+  const hook = (async (_params: unknown, fn: (span: SpanLike) => Promise<unknown>) => {
+    try {
+      const result = await fn(stub);
+      settle();
+      return { result, traceId: stub.traceId };
+    } catch (e) {
+      state.errored = true;
+      state.error = e;
+      settle();
+      return { traceId: stub.traceId };
+    }
+  }) as unknown as PromptSpanHook;
+  return { hook, state, done };
+}
+
+describe("WebhookRunner — a streamed run that errors marks the span ERROR", () => {
+  it("object: a yielded error still emits the error chunk AND marks the span ERROR", async () => {
+    const exec = makeExecutor({
+      async *object() {
+        yield { type: "error", error: "router rejected category" };
+      },
+    });
+    const { hook, state, done } = makeErrorSpy();
+    const runner = new WebhookRunner(makeClient([]), exec, { promptSpanHook: hook });
+    const res: any = await runner.runPrompt(OBJECT_AST, { shouldStream: true });
+    const lines = await drain(res.stream);
+    await done;
+    // Wire contract unchanged — the error still reaches the caller…
+    expect(lines).toEqual([{ type: "error", error: "router rejected category" }]);
+    // …and the span is now marked ERROR (the callback threw through the hook).
+    expect(state.errored).toBe(true);
+    expect((state.error as Error).message).toBe("router rejected category");
+  });
+
+  it("text: a THROWN executor still emits the error chunk AND marks the span ERROR", async () => {
+    const exec = makeExecutor({
+      // eslint-disable-next-line require-yield
+      async *text() {
+        throw new Error("boom-mid-stream");
+      },
+    });
+    const { hook, state, done } = makeErrorSpy();
+    const runner = new WebhookRunner(makeClient([]), exec, { promptSpanHook: hook });
+    const res: any = await runner.runPrompt(TEXT_AST, { shouldStream: true });
+    const lines = await drain(res.stream);
+    await done;
+    expect(lines).toEqual([{ type: "error", error: "boom-mid-stream" }]);
+    expect(state.errored).toBe(true);
+    expect((state.error as Error).message).toBe("boom-mid-stream");
+  });
+
+  it("a clean streamed run does NOT mark the span ERROR", async () => {
+    const exec = makeExecutor({
+      async *object() {
+        yield { type: "object-final", value: { category: "billing_disputes" } };
+        yield {
+          type: "finish",
+          reason: "stop",
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        };
+      },
+    });
+    const { hook, state, done } = makeErrorSpy();
+    const runner = new WebhookRunner(makeClient([]), exec, { promptSpanHook: hook });
+    const res: any = await runner.runPrompt(OBJECT_AST, { shouldStream: true });
+    await drain(res.stream);
+    await done;
+    expect(state.errored).toBe(false);
+  });
+});
+
 // ── HIGH #4 (C2): streaming OBJECT usage rides on finish ──────────────────────
 
 describe("WebhookRunner — streaming object usage-on-finish (BYO regression guard)", () => {
