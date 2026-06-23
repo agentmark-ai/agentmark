@@ -251,6 +251,20 @@ def _set_span_input(span: PromptSpan, formatted: Any) -> None:
         span.set_attribute("agentmark.input", json.dumps(serialized, default=str))
 
 
+def _set_span_props(span: PromptSpan, props: Any) -> None:
+    """Record the template variables as `agentmark.props` on the prompt span.
+
+    Mirrors the experiment item span: `agentmark.props` is the re-runnable
+    dataset input, so a `run-prompt --props` trace surfaces a Variables panel
+    and captures the variables (not the rendered messages) on "Add to dataset",
+    same as experiment runs. No-op when there are no props.
+    """
+    if props is None:
+        return
+    with suppress(Exception):
+        span.set_attribute("agentmark.props", json.dumps(props, default=str))
+
+
 def _compute_dataset_item_name(dataset_input: Any, index: int) -> str:
     """Canonical dataset item name — 12-char md5 of the sorted-keys JSON of
     the input, falling back to the raw index when there's nothing to hash.
@@ -615,6 +629,7 @@ class WebhookRunner:
                 else await prompt.format_with_test_props()
             )
             _set_span_input(span, formatted)
+            _set_span_props(span, custom_props)
             _set_span_model(span, prompt_ast)
             _classify_span_as_llm(span)
             ctx = ExecCtx(
@@ -683,6 +698,7 @@ class WebhookRunner:
                 else await prompt.format_with_test_props()
             )
             _set_span_input(span, formatted)
+            _set_span_props(span, custom_props)
             _set_span_model(span, prompt_ast)
             _classify_span_as_llm(span)
             ctx = ExecCtx(
@@ -759,6 +775,7 @@ class WebhookRunner:
                 extra={"span": span},
             )
             _set_span_input(span, formatted)
+            _set_span_props(span, custom_props)
             _set_span_model(span, prompt_ast)
             result = await execute_image(formatted, ctx)
             return self._with_trace_id(dict(result), ctx.trace_id)
@@ -797,6 +814,7 @@ class WebhookRunner:
                 extra={"span": span},
             )
             _set_span_input(span, formatted)
+            _set_span_props(span, custom_props)
             _set_span_model(span, prompt_ast)
             result = await execute_speech(formatted, ctx)
             return self._with_trace_id(dict(result), ctx.trace_id)

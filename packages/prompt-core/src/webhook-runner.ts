@@ -209,6 +209,22 @@ function setSpanInput(ctx: SpanLike, input: unknown): void {
 }
 
 /**
+ * Record the template variables the prompt was rendered with as
+ * `agentmark.props` — the re-runnable dataset input, mirroring the experiment
+ * item span. Lets `run-prompt --props` traces surface a Variables panel and
+ * capture the variables (not the rendered messages) on "Add to dataset", same
+ * as experiment runs. No-op when there are no props.
+ */
+function setSpanProps(ctx: SpanLike, props: unknown): void {
+  if (props == null) return;
+  try {
+    ctx.setAttribute("agentmark.props", JSON.stringify(props));
+  } catch {
+    /* tracing must never break the run */
+  }
+}
+
+/**
  * Record the prompt's output on the span as `agentmark.output` (the key the
  * normalizer reads as the output fallback). For image/speech prompts this is
  * what carries the generated media (`{mimeType, base64}`) into the trace so
@@ -526,6 +542,7 @@ export class WebhookRunner<
         },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
+          setSpanProps(ctx, options?.customProps);
           setSpanModel(ctx, frontmatter);
           classifySpanAsLlm(ctx);
           const ctxExec: ExecCtx = {
@@ -635,6 +652,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanProps(ctx, options?.customProps);
         setSpanModel(ctx, frontmatter);
         classifySpanAsLlm(ctx);
         const ctxExec: ExecCtx = {
@@ -739,6 +757,7 @@ export class WebhookRunner<
         },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
+          setSpanProps(ctx, options?.customProps);
           setSpanModel(ctx, frontmatter);
           classifySpanAsLlm(ctx);
           const ctxExec: ExecCtx = {
@@ -847,6 +866,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanProps(ctx, options?.customProps);
         setSpanModel(ctx, frontmatter);
         classifySpanAsLlm(ctx);
         const ctxExec: ExecCtx = {
@@ -931,6 +951,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanProps(ctx, options?.customProps);
         setSpanModel(ctx, frontmatter);
         const ctxExec: ExecCtx = {
           telemetry,
@@ -975,6 +996,7 @@ export class WebhookRunner<
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
+        setSpanProps(ctx, options?.customProps);
         setSpanModel(ctx, frontmatter);
         const ctxExec: ExecCtx = {
           telemetry,
