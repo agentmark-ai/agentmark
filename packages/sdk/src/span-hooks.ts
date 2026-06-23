@@ -42,6 +42,7 @@ export const agentmarkPromptSpanHook: PromptSpanHook = async <T>(
     {
       name: params.name,
       promptName: params.promptName,
+      promptPath: params.promptPath,
       // Same metadata key the experiment hook emits, so the normalizer
       // promotes it to NormalizedSpan.commitSha on regular runs too.
       metadata: params.commitSha ? { commit_sha: params.commitSha } : undefined,
@@ -65,6 +66,7 @@ export const agentmarkExperimentItemSpanHook: ExperimentItemSpanHook = async <T>
     {
       name: `experiment-${params.datasetRunName}-${params.index}`,
       promptName: params.promptName,
+      promptPath: params.promptPath,
       datasetRunId: params.experimentRunId,
       datasetRunName: params.datasetRunName,
       datasetItemName: params.datasetItemName,

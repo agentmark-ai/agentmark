@@ -69,6 +69,8 @@ class ExperimentItemParams:
     dataset_input: Any
     dataset_expected_output: Any
     commit_sha: str | None
+    # Folder-aware prompt path; see ``PromptSpanParams.prompt_path``.
+    prompt_path: str | None = None
 
 
 class ExperimentItemSpan(Protocol):
@@ -100,6 +102,11 @@ class PromptSpanParams:
     # ``ExperimentItemParams.commit_sha``. Defaults to ``None`` so existing
     # hook implementations and call sites stay source-compatible.
     commit_sha: str | None = None
+    # Folder-aware prompt path (e.g. ``agentmark/support/triage.prompt.mdx``).
+    # The flat frontmatter ``name`` collides across folders, so the path is what
+    # uniquely resolves a prompt. Forwarded from the webhook request's
+    # ``promptPath``. Mirrors TS ``PromptSpanParams.promptPath``.
+    prompt_path: str | None = None
 
 
 class PromptSpan(Protocol):
@@ -555,25 +562,29 @@ class WebhookRunner:
         telemetry = options.get("telemetry")
         prompt_name = frontmatter.get("name") if isinstance(frontmatter, dict) else None
         commit_sha = _commit_sha_from_frontmatter(frontmatter)
+        # Folder-aware prompt path — sourced from the request options (the
+        # dispatch forwards the webhook body's ``promptPath``), unlike commit_sha
+        # which is read from the AST frontmatter. Mirrors TS RunPromptOptions.
+        prompt_path = options.get("promptPath")
 
         # Use `in` rather than `.get(...)` — an empty config dict is valid
         # (users sometimes declare just `text_config: {}` to pick up
         # adapter defaults) but `{}` is falsy via .get().
         if "object_config" in frontmatter:
             return await self._run_object(
-                prompt_ast, should_stream, custom_props, telemetry, prompt_name, commit_sha
+                prompt_ast, should_stream, custom_props, telemetry, prompt_name, commit_sha, prompt_path
             )
         if "text_config" in frontmatter:
             return await self._run_text(
-                prompt_ast, should_stream, custom_props, telemetry, prompt_name, commit_sha
+                prompt_ast, should_stream, custom_props, telemetry, prompt_name, commit_sha, prompt_path
             )
         if "image_config" in frontmatter:
             return await self._run_image(
-                prompt_ast, custom_props, telemetry, prompt_name, commit_sha
+                prompt_ast, custom_props, telemetry, prompt_name, commit_sha, prompt_path
             )
         if "speech_config" in frontmatter:
             return await self._run_speech(
-                prompt_ast, custom_props, telemetry, prompt_name, commit_sha
+                prompt_ast, custom_props, telemetry, prompt_name, commit_sha, prompt_path
             )
         raise ValueError(
             "Invalid prompt: no text_config, object_config, image_config, or speech_config found"
@@ -587,13 +598,14 @@ class WebhookRunner:
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
         commit_sha: str | None = None,
+        prompt_path: str | None = None,
     ) -> dict[str, Any]:
         # The span is entered manually (not `async with`) because on the
         # streaming path its ownership transfers to the NDJSON generator:
         # the span must end when the stream drains, not when this method
         # returns the stream object — otherwise the span closes before the
         # model call runs and the model spans land in a separate trace.
-        span_cm = self._prompt_span(prompt_name, commit_sha)
+        span_cm = self._prompt_span(prompt_name, commit_sha, prompt_path)
         span = await span_cm.__aenter__()
         try:
             prompt = await self._client.load_text_prompt(prompt_ast)
@@ -657,10 +669,11 @@ class WebhookRunner:
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
         commit_sha: str | None = None,
+        prompt_path: str | None = None,
     ) -> dict[str, Any]:
         # See _run_text for why the span is entered manually: streaming
         # transfers span ownership to the NDJSON generator.
-        span_cm = self._prompt_span(prompt_name, commit_sha)
+        span_cm = self._prompt_span(prompt_name, commit_sha, prompt_path)
         span = await span_cm.__aenter__()
         try:
             prompt = await self._client.load_object_prompt(prompt_ast)
@@ -719,6 +732,7 @@ class WebhookRunner:
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
         commit_sha: str | None = None,
+        prompt_path: str | None = None,
     ) -> dict[str, Any]:
         if not self._executor.capabilities().image:
             raise ValueError(
@@ -730,7 +744,7 @@ class WebhookRunner:
                 f"Executor '{self._executor.name}' does not implement execute_image()."
             )
 
-        async with self._prompt_span(prompt_name, commit_sha) as span:
+        async with self._prompt_span(prompt_name, commit_sha, prompt_path) as span:
             prompt = await self._client.load_image_prompt(prompt_ast)
             formatted = (
                 await prompt.format(props=custom_props, telemetry=telemetry)
@@ -756,6 +770,7 @@ class WebhookRunner:
         telemetry: dict[str, Any] | None,
         prompt_name: str | None,
         commit_sha: str | None = None,
+        prompt_path: str | None = None,
     ) -> dict[str, Any]:
         if not self._executor.capabilities().speech:
             raise ValueError(
@@ -767,7 +782,7 @@ class WebhookRunner:
                 f"Executor '{self._executor.name}' does not implement execute_speech()."
             )
 
-        async with self._prompt_span(prompt_name, commit_sha) as span:
+        async with self._prompt_span(prompt_name, commit_sha, prompt_path) as span:
             prompt = await self._client.load_speech_prompt(prompt_ast)
             formatted = (
                 await prompt.format(props=custom_props, telemetry=telemetry)
@@ -788,13 +803,17 @@ class WebhookRunner:
 
     @asynccontextmanager
     async def _prompt_span(
-        self, prompt_name: str | None, commit_sha: str | None = None
+        self,
+        prompt_name: str | None,
+        commit_sha: str | None = None,
+        prompt_path: str | None = None,
     ) -> AsyncIterator[PromptSpan]:
         async with self._prompt_span_hook(
             PromptSpanParams(
                 name=prompt_name or "prompt-run",
                 prompt_name=prompt_name,
                 commit_sha=commit_sha,
+                prompt_path=prompt_path,
             )
         ) as span:
             yield span
@@ -896,6 +915,7 @@ class WebhookRunner:
         *,
         item_span_hook: ExperimentItemSpanHook | None = None,
         commit_sha: str | None = None,
+        prompt_path: str | None = None,
         concurrency: int | None = None,
     ) -> dict[str, Any]:
         """Run a prompt across a dataset, emitting per-item NDJSON chunks.
@@ -945,6 +965,7 @@ class WebhookRunner:
                 prompt_name,
                 hook,
                 commit_sha,
+                prompt_path,
                 concurrency,
             ),
             "streamHeaders": {"AgentMark-Streaming": "true"},
@@ -962,6 +983,7 @@ class WebhookRunner:
         prompt_name: str | None,
         item_span_hook: ExperimentItemSpanHook,
         commit_sha: str | None,
+        prompt_path: str | None,
         concurrency: int | None,
     ) -> AsyncIterator[str]:
         if kind == "text":
@@ -1060,6 +1082,7 @@ class WebhookRunner:
                 dataset_input=input_data,
                 dataset_expected_output=expected,
                 commit_sha=commit_sha,
+                prompt_path=prompt_path,
             )
 
             trace_id: str | None = None

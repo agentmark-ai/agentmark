@@ -50,6 +50,48 @@ export function findProjectRoot(startDir: string): string {
   }
 }
 
+/**
+ * Resolve the agentmark templates root for a project — the directory prompts
+ * are addressed RELATIVE TO. Default `<projectRoot>/agentmark`; when
+ * `agentmark.json` sets `agentmarkPath`, it's `<projectRoot>/<agentmarkPath>/agentmark`.
+ * Mirrors the dev server's resolution (api-server.ts) so a path computed here
+ * matches how the server looks a prompt up.
+ */
+export function resolveAgentmarkTemplatesBase(projectRoot: string): string {
+  let base = path.join(projectRoot, 'agentmark');
+  try {
+    const jsonPath = path.join(projectRoot, 'agentmark.json');
+    if (fs.existsSync(jsonPath)) {
+      const cfg = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      if (cfg?.agentmarkPath) {
+        base = path.join(projectRoot, cfg.agentmarkPath, 'agentmark');
+      }
+    }
+  } catch {
+    // Fall back to `<projectRoot>/agentmark` on any read/parse error.
+  }
+  return base;
+}
+
+/**
+ * The prompt's path RELATIVE TO THE AGENTMARK TEMPLATES ROOT, forward-slashed
+ * (e.g. `support/triage.prompt.mdx`). This is the key prompts are searched by
+ * (parent_path + name + extension), so it's what rides on traces as
+ * `agentmark.prompt_path`. Returns undefined when the file is outside the
+ * agentmark root (not addressable by a root-relative path).
+ */
+export function promptPathFromAgentmarkRoot(
+  resolvedFilepath: string
+): string | undefined {
+  const projectRoot = findProjectRoot(path.dirname(resolvedFilepath));
+  const base = resolveAgentmarkTemplatesBase(projectRoot);
+  const rel = path.relative(base, resolvedFilepath).split(path.sep).join('/');
+  if (!rel || rel.startsWith('../') || path.isAbsolute(rel)) {
+    return undefined;
+  }
+  return rel;
+}
+
 function getConfigPath(): string {
   // Use temp directory during tests to avoid polluting the project
   if (process.env.NODE_ENV === 'test' || process.env.VITEST) {

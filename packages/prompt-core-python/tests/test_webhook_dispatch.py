@@ -79,6 +79,7 @@ class _RecordingHandler:
         sampling: dict[str, Any] | None = None,
         *,
         commit_sha: str | None = None,
+        prompt_path: str | None = None,
         concurrency: int | None = None,
     ) -> dict[str, Any]:
         self.calls.append(
@@ -89,6 +90,7 @@ class _RecordingHandler:
                 dataset_path,
                 sampling,
                 commit_sha,
+                prompt_path,
                 concurrency,
             )
         )
@@ -155,11 +157,26 @@ async def test_prompt_run_delegates_with_normalized_options() -> None:
     handler = _RecordingHandler()
     ast = {"name": "p"}
     await handle_webhook_request(
-        {"type": "prompt-run", "data": {"ast": ast, "customProps": {"x": 1}}},
+        {
+            "type": "prompt-run",
+            "data": {
+                "ast": ast,
+                "customProps": {"x": 1},
+                "promptPath": "agentmark/p.prompt.mdx",
+            },
+        },
         handler,
     )
     assert handler.calls == [
-        ("run_prompt", ast, {"shouldStream": True, "customProps": {"x": 1}})
+        (
+            "run_prompt",
+            ast,
+            {
+                "shouldStream": True,
+                "customProps": {"x": 1},
+                "promptPath": "agentmark/p.prompt.mdx",
+            },
+        )
     ]
 
 
@@ -172,7 +189,11 @@ async def test_prompt_run_threads_should_stream_false() -> None:
         },
         handler,
     )
-    assert handler.calls[0][2] == {"shouldStream": False, "customProps": None}
+    assert handler.calls[0][2] == {
+        "shouldStream": False,
+        "customProps": None,
+        "promptPath": None,
+    }
 
 
 async def test_dataset_run_delegates_with_all_experiment_args() -> None:
@@ -187,15 +208,26 @@ async def test_dataset_run_delegates_with_all_experiment_args() -> None:
                 "datasetPath": "data/qa.jsonl",
                 "sampling": {"percent": 20},
                 "commitSha": "abc123",
+                "promptPath": "agentmark/qa/eval.prompt.mdx",
                 "concurrency": 5,
             },
         },
         handler,
     )
-    # Positional parity with the adapter dev server — sampling/commit/concurrency
-    # must be forwarded, not dropped (the old hand-rolled handler dropped them).
+    # Positional parity with the adapter dev server — sampling/commit/promptPath/
+    # concurrency must be forwarded, not dropped (the old hand-rolled handler
+    # dropped them).
     assert handler.calls == [
-        ("run_experiment", ast, "exp-1", "data/qa.jsonl", {"percent": 20}, "abc123", 5)
+        (
+            "run_experiment",
+            ast,
+            "exp-1",
+            "data/qa.jsonl",
+            {"percent": 20},
+            "abc123",
+            "agentmark/qa/eval.prompt.mdx",
+            5,
+        )
     ]
 
 

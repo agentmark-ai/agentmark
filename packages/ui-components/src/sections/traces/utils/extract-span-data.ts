@@ -124,6 +124,63 @@ export function extractSpanPromptName(span: SpanLike | null | undefined): string
 }
 
 /**
+ * Extract the prompt PATH (agentmark-root-relative, e.g.
+ * `support/triage.prompt.mdx`) from a span — the folder-aware id carried on the
+ * `agentmark.prompt_path` attribute. Unlike `extractSpanPromptName` (the flat
+ * frontmatter `name`, which collides across folders), this uniquely resolves
+ * the prompt, so it's what a "view prompt" link keys off. Accepts the
+ * normalized `data.promptPath` and the raw column form `prompt_path`. Returns
+ * `null` when absent.
+ */
+export function extractSpanPromptPath(span: SpanLike | null | undefined): string | null {
+  const d = span?.data;
+  if (!d) return null;
+  const value = (d as { promptPath?: unknown }).promptPath
+    ?? (d as { prompt_path?: unknown }).prompt_path;
+  if (typeof value === "string" && value.length > 0) return value;
+  // Fallback: read the raw OTel attribute. Hosts that carry the ClickHouse
+  // SpanAttributes map (e.g. the dashboard) get it without promoting a column.
+  return readRawSpanAttribute(d, "agentmark.prompt_path");
+}
+
+/**
+ * Read a single attribute from a span's raw `data.attributes` JSON map (the
+ * form hosts reading ClickHouse `SpanAttributes` carry). Returns null on
+ * absence or parse failure.
+ */
+function readRawSpanAttribute(
+  data: Record<string, unknown>,
+  key: string
+): string | null {
+  const raw = (data as { attributes?: unknown }).attributes;
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const v = parsed?.[key];
+    return typeof v === "string" && v.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract the commit sha the prompt content was served at (the prompt
+ * VERSION), from `data.commitSha` / `commit_sha`. Pairs with
+ * `extractSpanPromptPath` to link to an exact prompt version. Returns `null`
+ * when absent.
+ */
+export function extractSpanCommitSha(span: SpanLike | null | undefined): string | null {
+  const d = span?.data;
+  if (!d) return null;
+  const value = (d as { commitSha?: unknown }).commitSha
+    ?? (d as { commit_sha?: unknown }).commit_sha;
+  if (typeof value === "string" && value.length > 0) return value;
+  // Fallback to the raw attribute — the SDK emits the served commit under the
+  // metadata key (`agentmark.metadata.commit_sha`).
+  return readRawSpanAttribute(d, "agentmark.metadata.commit_sha");
+}
+
+/**
  * Extract the *template variables* (frontmatter `props`) used to render
  * this span's prompt — distinct from `extractSpanInput`, which returns the
  * rendered chat messages for GENERATION spans.

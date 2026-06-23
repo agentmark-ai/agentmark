@@ -168,6 +168,14 @@ export type SpanOptions = {
    * column. Same attribute key the Python SDK sets (`trace.py`).
    */
   promptName?: string;
+  /**
+   * Project-relative prompt path (e.g. `agentmark/support/triage.prompt.mdx`) —
+   * emitted as the `agentmark.prompt_path` attribute. The folder-aware
+   * identifier: `promptName` (frontmatter `name`) is flat and collides across
+   * folders, so the path is what uniquely resolves the prompt and lets the
+   * trace surface link to it. Same attribute key the Python SDK sets.
+   */
+  promptPath?: string;
   sessionId?: string;
   sessionName?: string;
   userId?: string;
@@ -296,6 +304,9 @@ function setAgentmarkAttributes(otelSpan: Span, options: SpanOptions): void {
 
   if (options.promptName) {
     otelSpan.setAttribute(`${AgentMarkKey}.prompt_name`, options.promptName);
+  }
+  if (options.promptPath) {
+    otelSpan.setAttribute(`${AgentMarkKey}.prompt_path`, options.promptPath);
   }
   if (options.sessionId) {
     otelSpan.setAttribute(`${AgentMarkKey}.session_id`, options.sessionId);

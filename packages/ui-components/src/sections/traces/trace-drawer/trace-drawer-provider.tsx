@@ -28,6 +28,12 @@ export interface TraceDrawerContextValue {
   /** Fetch the full content of an offloaded field payload by its blob_id. */
   fetchBlob?: (path: string) => Promise<string | null>;
   navigateToFile?: (filePath: string) => void;
+  /**
+   * Build a URL to the prompt's version page from its agentmark-root-relative
+   * path (+ served commit). When provided and the span carries an
+   * `agentmark.prompt_path`, the span header shows a "View prompt" link.
+   */
+  promptHref?: (promptPath: string, commitSha?: string) => string | undefined;
   traceId?: string;
   setSelectedSpanId: (spanId: string) => void;
   treeHeight: number;
@@ -60,6 +66,7 @@ export interface TraceDrawerProviderProps {
   fetchSpanIO?: (traceId: string, spanId: string) => Promise<SpanIOData | null>;
   fetchBlob?: (path: string) => Promise<string | null>;
   navigateToFile?: (filePath: string) => void;
+  promptHref?: (promptPath: string, commitSha?: string) => string | undefined;
   t: (key: string) => string;
   onSpanChange?: (span: SpanData | null) => void;
 }
@@ -89,6 +96,8 @@ function mergeRootSpanData(rootSpans: any[], trace: TraceData, traceData?: Recor
     model: rootSpanData.model,
     props: rootSpanData.props,
     promptName: rootSpanData.promptName,
+    promptPath: rootSpanData.promptPath,
+    commitSha: rootSpanData.commitSha,
     inputTokens: rootSpanData.inputTokens,
     outputTokens: rootSpanData.outputTokens,
     totalTokens: rootSpanData.totalTokens,
@@ -114,6 +123,7 @@ export const TraceDrawerProvider = ({
   fetchSpanEvaluations,
   fetchSpanIO,
   fetchBlob,
+  promptHref,
   t,
   onSpanChange,
 }: TraceDrawerProviderProps & { children: ReactNode }) => {
@@ -303,6 +313,7 @@ export const TraceDrawerProvider = ({
     isDragging,
     t,
     onSpanChange,
+    promptHref,
     showSessionOverview,
   }), [
     traces,
@@ -319,6 +330,7 @@ export const TraceDrawerProvider = ({
     isDragging,
     t,
     onSpanChange,
+    promptHref,
     showSessionOverview,
   ]);
 

@@ -79,6 +79,7 @@ class WebhookHandler(Protocol):
         dataset_path: str | None = ...,
         sampling: dict[str, Any] | None = ...,
         commit_sha: str | None = ...,
+        prompt_path: str | None = ...,
         concurrency: int | None = ...,
     ) -> Any: ...
 
@@ -136,6 +137,9 @@ async def handle_webhook_request(
         options = {
             "shouldStream": (data.get("options") or {}).get("shouldStream", True),
             "customProps": data.get("customProps"),
+            # Folder-aware prompt path (when supplied) → echoed onto the span as
+            # ``agentmark.prompt_path``. The flat ``name`` collides across folders.
+            "promptPath": data.get("promptPath"),
         }
         return await handler.run_prompt(data["ast"], options)
 
@@ -151,6 +155,7 @@ async def handle_webhook_request(
             data.get("datasetPath"),
             data.get("sampling"),
             commit_sha=data.get("commitSha"),
+            prompt_path=data.get("promptPath"),
             concurrency=data.get("concurrency"),
         )
 

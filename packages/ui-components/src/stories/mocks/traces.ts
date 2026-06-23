@@ -121,6 +121,8 @@ export const traceData: TraceData[] = [
           userId: "user-123",
           traceName: "ds-run-test-2",
           promptName: "customer-feedback-analyzer",
+          promptPath: "support/customer-feedback-analyzer.prompt.mdx",
+          commitSha: "abc1234def5678",
           props: JSON.stringify({
             customer_question: "How do I return a product that I purchased last week?",
           }),

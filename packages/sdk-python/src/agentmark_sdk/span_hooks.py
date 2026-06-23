@@ -59,6 +59,7 @@ async def _item_span(params: Any) -> Any:
         dataset_expected_output=dataset_expected,
         dataset_input=dataset_input_json,
         dataset_path=params.dataset_path,
+        prompt_path=getattr(params, "prompt_path", None),
         metadata={"commit_sha": params.commit_sha} if params.commit_sha else None,
     )
     async with span_context(options) as ctx:
@@ -79,6 +80,7 @@ async def _prompt_span(params: Any) -> Any:
     options = SpanOptions(
         name=params.name,
         prompt_name=params.prompt_name,
+        prompt_path=getattr(params, "prompt_path", None),
         metadata={"commit_sha": commit_sha} if commit_sha else None,
     )
     async with span_context(options) as ctx:

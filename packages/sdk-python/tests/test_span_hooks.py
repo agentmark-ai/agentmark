@@ -52,7 +52,10 @@ async def test_prompt_span_forwards_commit_sha_and_prompt_name() -> None:
     try:
         hooks = create_agentmark_span_hooks()
         params = SimpleNamespace(
-            name="greet-run", prompt_name="greet", commit_sha="abc123def456"
+            name="greet-run",
+            prompt_name="greet",
+            commit_sha="abc123def456",
+            prompt_path="agentmark/support/triage.prompt.mdx",
         )
         async with hooks["prompt_span_hook"](params):
             pass
@@ -63,6 +66,9 @@ async def test_prompt_span_forwards_commit_sha_and_prompt_name() -> None:
     options = captured[0]
     assert options.name == "greet-run"  # type: ignore[attr-defined]
     assert options.prompt_name == "greet"  # type: ignore[attr-defined]
+    assert (  # type: ignore[attr-defined]
+        options.prompt_path == "agentmark/support/triage.prompt.mdx"
+    )
     assert options.metadata == {"commit_sha": "abc123def456"}  # type: ignore[attr-defined]
 
 

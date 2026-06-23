@@ -42,6 +42,15 @@ export interface PromptSpanParams {
    * — not just the prompt name. Mirrors `ExperimentItemParams.commitSha`.
    */
   commitSha?: string;
+  /**
+   * Project-relative path of the prompt file (e.g.
+   * `agentmark/support/triage.prompt.mdx`). The folder-AWARE identifier:
+   * `promptName` (frontmatter `name`) is flat and collides across folders
+   * (platform uniqueness is `(app_id, name, parent_path, file_extension)`), so
+   * the path is what uniquely resolves a prompt and lets the trace surface link
+   * to the exact prompt. Forwarded from the webhook request's `promptPath`.
+   */
+  promptPath?: string;
 }
 
 export interface ExperimentItemParams {
@@ -49,6 +58,8 @@ export interface ExperimentItemParams {
   index: number;
   /** Prompt name from frontmatter. */
   promptName?: string;
+  /** Project-relative prompt path — the folder-aware id; see `PromptSpanParams.promptPath`. */
+  promptPath?: string;
   /** User-visible run name (e.g. `"run-sampling"`). */
   datasetRunName: string;
   /** UUID assigned once per experiment invocation, shared across items. */

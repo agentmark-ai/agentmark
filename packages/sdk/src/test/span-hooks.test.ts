@@ -58,9 +58,14 @@ describe("agentmark span hooks — prompt-version linking", () => {
     }
   }
 
-  it("forwards promptName and commitSha onto the prompt-run span", async () => {
+  it("forwards promptName, promptPath, and commitSha onto the prompt-run span", async () => {
     const { result, traceId } = await agentmarkPromptSpanHook(
-      { name: "greet-run", promptName: "greet", commitSha: "abc123def456" },
+      {
+        name: "greet-run",
+        promptName: "greet",
+        commitSha: "abc123def456",
+        promptPath: "agentmark/support/triage.prompt.mdx",
+      },
       async (span) => {
         span.setAttribute("agentmark.output", "hi");
         return "done";
@@ -74,6 +79,9 @@ describe("agentmark span hooks — prompt-version linking", () => {
     const captured = findSpanByName("greet-run");
     expect(captured).not.toBeNull();
     expect(captured!.attrMap.get("agentmark.prompt_name")).toBe("greet");
+    expect(captured!.attrMap.get("agentmark.prompt_path")).toBe(
+      "agentmark/support/triage.prompt.mdx",
+    );
     expect(captured!.attrMap.get("agentmark.metadata.commit_sha")).toBe(
       "abc123def456",
     );
@@ -103,11 +111,12 @@ describe("agentmark span hooks — prompt-version linking", () => {
     expect(captured!.attrMap.has("agentmark.prompt_name")).toBe(false);
   });
 
-  it("experiment hook emits promptName + commit_sha the same way (parity)", async () => {
+  it("experiment hook emits promptName + promptPath + commit_sha the same way (parity)", async () => {
     await agentmarkExperimentItemSpanHook(
       {
         index: 0,
         promptName: "greet",
+        promptPath: "agentmark/support/triage.prompt.mdx",
         datasetRunName: "run-a",
         experimentRunId: "11111111-1111-1111-1111-111111111111",
         datasetItemName: "item-0",
@@ -120,6 +129,9 @@ describe("agentmark span hooks — prompt-version linking", () => {
     const captured = findSpanByName("experiment-run-a-0");
     expect(captured).not.toBeNull();
     expect(captured!.attrMap.get("agentmark.prompt_name")).toBe("greet");
+    expect(captured!.attrMap.get("agentmark.prompt_path")).toBe(
+      "agentmark/support/triage.prompt.mdx",
+    );
     expect(captured!.attrMap.get("agentmark.metadata.commit_sha")).toBe(
       "abc123def456",
     );

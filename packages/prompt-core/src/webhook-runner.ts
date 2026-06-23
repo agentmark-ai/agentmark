@@ -63,6 +63,9 @@ export interface RunPromptOptions {
   customProps?: Record<string, any>;
   telemetry?: { isEnabled: boolean; metadata?: Record<string, any> };
   signal?: AbortSignal;
+  /** Project-relative prompt path, echoed onto the span as
+   * `agentmark.prompt_path` (folder-aware id; see `PromptSpanParams.promptPath`). */
+  promptPath?: string;
 }
 
 /**
@@ -94,6 +97,9 @@ export interface WebhookExperimentOptions {
   /** Cancellation: when it fires, the pool stops dispatching new rows and
    * in-flight rows abort their SDK calls (threaded into each row's ExecCtx). */
   signal?: AbortSignal;
+  /** Project-relative prompt path, echoed onto each experiment item span as
+   * `agentmark.prompt_path` (folder-aware id; see `PromptSpanParams.promptPath`). */
+  promptPath?: string;
 }
 
 /**
@@ -516,6 +522,7 @@ export class WebhookRunner<
           name: spanName,
           promptName: frontmatter.name,
           commitSha: commitShaFromFrontmatter(frontmatter),
+          promptPath: options?.promptPath,
         },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
@@ -613,6 +620,7 @@ export class WebhookRunner<
         name: spanName,
         promptName: frontmatter.name,
         commitSha: commitShaFromFrontmatter(frontmatter),
+        promptPath: options?.promptPath,
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
@@ -716,6 +724,7 @@ export class WebhookRunner<
           name: spanName,
           promptName: frontmatter.name,
           commitSha: commitShaFromFrontmatter(frontmatter),
+          promptPath: options?.promptPath,
         },
         async (ctx: SpanLike) => {
           setSpanInput(ctx, input);
@@ -812,6 +821,7 @@ export class WebhookRunner<
         name: spanName,
         promptName: frontmatter.name,
         commitSha: commitShaFromFrontmatter(frontmatter),
+        promptPath: options?.promptPath,
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
@@ -895,6 +905,7 @@ export class WebhookRunner<
         name: spanName,
         promptName: frontmatter.name,
         commitSha: commitShaFromFrontmatter(frontmatter),
+        promptPath: options?.promptPath,
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
@@ -938,6 +949,7 @@ export class WebhookRunner<
         name: spanName,
         promptName: frontmatter.name,
         commitSha: commitShaFromFrontmatter(frontmatter),
+        promptPath: options?.promptPath,
       },
       async (ctx: SpanLike) => {
         setSpanInput(ctx, input);
@@ -969,6 +981,7 @@ export class WebhookRunner<
       concurrency,
       experimentKey,
       sourceTreeHash,
+      promptPath,
       signal,
     } = options ?? {};
     const loader = this.client.getLoader();
@@ -1042,6 +1055,7 @@ export class WebhookRunner<
                       datasetPath: resolvedDatasetPath,
                       experimentKey,
                       sourceTreeHash,
+                      promptPath,
                     },
                     async (ctx: SpanLike) => {
                       if (item.dataset?.input != null) {
