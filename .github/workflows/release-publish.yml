@@ -64,6 +64,23 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # Publish @agentmark-ai/mcp-server to the official MCP Registry, right after
+      # the npm publish above (the registry validates against npm, so order matters).
+      # Auth is GitHub Actions OIDC — the job's `id-token: write` proves the
+      # io.github.agentmark-ai namespace, so no token/secret is needed.
+      # Best-effort: the npm release is the source of truth; a registry hiccup (or an
+      # unchanged version that's already published) must never fail the release.
+      - name: Publish MCP server to the MCP Registry
+        working-directory: packages/mcp-server
+        continue-on-error: true
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp.json
+          mv server.tmp.json server.json
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
       - name: Create GitHub Releases
         run: |
           for pkg_json in packages/*/package.json; do
