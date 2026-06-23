@@ -538,6 +538,9 @@ export class WebhookRunner<
           const events = this.executor.executeText(input, ctxExec);
           let textBuf = "";
           let usageCap: { inputTokens?: number; outputTokens?: number } | undefined;
+          // Set if the drain hits an error event or throws; re-thrown after the
+          // drain so the span hook marks the span ERROR (see below).
+          let streamError: Error | undefined;
           let drained!: () => void;
           const drainDone = new Promise<void>((res) => {
             drained = res;
@@ -555,6 +558,7 @@ export class WebhookRunner<
                   const chunk = textEventToWire(ev);
                   if (ev.type === "error") {
                     console.error("[WebhookRunner] Error during streaming:", ev.error);
+                    streamError = new Error(ev.error);
                     controller.enqueue(encoder.encode(wireJson(chunk!)));
                     break;
                   }
@@ -562,6 +566,7 @@ export class WebhookRunner<
                 }
               } catch (err) {
                 const message = extractErrorMessage(err);
+                streamError = err instanceof Error ? err : new Error(message);
                 console.error("[WebhookRunner] Error during streaming:", message);
                 controller.enqueue(
                   encoder.encode(wireJson({ type: "error", error: message }))
@@ -586,6 +591,12 @@ export class WebhookRunner<
             }
           }
           setSpanUsage(ctx, usageCap);
+          // A streamed run that errored mid-drain must still mark the span
+          // ERROR — mirror the non-streaming path, which throws through the
+          // hook. The stream was already handed to the caller via resolveReady
+          // (and the error reported as a wire chunk), so this only sets span
+          // status; the response the caller already holds is unaffected.
+          if (streamError) throw streamError;
         }
       );
       // A failure before `ready` resolves (e.g. the executor throwing
@@ -741,6 +752,9 @@ export class WebhookRunner<
           // Same accumulation semantics as the non-streaming drain.
           let value: unknown = undefined;
           let usageCap: { inputTokens?: number; outputTokens?: number } | undefined;
+          // Set if the drain hits an error event or throws; re-thrown after the
+          // drain so the span hook marks the span ERROR (see below).
+          let streamError: Error | undefined;
           let drained!: () => void;
           const drainDone = new Promise<void>((res) => {
             drained = res;
@@ -761,6 +775,7 @@ export class WebhookRunner<
                   const chunk = objectEventToWire(ev);
                   if (ev.type === "error") {
                     console.error("[WebhookRunner] Error during streaming:", ev.error);
+                    streamError = new Error(ev.error);
                     controller.enqueue(encoder.encode(wireJson(chunk!)));
                     break;
                   }
@@ -768,6 +783,7 @@ export class WebhookRunner<
                 }
               } catch (err) {
                 const message = extractErrorMessage(err);
+                streamError = err instanceof Error ? err : new Error(message);
                 console.error("[WebhookRunner] Error during streaming:", message);
                 controller.enqueue(
                   encoder.encode(wireJson({ type: "error", error: message }))
@@ -795,6 +811,12 @@ export class WebhookRunner<
             }
           }
           setSpanUsage(ctx, usageCap);
+          // A streamed run that errored mid-drain must still mark the span
+          // ERROR — mirror the non-streaming path, which throws through the
+          // hook. The stream was already handed to the caller via resolveReady
+          // (and the error reported as a wire chunk), so this only sets span
+          // status; the response the caller already holds is unaffected.
+          if (streamError) throw streamError;
         }
       );
       // See runText: pre-`ready` failures surface to the caller.

@@ -837,6 +837,10 @@ class WebhookRunner:
         # drains (or errors), keeping the model call inside the span.
         text_parts: list[str] = []
         usage_cap: UsageData | None = None
+        # Set on an error event / caught exception; the span is then closed WITH
+        # this exc info so a streamed run that errored is marked ERROR (mirrors
+        # the non-streaming path), not silently OK.
+        stream_error: BaseException | None = None
         try:
             try:
                 async for ev in self._executor.execute_text(formatted, ctx):
@@ -851,8 +855,10 @@ class WebhookRunner:
                     if chunk is not None:
                         yield json.dumps(chunk) + "\n"
                     if isinstance(ev, ErrorEvent):
+                        stream_error = RuntimeError(ev.error)
                         return
             except Exception as exc:  # noqa: BLE001 — executor errors become wire errors
+                stream_error = exc
                 yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
         finally:
             if span is not None and text_parts:
@@ -862,7 +868,12 @@ class WebhookRunner:
                 _set_span_usage(span, usage_cap)
             if span_cm is not None:
                 with suppress(Exception):
-                    await span_cm.__aexit__(None, None, None)
+                    if stream_error is not None:
+                        await span_cm.__aexit__(
+                            type(stream_error), stream_error, stream_error.__traceback__
+                        )
+                    else:
+                        await span_cm.__aexit__(None, None, None)
 
     async def _stream_object_ndjson(
         self,
@@ -874,6 +885,9 @@ class WebhookRunner:
         # Span ownership mirrors _stream_text_ndjson.
         obj_value: Any = None
         usage_cap: UsageData | None = None
+        # See _stream_text_ndjson: close the span WITH exc info on error so the
+        # streamed run is marked ERROR, not silently OK.
+        stream_error: BaseException | None = None
         try:
             try:
                 async for ev in self._executor.execute_object(formatted, ctx):
@@ -890,8 +904,10 @@ class WebhookRunner:
                     if chunk is not None:
                         yield json.dumps(chunk) + "\n"
                     if isinstance(ev, ErrorEvent):
+                        stream_error = RuntimeError(ev.error)
                         return
             except Exception as exc:  # noqa: BLE001
+                stream_error = exc
                 yield json.dumps({"type": "error", "error": str(exc)}) + "\n"
         finally:
             if span is not None and obj_value is not None:
@@ -904,7 +920,12 @@ class WebhookRunner:
                 _set_span_usage(span, usage_cap)
             if span_cm is not None:
                 with suppress(Exception):
-                    await span_cm.__aexit__(None, None, None)
+                    if stream_error is not None:
+                        await span_cm.__aexit__(
+                            type(stream_error), stream_error, stream_error.__traceback__
+                        )
+                    else:
+                        await span_cm.__aexit__(None, None, None)
 
     async def run_experiment(
         self,
