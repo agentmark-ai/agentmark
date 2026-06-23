@@ -52,6 +52,15 @@ export interface SpanData {
     userId?: string;
     traceName?: string;
     promptName?: string;
+    /**
+     * Prompt path relative to the agentmark root (e.g.
+     * `support/triage.prompt.mdx`) — the folder-aware id from the span's
+     * `agentmark.prompt_path` attribute. Lets the trace surface link back to
+     * the exact prompt; the flat `promptName` collides across folders.
+     */
+    promptPath?: string;
+    /** Commit the prompt content was served at (`agentmark.prompt_path`'s version). */
+    commitSha?: string;
     props?: string;
     attributes?: string;
     statusMessage?: string;

@@ -434,3 +434,45 @@ export const InputWithVariables: Story = {
     },
   },
 };
+
+/**
+ * The span detail header. When the span carries an `agentmark.prompt_path` and
+ * the host supplies `promptHref`, the prompt name links to its version page
+ * (folder-aware — the flat `promptName` collides across folders).
+ */
+function SpanHeaderWithPromptLinkDemo() {
+  return (
+    <TraceDrawerProvider
+      traces={traceData}
+      t={(key) => key}
+      promptHref={(promptPath, commitSha) =>
+        `https://app.agentmark.co/prompts/${promptPath}${commitSha ? `?commit=${commitSha}` : ""}`
+      }
+    >
+      <SpanInfoProvider>
+        <Box
+          sx={{
+            width: 760,
+            border: "1px solid #e0e0e0",
+            borderRadius: 1,
+            overflow: "hidden",
+          }}
+        >
+          <SpanInfoHeader />
+        </Box>
+      </SpanInfoProvider>
+    </TraceDrawerProvider>
+  );
+}
+
+export const SpanHeaderWithPromptLink: Story = {
+  render: () => <SpanHeaderWithPromptLinkDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The span detail header with a clickable prompt link, built from the span's agentmark.prompt_path + commit via the host-provided promptHref.",
+      },
+    },
+  },
+};

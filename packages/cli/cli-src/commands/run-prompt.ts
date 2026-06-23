@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs-extra";
 import type { Root } from "mdast";
 import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
+import { promptPathFromAgentmarkRoot } from "../config.js";
 
 /**
  * Count the number of visual terminal lines a string occupies,
@@ -89,6 +90,13 @@ export async function loadAst(resolvedFilepath: string): Promise<{ ast: Root; pr
 
 const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
+  // Folder-aware prompt path RELATIVE TO THE AGENTMARK ROOT (the key prompts are
+  // searched by — parent_path + name), forward-slashed for the span's
+  // `agentmark.prompt_path`. The agentmark dir is user-configurable
+  // (agentmark.json `agentmarkPath`), so resolve it from config rather than
+  // assuming `<cwd>/agentmark`. The flat frontmatter `name` collides across
+  // folders; this path uniquely resolves the prompt.
+  const promptPathRel = promptPathFromAgentmarkRoot(resolvedFilepath);
 
   if (!fs.existsSync(resolvedFilepath)) {
     throw new Error(`File not found: ${resolvedFilepath}`);
@@ -128,7 +136,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   }
 
   // Load AST from MDX or pre-built JSON file
-  const { ast, promptName } = await loadAst(resolvedFilepath);
+  const { ast } = await loadAst(resolvedFilepath);
 
   // Determine prompt kind from frontmatter for better headers (Text/Object/Image/Speech)
   let promptHeader: 'Text' | 'Object' | 'Image' | 'Speech' = 'Text';
@@ -157,7 +165,7 @@ const runPrompt = async (filepath: string, options: RunPromptOptions = {}) => {
   try {
       console.log(customProps ? "Running prompt with custom props..." : "Running prompt with test props...");
       // Prefer streaming when available for better UX
-      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath: promptName, options: { shouldStream: true } } });
+      const body = JSON.stringify({ type: 'prompt-run', data: { ast, customProps, promptPath: promptPathRel, options: { shouldStream: true } } });
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 

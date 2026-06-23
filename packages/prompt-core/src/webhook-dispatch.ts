@@ -48,7 +48,7 @@ export interface TelemetryOptions {
  * This is the contract that adapters (e.g., VercelAdapterWebhookHandler) must fulfill.
  */
 export interface WebhookHandler {
-  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions }): Promise<WebhookPromptResponse>;
+  runPrompt(promptAst: any, options?: { shouldStream?: boolean; customProps?: Record<string, any>; telemetry?: TelemetryOptions; promptPath?: string }): Promise<WebhookPromptResponse>;
   runExperiment(promptAst: any, datasetRunName: string, options?: WebhookExperimentOptions): Promise<WebhookDatasetResponse>;
   /**
    * The AgentMark client this handler executes against, surfaced so the shared
@@ -220,6 +220,10 @@ export async function handleWebhookRequest(
       const options = {
         shouldStream: data.options?.shouldStream,
         customProps: data.customProps,
+        // Folder-aware prompt path (when the caller supplies it) → echoed onto
+        // the span as `agentmark.prompt_path`. The flat `name` collides across
+        // folders; the path uniquely resolves the prompt.
+        promptPath: data.promptPath,
       };
 
       const response = await handler.runPrompt(data.ast, options);
@@ -265,6 +269,7 @@ export async function handleWebhookRequest(
           concurrency: data.concurrency,
           experimentKey: data.experimentKey,
           sourceTreeHash: data.sourceTreeHash,
+          promptPath: data.promptPath,
         });
       } catch (e: any) {
         const errorMessage = e?.message || String(e);

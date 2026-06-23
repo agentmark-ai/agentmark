@@ -6,7 +6,7 @@ import { detectPromptTypeFromContent } from "../utils/prompt-detection.js";
 import { buildJUnitReport, type JUnitRow } from "../utils/junit-formatter.js";
 import { evaluateExperimentGate, baselineRequestQuery, parseBaselineResponse, type GateRow, type BaselineResolved } from "@agentmark-ai/prompt-core";
 import { readTestSettings } from "../utils/test-settings.js";
-import { loadLocalConfig } from "../config.js";
+import { loadLocalConfig, promptPathFromAgentmarkRoot } from "../config.js";
 import { getApiUrl } from "../auth/constants.js";
 
 /**
@@ -363,6 +363,12 @@ export default async function runExperiment(filepath: string, options: { skipEva
   const config = getExperimentConfig();
 
   const resolvedFilepath = resolveAgainstCwdOrEnv(filepath);
+  // Folder-aware prompt path RELATIVE TO THE AGENTMARK ROOT (the key prompts are
+  // searched by — parent_path + name), forward-slashed for the span's
+  // `agentmark.prompt_path`. The agentmark dir is user-configurable
+  // (agentmark.json `agentmarkPath`), so resolve it from config rather than
+  // assuming `<cwd>/agentmark`.
+  const promptPathRel = promptPathFromAgentmarkRoot(resolvedFilepath);
   if (!fs.existsSync(resolvedFilepath)) {
     throw new Error(
       `Prompt file not found: ${resolvedFilepath}\n` +
@@ -498,7 +504,7 @@ export default async function runExperiment(filepath: string, options: { skipEva
     if (evalEnabled) console.log("🧪 Evaluations enabled");
   }
 
-  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptName, datasetPath, experimentId: promptName, ...(experimentKey ? { experimentKey } : {}), ...(sampling ? { sampling } : {}), ...(commitSha ? { sourceTreeHash: commitSha } : {}), ...(options.concurrency !== undefined ? { concurrency: options.concurrency } : {}) } });
+  const body = JSON.stringify({ type: 'dataset-run', data: { ast, promptPath: promptPathRel, datasetPath, experimentId: promptName, ...(experimentKey ? { experimentKey } : {}), ...(sampling ? { sampling } : {}), ...(commitSha ? { sourceTreeHash: commitSha } : {}), ...(options.concurrency !== undefined ? { concurrency: options.concurrency } : {}) } });
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 

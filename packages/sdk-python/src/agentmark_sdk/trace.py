@@ -40,6 +40,9 @@ class TraceOptions:
     session_name: str | None = None
     user_id: str | None = None
     prompt_name: str | None = None
+    # Folder-aware prompt path → emitted as ``agentmark.prompt_path``. The flat
+    # ``prompt_name`` collides across folders; this uniquely resolves the prompt.
+    prompt_path: str | None = None
     dataset_run_id: str | None = None
     dataset_run_name: str | None = None
     dataset_item_name: str | None = None
@@ -169,6 +172,8 @@ def _set_agentmark_attributes(span: Span, options: TraceOptions) -> None:
         span.set_attribute(f"{AGENTMARK_KEY}.user_id", options.user_id)
     if options.prompt_name:
         span.set_attribute(f"{AGENTMARK_KEY}.prompt_name", options.prompt_name)
+    if options.prompt_path:
+        span.set_attribute(f"{AGENTMARK_KEY}.prompt_path", options.prompt_path)
     if options.dataset_run_id:
         span.set_attribute(f"{AGENTMARK_KEY}.dataset_run_id", options.dataset_run_id)
     if options.dataset_run_name:
