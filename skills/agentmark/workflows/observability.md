@@ -79,6 +79,21 @@ spans (e.g. a retrieval step) around the model call. They are **not** a
 substitute for the telemetry-on-`format()` step above — use both if you want
 custom spans plus the generation span.
 
+## Selecting which environment traces land in
+
+By default an API key is pinned to one environment and every trace lands there. A key scoped to environment **kinds** (created in the Dashboard's create-key dialog: Environment scope → Environment kinds) instead lets the SDK pick the target per request:
+
+```ts
+sdk.initTracing({ registerGlobally: true, environment: "staging" }); // by env name
+sdk.initTracing({ registerGlobally: true, prNumber: 482 });          // PR's preview env
+```
+
+- `environment` → `X-Agentmark-Environment` header; the gateway authorizes it against the key's allowed kinds. An unauthorized selection stamps NO env (the traces are not written to the wrong env), so a preview-only key can't write to production.
+- `prNumber` → `X-Agentmark-Pr-Number` header; maps to that PR's preview env. Takes precedence over `environment`.
+- Zero-config CI fallbacks: `AGENTMARK_ENVIRONMENT` and `AGENTMARK_PR_NUMBER`. Precedence is explicit option > `AGENTMARK_*` var > Vercel auto-derivation (`VERCEL_ENV` etc.). On Vercel a deploy needs no selector config.
+
+Omitting all of these falls back to the key's pinned env. For the full mapping, fetch `https://docs.agentmark.co/observe/tracing-setup.md`.
+
 ## Where trace-level input/output come from
 
 The trace list/detail's single input/output per trace is **derived at read
