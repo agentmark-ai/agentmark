@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-23T01:06:54.381Z",
+  "generatedAt": "2026-06-24T01:04:40.651Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-23T01:06:54.381Z",
-      "modelCount": 1451
+      "fetchedAt": "2026-06-24T01:04:40.651Z",
+      "modelCount": 1449
     },
     "openrouter": {
-      "fetchedAt": "2026-06-23T01:06:54.381Z",
+      "fetchedAt": "2026-06-24T01:04:40.651Z",
       "modelCount": 126
     }
   },
@@ -225,7 +225,7 @@
       "mode": "embedding",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 2e-7,
+        "inputCostPerToken": 2e-8,
         "outputCostPerToken": 0
       },
       "context": {
@@ -19452,7 +19452,8 @@
       "context": {
         "maxInputTokens": 4096,
         "maxOutputTokens": 4096
-      }
+      },
+      "deprecationDate": "2026-06-24"
     },
     "accounts/fireworks/models/whisper-v3-turbo": {
       "provider": "fireworks_ai",
@@ -19466,7 +19467,8 @@
       "context": {
         "maxInputTokens": 4096,
         "maxOutputTokens": 4096
-      }
+      },
+      "deprecationDate": "2026-06-24"
     },
     "accounts/fireworks/models/yi-34b": {
       "provider": "fireworks_ai",
@@ -27983,7 +27985,7 @@
         "maxOutputTokens": 512000
       },
       "capabilities": {
-        "vision": false,
+        "vision": true,
         "functionCalling": true,
         "structuredOutput": true,
         "reasoning": true
@@ -28151,7 +28153,7 @@
         "maxOutputTokens": 512000
       },
       "capabilities": {
-        "vision": false,
+        "vision": true,
         "functionCalling": true,
         "structuredOutput": true,
         "reasoning": true
