@@ -1,4 +1,4 @@
-export { initialize, span, trace, getAgentmarkTracer } from './tracing';
+export { initialize, span, trace, getAgentmarkTracer, deriveVercelSelector } from './tracing';
 export type { SpanContext, SpanOptions, SpanResult } from './tracing';
 export { streamWithSpan } from './streaming';
 export type {

@@ -22,6 +22,18 @@ type InitProps = {
   appId: string;
   baseUrl: string;
   disableBatch: boolean;
+  /**
+   * The deployment environment to attribute these traces to. Sent as the
+   * `X-Agentmark-Environment` header; the gateway authorizes it against the
+   * key's allowed env kinds. Omit to use the key's pinned environment.
+   */
+  environment?: string;
+  /**
+   * The pull-request number whose preview env these traces target. Sent as the
+   * `X-Agentmark-Pr-Number` header; the gateway maps it to that PR's preview
+   * env. Takes precedence over `environment` when both are set.
+   */
+  prNumber?: number;
   mask?: MaskFunction;
   /**
    * If true, also register this provider as the OTel global tracer provider
@@ -68,23 +80,76 @@ export const _resetWarnedForTests = () => {
   warnedMissingProvider = false;
 };
 
+/**
+ * Derive the env selector from Vercel's system env vars, so an app deployed on
+ * Vercel attributes traces to the right AgentMark env with no configuration —
+ * the selector isn't a secret, so it's derived (not injected) from the git
+ * context Vercel already exposes.
+ *
+ *  - `preview` + `VERCEL_GIT_PULL_REQUEST_ID` → that PR's preview env (by number).
+ *  - `preview` with no open PR (branch deploy) → the branch ref as the env name.
+ *  - `development` → the default `dev` env.
+ *  - `production` → left to the key's pinned / promoted env (a promoted env name
+ *    is ambiguous to guess, and an app may have several).
+ *
+ * Pure + exported (takes the env map) so it's unit-testable without a real
+ * Vercel runtime.
+ */
+export const deriveVercelSelector = (
+  env: Record<string, string | undefined> = process.env,
+): { environment?: string; prNumber?: number } => {
+  const vercelEnv = env.VERCEL_ENV;
+  if (vercelEnv === "preview") {
+    const prRaw = env.VERCEL_GIT_PULL_REQUEST_ID;
+    if (prRaw && prRaw !== "" && Number.isFinite(Number(prRaw))) {
+      return { prNumber: Number(prRaw) };
+    }
+    const ref = env.VERCEL_GIT_COMMIT_REF;
+    return ref ? { environment: ref } : {};
+  }
+  if (vercelEnv === "development") return { environment: "dev" };
+  return {};
+};
+
+/**
+ * Build the OTLP exporter headers. The optional env selectors are added only
+ * when set, so a pinned key's traces carry no selector header. Exported + pure
+ * so the header contract is unit-testable without standing up an exporter.
+ */
+export const buildTraceExporterHeaders = (
+  apiKey: string,
+  appId: string,
+  environment?: string,
+  prNumber?: number,
+): Record<string, string> => {
+  const headers: Record<string, string> = {
+    Authorization: apiKey,
+    "X-Agentmark-App-Id": appId,
+  };
+  if (environment) headers["X-Agentmark-Environment"] = environment;
+  if (prNumber != null) headers["X-Agentmark-Pr-Number"] = String(prNumber);
+  return headers;
+};
+
 export const initialize = ({
   apiKey,
   appId,
   baseUrl,
   disableBatch,
+  environment,
+  prNumber,
   mask,
   registerGlobally = false,
 }: InitProps) => {
   // Append the standard OTLP endpoint path to all URLs
   const exporterUrl = `${baseUrl}/${AGENTMARK_TRACE_ENDPOINT}`;
 
+  // Per-request env selection: a kind-scoped key names the env (or PR) it
+  // targets; the gateway authorizes the selection against the key's allowed
+  // env kinds. Omitted → the gateway uses the key's pinned env.
   const otlpExporter = new OTLPTraceExporter({
     url: exporterUrl,
-    headers: {
-      Authorization: apiKey,
-      "X-Agentmark-App-Id": appId,
-    },
+    headers: buildTraceExporterHeaders(apiKey, appId, environment, prNumber),
   });
 
   const hideInputs = process.env.AGENTMARK_HIDE_INPUTS === "true";

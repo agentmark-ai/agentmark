@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { AGENTMARK_SCORE_ENDPOINT } from "./config";
-import { initialize, span } from "./trace";
+import { initialize, span, deriveVercelSelector } from "./trace";
 import { ApiLoader } from "@agentmark-ai/prompt-core/loader-api";
 import type { MaskFunction } from "./trace";
 // Type-only (erased at build, so prompt-core stays off the SDK's load path; the
@@ -129,12 +129,33 @@ export class AgentMarkSDK<
   initTracing({
     disableBatch,
     registerGlobally,
-  }: { disableBatch?: boolean; registerGlobally?: boolean } = {}) {
+    environment,
+    prNumber,
+  }: {
+    disableBatch?: boolean;
+    registerGlobally?: boolean;
+    /** Target environment for these traces. Falls back to the
+     *  `AGENTMARK_ENVIRONMENT` env var so CI can select an env with no code. */
+    environment?: string;
+    /** Target PR's preview env. Falls back to the `AGENTMARK_PR_NUMBER` env
+     *  var (e.g. set from `github.event.number`). */
+    prNumber?: number;
+  } = {}) {
+    const envFallback = process.env.AGENTMARK_ENVIRONMENT || undefined;
+    const prRaw = process.env.AGENTMARK_PR_NUMBER;
+    const prFallback =
+      prRaw != null && prRaw !== "" && Number.isFinite(Number(prRaw))
+        ? Number(prRaw)
+        : undefined;
+    // Precedence: explicit option > AGENTMARK_* env var > Vercel system var.
+    const vercel = deriveVercelSelector();
     return initialize({
       apiKey: this.apiKey,
       appId: this.appId,
       baseUrl: this.baseUrl,
       disableBatch: !!disableBatch,
+      environment: environment ?? envFallback ?? vercel.environment,
+      prNumber: prNumber ?? prFallback ?? vercel.prNumber,
       mask: this.mask,
       registerGlobally,
     });

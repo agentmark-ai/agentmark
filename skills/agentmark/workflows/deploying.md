@@ -315,6 +315,10 @@ Two ways to mint a Cloud API key:
 - For environment variable names (`AGENTMARK_API_KEY`, `AGENTMARK_APP_ID`, etc.), fetch `https://docs.agentmark.co/configure/environment-variables.md`.
 - For API key lifecycle and rotation, fetch `https://docs.agentmark.co/deploy/api-keys.md`.
 
+### Environment scope of a key
+
+A key is either pinned to one environment (the default) or scoped to environment **kinds** (Development / Preview / Production). A kind-scoped key has no pin: each request names the target env (via `initTracing({ environment, prNumber })` or `AGENTMARK_ENVIRONMENT` / `AGENTMARK_PR_NUMBER`) and the gateway authorizes it against the key's kinds. This is what lets **one** Preview-scoped key reach every PR preview env, including future ones, so CI never provisions a key per PR. Kind scoping is set in the Dashboard create-key dialog; the programmatic `POST /v1/api-keys` route mints pinned keys only. Fetch `https://docs.agentmark.co/api-reference/authentication.md`.
+
 ## Common mistakes
 
 - **Passing `--remote` to `agentmark dev`** — removed in 0.13.0. Trace forwarding is automatic when the project is linked. For programmatic Cloud access (what `--remote` once enabled for the CLI's gateway-proxy commands), use the MCP server or call REST directly — see [headless-with-mcp.md](headless-with-mcp.md).

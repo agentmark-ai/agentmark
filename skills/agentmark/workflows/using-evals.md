@@ -65,6 +65,15 @@ agentmark run-experiment agentmark/qa-bot.prompt.mdx --threshold 80 --format jun
 
 The CLI exits non-zero when pass rate is below the threshold. Upload `results.xml` as a CI artifact for surfacing in GitHub Actions / GitLab / Jenkins.
 
+### Landing CI eval traces in the PR's preview env
+
+The `eval-action` (GitHub) and `eval-component` (GitLab) attribute a run's traces to the pull request's preview environment so a failing eval links straight to its trace. On a `pull_request` event they set `AGENTMARK_PR_NUMBER` automatically; the SDK tracer reads it. Two requirements catch people out:
+
+- Use **one** key scoped to the **Preview** environment kind (Dashboard create-key dialog → Environment scope → Environment kinds → Preview), not a per-env pinned key. It authorizes every PR's preview env as it's created, so CI never provisions a key per PR.
+- Leave the action's `environment` input empty for the PR-preview case. Set `environment` only for non-PR runs (e.g. a nightly against staging), which sets `AGENTMARK_ENVIRONMENT` instead.
+
+Neither `eval-action` nor `eval-component` is published yet, so use the raw CLI and export `AGENTMARK_PR_NUMBER` / `AGENTMARK_ENVIRONMENT` yourself for the same behavior. For the full workflow, fetch `https://docs.agentmark.co/deploy/ci-cd.md`.
+
 ## LLM-as-judge: keep the judge prompt versioned
 
 When the eval is itself a prompt (LLM judging LLM), put the judge prompt in the same repo and commit it. This makes judge changes reviewable. Avoid inline judge prompts in frontmatter — they drift silently.
