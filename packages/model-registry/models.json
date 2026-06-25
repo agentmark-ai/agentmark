@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-24T01:04:40.651Z",
+  "generatedAt": "2026-06-25T01:09:34.351Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-24T01:04:40.651Z",
+      "fetchedAt": "2026-06-25T01:09:34.351Z",
       "modelCount": 1449
     },
     "openrouter": {
-      "fetchedAt": "2026-06-24T01:04:40.651Z",
+      "fetchedAt": "2026-06-25T01:09:34.351Z",
       "modelCount": 126
     }
   },
@@ -28299,7 +28299,7 @@
       },
       "context": {
         "maxInputTokens": 131072,
-        "maxOutputTokens": 65536
+        "maxOutputTokens": 32768
       },
       "capabilities": {
         "vision": true,
