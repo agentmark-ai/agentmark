@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-25T01:09:34.351Z",
+  "generatedAt": "2026-06-27T01:08:28.599Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-25T01:09:34.351Z",
-      "modelCount": 1449
+      "fetchedAt": "2026-06-27T01:08:28.599Z",
+      "modelCount": 1458
     },
     "openrouter": {
-      "fetchedAt": "2026-06-25T01:09:34.351Z",
+      "fetchedAt": "2026-06-27T01:08:28.599Z",
       "modelCount": 126
     }
   },
@@ -2628,7 +2628,7 @@
         "outputCostPerToken": 0.00012
       },
       "context": {
-        "maxInputTokens": 128000,
+        "maxInputTokens": 400000,
         "maxOutputTokens": 128000
       },
       "capabilities": {
@@ -3243,7 +3243,7 @@
         "cacheReadCostPerToken": 7.5e-8
       },
       "context": {
-        "maxInputTokens": 272000,
+        "maxInputTokens": 1050000,
         "maxOutputTokens": 128000
       },
       "capabilities": {
@@ -3271,7 +3271,7 @@
         "cacheReadCostPerToken": 7.5e-8
       },
       "context": {
-        "maxInputTokens": 272000,
+        "maxInputTokens": 1050000,
         "maxOutputTokens": 128000
       },
       "capabilities": {
@@ -3296,7 +3296,7 @@
         "cacheReadCostPerToken": 2e-8
       },
       "context": {
-        "maxInputTokens": 272000,
+        "maxInputTokens": 1050000,
         "maxOutputTokens": 128000
       },
       "capabilities": {
@@ -3324,7 +3324,7 @@
         "cacheReadCostPerToken": 2e-8
       },
       "context": {
-        "maxInputTokens": 272000,
+        "maxInputTokens": 1050000,
         "maxOutputTokens": 128000
       },
       "capabilities": {
@@ -10437,7 +10437,7 @@
         "outputCostPerToken": 0.00012
       },
       "context": {
-        "maxInputTokens": 128000,
+        "maxInputTokens": 400000,
         "maxOutputTokens": 128000
       },
       "capabilities": {
@@ -11549,17 +11549,18 @@
       "mode": "chat",
       "source": "litellm",
       "pricing": {
-        "inputCostPerToken": 4e-7,
-        "outputCostPerToken": 0.000002
+        "inputCostPerToken": 0.0000015,
+        "outputCostPerToken": 0.0000075
       },
       "context": {
-        "maxInputTokens": 131072,
-        "maxOutputTokens": 131072
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
       },
       "capabilities": {
         "vision": true,
         "functionCalling": true,
-        "structuredOutput": true
+        "structuredOutput": true,
+        "reasoning": true
       }
     },
     "mistral-medium-3-1-2508": {
@@ -28196,7 +28197,8 @@
       "capabilities": {
         "vision": true,
         "functionCalling": true,
-        "structuredOutput": true
+        "structuredOutput": true,
+        "reasoning": true
       }
     },
     "accounts/fireworks/models/qwen3p7-plus": {
@@ -28286,36 +28288,34 @@
     "gemini-3.1-flash-image": {
       "provider": "google",
       "displayName": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
-      "mode": "chat",
-      "source": "openrouter",
-      "supportedParameters": [
-        "max_tokens",
-        "temperature",
-        "top_p"
-      ],
+      "mode": "image_generation",
+      "source": "litellm",
       "pricing": {
         "inputCostPerToken": 5e-7,
         "outputCostPerToken": 0.000003
       },
       "context": {
-        "maxInputTokens": 131072,
+        "maxInputTokens": 65536,
         "maxOutputTokens": 32768
       },
       "capabilities": {
         "vision": true,
-        "structuredOutput": true
-      }
-    },
-    "gemini-3-pro-image": {
-      "provider": "google",
-      "displayName": "Google: Nano Banana Pro (Gemini 3 Pro Image)",
-      "mode": "chat",
-      "source": "openrouter",
+        "functionCalling": false,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "webSearch": true
+      },
       "supportedParameters": [
         "max_tokens",
         "temperature",
         "top_p"
-      ],
+      ]
+    },
+    "gemini-3-pro-image": {
+      "provider": "google",
+      "displayName": "Google: Nano Banana Pro (Gemini 3 Pro Image)",
+      "mode": "image_generation",
+      "source": "litellm",
       "pricing": {
         "inputCostPerToken": 0.000002,
         "outputCostPerToken": 0.000012
@@ -28326,8 +28326,107 @@
       },
       "capabilities": {
         "vision": true,
+        "functionCalling": false,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "webSearch": true
+      },
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ]
+    },
+    "amazon.titan-embed-g1-text-02": {
+      "provider": "bedrock",
+      "displayName": "Amazon.titan Embed G1 Text 02",
+      "mode": "embedding",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 1e-7,
+        "outputCostPerToken": 0
+      },
+      "context": {
+        "maxInputTokens": 8192
+      }
+    },
+    "mistral-ocr-4-0": {
+      "provider": "mistral",
+      "displayName": "Mistral Ocr 4 0",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "mistral-ocr-2512": {
+      "provider": "mistral",
+      "displayName": "Mistral Ocr 2512",
+      "mode": "chat",
+      "source": "litellm"
+    },
+    "mistral-medium-2508": {
+      "provider": "mistral",
+      "displayName": "Mistral Medium 2508",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 4e-7,
+        "outputCostPerToken": 0.000002
+      },
+      "context": {
+        "maxInputTokens": 131072,
+        "maxOutputTokens": 131072
+      },
+      "capabilities": {
+        "vision": true,
         "functionCalling": true,
         "structuredOutput": true
+      }
+    },
+    "mistral-medium-2604": {
+      "provider": "mistral",
+      "displayName": "Mistral Medium 2604",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000015,
+        "outputCostPerToken": 0.0000075
+      },
+      "context": {
+        "maxInputTokens": 262144,
+        "maxOutputTokens": 262144
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "reasoning": true
+      }
+    },
+    "vertex_ai/gemini-3-pro-image": {
+      "provider": "google",
+      "displayName": "Vertex Ai/gemini 3 Pro Image",
+      "mode": "image_generation",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000002,
+        "outputCostPerToken": 0.000012
+      },
+      "context": {
+        "maxInputTokens": 65536,
+        "maxOutputTokens": 32768
+      }
+    },
+    "vertex_ai/gemini-3.1-flash-image": {
+      "provider": "google",
+      "displayName": "Vertex Ai/gemini 3.1 Flash Image",
+      "mode": "image_generation",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 5e-7,
+        "outputCostPerToken": 0.000003
+      },
+      "context": {
+        "maxInputTokens": 65536,
+        "maxOutputTokens": 32768
       }
     }
   }
