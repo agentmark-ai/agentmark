@@ -1,6 +1,7 @@
 export * from "./trace-drawer";
 export * from "./trace-drawer-content";
 export * from "./trace-drawer-header";
+export * from "./trace-summary-header";
 export * from "./trace-drawer-main";
 export * from "./trace-drawer-sidebar";
 export * from "./trace-info-skeleton";

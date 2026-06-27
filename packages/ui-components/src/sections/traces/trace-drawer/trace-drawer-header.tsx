@@ -2,6 +2,7 @@ import { Iconify } from "@/components";
 import { Typography, IconButton, Box } from "@mui/material";
 import { ReactNode } from "react";
 import { useTraceDrawerContext } from "./trace-drawer-provider";
+import { TraceSummaryHeader } from "./trace-summary-header";
 
 export const TraceDrawerTitle = ({
   children,
@@ -15,9 +16,12 @@ export const TraceDrawerSubtitle = () => {
   const { selectedSpan } = useTraceDrawerContext();
 
   return (
-    <Typography variant="subtitle1" color="primary">
-      {selectedSpan?.name}
-    </Typography>
+    <>
+      <Typography variant="subtitle1" color="primary">
+        {selectedSpan?.name}
+      </Typography>
+      <TraceSummaryHeader />
+    </>
   );
 };
 

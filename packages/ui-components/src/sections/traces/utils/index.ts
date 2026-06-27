@@ -27,3 +27,4 @@ export {
   getSpanInputKind,
   type DatasetInputKind,
 } from "./extract-span-data";
+export { summarizeTrace, type TraceSummary } from "./summarize-trace";
