@@ -504,6 +504,8 @@ export interface TraceDetail {
   spanScores?: Record<string, Score[]>;
   /** True when the span scores query failed; scores will be empty in that case. */
   spanScoresError?: boolean;
+  userId?: string;
+  sessionId?: string;
 }
 
 // ============================================================================
