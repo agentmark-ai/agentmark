@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-27T01:08:28.599Z",
+  "generatedAt": "2026-06-30T01:09:32.853Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-27T01:08:28.599Z",
+      "fetchedAt": "2026-06-30T01:09:32.853Z",
       "modelCount": 1458
     },
     "openrouter": {
-      "fetchedAt": "2026-06-27T01:08:28.599Z",
-      "modelCount": 126
+      "fetchedAt": "2026-06-30T01:09:32.853Z",
+      "modelCount": 125
     }
   },
   "models": {
@@ -19969,7 +19969,8 @@
         "vision": true,
         "functionCalling": true,
         "structuredOutput": true
-      }
+      },
+      "deprecationDate": "2026-06-30"
     },
     "gemma-4-26b-a4b-it:free": {
       "provider": "google",
