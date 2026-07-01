@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-06-30T01:09:32.853Z",
+  "generatedAt": "2026-07-01T01:14:33.366Z",
   "sources": {
     "litellm": {
-      "fetchedAt": "2026-06-30T01:09:32.853Z",
-      "modelCount": 1458
+      "fetchedAt": "2026-07-01T01:14:33.366Z",
+      "modelCount": 1467
     },
     "openrouter": {
-      "fetchedAt": "2026-06-30T01:09:32.853Z",
-      "modelCount": 125
+      "fetchedAt": "2026-07-01T01:14:33.366Z",
+      "modelCount": 127
     }
   },
   "models": {
@@ -28428,6 +28428,248 @@
       "context": {
         "maxInputTokens": 65536,
         "maxOutputTokens": 32768
+      }
+    },
+    "anthropic.claude-sonnet-5": {
+      "provider": "bedrock",
+      "displayName": "Anthropic.claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "global.anthropic.claude-sonnet-5": {
+      "provider": "bedrock",
+      "displayName": "Global.anthropic.claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "us.anthropic.claude-sonnet-5": {
+      "provider": "bedrock",
+      "displayName": "Us.anthropic.claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "eu.anthropic.claude-sonnet-5": {
+      "provider": "bedrock",
+      "displayName": "Eu.anthropic.claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "au.anthropic.claude-sonnet-5": {
+      "provider": "bedrock",
+      "displayName": "Au.anthropic.claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "jp.anthropic.claude-sonnet-5": {
+      "provider": "bedrock",
+      "displayName": "Jp.anthropic.claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.0000033,
+        "outputCostPerToken": 0.0000165,
+        "cacheCreationCostPerToken": 0.000004125,
+        "cacheReadCostPerToken": 3.3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "claude-sonnet-5": {
+      "provider": "anthropic",
+      "displayName": "Anthropic: Claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      },
+      "supportedParameters": [
+        "max_tokens"
+      ]
+    },
+    "vertex_ai/claude-sonnet-5": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Sonnet 5",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "vertex_ai/claude-sonnet-5@default": {
+      "provider": "google",
+      "displayName": "Vertex Ai/claude Sonnet 5@default",
+      "mode": "chat",
+      "source": "litellm",
+      "pricing": {
+        "inputCostPerToken": 0.000003,
+        "outputCostPerToken": 0.000015,
+        "cacheCreationCostPerToken": 0.00000375,
+        "cacheReadCostPerToken": 3e-7
+      },
+      "context": {
+        "maxInputTokens": 1000000,
+        "maxOutputTokens": 128000
+      },
+      "capabilities": {
+        "vision": true,
+        "functionCalling": true,
+        "structuredOutput": true,
+        "promptCaching": true,
+        "reasoning": true,
+        "pdfInput": true
+      }
+    },
+    "gemini-3.1-flash-lite-image": {
+      "provider": "google",
+      "displayName": "Google: Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)",
+      "mode": "chat",
+      "source": "openrouter",
+      "supportedParameters": [
+        "max_tokens",
+        "temperature",
+        "top_p"
+      ],
+      "pricing": {
+        "inputCostPerToken": 2.5e-7,
+        "outputCostPerToken": 0.0000015
+      },
+      "context": {
+        "maxInputTokens": 65536,
+        "maxOutputTokens": 65536
+      },
+      "capabilities": {
+        "vision": true,
+        "structuredOutput": true
       }
     }
   }
