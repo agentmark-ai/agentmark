@@ -1,3 +1,19 @@
+## 2.2.0 (2026-07-02)
+
+### 🚀 Features
+
+- Add per-request environment selection to the tracer. `initTracing({ environment, prNumber })` — with `AGENTMARK_ENVIRONMENT` / `AGENTMARK_PR_NUMBER` env-var fallbacks so CI can select an env with no code — emits `X-Agentmark-Environment` / `X-Agentmark-Pr-Number` headers, letting a kind-scoped API key attribute traces to a named environment or a pull request's preview env. On Vercel the selector is auto-derived from `VERCEL_ENV` / `VERCEL_GIT_PULL_REQUEST_ID` (zero config). Omitted selectors fall back to the key's pinned environment (unchanged behavior). ([#840](https://github.com/agentmark-ai/agentmark/pull/840))
+
+### 🩹 Fixes
+
+- `run-prompt` now records the template variables it was rendered with as the `agentmark.props` span attribute — the same attribute the experiment item span already emits. Previously only the rendered messages (`agentmark.input`) were stamped on a `run-prompt` span, so `run-prompt --props` traces had no Variables panel and their "Add to dataset" fell back to the rendered messages instead of the re-runnable variables. ([#837](https://github.com/agentmark-ai/agentmark/pull/837))
+
+  The fix lives in the prompt-core webhook runner (a new `setSpanProps` helper invoked from all six prompt-run paths — text/object × streaming/non-streaming, image, speech), and is mirrored in `prompt-core-python` (`_set_span_props`, four run paths). No-op when there are no props. This brings `run-prompt` to parity with `run-experiment`: both surface the prompt variables and capture them (not the rendered messages) on import.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 1.2.4
+
 ## 2.1.5 (2026-06-23)
 
 ### 🩹 Fixes

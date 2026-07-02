@@ -1,3 +1,27 @@
+## 0.14.0 (2026-07-02)
+
+### 🚀 Features
+
+- Add a TraceSummaryHeader component to the trace detail drawer. The drawer subtitle now renders a compact metric row showing total cost, total tokens (with prompt→completion tooltip), wall-clock latency, distinct models used (as chips, capped at 3 + overflow count), user ID, and session ID — all derived from data already in memory, with no new API or schema changes. Fields with no value are omitted. Accompanies the new `summarizeTrace` pure helper exported from the utils barrel. ([#842](https://github.com/agentmark-ai/agentmark/pull/842))
+- Add `TraceSummaryHeader` component to the trace drawer that surfaces ([#842](https://github.com/agentmark-ai/agentmark/pull/842))
+  trace-level cost, token count (with prompt→completion breakdown), wall-clock
+  latency, distinct models used (as chips), user ID, and session ID — closing
+  LangFuse parity gaps 1, 6, and 7.
+
+  `@agentmark-ai/api-types`: `TraceDetail` gains optional `userId` and
+  `sessionId` string fields so the observability service can carry user context
+  from ClickHouse through to the dashboard.
+
+  `@agentmark-ai/ui-components`: new `TraceSummaryHeader` component (exported
+  from the `trace-drawer` barrel) and `summarizeTrace` pure helper (exported
+  from the `utils` barrel) that aggregates cost, tokens, latency, models, and
+  user context from a `TraceData` value already in memory — no extra fetches
+  required.
+
+### 🧱 Updated Dependencies
+
+- Updated @agentmark-ai/prompt-core to 1.2.4
+
 ## 0.13.5 (2026-06-23)
 
 ### 🧱 Updated Dependencies
