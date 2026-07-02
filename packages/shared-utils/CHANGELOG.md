@@ -1,3 +1,13 @@
+## 0.9.2 (2026-07-02)
+
+### 🩹 Fixes
+
+- Remove `preprocessTraceToText` and its types (`TracePreprocessorSpan`, ([#844](https://github.com/agentmark-ai/agentmark/pull/844))
+  `TracePreprocessorOptions`, `TRACE_PREPROCESSOR_DEFAULT_TOKEN_LIMIT`) from
+  `@agentmark-ai/shared-utils`. The trace preprocessor (Trace Topics Stage 1)
+  has moved to `@repo/trace-topics`. No consumer imported it, so dropping the
+  export is non-breaking.
+
 ## 0.9.1 (2026-06-22)
 
 ### 🩹 Fixes
